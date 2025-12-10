@@ -1,0 +1,60 @@
+{
+  "Auth": {
+    "RoomSecret": "base64:S2G0OC1l83+FxYlXdiJ5wZ/kF4QM5QVV6CUxOMoZAt4=",
+    "Ticket": {
+      "Algorithm": "RS256",
+      "Issuer": "LobbyAuth",
+      "Audience": "GameServer",
+      "PrivateKeyPemPath": "Infrastructure/Security/keys/lobby_private.pem",
+      "PublicKeyPemPath": "Infrastructure/Security/keys/lobby_public.pem"
+    },
+    "GoogleAuth": {
+      "ClientId": "857468612725-h103o44t2ndna421e4der86teuljqojm.apps.googleusercontent.com",
+      "ClientSecret": "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",
+      "RedirectUri": "http://localhost:5000/auth/google/callback"
+    }
+  },
+  "ConnectionStrings": {
+    "AuthDb": "Host=localhost;Port=5432;Database=lobbydb;Username=app_user;Password=Strong_App_Pw!;Pooling=true;Maximum Pool Size=50"
+  },
+  "App": {
+    "Versioning": {
+      "MinClientVersion": "1.0.0",
+      "HeaderName": "X-Client-Version",
+      "ProtoVer": 3
+    },
+    "RateLimit": {
+      "CreateRoomPerMin": 10,
+      "JoinPerMin": 30,
+      "ReadyTogglePerSec": 10,
+      "GlobalRpsPerIp": 60
+    },
+    "Redis": "localhost:6380,password=whdals0119,ssl=False,abortConnect=False",
+    "MatchTtlSeconds": 900,
+    "Ticket": {
+      "TtlSeconds": 120
+    },
+    "GameServer": {
+      "Mode": "Static",
+      "Static": {
+        "Id": "gs1",
+        "PublicHost": "127.0.0.1",
+        "Port": 13221,
+        "TickRate": 30
+      },
+      "Registry": {
+        "Prefix": "아직 구현x ",
+        "Region": "kr",
+        "Strategy": "leastLoad",
+        "HeartbeatTtlSec": 5
+      }
+    }
+
+
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information"
+    }
+  }
+}
