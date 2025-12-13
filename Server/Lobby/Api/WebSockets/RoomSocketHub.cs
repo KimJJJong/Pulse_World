@@ -162,8 +162,8 @@ public sealed class RoomSocketHub
 
         await _conns.BroadcastAsync(r.Id, new MemberUpdateMsg { Id = userId, Ready = v }, ct);
         RoomHubLogs.MemberUpdateBroadcast(_logger, userId, v); 
-
-        if (r.Members.Count == 2 && r.Members.Values.All(m => m.Ready))
+            // TMP : slot
+        if (r.Members.Count == r.MaxPlayers && r.Members.Values.All(m => m.Ready))
             await ArmCountdownAsync(r, ct);
         else
             await CancelCountdownAsync(r, ct);
@@ -195,7 +195,7 @@ public sealed class RoomSocketHub
         if (r.CountdownCts != null) return;
 
         r.CountdownCts = new CancellationTokenSource();
-        r.CountdownSeconds = 1;
+        r.CountdownSeconds = 1; // TMP
         r.CountdownStartAtMs = DateTimeOffset.UtcNow.AddSeconds(r.CountdownSeconds.Value).ToUnixTimeMilliseconds();
 
         await _conns.BroadcastAsync(r.Id, new CountdownStartMsg
@@ -210,16 +210,21 @@ public sealed class RoomSocketHub
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(r.CountdownSeconds!.Value), r.CountdownCts.Token);
+            // TMP : slot
+            if (r.Members.Count == r.MaxPlayers && r.Members.Values.All(m => m.Ready))
+            {
+                r.Status = RoomStatus.Starting;
+                await _repo.UpdateAsync(r);
 
-                if (r.Members.Count == 2 && r.Members.Values.All(m => m.Ready))
-                {
-                    r.Status = RoomStatus.Starting;
-                    await _repo.UpdateAsync(r);
+                    // 1) slot
+                    var ordered = r.Members.Keys
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray();
 
-                    // 1) Slot/Side 결정 (도메인에 Slot 있으면 그걸 쓰기)
-                    var ordered = r.Members.Keys.OrderBy(x => x, StringComparer.Ordinal).ToArray();
-                    var a = (uid: ordered[0], side: "A");
-                    var b = (uid: ordered[1], side: "B");
+                    var slots = ordered
+                        .Select((uid, index) => (uid, slot: index)) // 0..MaxPlayers-1
+                        .ToList();
+
 
                     // 2-1) Static GS선택
                     var (gsId, host, port, tickRate) = await _gsResolver.PickAsync(CancellationToken.None);
@@ -229,46 +234,50 @@ public sealed class RoomSocketHub
 
                     var tag = "{"+r.Id+"}";
 
-                    // 3) 매치 메타 Redis 기록 (Lua 검증에서 사용)
-                    await _redis.HashSetAsync($"match:{tag}", new HashEntry[] {
-                        new("gsId", gsId), 
+                    var entries = new List<HashEntry>
+                    {
+                        new("gsId", gsId),
                         new("gsHost", host),
                         new("gsPort", port),
-                        new("uidA", a.uid), 
-                        new("uidB", b.uid),
                         new("protoVer", proto)
-                });
-                    await _redis.KeyExpireAsync($"match:{tag}", TimeSpan.FromMinutes(30));
+                    };
+
+                    foreach(var s in slots)
+                    {
+                        entries.Add(new HashEntry($"uid{s.slot}", s.uid));
+                    }
+
+
+                // 3) 매치 메타 Redis 기록 
+                await _redis.HashSetAsync($"match:{tag}", entries.ToArray());
+                await _redis.KeyExpireAsync($"match:{tag}", TimeSpan.FromMinutes(30));
+
+
+
 
                     // 4) 개인별 티켓
                     var ttl = TimeSpan.FromSeconds(_opt.Ticket.TtlSeconds);
-                    var (toA, toB) = _tickets.IssueStartTickets(
-                        matchId: r.Id, roomId: r.Id,
-                        a, b,
-                        gsHost: host, gsPort: port, 
-                        tickRate: tickRate, ttl: ttl,
-                        proto: proto );
+                    var tickets = _tickets.IssueStartTickets(
+                                    matchId: r.Id, roomId: r.Id,
+                                    players: slots,
+                                    gsHost: host, gsPort: port,
+                                    tickRate: tickRate, ttl: ttl,
+                                    proto: proto
+                                );
 
                     // 5) 개별 전송 + 평탄화 host/port 채움
-                    var msgA = new GameBeginMsg
+                    foreach (var t in tickets)
                     {
-                        Op = "game.begin",
-                        GSAddress = new GameServerDto { Host = host, Port = port },
-                        Ticket = toA.token,
-                        ProtoVer = proto,
-                    };
-                    var msgB = new GameBeginMsg
-                    {
-                        Op = "game.begin",
-                        GSAddress = new GameServerDto { Host = host, Port = port },
-                        Ticket = toB.token,
-                        ProtoVer = proto
-                    };
-
-                    await _conns.SendAsync(r.Id, a.uid, msgA, CancellationToken.None);
-                    await _conns.SendAsync(r.Id, b.uid, msgB, CancellationToken.None);
-
-                    RoomHubLogs.GameBegin(_logger, host, port, SafeTicket8(toA.token));
+                        var msg = new GameBeginMsg
+                        {
+                            Op = "game.begin",
+                            GSAddress = new GameServerDto { Host = host, Port = port },
+                            Ticket = t.ticket.token,
+                            ProtoVer = proto,
+                        };
+                        await _conns.SendAsync(r.Id, t.uid, msg, CancellationToken.None);
+                    }
+ 
                 }
             }
             catch (TaskCanceledException) { /* 취소됨 */ }

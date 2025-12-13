@@ -5,3 +5,9 @@ public enum ActionKind
     Skill = 2,
     Wait = 3,
 }
+public enum EntityType : byte
+{
+    Player = 1,
+    Monster = 2,
+    Object = 3,
+}

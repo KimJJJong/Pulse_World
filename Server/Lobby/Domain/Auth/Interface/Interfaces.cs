@@ -59,10 +59,9 @@ public interface IJwtService
 // GameStart Ticket
 public interface ITicketIssuer
 {
-    (GameStartTicket toA, GameStartTicket toB) IssueStartTickets(
+    IReadOnlyList<(string uid, int slot, GameStartTicket ticket)> IssueStartTickets(
     string matchId, string roomId,
-    (string uid, string side) a,
-    (string uid, string side) b,
+    IReadOnlyList<(string uid, int slot)> players,
     string gsHost, int gsPort,
     int tickRate, TimeSpan ttl,
     int proto);

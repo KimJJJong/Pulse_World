@@ -12,13 +12,19 @@ using GameServer.InGame.Manager.Entity;
 using GameServer.InGame.Manager.Map;
 using GameServer.InGame.Manager.Map.Interface;
 using GameServer.InGame.System.Rhythm;
+using System.Threading;
 #endregion
 
 public sealed class GameRoom : IGameBroadcaster
 {
     readonly object _lock = new();
-    readonly Dictionary<char, ClientSession> _slots = new() { ['A'] = null, ['B'] = null };
-    readonly HashSet<string> _loaded = new();
+ 
+    // slot -> session
+    readonly Dictionary<int, ClientSession> _slots = new();
+    readonly HashSet<string> _loaded = new(); // uid
+    // broadcast snapshot
+    private ClientSession[] _broadcastSnapshot = Array.Empty<ClientSession>();
+    private bool _broadcastDirty = true;
 
     public string MatchId { get; }
     public int MapId { get; private set; } = 0;
@@ -27,7 +33,6 @@ public sealed class GameRoom : IGameBroadcaster
     enum RoomPhase { Waiting, Loading, Countdown, Running, Ended }
     RoomPhase _phase = RoomPhase.Waiting;
 
-    //GameLogicManager _logic;
 
     private readonly ILogger _logger;
     #region 리듬 게임 관련 필드
@@ -38,7 +43,6 @@ public sealed class GameRoom : IGameBroadcaster
     private RhythmConfig _rhythmConfig;
     private Map2D _map;
 
-    private int _nextEntityId = 1; // MapEntity Id 발급용
 
     // IServerTime 어댑터
     private sealed class ServerTimeAdapter : IServerTime
@@ -53,15 +57,41 @@ public sealed class GameRoom : IGameBroadcaster
         MatchId = matchId;
         Seed = Environment.TickCount;
         _logger = logger ?? NullLogger.Instance;
+        _slots.Clear();
     }
 
-    public bool Bind(char side, ClientSession s)
+    public bool Bind(int slot, ClientSession s)
     {
         lock (_lock)
         {
-            if (!_slots.ContainsKey(side)) return false;
-            _slots[side] = s;
+            if (slot < 0) return false;
+
+            if (_slots.TryGetValue(slot, out var existing) && existing != null && !ReferenceEquals(existing, s))
+                return false; // already Occupying
+
+
+            _slots[slot] = s;
+
+            s.Slot = slot;
+
+            _broadcastDirty = true;
             return true;
+        }
+    }
+    // broadCastdirty를 만들었으면 Unbind 제대로 써먹고 사용 해야하다이!
+    private void Unbind(ClientSession s)
+    {
+        lock (_lock)
+        {
+            var slotsToRemove = _slots
+                .Where(kv => ReferenceEquals(kv.Value, s))
+                .Select(kv => kv.Key)
+                .ToArray();
+
+            foreach (var slot in slotsToRemove)
+                _slots[slot] = null;
+
+            _broadcastDirty = true;
         }
     }
 
@@ -69,14 +99,26 @@ public sealed class GameRoom : IGameBroadcaster
     {
         lock (_lock)
         {
-            _loaded.Add(s.Uid!);
-            var a = _slots['A']; var b = _slots['B'];
-            if (a?.Uid == null || b?.Uid == null) return false;
-            return _loaded.Contains(a.Uid) && _loaded.Contains(b.Uid);
+            if (s.Uid == null)
+                return false;
+
+            _loaded.Add(s.Uid);
+
+            // 현재 방에 바인딩된 모든 세션이 로딩 완료인지 체크
+            foreach (var cs in _slots.Values)
+            {
+                if (cs?.Uid == null)
+                    return false;             
+
+                if (!_loaded.Contains(cs.Uid))
+                    return false;             
+            }
+
+            return true; // 전원 로딩 완료
         }
     }
 
-    public IEnumerable<(string uid, char side, bool loaded)> GetPlayersSnapshot()
+    public IEnumerable<(string uid, int slot, bool loaded)> GetPlayersSnapshot()
     {
         lock (_lock)
         {
@@ -92,37 +134,51 @@ public sealed class GameRoom : IGameBroadcaster
     #region GameRoom Util
     private void Broadcast(ArraySegment<byte> payload)
     {
-        //  전송 시 락 홀드 최소화
-        ClientSession a, b;
-        lock (_lock) { a = _slots['A']; b = _slots['B']; }
-        a?.Send(payload);
-        b?.Send(payload);
+        var targets = GetBroadcastSnapshot(); 
+
+        foreach (var t in targets)
+            t.Send(payload);
     }
     public void Broadcast(IPacket pkt) => Broadcast(pkt.Write());
     private void SendTo(ClientSession s, ArraySegment<byte> payload) => s?.Send(payload);
     public void SendTo(ClientSession s, IPacket pkt) => SendTo(s, pkt.Write());
     public void SendToSlot(int slot, IPacket pkt)
     {
-        var side = SideSlot.ToSide(slot);
         ClientSession target;
-        lock (_lock) _slots.TryGetValue(side, out target);
+        lock (_lock) _slots.TryGetValue(slot, out target);
         target?.Send(pkt.Write());
     }
     public ClientSession GetSessionBySlot(int slot)
     {
-        var side = SideSlot.ToSide(slot);
-        lock (_lock) return _slots.TryGetValue(side, out var s) ? s : null;
+        lock (_lock) return _slots.TryGetValue(slot, out var s) ? s : null;
     }
-    public int GetPlayerSlot(ClientSession s)
+    private ClientSession[] GetBroadcastSnapshot()
     {
         lock (_lock)
         {
-            foreach (var kv in _slots)
-                if (ReferenceEquals(kv.Value, s))
-                    return SideSlot.ToSlot(kv.Key);
+            if (!_broadcastDirty)
+                return _broadcastSnapshot;
+
+            if (_slots.Count == 0)
+            {
+                _broadcastSnapshot = Array.Empty<ClientSession>();
+                _broadcastDirty = false;
+                return _broadcastSnapshot;
+            }
+
+            var list = new List<ClientSession>(_slots.Count);
+            foreach (var s in _slots.Values)
+            {
+                if (s != null)
+                    list.Add(s);
+            }
+
+            _broadcastSnapshot = list.ToArray();
+            _broadcastDirty = false;
+            return _broadcastSnapshot;
         }
-        return -1;
     }
+
     #endregion
 
     public void ScheduleStart(long startAtMs)
@@ -137,6 +193,10 @@ public sealed class GameRoom : IGameBroadcaster
                 StartGameplay();
             }
             catch (TaskCanceledException) { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "ScheduleStart failed match={MatchId}", MatchId);
+            }
         });
     }
 
@@ -153,29 +213,14 @@ public sealed class GameRoom : IGameBroadcaster
         // TODO: MapFactory는 네 프로젝트 스타일에 맞게 구현
         _map = MapFactory.CreatePrototypeMap();//CreatePrototype(MapId); // 예시: MapId에 따라 다른 맵 생성
 
-        // 2) 플레이어 엔티티 생성 (슬롯 A/B 기준)
-        var players = new List<MapEntity>();
-        var monsters = new List<MapEntity>(); // PVE용 몬스터 있으면 여기 채움
 
-        ClientSession a, b;
-        lock (_lock)
-        {
-            _slots.TryGetValue('A', out a);
-            _slots.TryGetValue('B', out b);
-        }
-
-        if (a != null)
-            players.Add(CreatePlayerEntity(a, slot: 0, x: 5, y: 0));
-
-        if (b != null)
-            players.Add(CreatePlayerEntity(b, slot: 1, x: 7, y: 1));
 
         // 3) 리듬 설정
         _rhythmConfig = new RhythmConfig
         {
-            Bpm = 120.0,
-            BaseBeatDivision = 4 * 4,  // 16분음표 기준
-            ActionWindowMs = 80.0,     // +-80ms 판정 윈도우
+            Bpm = 60.0,
+            BaseBeatDivision = 1/*4 * 4*/,  // 16분음표 기준
+            ActionWindowMs = 200.0,     // +-80ms 판정 윈도우
             MaxBeatLookAhead = 2
         };
 
@@ -186,7 +231,7 @@ public sealed class GameRoom : IGameBroadcaster
 
         // 4) GameSession 구성
         _session = new GameSession(
-            sessionId: 0,                 // MatchId 해시 등으로 대체 가능
+            sessionId: 0,                
             time: time,
             broadcaster: this,
             rhythm: _rhythm,
@@ -196,24 +241,111 @@ public sealed class GameRoom : IGameBroadcaster
 
         _rhythm.OnBeat += _session.OnBeat;
 
-        // 5) 엔티티 스폰 + 초기 패킷 송신 (SC_InitGame)
+
+
+        // 4) 엔티티 생성 (players / monsters)
+        var players = BuildPlayerEntities();
+        var monsters = BuildMonsterEntitiesForPrototype();
+
         _session.InitGame(players, monsters);
+
+        foreach (var s in GetBroadcastSnapshot())
+        {
+            _session.SendInitPacketToPlayer(s);
+        }
+
+        // 6) BeatSync 
+        Broadcast(new SC_BeatSync
+        {
+            ServerTimeMs = AppRef.ServerTimeMs(),
+            SongStartServerTimeMs = songStart,
+            Bpm = _rhythmConfig.Bpm,
+            BaseBeatDivision = _rhythmConfig.BaseBeatDivision,
+            BeatIndex = _rhythm.GetCurrentBeatIndex(time.NowMs),
+        });
+
 
         _logger.LogInformation("GameRoom {MatchId} started rhythm gameplay", MatchId);
 
     }
+    private List<MapEntity> BuildPlayerEntities()
+    {
+        var players = new List<MapEntity>();
 
+        //  slot별로 하나씩 player 생성
+        // (프로토: Player EntityId == Slot 사용 가능)
+        lock (_lock)
+        {
+            foreach (var kv in _slots)
+            {
+                int slot = kv.Key;
+                var s = kv.Value;
+                if (s == null || string.IsNullOrEmpty(s.Uid)) continue;
+
+                // 스폰 위치는 slot 기준으로 적당히 배치 TMP
+                var spawn = GetPrototypeSpawnForSlot(slot);
+
+                var e = new MapEntity(
+                    id: slot, //  프로토에서는 slot==entityId
+                    type: EntityType.Player,
+                    initialPos: spawn
+                );
+
+                e.SetState("HP", 100);
+                e.SetState("Slot", slot);
+                e.SetState("OwnerSlot", slot);
+                e.SetState("Uid", s.Uid!);
+
+                players.Add(e);
+            }
+        }
+
+        return players;
+    }
+
+    private List<MapEntity> BuildMonsterEntitiesForPrototype()
+    {
+        var monsters = new List<MapEntity>();
+
+        // 프로토: 몬스터 2마리 예시
+        monsters.Add(CreateMonster(x: 9, y: 7, hp: 50));
+       // monsters.Add(CreateMonster(x: 10, y: 6, hp: 60));
+
+        return monsters;
+    }
     private MapEntity CreatePlayerEntity(ClientSession s, int slot, int x, int y)
     {
+        int entityId = slot;
 
-        MapEntity e = new MapEntity(_nextEntityId, EntityType.Player, new GridPos(x, y)); 
+        MapEntity e = new MapEntity(entityId, EntityType.Player, new GridPos(x, y)); 
 
 
         e.SetState("HP", 100);
         e.SetState("Slot", slot);
+        e.SetState("OwnerSlot",slot);
         e.SetState("Uid", s.Uid!);
 
         return e;
+    }
+
+    private int _nextMonsterId = 100; // 몬스터는 100 ~ 999
+    //private int NextMonsterId() => _nextMonsterId++;
+
+    private MapEntity CreateMonster(int x, int y, int hp)
+    {
+        var id = Interlocked.Increment(ref _nextMonsterId);
+        var m = new MapEntity(id, EntityType.Monster, new GridPos(x, y));
+        m.SetState("HP", hp);
+        m.SetState("OwnerSlot", -1);
+        return m;
+    }
+    private GridPos GetPrototypeSpawnForSlot(int slot)
+    {
+        // 간단 예시: 슬롯이 늘어도 겹치지 않게 대충 배치
+        // 맵 크기 고려해서 조정해도 됨
+        int baseX = 3 + slot * 2;
+        int baseY = 1 + slot;
+        return new GridPos(baseX, baseY);
     }
 
     // ====== Packet Serialization ======
@@ -237,7 +369,8 @@ public sealed class GameRoom : IGameBroadcaster
         // 과한가?
         lock (_lock) return _slots.Values.Contains(s);
     }
-
+    private long _nextBeatSyncAtMs = 0;
+    private const int BeatSyncIntervalMs = 500; // 0.5초마다
     public void Update()
     {
         if(_phase != RoomPhase.Running ) return;
@@ -248,7 +381,18 @@ public sealed class GameRoom : IGameBroadcaster
 
         // 2) 리듬 진행
         _rhythm?.Update();
+        if (_rhythm != null)
+        {
+            long now = AppRef.ServerTimeMs();
+            if (now >= _nextBeatSyncAtMs)
+            {
+                _nextBeatSyncAtMs = now + BeatSyncIntervalMs;
 
+                // 룸 전체에 같은 beat 기준 전달
+                var sync = _rhythm.CreateSyncPacket();
+                Broadcast(sync); // 또는 Broadcast(sync.Write())
+            }
+        }
         // 3) 인게임 세션 (AI, 상태 갱신)
         _session?.Update();
     }
@@ -269,13 +413,13 @@ public sealed class GameRoom : IGameBroadcaster
                 return;
             }
 
-            int slot = GetPlayerSlot(s);
+            int slot = s.Slot;
             if (slot < 0)
             {
                 s.Send(new SC_Warn { code = 2003, msg = "UNKNOWN_SLOT" }.Write());
                 return;
             }
-
+            //Console.WriteLine($" Session slot = {s.Slot} || ActorId = {p.ActorId}, ActorKind = {p.ActionKind}");
             // 간단 버전: Slot == ActorId 라고 가정
             // 필요하면 GameSession에 slot->actorId 매핑 테이블을 만들어서 ResolveActorIdBySlot(slot)로 가져오자.
             //int actorId = slot/* + 1*/; // 예시: slot 0 -> actorId 1, slot 1 → actorId 2 등

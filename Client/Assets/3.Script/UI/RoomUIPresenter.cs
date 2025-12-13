@@ -33,7 +33,7 @@ public class RoomUIPresenter : MonoBehaviour
     async private void Awake()
     {
         //무조건 필요한 스크립트
-        if (FindObjectOfType<MainThreadDispatcher>() == null)
+        if (FindAnyObjectByType<MainThreadDispatcher>() == null)
             new GameObject("MainThreadDispatcher").AddComponent<MainThreadDispatcher>();
 
         //클라 선언

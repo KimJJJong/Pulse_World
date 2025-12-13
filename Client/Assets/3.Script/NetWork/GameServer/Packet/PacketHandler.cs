@@ -17,7 +17,7 @@ class PacketHandler
         ServerSession server = (ServerSession)session;
         TimeSync.SetOffsetFromServerNow(w.serverTimeMs);
 
-        UnityEngine.Debug.Log($"In WelconHandle : {w.matchId} || {w.side}");
+        UnityEngine.Debug.Log($"In WelconHandle : [{w.matchId}] || [{w.slot}]");
 
         // 씬 로드 후 CS_Loaded 보고
         UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("RhythmTest")
@@ -26,8 +26,8 @@ class PacketHandler
                 CS_Loaded loaded = new CS_Loaded { matchId = w.matchId, uid = NetWorkManager.Instance.Uid };
                 NetWorkManager.Instance.Send(loaded.Write());
             };
-        UnityEngine.Debug.Log($"신발 왜 안보내져");
-        ClientHandlers.Instance.GS.MySide = (w.side == "A" ? 0 : 1);
+        UnityEngine.Debug.Log($"MyActorId : {w.slot}");
+        ClientHandlers.Instance.GS.SetMyActorId( w.slot);
 
     }
     public static void SC_AllPlayersLoadedHandler(PacketSession session, IPacket packet)

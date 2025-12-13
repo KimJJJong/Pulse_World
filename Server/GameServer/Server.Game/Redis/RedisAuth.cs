@@ -23,7 +23,7 @@ public static class RedisAuth
 -- 4 = ticket:{matchId}:black:{jti or _none}
 -- ARGV:
 -- 1 = expectedGsKey
--- 2 = side
+-- 2 = slot
 -- 3 = uid
 -- 4 = connTtlSec
 -- 5 = nonceTtlSec
@@ -32,12 +32,19 @@ local matchKey   = KEYS[1]
 local connKey    = KEYS[2]
 local nonceKey   = KEYS[3]
 local blackKey   = KEYS[4]
+
 local expectedGs = ARGV[1]
-local side       = ARGV[2]
+local slotArg    = ARGV[2]
 local uid        = ARGV[3]
+
 local connTtl    = tonumber(ARGV[4]) or 120
 local nonceTtl   = tonumber(ARGV[5]) or 900
 local allowRe    = tostring(ARGV[6]) == '1'
+
+local slot = tonumber(slotArg)
+if not slot or slot < 0 then
+  return 'err=bad_slot'
+end
 
 if string.sub(blackKey, -5) ~= '_none' then
   if redis.call('EXISTS', blackKey) == 1 then
@@ -54,7 +61,7 @@ if not gsId or gsId ~= expectedGs then
   return 'err=wrong_gs'
 end
 
-local seatField = (side == 'A') and 'uidA' or 'uidB'
+local seatField = 'uid' .. tostring(slot)
 local seatUid = redis.call('HGET', matchKey, seatField)
 if not seatUid or seatUid ~= uid then
   return 'err=seat_mismatch'

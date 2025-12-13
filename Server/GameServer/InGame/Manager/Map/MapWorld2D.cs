@@ -73,6 +73,11 @@ public sealed class MapWorld2D : IGameWorld
 
         return new GridPos(e.Position.X, e.Position.Y);
     }
+   public bool ContainsEntity(int entityId)
+       => _entities.ContainsKey(entityId);
+
+   public bool TryGetEntity(int entityId, out MapEntity e)
+       => _entities.TryGetValue(entityId, out e);
 
     public bool TryGetActorPosition(int actorId, out GridPos pos)
     {
@@ -138,7 +143,6 @@ public sealed class MapWorld2D : IGameWorld
 
     public bool TryUseSkill(int actorId, int targetX, int targetY)
     {
-        // 간단 예: 사거리 3 이내에 있는 몬스터들에게 데미지
         if (!_entities.TryGetValue(actorId, out var caster))
             return false;
 
@@ -155,10 +159,10 @@ public sealed class MapWorld2D : IGameWorld
             hp -= 10;
             e.SetState("HP", hp);
 
-            if (hp <= 0)
-            {
-                Despawn(e.Id);
-            }
+            //if (hp <= 0)
+            //{
+            //    Despawn(e.Id);
+            //}
         }
 
         return true;

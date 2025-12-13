@@ -9,7 +9,7 @@ public class ClientSession : PacketSession
 {
     public string MatchId { get; set; }
     public string Uid { get; set; }
-    public int Side { get; set; } = -1; // 'A : 1' or 'B : 2'
+    public int Slot { get; set; } = -1; 
     public bool Loaded { get; set; }
 
     public long LastPingAtMs { get; set; } = 0;

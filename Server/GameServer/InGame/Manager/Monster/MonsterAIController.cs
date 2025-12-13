@@ -10,7 +10,7 @@ public sealed class MonsterAIController
     private readonly IGameWorld _world;
     private readonly BeatActionManager _beatActions;
 
-    // monsterId → 상태
+    // monsterId  상태
     private readonly Dictionary<int, MonsterAiState> _states = new();
 
     public MonsterAIController(IGameWorld world, BeatActionManager beatActions)
@@ -63,13 +63,15 @@ public sealed class MonsterAIController
 
             _states[m.Id] = state;
 
-            // 3) 상태에 따른 행동 → Beat에 명령 예약
+            // 3) 상태에 따른 행동  Beat에 명령 예약
             switch (state)
             {
                 case MonsterAiState.Idle:
                     {
                         // 가끔 대기 액션 넣어도 되고, 아무것도 안 해도 됨
-                        // _beatActions.ScheduleServerCommand(beatIndex, new PlayerActionCmd { ... Wait ... });
+                        //_beatActions.ScheduleServerCommand(beatIndex, new PlayerActionCmd { ... Wait ... });
+                        Console.WriteLine($"[MonsterAiState.Idel] ID :{m.Id} || IsAlive : {m.IsAlive} || Pos :({targetPlayer.Position}) ");
+
                         break;
                     }
 
@@ -84,6 +86,7 @@ public sealed class MonsterAIController
                             ClientSendTimeMs = 0,
                             ServerReceiveTimeMs = 0
                         };
+                        Console.WriteLine($"[MonsterAiState.Chase] ID :{m.Id} || IsAlive : {m.IsAlive} || Pos : ({nextPos}) -> ({targetPlayer.Position})");
                         _beatActions.ScheduleServerCommand(beatIndex, cmd);
                         break;
                     }
@@ -99,6 +102,8 @@ public sealed class MonsterAIController
                             ClientSendTimeMs = 0,
                             ServerReceiveTimeMs = 0
                         };
+                        Console.WriteLine($"[MonsterAiState.Attack] ID :{m.Id} || IsAlive : {m.IsAlive} || Pos :({targetPlayer.Position}) || HP :({m.GetState<int>("HP")}) -> ({targetPlayer.GetState<int>("HP")})");
+
                         _beatActions.ScheduleServerCommand(beatIndex, cmd);
                         break;
                     }

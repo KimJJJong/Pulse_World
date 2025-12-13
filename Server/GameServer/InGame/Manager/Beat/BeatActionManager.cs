@@ -44,6 +44,7 @@ namespace GameServer.InGame.Manager.Beat
         {
             var now = _time.NowMs;
 
+            //Console.WriteLine($" In OnClientActionRequest");
             // 1) 현재 Beat 계산
             var currBeat = _clock.GetCurrentBeatIndex(now);
 
@@ -55,6 +56,7 @@ namespace GameServer.InGame.Manager.Beat
             // 3) 판정 윈도우 밖이면 무시 (원하면 Fail 패킷 보내도 됨)
             if (diff > _actionWindowMs)
             {
+                Console.WriteLine($"diff > _actionWindowMs :{diff} > {_actionWindowMs}");
                 // TODO: 필요하면 SC_ActionRejected 같은 패킷 보내기
                 return;
             }
@@ -62,20 +64,20 @@ namespace GameServer.InGame.Manager.Beat
             // 4) 너무 과거/미래 Beat는 거절
             if (nearestBeat < currBeat || nearestBeat > currBeat + _maxBeatLookAhead)
             {
+                Console.WriteLine($"nearestBeat < currBeat || nearestBeat > currBeat + _maxBeatLookAhead");
                 return;
             }
 
-            // 5) PlayerActionCmd 생성 (CS_ActionRequest → 내부 명령으로 변환)
+            // 5) PlayerActionCmd 생성 (CS_ActionRequest -> 내부 명령으로 변환)
             var cmd = new PlayerActionCmd
             {
-                ActorId = actorId,                          // or req.ActorId; 둘 중 뭘 신뢰할지 선택
-                Kind = (ActionKind)req.ActionKind,                // req.Kind가 enum이라면 캐스팅 없이도 가능
+                ActorId = actorId,                          
+                Kind = (ActionKind)req.ActionKind,               
                 TargetCell = new GridPos(req.TargetX, req.TargetY),
                 RequestedBeat = nearestBeat,
                 ClientSendTimeMs = req.ClientSendTimeMs,
                 ServerReceiveTimeMs = now
             };
-
             _scheduler.Enqueue(cmd);
         }
         // 서버에서 직접 예약하고 싶은 명령 (몬스터 AI 등)
@@ -92,17 +94,35 @@ namespace GameServer.InGame.Manager.Beat
         /// </summary>
         public void OnBeat(long beatIndex)
         {
-            List<PlayerActionCmd> cmds = _scheduler.PopActions(beatIndex);
-            if (cmds.Count == 0)
-                return;
+            var cmds = _scheduler.PopActions(beatIndex);
+            if (cmds.Count == 0) return;
 
             var results = new List<SC_BeatActions.BeatActionResult>(cmds.Count);
+            var used = new HashSet<int>(); //  Actor당 1 action/beat
 
             foreach (var cmd in cmds)
             {
-                var fromPos = _world.GetActorPosition(cmd.ActorId);
+                if (!used.Add(cmd.ActorId))
+                    continue;
+
+                if (!_world.TryGetActorPosition(cmd.ActorId, out var fromPos))
+                {
+                    // 프로토: 결과라도 내려주고 싶으면 아래 블록 유지
+                    results.Add(new SC_BeatActions.BeatActionResult
+                    {
+                        ActorId = cmd.ActorId,
+                        ActionKind = (int)cmd.Kind,
+                        FromX = 0,
+                        FromY = 0,
+                        ToX = 0,
+                        ToY = 0,
+                        Accepted = false
+                    });
+                    continue;
+                }
+
                 var toPos = fromPos;
-                bool accepted = false;
+                bool accepted;
 
                 switch (cmd.Kind)
                 {
@@ -112,14 +132,14 @@ namespace GameServer.InGame.Manager.Beat
                         break;
 
                     case ActionKind.Skill:
-                        toPos = fromPos; // 위치는 그대로, 효과만
                         accepted = _world.TryUseSkill(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y);
+                        toPos = fromPos;
                         break;
 
                     case ActionKind.Wait:
                     default:
-                        toPos = fromPos;
                         accepted = true;
+                        toPos = fromPos;
                         break;
                 }
 
@@ -135,17 +155,15 @@ namespace GameServer.InGame.Manager.Beat
                 });
             }
 
-            if (results.Count == 0)
-                return;
+            if (results.Count == 0) return;
 
-
-            var packet = new SC_BeatActions
+            _broadcaster.Broadcast(new SC_BeatActions
             {
                 BeatIndex = beatIndex,
                 beatActionResults = results
-            };
+            });
 
-            _broadcaster.Broadcast(packet);
+            _scheduler.DropBefore(beatIndex - 4);
         }
     }
 }

@@ -33,7 +33,7 @@ public static class SessionSweeper
                 }
                 catch { /* swallow/log */ }
 
-                await Task.Delay(10000);
+                await Task.Delay(100000);
             }
         });
     }

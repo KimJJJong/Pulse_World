@@ -40,11 +40,12 @@ public class ClientHandlers : MonoBehaviour
         var actorIds = p.playerActorIdss.Select(pa => pa.ActorId).ToArray();
         GS.SetPlayerActorIds(actorIds);
         GS.SetMyActorId(p.MyActorId);
-        Debug.Log($"ActorId : {GS.PlayerActorIds} ~!~!~@~!@~@~!@~!@");
+        Debug.Log($"ActorId : {GS.MyActorId} ~!~!~@~!@~@~!@~!@");
         // 3) 엔티티 스폰
         GS.ClearEntities();
         foreach (var e in p.spawnEntitiess)
         {
+            Debug.Log($"Spawn Entite [ ID :{e.EntityId} || Type : {(EntityType)e.EntityType} || (x,y) : ({e.X}, {e.Y}) || Hp : {e.Hp} ]");
             GS.SpawnOrUpdateEntity(new ClientEntityInfo
             {
                 EntityId = e.EntityId,
@@ -64,7 +65,6 @@ public class ClientHandlers : MonoBehaviour
     /// </summary>
     public void Handle_SC_BeatSync(SC_BeatSync p)
     {
-
         Rhythm.OnBeatSync(new BeatSyncInfo
         {
             ServerTimeMs = p.ServerTimeMs,

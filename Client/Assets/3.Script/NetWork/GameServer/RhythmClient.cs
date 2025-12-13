@@ -36,7 +36,6 @@ public class RhythmClient : MonoBehaviour
         long localNow = GetLocalTimeMs();
         _serverTimeOffsetMs = info.ServerTimeMs - localNow;
 
-        // Debug.Log($"[RhythmClient] Sync: server={info.ServerTimeMs}, local={localNow}, offset={_serverTimeOffsetMs}");
     }
 
     public long GetCurrentServerTimeMs()

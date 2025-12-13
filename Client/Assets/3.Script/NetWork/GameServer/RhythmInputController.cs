@@ -16,9 +16,12 @@ public class RhythmInputController : MonoBehaviour
     {
         // 아직 내 ActorId가 없으면 입력 처리 안 함
         if (GS == null || Rhythm == null)
+        {
+            Debug.LogWarning($" GS :{GS} || Rhythm : {Rhythm}");
             return;
-        if (GS.MyActorId == 0)
-            return;
+        }
+        //if (GS.MyActorId == 0)
+        //    return;
 
         // 아주 간단한 쿨타임
         long nowLocal = (long)(Time.realtimeSinceStartupAsDouble * 1000.0);
@@ -39,6 +42,7 @@ public class RhythmInputController : MonoBehaviour
 
         if (dir == Vector2Int.zero)
             return;
+        Debug.Log($"[Input]");
 
         // 내 현재 위치 가져오기
         if (!GS.TryGetMyEntity(out var me))

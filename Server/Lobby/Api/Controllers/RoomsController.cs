@@ -91,7 +91,7 @@ public sealed class RoomsController : ControllerBase
                 Id = $"r_{Guid.NewGuid():N}"[..8],
                 Title = req.Title,
                 Map = req.Map,
-                MaxPlayers = Math.Clamp(req.Max, 2, 2),
+                MaxPlayers = Math.Clamp(req.Max, 2, 4),
                 Visibility = Enum.Parse<RoomVisibility>(req.Visibility, true),
                 UpdatedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
@@ -165,7 +165,7 @@ public sealed class RoomsController : ControllerBase
         //Console.WriteLine($"OKJoin = {okJoin}");    // TMP
         if (!okJoin)
         {
-            var reason = (room.CurPlayers >= room.MaxPlayers) ? "room_full" : "room_closed";
+            string reason = (room.CurPlayers >= room.MaxPlayers) ? "room_full" : "room_closed";
             RoomsLogs.RoomsJoinFail(_logger, id, reason, sw.Elapsed.TotalMilliseconds);
             return BadRequest(new ErrorRes { Error = reason, TraceId = HttpContext.TraceIdentifier });
         }

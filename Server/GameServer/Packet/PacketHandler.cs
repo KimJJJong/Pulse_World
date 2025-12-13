@@ -38,10 +38,16 @@ class PacketHandler
 
             // 1-1) 클레임 추출 
             string matchId = claims.TryGetValue("matchId", out var _m) ? _m?.ToString() ?? "" : "";
-            string sideStr = claims.TryGetValue("side", out var _s) ? _s?.ToString() ?? "" : "";
             string uid = claims.TryGetValue("uid", out var _u) ? _u?.ToString() ?? "" : "";
             string nonce = claims.TryGetValue("nonce", out var _n) ? _n?.ToString() ?? "" : "";
             string jti = claims.TryGetValue("jti", out var _j) ? _j?.ToString() ?? "" : "";
+
+            int slot = -1;
+            if (claims.TryGetValue("slot", out var _slot))
+            {
+                int.TryParse(_slot?.ToString(), out slot);
+            }
+            Console.WriteLine($"GetFuking Slot :{slot}");
 
             int tokenTickRate = int.TryParse(claims.TryGetValue("tickRate", out var _tr) ? _tr?.ToString() : null, out var t) ? t : -1;
             int tokenProtoVer = int.TryParse(claims.TryGetValue("protoVer", out var _pv) ? _pv?.ToString() : null, out var pv) ? pv : -1;
@@ -56,13 +62,13 @@ class PacketHandler
             }
 
             // 1-3) 요청 본문과 토큰의 일치성 검사 (MITM/오용 방지)
-/*            if (req.matchId != matchId || req.uid != uid)
-            {
-                session.Send(new SC_Error { code = 4000, message = "ClaimMismatch" }.Write());
-                session.Disconnect();
-                return;
-            }*/
-            if (string.IsNullOrEmpty(matchId) || string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(sideStr) || string.IsNullOrEmpty(nonce))
+            /*            if (req.matchId != matchId || req.uid != uid)
+                        {
+                            session.Send(new SC_Error { code = 4000, message = "ClaimMismatch" }.Write());
+                            session.Disconnect();
+                            return;
+                        }*/
+            if (string.IsNullOrEmpty(matchId) || string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(nonce) || slot < 0)
             {
                 session.Send(new SC_Error { code = 4000, message = "ClaimMissing" }.Write());
                 session.Disconnect();
@@ -84,7 +90,7 @@ class PacketHandler
             RedisValue[] args = new StackExchange.Redis.RedisValue[]
             {
                 RedisAuth.ExpectedGsKey, // 로비가 저장해둔 match.gsId와 비교
-                sideStr,                 // "A"|"B"
+                slot,               
                 uid,
                 "120",                   // conn TTL
                 "900",                   // nonce TTL
@@ -109,14 +115,13 @@ class PacketHandler
 
             // 3) 룸 바인딩 (세션 필드 선세팅  입장)
             GameRoom room = RoomManager.GetOrCreate(matchId);
-            var side = sideStr[0];
 
             s.MatchId = matchId;
             s.Uid = uid;
-            s.Side = (side == 'A') ? 0 : 1;     // 'A' or 'B'    //TODO : char사용하지 않기 : Session측 첫 입력
+            s.Slot = slot;
             s.Loaded = false;
-
-            if (!room.Bind(side, s))
+            Console.WriteLine( $"Matchid : {matchId} || Slot : {slot}");
+            if (!room.Bind(slot, s))
             {
                 session.Send(new SC_Error { code = 4003, message = "RoomBindFailed" }.Write());
                 session.Disconnect();
@@ -137,7 +142,7 @@ class PacketHandler
             var welcome = new SC_Welcome
             {
                 matchId = matchId,
-                side = side.ToString(),
+                slot = slot,
                 serverTimeMs = AppRef.ServerTimeMs(),
                 tickRate = AppRef.TickRate,
                 startTick = 0,
@@ -197,7 +202,7 @@ class PacketHandler
             {
                 matchId = session.MatchId,
                 playerss = players
-                    .Select(pl => new SC_AllPlayersLoaded.Players { uid = pl.uid, side = pl.side.ToString(), loaded = pl.loaded })
+                    .Select(pl => new SC_AllPlayersLoaded.Players { uid = pl.uid, slot = pl.slot, loaded = pl.loaded })
                     .ToList()
             });
 

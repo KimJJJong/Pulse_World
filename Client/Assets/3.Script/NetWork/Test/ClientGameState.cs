@@ -81,8 +81,11 @@ public class ClientGameState : MonoBehaviour
     public bool TryGetMyEntity(out ClientEntityInfo info)
     {
         info = default;
-        if (MyActorId == 0)
-            return false;
+        //if (MyActorId < 0)
+        //{
+        //    Debug.LogWarning($"MyActorId : [{MyActorId}]");
+        //    return false;
+        //}
 
         return _entities.TryGetValue(MyActorId, out info);
     }
@@ -105,8 +108,17 @@ public class ClientGameState : MonoBehaviour
 
     public void OnBeatAction(ClientBeatAction action)
     {
+        //if (action.Accepted)
+        //{
+        //    Debug.Log($"[ OnBeatAction ] action.Accepted: [{action.Accepted}]");
+        //    return;
+        //}
+
         if (!_entities.TryGetValue(action.ActorId, out var entity))
+        {
+            Debug.Log("!_entities.TryGetValue(action.ActorId, out var entity)");
             return;
+        }
 
         // 서버가 FromX/Y, ToX/Y를 줬으니 그대로 신뢰
         entity.X = action.ToX;

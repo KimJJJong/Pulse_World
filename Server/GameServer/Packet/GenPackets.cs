@@ -124,7 +124,7 @@ public class CS_JoinGame : IPacket
 public class SC_Welcome : IPacket
 {
 	public string matchId;
-	public string side;
+	public int slot;
 	public long serverTimeMs;
 	public int tickRate;
 	public int startTick;
@@ -146,10 +146,8 @@ public class SC_Welcome : IPacket
 		count += sizeof(ushort);
 		this.matchId = Encoding.Unicode.GetString(s.Slice(count, matchIdLen));
 		count += matchIdLen;
-		ushort sideLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
-		count += sizeof(ushort);
-		this.side = Encoding.Unicode.GetString(s.Slice(count, sideLen));
-		count += sideLen;
+		this.slot = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		count += sizeof(int);
 		this.serverTimeMs = BitConverter.ToInt64(s.Slice(count, s.Length - count));
 		count += sizeof(long);
 		this.tickRate = BitConverter.ToInt32(s.Slice(count, s.Length - count));
@@ -185,10 +183,8 @@ public class SC_Welcome : IPacket
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), matchIdLen);
 		count += sizeof(ushort);
 		count += matchIdLen;
-		ushort sideLen = (ushort)Encoding.Unicode.GetBytes(this.side, 0, this.side.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), sideLen);
-		count += sizeof(ushort);
-		count += sideLen;
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.slot);
+		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.serverTimeMs);
 		count += sizeof(long);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.tickRate);
@@ -270,7 +266,7 @@ public class SC_AllPlayersLoaded : IPacket
 	public class Players
 	{
 		public string uid;
-		public string side;
+		public int slot;
 		public bool loaded;
 	
 		public void Read(ReadOnlySpan<byte> s, ref ushort count)
@@ -279,10 +275,8 @@ public class SC_AllPlayersLoaded : IPacket
 			count += sizeof(ushort);
 			this.uid = Encoding.Unicode.GetString(s.Slice(count, uidLen));
 			count += uidLen;
-			ushort sideLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
-			count += sizeof(ushort);
-			this.side = Encoding.Unicode.GetString(s.Slice(count, sideLen));
-			count += sideLen;
+			this.slot = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+			count += sizeof(int);
 			this.loaded = BitConverter.ToBoolean(s.Slice(count, s.Length - count));
 			count += sizeof(bool);
 		}
@@ -296,10 +290,8 @@ public class SC_AllPlayersLoaded : IPacket
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), uidLen);
 			count += sizeof(ushort);
 			count += uidLen;
-			ushort sideLen = (ushort)Encoding.Unicode.GetBytes(this.side, 0, this.side.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), sideLen);
-			count += sizeof(ushort);
-			count += sideLen;
+			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.slot);
+			count += sizeof(int);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.loaded);
 			count += sizeof(bool);
 			return success;
@@ -645,6 +637,7 @@ public class SC_InitGame : IPacket
 	{
 		public int EntityId;
 		public int EntityType;
+		public int OwnerSlot;
 		public int X;
 		public int Y;
 		public int Hp;
@@ -654,6 +647,8 @@ public class SC_InitGame : IPacket
 			this.EntityId = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 			count += sizeof(int);
 			this.EntityType = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+			count += sizeof(int);
+			this.OwnerSlot = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 			count += sizeof(int);
 			this.X = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 			count += sizeof(int);
@@ -671,6 +666,8 @@ public class SC_InitGame : IPacket
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.EntityId);
 			count += sizeof(int);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.EntityType);
+			count += sizeof(int);
+			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.OwnerSlot);
 			count += sizeof(int);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.X);
 			count += sizeof(int);

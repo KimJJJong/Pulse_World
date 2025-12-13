@@ -3,7 +3,7 @@ public static class MapFactory
 {
     public static Map2D CreatePrototypeMap()
     {
-        var map = new Map2D(width: 16, height: 3);
+        var map = new Map2D(width: 16, height: 8);
 
         // 기본은 None (맵 밖/사용 안 함)
         for (int y = 0; y < map.Height; y++)
@@ -37,6 +37,26 @@ public static class MapFactory
         int y2 = 2;
         for (int i = 0; i < map.Width; i++)
             map.Set(i, y2, TileKind.Floor);
+
+        int y3 = 3;
+        for (int i = 0; i < map.Width; i++)
+            map.Set(i, y3, TileKind.Floor);
+
+        int y4 = 4;
+        for (int i = 0; i < map.Width; i++)
+            map.Set(i, y4, TileKind.Floor);
+
+        int y5 = 5;
+        for (int i = 0; i < map.Width; i++)
+            map.Set(i, y5, TileKind.Floor);
+
+        int y6 = 6;
+        for (int i = 0; i < map.Width; i++)
+            map.Set(i, y6, TileKind.Floor);
+
+        int y7 = 7;
+        for (int i = 0; i < map.Width; i++)
+            map.Set(i, y7, TileKind.Floor);
         return map;
     }
 }

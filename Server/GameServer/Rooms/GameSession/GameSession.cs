@@ -3,9 +3,8 @@ using GameServer.InGame.Manager.Entity;
 using GameServer.InGame.Manager.Map;
 using GameServer.InGame.Manager.Map.Interface;
 using GameServer.InGame.System.Rhythm;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using static SC_InitGame;
 
 public sealed class GameSession
 {
@@ -14,7 +13,7 @@ public sealed class GameSession
     // 월드 / 맵
     public IGameWorld World { get; }
     public MapWorld2D World2D { get; }
-    private readonly Map2D _map;                // 리플렉션 대신 직접 보관
+    private readonly Map2D _map;
 
     // 액션 처리 및 Beat 스케줄링
     public BeatActionManager BeatActions { get; }
@@ -30,12 +29,12 @@ public sealed class GameSession
     private readonly List<MapEntity> _monsters = new();
 
     // Content
-    private readonly MonsterAIController _monsterAI;
-
     private readonly Dictionary<int, int> _slotToActorId = new(); // slot -> actorId
     public int GetActorIdBySlot(int slot)
      => _slotToActorId.TryGetValue(slot, out var id) ? id : -1;
 
+
+    private readonly MonsterAIController _monsterAI;
 
     public GameSession(
         int sessionId,
@@ -61,15 +60,13 @@ public sealed class GameSession
         BeatActions = new BeatActionManager(
             time,
             broadcaster,
-            rhythm,                   // IBeatClock 역할
+            rhythm,
             World,
             actionWindowMs: _rhythmConfig.ActionWindowMs,
             maxBeatLookAhead: _rhythmConfig.MaxBeatLookAhead
         );
         _monsterAI = new MonsterAIController(World, BeatActions);
-
-        // RhythmSystem이 Beat가 바뀔 때마다 GameSession.OnBeat 호출
-        _rhythm.OnBeat += OnBeat;
+        //_rhythm.OnBeat += OnBeat;
     }
 
     // =====================================================
@@ -82,15 +79,20 @@ public sealed class GameSession
         _monsters.Clear();
         _slotToActorId.Clear();
 
-        int slot = 0;
         foreach (var p in players)
         {
-            if (World2D.TrySpawn(p, p.Position))
+            if (!World2D.TrySpawn(p, p.Position))
             {
-                _players.Add(p);
-                _slotToActorId[slot] = p.Id;
-                slot++;
+                Console.WriteLine($"[InitGame] Player spawn failed for slot={p.GetState<int>("Slot")}");
+                continue;
             }
+
+            _players.Add(p);
+
+            int slot = p.GetState<int>("Slot");
+            _slotToActorId[slot] = p.Id;
+
+            Console.WriteLine($"[InitGame] Player spawned: slot={slot}, actorId={p.Id}");
         }
 
         foreach (var m in monsters)
@@ -101,10 +103,8 @@ public sealed class GameSession
                 _monsterAI.RegisterMonster(m);
             }
         }
-
-        SendInitPacket();
     }
-    private void SendInitPacket()
+    private SC_InitGame BuildInitPacketForPlayer(int playerSlot)
     {
         // 패킷 인스턴스 생성
         SC_InitGame packet = new SC_InitGame();
@@ -140,9 +140,10 @@ public sealed class GameSession
         }
 
         // --- MyActorId (프로토타입: 첫 번째 플레이어 기준) ---
-        packet.MyActorId = _players.Count > 0 ? _players[0].Id : 0;
+        int myActorId = GetActorIdBySlot(playerSlot);
+        packet.MyActorId = myActorId;
 
-        // --- SpawnEntities 채우기 (플레이어 + 몬스터) ---
+        // SpawnEntites ( OwnerSlot 추가 )
         packet.spawnEntitiess.Clear();
 
         foreach (MapEntity p in _players)
@@ -150,7 +151,8 @@ public sealed class GameSession
             var s = new SC_InitGame.SpawnEntities
             {
                 EntityId = p.Id,
-                EntityType = (int)p.Type,          // enum이면 (int) 캐스팅
+                EntityType = (int)p.Type,
+                OwnerSlot = p.GetState<int>("Slot"),
                 X = p.Position.X,
                 Y = p.Position.Y,
                 Hp = p.GetState<int>("HP") // 없으면 0 나와도 괜찮게 사용
@@ -164,6 +166,7 @@ public sealed class GameSession
             {
                 EntityId = m.Id,
                 EntityType = (int)m.Type,
+                OwnerSlot = -1,
                 X = m.Position.X,
                 Y = m.Position.Y,
                 Hp = m.GetState<int>("HP")
@@ -171,10 +174,33 @@ public sealed class GameSession
             packet.spawnEntitiess.Add(s);
         }
 
-        // 브로드캐스트
-        _broadcaster.Broadcast(packet);
+        return packet;
     }
+    /// <summary>GameRoom에서 각 유저 Session에게 호출되는 함수</summary>
+    public void SendInitPacketToPlayer(ClientSession s)
+    {
+        int slot = s.Slot;
 
+        // slot -> actorId 매핑 확인
+        int actorId = GetActorIdBySlot(slot);
+        if (actorId < 0)
+        {
+            Console.WriteLine($"[InitGame] slot not mapped yet. slot={slot}");
+            return;
+        }
+
+        // 월드에 실제 존재하는지도 확인(InitGame 전에 호출되면 방어)
+        if (!World2D.ContainsEntity(actorId))
+        {
+            Console.WriteLine($"[InitGame] actorId not spawned. slot={slot}, actorId={actorId}");
+            return;
+        }
+
+        var pkt = BuildInitPacketForPlayer(slot);
+        s.Send(pkt.Write());
+
+        Console.WriteLine($"[InitGame] Sent SC_InitGame to slot={slot}, actorId={pkt.MyActorId}");
+    }
 
     // =====================================================
     // 클라이언트 입력 처리
@@ -182,23 +208,21 @@ public sealed class GameSession
     public void OnClientActionPacketBySlot(int slot, CS_ActionRequest req)
     {
         int actorId = GetActorIdBySlot(slot);
+
         if (actorId < 0)
         {
-            // TODO: 로그 및 무시
+            Console.WriteLine($"[ActionReq] Invalid slot={slot}");
             return;
         }
-
-        // 원래 OnClientActionPacket 로직을 여기로 통합하거나 호출
+        //// 월드에 없는 엔티티면 무시 (재접속/초기화 타이밍/죽은 유닛 케이스 방어)
+        //if (!World2D.ContainsEntity(actorId))
+        //{
+        //    Console.WriteLine($"[ActionReq] actor not in world. slot={slot}, actorId={actorId}");
+        //    return;
+        //}
         BeatActions.OnClientActionRequest(actorId, req);
     }
-    //public void OnClientActionPacket(int actorId, CS_ActionRequest req)
-    //{
-    //    // BeatActionManager 내부에서:
-    //    // - ServerReceiveTimeMs = NowMs
-    //    // - IBeatClock(RhythmSystem)로 Beat 판정
-    //    // - BeatScheduler에 예약
-    //    BeatActions.OnClientActionRequest(actorId, req);
-    //}
+
 
     // =====================================================
     // Beat 도래 시 호출 (RhythmSystem에서 이벤트로 호출됨)

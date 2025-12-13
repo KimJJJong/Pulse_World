@@ -29,6 +29,7 @@ public sealed class RhythmSystem : IBeatClock
         _songStartServerTimeMs = songStartServerTimeMs;
 
         _baseBeatMs = 60000.0 / (config.Bpm * config.BaseBeatDivision);
+
     }
 
     // ===== IBeatClock 구현 =====
@@ -58,10 +59,11 @@ public sealed class RhythmSystem : IBeatClock
     {
         var now = _time.NowMs;
         var beat = GetCurrentBeatIndex(now);
-
+        //Console.WriteLine($"BaseBeatMS : { _baseBeatMs } || Beat : {beat}");
         if (beat <= _lastProcessedBeat)
+        {
             return;
-
+        }
         // 중간 Beat가 여러 개 밀렸을 수 있으니, 하나씩 처리
         for (long b = _lastProcessedBeat + 1; b <= beat; b++)
         {

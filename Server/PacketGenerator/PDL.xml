@@ -15,7 +15,7 @@
 	<!-- 게임서버 -> 클라: 환영/환경 -->
 	<packet name="SC_Welcome">
 		<string name="matchId"/>
-		<string name="side"/><!-- "A" | "B" -->
+		<int name="slot"/>
 		<long name="serverTimeMs"/>
 		<int name="tickRate"/><!-- 30,60 등 -->
 		<int name="startTick"/><!-- 0 or 사전 동기값 -->
@@ -36,7 +36,7 @@
 		<string name="matchId"/>
 		<list name="players">
 			<string name="uid"/>
-			<string name="side"/>
+			<int name="slot"/>
 			<bool name="loaded"/>
 		</list>
 	</packet>
@@ -90,6 +90,7 @@
 		<list name="SpawnEntities">
 			<int  name="EntityId"/>
 			<int  name="EntityType"/>
+			<int  name="OwnerSlot"/>
 			<int  name="X"/>
 			<int  name="Y"/>
 			<int  name="Hp"/>

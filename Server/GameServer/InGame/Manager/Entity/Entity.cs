@@ -12,6 +12,13 @@ public enum EntityType : byte
 
 public /*sealed*/ class MapEntity
 {
+    /// <summary>
+    /// 0 ~  99   : Player 영역 (슬롯 개수 내)
+    //100 ~ 999 : 일반 몬스터
+    //1000~1999 : 소환수/펫
+    //2000~2999 : 투사체
+    //3000~3999 : 오브젝트(트랩, 상자 등)
+    /// </summary>
     public int Id { get; }
     public EntityType Type { get; }
     public GridPos Position { get; internal set; }
