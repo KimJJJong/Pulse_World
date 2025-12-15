@@ -17,6 +17,10 @@ public sealed class GameSession
 
     // 액션 처리 및 Beat 스케줄링
     public BeatActionManager BeatActions { get; }
+    private readonly TelegraphScheduler _telegraph;
+    private readonly PatternRunner _patternRunner;
+    private readonly FrozenAttackRegistry _frozen = new();
+
 
     // 외부 시스템
     private readonly RhythmSystem _rhythm;
@@ -31,8 +35,7 @@ public sealed class GameSession
     // Content
     private readonly Dictionary<int, int> _slotToActorId = new(); // slot -> actorId
     public int GetActorIdBySlot(int slot)
-     => _slotToActorId.TryGetValue(slot, out var id) ? id : -1;
-
+        => _slotToActorId.TryGetValue(slot, out var id) ? id : -1;
 
     private readonly MonsterAIController _monsterAI;
 
@@ -42,7 +45,7 @@ public sealed class GameSession
         IGameBroadcaster broadcaster,
         RhythmSystem rhythm,
         RhythmConfig rhythmConfig,
-        Map2D map)
+        Map2D map) 
     {
         SessionId = sessionId;
 
@@ -51,6 +54,7 @@ public sealed class GameSession
         _rhythm = rhythm;
         _rhythmConfig = rhythmConfig;
         _map = map;
+
 
         // 월드 구성
         World2D = new MapWorld2D(map);
@@ -62,11 +66,21 @@ public sealed class GameSession
             broadcaster,
             rhythm,
             World,
+            frozenAttackRegistry :_frozen,
             actionWindowMs: _rhythmConfig.ActionWindowMs,
             maxBeatLookAhead: _rhythmConfig.MaxBeatLookAhead
         );
-        _monsterAI = new MonsterAIController(World, BeatActions);
-        //_rhythm.OnBeat += OnBeat;
+
+        //  반드시 telegraph 먼저 생성
+        _telegraph = new TelegraphScheduler(broadcaster);
+
+        //  그 다음 runner 생성 (telegraph 필요)
+        _patternRunner = new PatternRunner(World, BeatActions, _telegraph, /*Patter Injection 필요 */,_frozen);
+
+        //  MonsterAI는 runner만 받는 구조
+        _monsterAI = new MonsterAIController(_patternRunner);
+
+        // _rhythm.OnBeat += OnBeat;
     }
 
     // =====================================================
@@ -100,20 +114,21 @@ public sealed class GameSession
             if (World2D.TrySpawn(m, m.Position))
             {
                 _monsters.Add(m);
-                _monsterAI.RegisterMonster(m);
+
+                //  가능하면 MonsterType을 실제 데이터에서 넣어라
+                // 지금은 임시로 "Default"
+                _monsterAI.RegisterMonster(m, "Default");
             }
         }
     }
+
     private SC_InitGame BuildInitPacketForPlayer(int playerSlot)
     {
-        // 패킷 인스턴스 생성
         SC_InitGame packet = new SC_InitGame();
 
-        // --- 맵 정보 ---
         packet.MapWidth = _map.Width;
         packet.MapHeight = _map.Height;
 
-        // --- Tiles 채우기 (Map2D -> SC_InitGame.Tiles 리스트) ---
         packet.tiless.Clear();
         for (int y = 0; y < _map.Height; y++)
         {
@@ -121,29 +136,22 @@ public sealed class GameSession
             {
                 var tile = new SC_InitGame.Tiles
                 {
-                    // Map2D.Get 이 TileKind(enum) 이면 (int) 캐스팅
                     TileKind = (int)_map.Get(x, y)
                 };
                 packet.tiless.Add(tile);
             }
         }
 
-        // --- PlayerActorIds 채우기 ---
         packet.playerActorIdss.Clear();
         foreach (MapEntity p in _players)
         {
-            var pa = new SC_InitGame.PlayerActorIds
-            {
-                ActorId = p.Id
-            };
+            var pa = new SC_InitGame.PlayerActorIds { ActorId = p.Id };
             packet.playerActorIdss.Add(pa);
         }
 
-        // --- MyActorId (프로토타입: 첫 번째 플레이어 기준) ---
         int myActorId = GetActorIdBySlot(playerSlot);
         packet.MyActorId = myActorId;
 
-        // SpawnEntites ( OwnerSlot 추가 )
         packet.spawnEntitiess.Clear();
 
         foreach (MapEntity p in _players)
@@ -155,7 +163,7 @@ public sealed class GameSession
                 OwnerSlot = p.GetState<int>("Slot"),
                 X = p.Position.X,
                 Y = p.Position.Y,
-                Hp = p.GetState<int>("HP") // 없으면 0 나와도 괜찮게 사용
+                Hp = p.GetState<int>("HP")
             };
             packet.spawnEntitiess.Add(s);
         }
@@ -176,12 +184,12 @@ public sealed class GameSession
 
         return packet;
     }
+
     /// <summary>GameRoom에서 각 유저 Session에게 호출되는 함수</summary>
     public void SendInitPacketToPlayer(ClientSession s)
     {
         int slot = s.Slot;
 
-        // slot -> actorId 매핑 확인
         int actorId = GetActorIdBySlot(slot);
         if (actorId < 0)
         {
@@ -189,7 +197,6 @@ public sealed class GameSession
             return;
         }
 
-        // 월드에 실제 존재하는지도 확인(InitGame 전에 호출되면 방어)
         if (!World2D.ContainsEntity(actorId))
         {
             Console.WriteLine($"[InitGame] actorId not spawned. slot={slot}, actorId={actorId}");
@@ -208,40 +215,31 @@ public sealed class GameSession
     public void OnClientActionPacketBySlot(int slot, CS_ActionRequest req)
     {
         int actorId = GetActorIdBySlot(slot);
-
         if (actorId < 0)
         {
             Console.WriteLine($"[ActionReq] Invalid slot={slot}");
             return;
         }
-        //// 월드에 없는 엔티티면 무시 (재접속/초기화 타이밍/죽은 유닛 케이스 방어)
-        //if (!World2D.ContainsEntity(actorId))
-        //{
-        //    Console.WriteLine($"[ActionReq] actor not in world. slot={slot}, actorId={actorId}");
-        //    return;
-        //}
+
         BeatActions.OnClientActionRequest(actorId, req);
     }
 
-
     // =====================================================
-    // Beat 도래 시 호출 (RhythmSystem에서 이벤트로 호출됨)
+    // Beat 도래 시 호출
     // =====================================================
-
     public void OnBeat(long beatIndex)
     {
         _monsterAI.UpdateAI(beatIndex, _monsters, _players);
 
-        // 2) 그 다음 예약된(플레이어/몬스터) 명령 전부 실행 + SC_BeatActions 송신
+        //  텔레그래프 먼저
+        _telegraph.OnBeat(beatIndex);
+
+        //  그 다음 액션 실행
         BeatActions.OnBeat(beatIndex);
     }
 
-    // =====================================================
-    // 틱 업데이트 (원한다면 사용)
-    // =====================================================
-
     public void Update()
     {
-        // Tick 기반 AI, 상태변화, Debuff 처리 등을 넣을 수 있음
+        // 필요하면 Tick 기반 처리
     }
 }

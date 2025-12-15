@@ -30,6 +30,11 @@ public sealed class PlayerActionCmd
     /// Move면 이동하려는 칸, Skill이면 스킬 중심 좌표 등으로 해석.
     /// </summary>
     public GridPos TargetCell { get; init; }
+    /// <summary>
+    /// 
+    /// </summary>
+    public string SkillId { get; init; }
+
 
     /// <summary>
     /// 이 액션이 실행될 Beat 번호.

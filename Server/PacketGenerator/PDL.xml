@@ -127,6 +127,25 @@
 		</list>
 	</packet>
 
+	<packet name="SC_BeatTelegraphs">
+		<long name="BeatIndex"/>
+		<list name="Telegraphs">
+			<int name="CasterId"/>
+			<int name="StyleId"/>
+			<int name="DurationBeats"/>
+			<int name="Shape"/>			<!-- 0:Cells, 1:Diamond, 2:Rect, 3:Line ... -->
+			<int name="OriginType"/>	<!-- 0:Self,1:Target,2:Point -->
+			<int name="OriginX"/>		<!-- OriginType==Point일 때 -->
+			<int name="OriginY"/>
+			<int name="ParamA"/>		<!-- shape 파라미터 (radius/width/len 등) -->
+			<int name="ParamB"/>
+			<list name="Cells">			<!-- Shape==Cells 일 때만 사용 -->
+				<int name="X"/>
+				<int name="Y"/>
+			</list>
+		</list>
+	</packet>
+
 
 	<!-- RhythmTest-->
 	

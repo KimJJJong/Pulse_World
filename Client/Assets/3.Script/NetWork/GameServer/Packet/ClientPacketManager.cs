@@ -37,6 +37,8 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_BeatSync, PacketHandler.SC_BeatSyncHandler);
 		_makeFunc.Add((ushort)PacketID.SC_BeatActions, MakePacket<SC_BeatActions>);
 		_handler.Add((ushort)PacketID.SC_BeatActions, PacketHandler.SC_BeatActionsHandler);
+		_makeFunc.Add((ushort)PacketID.SC_BeatTelegraphs, MakePacket<SC_BeatTelegraphs>);
+		_handler.Add((ushort)PacketID.SC_BeatTelegraphs, PacketHandler.SC_BeatTelegraphsHandler);
 
 	}
 

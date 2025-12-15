@@ -1,4 +1,6 @@
-﻿namespace GameServer.InGame.Manager.Map.Interface;
+﻿using System.Collections.Generic;
+
+namespace GameServer.InGame.Manager.Map.Interface;
 public interface IGameWorld
 {
     GridPos GetActorPosition(int actorId);
@@ -6,5 +8,7 @@ public interface IGameWorld
     bool ContainsEntity(int actorId);
 
     bool TryMove(int actorId, GridPos target);
-    bool TryUseSkill(int actorId, int targetX, int targetY);
+    bool TryUseSkill(int actorId, string skillId ,int targetX, int targetY);
+    bool TryUseSkillArea(int actorId, string skillId, IReadOnlyList<GridPos> cells);
+
 }

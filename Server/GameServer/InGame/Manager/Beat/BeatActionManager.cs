@@ -3,8 +3,7 @@ using GameServer.InGame.System.Rhythm;
 using System;
 using System.Collections.Generic;
 
-// 패킷 네임스페이스는 너 프로젝트에 맞게 수정
-//using Contracts.Packet; // CS_ActionRequest, SC_BeatActions, BeatActionResult 등이 여기 있다고 가정
+
 
 namespace GameServer.InGame.Manager.Beat
 {
@@ -16,6 +15,7 @@ namespace GameServer.InGame.Manager.Beat
         private readonly IGameWorld _world;
 
         private readonly BeatScheduler _scheduler = new();
+        private readonly FrozenAttackRegistry _frozen;
 
         private readonly double _actionWindowMs;
         private readonly int _maxBeatLookAhead;
@@ -25,6 +25,7 @@ namespace GameServer.InGame.Manager.Beat
             IGameBroadcaster broadcaster,
             IBeatClock clock,
             IGameWorld world,
+            FrozenAttackRegistry frozenAttackRegistry,
             double actionWindowMs,
             int maxBeatLookAhead)
         {
@@ -32,8 +33,12 @@ namespace GameServer.InGame.Manager.Beat
             _broadcaster = broadcaster;
             _clock = clock;
             _world = world;
+
+            _frozen = frozenAttackRegistry;
+
             _actionWindowMs = actionWindowMs;
             _maxBeatLookAhead = maxBeatLookAhead;
+
         }
 
         /// <summary>
@@ -108,16 +113,16 @@ namespace GameServer.InGame.Manager.Beat
                 if (!_world.TryGetActorPosition(cmd.ActorId, out var fromPos))
                 {
                     // 프로토: 결과라도 내려주고 싶으면 아래 블록 유지
-                    results.Add(new SC_BeatActions.BeatActionResult
-                    {
-                        ActorId = cmd.ActorId,
-                        ActionKind = (int)cmd.Kind,
-                        FromX = 0,
-                        FromY = 0,
-                        ToX = 0,
-                        ToY = 0,
-                        Accepted = false
-                    });
+                    //results.Add(new SC_BeatActions.BeatActionResult
+                    //{
+                    //    ActorId = cmd.ActorId,
+                    //    ActionKind = (int)cmd.Kind,
+                    //    FromX = 0,
+                    //    FromY = 0,
+                    //    ToX = 0,
+                    //    ToY = 0,
+                    //    Accepted = false
+                    //});
                     continue;
                 }
 
@@ -132,9 +137,25 @@ namespace GameServer.InGame.Manager.Beat
                         break;
 
                     case ActionKind.Skill:
-                        accepted = _world.TryUseSkill(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y);
-                        toPos = fromPos;
-                        break;
+                        {
+                            //  Frozen cells가 있으면 그걸로 판정(예고와 동일)
+                            if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
+                            {
+                                accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells);
+                            }
+                            else
+                            {
+                                //  fallback (플레이어 입력 등)
+                                accepted = _world.TryUseSkill(cmd.ActorId, cmd.SkillId, cmd.TargetCell.X, cmd.TargetCell.Y);
+                            }
+
+                            toPos = fromPos;
+                            break;
+
+                            //accepted = _world.TryUseSkill(cmd.ActorId, cmd.SkillId ,cmd.TargetCell.X, cmd.TargetCell.Y);
+                            //toPos = fromPos;
+                            //break;
+                        }
 
                     case ActionKind.Wait:
                     default:
@@ -164,6 +185,8 @@ namespace GameServer.InGame.Manager.Beat
             });
 
             _scheduler.DropBefore(beatIndex - 4);
+            _frozen.DropBefore(beatIndex - 16);
+
         }
     }
 }
