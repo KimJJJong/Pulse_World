@@ -1,0 +1,89 @@
+{
+  "Monsters": [
+    {
+      "MonsterType": "Default",
+      "DefaultPhase": "P1",
+      "Phases": [
+        {
+          "Id": "P1",
+          "Selectors": [
+            {
+              "Id": "S1",
+              "Weight": 1,
+              "CooldownBeats": 0,
+              "When": {
+                "All": []
+              },
+              "Timeline": [
+                {
+                  "AtBeatOffset": 0,
+                  "Type": 1,
+                  "Target": {
+                    "Type": 0,
+                    "MaxRange": 5,
+                    "RequireAlive": true
+                  },
+                  "SkillId": "",
+                  "TelegraphBeats": 0,
+                  "TelegraphStyleId": 0,
+                  "Area": {
+                    "Shape": 1,
+                    "OriginType": 1,
+                    "OriginX": 0,
+                    "OriginY": 0,
+                    "ParamA": 0,
+                    "ParamB": 0,
+                    "Cells": []
+                  }
+                },
+                {
+                  "AtBeatOffset": 1,
+                  "Type": 1,
+                  "Target": {
+                    "Type": 0,
+                    "MaxRange": 5,
+                    "RequireAlive": true
+                  },
+                  "SkillId": "",
+                  "TelegraphBeats": 0,
+                  "TelegraphStyleId": 0,
+                  "Area": {
+                    "Shape": 1,
+                    "OriginType": 1,
+                    "OriginX": 0,
+                    "OriginY": 0,
+                    "ParamA": 0,
+                    "ParamB": 0,
+                    "Cells": []
+                  }
+                },
+                {
+                  "AtBeatOffset": 3,
+                  "Type": 2,
+                  "Target": {
+                    "Type": 0,
+                    "MaxRange": 999,
+                    "RequireAlive": true
+                  },
+                  "SkillId": "AoE_3x3_Self",
+                  "TelegraphBeats": 1,
+                  "TelegraphStyleId": 0,
+                  "Area": {
+                    "Shape": 1,
+                    "OriginType": 0,
+                    "OriginX": 0,
+                    "OriginY": 0,
+                    "ParamA": 0,
+                    "ParamB": 0,
+                    "Cells": []
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "Transitions": []
+    }
+  ]
+}

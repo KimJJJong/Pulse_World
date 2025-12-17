@@ -75,7 +75,7 @@ public sealed class GameSession
         _telegraph = new TelegraphScheduler(broadcaster);
 
         //  그 다음 runner 생성 (telegraph 필요)
-        _patternRunner = new PatternRunner(World, BeatActions, _telegraph, /*Patter Injection 필요 */,_frozen);
+        _patternRunner = new PatternRunner(World, BeatActions, _telegraph, ContentStore.Patterns ,_frozen);
 
         //  MonsterAI는 runner만 받는 구조
         _monsterAI = new MonsterAIController(_patternRunner);
@@ -116,7 +116,7 @@ public sealed class GameSession
                 _monsters.Add(m);
 
                 //  가능하면 MonsterType을 실제 데이터에서 넣어라
-                // 지금은 임시로 "Default"
+                // 지금은 임시로 "Default"        TODO
                 _monsterAI.RegisterMonster(m, "Default");
             }
         }

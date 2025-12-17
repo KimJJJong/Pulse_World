@@ -1,4 +1,5 @@
 using Client;
+using Newtonsoft.Json.Bson;
 using ServerCore;
 using System.Diagnostics;
 using UnityEngine;
@@ -77,5 +78,8 @@ class PacketHandler
     public static void SC_BeatSyncHandler(PacketSession session, IPacket packet)
          => ClientHandlers.Instance.Handle_SC_BeatSync((SC_BeatSync)packet);
 
+    public static void SC_BeatTelegraphsHandler(PacketSession session, IPacket packet)
+    {
 
+    }
 }

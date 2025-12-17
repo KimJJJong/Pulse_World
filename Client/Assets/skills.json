@@ -1,0 +1,19 @@
+{
+  "Skills": [
+    {
+      "SkillId": "Laser",
+      "CooldownBeats": 10,
+      "Damage": 10,
+      "BlockedByWall": true,
+      "Shape": 3,
+      "ParamA": 3,
+      "ParamB": 0,
+      "DirType": 1,
+      "FixedDir": 0,
+      "HitPlayers": true,
+      "HitMonsters": false,
+      "Ticks": 2,
+      "TickIntervalBeats": 1
+    }
+  ]
+}

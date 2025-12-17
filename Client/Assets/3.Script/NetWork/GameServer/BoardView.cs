@@ -79,7 +79,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
                     rend.material.color = Color.gray;
                     break;
                 case 1: // 예: 벽
-                    rend.material.color = Color.black;
+                    rend.material.color = Color.white;
                     break;
                 case 2: // 예: 스폰 지역
                     rend.material.color = Color.cyan;
@@ -117,7 +117,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
             _entityViews[info.EntityId] = go;
         }
 
-        go.transform.position = GridToWorld(info.X, info.Y);
+        go.transform.position = GridToWorld(info.X, info.Y)+new Vector3(0,2,0) ;
     }
 
     public void OnBeatAction(ClientBeatAction action, ClientEntityInfo entity)
@@ -155,9 +155,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
             case 0:
                 return playerPrefab;
             case 1:
-                return monsterPrefab;
+                return playerPrefab;
             default:
-                return playerPrefab != null ? playerPrefab : monsterPrefab;
+                return monsterPrefab;//!= null ? playerPrefab : monsterPrefab;
         }
     }
 

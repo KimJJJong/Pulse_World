@@ -61,7 +61,7 @@ namespace GameServer.InGame.Manager.Beat
             // 3) 판정 윈도우 밖이면 무시 (원하면 Fail 패킷 보내도 됨)
             if (diff > _actionWindowMs)
             {
-                Console.WriteLine($"diff > _actionWindowMs :{diff} > {_actionWindowMs}");
+                //Console.WriteLine($"diff > _actionWindowMs :{diff} > {_actionWindowMs}");
                 // TODO: 필요하면 SC_ActionRejected 같은 패킷 보내기
                 return;
             }

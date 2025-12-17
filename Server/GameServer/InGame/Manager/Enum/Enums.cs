@@ -7,11 +7,3 @@ public enum TileKind : byte
     Spawn = 3,  // 스폰용 but 통행 가능
 }
 
-
-public enum MonsterAiState
-{
-    Idle,
-    Chase,
-    Attack,
-    Retreat
-}

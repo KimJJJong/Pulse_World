@@ -1,17 +1,18 @@
 ﻿// ------------------------------
 // GameServer Program.cs (fixed)
 // ------------------------------
-using System;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Server.withWebServer.Security;
 using ServerCore;
 using Shared;
 using StackExchange.Redis;
+using System;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 using Util;
 
 namespace Server;
@@ -156,6 +157,14 @@ static class Program
                     JobTimer.Instance.Flush();
                     Thread.Sleep(1);
                 }*/
+        var baseDir = "D:\\Git\\Server\\RhythmRPG\\RhythmRPG\\Server\\GameServer\\Content";//AppContext.BaseDirectory;  : in Publish, need to Change rootDir
+        ContentStore.Init(
+            skillsDir: Path.Combine(baseDir, "Skill", "Json"),
+            patternsDir: Path.Combine(baseDir, "Pattern", "Json")
+        );
+
+
+
 
         _worker = new GameWorker(tickMs: 15);
         _worker.Start();

@@ -645,7 +645,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 7f5805c7a54b1d049a5e5c9919b74eb9, type: 2}
   m_sharedMaterial: {fileID: -2522033968723880668, guid: 7f5805c7a54b1d049a5e5c9919b74eb9, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: -2522033968723880668, guid: 7f5805c7a54b1d049a5e5c9919b74eb9, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
@@ -945,6 +946,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSlotUIView
   nameText: {fileID: 1712105697}
   readyObj: {fileID: 1780473164}
+  selectedMySlot: {fileID: 0}
 --- !u!1 &1273601291
 GameObject:
   m_ObjectHideFlags: 0
@@ -1006,7 +1008,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 7f5805c7a54b1d049a5e5c9919b74eb9, type: 2}
   m_sharedMaterial: {fileID: -2522033968723880668, guid: 7f5805c7a54b1d049a5e5c9919b74eb9, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: -2522033968723880668, guid: 7f5805c7a54b1d049a5e5c9919b74eb9, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
@@ -1499,12 +1502,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e54575e4b0d254342bd172f27d8868ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomUIPresenter
-  Slot1: {fileID: 1253004887}
-  Slot2: {fileID: 1808065389}
+  slot1: {fileID: 0}
+  slot2: {fileID: 0}
   txtCountdown: {fileID: 2055793835}
-  BtnReady: {fileID: 0}
-  BtnUnready: {fileID: 0}
-  BtnLeave: {fileID: 0}
+  btnLeave: {fileID: 0}
+  btnReady: {fileID: 0}
+  btnUnready: {fileID: 0}
 --- !u!1 &1712105695
 GameObject:
   m_ObjectHideFlags: 0
@@ -1566,7 +1569,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: dd7455271c5b5a942aefcf02575d9d36, type: 2}
   m_sharedMaterial: {fileID: 8781752661349643113, guid: dd7455271c5b5a942aefcf02575d9d36, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: 8781752661349643113, guid: dd7455271c5b5a942aefcf02575d9d36, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
@@ -1809,6 +1813,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSlotUIView
   nameText: {fileID: 1923083087}
   readyObj: {fileID: 1175593616}
+  selectedMySlot: {fileID: 0}
 --- !u!1 &1923083085
 GameObject:
   m_ObjectHideFlags: 0
@@ -1870,7 +1875,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: dd7455271c5b5a942aefcf02575d9d36, type: 2}
   m_sharedMaterial: {fileID: 8781752661349643113, guid: dd7455271c5b5a942aefcf02575d9d36, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: 8781752661349643113, guid: dd7455271c5b5a942aefcf02575d9d36, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
@@ -2158,7 +2164,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 7f5805c7a54b1d049a5e5c9919b74eb9, type: 2}
   m_sharedMaterial: {fileID: -2522033968723880668, guid: 7f5805c7a54b1d049a5e5c9919b74eb9, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: -2522033968723880668, guid: 7f5805c7a54b1d049a5e5c9919b74eb9, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
