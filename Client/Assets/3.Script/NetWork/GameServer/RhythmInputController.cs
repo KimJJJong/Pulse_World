@@ -42,7 +42,7 @@ public class RhythmInputController : MonoBehaviour
 
         if (dir == Vector2Int.zero)
             return;
-        Debug.Log($"[Input]");
+        //Debug.Log($"[Input]");
 
         // 내 현재 위치 가져오기
         if (!GS.TryGetMyEntity(out var me))
@@ -56,7 +56,7 @@ public class RhythmInputController : MonoBehaviour
 
          //필요하면 "현재 BeatIndex"를 계산해서 디버깅해볼 수도 있음
         long currentBeatIdx = Rhythm.GetCurrentBeatIndex();
-        Debug.Log($"[Input] Move request at beat={currentBeatIdx} || dir =[ {dir} ]");
+        //Debug.Log($"[Input] Move request at beat={currentBeatIdx} || dir =[ {dir} ]");
 
         CS_ActionRequest pkt = new CS_ActionRequest
         {

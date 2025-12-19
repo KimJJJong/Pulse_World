@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace GameServer.InGame.Manager.Beat;
     public sealed class TelegraphScheduler
@@ -21,24 +22,29 @@ namespace GameServer.InGame.Manager.Beat;
             list.Add(telegraph);
         }
 
-        public void OnBeat(long beatIndex)
+    public void OnBeat(long beatIndex)
+    {
+        if (!_scheduled.TryGetValue(beatIndex, out var list) || list.Count == 0)
+            return;
+
+        Console.WriteLine($"[TelegraphScheduler.OnBeat] Beat={beatIndex} Count={list.Count}");
+
+
+
+        _scheduled.Remove(beatIndex);
+
+        _broadcaster.Broadcast(new SC_BeatTelegraphs
         {
-            if (!_scheduled.TryGetValue(beatIndex, out var list) || list.Count == 0)
-                return;
+            BeatIndex = beatIndex,
+            telegraphss = list
+        });
 
-            _scheduled.Remove(beatIndex);
+        // 너무 쌓이지 않게 정리
+        DropBefore(beatIndex - 16);
+    }
 
-            _broadcaster.Broadcast(new SC_BeatTelegraphs
-            {
-                BeatIndex = beatIndex,
-                telegraphss = list
-            });
 
-            // 너무 쌓이지 않게 정리(필요시 숫자 조정)
-            DropBefore(beatIndex - 16);
-        }
-
-        public void DropBefore(long beatIndex)
+    public void DropBefore(long beatIndex)
         {
             if (_scheduled.Count == 0) return;
 

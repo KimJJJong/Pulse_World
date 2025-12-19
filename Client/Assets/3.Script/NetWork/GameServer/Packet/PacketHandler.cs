@@ -79,7 +79,6 @@ class PacketHandler
          => ClientHandlers.Instance.Handle_SC_BeatSync((SC_BeatSync)packet);
 
     public static void SC_BeatTelegraphsHandler(PacketSession session, IPacket packet)
-    {
+         => ClientHandlers.Instance.Handle_SC_BeatTelegraphs((SC_BeatTelegraphs)packet);
 
-    }
 }

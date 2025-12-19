@@ -1,6 +1,6 @@
-﻿using GameServer.InGame.Manager.Beat;
+﻿using GameServer.Content.Map.Interface;
+using GameServer.InGame.Manager.Beat;
 using GameServer.InGame.Manager.Entity;
-using GameServer.InGame.Manager.Map.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,9 +17,6 @@ public sealed class PatternRunner
     private readonly Dictionary<int, RuntimeState> _rt = new();
     private readonly Random _rng = new();
 
-    #region Debug
-
-    #endregion
 
 
 

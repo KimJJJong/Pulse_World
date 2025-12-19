@@ -20,6 +20,22 @@ public class BoardView : MonoBehaviour, IClientWorldView
     // (x,y) -> Tile GameObject
     private GameObject[,] _tiles;
 
+    private Color[,] _baseTileColors;
+
+    private static readonly Color TELEGRAPH_COLOR = Color.red;
+
+
+    #region Debug
+    private const bool DBG_POS = true;
+    private int _dbgOnlyActorId = -1; // -1이면 전부, 특정 ID만 보고 싶으면 그 값으로
+
+    private void PosLog(string msg)
+    {
+        if (!DBG_POS) return;
+        Debug.Log(msg);
+    }
+    #endregion
+
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -48,14 +64,20 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         _tiles = new GameObject[width, height];
 
+        // [추가] 기본 색 캐시도 맵 크기에 맞춰 생성
+        _baseTileColors = new Color[width, height];
+
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
             {
                 var tile = Instantiate(tilePrefab, transform);
                 tile.name = $"Tile_{x}_{y}";
-                tile.transform.position = GridToWorld(x, y);
+                tile.transform.position = GridToWorld(x, y) + new Vector3(0, -2, 0);
                 _tiles[x, y] = tile;
+
+                // [추가] 초기 기본색은 일단 gray로 둔다 (SetTile이 들어오면 덮어씀)
+                _baseTileColors[x, y] = Color.gray;
             }
         }
     }
@@ -70,25 +92,68 @@ public class BoardView : MonoBehaviour, IClientWorldView
         var tile = _tiles[x, y];
         if (tile == null) return;
 
-        // 간단 예시: tileKind에 따라 색상 변경
         if (tile.TryGetComponent<Renderer>(out var rend))
         {
+            // ===== 기존 로직 유지 =====
+            Color baseColor;
             switch (tileKind)
             {
-                case 0: // 예: 빈 공간
-                    rend.material.color = Color.gray;
-                    break;
-                case 1: // 예: 벽
-                    rend.material.color = Color.white;
-                    break;
-                case 2: // 예: 스폰 지역
-                    rend.material.color = Color.cyan;
-                    break;
-                default:
-                    rend.material.color = Color.white;
-                    break;
+                case 0: baseColor = Color.gray; break;
+                case 1: baseColor = Color.white; break;
+                case 2: baseColor = Color.cyan; break;
+                default: baseColor = Color.white; break;
             }
+
+            // [추가] "정상 상태 기본색"을 저장해둔다 (텔레그래프 해제 시 원복용)
+            if (_baseTileColors != null)
+                _baseTileColors[x, y] = baseColor;
+
+            rend.material.color = baseColor;
         }
+    }
+
+    /// <summary>
+    /// 해당 좌표 타일을 "텔레그래프 빨강"으로 덮는다.
+    /// - base color는 건드리지 않는다. (원복은 RestoreTileColor에서)
+    /// </summary>
+    public void SetTelegraphOverlay(int x, int y, bool on)
+    {
+        if (_tiles == null) return;
+        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1)) return;
+
+        var tile = _tiles[x, y];
+        if (tile == null) return;
+
+        if (!tile.TryGetComponent<Renderer>(out var rend))
+            return;
+
+        if (on)
+        {
+            rend.material.color = TELEGRAPH_COLOR;
+        }
+        else
+        {
+            RestoreTileColor(x, y);
+        }
+    }
+
+    /// <summary>
+    /// tileKind 기반 기본색으로 원복한다.
+    /// - SetTile에서 저장해둔 base color 사용
+    /// </summary>
+    public void RestoreTileColor(int x, int y)
+    {
+        if (_tiles == null) return;
+        if (_baseTileColors == null) return;
+        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1)) return;
+
+        var tile = _tiles[x, y];
+        if (tile == null) return;
+
+        if (!tile.TryGetComponent<Renderer>(out var rend))
+            return;
+
+        rend.material.color = _baseTileColors[x, y];
     }
 
     public void OnClearEntities()
@@ -117,24 +182,75 @@ public class BoardView : MonoBehaviour, IClientWorldView
             _entityViews[info.EntityId] = go;
         }
 
-        go.transform.position = GridToWorld(info.X, info.Y)+new Vector3(0,2,0) ;
+        go.transform.position = GridToWorld(info.X, info.Y);
     }
+    //public void OnBeatAction(ClientBeatAction action, ClientEntityInfo entity)
+    //{
+    //    if (!_entityViews.TryGetValue(action.ActorId, out var go) || go == null)
+    //        return;
+
+    //    if (!action.Accepted)
+    //    {
+    //        // TODO: 실패 이펙트 넣고 싶으면 여기
+    //        return;
+    //    }
+
+    //    Vector3 from = GridToWorld(action.FromX, action.FromY);
+    //    Vector3 to = GridToWorld(action.ToX, action.ToY);
+
+
+    //    StartCoroutine(LerpMove(go.transform, from, to, moveLerpTime));
+    //}
 
     public void OnBeatAction(ClientBeatAction action, ClientEntityInfo entity)
     {
         if (!_entityViews.TryGetValue(action.ActorId, out var go) || go == null)
-            return;
-
-        if (!action.Accepted)
         {
-            // TODO: 실패 이펙트 넣고 싶으면 여기
+            if (DBG_POS && (_dbgOnlyActorId < 0 || _dbgOnlyActorId == action.ActorId))
+                PosLog($"[POS] DROP no view actor={action.ActorId} ActionKind={action.ActionKind} accepted={action.Accepted}");
             return;
         }
 
-        Vector3 from = GridToWorld(action.FromX, action.FromY);
-        Vector3 to = GridToWorld(action.ToX, action.ToY);
+        if (!action.Accepted)
+        {
+            if (DBG_POS && (_dbgOnlyActorId < 0 || _dbgOnlyActorId == action.ActorId))
+                PosLog($"[POS] REJECT actor={action.ActorId} ActionKind={action.ActionKind} from=({action.FromX},{action.FromY}) to=({action.ToX},{action.ToY})");
+            return;
+        }
 
-        StartCoroutine(LerpMove(go.transform, from, to, moveLerpTime));
+        Vector3 fromW = GridToWorld(action.FromX, action.FromY);
+        Vector3 toW = GridToWorld(action.ToX, action.ToY);
+
+        // 현재 트랜스폼
+        Vector3 curW = go.transform.position;
+
+        // “현재 트랜스폼이 원래 from 위치와 얼마나 다른가” (드리프트/누적오차 체크)
+        float driftFrom = Vector3.Distance(curW, fromW);
+
+        // 이동 거리 (월드 기준)
+        float moveDist = Vector3.Distance(fromW, toW);
+
+        // 튐(텔레포트) 감지: 상황에 맞게 임계값 조정
+        bool teleportLike = moveDist > 2.0f;       // 한 비트에 2m 이상 이동이면 이상
+        bool desynced = driftFrom > 0.5f;      // 현재 위치가 from과 0.5m 이상 차이나면 이상
+
+        if (_dbgOnlyActorId < 0 || _dbgOnlyActorId == action.ActorId)
+        {
+            PosLog(
+                $"[POS] actor={action.ActorId} ActionKind={action.ActionKind} " +
+                $"grid {action.FromX},{action.FromY}->{action.ToX},{action.ToY} " +
+                $"world {fromW:F3}->{toW:F3} cur={curW:F3} " +
+                $"driftFrom={driftFrom:F3} moveDist={moveDist:F3} " +
+                $"{(teleportLike ? "TELEPORT?" : "")}{(desynced ? " DESYNC?" : "")}"
+            );
+        }
+
+        StartCoroutine(LerpMove(go.transform, fromW, toW, moveLerpTime));
+
+
+        // 여기서 실제 이동 처리(lerp/warp 등) 하기 전/후로 한 번 더 찍고 싶으면:
+        // go.transform.position = toW;
+        // PosLog($"[POS] APPLY actor={action.ActorId} newCur={go.transform.position:F3}");
     }
 
     public void OnInitGameCompleted()
@@ -195,6 +311,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
                     Destroy(_tiles[x, y]);
 
         _tiles = null;
+
+        // [추가] 캐시도 같이 정리
+        _baseTileColors = null;
     }
 
     #endregion

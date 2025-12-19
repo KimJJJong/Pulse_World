@@ -1,8 +1,10 @@
+using com.yah.LineRendererDemo;
 using ServerCore;
 using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem.HID;
+using System.Collections.Generic;
 
 public class ClientHandlers : MonoBehaviour
 {
@@ -13,7 +15,15 @@ public class ClientHandlers : MonoBehaviour
 
     //TestHUD HUD => TestHUD.Instance;
     //BoardView BV => BoardView.Instance;
+    // [추가] (x,y) -> expireBeat (이 beat를 지나면 원복)
+    private readonly System.Collections.Generic.Dictionary<(int x, int y), long> _telegraphExpireBeat
+        = new System.Collections.Generic.Dictionary<(int x, int y), long>();
 
+    // [추가] 마지막으로 처리한 beat (중복 처리 방지)
+    private long _lastTelegraphCleanupBeat = long.MinValue;
+
+    // [추가] BoardView 편의 접근
+    private BoardView BV => BoardView.Instance;
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -23,18 +33,39 @@ public class ClientHandlers : MonoBehaviour
 
     public void Handle_SC_InitGame( SC_InitGame p )
     {
-
+        Debug.Log("[In : Handle_SC_InitGame]");
         // 1) 맵 생성
-        GS.CreateMap(p.MapWidth, p.MapHeight);
+        var mapName = p.MapName; // <-- SC_InitGame에 string MapName 추가 필요
 
-        int idx = 0;
-        foreach (var t in p.tiless)
+        var reg = MapRegistry.Instance;
+        if (reg == null)
         {
-            int x = idx % p.MapWidth;
-            int y = idx / p.MapWidth;
-            GS.SetTile(x, y, t.TileKind);
-            idx++;
+            Debug.LogError("[InitGame] MapRegistry.Instance is null. Scene에 MapRegistry를 배치해야 함.");
+            return;
         }
+
+        if (!reg.TryGet(mapName, out var mapAsset) || mapAsset == null)
+        {
+            Debug.LogError($"[InitGame] MapAsset not found. mapName={mapName}. " +
+                           $"MapAsset 이름과 서버 MapName을 통일했는지 확인.");
+            return;
+        }
+
+        // 1) MapAsset 기준으로 기존 파이프라인(CreateMap/SetTile/BoardView)을 그대로 사용
+        bool ok = GS.CreateMapFromAsset(mapAsset);
+        if (!ok)
+        {
+            Debug.LogError($"[InitGame] CreateMapFromAsset failed. mapName={mapName}");
+            return;
+        }
+        //int idx = 0;
+        //foreach (var t in p.tiless)
+        //{
+        //    int x = idx % p.MapWidth;
+        //    int y = idx / p.MapWidth;
+        //    GS.SetTile(x, y, t.TileKind);
+        //    idx++;
+        //}
 
         // 2) 플레이어 Actor 정보
         var actorIds = p.playerActorIdss.Select(pa => pa.ActorId).ToArray();
@@ -96,13 +127,98 @@ public class ClientHandlers : MonoBehaviour
             };
 
             GS.OnBeatAction(action);
+            CleanupExpiredTelegraphs(p.BeatIndex);
+
         }
     }
+    public void Handle_SC_BeatTelegraphs(SC_BeatTelegraphs p)
+    {
+        Debug.Log($"[SC_BeatTelegraphs] beat={p.BeatIndex} count={p.telegraphss.Count}");
+
+        // BoardView가 없으면(씬 미배치) 일단 로그만
+        if (BV == null)
+        {
+            Debug.LogWarning("[SC_BeatTelegraphs] BoardView.Instance is null. telegraph render skip.");
+            return;
+        }
+
+        for (int i = 0; i < p.telegraphss.Count; i++)
+        {
+            var t = p.telegraphss[i];
+
+
+
+            // ===== 적용 범위 계산 =====
+            // 지금은 "Shape==Cells"만 확실히 처리 (서버가 Cells를 채워주는 구조라면 여기만으로 충분)
+            if (t.Shape != 0 || t.cellss == null || t.cellss.Count == 0)
+                continue;
+
+            // 이 텔레그래프는 몇 beat까지 유지?
+            // - 예: beat=10, duration=2면 10~11 표시, 12부터 원복시키고 싶다
+            // - 그러면 expireBeat = 10 + duration
+            long expireBeat = p.BeatIndex + t.DurationBeats;
+
+            for (int c = 0; c < t.cellss.Count; c++)
+            {
+                var cell = t.cellss[c];
+                int x = cell.X;
+                int y = cell.Y;
+
+                // 빨강 덮기
+                BV.SetTelegraphOverlay(x, y, on: true);
+
+                // 동일 셀에 텔레그래프가 겹칠 수 있으니, 더 "늦게 끝나는" expire를 유지
+                var key = (x, y);
+                if (_telegraphExpireBeat.TryGetValue(key, out var prevExpire))
+                {
+                    if (expireBeat > prevExpire)
+                        _telegraphExpireBeat[key] = expireBeat;
+                }
+                else
+                {
+                    _telegraphExpireBeat[key] = expireBeat;
+                }
+
+            }
+        }
+    }
+
+
     public void Handle_SC_Warn(SC_Warn p)
     {
         Debug.LogWarning($"[SC_Warn] code={p.code} msg={p.msg}");
         // TODO: HUD 팝업 등 필요하면 여기서 처리
     }
+    // [추가] 현재 beat 기준으로 만료된 셀들을 원복한다.
+    private void CleanupExpiredTelegraphs(long currentBeat)
+    {
+        if (currentBeat == _lastTelegraphCleanupBeat)
+            return;
+        _lastTelegraphCleanupBeat = currentBeat;
+
+        if (_telegraphExpireBeat.Count == 0)
+            return;
+        if (BV == null)
+            return;
+
+        var toRemove = new System.Collections.Generic.List<(int x, int y)>();
+
+        foreach (var kv in _telegraphExpireBeat)
+        {
+            var cell = kv.Key;
+            long expireBeat = kv.Value;
+
+            if (expireBeat <= currentBeat)
+            {
+                BV.SetTelegraphOverlay(cell.x, cell.y, on: false);
+                toRemove.Add(cell);
+            }
+        }
+
+        for (int i = 0; i < toRemove.Count; i++)
+            _telegraphExpireBeat.Remove(toRemove[i]);
+    }
+
 
 
 }

@@ -1,5 +1,5 @@
 ﻿using System;
-using System.IO;
+using System.Collections.Generic;
 
 public static class ContentStore
 {
@@ -7,8 +7,12 @@ public static class ContentStore
 
     public static SkillSet Skills { get; private set; } = null!;
     public static MonsterPatternSet Patterns { get; private set; } = null!;
+    public static Dictionary<string, MapContent> Maps { get; private set; } = null!;
 
-    public static void Init(string skillsDir, string patternsDir)
+    public static void Init(
+        string skillsDir,
+        string patternsDir,
+        string mapsDir)
     {
         if (_initialized)
             throw new InvalidOperationException("ContentStore already initialized.");
@@ -17,33 +21,31 @@ public static class ContentStore
         Skills = SkillLoader.LoadFromDirectory(skillsDir, out var sReport);
         SkillLoader.Validate(Skills, sReport);
         SkillLoader.PrintReport(sReport);
-
         if (sReport.Errors > 0)
-            throw new Exception($"Skill content has {sReport.Errors} errors. Fix skills json.");
+            throw new Exception("Skill content invalid");
 
         SkillDatabase.LoadFrom(Skills);
 
         // ===== Patterns =====
         Patterns = PatternLoader.LoadFromDirectory(patternsDir, out var pReport);
-
         PatternLoader.Validate(
             Patterns,
-            isValidSkillId: (skillId) => SkillDatabase.TryGet(skillId, out _),
-            report: pReport
+            skillId => SkillDatabase.TryGet(skillId, out _),
+            pReport
         );
-
         PatternLoader.PrintReport(pReport);
-
         if (pReport.Errors > 0)
-            throw new Exception($"Pattern content has {pReport.Errors} errors. Fix patterns json.");
+            throw new Exception("Pattern content invalid");
+
+        // ===== Maps =====
+        Maps = MapLoader.LoadFromDirectory(mapsDir, out var mReport);
+        ContentReportPrinter.Print(mReport);
+        if (mReport.Errors > 0)
+            throw new Exception("Map content invalid");
+
+        MapDatabase.LoadFrom(Maps);
 
         _initialized = true;
-        Console.WriteLine("[ContentStore] ContentStore initialized OK.");
-    }
-
-    public static void EnsureInitialized()
-    {
-        if (!_initialized)
-            throw new InvalidOperationException("Call ContentStore.Init() before using content.");
+        Console.WriteLine("[ContentStore] Initialized OK");
     }
 }

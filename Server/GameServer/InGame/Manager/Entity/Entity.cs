@@ -1,5 +1,4 @@
-﻿using GameServer.InGame.Manager.Map;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace GameServer.InGame.Manager.Entity;
 

@@ -1,0 +1,11 @@
+{
+    "asset": "57fd4f99afa4ede4fb91209feac39544",
+    "fileName": "01995c13-d21a-78c9-8a88-19a464d5e029_Preview.png",
+    "prompt": "sky, cloud",
+    "negativePrompt": "lowpoly",
+    "model": "575ecf67-4425-4939-97b9-5e138b8ee234",
+    "modelName": "Unity Texture2D",
+    "customSeed": 1007964801,
+    "w3CTraceId": "c9556e61fb8397f97d484d8ccefb415d",
+    "refinementMode": "Generation"
+}

@@ -35,9 +35,37 @@ public class ClientGameState : MonoBehaviour
     }
 
     #region 맵
+    public bool CreateMapFromAsset(MapAsset asset)
+    {
+        if (asset == null)
+        {
+            Debug.LogError("[ClientGameState] CreateMapFromAsset failed: asset is null");
+            return false;
+        }
 
+        asset.EnsureSize(); // 에디터에서 배열 꼬여도 안전
+
+        // 1) 기존 흐름 유지: CreateMap -> SetTile -> WorldView.OnSetTile
+        CreateMap(asset.Width, asset.Height);
+
+        // 2) 타일 채우기: 여기서도 기존 SetTile만 호출한다 (다른 시스템 영향 X)
+        for (int y = 0; y < asset.Height; y++)
+        {
+            for (int x = 0; x < asset.Width; x++)
+            {
+                var cell = asset.Get(x, y);
+
+                // 서버는 TileKind만 필요하다고 했으니, 클라에서도 tileKind = cell.k만 우선 사용.
+                // (추후 variant(v)를 렌더링에 쓰고 싶으면 BoardView에서 추가로 처리하면 됨)
+                SetTile(x, y, (int)cell.Kind);
+            }
+        }
+
+        return true;
+    }
     public void CreateMap(int width, int height)
     {
+        Debug.Log($"[ IN: CreateMap ] width :{width} height :{height}");
         MapWidth = width;
         MapHeight = height;
         _tiles = new int[width, height];
@@ -116,7 +144,7 @@ public class ClientGameState : MonoBehaviour
 
         if (!_entities.TryGetValue(action.ActorId, out var entity))
         {
-            Debug.Log("!_entities.TryGetValue(action.ActorId, out var entity)");
+            Debug.Log($"!_entities.TryGetValue(action.ActorId, out var entity) || [action.ActionId = {action.ActorId}] || entity = [{entity}] || action = {action} ");
             return;
         }
 

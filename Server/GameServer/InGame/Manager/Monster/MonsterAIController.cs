@@ -1,5 +1,5 @@
 ﻿using GameServer.InGame.Manager.Entity;
-using GameServer.InGame.Manager.Map.Interface;
+using System;
 using System.Collections.Generic;
 
 public sealed class MonsterAIController
@@ -21,6 +21,7 @@ public sealed class MonsterAIController
     {
         _monsterTypes[monster.Id] = monsterType;
         _runner.InitMonster(monster.Id);
+        Console.WriteLine($"[ RegisterMosnter ] monsterType : {monsterType} || monster.Id :{monster.Id} || Position :{monster.Position}");
     }
 
 

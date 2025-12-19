@@ -591,27 +591,7 @@ public class SC_InitGame : IPacket
 {
 	public int MapWidth;
 	public int MapHeight;
-	public class Tiles
-	{
-		public int TileKind;
-	
-		public void Read(ReadOnlySpan<byte> s, ref ushort count)
-		{
-			this.TileKind = BitConverter.ToInt32(s.Slice(count, s.Length - count));
-			count += sizeof(int);
-		}
-	
-		public bool Write(Span<byte> s, ref ushort count)
-		{
-			ArraySegment<byte> segment = SendBufferHelper.Open(4096);
-	
-			bool success = true;
-			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.TileKind);
-			count += sizeof(int);
-			return success;
-		}	
-	}
-	public List<Tiles> tiless = new List<Tiles>();
+	public string MapName;
 	public class PlayerActorIds
 	{
 		public int ActorId;
@@ -694,15 +674,10 @@ public class SC_InitGame : IPacket
 		count += sizeof(int);
 		this.MapHeight = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
-		this.tiless.Clear();
-		ushort tilesLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+		ushort MapNameLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 		count += sizeof(ushort);
-		for (int i = 0; i < tilesLen; i++)
-		{
-			Tiles tiles = new Tiles();
-			tiles.Read(s, ref count);
-			tiless.Add(tiles);
-		}
+		this.MapName = Encoding.Unicode.GetString(s.Slice(count, MapNameLen));
+		count += MapNameLen;
 		this.playerActorIdss.Clear();
 		ushort playerActorIdsLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 		count += sizeof(ushort);
@@ -740,10 +715,10 @@ public class SC_InitGame : IPacket
 		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.MapHeight);
 		count += sizeof(int);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)this.tiless.Count);
+		ushort MapNameLen = (ushort)Encoding.Unicode.GetBytes(this.MapName, 0, this.MapName.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), MapNameLen);
 		count += sizeof(ushort);
-		foreach (Tiles tiles in this.tiless)
-			success &= tiles.Write(s, ref count);
+		count += MapNameLen;
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)this.playerActorIdss.Count);
 		count += sizeof(ushort);
 		foreach (PlayerActorIds playerActorIds in this.playerActorIdss)

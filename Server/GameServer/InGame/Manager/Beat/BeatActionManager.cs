@@ -1,4 +1,4 @@
-﻿using GameServer.InGame.Manager.Map.Interface;
+﻿using GameServer.Content.Map.Interface;
 using GameServer.InGame.System.Rhythm;
 using System;
 using System.Collections.Generic;
@@ -113,16 +113,16 @@ namespace GameServer.InGame.Manager.Beat
                 if (!_world.TryGetActorPosition(cmd.ActorId, out var fromPos))
                 {
                     // 프로토: 결과라도 내려주고 싶으면 아래 블록 유지
-                    //results.Add(new SC_BeatActions.BeatActionResult
-                    //{
-                    //    ActorId = cmd.ActorId,
-                    //    ActionKind = (int)cmd.Kind,
-                    //    FromX = 0,
-                    //    FromY = 0,
-                    //    ToX = 0,
-                    //    ToY = 0,
-                    //    Accepted = false
-                    //});
+                    results.Add(new SC_BeatActions.BeatActionResult
+                    {
+                        ActorId = cmd.ActorId,
+                        ActionKind = (int)cmd.Kind,
+                        FromX = 0,
+                        FromY = 0,
+                        ToX = 0,
+                        ToY = 0,
+                        Accepted = false
+                    });
                     continue;
                 }
 
@@ -134,6 +134,7 @@ namespace GameServer.InGame.Manager.Beat
                     case ActionKind.Move:
                         toPos = cmd.TargetCell;
                         accepted = _world.TryMove(cmd.ActorId, toPos);
+                        if (!accepted) toPos = fromPos;
                         break;
 
                     case ActionKind.Skill:

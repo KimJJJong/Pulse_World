@@ -1,7 +1,7 @@
-﻿using GameServer.InGame.Manager.Beat;
+﻿using GameServer.Content.Map;
+using GameServer.Content.Map.Interface;
+using GameServer.InGame.Manager.Beat;
 using GameServer.InGame.Manager.Entity;
-using GameServer.InGame.Manager.Map;
-using GameServer.InGame.Manager.Map.Interface;
 using GameServer.InGame.System.Rhythm;
 using System;
 using System.Collections.Generic;
@@ -120,37 +120,36 @@ public sealed class GameSession
                 _monsterAI.RegisterMonster(m, "Default");
             }
         }
+        Console.WriteLine($"[InitGmae] End");
     }
 
     private SC_InitGame BuildInitPacketForPlayer(int playerSlot)
     {
+        Console.WriteLine($"[BuildInitPacketForPlayer] In");
         SC_InitGame packet = new SC_InitGame();
 
         packet.MapWidth = _map.Width;
         packet.MapHeight = _map.Height;
 
-        packet.tiless.Clear();
-        for (int y = 0; y < _map.Height; y++)
-        {
-            for (int x = 0; x < _map.Width; x++)
-            {
-                var tile = new SC_InitGame.Tiles
-                {
-                    TileKind = (int)_map.Get(x, y)
-                };
-                packet.tiless.Add(tile);
-            }
-        }
+        packet.MapName ="Map";          ///TMP 파라미터로 빼기
+        Console.WriteLine($"[BuildInitPacketForPlayer] mapSet {_map.Width} x {_map.Height}");
+        
+        // Tile Set을 보내는 부분 del : size over
 
         packet.playerActorIdss.Clear();
         foreach (MapEntity p in _players)
         {
+            Console.WriteLine($"[BuildInitPacketForPlayer] player.id = {p.Id}");
+
             var pa = new SC_InitGame.PlayerActorIds { ActorId = p.Id };
             packet.playerActorIdss.Add(pa);
         }
 
         int myActorId = GetActorIdBySlot(playerSlot);
         packet.MyActorId = myActorId;
+
+        Console.WriteLine($"[BuildInitPacketForPlayer] myActorId = {myActorId}");
+
 
         packet.spawnEntitiess.Clear();
 
@@ -166,6 +165,8 @@ public sealed class GameSession
                 Hp = p.GetState<int>("HP")
             };
             packet.spawnEntitiess.Add(s);
+            Console.WriteLine($"[BuildInitPacketForPlayer] Player : id = {p.Id} ||Pos = {p.Position} || Type = {p.Type}");
+
         }
 
         foreach (MapEntity m in _monsters)
@@ -180,7 +181,10 @@ public sealed class GameSession
                 Hp = m.GetState<int>("HP")
             };
             packet.spawnEntitiess.Add(s);
+            Console.WriteLine($"[BuildInitPacketForPlayer] Monster : id = {m.Id} ||Pos = {m.Position} || Type = {m.Type}");
+
         }
+        Console.WriteLine($"[BuildInitPacketForPlayer] Out");
 
         return packet;
     }
@@ -188,6 +192,7 @@ public sealed class GameSession
     /// <summary>GameRoom에서 각 유저 Session에게 호출되는 함수</summary>
     public void SendInitPacketToPlayer(ClientSession s)
     {
+        Console.WriteLine($"[ SendInitPacketToPlayer ] In");
         int slot = s.Slot;
 
         int actorId = GetActorIdBySlot(slot);
@@ -202,11 +207,11 @@ public sealed class GameSession
             Console.WriteLine($"[InitGame] actorId not spawned. slot={slot}, actorId={actorId}");
             return;
         }
+        SC_InitGame pkt = BuildInitPacketForPlayer(slot);
 
-        var pkt = BuildInitPacketForPlayer(slot);
         s.Send(pkt.Write());
 
-        Console.WriteLine($"[InitGame] Sent SC_InitGame to slot={slot}, actorId={pkt.MyActorId}");
+        Console.WriteLine($"[InitGame] Sent SC_InitGame to slot={slot}, actorId={pkt.MyActorId} || Out");
     }
 
     // =====================================================

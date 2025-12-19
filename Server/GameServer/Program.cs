@@ -160,7 +160,8 @@ static class Program
         var baseDir = "D:\\Git\\Server\\RhythmRPG\\RhythmRPG\\Server\\GameServer\\Content";//AppContext.BaseDirectory;  : in Publish, need to Change rootDir
         ContentStore.Init(
             skillsDir: Path.Combine(baseDir, "Skill", "Json"),
-            patternsDir: Path.Combine(baseDir, "Pattern", "Json")
+            patternsDir: Path.Combine(baseDir, "Pattern", "Json"),
+            mapsDir: Path.Combine(baseDir,"Map","Json")
         );
 
 

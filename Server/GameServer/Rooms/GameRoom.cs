@@ -1,24 +1,24 @@
 ﻿using Interface;
-using Microsoft.Extensions.Logging;               
-using Microsoft.Extensions.Logging.Abstractions;   
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
-using System.Linq;                          
+using System.Linq;
 using System.Threading.Tasks;
 using Util;
 #region Rhythm 
 using GameServer.InGame.Manager.Beat;
 using GameServer.InGame.Manager.Entity;
-using GameServer.InGame.Manager.Map;
-using GameServer.InGame.Manager.Map.Interface;
+
 using GameServer.InGame.System.Rhythm;
 using System.Threading;
+using GameServer.Content.Map;
 #endregion
 
 public sealed class GameRoom : IGameBroadcaster
 {
     readonly object _lock = new();
- 
+
     // slot -> session
     readonly Dictionary<int, ClientSession> _slots = new();
     readonly HashSet<string> _loaded = new(); // uid
@@ -108,10 +108,10 @@ public sealed class GameRoom : IGameBroadcaster
             foreach (var cs in _slots.Values)
             {
                 if (cs?.Uid == null)
-                    return false;             
+                    return false;
 
                 if (!_loaded.Contains(cs.Uid))
-                    return false;             
+                    return false;
             }
 
             return true; // 전원 로딩 완료
@@ -134,7 +134,7 @@ public sealed class GameRoom : IGameBroadcaster
     #region GameRoom Util
     private void Broadcast(ArraySegment<byte> payload)
     {
-        var targets = GetBroadcastSnapshot(); 
+        var targets = GetBroadcastSnapshot();
 
         foreach (var t in targets)
             t.Send(payload);
@@ -208,11 +208,11 @@ public sealed class GameRoom : IGameBroadcaster
                 return;
             _phase = RoomPhase.Running;
         }
-  
+
         // 1) 맵 생성 (실제 구현에 맞게 교체)
         // TODO: MapFactory는 네 프로젝트 스타일에 맞게 구현
-        _map = MapFactory.CreatePrototypeMap();//CreatePrototype(MapId); // 예시: MapId에 따라 다른 맵 생성
-
+        //_map = MapFactory.CreatePrototypeMap();//CreatePrototype(MapId); // 예시: MapId에 따라 다른 맵 생성
+        _map = MapDatabase.Get("Map");
 
 
         // 3) 리듬 설정
@@ -231,7 +231,7 @@ public sealed class GameRoom : IGameBroadcaster
 
         // 4) GameSession 구성
         _session = new GameSession(
-            sessionId: 0,                
+            sessionId: 0,
             time: time,
             broadcaster: this,
             rhythm: _rhythm,
@@ -251,6 +251,7 @@ public sealed class GameRoom : IGameBroadcaster
 
         foreach (var s in GetBroadcastSnapshot())
         {
+
             _session.SendInitPacketToPlayer(s);
         }
 
@@ -279,12 +280,15 @@ public sealed class GameRoom : IGameBroadcaster
             foreach (var kv in _slots)
             {
                 int slot = kv.Key;
-                var s = kv.Value;
+                ClientSession s = kv.Value;
                 if (s == null || string.IsNullOrEmpty(s.Uid)) continue;
 
                 // 스폰 위치는 slot 기준으로 적당히 배치 TMP
-                var spawn = GetPrototypeSpawnForSlot(slot);
-
+                var spawnSet = _map.GetSpawnPoint(slot);//GetPrototypeSpawnForSlot(slot);
+                               
+                var spawn = new GridPos(spawnSet.Item1, spawnSet.Item2);
+                if(spawn.X <0 || spawn.Y <0) Console.WriteLine($"[BuildPlayerEntites] Player spawnPoint Set Err!"); ;
+                
                 var e = new MapEntity(
                     id: slot, //  프로토에서는 slot==entityId
                     type: EntityType.Player,
@@ -308,24 +312,10 @@ public sealed class GameRoom : IGameBroadcaster
         var monsters = new List<MapEntity>();
 
         // 프로토: 몬스터 2마리 예시
-        monsters.Add(CreateMonster(x: 9, y: 7, hp: 50));
-       // monsters.Add(CreateMonster(x: 10, y: 6, hp: 60));
+        monsters.Add(CreateMonster(x: 10, y: 16, hp: 50));
+        // monsters.Add(CreateMonster(x: 10, y: 6, hp: 60));
 
         return monsters;
-    }
-    private MapEntity CreatePlayerEntity(ClientSession s, int slot, int x, int y)
-    {
-        int entityId = slot;
-
-        MapEntity e = new MapEntity(entityId, EntityType.Player, new GridPos(x, y)); 
-
-
-        e.SetState("HP", 100);
-        e.SetState("Slot", slot);
-        e.SetState("OwnerSlot",slot);
-        e.SetState("Uid", s.Uid!);
-
-        return e;
     }
 
     private int _nextMonsterId = 100; // 몬스터는 100 ~ 999
@@ -339,23 +329,16 @@ public sealed class GameRoom : IGameBroadcaster
         m.SetState("OwnerSlot", -1);
         return m;
     }
-    private GridPos GetPrototypeSpawnForSlot(int slot)
-    {
-        // 간단 예시: 슬롯이 늘어도 겹치지 않게 대충 배치
-        // 맵 크기 고려해서 조정해도 됨
-        int baseX = 3 + slot * 2;
-        int baseY = 1 + slot;
-        return new GridPos(baseX, baseY);
-    }
+
 
     // ====== Packet Serialization ======
 
     readonly System.Collections.Concurrent.ConcurrentQueue<Action> _q = new();
     int _pumping = 0;
-    private void Enqueue(Action a) 
+    private void Enqueue(Action a)
     {
-        _q.Enqueue(a); 
-       // Pump(); -> Work Thread에 이양
+        _q.Enqueue(a);
+        // Pump(); -> Work Thread에 이양
     }
     private void PumpQueuedActions()
     {
@@ -365,15 +348,15 @@ public sealed class GameRoom : IGameBroadcaster
     }
     private bool IsRunnableFor(ClientSession s)
     {
-        if (_phase != RoomPhase.Running ) return false;
+        if (_phase != RoomPhase.Running) return false;
         // 과한가?
         lock (_lock) return _slots.Values.Contains(s);
     }
     private long _nextBeatSyncAtMs = 0;
-    private const int BeatSyncIntervalMs = 500; // 0.5초마다
+    private const int BeatSyncIntervalMs = 500; // 0.5초
     public void Update()
     {
-        if(_phase != RoomPhase.Running ) return;
+        if (_phase != RoomPhase.Running) return;
 
 
         // 1) 큐 처리 (네트워크에서 들어온 작업들)
@@ -428,7 +411,7 @@ public sealed class GameRoom : IGameBroadcaster
         });
 
     #endregion
-    
+
 
 
 }
