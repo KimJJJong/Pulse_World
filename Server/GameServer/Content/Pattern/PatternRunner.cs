@@ -1,4 +1,5 @@
-﻿using GameServer.Content.Map.Interface;
+﻿using GameServer.Content.Map;
+using GameServer.Content.Map.Interface;
 using GameServer.InGame.Manager.Beat;
 using GameServer.InGame.Manager.Entity;
 using System;
@@ -12,6 +13,7 @@ public sealed class PatternRunner
     private readonly TelegraphScheduler _telegraph;
     private readonly MonsterPatternSet _patterns;
     private readonly FrozenAttackRegistry _frozen;
+    private readonly Map2D _map2d;
 
 
     private readonly Dictionary<int, RuntimeState> _rt = new();
@@ -21,13 +23,14 @@ public sealed class PatternRunner
 
 
 
-    public PatternRunner(IGameWorld world, BeatActionManager actions, TelegraphScheduler telegraph, MonsterPatternSet patterns, FrozenAttackRegistry frozen)
+    public PatternRunner(IGameWorld world, BeatActionManager actions, TelegraphScheduler telegraph, MonsterPatternSet patterns, FrozenAttackRegistry frozen, Map2D map2D)
     {
         _world = world;
         _actions = actions;
         _telegraph = telegraph;
         _patterns = patterns;
         _frozen = frozen;
+        _map2d = map2D;
     }
 
     public void InitMonster(int monsterId)
@@ -41,7 +44,11 @@ public sealed class PatternRunner
     public void Run(long beatIndex, MapEntity monster, string monsterType, IList<MapEntity> players)
     {
         if (players.Count == 0) return;
-        if (!_rt.TryGetValue(monster.Id, out var st)) return;
+        if (!_rt.TryGetValue(monster.Id, out var st))
+        {
+            Console.WriteLine($"[PatternRunner] no runtime state for monsterId={monster.Id}");
+            return;
+        }
 
 
         // LockedUntilBeat 정의:
@@ -100,11 +107,19 @@ public sealed class PatternRunner
     private long ScheduleTimeline(long baseBeat, MapEntity m, IList<MapEntity> players, SelectorDef sel)
     {
         long last = baseBeat;
+        bool needsPadding = false;
 
+        Console.WriteLine($"[ScheduleTimeLine] TimeLineCount :{sel.Timeline.Count} =========================");
+
+        GridPos plannedPos = m.Position;
         foreach (var act in sel.Timeline)
         {
             long executeBeat = baseBeat + act.AtBeatOffset;
+
+            //if (executeBeat <= baseBeat) executeBeat = baseBeat + 1;
+
             last = Math.Max(last, executeBeat);
+
 
             switch (act.Type)
             {
@@ -116,11 +131,15 @@ public sealed class PatternRunner
                         MapEntity target = FindTarget(m, players, act.Target);
                         if (target == null)
                         {
-                            Console.WriteLine("[ScheduleTimeline : MoveStepToward ] (target == null)");
+                            //Console.WriteLine("[ScheduleTimeline : MoveStepToward ] (target == null)");
                             break;
                         }
-                        var nextPos = StepTowards(m.Position, target.Position);
+                        var nextPos = StepTowards(plannedPos, target.Position);
 
+                        if(! _map2d.IsWalkable(nextPos.X, nextPos.Y) )
+                        {
+                            nextPos = plannedPos;
+                        }
                         var cmd = new PlayerActionCmd
                         {
                             ActorId = m.Id,
@@ -130,6 +149,9 @@ public sealed class PatternRunner
                             ServerReceiveTimeMs = 0
                         };
                         _actions.ScheduleServerCommand(executeBeat, cmd);
+                        Console.WriteLine($"[ScheduleTimeLine] BeatIndex :{executeBeat} || Action : {ActionKind.Move} ||Pos :{nextPos}");
+                        plannedPos = nextPos;
+
                         break;
                     }
                 // 중요(동기화/신뢰성):
@@ -142,6 +164,7 @@ public sealed class PatternRunner
 
                 case ActionType.Attack:
                     {
+
                         MapEntity target = FindTarget(m, players, act.Target);
                         if (target == null)
                         {
@@ -158,8 +181,11 @@ public sealed class PatternRunner
                         }
 
                         //  SkillDef 기준 Freeze
-                        var frozenCells = ComputeCellsFromSkill(skill, originPoint, self: m, target: target, areaHint: act.Area);
+                        var frozenCells = ComputeCellsFromSkill(skill, plannedPos/*originPoint*/, self: m, target: target, areaHint: act.Area);
                         _frozen.Put(m.Id, executeBeat, act.SkillId, frozenCells);
+
+                        if (act.TelegraphBeats > 0)
+                            needsPadding = true;
 
                         // 텔레그래프 예약 (Shape=Cells로 frozenCells 그대로)
                         int teleBeats = Math.Max(0, act.TelegraphBeats);
@@ -174,6 +200,7 @@ public sealed class PatternRunner
                                     durationBeats: teleBeats,
                                     frozenCells: frozenCells
                                 );
+                                Console.WriteLine($"[ScheduleTimeLine] TeleIndex :{teleBeat} ");
                                 _telegraph.Schedule(teleBeat, entry);
                             }
                         }
@@ -188,14 +215,16 @@ public sealed class PatternRunner
                             ClientSendTimeMs = 0,
                             ServerReceiveTimeMs = 0
                         };
+                        Console.WriteLine($"[ScheduleTimeLine] DamageBeatIndex :{executeBeat} || Action : {ActionKind.Skill}");
                         _actions.ScheduleServerCommand(executeBeat, cmd);
                         break;
                     }
 
             }
         }
+        Console.WriteLine($"[ScheduleTimeLine] LockCount :{last}=========================");
 
-        return last;
+        return needsPadding ? (last + 1) : last;
     }
 
     private bool EvaluateWhen(WhenGroup when, MapEntity m, IList<MapEntity> players)

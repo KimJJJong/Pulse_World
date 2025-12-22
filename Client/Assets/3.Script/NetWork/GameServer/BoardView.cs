@@ -182,25 +182,25 @@ public class BoardView : MonoBehaviour, IClientWorldView
             _entityViews[info.EntityId] = go;
         }
 
+        if (info.EntityId == ClientGameState.Instance.MyActorId)
+        {
+            CameraBinder.Instance?.Bind(go.transform);
+        }
+
+
         go.transform.position = GridToWorld(info.X, info.Y);
     }
-    //public void OnBeatAction(ClientBeatAction action, ClientEntityInfo entity)
-    //{
-    //    if (!_entityViews.TryGetValue(action.ActorId, out var go) || go == null)
-    //        return;
+    public void OnDespawnEntity(int entityId)
+    {
+        if (_entityViews.TryGetValue(entityId, out var go) && go != null)
+            Destroy(go);
 
-    //    if (!action.Accepted)
-    //    {
-    //        // TODO: 실패 이펙트 넣고 싶으면 여기
-    //        return;
-    //    }
+        _entityViews.Remove(entityId);
 
-    //    Vector3 from = GridToWorld(action.FromX, action.FromY);
-    //    Vector3 to = GridToWorld(action.ToX, action.ToY);
+        if (DBG_POS && (_dbgOnlyActorId < 0 || _dbgOnlyActorId == entityId))
+            PosLog($"[DESPAWN] entityId={entityId} viewRemoved");
+    }
 
-
-    //    StartCoroutine(LerpMove(go.transform, from, to, moveLerpTime));
-    //}
 
     public void OnBeatAction(ClientBeatAction action, ClientEntityInfo entity)
     {

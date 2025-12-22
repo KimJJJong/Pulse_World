@@ -129,6 +129,15 @@ public class ClientGameState : MonoBehaviour
         _entities[info.EntityId] = info;
         WorldView?.OnSpawnOrUpdateEntity(info);
     }
+    public bool RemoveEntity(int entityId)
+    {
+        if (!_entities.Remove(entityId))
+            return false;
+
+        WorldView?.OnDespawnEntity(entityId);
+        return true;
+    }
+
 
     #endregion
 

@@ -40,4 +40,16 @@ public sealed class FrozenAttackRegistry
         foreach (var k in remove)
             _map.Remove(k);
     }
+    public void RemoveByActor(int actorId)
+    {
+        if (_map.Count == 0) return;
+
+        var remove = new List<(int actorId, long beat)>();
+        foreach (var k in _map.Keys)
+            if (k.actorId == actorId) remove.Add(k);
+
+        foreach (var k in remove)
+            _map.Remove(k);
+    }
+
 }

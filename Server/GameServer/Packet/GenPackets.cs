@@ -20,6 +20,7 @@ public enum PacketID
 	CS_ActionRequest = 12,
 	SC_BeatActions = 13,
 	SC_BeatTelegraphs = 14,
+	SC_EntityDespawn = 15,
 	
 }
 
@@ -1094,6 +1095,48 @@ public class SC_BeatTelegraphs : IPacket
 		count += sizeof(ushort);
 		foreach (Telegraphs telegraphs in this.telegraphss)
 			success &= telegraphs.Write(s, ref count);
+		success &= BitConverter.TryWriteBytes(s, count);
+		if (success == false)
+			return null;
+		return SendBufferHelper.Close(count);
+	}
+}
+
+public class SC_EntityDespawn : IPacket
+{
+	public long BeatIndex;
+	public int EntityId;
+
+	public ushort Protocol { get { return (ushort)PacketID.SC_EntityDespawn; } }
+
+	public void Read(ArraySegment<byte> segment)
+	{
+		ushort count = 0;
+
+		ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+		count += sizeof(ushort);
+		count += sizeof(ushort);
+		this.BeatIndex = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+		count += sizeof(long);
+		this.EntityId = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		count += sizeof(int);
+	}
+
+	public ArraySegment<byte> Write()
+	{
+		ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+		ushort count = 0;
+		bool success = true;
+
+		Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+		count += sizeof(ushort);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.SC_EntityDespawn);
+		count += sizeof(ushort);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.BeatIndex);
+		count += sizeof(long);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.EntityId);
+		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s, count);
 		if (success == false)
 			return null;

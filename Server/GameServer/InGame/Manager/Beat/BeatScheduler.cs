@@ -64,6 +64,25 @@ namespace GameServer.InGame.Manager.Beat
                 _byBeat.Remove(b);
         }
 
+
+        public void RemoveByActor(int actorId)
+        {
+            if (_byBeat.Count == 0) return;
+
+            var emptyBeats = new List<long>();
+
+            foreach (var kv in _byBeat)
+            {
+                if (kv.Value.Remove(actorId) && kv.Value.Count == 0)
+                    emptyBeats.Add(kv.Key);
+            }
+
+            foreach (var b in emptyBeats)
+                _byBeat.Remove(b);
+        }
+
+
+
         /// <summary>디버그용: 특정 beat에 예약된 actor 수</summary>
         public int Count(long beatIndex)
             => _byBeat.TryGetValue(beatIndex, out var perActor) ? perActor.Count : 0;

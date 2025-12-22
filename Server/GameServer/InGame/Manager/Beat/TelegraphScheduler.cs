@@ -56,4 +56,23 @@ namespace GameServer.InGame.Manager.Beat;
             foreach (var k in removeKeys)
                 _scheduled.Remove(k);
         }
+
+
+    public void RemoveByCaster(int casterId)
+    {
+        if (_scheduled.Count == 0) return;
+
+        var emptyBeats = new List<long>();
+
+        foreach (var kv in _scheduled)
+        {
+            kv.Value.RemoveAll(t => t.CasterId == casterId);
+            if (kv.Value.Count == 0)
+                emptyBeats.Add(kv.Key);
+        }
+
+        foreach (var b in emptyBeats)
+            _scheduled.Remove(b);
     }
+
+}

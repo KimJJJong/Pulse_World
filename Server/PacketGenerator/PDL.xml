@@ -148,6 +148,11 @@
 	</packet>
 
 
+	<packet name ="SC_EntityDespawn">
+		<long name="BeatIndex"/>
+		<int name ="EntityId"/>
+	</packet>
+
 	<!-- RhythmTest-->
 	
 

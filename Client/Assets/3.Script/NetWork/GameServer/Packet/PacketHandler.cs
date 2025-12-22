@@ -81,4 +81,6 @@ class PacketHandler
     public static void SC_BeatTelegraphsHandler(PacketSession session, IPacket packet)
          => ClientHandlers.Instance.Handle_SC_BeatTelegraphs((SC_BeatTelegraphs)packet);
 
+    public static void SC_EntityDespawnHandler(PacketSession session, IPacket packet)
+        => ClientHandlers.Instance.Handle_SC_EntityDespawn((SC_EntityDespawn)packet);
 }

@@ -9,4 +9,6 @@ public interface IClientWorldView
     void OnBeatAction(ClientBeatAction action, ClientEntityInfo entity);
 
     void OnInitGameCompleted();
+    void OnDespawnEntity(int entityId);
+
 }

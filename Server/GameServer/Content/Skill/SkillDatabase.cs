@@ -21,7 +21,7 @@ public static class SkillDatabase
     public static SkillDef GetOrDefault(string skillId)
     {
         if (_map.TryGetValue(skillId, out var def)) return def;
-        def = new SkillDef { SkillId = skillId, Damage = 10, BlockedByWall = false };
+        def = new SkillDef { SkillId = skillId/*, Damage = 10*/, BlockedByWall = false };
         _map[skillId] = def;
         return def;
     }

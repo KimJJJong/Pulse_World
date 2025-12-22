@@ -88,6 +88,9 @@ namespace GameServer.InGame.Manager.Beat
         // 서버에서 직접 예약하고 싶은 명령 (몬스터 AI 등)
         public void ScheduleServerCommand(long beatIndex, PlayerActionCmd cmd)
         {
+            var currBeat = _clock.GetCurrentBeatIndex(_time.NowMs);
+            //Console.WriteLine($"[Enqueue] actor={cmd.ActorId} kind={cmd.Kind} reqBeat={cmd.RequestedBeat}");
+
             cmd.RequestedBeat = beatIndex;
             _scheduler.Enqueue(cmd);
         }
@@ -99,19 +102,24 @@ namespace GameServer.InGame.Manager.Beat
         /// </summary>
         public void OnBeat(long beatIndex)
         {
+                //Console.WriteLine($"[OnBeat] BeatIndex:{beatIndex} ");
             var cmds = _scheduler.PopActions(beatIndex);
+            Console.WriteLine($"[OnBeat] BeatIndex:{beatIndex} || CommandCount :{cmds.Count}");
             if (cmds.Count == 0) return;
-
             var results = new List<SC_BeatActions.BeatActionResult>(cmds.Count);
             var used = new HashSet<int>(); //  Actor당 1 action/beat
 
             foreach (var cmd in cmds)
             {
-                if (!used.Add(cmd.ActorId))
-                    continue;
+                //if (!used.Add(cmd.ActorId))
+                //    continue;
+
+                //if (cmd.Kind == ActionKind.Skill) Console.WriteLine("여기가 실 데미지 적용");
 
                 if (!_world.TryGetActorPosition(cmd.ActorId, out var fromPos))
                 {
+                    //Console.WriteLine($"[BeatAction] unknown actorId={cmd.ActorId} kind={cmd.Kind}");
+
                     // 프로토: 결과라도 내려주고 싶으면 아래 블록 유지
                     results.Add(new SC_BeatActions.BeatActionResult
                     {
@@ -134,7 +142,9 @@ namespace GameServer.InGame.Manager.Beat
                     case ActionKind.Move:
                         toPos = cmd.TargetCell;
                         accepted = _world.TryMove(cmd.ActorId, toPos);
-                        if (!accepted) toPos = fromPos;
+                        Console.WriteLine($"[Move] Entity : {cmd.ActorId} || {fromPos} -> {toPos}");
+                        if (!accepted)
+                            Console.WriteLine($"[MoveRejected] actor={cmd.ActorId} from={fromPos} to={toPos}");
                         break;
 
                     case ActionKind.Skill:
@@ -142,6 +152,7 @@ namespace GameServer.InGame.Manager.Beat
                             //  Frozen cells가 있으면 그걸로 판정(예고와 동일)
                             if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
                             {
+                                Console.WriteLine($"[ActionKin.Skill] Infrozen || Attacker : {cmd.ActorId}");
                                 accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells);
                             }
                             else
@@ -153,10 +164,7 @@ namespace GameServer.InGame.Manager.Beat
                             toPos = fromPos;
                             break;
 
-                            //accepted = _world.TryUseSkill(cmd.ActorId, cmd.SkillId ,cmd.TargetCell.X, cmd.TargetCell.Y);
-                            //toPos = fromPos;
-                            //break;
-                        }
+                         }
 
                     case ActionKind.Wait:
                     default:
@@ -188,6 +196,11 @@ namespace GameServer.InGame.Manager.Beat
             _scheduler.DropBefore(beatIndex - 4);
             _frozen.DropBefore(beatIndex - 16);
 
+        }
+
+        public void CancelActor(int actorId)
+        {
+            _scheduler.RemoveByActor(actorId);       
         }
     }
 }

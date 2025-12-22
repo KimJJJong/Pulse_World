@@ -75,11 +75,12 @@ public sealed class GameRoom : IGameBroadcaster
             s.Slot = slot;
 
             _broadcastDirty = true;
+
             return true;
         }
     }
     // broadCastdirty를 만들었으면 Unbind 제대로 써먹고 사용 해야하다이!
-    private void Unbind(ClientSession s)
+    public void Unbind(ClientSession s)
     {
         lock (_lock)
         {
@@ -88,8 +89,13 @@ public sealed class GameRoom : IGameBroadcaster
                 .Select(kv => kv.Key)
                 .ToArray();
 
+
             foreach (var slot in slotsToRemove)
+            {
+                 _session.OnPlayerLeft(slot);
+
                 _slots[slot] = null;
+            }
 
             _broadcastDirty = true;
         }
@@ -175,6 +181,8 @@ public sealed class GameRoom : IGameBroadcaster
 
             _broadcastSnapshot = list.ToArray();
             _broadcastDirty = false;
+            Console.WriteLine("[GetBroadcastSnapshot] snapshot : Re");
+
             return _broadcastSnapshot;
         }
     }

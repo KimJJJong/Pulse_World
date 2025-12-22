@@ -220,6 +220,23 @@ public class ClientHandlers : MonoBehaviour
     }
 
 
+    public void Handle_SC_EntityDespawn(SC_EntityDespawn p)
+    {
+        int id = p.EntityId;
+
+        // 1) GS에서 논리 제거 + WorldView(=BoardView)에게 despawn 알림까지 전파
+        bool removed = GS.RemoveEntity(id);
+
+        Debug.Log($"[SC_EntityDespawn] entityId={id} removed={removed}");
+
+        // 2) 내가 조종하던 actor가 사라졌으면(사망/퇴장) UI/입력 처리
+        if (id == GS.MyActorId)
+        {
+            Debug.LogWarning("[SC_EntityDespawn] My actor despawned. Disable input / show UI.");
+            // TODO: 입력 잠금/사망 UI 등
+        }
+    }
+
 
 }
 

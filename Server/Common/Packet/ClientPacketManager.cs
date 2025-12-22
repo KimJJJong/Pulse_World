@@ -39,6 +39,8 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_BeatActions, PacketHandler.SC_BeatActionsHandler);
 		_makeFunc.Add((ushort)PacketID.SC_BeatTelegraphs, MakePacket<SC_BeatTelegraphs>);
 		_handler.Add((ushort)PacketID.SC_BeatTelegraphs, PacketHandler.SC_BeatTelegraphsHandler);
+		_makeFunc.Add((ushort)PacketID.SC_EntityDespawn, MakePacket<SC_EntityDespawn>);
+		_handler.Add((ushort)PacketID.SC_EntityDespawn, PacketHandler.SC_EntityDespawnHandler);
 
 	}
 

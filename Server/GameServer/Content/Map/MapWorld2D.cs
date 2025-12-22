@@ -8,6 +8,8 @@ using GameServer.InGame.Manager.Entity;
 
 public sealed class MapWorld2D : IGameWorld
 {
+    private readonly IGameBroadcaster _broadcaster;
+
     private readonly Map2D _map;
     public Map2D Map => _map;
     // 엔티티 전체 목록
@@ -16,9 +18,10 @@ public sealed class MapWorld2D : IGameWorld
     // 셀별로 어떤 엔티티가 있는지
     private readonly Dictionary<(int x, int y), HashSet<int>> _entitiesByGrid = new();
 
-    public MapWorld2D(Map2D map)
+    public MapWorld2D(Map2D map, IGameBroadcaster broadcaster)
     {
         _map = map;
+        _broadcaster = broadcaster;
     }
 
     // ==== 엔티티 관리 ====
@@ -60,14 +63,32 @@ public sealed class MapWorld2D : IGameWorld
         if (!_entities.TryGetValue(entityId, out var e))
             return false;
 
+        // 이미 죽었어도 idempotent 하게 처리하고 싶으면 true 반환으로 바꿔도 됨
+        if (!e.IsAlive)
+        {
+            _entities.Remove(entityId);
+            return true;
+        }
+
         var pos = e.Position;
         var key = (pos.X, pos.Y);
 
         if (_entitiesByGrid.TryGetValue(key, out var set))
+        {
             set.Remove(entityId);
+            if (set.Count == 0)
+                _entitiesByGrid.Remove(key);
+        }
 
         _entities.Remove(entityId);
+
+        _broadcaster.Broadcast(new SC_EntityDespawn
+        {
+            EntityId = entityId,
+        });
+
         e.IsAlive = false;
+        // 필요하면 Position을 (-1,-1) 같은 invalid로 바꿔도 됨
         return true;
     }
 
@@ -189,11 +210,11 @@ public sealed class MapWorld2D : IGameWorld
         // 3) 인접(4방)
         var dx = Math.Abs(target.X - from.X);
         var dy = Math.Abs(target.Y - from.Y);
-        if (dx + dy != 1)
-        {
-            if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL NotAdjacent actor={actorId} from=({from.X},{from.Y}) target=({target.X},{target.Y}) dx={dx} dy={dy}");
-            return false;
-        }
+        //if (dx + dy != 1)
+        //{
+        //    if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL NotAdjacent actor={actorId} from=({from.X},{from.Y}) target=({target.X},{target.Y}) dx={dx} dy={dy}");
+        //    return false;
+        //}
 
         // 4) 점유
         var targetKey = (target.X, target.Y);
@@ -247,6 +268,7 @@ public sealed class MapWorld2D : IGameWorld
     {
         if (!TryGetEntity(actorId, out var attacker) || !attacker.IsAlive)
             return false;
+        //foreach (var cell in cells) Console.WriteLine($"[Pos] {cell}");
 
         // 스킬 정의 조회
         if (!SkillDatabase.TryGet(skillId, out var skill))
@@ -298,6 +320,9 @@ public sealed class MapWorld2D : IGameWorld
         int hp = target.GetState<int>("HP");
         hp -= skill.Damage;
         target.SetState("HP", Math.Max(0, hp));
+
+
+        Console.WriteLine($"[ApplySkillEffect] AttackerID : {attacker.Id}-{attacker.GetState<int>("HP")} || TargetID : {target.Id}-{target.GetState<int>("HP")}");
 
         if (hp <= 0)
         {
