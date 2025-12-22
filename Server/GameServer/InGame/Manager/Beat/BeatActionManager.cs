@@ -142,7 +142,7 @@ namespace GameServer.InGame.Manager.Beat
                     case ActionKind.Move:
                         toPos = cmd.TargetCell;
                         accepted = _world.TryMove(cmd.ActorId, toPos);
-                        Console.WriteLine($"[Move] Entity : {cmd.ActorId} || {fromPos} -> {toPos}");
+                        //Console.WriteLine($"[Move] Entity : {cmd.ActorId} || {fromPos} -> {toPos}");
                         if (!accepted)
                             Console.WriteLine($"[MoveRejected] actor={cmd.ActorId} from={fromPos} to={toPos}");
                         break;
@@ -152,7 +152,7 @@ namespace GameServer.InGame.Manager.Beat
                             //  Frozen cells가 있으면 그걸로 판정(예고와 동일)
                             if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
                             {
-                                Console.WriteLine($"[ActionKin.Skill] Infrozen || Attacker : {cmd.ActorId}");
+                                //Console.WriteLine($"[ActionKin.Skill] Infrozen || Attacker : {cmd.ActorId}");
                                 accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells);
                             }
                             else

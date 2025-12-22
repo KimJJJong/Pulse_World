@@ -1,6 +1,7 @@
 ﻿
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace GameServer.InGame.Manager.Beat
 {
@@ -36,10 +37,14 @@ namespace GameServer.InGame.Manager.Beat
             if (!_byBeat.TryGetValue(beatIndex, out var perActor) || perActor.Count == 0)
                 return new List<PlayerActionCmd>(0);
 
-            var list = new List<PlayerActionCmd>(perActor.Count);
+            //var list = new List<PlayerActionCmd>(perActor.Count);
 
-            foreach (var kv in perActor)
-                list.Add(kv.Value);
+            var list = perActor.Values
+                .OrderBy(cmd=>cmd.Kind)
+                .ToList();
+
+            //foreach (var kv in perActor)
+            //    list.Add(kv.Value);
 
             _byBeat.Remove(beatIndex);
             return list;
