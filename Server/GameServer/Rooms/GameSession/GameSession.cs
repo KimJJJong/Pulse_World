@@ -93,23 +93,19 @@ public sealed class GameSession
 
         ClearnupActor(actorId);
 
-        // 2) 월드에서 제거(가능하면 Despawn 구현)
-        // World2D.TryDespawn(actorId);
-        // 없으면 최소한 IsAlive=false + 점유/위치 정리라도
+
         var p = _players.Find(x => x.Id == actorId);
-        if (p != null) p.IsAlive = false; // or SetState("HP", 0)
-                                          // World2D에서 실제로 entity를 지우는 API가 있으면 그걸로
+        if (p != null) p.IsAlive = false; 
+                                          
 
         // 3) 리스트/매핑 정리
         _players.RemoveAll(x => x.Id == actorId);
         _slotToActorId.Remove(slot);
 
-        // 4) 클라들에게 "플레이어 퇴장/엔티티 제거" 브로드캐스트
-        // (패킷이 있으면 보내기. 없다면 임시로 HP=0 같은 상태 브로드캐스트라도)
 
     }
 
-    public void ClearnupActor(int actorId)
+    private void ClearnupActor(int actorId)
     {
         BeatActions.CancelActor(actorId);   //scheduler purge
         _frozen.RemoveByActor(actorId);     //frozen purege

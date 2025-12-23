@@ -13,6 +13,7 @@ using GameServer.InGame.Manager.Entity;
 using GameServer.InGame.System.Rhythm;
 using System.Threading;
 using GameServer.Content.Map;
+using static SC_AllPlayersLoaded;
 #endregion
 
 public sealed class GameRoom : IGameBroadcaster
@@ -98,6 +99,13 @@ public sealed class GameRoom : IGameBroadcaster
             }
 
             _broadcastDirty = true;
+
+            GetBroadcastSnapshot();
+
+            Console.WriteLine($"Length!@#!$!@%!#$!#@ : {_broadcastSnapshot.Length}");
+            if (_broadcastSnapshot.Length <= 0)
+                RoomManager.Remove(MatchId);
+             
         }
     }
 
@@ -226,9 +234,9 @@ public sealed class GameRoom : IGameBroadcaster
         // 3) 리듬 설정
         _rhythmConfig = new RhythmConfig
         {
-            Bpm = 60.0,
+            Bpm = 120.0,
             BaseBeatDivision = 1/*4 * 4*/,  // 16분음표 기준
-            ActionWindowMs = 200.0,     // +-80ms 판정 윈도우
+            ActionWindowMs = 300.0,     // +-80ms 판정 윈도우
             MaxBeatLookAhead = 2
         };
 
@@ -361,7 +369,7 @@ public sealed class GameRoom : IGameBroadcaster
         lock (_lock) return _slots.Values.Contains(s);
     }
     private long _nextBeatSyncAtMs = 0;
-    private const int BeatSyncIntervalMs = 500; // 0.5초
+    private const int BeatSyncIntervalMs = 5000; // 0.5초
     public void Update()
     {
         if (_phase != RoomPhase.Running) return;

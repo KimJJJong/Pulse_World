@@ -37,11 +37,14 @@ namespace GameServer.InGame.Manager.Beat
             if (!_byBeat.TryGetValue(beatIndex, out var perActor) || perActor.Count == 0)
                 return new List<PlayerActionCmd>(0);
 
-            //var list = new List<PlayerActionCmd>(perActor.Count);
+            var list = new List<PlayerActionCmd>(perActor.Count);
+            foreach (var cmd in perActor.Values)
+                list.Add(cmd);
 
-            var list = perActor.Values
-                .OrderBy(cmd=>cmd.Kind)
-                .ToList();
+            list.Sort(static (a, b) => a.Kind.CompareTo(b.Kind));
+            //var list = perActor.Values
+            //    .OrderBy(cmd=>cmd.Kind)
+            //    .ToList();
 
             //foreach (var kv in perActor)
             //    list.Add(kv.Value);

@@ -11,12 +11,30 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
     [SerializeField] private float judgeWindowMs = 80f;
 
+    [Header("Metronome Sound")]
+    [SerializeField] private AudioSource _audioSource;   // 없으면 자동 생성
+    [SerializeField] private AudioClip _beatClip;        // 1 beat마다 울릴 사운드
+    [SerializeField] private float _beatVolume = 0.8f;   // OneShot 볼륨
+
     private RhythmClient Rhythm => RhythmClient.Instance;
+
+    private long _lastBeatIndex = long.MinValue;
 
     void Awake()
     {
+        //// (선택) DontDestroyOnLoad 중복 방지: 씬 전환 시 여러 개 생기는 경우 대비
+        //var existing = FindFirstObjectByType<BeatDebugUI_TMP>();
+        //if (existing == true)
+        //{
+        //    Destroy(gameObject);
+        //    return;
+        //}
+        DontDestroyOnLoad(gameObject);
+
         if (_canvas == null)
             CreateCanvasAndUI();
+
+        EnsureAudio();
     }
 
     void Update()
@@ -28,6 +46,13 @@ public class BeatDebugUI_TMP : MonoBehaviour
         double progress = Rhythm.GetCurrentBeatProgress01();
         long serverNow = Rhythm.GetCurrentServerTimeMs();
         double beatMs = Rhythm.GetBeatDurationMs();
+
+        //  1 beat마다 사운드 1회 실행
+        if (beatIndex != _lastBeatIndex)
+        {
+            OnBeat(beatIndex);
+            _lastBeatIndex = beatIndex;
+        }
 
         if (_beatText != null)
         {
@@ -42,7 +67,6 @@ public class BeatDebugUI_TMP : MonoBehaviour
         {
             _progressBar.fillAmount = (float)progress;
 
-            // Beat 한가운데 근처에 있으면 판정 OK 라고 보고 색 변경
             double distToBeatMs = Mathf.Min(
                 (float)(progress * beatMs),
                 (float)((1.0 - progress) * beatMs)
@@ -50,6 +74,32 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
             _progressBar.color = distToBeatMs <= judgeWindowMs ? Color.green : Color.red;
         }
+    }
+
+    private void OnBeat(long beatIndex)
+    {
+        // 첫 프레임(초기화)에서 한 번 울리는 게 싫으면 여기서 막아도 됨
+        // if (_lastBeatIndex == long.MinValue) return;
+
+        if (_beatClip == null || _audioSource == null)
+            return;
+
+        _audioSource.PlayOneShot(_beatClip, _beatVolume);
+    }
+
+    private void EnsureAudio()
+    {
+        if (_audioSource != null)
+            return;
+
+        // AudioSource 자동 생성 (3D 영향 없게)
+        _audioSource = gameObject.GetComponent<AudioSource>();
+        if (_audioSource == null)
+            _audioSource = gameObject.AddComponent<AudioSource>();
+
+        _audioSource.playOnAwake = false;
+        _audioSource.spatialBlend = 0f; // 2D
+        _audioSource.loop = false;
     }
 
     private void CreateCanvasAndUI()

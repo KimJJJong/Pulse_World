@@ -322,7 +322,7 @@ public sealed class MapWorld2D : IGameWorld
         target.SetState("HP", Math.Max(0, hp));
 
 
-        Console.WriteLine($"[ApplySkillEffect] AttackerID : {attacker.Id}-{attacker.GetState<int>("HP")} || TargetID : {target.Id}-{target.GetState<int>("HP")}");
+        Console.WriteLine($"[ApplySkillEffect] AttackerID : {attacker.Id}-HP : {attacker.GetState<int>("HP")} || TargetID : {target.Id}-HP : {target.GetState<int>("HP")}");
 
         if (hp <= 0)
         {
