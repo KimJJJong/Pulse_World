@@ -147,7 +147,10 @@ namespace GameServer.InGame.Manager.Beat
                         accepted = _world.TryMove(cmd.ActorId, toPos);
                         //Console.WriteLine($"[Move] Entity : {cmd.ActorId} || {fromPos} -> {toPos}");
                         if (!accepted)
+                        {
                             Console.WriteLine($"[MoveRejected] actor={cmd.ActorId} from={fromPos} to={toPos}");
+                            toPos = fromPos;
+                        }
                         break;
 
                     case ActionKind.Skill:

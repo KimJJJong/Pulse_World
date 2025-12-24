@@ -16,6 +16,7 @@ public class HexHudView : MonoBehaviour
 
     public void SetHp(int hp, int maxHp, Color fillColor)
     {
+        Debug.Log("INHEXHUDVIEW");
         float rate = (maxHp <= 0) ? 0f : (float)hp / maxHp;
         hpFill.fillAmount = Mathf.Clamp01(rate);
         hpFill.color = fillColor;

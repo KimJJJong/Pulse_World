@@ -133,10 +133,12 @@ public class ClientHandlers : MonoBehaviour
             {
                 foreach (var u in a.hpUpdates)
                 {
+
                     // u.EntityId, u.NewHp 가 있다고 가정
                     if (GS.TryGetEntity(u.EntityId, out var info))
                     {
                         info.Hp = u.NewHp;
+                        Debug.Log($"[HP_Change] acterId : {u.EntityId} || hp : {u.NewHp}");
 
                         // 상태 갱신 + HUD 이벤트까지(Spawn 연출이 섞여있으면 별도 UpdateEntityState 추천)
                         GS.UpdateEntityState(info);

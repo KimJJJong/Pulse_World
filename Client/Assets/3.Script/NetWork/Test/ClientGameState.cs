@@ -137,6 +137,8 @@ public class ClientGameState : MonoBehaviour
     }
     public void UpdateEntityState(ClientEntityInfo info)
     {
+        Debug.Log($"[UpdateEntityState] IN");
+
         _entities[info.EntityId] = info;
 
         // 뷰가 업데이트 전용을 가지고 있으면 그걸로 분리하는 게 베스트
@@ -163,15 +165,15 @@ public class ClientGameState : MonoBehaviour
 
     public void OnBeatAction(ClientBeatAction action)
     {
-        if (action.Accepted)
-        {
-            //Debug.Log($"[ OnBeatAction ] action.Accepted: [{action.Accepted}]");
-            return;
-        }
+        //if (action.Accepted)
+        //{
+        //    //Debug.Log($"[ OnBeatAction ] action.Accepted: [{action.Accepted}]");
+        //    return;
+        //}
 
         if (!_entities.TryGetValue(action.ActorId, out var entity))
         {
-            Debug.Log($"!_entities.TryGetValue(action.ActorId, out var entity) || [action.ActionId = {action.ActorId}] || entity = [{entity}] || action = {action} ");
+            Debug.LogWarning($"!_entities.TryGetValue(action.ActorId, out var entity) || [action.ActionId = {action.ActorId}] || entity = [{entity}] || action = {action} ");
             return;
         }
 
@@ -197,6 +199,7 @@ public class ClientGameState : MonoBehaviour
     {
         if(entityId == MyActorId && _entities.TryGetValue(MyActorId, out var entity))
         {
+            //Debug.Log($"[NotifyMyEntityChanged] IN");
             MyEntityChanged?.Invoke(entity);
         }
     }
