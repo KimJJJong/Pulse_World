@@ -8,7 +8,9 @@ public interface IGameWorld
     bool ContainsEntity(int actorId);
 
     bool TryMove(int actorId, GridPos target);
-    bool TryUseSkill(int actorId, string skillId ,int targetX, int targetY);
-    bool TryUseSkillArea(int actorId, string skillId, IReadOnlyList<GridPos> cells);
+    bool TryUseSkill(int actorId, string skillId ,int targetX, int targetY, List<HpUpdate> hpUpdate);
+    bool TryUseSkillArea(int actorId, string skillId, IReadOnlyList<GridPos> cells, List<HpUpdate> hpUpdates);
+
+
 
 }

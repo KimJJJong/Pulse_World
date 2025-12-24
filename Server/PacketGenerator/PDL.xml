@@ -125,6 +125,11 @@
 			<int name="ToX"/>
 			<int name="ToY"/>
 			<bool name="Accepted"/>
+				
+			<list name ="HpUpdate">
+				<int name="EntityId"/>
+				<int name="NewHp"/>
+			</list>
 		</list>
 	</packet>
 

@@ -248,7 +248,7 @@ public sealed class MapWorld2D : IGameWorld
 
     // ==== 스킬/오브젝트 상태 예시 ====
 
-    public bool TryUseSkill(int actorId, string skillId, int targetX, int targetY)
+    public bool TryUseSkill(int actorId, string skillId, int targetX, int targetY, List<HpUpdate> hpUpdate)
     {
         if (!_entities.TryGetValue(actorId, out var caster) || !caster.IsAlive)
             return false;
@@ -260,15 +260,14 @@ public sealed class MapWorld2D : IGameWorld
 
         var cells = BuildDiamond(center, radius: 1);
 
-        return TryUseSkillArea(actorId, skillId, cells);
+        return TryUseSkillArea(actorId, skillId, cells, hpUpdate);
     }
 
     //  Freeze 셀 기반 판정(텔레그래프=판정 보장)
-    public bool TryUseSkillArea(int actorId, string skillId, IReadOnlyList<GridPos> cells)
+    public bool TryUseSkillArea(int actorId, string skillId, IReadOnlyList<GridPos> cells, List<HpUpdate> hpUpdates)
     {
         if (!TryGetEntity(actorId, out var attacker) || !attacker.IsAlive)
             return false;
-        //foreach (var cell in cells) Console.WriteLine($"[Pos] {cell}");
 
         // 스킬 정의 조회
         if (!SkillDatabase.TryGet(skillId, out var skill))
@@ -302,7 +301,7 @@ public sealed class MapWorld2D : IGameWorld
                 if (!hitTargets.Add(target.Id))
                     continue;
 
-                ApplySkillEffect(attacker, target, skill);
+                ApplySkillEffect(attacker, target, skill, hpUpdates);
                 anyHit = true;
             }
         }
@@ -315,18 +314,23 @@ public sealed class MapWorld2D : IGameWorld
     // 프로토 기준: walkable 아니면 "벽/장애물"로 간주
     private bool IsBlocked(int x, int y) => !_map.IsWalkable(x, y);
 
-    private void ApplySkillEffect(MapEntity attacker, MapEntity target, SkillDef skill)
+    private void ApplySkillEffect(MapEntity attacker, MapEntity target, SkillDef skill, List<HpUpdate> hpUpdates)
     {
-        int hp = target.GetState<int>("HP");
-        hp -= skill.Damage;
-        target.SetState("HP", Math.Max(0, hp));
+        int before = target.GetState<int>("HP");
+        int after = Math.Max(0, before - skill.Damage);
 
+        if (after == before)
+            return;
 
-        Console.WriteLine($"[ApplySkillEffect] AttackerID : {attacker.Id}-HP : {attacker.GetState<int>("HP")} || TargetID : {target.Id}-HP : {target.GetState<int>("HP")}");
+        target.SetState("HP", after);
 
-        if (hp <= 0)
+        hpUpdates.Add(new HpUpdate(target.Id, after));
+
+        Console.WriteLine($"[ApplySkillEffect] Attacker:{attacker.Id} Target:{target.Id} HP {before}->{after}");
+
+        if (after <= 0)
         {
-            //  죽으면 despawn 처리
+            // 죽으면 despawn
             Despawn(target.Id);
         }
     }
@@ -344,4 +348,16 @@ public sealed class MapWorld2D : IGameWorld
 
 
 
+}
+
+public readonly struct HpUpdate
+{
+    public readonly int EntityId;
+    public readonly int NewHp;
+
+    public HpUpdate(int entityId, int newHp)
+    {
+        EntityId = entityId;
+        NewHp = newHp;
+    }
 }

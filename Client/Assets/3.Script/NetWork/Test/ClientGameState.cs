@@ -6,7 +6,6 @@ public class ClientGameState : MonoBehaviour
     public static ClientGameState Instance { get; private set; }
 
     //tmp
-    public int MySide { get;  set; }
     public int MapWidth { get; private set; }
     public int MapHeight { get; private set; }
 
@@ -22,6 +21,9 @@ public class ClientGameState : MonoBehaviour
 
     // TODO: 뷰(유닛 프리팹) 매핑이 필요하면 여기서 관리하거나, 별도 ViewManager 사용
     public IClientWorldView WorldView { get; set; } // 선택 사항: 바인딩해도 되고 안 해도 됨
+
+    // UI ?
+    public event System.Action<ClientEntityInfo> MyEntityChanged;
 
     void Awake()
     {
@@ -127,8 +129,24 @@ public class ClientGameState : MonoBehaviour
     public void SpawnOrUpdateEntity(ClientEntityInfo info)
     {
         _entities[info.EntityId] = info;
+
+        // State Change
         WorldView?.OnSpawnOrUpdateEntity(info);
+        NotifyMyEntityChanged(info.EntityId);
+
     }
+    public void UpdateEntityState(ClientEntityInfo info)
+    {
+        _entities[info.EntityId] = info;
+
+        // 뷰가 업데이트 전용을 가지고 있으면 그걸로 분리하는 게 베스트
+        WorldView?.OnSpawnOrUpdateEntity(info);
+
+        // 내 캐릭터면 HUD 갱신 이벤트
+        NotifyMyEntityChanged(info.EntityId);
+    }
+
+
     public bool RemoveEntity(int entityId)
     {
         if (!_entities.Remove(entityId))
@@ -145,11 +163,11 @@ public class ClientGameState : MonoBehaviour
 
     public void OnBeatAction(ClientBeatAction action)
     {
-        //if (action.Accepted)
-        //{
-        //    Debug.Log($"[ OnBeatAction ] action.Accepted: [{action.Accepted}]");
-        //    return;
-        //}
+        if (action.Accepted)
+        {
+            //Debug.Log($"[ OnBeatAction ] action.Accepted: [{action.Accepted}]");
+            return;
+        }
 
         if (!_entities.TryGetValue(action.ActorId, out var entity))
         {
@@ -160,12 +178,30 @@ public class ClientGameState : MonoBehaviour
         // 서버가 FromX/Y, ToX/Y를 줬으니 그대로 신뢰
         entity.X = action.ToX;
         entity.Y = action.ToY;
-        _entities[action.ActorId] = entity;
 
+        if (action.HasHpUpdate)
+            entity.Hp = action.NewHp;
+
+
+        _entities[action.ActorId] = entity;
+        // State Change
         WorldView?.OnBeatAction(action, entity);
+        NotifyMyEntityChanged(action.ActorId);
+
     }
 
     #endregion
+
+    #region UI
+    private void NotifyMyEntityChanged(int entityId)
+    {
+        if(entityId == MyActorId && _entities.TryGetValue(MyActorId, out var entity))
+        {
+            MyEntityChanged?.Invoke(entity);
+        }
+    }
+    #endregion
+
 
     public void OnInitGameCompleted()
     {
@@ -192,4 +228,7 @@ public struct ClientBeatAction
     public int ToX;
     public int ToY;
     public bool Accepted;
+
+    public bool HasHpUpdate;
+    public int NewHp;
 }

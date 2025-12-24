@@ -111,7 +111,6 @@ public class ClientHandlers : MonoBehaviour
     /// </summary>
     public void Handle_SC_BeatActions(SC_BeatActions p)
     {
-
         foreach (var a in p.beatActionResults)
         {
             var action = new ClientBeatAction
@@ -126,11 +125,30 @@ public class ClientHandlers : MonoBehaviour
                 Accepted = a.Accepted
             };
 
+            // 1) 이동/행동 반영
             GS.OnBeatAction(action);
-            CleanupExpiredTelegraphs(p.BeatIndex);
 
+            // 2)  HP 변경 반영 (피격자들)
+            if (a.hpUpdates != null && a.hpUpdates.Count > 0)
+            {
+                foreach (var u in a.hpUpdates)
+                {
+                    // u.EntityId, u.NewHp 가 있다고 가정
+                    if (GS.TryGetEntity(u.EntityId, out var info))
+                    {
+                        info.Hp = u.NewHp;
+
+                        // 상태 갱신 + HUD 이벤트까지(Spawn 연출이 섞여있으면 별도 UpdateEntityState 추천)
+                        GS.UpdateEntityState(info);
+                    }
+                }
+            }
+
+            // 기존 로직
+            CleanupExpiredTelegraphs(p.BeatIndex);
         }
     }
+
     public void Handle_SC_BeatTelegraphs(SC_BeatTelegraphs p)
     {
         Debug.Log($"[SC_BeatTelegraphs] beat={p.BeatIndex} count={p.telegraphss.Count}");

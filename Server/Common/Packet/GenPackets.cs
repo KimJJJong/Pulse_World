@@ -863,6 +863,32 @@ public class SC_BeatActions : IPacket
 		public int ToX;
 		public int ToY;
 		public bool Accepted;
+		public class HpUpdate
+		{
+			public int EntityId;
+			public int NewHp;
+		
+			public void Read(ReadOnlySpan<byte> s, ref ushort count)
+			{
+				this.EntityId = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+				count += sizeof(int);
+				this.NewHp = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+				count += sizeof(int);
+			}
+		
+			public bool Write(Span<byte> s, ref ushort count)
+			{
+				ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+		
+				bool success = true;
+				success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.EntityId);
+				count += sizeof(int);
+				success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.NewHp);
+				count += sizeof(int);
+				return success;
+			}	
+		}
+		public List<HpUpdate> hpUpdates = new List<HpUpdate>();
 	
 		public void Read(ReadOnlySpan<byte> s, ref ushort count)
 		{
@@ -880,6 +906,15 @@ public class SC_BeatActions : IPacket
 			count += sizeof(int);
 			this.Accepted = BitConverter.ToBoolean(s.Slice(count, s.Length - count));
 			count += sizeof(bool);
+			this.hpUpdates.Clear();
+			ushort hpUpdateLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+			count += sizeof(ushort);
+			for (int i = 0; i < hpUpdateLen; i++)
+			{
+				HpUpdate hpUpdate = new HpUpdate();
+				hpUpdate.Read(s, ref count);
+				hpUpdates.Add(hpUpdate);
+			}
 		}
 	
 		public bool Write(Span<byte> s, ref ushort count)
@@ -901,6 +936,10 @@ public class SC_BeatActions : IPacket
 			count += sizeof(int);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Accepted);
 			count += sizeof(bool);
+			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)this.hpUpdates.Count);
+			count += sizeof(ushort);
+			foreach (HpUpdate hpUpdate in this.hpUpdates)
+				success &= hpUpdate.Write(s, ref count);
 			return success;
 		}	
 	}

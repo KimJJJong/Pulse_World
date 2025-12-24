@@ -1,4 +1,5 @@
-﻿using GameServer.Content.Map.Interface;
+﻿using GameServer.Content.Map;
+using GameServer.Content.Map.Interface;
 using GameServer.InGame.System.Rhythm;
 using System;
 using System.Collections.Generic;
@@ -107,7 +108,7 @@ namespace GameServer.InGame.Manager.Beat
             Console.WriteLine($"[OnBeat] BeatIndex:{beatIndex} || CommandCount :{cmds.Count}");
             if (cmds.Count == 0) return;
             var results = new List<SC_BeatActions.BeatActionResult>(cmds.Count);
-            var used = new HashSet<int>(); //  Actor당 1 action/beat
+            //var used = new HashSet<int>(); //  Actor당 1 action/beat
 
             foreach (var cmd in cmds)
             {
@@ -137,6 +138,8 @@ namespace GameServer.InGame.Manager.Beat
                 var toPos = fromPos;
                 bool accepted;
 
+                var hpUpdates = new List<HpUpdate>(4);
+
                 switch (cmd.Kind)
                 {
                     case ActionKind.Move:
@@ -153,12 +156,12 @@ namespace GameServer.InGame.Manager.Beat
                             if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
                             {
                                 //Console.WriteLine($"[ActionKin.Skill] Infrozen || Attacker : {cmd.ActorId}");
-                                accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells);
+                                accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells, hpUpdates);
                             }
                             else
                             {
                                 //  fallback (플레이어 입력 등)
-                                accepted = _world.TryUseSkill(cmd.ActorId, cmd.SkillId, cmd.TargetCell.X, cmd.TargetCell.Y);
+                                accepted = _world.TryUseSkill(cmd.ActorId, cmd.SkillId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
                             }
 
                             toPos = fromPos;
@@ -173,6 +176,19 @@ namespace GameServer.InGame.Manager.Beat
                         break;
                 }
 
+                var pktHpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>(hpUpdates.Count);
+                if (accepted && hpUpdates.Count > 0)
+                {
+                    foreach (var u in hpUpdates)
+                    {
+                        pktHpUpdates.Add(new SC_BeatActions.BeatActionResult.HpUpdate
+                        {
+                            EntityId = u.EntityId,
+                            NewHp = u.NewHp
+                        });
+                    }
+                }
+
                 results.Add(new SC_BeatActions.BeatActionResult
                 {
                     ActorId = cmd.ActorId,
@@ -181,7 +197,9 @@ namespace GameServer.InGame.Manager.Beat
                     FromY = fromPos.Y,
                     ToX = toPos.X,
                     ToY = toPos.Y,
-                    Accepted = accepted
+                    Accepted = accepted,
+
+                    hpUpdates = pktHpUpdates
                 });
             }
 
