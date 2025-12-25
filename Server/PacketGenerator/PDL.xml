@@ -74,14 +74,11 @@
 	<!-- RhythmTest-->
 
 	<packet name="SC_InitGame">
+		<double name="ActionWindowMs"/>
 		<int name="MapWidth"/>
 		<int name="MapHeight"/>
 		<string name ="MapName"/>
-<!--
-		<list name="Tiles">
-			<int name="TileKind"/>
-		</list>
--->
+		
 		<list name="PlayerActorIds">
 			<int name="ActorId"/>
 		</list>

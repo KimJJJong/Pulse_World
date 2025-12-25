@@ -109,7 +109,7 @@ public sealed class PatternRunner
         long last = baseBeat;
         bool needsPadding = false;
 
-        Console.WriteLine($"[ScheduleTimeLine] TimeLineCount :{sel.Timeline.Count} =========================");
+        //Console.WriteLine($"[ScheduleTimeLine] TimeLineCount :{sel.Timeline.Count} =========================");
 
         GridPos plannedPos = m.Position;
         foreach (var act in sel.Timeline)
@@ -149,7 +149,7 @@ public sealed class PatternRunner
                             ServerReceiveTimeMs = 0
                         };
                         _actions.ScheduleServerCommand(executeBeat, cmd);
-                        Console.WriteLine($"[ScheduleTimeLine] BeatIndex :{executeBeat} || Action : {ActionKind.Move} ||Pos :{nextPos}");
+                        //Console.WriteLine($"[ScheduleTimeLine] BeatIndex :{executeBeat} || Action : {ActionKind.Move} ||Pos :{nextPos}");
                         plannedPos = nextPos;
 
                         break;
@@ -200,7 +200,7 @@ public sealed class PatternRunner
                                     durationBeats: teleBeats,
                                     frozenCells: frozenCells
                                 );
-                                Console.WriteLine($"[ScheduleTimeLine] TeleIndex :{teleBeat} ");
+                                //Console.WriteLine($"[ScheduleTimeLine] TeleIndex :{teleBeat} ");
                                 _telegraph.Schedule(teleBeat, entry);
                             }
                         }
@@ -215,14 +215,14 @@ public sealed class PatternRunner
                             ClientSendTimeMs = 0,
                             ServerReceiveTimeMs = 0
                         };
-                        Console.WriteLine($"[ScheduleTimeLine] DamageBeatIndex :{executeBeat} || Action : {ActionKind.Skill}");
+                        //Console.WriteLine($"[ScheduleTimeLine] DamageBeatIndex :{executeBeat} || Action : {ActionKind.Skill}");
                         _actions.ScheduleServerCommand(executeBeat, cmd);
                         break;
                     }
 
             }
         }
-        Console.WriteLine($"[ScheduleTimeLine] LockCount :{last}=========================");
+        //Console.WriteLine($"[ScheduleTimeLine] LockCount :{last}=========================");
 
         return needsPadding ? (last + 1) : last;
     }

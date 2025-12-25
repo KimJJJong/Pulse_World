@@ -354,7 +354,7 @@ MonoBehaviour:
   _canvas: {fileID: 0}
   _beatText: {fileID: 0}
   _progressBar: {fileID: 0}
-  judgeWindowMs: 80
+  judgeWindowMs: 0
   _audioSource: {fileID: 1963127668}
   _beatClip: {fileID: 8300000, guid: 9e140376a890def4ea0c8c6d3cdef1d6, type: 3}
   _beatVolume: 0.8

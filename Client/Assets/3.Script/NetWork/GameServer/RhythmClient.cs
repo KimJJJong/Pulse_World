@@ -11,6 +11,8 @@ public class RhythmClient : MonoBehaviour
     public long LastServerTimeMs { get; private set; }
     public long LastBeatIndex { get; private set; }
 
+    public float judgeWindowMs { get; set; } = 0;
+
     // 클라-서버 시간 오프셋 추정 (serverTimeMs - localTimeMs)
     private double _serverTimeOffsetMs = 0;
 

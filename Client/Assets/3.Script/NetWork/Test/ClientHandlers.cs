@@ -51,6 +51,10 @@ public class ClientHandlers : MonoBehaviour
             return;
         }
 
+        // 2) judgeWindowMs Set
+        RhythmClient.Instance.judgeWindowMs = (float)p.ActionWindowMs;
+        Debug.Log($" Get JudgeWindowMS :{RhythmClient.Instance.judgeWindowMs}");
+
         // 1) MapAsset 기준으로 기존 파이프라인(CreateMap/SetTile/BoardView)을 그대로 사용
         bool ok = GS.CreateMapFromAsset(mapAsset);
         if (!ok)

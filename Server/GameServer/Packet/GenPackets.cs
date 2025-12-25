@@ -590,6 +590,7 @@ public class SC_Pong : IPacket
 
 public class SC_InitGame : IPacket
 {
+	public double ActionWindowMs;
 	public int MapWidth;
 	public int MapHeight;
 	public string MapName;
@@ -671,6 +672,8 @@ public class SC_InitGame : IPacket
 		ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
 		count += sizeof(ushort);
 		count += sizeof(ushort);
+		this.ActionWindowMs = BitConverter.ToDouble(s.Slice(count, s.Length - count));
+		count += sizeof(double);
 		this.MapWidth = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
 		this.MapHeight = BitConverter.ToInt32(s.Slice(count, s.Length - count));
@@ -712,6 +715,8 @@ public class SC_InitGame : IPacket
 		count += sizeof(ushort);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.SC_InitGame);
 		count += sizeof(ushort);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ActionWindowMs);
+		count += sizeof(double);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.MapWidth);
 		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.MapHeight);

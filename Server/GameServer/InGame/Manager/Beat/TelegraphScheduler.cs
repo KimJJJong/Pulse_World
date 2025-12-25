@@ -27,7 +27,7 @@ namespace GameServer.InGame.Manager.Beat;
         if (!_scheduled.TryGetValue(beatIndex, out var list) || list.Count == 0)
             return;
 
-        Console.WriteLine($"[TelegraphScheduler.OnBeat] Beat={beatIndex} Count={list.Count}");
+        //Console.WriteLine($"[TelegraphScheduler.OnBeat] Beat={beatIndex} Count={list.Count}");
 
 
 

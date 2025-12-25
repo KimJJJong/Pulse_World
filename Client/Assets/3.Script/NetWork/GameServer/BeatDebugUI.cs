@@ -15,7 +15,8 @@ public class BeatDebugUI_TMP : MonoBehaviour
     [SerializeField] private AudioSource _audioSource;   // 없으면 자동 생성
     [SerializeField] private AudioClip _beatClip;        // 1 beat마다 울릴 사운드
     [SerializeField] private float _beatVolume = 0.8f;   // OneShot 볼륨
-
+    [SerializeField] private float soundOffsetMs = 60f;   // "비트보다 몇 ms 먼저" 울릴지(양수=더 일찍)
+    private long _scheduledBeatIndex = long.MinValue;
     private RhythmClient Rhythm => RhythmClient.Instance;
 
     private long _lastBeatIndex = long.MinValue;
@@ -37,22 +38,39 @@ public class BeatDebugUI_TMP : MonoBehaviour
         EnsureAudio();
     }
 
-    void Update()
+void Update()
+{
+        if (judgeWindowMs == 0)
+            judgeWindowMs = RhythmClient.Instance.judgeWindowMs;
+
+        if (Rhythm == null) return;
+
+    long beatIndex = Rhythm.GetCurrentBeatIndex();
+    double progress = Rhythm.GetCurrentBeatProgress01();
+    long serverNow = Rhythm.GetCurrentServerTimeMs();
+    double beatMs = Rhythm.GetBeatDurationMs();
+
+    // 다음 비트까지 남은 시간(ms)
+    double timeToNextBeatMs = (1.0 - progress) * beatMs;
+
+    // 다음 비트 소리를 "남은 시간이 soundOffsetMs 이하일 때" 미리 1회 울리기
+    if (_beatClip != null && _audioSource != null)
     {
-        if (Rhythm == null)
-            return;
+        long nextBeatIndex = beatIndex + 1;
 
-        long beatIndex = Rhythm.GetCurrentBeatIndex();
-        double progress = Rhythm.GetCurrentBeatProgress01();
-        long serverNow = Rhythm.GetCurrentServerTimeMs();
-        double beatMs = Rhythm.GetBeatDurationMs();
-
-        //  1 beat마다 사운드 1회 실행
-        if (beatIndex != _lastBeatIndex)
+        // 이미 이번 nextBeatIndex에 대해 울렸으면 스킵
+        if (_scheduledBeatIndex != nextBeatIndex)
         {
-            OnBeat(beatIndex);
-            _lastBeatIndex = beatIndex;
+            if (timeToNextBeatMs <= soundOffsetMs)
+            {
+                // 첫 시작 프레임에서 갑자기 울리는 것 방지 옵션
+                if (_lastBeatIndex != long.MinValue)
+                    _audioSource.PlayOneShot(_beatClip, _beatVolume);
+
+                _scheduledBeatIndex = nextBeatIndex;
+            }
         }
+    }
 
         if (_beatText != null)
         {

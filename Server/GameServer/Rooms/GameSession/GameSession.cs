@@ -157,6 +157,8 @@ public sealed class GameSession
         Console.WriteLine($"[BuildInitPacketForPlayer] In");
         SC_InitGame packet = new SC_InitGame();
 
+        packet.ActionWindowMs = _rhythmConfig.ActionWindowMs;
+
         packet.MapWidth = _map.Width;
         packet.MapHeight = _map.Height;
 

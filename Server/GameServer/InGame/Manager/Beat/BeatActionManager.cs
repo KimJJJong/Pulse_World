@@ -62,7 +62,7 @@ namespace GameServer.InGame.Manager.Beat
             // 3) 판정 윈도우 밖이면 무시 (원하면 Fail 패킷 보내도 됨)
             if (diff > _actionWindowMs)
             {
-                //Console.WriteLine($"diff > _actionWindowMs :{diff} > {_actionWindowMs}");
+                Console.WriteLine($"[OnClientActionRequest] diff > _actionWindowMs :{diff} > {_actionWindowMs}");
                 // TODO: 필요하면 SC_ActionRejected 같은 패킷 보내기
                 return;
             }
@@ -70,7 +70,7 @@ namespace GameServer.InGame.Manager.Beat
             // 4) 너무 과거/미래 Beat는 거절
             if (nearestBeat < currBeat || nearestBeat > currBeat + _maxBeatLookAhead)
             {
-                Console.WriteLine($"nearestBeat < currBeat || nearestBeat > currBeat + _maxBeatLookAhead");
+                Console.WriteLine($"[OnClientActionRequest] nearestBeat < currBeat || nearestBeat > currBeat + _maxBeatLookAhead");
                 return;
             }
 
@@ -105,7 +105,7 @@ namespace GameServer.InGame.Manager.Beat
         {
                 //Console.WriteLine($"[OnBeat] BeatIndex:{beatIndex} ");
             var cmds = _scheduler.PopActions(beatIndex);
-            Console.WriteLine($"[OnBeat] BeatIndex:{beatIndex} || CommandCount :{cmds.Count}");
+            //Console.WriteLine($"[OnBeat] BeatIndex:{beatIndex} || CommandCount :{cmds.Count}");
             if (cmds.Count == 0) return;
             var results = new List<SC_BeatActions.BeatActionResult>(cmds.Count);
             //var used = new HashSet<int>(); //  Actor당 1 action/beat
@@ -148,7 +148,7 @@ namespace GameServer.InGame.Manager.Beat
                         //Console.WriteLine($"[Move] Entity : {cmd.ActorId} || {fromPos} -> {toPos}");
                         if (!accepted)
                         {
-                            Console.WriteLine($"[MoveRejected] actor={cmd.ActorId} from={fromPos} to={toPos}");
+                            //Console.WriteLine($"[MoveRejected] actor={cmd.ActorId} from={fromPos} to={toPos}");
                             toPos = fromPos;
                         }
                         break;

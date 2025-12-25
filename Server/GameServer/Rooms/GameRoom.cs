@@ -234,9 +234,9 @@ public sealed class GameRoom : IGameBroadcaster
         // 3) 리듬 설정
         _rhythmConfig = new RhythmConfig
         {
-            Bpm = 120.0,
+            Bpm = 120,
             BaseBeatDivision = 1/*4 * 4*/,  // 16분음표 기준
-            ActionWindowMs = 300.0,     // +-80ms 판정 윈도우
+            ActionWindowMs = 100,     // +-80ms 판정 윈도우
             MaxBeatLookAhead = 2
         };
 

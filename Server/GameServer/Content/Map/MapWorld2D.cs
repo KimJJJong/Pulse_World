@@ -222,7 +222,7 @@ public sealed class MapWorld2D : IGameWorld
         {
             // 누가 막는지도 출력 (1칸에 1개만이라면 First만 찍어도 충분)
             int blocker = occ.First();
-            if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL Occupied actor={actorId} from=({from.X},{from.Y}) target=({target.X},{target.Y}) by={blocker} occCount={occ.Count}");
+            //if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL Occupied actor={actorId} from=({from.X},{from.Y}) target=({target.X},{target.Y}) by={blocker} occCount={occ.Count}");
             return false;
         }
 
