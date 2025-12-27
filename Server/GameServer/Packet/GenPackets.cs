@@ -744,7 +744,8 @@ public class SC_InitGame : IPacket
 
 public class SC_BeatSync : IPacket
 {
-	public long ServerTimeMs;
+	public long ServerSendTimeMs;
+	public long ClientSendTimeMs;
 	public long SongStartServerTimeMs;
 	public double Bpm;
 	public int BaseBeatDivision;
@@ -759,7 +760,9 @@ public class SC_BeatSync : IPacket
 		ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
 		count += sizeof(ushort);
 		count += sizeof(ushort);
-		this.ServerTimeMs = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+		this.ServerSendTimeMs = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+		count += sizeof(long);
+		this.ClientSendTimeMs = BitConverter.ToInt64(s.Slice(count, s.Length - count));
 		count += sizeof(long);
 		this.SongStartServerTimeMs = BitConverter.ToInt64(s.Slice(count, s.Length - count));
 		count += sizeof(long);
@@ -782,7 +785,9 @@ public class SC_BeatSync : IPacket
 		count += sizeof(ushort);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.SC_BeatSync);
 		count += sizeof(ushort);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ServerTimeMs);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ServerSendTimeMs);
+		count += sizeof(long);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ClientSendTimeMs);
 		count += sizeof(long);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.SongStartServerTimeMs);
 		count += sizeof(long);

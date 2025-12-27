@@ -233,6 +233,10 @@ class PacketHandler
             serverRecvMs = now,
             serverSendMs = AppRef.ServerTimeMs()
         };
+        //Console.WriteLine($"[PONG] now={now} recv={pong.serverRecvMs} send={pong.serverSendMs}");
+
+
+
         _session.Send(pong.Write());
 
     }
@@ -252,4 +256,24 @@ class PacketHandler
         room.OnCS_ActionRequest(clientSession, req);
 
     }
+
+    //public static void CS_BeatSyncReqHandler(PacketSession session, IPacket packet)
+    //{
+    //    CS_BeatSyncReq req = (CS_BeatSyncReq)packet;
+
+    //    long serverNow = AppRef.ServerTimeMs(); // 서버 기준 단조 증가 ms
+
+    //    var p = new SC_BeatSync
+    //    {
+    //        ServerSendTimeMs = serverNow,
+    //        ClientSendTimeMs = req.ClientSendTimeMs,
+
+    //        SongStartServerTimeMs = songStartServerTimeMs,
+    //        Bpm = bpm,
+    //        BaseBeatDivision = baseBeatDivision,
+    //        BeatIndex = CurrentBeatIndex(serverNow) // 서버 기준으로 계산
+    //    };
+
+    //    s.Send(p);
+    //}
 }

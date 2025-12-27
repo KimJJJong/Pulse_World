@@ -50,42 +50,87 @@ namespace GameServer.InGame.Manager.Beat
         {
             var now = _time.NowMs;
 
-            //Console.WriteLine($" In OnClientActionRequest");
             // 1) 현재 Beat 계산
             var currBeat = _clock.GetCurrentBeatIndex(now);
 
             // 2) 입력 도착 시점을 기준으로 가장 가까운 Beat 선택
             var nearestBeat = _clock.GetNearestBeatIndex(now);
             var nearestBeatTime = _clock.GetBeatTimeMs(nearestBeat);
-            var diff = Math.Abs(now - nearestBeatTime);
 
-            // 3) 판정 윈도우 밖이면 무시 (원하면 Fail 패킷 보내도 됨)
-            if (diff > _actionWindowMs)
+            long signedDiffMs = now - nearestBeatTime;   // +면 늦게 도착, -면 일찍 도착
+            long absDiffMs = Math.Abs(signedDiffMs);
+
+            // 다음/이전 비트 시간도 같이 찍으면 "어느 쪽에 더 가까웠는지"가 눈에 보임
+            var prevBeat = nearestBeat - 1;
+            var nextBeat = nearestBeat + 1;
+            var prevBeatTime = _clock.GetBeatTimeMs(prevBeat);
+            var nextBeatTime = _clock.GetBeatTimeMs(nextBeat);
+
+            // (선택) 현재 비트의 시작/끝(개념상)도 계산 가능하면 더 좋음
+            // 예: _clock.GetBeatTimeMs(currBeat), _clock.GetBeatTimeMs(currBeat+1)
+
+            // ---- 디버그 헤더 ----
+            // 요청 자체 정보도 찍기 (action kind/target/클라 send time)
+            Console.WriteLine(
+                $"[ActionReq] actor={actorId} kind={(ActionKind)req.ActionKind} target=({req.TargetX},{req.TargetY}) " +
+                $"now={now} currBeat={currBeat} nearestBeat={nearestBeat} " +
+                $"nearestBeatTime={nearestBeatTime} signedDiff={signedDiffMs}ms absDiff={absDiffMs}ms " +
+                $"window={_actionWindowMs} lookAhead={_maxBeatLookAhead} " +
+                $"clientSend={req.ClientSendTimeMs}"
+            );
+
+            Console.WriteLine(
+                $"[ActionReq] beatTimes prev({prevBeat})={prevBeatTime}  near({nearestBeat})={nearestBeatTime}  next({nextBeat})={nextBeatTime}"
+            );
+
+            // 3) 판정 윈도우 밖이면 무시
+            if (absDiffMs > _actionWindowMs)
             {
-                Console.WriteLine($"[OnClientActionRequest] diff > _actionWindowMs :{diff} > {_actionWindowMs}");
-                // TODO: 필요하면 SC_ActionRejected 같은 패킷 보내기
+                Console.WriteLine(
+                    $"[ActionReq][REJECT:WINDOW] absDiff={absDiffMs}ms > window={_actionWindowMs}ms " +
+                    $"(signedDiff={signedDiffMs}ms, nearBeat={nearestBeat}, nearTime={nearestBeatTime}, now={now})"
+                );
                 return;
             }
 
             // 4) 너무 과거/미래 Beat는 거절
-            if (nearestBeat < currBeat || nearestBeat > currBeat + _maxBeatLookAhead)
+            if (nearestBeat < currBeat)
             {
-                Console.WriteLine($"[OnClientActionRequest] nearestBeat < currBeat || nearestBeat > currBeat + _maxBeatLookAhead");
+                Console.WriteLine(
+                    $"[ActionReq][REJECT:PAST] nearestBeat={nearestBeat} < currBeat={currBeat} " +
+                    $"(now={now}, nearTime={nearestBeatTime}, signedDiff={signedDiffMs}ms)"
+                );
                 return;
             }
 
-            // 5) PlayerActionCmd 생성 (CS_ActionRequest -> 내부 명령으로 변환)
+            if (nearestBeat > currBeat + _maxBeatLookAhead)
+            {
+                Console.WriteLine(
+                    $"[ActionReq][REJECT:FUTURE] nearestBeat={nearestBeat} > currBeat+lookAhead={currBeat + _maxBeatLookAhead} " +
+                    $"(now={now}, nearTime={nearestBeatTime}, signedDiff={signedDiffMs}ms)"
+                );
+                return;
+            }
+
+            // 5) PlayerActionCmd 생성
             var cmd = new PlayerActionCmd
             {
-                ActorId = actorId,                          
-                Kind = (ActionKind)req.ActionKind,               
+                ActorId = actorId,
+                Kind = (ActionKind)req.ActionKind,
                 TargetCell = new GridPos(req.TargetX, req.TargetY),
                 RequestedBeat = nearestBeat,
                 ClientSendTimeMs = req.ClientSendTimeMs,
                 ServerReceiveTimeMs = now
             };
+
+            Console.WriteLine(
+                $"[ActionReq][ACCEPT] actor={actorId} beat={nearestBeat} " +
+                $"signedDiff={signedDiffMs}ms absDiff={absDiffMs}ms enqueue"
+            );
+
             _scheduler.Enqueue(cmd);
         }
+
         // 서버에서 직접 예약하고 싶은 명령 (몬스터 AI 등)
         public void ScheduleServerCommand(long beatIndex, PlayerActionCmd cmd)
         {

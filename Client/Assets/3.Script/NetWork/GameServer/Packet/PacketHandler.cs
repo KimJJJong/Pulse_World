@@ -16,7 +16,7 @@ class PacketHandler
     {
         SC_Welcome w = (SC_Welcome)packet;
         ServerSession server = (ServerSession)session;
-        TimeSync.SetOffsetFromServerNow(w.serverTimeMs);
+        //TimeSync.SetOffsetFromServerNow(w.serverTimeMs);
 
         UnityEngine.Debug.Log($"In WelconHandle : [{w.matchId}] || [{w.slot}]");
 

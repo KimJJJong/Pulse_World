@@ -26,7 +26,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
 
     #region Debug
-    private const bool DBG_POS = true;
+    private const bool DBG_POS = false;
     private int _dbgOnlyActorId = -1; // -1이면 전부, 특정 ID만 보고 싶으면 그 값으로
 
     private void PosLog(string msg)

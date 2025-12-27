@@ -102,12 +102,15 @@ public class ClientHandlers : MonoBehaviour
     {
         Rhythm.OnBeatSync(new BeatSyncInfo
         {
-            ServerTimeMs = p.ServerTimeMs,
+            //ServerTimeMs = p.ServerSendTimeMs,
             SongStartServerTimeMs = p.SongStartServerTimeMs,
             Bpm = p.Bpm,
             BaseBeatDivision = p.BaseBeatDivision,
             BeatIndex = p.BeatIndex
         });
+
+        Debug.Log($"SongStart={Rhythm.ServerSongStartMs} ServerNow={Rhythm.GetCurrentServerTimeMs()} diff={Rhythm.ServerSongStartMs - Rhythm.GetCurrentServerTimeMs()}ms");
+
     }
 
     /// <summary>
@@ -157,7 +160,7 @@ public class ClientHandlers : MonoBehaviour
 
     public void Handle_SC_BeatTelegraphs(SC_BeatTelegraphs p)
     {
-        Debug.Log($"[SC_BeatTelegraphs] beat={p.BeatIndex} count={p.telegraphss.Count}");
+        //Debug.Log($"[SC_BeatTelegraphs] beat={p.BeatIndex} count={p.telegraphss.Count}"); 
 
         // BoardView가 없으면(씬 미배치) 일단 로그만
         if (BV == null)

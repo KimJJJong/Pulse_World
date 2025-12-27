@@ -94,7 +94,7 @@ public sealed class PingManager : MonoBehaviour
         while (!ct.IsCancellationRequested)
         {
             var s = Interlocked.Increment(ref seq);
-            var now = NowMs();
+            var now = NowMs();               // ✅ monotonic local time
             lastSentAtMs = now;
             sentCount++;
 
@@ -117,8 +117,6 @@ public sealed class PingManager : MonoBehaviour
                 {
                     status = "Timeout";
                     onTimeout?.Invoke();
-                    // 자동 복구/재접속을 이 이벤트에서 처리하거나,
-                    // 아래에서 지수 백오프 등 구현해도 됨.
                     StopLoop();
                     break;
                 }
@@ -129,7 +127,6 @@ public sealed class PingManager : MonoBehaviour
             }
             else
             {
-                // 정상 응답
                 missCount = 0;
                 status = "OK";
             }
@@ -141,13 +138,16 @@ public sealed class PingManager : MonoBehaviour
 
     public void OnPong(SC_Pong p)
     {
-        var now = NowMs();
-        Interlocked.Exchange(ref lastPongAtMs, now);
+        var localRecvMs = NowMs(); // ✅ 수신 순간 local time (monotonic)
+        Interlocked.Exchange(ref lastPongAtMs, localRecvMs);
         receivedCount++;
         RecomputeLoss();
 
+        // 서버 처리시간(선택): serverSend - serverRecv
         var proc = Math.Max(0, p.serverSendMs - p.serverRecvMs);
-        var rtt = Math.Max(0, (now - p.clientSendMs) - proc);
+
+        // RTT 추정: (recv - clientSend) - proc
+        var rtt = Math.Max(0, (localRecvMs - p.clientSendMs) - proc);
 
         lastRttMs = rtt;
         if (avgRttMs == 0) avgRttMs = rtt;
@@ -156,9 +156,12 @@ public sealed class PingManager : MonoBehaviour
         maxRttMs = Math.Max(maxRttMs, rtt);
         minRttMs = Math.Min(minRttMs, rtt);
 
-        // 간단 오프셋 추정(선택)
+        // ✅ 시간 동기화(오프셋) 갱신: serverNowAtRecv ≈ serverSend + RTT/2
         var oneWay = rtt / 2;
-        TimeSync.SetOffsetFromServerNow(p.serverSendMs + oneWay);
+        TimeSync.SetOffsetFromServerNow(p.serverSendMs + oneWay, rtt);
+
+        //Debug.Log($"[PONG] rtt={rtt} offset={TimeSync.OffsetMs:0} serverNow={TimeSync.ServerNowMs()}");
+
 
         if (!running)
         {
@@ -175,9 +178,9 @@ public sealed class PingManager : MonoBehaviour
         packetLossPercent = Mathf.Clamp01((float)lost / sentCount) * 100f;
     }
 
-    static long NowMs() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    // ✅ 반드시 monotonic(단조시간)로 통일!
+    static long NowMs() => (long)(Time.realtimeSinceStartupAsDouble * 1000.0);
 
-    // --- 외부에서 조절 가능하도록 접근자 제공
     public void Configure(int? interval = null, int? timeout = null, int? maxMiss = null)
     {
         if (interval.HasValue) intervalMs = Math.Max(100, interval.Value);
@@ -186,7 +189,6 @@ public sealed class PingManager : MonoBehaviour
     }
 }
 
-// 읽기전용 인스펙터 표시용 Attribute/Drawer
 [AttributeUsage(AttributeTargets.Field)] public class ReadOnlyAttribute : PropertyAttribute { }
 
 #if UNITY_EDITOR
@@ -201,5 +203,4 @@ public class ReadOnlyDrawer : PropertyDrawer
         GUI.enabled = old;
     }
 }
-
 #endif

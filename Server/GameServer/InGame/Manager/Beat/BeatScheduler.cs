@@ -25,7 +25,7 @@ namespace GameServer.InGame.Manager.Beat
                 perActor = new Dictionary<int, PlayerActionCmd>(capacity: 8);
                 _byBeat[beat] = perActor;
             }
-            Console.WriteLine($"[Enqueue]  ActionID : {cmd.ActorId} || Action : {cmd.Kind}");
+            //Console.WriteLine($"[Enqueue]  ActionID : {cmd.ActorId} || Action : {cmd.Kind}");
             //  같은 beat에 같은 actor가 이미 있으면 덮어씀(마지막 입력 우선)
             perActor[actorId] = cmd;
         }

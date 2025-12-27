@@ -95,9 +95,17 @@
 		</list>
 	</packet>
 
+<!--
+	<packet name ="CS_BeatSyncReq">
+		<long name ="ClientSendTimeMs"/>
+	</packet>
+
+
+-->
 
 	<packet name ="SC_BeatSync">
-		<long name ="ServerTimeMs"/>
+		<long name ="ServerSendTimeMs"/>
+		<long name ="ClientSendTimeMs"/>
 		<long name ="SongStartServerTimeMs"/>
 		<double name ="Bpm"/>
 		<int name ="BaseBeatDivision"/>

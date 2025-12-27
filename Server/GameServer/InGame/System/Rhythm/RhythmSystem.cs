@@ -79,7 +79,7 @@ public sealed class RhythmSystem : IBeatClock
         var currBeat = GetCurrentBeatIndex(now);
         return new SC_BeatSync
         {
-            ServerTimeMs = now,
+            ServerSendTimeMs = now,
             SongStartServerTimeMs = _songStartServerTimeMs,
             Bpm = _config.Bpm,
             BaseBeatDivision = _config.BaseBeatDivision,

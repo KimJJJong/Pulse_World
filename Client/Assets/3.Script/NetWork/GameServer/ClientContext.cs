@@ -99,7 +99,7 @@ public sealed class ClientContext
             MySide = '?'                       // S_Welcome에서 확정 가능
         };
         Runtime = new RuntimeInfo();           // 리셋
-        TimeSync.SetOffsetFromServerNow(lobbyServerTimeMs);
+        //TimeSync.SetOffsetFromServerNow(lobbyServerTimeMs);
     }
 
     /// <summary> GS 연결 성공시 호출 </summary>
@@ -111,7 +111,7 @@ public sealed class ClientContext
         if (!string.IsNullOrEmpty(side))
             Match.MySide = side[0];
         Runtime.EffectiveTickRate = tickRate;
-        TimeSync.SetOffsetFromServerNow(serverTimeMs); // 정밀 재보정
+        //TimeSync.SetOffsetFromServerNow(serverTimeMs); // 정밀 재보정
         // map/seed를 보관하고 싶으면 별도 필드 만들어 추가
     }
 

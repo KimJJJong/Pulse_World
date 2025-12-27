@@ -234,13 +234,13 @@ public sealed class GameRoom : IGameBroadcaster
         // 3) 리듬 설정
         _rhythmConfig = new RhythmConfig
         {
-            Bpm = 120,
+            Bpm = 60,
             BaseBeatDivision = 1/*4 * 4*/,  // 16분음표 기준
             ActionWindowMs = 100,     // +-80ms 판정 윈도우
             MaxBeatLookAhead = 2
         };
 
-        long songStart = AppRef.ServerTimeMs() + 500; // 0.5초 뒤부터 Beat 시작
+        long songStart = AppRef.ServerTimeMs() /*+ 500*/; // 0.5초 뒤부터 Beat 시작
 
         var time = new ServerTimeAdapter();
         _rhythm = new RhythmSystem(time, _rhythmConfig, songStart);
@@ -271,10 +271,14 @@ public sealed class GameRoom : IGameBroadcaster
             _session.SendInitPacketToPlayer(s);
         }
 
+        var now = AppRef.ServerTimeMs();
+        Console.WriteLine($"[BeatSync] now={now} songStart={songStart} diff={songStart - now}");
+
+
         // 6) BeatSync 
         Broadcast(new SC_BeatSync
         {
-            ServerTimeMs = AppRef.ServerTimeMs(),
+            ServerSendTimeMs = AppRef.ServerTimeMs(),
             SongStartServerTimeMs = songStart,
             Bpm = _rhythmConfig.Bpm,
             BaseBeatDivision = _rhythmConfig.BaseBeatDivision,
@@ -380,18 +384,18 @@ public sealed class GameRoom : IGameBroadcaster
 
         // 2) 리듬 진행
         _rhythm?.Update();
-        if (_rhythm != null)
-        {
-            long now = AppRef.ServerTimeMs();
-            if (now >= _nextBeatSyncAtMs)
-            {
-                _nextBeatSyncAtMs = now + BeatSyncIntervalMs;
+        //if (_rhythm != null)
+        //{
+        //    long now = AppRef.ServerTimeMs();
+        //    if (now >= _nextBeatSyncAtMs)
+        //    {
+        //        _nextBeatSyncAtMs = now + BeatSyncIntervalMs;
 
-                // 룸 전체에 같은 beat 기준 전달
-                var sync = _rhythm.CreateSyncPacket();
-                Broadcast(sync); // 또는 Broadcast(sync.Write())
-            }
-        }
+        //        // 룸 전체에 같은 beat 기준 전달
+        //        var sync = _rhythm.CreateSyncPacket();
+        //        Broadcast(sync); // 또는 Broadcast(sync.Write())
+        //    }
+        //}
         // 3) 인게임 세션 (AI, 상태 갱신)
         _session?.Update();
     }
