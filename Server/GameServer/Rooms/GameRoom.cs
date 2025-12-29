@@ -234,13 +234,14 @@ public sealed class GameRoom : IGameBroadcaster
         // 3) 리듬 설정
         _rhythmConfig = new RhythmConfig
         {
-            Bpm = 60,
+            Bpm = 120,
             BaseBeatDivision = 1/*4 * 4*/,  // 16분음표 기준
             ActionWindowMs = 100,     // +-80ms 판정 윈도우
-            MaxBeatLookAhead = 2
+            MaxBeatLookAhead = 2,
+            //LeadBeats = 1,
         };
 
-        long songStart = AppRef.ServerTimeMs() /*+ 500*/; // 0.5초 뒤부터 Beat 시작
+        long songStart = AppRef.ServerTimeMs() + 1000; // 0.5초 뒤부터 Beat 시작
 
         var time = new ServerTimeAdapter();
         _rhythm = new RhythmSystem(time, _rhythmConfig, songStart);

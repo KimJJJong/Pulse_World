@@ -17,7 +17,7 @@ namespace GameServer.InGame.Manager.Beat
         /// </summary>
         public void Enqueue(PlayerActionCmd cmd)
         {
-            long beat = cmd.RequestedBeat;
+            long beat = cmd.ExecuteBeat;
             int actorId = cmd.ActorId;
 
             if (!_byBeat.TryGetValue(beat, out var perActor))

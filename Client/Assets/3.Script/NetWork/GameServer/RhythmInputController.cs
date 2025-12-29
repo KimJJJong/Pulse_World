@@ -43,6 +43,7 @@ public class RhythmInputController : MonoBehaviour
         if (dir == Vector2Int.zero)
             return;
         //Debug.Log($"[Input]");
+        BeatDebugUI_TMP.Instance?.MarkHitNow();
 
         // 내 현재 위치 가져오기
         if (!GS.TryGetMyEntity(out var me))

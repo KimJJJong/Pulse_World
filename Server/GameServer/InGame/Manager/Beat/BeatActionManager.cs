@@ -18,6 +18,7 @@ namespace GameServer.InGame.Manager.Beat
         private readonly BeatScheduler _scheduler = new();
         private readonly FrozenAttackRegistry _frozen;
 
+        //private readonly int _leadBeat;
         private readonly double _actionWindowMs;
         private readonly int _maxBeatLookAhead;
 
@@ -28,7 +29,8 @@ namespace GameServer.InGame.Manager.Beat
             IGameWorld world,
             FrozenAttackRegistry frozenAttackRegistry,
             double actionWindowMs,
-            int maxBeatLookAhead)
+            int maxBeatLookAhead
+            /*int leadBeat*/)
         {
             _time = time;
             _broadcaster = broadcaster;
@@ -39,6 +41,7 @@ namespace GameServer.InGame.Manager.Beat
 
             _actionWindowMs = actionWindowMs;
             _maxBeatLookAhead = maxBeatLookAhead;
+            //_leadBeat = leadBeat;
 
         }
 
@@ -48,87 +51,135 @@ namespace GameServer.InGame.Manager.Beat
         /// </summary>
         public void OnClientActionRequest(int actorId, CS_ActionRequest req)
         {
-            var now = _time.NowMs;
+            var now = req.ClientSendTimeMs;//_time.NowMs;
 
-            // 1) 현재 Beat 계산
+            // ---- Beat 계산 ----
             var currBeat = _clock.GetCurrentBeatIndex(now);
+            if (currBeat < 0)
+            {
+                Console.WriteLine("[OnClientActionRequest] song not started yet");
+                return;
+            }
 
-            // 2) 입력 도착 시점을 기준으로 가장 가까운 Beat 선택
-            var nearestBeat = _clock.GetNearestBeatIndex(now);
-            var nearestBeatTime = _clock.GetBeatTimeMs(nearestBeat);
+            var nextBeat = currBeat + 1;
 
-            long signedDiffMs = now - nearestBeatTime;   // +면 늦게 도착, -면 일찍 도착
-            long absDiffMs = Math.Abs(signedDiffMs);
+            // ---- 판정 중심(비트와 비트 사이 중간점) ----
+            // 네 설계: 입력은 항상 nextBeat 실행으로 묶으니까
+            // judge center는 (currBeat ~ nextBeat) 중간점 = GetJudgeTimeMs(nextBeat)
+            var judgeCenterMs = _clock.GetJudgeTimeMs(currBeat, nextBeat);
 
-            // 다음/이전 비트 시간도 같이 찍으면 "어느 쪽에 더 가까웠는지"가 눈에 보임
-            var prevBeat = nearestBeat - 1;
-            var nextBeat = nearestBeat + 1;
-            var prevBeatTime = _clock.GetBeatTimeMs(prevBeat);
-            var nextBeatTime = _clock.GetBeatTimeMs(nextBeat);
+            var diff = now - judgeCenterMs;
+            var abs = Math.Abs(diff);
 
-            // (선택) 현재 비트의 시작/끝(개념상)도 계산 가능하면 더 좋음
-            // 예: _clock.GetBeatTimeMs(currBeat), _clock.GetBeatTimeMs(currBeat+1)
-
-            // ---- 디버그 헤더 ----
-            // 요청 자체 정보도 찍기 (action kind/target/클라 send time)
+            // ---- 디버그 바 출력 (항상 찍고 싶으면 여기) ----
+            // halfSpanMs: "비트 사이 전체 폭"을 보여주고 싶으면 beatMs/2
+            int halfSpanMs = (int)Math.Round(_clock.GetBeatDurationMs() * 0.5); // RhythmSystem에 추가한 getter 필요
             Console.WriteLine(
-                $"[ActionReq] actor={actorId} kind={(ActionKind)req.ActionKind} target=({req.TargetX},{req.TargetY}) " +
-                $"now={now} currBeat={currBeat} nearestBeat={nearestBeat} " +
-                $"nearestBeatTime={nearestBeatTime} signedDiff={signedDiffMs}ms absDiff={absDiffMs}ms " +
-                $"window={_actionWindowMs} lookAhead={_maxBeatLookAhead} " +
-                $"clientSend={req.ClientSendTimeMs}"
+                RhythmSystem.FormatJudgeBar(
+                    currBeat: currBeat,
+                    nextBeat: nextBeat,
+                    nowMs: now,
+                    judgeCenterMs: judgeCenterMs,
+                    windowMs: (int)_actionWindowMs,
+                    halfSpanMs: halfSpanMs,
+                    width: 36,
+                    marker: '^'
+                )
             );
 
-            Console.WriteLine(
-                $"[ActionReq] beatTimes prev({prevBeat})={prevBeatTime}  near({nearestBeat})={nearestBeatTime}  next({nextBeat})={nextBeatTime}"
-            );
-
-            // 3) 판정 윈도우 밖이면 무시
-            if (absDiffMs > _actionWindowMs)
+            // ---- Window 체크 ----
+            if (abs > _actionWindowMs)
             {
-                Console.WriteLine(
-                    $"[ActionReq][REJECT:WINDOW] absDiff={absDiffMs}ms > window={_actionWindowMs}ms " +
-                    $"(signedDiff={signedDiffMs}ms, nearBeat={nearestBeat}, nearTime={nearestBeatTime}, now={now})"
-                );
+                Console.WriteLine($"[Reject] out of window. diff={diff}ms (±{_actionWindowMs}ms)");
                 return;
             }
 
-            // 4) 너무 과거/미래 Beat는 거절
-            if (nearestBeat < currBeat)
-            {
-                Console.WriteLine(
-                    $"[ActionReq][REJECT:PAST] nearestBeat={nearestBeat} < currBeat={currBeat} " +
-                    $"(now={now}, nearTime={nearestBeatTime}, signedDiff={signedDiffMs}ms)"
-                );
-                return;
-            }
+            // ---- 실행 Beat (기본: nextBeat 고정) ----
+            var executeBeat = nextBeat;
 
-            if (nearestBeat > currBeat + _maxBeatLookAhead)
-            {
-                Console.WriteLine(
-                    $"[ActionReq][REJECT:FUTURE] nearestBeat={nearestBeat} > currBeat+lookAhead={currBeat + _maxBeatLookAhead} " +
-                    $"(now={now}, nearTime={nearestBeatTime}, signedDiff={signedDiffMs}ms)"
-                );
-                return;
-            }
+            Console.WriteLine($"[Accept] currBeat={currBeat} executeBeat={executeBeat} diff={diff}ms");
 
-            // 5) PlayerActionCmd 생성
             var cmd = new PlayerActionCmd
             {
                 ActorId = actorId,
                 Kind = (ActionKind)req.ActionKind,
                 TargetCell = new GridPos(req.TargetX, req.TargetY),
-                RequestedBeat = nearestBeat,
+
+                ExecuteBeat = executeBeat,
+
+                // debug 남기고 싶으면 주석 해제
+                //JudgedBeat = nextBeat,
+                //JudgeDiffMs = (int)diff,
+
                 ClientSendTimeMs = req.ClientSendTimeMs,
                 ServerReceiveTimeMs = now
             };
 
-            Console.WriteLine(
-                $"[ActionReq][ACCEPT] actor={actorId} beat={nearestBeat} " +
-                $"signedDiff={signedDiffMs}ms absDiff={absDiffMs}ms enqueue"
-            );
-
             _scheduler.Enqueue(cmd);
+        }
+
+
+
+        private static string FormatJudgeBar(
+    long currBeat, long nextBeat,
+    long nowMs, long judgeCenterMs,
+    int windowMs,
+    int halfSpanMs = 250,   // 바가 표현하는 "중간점 기준 좌/우 범위" (ms)
+    int width = 32,         // 바 내부 폭
+    char marker = '^')
+        {
+            // halfSpanMs는 최소 window보다 커야 그림이 의미 있음
+            halfSpanMs = Math.Max(halfSpanMs, windowMs + 1);
+
+            long startMs = judgeCenterMs - halfSpanMs;
+            long endMs = judgeCenterMs + halfSpanMs;
+
+            // nowMs -> [0..width-1] 위치
+            double t = (nowMs - startMs) / (double)(endMs - startMs);
+            int pos = (int)Math.Round(t * (width - 1));
+            pos = Math.Max(0, Math.Min(width - 1, pos));
+
+            // judge center 위치(항상 중앙에 오게끔 설계)
+            int center = width / 2;
+
+            // window 구간을 width로 변환
+            int winHalf = (int)Math.Round(windowMs / (double)halfSpanMs * (width / 2.0));
+            winHalf = Math.Max(0, Math.Min(center, winHalf));
+
+            int winL = center - winHalf;
+            int winR = center + winHalf;
+
+            var chars = new char[width];
+
+            for (int i = 0; i < width; i++)
+            {
+                bool inWindow = (i >= winL && i <= winR);
+
+                // 기본은 window 밖 '='
+                chars[i] = inWindow ? '=' : '=';  // 일단 '='로 깔고
+                                                  // window는 '=' 대신 '|' 같은 걸 원하면 여기 변경 가능
+                chars[i] = inWindow ? '=' : '=';  // 유지 (요청대로 == 영역을 만들 거라서)
+
+                // window 밖을 더 옅게 보이고 싶으면 '.'로 바꿔도 됨
+                // chars[i] = inWindow ? '=' : '-';
+                chars[i] = inWindow ? '=' : '=';
+            }
+
+            // window를 "==", 바깥을 "===="로 이미 같아서 구분이 안 되니까,
+            // 요청한 느낌(== 구간 강조)을 위해 바깥을 '-'로, window를 '='로 추천:
+            for (int i = 0; i < width; i++)
+            {
+                bool inWindow = (i >= winL && i <= winR);
+                chars[i] = inWindow ? '=' : '-';
+            }
+
+            // center 표시
+            chars[center] = '|';
+
+            // 입력 마커 (center와 겹치면 '^'가 이길지 '|'가 이길지 선택)
+            chars[pos] = marker;
+
+            return $"curBeat[{new string(chars)}]nextBeat  diff={nowMs - judgeCenterMs}ms  win=±{windowMs}ms";
         }
 
         // 서버에서 직접 예약하고 싶은 명령 (몬스터 AI 등)
@@ -137,7 +188,7 @@ namespace GameServer.InGame.Manager.Beat
             var currBeat = _clock.GetCurrentBeatIndex(_time.NowMs);
             //Console.WriteLine($"[Enqueue] actor={cmd.ActorId} kind={cmd.Kind} reqBeat={cmd.RequestedBeat}");
 
-            cmd.RequestedBeat = beatIndex;
+            cmd.ExecuteBeat = beatIndex;
             _scheduler.Enqueue(cmd);
         }
 
@@ -148,19 +199,15 @@ namespace GameServer.InGame.Manager.Beat
         /// </summary>
         public void OnBeat(long beatIndex)
         {
-                //Console.WriteLine($"[OnBeat] BeatIndex:{beatIndex} ");
             var cmds = _scheduler.PopActions(beatIndex);
-            //Console.WriteLine($"[OnBeat] BeatIndex:{beatIndex} || CommandCount :{cmds.Count}");
             if (cmds.Count == 0) return;
             var results = new List<SC_BeatActions.BeatActionResult>(cmds.Count);
-            //var used = new HashSet<int>(); //  Actor당 1 action/beat
 
             foreach (var cmd in cmds)
             {
-                //if (!used.Add(cmd.ActorId))
-                //    continue;
 
-                //if (cmd.Kind == ActionKind.Skill) Console.WriteLine("여기가 실 데미지 적용");
+
+                if (cmd.ActorId >= 0 && cmd.ActorId < 100) Console.WriteLine($"[OnBeat] ActionId:{cmd.ActorId} || Beat : {beatIndex}");
 
                 if (!_world.TryGetActorPosition(cmd.ActorId, out var fromPos))
                 {
@@ -215,7 +262,7 @@ namespace GameServer.InGame.Manager.Beat
                             toPos = fromPos;
                             break;
 
-                         }
+                        }
 
                     case ActionKind.Wait:
                     default:
@@ -266,7 +313,7 @@ namespace GameServer.InGame.Manager.Beat
 
         public void CancelActor(int actorId)
         {
-            _scheduler.RemoveByActor(actorId);       
+            _scheduler.RemoveByActor(actorId);
         }
     }
 }

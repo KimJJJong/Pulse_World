@@ -138,7 +138,7 @@ public sealed class PingManager : MonoBehaviour
 
     public void OnPong(SC_Pong p)
     {
-        var localRecvMs = NowMs(); // ✅ 수신 순간 local time (monotonic)
+        var localRecvMs = NowMs(); //  수신 순간 local time (monotonic)
         Interlocked.Exchange(ref lastPongAtMs, localRecvMs);
         receivedCount++;
         RecomputeLoss();
@@ -156,7 +156,7 @@ public sealed class PingManager : MonoBehaviour
         maxRttMs = Math.Max(maxRttMs, rtt);
         minRttMs = Math.Min(minRttMs, rtt);
 
-        // ✅ 시간 동기화(오프셋) 갱신: serverNowAtRecv ≈ serverSend + RTT/2
+        //  시간 동기화(오프셋) 갱신: serverNowAtRecv ≈ serverSend + RTT/2
         var oneWay = rtt / 2;
         TimeSync.SetOffsetFromServerNow(p.serverSendMs + oneWay, rtt);
 

@@ -1,168 +1,282 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
 public class BeatDebugUI_TMP : MonoBehaviour
 {
+    public static BeatDebugUI_TMP Instance { get; private set; }
+
     [Header("Optional: 수동 할당 안 하면 자동 생성")]
     [SerializeField] private Canvas _canvas;
     [SerializeField] private TextMeshProUGUI _beatText;
-    [SerializeField] private Image _progressBar;
 
     [Header("Judge")]
+    [Tooltip("0이면 RhythmClient.judgeWindowMs 사용")]
     [SerializeField] private float judgeWindowMs = 0f;
 
-    [Header("Metronome Sound")]
-    [SerializeField] private AudioSource _audioSource;   // 없으면 자동 생성
-    [SerializeField] private AudioClip _beatClip;        // 1 beat마다 울릴 사운드
-    [Range(0f, 1f)]
-    [SerializeField] private float _beatVolume = 0.8f;
+    [Header("Hit Markers")]
+    [SerializeField] private int maxHitMarkers = 5;
+    [SerializeField] private float hitMarkerLifeSec = 1.2f;
+    [SerializeField] private float hitMarkerBaseWidthPx = 3f;
+    [SerializeField] private float maxExtraWidthPx = 6f;
 
-    [Header("Sound Offset")]
-    [Tooltip("켜면 RTT 기반으로 소리 오프셋(ms)을 자동 계산")]
-    [SerializeField] private bool autoOffsetFromRtt = true;
+    [Header("Hit Label")]
+    [SerializeField] private float labelYOffsetPx = 10f;
+    [SerializeField] private int labelFontSize = 16;
+    [SerializeField] private bool normalizeByHalfBeat = true;
 
-    [Tooltip("자동 오프셋 = -(oneWay + baseLeadMs). baseLeadMs는 사람 반응용 선행치")]
-    [SerializeField] private float baseLeadMs = 60f;  // 40~80 추천
+    // UI parts
+    private Image _barBg;
+    private Image _progressFill;
+    private Image _windowBand;
+    private Image _centerLine;
 
-    [Tooltip("자동 오프셋의 최소/최대(음수 범위). 너무 과하게 미리 울리는 것 방지")]
-    [SerializeField] private float minAutoOffsetMs = -200f;
-    [SerializeField] private float maxAutoOffsetMs = -20f;
-
-    [Tooltip("수동 오프셋(ms). autoOffsetFromRtt가 꺼져있을 때 사용. 음수면 미리 울림")]
-    [SerializeField] private float manualSoundOffsetMs = -80f;
+    private Sprite _defaultSprite;
 
     private RhythmClient Rhythm => RhythmClient.Instance;
 
-    // green 진입 감지용
-    private bool _wasGreen = false;
-    private long _lastBeepBeat = long.MinValue;
+    private readonly List<HitMarker> _markers = new();
+
+    private sealed class HitMarker
+    {
+        public Image Img;
+        public TextMeshProUGUI Label;
+        public float Life;
+        public float Progress; // 0~1
+        public float WidthPx;
+        public Color BaseColor;
+        public int DiffMs; // 표시용
+    }
 
     void Awake()
     {
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+
         DontDestroyOnLoad(gameObject);
+
+        _defaultSprite = CreateWhiteSprite();
 
         if (_canvas == null)
             CreateCanvasAndUI();
-
-        EnsureAudio();
     }
 
     void Update()
     {
-        if (Rhythm == null)
-            return;
+        if (Rhythm == null) return;
 
-        if (judgeWindowMs == 0) judgeWindowMs = Rhythm.judgeWindowMs;
+        if (judgeWindowMs <= 0f)
+            judgeWindowMs = Rhythm.judgeWindowMs;
 
         long beatIndex = Rhythm.GetCurrentBeatIndex();
         double progress = Rhythm.GetCurrentBeatProgress01();
         long serverNow = Rhythm.GetCurrentServerTimeMs();
         double beatMs = Rhythm.GetBeatDurationMs();
 
-        float soundOffsetMs = GetSoundOffsetMs();
-
-        // progress -> dist 계산 (가까운 비트 경계까지 거리)
-        double distToBeatMs = Mathf.Min(
-            (float)(progress * beatMs),
-            (float)((1.0 - progress) * beatMs)
-        );
-
-        bool isGreen = distToBeatMs <= judgeWindowMs;
-
-        // UI
         if (_beatText != null)
         {
             _beatText.text =
                 $"Beat: {beatIndex}\n" +
-                $"Progress: {progress:0.00}\n" +
-                $"Server: {serverNow} ms\n" +
+                $"Progress: {progress:0.000}\n" +
+                $"ServerNow: {serverNow} ms\n" +
                 $"BeatMs: {beatMs:0.0}\n" +
-                $"RTT: {TimeSync.EstimatedRttMs:0} ms\n" +
-                $"SoundOffset: {soundOffsetMs:0} ms\n" +
-                $"Window: {(isGreen ? "GREEN" : "RED")}";
+                $"Window: ±{judgeWindowMs:0}ms (center=0.5)\n" +
+                $"HitMarkers: {_markers.Count}/{maxHitMarkers}";
         }
 
-        if (_progressBar != null)
-        {
-            _progressBar.fillAmount = (float)progress;
-            _progressBar.color = isGreen ? Color.green : Color.red;
-        }
+        if (_progressFill != null)
+            _progressFill.fillAmount = (float)progress;
 
-        // ✅ 초록(판정 윈도우) "진입" 순간에만 소리 재생
-        // - 같은 beatIndex에서 중복 방지
-        // - beatIndex < 0(시작 전)이면 그냥 무시
-        if (beatIndex >= 0 && !_wasGreen && isGreen)
-        {
-            if (_lastBeepBeat != beatIndex) // 같은 비트에서 중복 울림 방지
-            {
-                PlayBeepWithOffset(soundOffsetMs);
-                _lastBeepBeat = beatIndex;
-            }
-        }
-
-        _wasGreen = isGreen;
+        UpdateWindowBand(beatMs);
+        UpdateHitMarkers();
     }
 
-    private void PlayBeepWithOffset(float soundOffsetMs)
+    /// <summary>
+    /// 입력 보낸 순간 호출:
+    /// - 현재 progress 위치에 마커 + diffMs 라벨 추가
+    /// - 오차 크기에 따라 색/두께 변경
+    /// </summary>
+    public void MarkHitNow()
     {
-        if (_beatClip == null || _audioSource == null)
-            return;
+        if (Rhythm == null || _barBg == null) return;
 
-        // offset이 음수면 "미리 울리기"인데,
-        // 이미 green 진입 시점은 '근처'라서 음수 오프셋을 그대로 적용하면 너무 앞서갈 수 있음.
-        // 그래서 여기서는 보수적으로:
-        // - 음수는 0으로 clamp (즉시 울림)
-        // - 양수는 delay로 반영
-        float delaySec = Mathf.Max(0f, soundOffsetMs / 1000f);
+        double beatMs = Rhythm.GetBeatDurationMs();
+        float p = (float)Rhythm.GetCurrentBeatProgress01(); // 0~1
 
-        if (delaySec <= 0f)
+        // center=0.5 기준 diffMs(부호 포함)
+        // p < 0.5 => center보다 "이름(왼쪽)" => 음수
+        float signedMs = (p - 0.5f) * (float)beatMs;
+        int diffMs = Mathf.RoundToInt(signedMs);
+
+        float distMs = Mathf.Abs(signedMs);
+        bool inWindow = distMs <= judgeWindowMs;
+
+        // window 밖 초과분 정규화
+        float outMs = Mathf.Max(0f, distMs - judgeWindowMs);
+
+        float denomMs;
+        if (normalizeByHalfBeat)
+            denomMs = Mathf.Max(1f, (float)beatMs * 0.5f - judgeWindowMs);
+        else
+            denomMs = Mathf.Max(1f, judgeWindowMs);
+
+        float t = Mathf.Clamp01(outMs / denomMs); // 0..1
+
+        // 색: IN=초록, OUT=노랑->주황->빨강
+        Color color;
+        if (inWindow)
         {
-            _audioSource.PlayOneShot(_beatClip, _beatVolume);
+            color = new Color(0f, 1f, 0f, 0.95f);
         }
         else
         {
-            // 지연 재생
-            StartCoroutine(PlayOneShotDelayed(delaySec));
+            if (t < 0.5f)
+            {
+                float u = t / 0.5f;
+                color = Color.Lerp(new Color(1f, 1f, 0f, 0.95f), new Color(1f, 0.5f, 0f, 0.95f), u);
+            }
+            else
+            {
+                float u = (t - 0.5f) / 0.5f;
+                color = Color.Lerp(new Color(1f, 0.5f, 0f, 0.95f), new Color(1f, 0f, 0f, 0.95f), u);
+            }
         }
-    }
 
-    private System.Collections.IEnumerator PlayOneShotDelayed(float delaySec)
-    {
-        yield return new WaitForSeconds(delaySec);
-        if (_audioSource != null && _beatClip != null)
-            _audioSource.PlayOneShot(_beatClip, _beatVolume);
-    }
+        // 두께: OUT일수록 두꺼워짐
+        float width = hitMarkerBaseWidthPx + (inWindow ? 0f : (t * maxExtraWidthPx));
 
-    private float GetSoundOffsetMs()
-    {
-        if (!autoOffsetFromRtt)
-            return manualSoundOffsetMs;
+        var marker = GetOrCreateMarker();
+        marker.Progress = p;
+        marker.Life = hitMarkerLifeSec;
+        marker.WidthPx = width;
+        marker.BaseColor = color;
+        marker.DiffMs = diffMs;
 
-        double oneWayMs = TimeSync.EstimatedRttMs * 0.5;
-        double raw = -(oneWayMs + baseLeadMs);
-        raw = Mathf.Clamp((float)raw, minAutoOffsetMs, maxAutoOffsetMs);
-        return (float)raw;
-    }
+        marker.Img.enabled = true;
+        marker.Img.color = color;
 
-    private void EnsureAudio()
-    {
-        if (_audioSource == null)
+        var rt = marker.Img.rectTransform;
+        rt.sizeDelta = new Vector2(width, 0f);
+
+        // 위치 + 최신이 위로
+        SetMarkerX(rt, p);
+        marker.Img.transform.SetAsLastSibling();
+
+        // 라벨
+        if (marker.Label != null)
         {
-            _audioSource = gameObject.GetComponent<AudioSource>();
-            if (_audioSource == null)
-                _audioSource = gameObject.AddComponent<AudioSource>();
+            marker.Label.enabled = true;
+            marker.Label.text = (diffMs >= 0) ? $"+{diffMs}ms" : $"{diffMs}ms";
+            marker.Label.color = new Color(1f, 1f, 1f, 0.95f); // 라벨은 흰색
+            SetLabelPos(marker.Label.rectTransform, rt.anchoredPosition.x);
+            marker.Label.transform.SetAsLastSibling();
+        }
+    }
+
+    // ---------------- Hit Markers ----------------
+
+    private HitMarker GetOrCreateMarker()
+    {
+        if (_markers.Count < maxHitMarkers)
+        {
+            var (img, label) = CreateHitMarkerWithLabel(_barBg.transform);
+            var m = new HitMarker { Img = img, Label = label };
+            _markers.Add(m);
+            return m;
         }
 
-        _audioSource.playOnAwake = false;
-        _audioSource.spatialBlend = 0f; // 2D
-        _audioSource.loop = false;
-        _audioSource.dopplerLevel = 0f;
+        int best = 0;
+        float bestLife = float.MaxValue;
+        for (int i = 0; i < _markers.Count; i++)
+        {
+            if (_markers[i].Life < bestLife)
+            {
+                bestLife = _markers[i].Life;
+                best = i;
+            }
+        }
+        return _markers[best];
     }
+
+    private void UpdateHitMarkers()
+    {
+        if (_markers.Count == 0) return;
+
+        for (int i = 0; i < _markers.Count; i++)
+        {
+            var m = _markers[i];
+            if (m.Life <= 0f)
+            {
+                if (m.Img != null) m.Img.enabled = false;
+                if (m.Label != null) m.Label.enabled = false;
+                continue;
+            }
+
+            m.Life -= Time.deltaTime;
+            if (m.Life <= 0f)
+            {
+                if (m.Img != null) m.Img.enabled = false;
+                if (m.Label != null) m.Label.enabled = false;
+                continue;
+            }
+
+            float a = Mathf.Clamp01(m.Life / hitMarkerLifeSec);
+
+            // 마커 페이드(색 유지, 알파만)
+            var mc = m.BaseColor;
+            mc.a = Mathf.Lerp(0.05f, 0.95f, a);
+            m.Img.color = mc;
+
+            // 라벨 페이드(흰색 유지)
+            if (m.Label != null)
+            {
+                var lc = m.Label.color;
+                lc.a = Mathf.Lerp(0.05f, 0.95f, a);
+                m.Label.color = lc;
+            }
+
+            // 리사이즈/리레이아웃 대응
+            SetMarkerX(m.Img.rectTransform, m.Progress);
+            if (m.Label != null)
+                SetLabelPos(m.Label.rectTransform, m.Img.rectTransform.anchoredPosition.x);
+        }
+    }
+
+    private void SetMarkerX(RectTransform rt, float progress01)
+    {
+        if (_barBg == null) return;
+        float barWidthPx = _barBg.rectTransform.rect.width;
+        float x = (progress01 - 0.5f) * barWidthPx;
+        rt.anchoredPosition = new Vector2(x, 0f);
+    }
+
+    private void SetLabelPos(RectTransform rt, float markerX)
+    {
+        rt.anchoredPosition = new Vector2(markerX, labelYOffsetPx);
+    }
+
+    // ---------------- Window Band ----------------
+
+    private void UpdateWindowBand(double beatMs)
+    {
+        if (_windowBand == null || _barBg == null) return;
+
+        float halfRatio = (float)(judgeWindowMs / beatMs);
+        halfRatio = Mathf.Clamp01(halfRatio);
+
+        float barWidthPx = _barBg.rectTransform.rect.width;
+        float bandWidthPx = (halfRatio * 2f) * barWidthPx;
+
+        var rt = _windowBand.rectTransform;
+        rt.sizeDelta = new Vector2(bandWidthPx, 0f);
+        rt.anchoredPosition = Vector2.zero;
+    }
+
+    // ---------------- UI Creation ----------------
 
     private void CreateCanvasAndUI()
     {
-        // (원본 그대로) ...
         var canvasGo = new GameObject("BeatDebugCanvas_TMP");
         canvasGo.layer = LayerMask.NameToLayer("UI");
         _canvas = canvasGo.AddComponent<Canvas>();
@@ -174,14 +288,15 @@ public class BeatDebugUI_TMP : MonoBehaviour
         var panelGo = new GameObject("BeatPanel");
         panelGo.transform.SetParent(canvasGo.transform, false);
         var panelImg = panelGo.AddComponent<Image>();
-        panelImg.color = new Color(0, 0, 0, 0.5f);
+        ApplySprite(panelImg, sliced: true);
+        panelImg.color = new Color(0, 0, 0, 0.55f);
 
         var panelRect = panelGo.GetComponent<RectTransform>();
         panelRect.anchorMin = new Vector2(0, 1);
         panelRect.anchorMax = new Vector2(0, 1);
         panelRect.pivot = new Vector2(0, 1);
         panelRect.anchoredPosition = new Vector2(10, -10);
-        panelRect.sizeDelta = new Vector2(320, 135);
+        panelRect.sizeDelta = new Vector2(500, 200);
 
         var textGo = new GameObject("BeatText_TMP");
         textGo.transform.SetParent(panelGo.transform, false);
@@ -191,34 +306,120 @@ public class BeatDebugUI_TMP : MonoBehaviour
         _beatText.color = Color.white;
 
         var textRect = _beatText.GetComponent<RectTransform>();
-        textRect.anchorMin = new Vector2(0, 0.35f);
+        textRect.anchorMin = new Vector2(0, 0.44f);
         textRect.anchorMax = new Vector2(1, 1);
-        textRect.offsetMin = new Vector2(6, 6);
-        textRect.offsetMax = new Vector2(-6, -6);
+        textRect.offsetMin = new Vector2(10, 10);
+        textRect.offsetMax = new Vector2(-10, -10);
 
-        var barBgGo = new GameObject("BeatProgressBg");
+        var barBgGo = new GameObject("BeatBarBG");
         barBgGo.transform.SetParent(panelGo.transform, false);
-        var barBgImg = barBgGo.AddComponent<Image>();
-        barBgImg.color = new Color(1, 1, 1, 0.1f);
+        _barBg = barBgGo.AddComponent<Image>();
+        ApplySprite(_barBg, sliced: true);
+        _barBg.color = new Color(1, 1, 1, 0.12f);
 
-        var barBgRect = barBgGo.GetComponent<RectTransform>();
+        var barBgRect = _barBg.rectTransform;
         barBgRect.anchorMin = new Vector2(0, 0);
-        barBgRect.anchorMax = new Vector2(1, 0.35f);
-        barBgRect.offsetMin = new Vector2(6, 6);
-        barBgRect.offsetMax = new Vector2(-6, -6);
+        barBgRect.anchorMax = new Vector2(1, 0.44f);
+        barBgRect.offsetMin = new Vector2(10, 10);
+        barBgRect.offsetMax = new Vector2(-10, -10);
 
-        var barGo = new GameObject("BeatProgress");
-        barGo.transform.SetParent(barBgGo.transform, false);
-        _progressBar = barGo.AddComponent<Image>();
-        _progressBar.color = Color.green;
-        _progressBar.type = Image.Type.Filled;
-        _progressBar.fillMethod = Image.FillMethod.Horizontal;
-        _progressBar.fillOrigin = (int)Image.OriginHorizontal.Left;
+        // progress fill
+        var fillGo = new GameObject("ProgressFill");
+        fillGo.transform.SetParent(barBgGo.transform, false);
+        _progressFill = fillGo.AddComponent<Image>();
+        ApplySprite(_progressFill, sliced: false);
+        _progressFill.type = Image.Type.Filled;
+        _progressFill.fillMethod = Image.FillMethod.Horizontal;
+        _progressFill.fillOrigin = (int)Image.OriginHorizontal.Left;
+        _progressFill.color = new Color(0.2f, 0.8f, 1f, 0.85f);
 
-        var barRect = _progressBar.GetComponent<RectTransform>();
-        barRect.anchorMin = new Vector2(0, 0);
-        barRect.anchorMax = new Vector2(1, 1);
-        barRect.offsetMin = Vector2.zero;
-        barRect.offsetMax = Vector2.zero;
+        var fillRect = _progressFill.rectTransform;
+        fillRect.anchorMin = new Vector2(0, 0);
+        fillRect.anchorMax = new Vector2(1, 1);
+        fillRect.offsetMin = Vector2.zero;
+        fillRect.offsetMax = Vector2.zero;
+
+        // window band
+        var winGo = new GameObject("JudgeWindowBand");
+        winGo.transform.SetParent(barBgGo.transform, false);
+        _windowBand = winGo.AddComponent<Image>();
+        ApplySprite(_windowBand, sliced: true);
+        _windowBand.color = new Color(0f, 1f, 0f, 0.30f);
+
+        var winRect = _windowBand.rectTransform;
+        winRect.anchorMin = new Vector2(0.5f, 0f);
+        winRect.anchorMax = new Vector2(0.5f, 1f);
+        winRect.pivot = new Vector2(0.5f, 0.5f);
+        winRect.anchoredPosition = Vector2.zero;
+        winRect.sizeDelta = new Vector2(10f, 0f);
+
+        // center line
+        var centerGo = new GameObject("CenterLine");
+        centerGo.transform.SetParent(barBgGo.transform, false);
+        _centerLine = centerGo.AddComponent<Image>();
+        ApplySprite(_centerLine, sliced: true);
+        _centerLine.color = new Color(1f, 1f, 1f, 0.85f);
+
+        var centerRect = _centerLine.rectTransform;
+        centerRect.anchorMin = new Vector2(0.5f, 0f);
+        centerRect.anchorMax = new Vector2(0.5f, 1f);
+        centerRect.pivot = new Vector2(0.5f, 0.5f);
+        centerRect.anchoredPosition = Vector2.zero;
+        centerRect.sizeDelta = new Vector2(2f, 0f);
+    }
+
+    private (Image img, TextMeshProUGUI label) CreateHitMarkerWithLabel(Transform parent)
+    {
+        var root = new GameObject("HitMarkerRoot");
+        root.transform.SetParent(parent, false);
+
+        // marker
+        var markerGo = new GameObject("HitMarker");
+        markerGo.transform.SetParent(root.transform, false);
+
+        var img = markerGo.AddComponent<Image>();
+        ApplySprite(img, sliced: true);
+        img.raycastTarget = false;
+        img.enabled = false;
+
+        var rt = img.rectTransform;
+        rt.anchorMin = new Vector2(0.5f, 0f);
+        rt.anchorMax = new Vector2(0.5f, 1f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = Vector2.zero;
+        rt.sizeDelta = new Vector2(hitMarkerBaseWidthPx, 0f);
+
+        // label
+        var labelGo = new GameObject("HitLabel_TMP");
+        labelGo.transform.SetParent(root.transform, false);
+
+        var label = labelGo.AddComponent<TextMeshProUGUI>();
+        label.enabled = false;
+        label.fontSize = labelFontSize;
+        label.alignment = TextAlignmentOptions.Center;
+        label.color = new Color(1f, 1f, 1f, 0.95f);
+        label.raycastTarget = false;
+
+        var lrt = label.rectTransform;
+        lrt.anchorMin = new Vector2(0.5f, 1f);
+        lrt.anchorMax = new Vector2(0.5f, 1f);
+        lrt.pivot = new Vector2(0.5f, 0f);
+        lrt.anchoredPosition = new Vector2(0f, labelYOffsetPx);
+        lrt.sizeDelta = new Vector2(120f, 24f);
+
+        return (img, label);
+    }
+
+    private void ApplySprite(Image img, bool sliced)
+    {
+        img.sprite = _defaultSprite;
+        img.type = sliced ? Image.Type.Sliced : Image.Type.Simple;
+        img.raycastTarget = false;
+    }
+
+    private Sprite CreateWhiteSprite()
+    {
+        var tex = Texture2D.whiteTexture;
+        return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
     }
 }

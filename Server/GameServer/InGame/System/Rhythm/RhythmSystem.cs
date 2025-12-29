@@ -8,8 +8,10 @@ public sealed class RhythmConfig
 {
     public double Bpm { get; init; }
     public int BaseBeatDivision { get; init; } // 예: 4 * 4 (16분음표)
-    public double ActionWindowMs { get; init; } // Beat 판정 윈도우 (±)
+    public double ActionWindowMs { get; init; } // Beat 판정 윈도우 (+-)
     public int MaxBeatLookAhead { get; init; }  // 몇 Beat까지 미리 예약 허용
+
+    //public int LeadBeats { get; set; }
 }
 public sealed class RhythmSystem : IBeatClock
 {
@@ -20,7 +22,7 @@ public sealed class RhythmSystem : IBeatClock
     private readonly double _baseBeatMs;
     private long _lastProcessedBeat = -1;
 
-    public event Action<long>? OnBeat; // 새 Beat마다 호출되는 이벤트
+    public event Action<long>? OnBeat;
 
     public RhythmSystem(IServerTime time, RhythmConfig config, long songStartServerTimeMs)
     {
@@ -29,10 +31,12 @@ public sealed class RhythmSystem : IBeatClock
         _songStartServerTimeMs = songStartServerTimeMs;
 
         _baseBeatMs = 60000.0 / (config.Bpm * config.BaseBeatDivision);
-
     }
 
-    // ===== IBeatClock 구현 =====
+    // 추가: 외부에서 디버그/동기화에 쓰기 좋게 공개
+    public long GetBeatDurationMs() => (long)_baseBeatMs;
+    public long SongStartServerTimeMs => _songStartServerTimeMs;
+    public RhythmConfig Config => _config;
 
     public long GetCurrentBeatIndex(long nowMs)
     {
@@ -50,21 +54,33 @@ public sealed class RhythmSystem : IBeatClock
         return (long)Math.Round(idxFloat, MidpointRounding.AwayFromZero);
     }
 
-    public long GetBeatTimeMs(long beatIndex)
-        => _songStartServerTimeMs + (long)(beatIndex * _baseBeatMs);
+    // 추가: 클라와 같은 시그니처
+    public long GetJudgeTimeMs(long beatIndex)
+    {
+        if (beatIndex <= 0) return GetBeatTimeMs(0);
+        long prev = GetBeatTimeMs(beatIndex - 1);
+        long cur = GetBeatTimeMs(beatIndex);
+        return prev + (cur - prev) / 2;
+    }
 
-    // ===== 메인 업데이트 (서버 틱마다 호출) =====
+    // 기존 유지
+    public long GetJudgeTimeMs(long currentBeat, long nextBeat)
+    {
+        long currMs = GetBeatTimeMs(currentBeat);
+        long nextMs = GetBeatTimeMs(nextBeat);
+        return currMs + (nextMs - currMs) / 2;
+    }
+
+    // 수정: Round 권장
+    public long GetBeatTimeMs(long beatIndex)
+        => _songStartServerTimeMs + (long)Math.Round(beatIndex * _baseBeatMs);
 
     public void Update()
     {
         var now = _time.NowMs;
         var beat = GetCurrentBeatIndex(now);
-        //Console.WriteLine($"BaseBeatMS : { _baseBeatMs } || Beat : {beat}");
-        if (beat <= _lastProcessedBeat)
-        {
-            return;
-        }
-        // 중간 Beat가 여러 개 밀렸을 수 있으니, 하나씩 처리
+        if (beat <= _lastProcessedBeat) return;
+
         for (long b = _lastProcessedBeat + 1; b <= beat; b++)
         {
             _lastProcessedBeat = b;
@@ -72,18 +88,40 @@ public sealed class RhythmSystem : IBeatClock
         }
     }
 
-    // 클라에 보내줄 Sync용 정보 (옵션)
-    public SC_BeatSync CreateSyncPacket()
+    // (선택) 디버그 바 유틸
+    public static string FormatJudgeBar(
+        long currBeat, long nextBeat,
+        long nowMs, long judgeCenterMs,
+        int windowMs,
+        int halfSpanMs,
+        int width = 36,
+        char marker = '^')
     {
-        var now = _time.NowMs;
-        var currBeat = GetCurrentBeatIndex(now);
-        return new SC_BeatSync
-        {
-            ServerSendTimeMs = now,
-            SongStartServerTimeMs = _songStartServerTimeMs,
-            Bpm = _config.Bpm,
-            BaseBeatDivision = _config.BaseBeatDivision,
-            BeatIndex = currBeat,
-        };
+        halfSpanMs = Math.Max(halfSpanMs, windowMs + 1);
+
+        long startMs = judgeCenterMs - halfSpanMs;
+        long endMs = judgeCenterMs + halfSpanMs;
+
+        double t = (nowMs - startMs) / (double)(endMs - startMs);
+        int pos = (int)Math.Round(t * (width - 1));
+        pos = Math.Clamp(pos, 0, width - 1);
+
+        int center = width / 2;
+
+        int winHalf = (int)Math.Round(windowMs / (double)halfSpanMs * (width / 2.0));
+        winHalf = Math.Clamp(winHalf, 0, center);
+
+        int winL = center - winHalf;
+        int winR = center + winHalf;
+
+        var chars = new char[width];
+        for (int i = 0; i < width; i++)
+            chars[i] = (i >= winL && i <= winR) ? '=' : '-';
+
+        chars[center] = '|';
+        chars[pos] = marker;
+
+        long diff = nowMs - judgeCenterMs;
+        return $"curBeat[{new string(chars)}]nextBeat diff={diff}ms win=±{windowMs}ms";
     }
 }

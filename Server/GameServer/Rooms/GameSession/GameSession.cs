@@ -69,6 +69,7 @@ public sealed class GameSession
             frozenAttackRegistry :_frozen,
             actionWindowMs: _rhythmConfig.ActionWindowMs,
             maxBeatLookAhead: _rhythmConfig.MaxBeatLookAhead
+            //leadBeat: _rhythmConfig.LeadBeats
         );
 
         //  반드시 telegraph 먼저 생성

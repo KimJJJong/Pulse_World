@@ -19,6 +19,10 @@ public sealed class PendingAction
 /// </summary>
 public sealed class PlayerActionCmd
 {
+    public long JudgedBeat {  get; set; }
+    public int JudgeDiffMs { get; set; }
+
+
     /// <summary>행동의 주체가 되는 Actor ID (플레이어, 몬스터 등)</summary>
     public int ActorId { get; init; }
 
@@ -41,7 +45,7 @@ public sealed class PlayerActionCmd
     /// - 클라가 직접 넣어도 되지만,
     ///   보통 서버가 판정 (TryRegisterAction) 후 세팅하는 값을 기준으로 사용.
     /// </summary>
-    public long RequestedBeat { get; set; }
+    public long ExecuteBeat { get; set; }
 
     /// <summary>
     /// 클라이언트 기준 이 명령을 보낸 시각 (ms).
@@ -56,5 +60,5 @@ public sealed class PlayerActionCmd
     public long ServerReceiveTimeMs { get; set; }
 
     public override string ToString()
-        => $"Actor={ActorId}, Kind={Kind}, Target={TargetCell}, Beat={RequestedBeat}";
+        => $"Actor={ActorId}, Kind={Kind}, Target={TargetCell}, Beat={ExecuteBeat}";
 }
