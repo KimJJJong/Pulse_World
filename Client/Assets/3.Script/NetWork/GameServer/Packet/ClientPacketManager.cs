@@ -33,6 +33,8 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_Pong, PacketHandler.SC_PongHandler);
 		_makeFunc.Add((ushort)PacketID.SC_InitGame, MakePacket<SC_InitGame>);
 		_handler.Add((ushort)PacketID.SC_InitGame, PacketHandler.SC_InitGameHandler);
+		_makeFunc.Add((ushort)PacketID.SC_CalibResult, MakePacket<SC_CalibResult>);
+		_handler.Add((ushort)PacketID.SC_CalibResult, PacketHandler.SC_CalibResultHandler);
 		_makeFunc.Add((ushort)PacketID.SC_BeatSync, MakePacket<SC_BeatSync>);
 		_handler.Add((ushort)PacketID.SC_BeatSync, PacketHandler.SC_BeatSyncHandler);
 		_makeFunc.Add((ushort)PacketID.SC_BeatActions, MakePacket<SC_BeatActions>);

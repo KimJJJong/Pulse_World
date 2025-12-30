@@ -362,6 +362,7 @@ MonoBehaviour:
   labelFontSize: 16
   normalizeByHalfBeat: 1
   _bgm: {fileID: 1879391123}
+  _autoCalib: {fileID: 0}
 --- !u!4 &406510866
 Transform:
   m_ObjectHideFlags: 0
@@ -929,6 +930,7 @@ Transform:
   m_Children:
   - {fileID: 1879391124}
   - {fileID: 1078120899}
+  - {fileID: 1231709685}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1078120897
@@ -1043,6 +1045,60 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1231709684
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1231709685}
+  - component: {fileID: 1231709686}
+  m_Layer: 0
+  m_Name: RhythmCalib
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1231709685
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231709684}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 822633698}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1231709686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231709684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c30c4c202cac64a40b40a8a04440b69f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AudioOffsetAutoCalibrator
+  _bgm: {fileID: 1879391123}
+  _enabled: 0
+  _targetSamples: 16
+  _gain: 0.2
+  _maxStepPerApplyMs: 10
+  _ignoreAbsDiffOverMs: 250
+  _enableHotkeys: 1
+  _toggleKey: 289
+  _applyNowKey: 290
+  _clearKey: 291
 --- !u!1 &1393575289
 GameObject:
   m_ObjectHideFlags: 0

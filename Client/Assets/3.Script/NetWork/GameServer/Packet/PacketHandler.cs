@@ -73,6 +73,9 @@ class PacketHandler
         /// <param name="packet"></param>
     public static void SC_InitGameHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_InitGame((SC_InitGame)packet);
+    public static void SC_CalibResultHandler(PacketSession session, IPacket packet)
+        => ClientHandlers.Instance.Handle_SC_CalibResult((SC_CalibResult)packet);
+
     public static void SC_BeatActionsHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_BeatActions((SC_BeatActions)packet);
     public static void SC_BeatSyncHandler(PacketSession session, IPacket packet)

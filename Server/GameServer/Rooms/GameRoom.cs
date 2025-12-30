@@ -241,7 +241,7 @@ public sealed class GameRoom : IGameBroadcaster
             //LeadBeats = 1,
         };
 
-        long songStart = AppRef.ServerTimeMs() + 2000; // 0.5초 뒤부터 Beat 시작
+        long songStart = AppRef.ServerTimeMs() + 1000; // 0.5초 뒤부터 Beat 시작
 
         var time = new ServerTimeAdapter();
         _rhythm = new RhythmSystem(time, _rhythmConfig, songStart);
@@ -429,8 +429,35 @@ public sealed class GameRoom : IGameBroadcaster
             //int actorId = slot/* + 1*/; // 예시: slot 0 -> actorId 1, slot 1 → actorId 2 등
 
             _session.OnClientActionPacketBySlot(slot, p);
-        });
+        }); 
+         public void OnCS_CalibHit(ClientSession s, CS_CalibHit p)
+        => Enqueue(() =>
+        {
+            if (!IsRunnableFor(s))
+            {
+                s.Send(new SC_Warn { code = 2001, msg = "ROOM_NOT_RUNNING_OR_NOT_MEMBER" }.Write());
+                return;
+            }
 
+            if (_session == null)
+            {
+                s.Send(new SC_Warn { code = 2002, msg = "SESSION_NOT_READY" }.Write());
+                return;
+            }
+
+            int slot = s.Slot;
+            if (slot < 0)
+            {
+                s.Send(new SC_Warn { code = 2003, msg = "UNKNOWN_SLOT" }.Write());
+                return;
+            }
+            //Console.WriteLine($" Session slot = {s.Slot} || ActorId = {p.ActorId}, ActorKind = {p.ActionKind}");
+            // 간단 버전: Slot == ActorId 라고 가정
+            // 필요하면 GameSession에 slot->actorId 매핑 테이블을 만들어서 ResolveActorIdBySlot(slot)로 가져오자.
+            //int actorId = slot/* + 1*/; // 예시: slot 0 -> actorId 1, slot 1 → actorId 2 등
+
+            _session.OnClientCalibPacketBySlot(slot, p);
+        });
     #endregion
 
 

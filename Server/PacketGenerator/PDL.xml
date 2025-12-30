@@ -95,13 +95,17 @@
 		</list>
 	</packet>
 
-<!--
-	<packet name ="CS_BeatSyncReq">
+
+	<packet name ="SC_CalibResult">
+		<int name="DiffMs"/>
+		<long name ="BeatIndex"/>
+		<long name ="ServerNowMs"/>
+	</packet>
+	<packet name ="CS_CalibHit">
 		<long name ="ClientSendTimeMs"/>
+		<long name ="BeatIndex"/>
 	</packet>
 
-
--->
 
 	<packet name ="SC_BeatSync">
 		<long name ="ServerSendTimeMs"/>
@@ -163,6 +167,8 @@
 		<int name ="EntityId"/>
 	</packet>
 
+	
+	
 	<!-- RhythmTest-->
 	
 

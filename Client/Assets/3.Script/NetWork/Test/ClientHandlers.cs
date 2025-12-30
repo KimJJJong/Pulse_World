@@ -98,6 +98,15 @@ public class ClientHandlers : MonoBehaviour
         GS.OnInitGameCompleted();
     }
 
+    public void Handle_SC_CalibResult(SC_CalibResult p)
+    {
+        BeatDebugUI_TMP.Instance?.RecordServerDiff(p.DiffMs, p.BeatIndex, RhythmClient.Instance.GetCurrentServerTimeMs());
+        AudioOffsetAutoCalibrator.Instance?.OnServerDiff(p.DiffMs);
+
+    }
+
+
+
     /// <summary>
     /// 서버 기준 Beat/리듬 동기화
     /// </summary>

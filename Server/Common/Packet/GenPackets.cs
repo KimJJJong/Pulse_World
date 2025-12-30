@@ -16,11 +16,13 @@ public enum PacketID
 	CS_Ping = 8,
 	SC_Pong = 9,
 	SC_InitGame = 10,
-	SC_BeatSync = 11,
-	CS_ActionRequest = 12,
-	SC_BeatActions = 13,
-	SC_BeatTelegraphs = 14,
-	SC_EntityDespawn = 15,
+	SC_CalibResult = 11,
+	CS_CalibHit = 12,
+	SC_BeatSync = 13,
+	CS_ActionRequest = 14,
+	SC_BeatActions = 15,
+	SC_BeatTelegraphs = 16,
+	SC_EntityDespawn = 17,
 	
 }
 
@@ -735,6 +737,95 @@ public class SC_InitGame : IPacket
 		count += sizeof(ushort);
 		foreach (SpawnEntities spawnEntities in this.spawnEntitiess)
 			success &= spawnEntities.Write(s, ref count);
+		success &= BitConverter.TryWriteBytes(s, count);
+		if (success == false)
+			return null;
+		return SendBufferHelper.Close(count);
+	}
+}
+
+public class SC_CalibResult : IPacket
+{
+	public int DiffMs;
+	public long BeatIndex;
+	public long ServerNowMs;
+
+	public ushort Protocol { get { return (ushort)PacketID.SC_CalibResult; } }
+
+	public void Read(ArraySegment<byte> segment)
+	{
+		ushort count = 0;
+
+		ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+		count += sizeof(ushort);
+		count += sizeof(ushort);
+		this.DiffMs = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		count += sizeof(int);
+		this.BeatIndex = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+		count += sizeof(long);
+		this.ServerNowMs = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+		count += sizeof(long);
+	}
+
+	public ArraySegment<byte> Write()
+	{
+		ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+		ushort count = 0;
+		bool success = true;
+
+		Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+		count += sizeof(ushort);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.SC_CalibResult);
+		count += sizeof(ushort);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.DiffMs);
+		count += sizeof(int);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.BeatIndex);
+		count += sizeof(long);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ServerNowMs);
+		count += sizeof(long);
+		success &= BitConverter.TryWriteBytes(s, count);
+		if (success == false)
+			return null;
+		return SendBufferHelper.Close(count);
+	}
+}
+
+public class CS_CalibHit : IPacket
+{
+	public long ClientSendTimeMs;
+	public long BeatIndex;
+
+	public ushort Protocol { get { return (ushort)PacketID.CS_CalibHit; } }
+
+	public void Read(ArraySegment<byte> segment)
+	{
+		ushort count = 0;
+
+		ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+		count += sizeof(ushort);
+		count += sizeof(ushort);
+		this.ClientSendTimeMs = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+		count += sizeof(long);
+		this.BeatIndex = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+		count += sizeof(long);
+	}
+
+	public ArraySegment<byte> Write()
+	{
+		ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+		ushort count = 0;
+		bool success = true;
+
+		Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+		count += sizeof(ushort);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.CS_CalibHit);
+		count += sizeof(ushort);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ClientSendTimeMs);
+		count += sizeof(long);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.BeatIndex);
+		count += sizeof(long);
 		success &= BitConverter.TryWriteBytes(s, count);
 		if (success == false)
 			return null;

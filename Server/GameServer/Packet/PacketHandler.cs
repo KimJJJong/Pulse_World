@@ -257,23 +257,18 @@ class PacketHandler
 
     }
 
-    //public static void CS_BeatSyncReqHandler(PacketSession session, IPacket packet)
-    //{
-    //    CS_BeatSyncReq req = (CS_BeatSyncReq)packet;
+    public static void CS_CalibHitHandler(PacketSession session, IPacket packet)
+    {
+        ClientSession clientSession = (ClientSession)session;
+        CS_CalibHit req = (CS_CalibHit)packet;
 
-    //    long serverNow = AppRef.ServerTimeMs(); // 서버 기준 단조 증가 ms
+        RoomManager.TryGet(clientSession.MatchId, out var room);//clientSession.roo
+        if (room == null)
+        {
+            session.Send(new SC_Warn { code = 2000, msg = "ROOM_NOT_FOUND" }.Write());
+            return;
+        }
 
-    //    var p = new SC_BeatSync
-    //    {
-    //        ServerSendTimeMs = serverNow,
-    //        ClientSendTimeMs = req.ClientSendTimeMs,
-
-    //        SongStartServerTimeMs = songStartServerTimeMs,
-    //        Bpm = bpm,
-    //        BaseBeatDivision = baseBeatDivision,
-    //        BeatIndex = CurrentBeatIndex(serverNow) // 서버 기준으로 계산
-    //    };
-
-    //    s.Send(p);
-    //}
+        room.OnCS_CalibHit(clientSession, req);
+    }
 }

@@ -1,5 +1,16 @@
 // ===============================
-// BgmSyncPlayer.cs
+// 0) 목표
+// - 서버에서 내려주는 diffMs(early -, late +) 샘플 N개를 모아
+// - |diffMs - O| 합이 최소가 되는 O = median(diffMs)을 구하고
+// - BGM 오디오 기준점을 AutoAlignOffsetMs로 "한 번에" 이동시켜 abs(diff)를 최소화한다.
+// - 캘리브레이션 ON일 때만 동작, 적용 후 자동 OFF.
+// ===============================
+
+
+
+// ===============================
+// 1) BgmSyncPlayer.cs 수정본 (AutoAlignOffsetMs 추가 + total offset 반영)
+//    - 기존 파일에 그대로 덮어쓰거나, 필요한 부분만 병합
 // ===============================
 using System;
 using UnityEngine;
@@ -11,58 +22,74 @@ public sealed class BgmSyncPlayer : MonoBehaviour
 
     [Header("Refs")]
     [SerializeField] private AudioSource _audioSource;
-    [SerializeField] private AudioClip _clip; // non-loop track
+    [SerializeField] private AudioClip _clip;
 
     [Header("Sync Policy (Non-loop)")]
-    [Tooltip("동기화 체크 주기(초). 0.05~0.1 권장 (10~20Hz)")]
     [SerializeField] private float _syncIntervalSec = 0.05f;
-
-    [Tooltip("이 이상 drift면 즉시 seek로 고정 (초)")]
-    [SerializeField] private float _hardSeekThresholdSec = 0.08f; // 80ms
-
-    [Tooltip("이 이하 drift는 무시 (초)")]
-    [SerializeField] private float _ignoreThresholdSec = 0.02f; // 20ms
-
-    [Tooltip("시작 전 프리롤(초). expected가 -preRoll 이하면 대기")]
+    [SerializeField] private float _hardSeekThresholdSec = 0.08f;
+    [SerializeField] private float _ignoreThresholdSec = 0.02f;
     [SerializeField] private float _preRollSec = 0.3f;
-
-    [Tooltip("끝나기 직전 너무 근접하면 재생 대신 종료 처리 (초)")]
     [SerializeField] private float _nearEndEpsilonSec = 0.05f;
 
     [Header("Beat Align (Audio Only)")]
-    [Tooltip("비트 중앙(0.5)에 맞춰 오디오를 이동 (판정/비트 계산은 그대로)")]
     [SerializeField] private bool _alignToBeatCenter = true;
 
-    [Tooltip("오디오만 미세 이동(ms). +면 음악이 빨리 들림(앞당김), -면 늦게 들림")]
-    [SerializeField] private int _fineOffsetMs = 0;
+    [Tooltip("장치(스피커/이어폰) 고정 지연 보정용(작게). +면 음악이 빨리 들림")]
+    [SerializeField] private int _deviceOffsetMs = 0;
 
-    [Tooltip("런타임 키 튜닝 사용")]
-    [SerializeField] private bool _enableRuntimeTuning = true;
+    [Tooltip("자동 정렬(캘리브레이션) 결과로 곡 기준점을 이동(크게도 가능). +면 음악이 빨리 들림")]
+    [SerializeField] private int _autoAlignOffsetMs = 0;
 
-    [Tooltip("키 튜닝 스텝(ms)")]
-    [SerializeField] private int _tuneStepMs = 5;
+    [Header("Clamp")]
+    [SerializeField] private int _minDeviceOffsetMs = -200;
+    [SerializeField] private int _maxDeviceOffsetMs = 200;
 
-    [Tooltip("FineOffsetMs 최소/최대")]
-    [SerializeField] private int _minFineOffsetMs = -200;
-    [SerializeField] private int _maxFineOffsetMs = 200;
+    [SerializeField] private int _minAutoAlignOffsetMs = -1000;
+    [SerializeField] private int _maxAutoAlignOffsetMs = 1000;
 
     public SyncState State { get; private set; } = SyncState.Idle;
 
     public bool AlignToBeatCenter => _alignToBeatCenter;
-    public int FineOffsetMs => _fineOffsetMs;
+    public int DeviceOffsetMs => _deviceOffsetMs;
+    public int AutoAlignOffsetMs => _autoAlignOffsetMs;
 
-    // 디버그 표시용: 현재 적용되는 총 오프셋(ms)
+    private const string PREF_DEVICE_OFFSET = "BGM_DEVICE_OFFSET_MS";
+    private const string PREF_AUTOALIGN_OFFSET = "BGM_AUTOALIGN_OFFSET_MS";
+
     public int TotalAudioOffsetMs
     {
         get
         {
             var r = RhythmClient.Instance;
-            if (r == null) return _fineOffsetMs;
+            if (r == null) return _deviceOffsetMs + _autoAlignOffsetMs;
 
             double half = r.GetBeatDurationMs() * 0.5;
-            double total = (_alignToBeatCenter ? half : 0.0) + _fineOffsetMs;
+            double total = (_alignToBeatCenter ? half : 0.0) + _deviceOffsetMs + _autoAlignOffsetMs;
             return (int)Math.Round(total);
         }
+    }
+
+    public void SetDeviceOffsetMs(int ms, bool save = false)
+    {
+        _deviceOffsetMs = Mathf.Clamp(ms, _minDeviceOffsetMs, _maxDeviceOffsetMs);
+        if (save) PlayerPrefs.SetInt(PREF_DEVICE_OFFSET, _deviceOffsetMs);
+    }
+
+    public void SetAutoAlignOffsetMs(int ms, bool save = false)
+    {
+        _autoAlignOffsetMs = Mathf.Clamp(ms, _minAutoAlignOffsetMs, _maxAutoAlignOffsetMs);
+        if (save) PlayerPrefs.SetInt(PREF_AUTOALIGN_OFFSET, _autoAlignOffsetMs);
+    }
+
+    public void AddAutoAlignOffsetMs(int deltaMs, bool save = false)
+    {
+        SetAutoAlignOffsetMs(_autoAlignOffsetMs + deltaMs, save);
+    }
+
+    public void LoadOffsetsFromPrefs(int defaultDeviceMs = 0, int defaultAutoAlignMs = 0)
+    {
+        SetDeviceOffsetMs(PlayerPrefs.GetInt(PREF_DEVICE_OFFSET, defaultDeviceMs), save: false);
+        SetAutoAlignOffsetMs(PlayerPrefs.GetInt(PREF_AUTOALIGN_OFFSET, defaultAutoAlignMs), save: false);
     }
 
     public event Action OnSongStarted;
@@ -97,9 +124,6 @@ public sealed class BgmSyncPlayer : MonoBehaviour
             _audioSource.clip = _clip;
     }
 
-    /// <summary>
-    /// RhythmClient.OnBeatSync 이후(게임 시작 시 1회) 호출하면 됨.
-    /// </summary>
     public void StartSync()
     {
         if (_audioSource == null || _clip == null)
@@ -109,11 +133,9 @@ public sealed class BgmSyncPlayer : MonoBehaviour
             return;
         }
 
-        // ✅ disabled면 Play 불가
         if (!_audioSource.enabled)
             _audioSource.enabled = true;
 
-        // ✅ 부모/오브젝트가 비활성이면 Play 불가
         if (!_audioSource.gameObject.activeInHierarchy)
         {
             Debug.LogError("[BgmSyncPlayer] AudioSource GameObject is inactive in hierarchy. Cannot play.");
@@ -144,9 +166,6 @@ public sealed class BgmSyncPlayer : MonoBehaviour
 
     void Update()
     {
-        if (_enableRuntimeTuning)
-            RuntimeTuning();
-
         if (State == SyncState.Idle || State == SyncState.Ended || State == SyncState.Error)
             return;
 
@@ -157,35 +176,12 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         TickSync();
     }
 
-    private void RuntimeTuning()
-    {
-        // 토글: ; 키
-        if (Input.GetKeyDown(KeyCode.Semicolon))
-            _alignToBeatCenter = !_alignToBeatCenter;
-
-        // 미세 조정: [ / ] 키
-        if (Input.GetKeyDown(KeyCode.LeftBracket))
-            _fineOffsetMs -= _tuneStepMs;
-
-        if (Input.GetKeyDown(KeyCode.RightBracket))
-            _fineOffsetMs += _tuneStepMs;
-
-        _fineOffsetMs = Mathf.Clamp(_fineOffsetMs, _minFineOffsetMs, _maxFineOffsetMs);
-    }
-
     private void TickSync()
     {
         var rhythm = RhythmClient.Instance;
-        if (rhythm == null)
-        {
-            Debug.LogWarning("[BgmSyncPlayer] RhythmClient.Instance is null");
-            return;
-        }
+        if (rhythm == null) return;
+        if (_audioSource == null || _clip == null) return;
 
-        if (_audioSource == null || _clip == null)
-            return;
-
-        // 안전: 런타임 중 비활성/비활성화되면 즉시 에러
         if (!_audioSource.enabled || !_audioSource.gameObject.activeInHierarchy)
         {
             Debug.LogError("[BgmSyncPlayer] AudioSource became disabled/inactive during sync. Stop.");
@@ -196,44 +192,37 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         long serverNowMs = rhythm.GetCurrentServerTimeMs();
         long startMs = rhythm.ServerSongStartMs;
 
-        // ✅ 오디오 오프셋(비트 중앙 + 미세 ms)을 "오디오에만" 적용
+        //  totalAudioOffsetMs (오디오에만 적용)
         double beatMs = rhythm.GetBeatDurationMs();
         double centerMs = _alignToBeatCenter ? (beatMs * 0.5) : 0.0;
-        double audioOffsetMs = centerMs + _fineOffsetMs;
+        double totalOffsetMs = centerMs + _deviceOffsetMs + _autoAlignOffsetMs;
 
-        double elapsedSec = (serverNowMs - startMs + audioOffsetMs) / 1000.0;
+        double elapsedSec = (serverNowMs - startMs + totalOffsetMs) / 1000.0;
 
-        // 시작 전: 너무 이르면 대기
         if (elapsedSec < -_preRollSec)
         {
-            if (State != SyncState.Waiting)
-                State = SyncState.Waiting;
+            if (State != SyncState.Waiting) State = SyncState.Waiting;
             return;
         }
 
-        // 시작 전이지만 곧 시작
         if (elapsedSec < 0)
         {
-            if (State != SyncState.Starting)
-                State = SyncState.Starting;
+            if (State != SyncState.Starting) State = SyncState.Starting;
             return;
         }
 
         double clipLen = _clip.length;
 
-        // 곡 종료(서버 기준)
         if (elapsedSec >= clipLen || elapsedSec >= clipLen - _nearEndEpsilonSec)
         {
             EndSong();
             return;
         }
 
-        // 아직 재생 시작 안 했으면: expected 위치로 seek 후 Play
         if (!_audioSource.isPlaying)
         {
             SeekTo((float)elapsedSec);
             _audioSource.Play();
-
             State = SyncState.Playing;
 
             if (!_startedEventRaised)
@@ -256,12 +245,10 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         if (abs <= _ignoreThresholdSec)
             return;
 
-        // 최소 기능: 일정 이상이면 즉시 고정
         if (abs >= _hardSeekThresholdSec)
         {
             SeekTo(expectedSec);
         }
-        // 0.02~0.08 구간은 아무 것도 안 함(나중에 pitch 보정으로 확장)
     }
 
     private void SeekTo(float sec)

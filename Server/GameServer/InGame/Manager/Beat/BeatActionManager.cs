@@ -109,7 +109,7 @@ namespace GameServer.InGame.Manager.Beat
 
                 // debug 남기고 싶으면 주석 해제
                 //JudgedBeat = nextBeat,
-                //JudgeDiffMs = (int)diff,
+                JudgeDiffMs = (int)diff,
 
                 ClientSendTimeMs = req.ClientSendTimeMs,
                 ServerReceiveTimeMs = now
@@ -118,69 +118,51 @@ namespace GameServer.InGame.Manager.Beat
             _scheduler.Enqueue(cmd);
         }
 
-
-
-        private static string FormatJudgeBar(
-    long currBeat, long nextBeat,
-    long nowMs, long judgeCenterMs,
-    int windowMs,
-    int halfSpanMs = 250,   // 바가 표현하는 "중간점 기준 좌/우 범위" (ms)
-    int width = 32,         // 바 내부 폭
-    char marker = '^')
+        public void OnClientCalibRequest(int actorId, CS_CalibHit req)
         {
-            // halfSpanMs는 최소 window보다 커야 그림이 의미 있음
-            halfSpanMs = Math.Max(halfSpanMs, windowMs + 1);
+            var now = req.ClientSendTimeMs;//_time.NowMs;
 
-            long startMs = judgeCenterMs - halfSpanMs;
-            long endMs = judgeCenterMs + halfSpanMs;
-
-            // nowMs -> [0..width-1] 위치
-            double t = (nowMs - startMs) / (double)(endMs - startMs);
-            int pos = (int)Math.Round(t * (width - 1));
-            pos = Math.Max(0, Math.Min(width - 1, pos));
-
-            // judge center 위치(항상 중앙에 오게끔 설계)
-            int center = width / 2;
-
-            // window 구간을 width로 변환
-            int winHalf = (int)Math.Round(windowMs / (double)halfSpanMs * (width / 2.0));
-            winHalf = Math.Max(0, Math.Min(center, winHalf));
-
-            int winL = center - winHalf;
-            int winR = center + winHalf;
-
-            var chars = new char[width];
-
-            for (int i = 0; i < width; i++)
+            // ---- Beat 계산 ----
+            var currBeat = _clock.GetCurrentBeatIndex(now);
+            if (currBeat < 0)
             {
-                bool inWindow = (i >= winL && i <= winR);
-
-                // 기본은 window 밖 '='
-                chars[i] = inWindow ? '=' : '=';  // 일단 '='로 깔고
-                                                  // window는 '=' 대신 '|' 같은 걸 원하면 여기 변경 가능
-                chars[i] = inWindow ? '=' : '=';  // 유지 (요청대로 == 영역을 만들 거라서)
-
-                // window 밖을 더 옅게 보이고 싶으면 '.'로 바꿔도 됨
-                // chars[i] = inWindow ? '=' : '-';
-                chars[i] = inWindow ? '=' : '=';
+                Console.WriteLine("[OnClientActionRequest] song not started yet");
+                return;
             }
 
-            // window를 "==", 바깥을 "===="로 이미 같아서 구분이 안 되니까,
-            // 요청한 느낌(== 구간 강조)을 위해 바깥을 '-'로, window를 '='로 추천:
-            for (int i = 0; i < width; i++)
-            {
-                bool inWindow = (i >= winL && i <= winR);
-                chars[i] = inWindow ? '=' : '-';
-            }
+            var nextBeat = currBeat + 1;
 
-            // center 표시
-            chars[center] = '|';
+            var judgeCenterMs = _clock.GetJudgeTimeMs(currBeat, nextBeat);
 
-            // 입력 마커 (center와 겹치면 '^'가 이길지 '|'가 이길지 선택)
-            chars[pos] = marker;
+            int diff = (int)(now - judgeCenterMs);
 
-            return $"curBeat[{new string(chars)}]nextBeat  diff={nowMs - judgeCenterMs}ms  win=±{windowMs}ms";
+            int halfSpanMs = (int)Math.Round(_clock.GetBeatDurationMs() * 0.5); // RhythmSystem에 추가한 getter 필요
+            Console.WriteLine(
+                RhythmSystem.FormatJudgeBar(
+                    currBeat: currBeat,
+                    nextBeat: nextBeat,
+                    nowMs: now,
+                    judgeCenterMs: judgeCenterMs,
+                    windowMs: (int)_actionWindowMs,
+                    halfSpanMs: halfSpanMs,
+                    width: 36,
+                    marker: '^'
+                )
+            );
+            
+            var send = new SC_CalibResult();
+
+            send.DiffMs = diff;
+            send.ServerNowMs = now;
+            send.BeatIndex = nextBeat;
+
+            _broadcaster.SendToSlot(actorId, send);
+
         }
+
+
+
+
 
         // 서버에서 직접 예약하고 싶은 명령 (몬스터 AI 등)
         public void ScheduleServerCommand(long beatIndex, PlayerActionCmd cmd)

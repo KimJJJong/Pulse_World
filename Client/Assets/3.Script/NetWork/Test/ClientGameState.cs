@@ -165,11 +165,7 @@ public class ClientGameState : MonoBehaviour
 
     public void OnBeatAction(ClientBeatAction action)
     {
-        //if (action.Accepted)
-        //{
-        //    //Debug.Log($"[ OnBeatAction ] action.Accepted: [{action.Accepted}]");
-        //    return;
-        //}
+
 
         if (!_entities.TryGetValue(action.ActorId, out var entity))
         {
@@ -189,6 +185,8 @@ public class ClientGameState : MonoBehaviour
         // State Change
         WorldView?.OnBeatAction(action, entity);
         NotifyMyEntityChanged(action.ActorId);
+
+
 
     }
 
@@ -234,4 +232,6 @@ public struct ClientBeatAction
 
     public bool HasHpUpdate;
     public int NewHp;
+
+    public int DiffMs;
 }

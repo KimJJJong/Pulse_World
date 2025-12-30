@@ -30,6 +30,14 @@ public class BeatDebugUI_TMP : MonoBehaviour
     [Tooltip("비워두면 자동 탐색")]
     [SerializeField] private BgmSyncPlayer _bgm;
 
+    [Header("AutoCalib Debug (optional)")]
+    [Tooltip("비워두면 자동 탐색")]
+    [SerializeField] private AudioOffsetAutoCalibrator _autoCalib;
+
+    [Header("Server Diff Debug (optional)")]
+    [Tooltip("SC_CalibResult/SC_ActionResult로 받은 diff를 여기에 기록해 보여줌")]
+    [SerializeField] private bool showLastServerDiff = true;
+
     // UI parts
     private Image _barBg;
     private Image _progressFill;
@@ -42,6 +50,11 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
     private readonly List<HitMarker> _markers = new();
 
+    // 서버에서 마지막으로 받은 diff(early -, late +)
+    public int LastServerDiffMs { get; private set; }
+    public long LastServerDiffBeat { get; private set; }
+    public long LastServerDiffRecvServerNowMs { get; private set; }
+
     private sealed class HitMarker
     {
         public Image Img;
@@ -50,7 +63,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
         public float Progress; // 0~1
         public float WidthPx;
         public Color BaseColor;
-        public int DiffMs; // 표시용
+        public int DiffMs; // 표시용(로컬 progress 기반)
     }
 
     void Awake()
@@ -73,6 +86,9 @@ public class BeatDebugUI_TMP : MonoBehaviour
         if (_bgm == null)
             _bgm = FindFirstObjectByType<BgmSyncPlayer>();
 
+        if (_autoCalib == null)
+            _autoCalib = AudioOffsetAutoCalibrator.Instance ?? FindFirstObjectByType<AudioOffsetAutoCalibrator>();
+
         if (judgeWindowMs <= 0f)
             judgeWindowMs = Rhythm.judgeWindowMs;
 
@@ -85,15 +101,14 @@ public class BeatDebugUI_TMP : MonoBehaviour
         string bgmText = "";
         if (_bgm != null)
         {
-            // BgmSyncPlayer의 "오디오만 이동" 정책과 동일한 방식으로 expected 계산
+            // ✅ 새 구조: DeviceOffset + AutoAlignOffset (+ optional AlignCenter)
             double centerMs = _bgm.AlignToBeatCenter ? (beatMs * 0.5) : 0.0;
-            double audioOffsetMs = centerMs + _bgm.FineOffsetMs;
+            double audioOffsetMs = centerMs + _bgm.DeviceOffsetMs + _bgm.AutoAlignOffsetMs;
 
             double expectedSec = (serverNow - Rhythm.ServerSongStartMs + audioOffsetMs) / 1000.0;
 
-            // 실제 재생 위치
             float actualSec = 0f;
-            var src = _bgm.GetComponent<AudioSource>(); // 같은 오브젝트에 붙여두는 구성이 가장 안전
+            var src = _bgm.GetComponent<AudioSource>(); // 같은 오브젝트에 AudioSource가 붙어있는 구성이 가장 안전
             if (src != null && src.clip != null)
                 actualSec = src.time;
 
@@ -103,11 +118,37 @@ public class BeatDebugUI_TMP : MonoBehaviour
             bgmText =
                 $"\n--- BGM ---\n" +
                 $"State: {_bgm.State}\n" +
-                $"AlignCenter: {_bgm.AlignToBeatCenter}  (toggle: ;)\n" +
-                $"FineOffsetMs: {_bgm.FineOffsetMs}  ([ ] step)\n" +
+                $"AlignCenter: {_bgm.AlignToBeatCenter}\n" +
+                $"DeviceOffsetMs: {_bgm.DeviceOffsetMs}\n" +
+                $"AutoAlignOffsetMs: {_bgm.AutoAlignOffsetMs}\n" +
                 $"TotalAudioOffsetMs: {_bgm.TotalAudioOffsetMs}\n" +
                 $"Expected: {expectedSec:0.000}s  Actual: {actualSec:0.000}s\n" +
                 $"Drift: {driftMs}ms";
+        }
+
+        // ---- AutoCalib debug (있을 때만) ----
+        string calibText = "";
+        if (_autoCalib != null)
+        {
+            // 버전 차이를 고려해 try-catch 없이 "있는 것만" 찍고 싶으면 필드명 통일 권장.
+            // 여기서는 최신(16개 모아서 median -> delta -> OFF) 기준
+            calibText =
+                $"\n--- AutoCalib ---\n" +
+                $"Enabled: {_autoCalib.Enabled} (F8 toggle)\n" +
+                $"Samples: {_autoCalib.SampleCount}\n" +
+                $"LastMedianDiff: {_autoCalib.LastMedianDiffMs}ms\n" +
+                $"LastAppliedDelta: {_autoCalib.LastAppliedDeltaMs}ms\n";
+        }
+
+        // ---- Server diff debug ----
+        string serverDiffText = "";
+        if (showLastServerDiff)
+        {
+            serverDiffText =
+                $"\n--- ServerDiff ---\n" +
+                $"LastDiffMs: {LastServerDiffMs}ms\n" +
+                $"LastDiffBeat: {LastServerDiffBeat}\n" +
+                $"LastRecvServerNow: {LastServerDiffRecvServerNowMs}ms";
         }
 
         if (_beatText != null)
@@ -119,7 +160,9 @@ public class BeatDebugUI_TMP : MonoBehaviour
                 $"BeatMs: {beatMs:0.0}\n" +
                 $"Window: ±{judgeWindowMs:0}ms (center=0.5)\n" +
                 $"HitMarkers: {_markers.Count}/{maxHitMarkers}" +
-                bgmText;
+                bgmText +
+                calibText +
+                serverDiffText;
         }
 
         if (_progressFill != null)
@@ -130,9 +173,19 @@ public class BeatDebugUI_TMP : MonoBehaviour
     }
 
     /// <summary>
+    /// 서버에서 받은 diff를 디버그 UI에 찍기 위해 저장
+    /// (SC_CalibResult / SC_ActionResult 등 수신 핸들러에서 호출)
+    /// </summary>
+    public void RecordServerDiff(int diffMs, long beatIndex, long recvServerNowMs)
+    {
+        LastServerDiffMs = diffMs;
+        LastServerDiffBeat = beatIndex;
+        LastServerDiffRecvServerNowMs = recvServerNowMs;
+    }
+
+    /// <summary>
     /// 입력 보낸 순간 호출:
-    /// - 현재 progress 위치에 마커 + diffMs 라벨 추가
-    /// - 오차 크기에 따라 색/두께 변경
+    /// - 현재 progress 위치에 마커 + diffMs 라벨 추가(로컬 progress 기반)
     /// </summary>
     public void MarkHitNow()
     {
@@ -142,7 +195,6 @@ public class BeatDebugUI_TMP : MonoBehaviour
         float p = (float)Rhythm.GetCurrentBeatProgress01(); // 0~1
 
         // center=0.5 기준 diffMs(부호 포함)
-        // p < 0.5 => center보다 "이름(왼쪽)" => 음수
         float signedMs = (p - 0.5f) * (float)beatMs;
         int diffMs = Mathf.RoundToInt(signedMs);
 
@@ -158,7 +210,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
         else
             denomMs = Mathf.Max(1f, judgeWindowMs);
 
-        float t = Mathf.Clamp01(outMs / denomMs); // 0..1
+        float t = Mathf.Clamp01(outMs / denomMs);
 
         // 색: IN=초록, OUT=노랑->주황->빨강
         Color color;
@@ -180,7 +232,6 @@ public class BeatDebugUI_TMP : MonoBehaviour
             }
         }
 
-        // 두께: OUT일수록 두꺼워짐
         float width = hitMarkerBaseWidthPx + (inWindow ? 0f : (t * maxExtraWidthPx));
 
         var marker = GetOrCreateMarker();
@@ -196,16 +247,14 @@ public class BeatDebugUI_TMP : MonoBehaviour
         var rt = marker.Img.rectTransform;
         rt.sizeDelta = new Vector2(width, 0f);
 
-        // 위치 + 최신이 위로
         SetMarkerX(rt, p);
         marker.Img.transform.SetAsLastSibling();
 
-        // 라벨
         if (marker.Label != null)
         {
             marker.Label.enabled = true;
             marker.Label.text = (diffMs >= 0) ? $"+{diffMs}ms" : $"{diffMs}ms";
-            marker.Label.color = new Color(1f, 1f, 1f, 0.95f); // 라벨은 흰색
+            marker.Label.color = new Color(1f, 1f, 1f, 0.95f);
             SetLabelPos(marker.Label.rectTransform, rt.anchoredPosition.x);
             marker.Label.transform.SetAsLastSibling();
         }
@@ -260,12 +309,10 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
             float a = Mathf.Clamp01(m.Life / hitMarkerLifeSec);
 
-            // 마커 페이드(색 유지, 알파만)
             var mc = m.BaseColor;
             mc.a = Mathf.Lerp(0.05f, 0.95f, a);
             m.Img.color = mc;
 
-            // 라벨 페이드(흰색 유지)
             if (m.Label != null)
             {
                 var lc = m.Label.color;
@@ -273,7 +320,6 @@ public class BeatDebugUI_TMP : MonoBehaviour
                 m.Label.color = lc;
             }
 
-            // 리사이즈/리레이아웃 대응
             SetMarkerX(m.Img.rectTransform, m.Progress);
             if (m.Label != null)
                 SetLabelPos(m.Label.rectTransform, m.Img.rectTransform.anchoredPosition.x);
@@ -333,7 +379,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
         panelRect.anchorMax = new Vector2(0, 1);
         panelRect.pivot = new Vector2(0, 1);
         panelRect.anchoredPosition = new Vector2(10, -10);
-        panelRect.sizeDelta = new Vector2(500, 400);
+        panelRect.sizeDelta = new Vector2(520, 650);
 
         var textGo = new GameObject("BeatText_TMP");
         textGo.transform.SetParent(panelGo.transform, false);
@@ -343,7 +389,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
         _beatText.color = Color.white;
 
         var textRect = _beatText.GetComponent<RectTransform>();
-        textRect.anchorMin = new Vector2(0, 0.30f);
+        textRect.anchorMin = new Vector2(0, 0.25f);
         textRect.anchorMax = new Vector2(1, 1);
         textRect.offsetMin = new Vector2(10, 10);
         textRect.offsetMax = new Vector2(-10, -10);
@@ -356,7 +402,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
         var barBgRect = _barBg.rectTransform;
         barBgRect.anchorMin = new Vector2(0, 0);
-        barBgRect.anchorMax = new Vector2(1, 0.20f);
+        barBgRect.anchorMax = new Vector2(1, 0.15f);
         barBgRect.offsetMin = new Vector2(10, 10);
         barBgRect.offsetMax = new Vector2(-10, -10);
 
@@ -410,7 +456,6 @@ public class BeatDebugUI_TMP : MonoBehaviour
         var root = new GameObject("HitMarkerRoot");
         root.transform.SetParent(parent, false);
 
-        // marker
         var markerGo = new GameObject("HitMarker");
         markerGo.transform.SetParent(root.transform, false);
 
@@ -426,7 +471,6 @@ public class BeatDebugUI_TMP : MonoBehaviour
         rt.anchoredPosition = Vector2.zero;
         rt.sizeDelta = new Vector2(hitMarkerBaseWidthPx, 0f);
 
-        // label
         var labelGo = new GameObject("HitLabel_TMP");
         labelGo.transform.SetParent(root.transform, false);
 

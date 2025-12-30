@@ -260,6 +260,17 @@ public sealed class GameSession
 
         BeatActions.OnClientActionRequest(actorId, req);
     }
+    public void OnClientCalibPacketBySlot(int slot, CS_CalibHit req)
+    {
+        int actorId = GetActorIdBySlot(slot);
+        if (actorId < 0)
+        {
+            Console.WriteLine($"[ActionReq] Invalid slot={slot}");
+            return;
+        }
+
+        BeatActions.OnClientCalibRequest(actorId, req);
+    }
 
     // =====================================================
     // Beat 도래 시 호출
