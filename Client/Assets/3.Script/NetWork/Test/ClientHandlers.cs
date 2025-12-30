@@ -13,6 +13,9 @@ public class ClientHandlers : MonoBehaviour
 
     public RhythmClient Rhythm => RhythmClient.Instance;
 
+    public static event System.Action OnBeatSyncReady;
+
+
     //TestHUD HUD => TestHUD.Instance;
     //BoardView BV => BoardView.Instance;
     // [추가] (x,y) -> expireBeat (이 beat를 지나면 원복)
@@ -108,6 +111,9 @@ public class ClientHandlers : MonoBehaviour
             BaseBeatDivision = p.BaseBeatDivision,
             BeatIndex = p.BeatIndex
         });
+
+        OnBeatSyncReady?.Invoke();
+
 
         Debug.Log($"SongStart={Rhythm.ServerSongStartMs} ServerNow={Rhythm.GetCurrentServerTimeMs()} diff={Rhythm.ServerSongStartMs - Rhythm.GetCurrentServerTimeMs()}ms");
 

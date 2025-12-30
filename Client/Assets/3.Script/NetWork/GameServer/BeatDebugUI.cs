@@ -26,6 +26,10 @@ public class BeatDebugUI_TMP : MonoBehaviour
     [SerializeField] private int labelFontSize = 16;
     [SerializeField] private bool normalizeByHalfBeat = true;
 
+    [Header("BGM Debug (optional)")]
+    [Tooltip("비워두면 자동 탐색")]
+    [SerializeField] private BgmSyncPlayer _bgm;
+
     // UI parts
     private Image _barBg;
     private Image _progressFill;
@@ -66,6 +70,9 @@ public class BeatDebugUI_TMP : MonoBehaviour
     {
         if (Rhythm == null) return;
 
+        if (_bgm == null)
+            _bgm = FindFirstObjectByType<BgmSyncPlayer>();
+
         if (judgeWindowMs <= 0f)
             judgeWindowMs = Rhythm.judgeWindowMs;
 
@@ -73,6 +80,35 @@ public class BeatDebugUI_TMP : MonoBehaviour
         double progress = Rhythm.GetCurrentBeatProgress01();
         long serverNow = Rhythm.GetCurrentServerTimeMs();
         double beatMs = Rhythm.GetBeatDurationMs();
+
+        // ---- BGM debug (있을 때만) ----
+        string bgmText = "";
+        if (_bgm != null)
+        {
+            // BgmSyncPlayer의 "오디오만 이동" 정책과 동일한 방식으로 expected 계산
+            double centerMs = _bgm.AlignToBeatCenter ? (beatMs * 0.5) : 0.0;
+            double audioOffsetMs = centerMs + _bgm.FineOffsetMs;
+
+            double expectedSec = (serverNow - Rhythm.ServerSongStartMs + audioOffsetMs) / 1000.0;
+
+            // 실제 재생 위치
+            float actualSec = 0f;
+            var src = _bgm.GetComponent<AudioSource>(); // 같은 오브젝트에 붙여두는 구성이 가장 안전
+            if (src != null && src.clip != null)
+                actualSec = src.time;
+
+            double driftSec = actualSec - expectedSec;
+            int driftMs = Mathf.RoundToInt((float)(driftSec * 1000.0));
+
+            bgmText =
+                $"\n--- BGM ---\n" +
+                $"State: {_bgm.State}\n" +
+                $"AlignCenter: {_bgm.AlignToBeatCenter}  (toggle: ;)\n" +
+                $"FineOffsetMs: {_bgm.FineOffsetMs}  ([ ] step)\n" +
+                $"TotalAudioOffsetMs: {_bgm.TotalAudioOffsetMs}\n" +
+                $"Expected: {expectedSec:0.000}s  Actual: {actualSec:0.000}s\n" +
+                $"Drift: {driftMs}ms";
+        }
 
         if (_beatText != null)
         {
@@ -82,7 +118,8 @@ public class BeatDebugUI_TMP : MonoBehaviour
                 $"ServerNow: {serverNow} ms\n" +
                 $"BeatMs: {beatMs:0.0}\n" +
                 $"Window: ±{judgeWindowMs:0}ms (center=0.5)\n" +
-                $"HitMarkers: {_markers.Count}/{maxHitMarkers}";
+                $"HitMarkers: {_markers.Count}/{maxHitMarkers}" +
+                bgmText;
         }
 
         if (_progressFill != null)
@@ -296,7 +333,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
         panelRect.anchorMax = new Vector2(0, 1);
         panelRect.pivot = new Vector2(0, 1);
         panelRect.anchoredPosition = new Vector2(10, -10);
-        panelRect.sizeDelta = new Vector2(500, 200);
+        panelRect.sizeDelta = new Vector2(500, 400);
 
         var textGo = new GameObject("BeatText_TMP");
         textGo.transform.SetParent(panelGo.transform, false);
@@ -306,7 +343,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
         _beatText.color = Color.white;
 
         var textRect = _beatText.GetComponent<RectTransform>();
-        textRect.anchorMin = new Vector2(0, 0.44f);
+        textRect.anchorMin = new Vector2(0, 0.30f);
         textRect.anchorMax = new Vector2(1, 1);
         textRect.offsetMin = new Vector2(10, 10);
         textRect.offsetMax = new Vector2(-10, -10);
@@ -319,7 +356,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
         var barBgRect = _barBg.rectTransform;
         barBgRect.anchorMin = new Vector2(0, 0);
-        barBgRect.anchorMax = new Vector2(1, 0.44f);
+        barBgRect.anchorMax = new Vector2(1, 0.20f);
         barBgRect.offsetMin = new Vector2(10, 10);
         barBgRect.offsetMax = new Vector2(-10, -10);
 

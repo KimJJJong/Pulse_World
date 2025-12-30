@@ -241,7 +241,7 @@ public sealed class GameRoom : IGameBroadcaster
             //LeadBeats = 1,
         };
 
-        long songStart = AppRef.ServerTimeMs() + 1000; // 0.5초 뒤부터 Beat 시작
+        long songStart = AppRef.ServerTimeMs() + 2000; // 0.5초 뒤부터 Beat 시작
 
         var time = new ServerTimeAdapter();
         _rhythm = new RhythmSystem(time, _rhythmConfig, songStart);
