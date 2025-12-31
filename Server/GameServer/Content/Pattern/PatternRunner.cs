@@ -352,46 +352,6 @@ public sealed class PatternRunner
     }
 
 
-    private static List<GridPos> BuildRect(GridPos o, int width, int height)
-    {
-        width = width <= 0 ? 1 : width;
-        height = height <= 0 ? 1 : height;
-
-        int halfW = width / 2;
-        int halfH = height / 2;
-
-        var list = new List<GridPos>();
-        for (int dx = -halfW; dx <= halfW; dx++)
-            for (int dy = -halfH; dy <= halfH; dy++)
-                list.Add(new GridPos(o.X + dx, o.Y + dy));
-        return list;
-    }
-
-    private static List<GridPos> BuildLine(GridPos o, MapEntity self, MapEntity target, int length)
-    {
-        length = length <= 0 ? 1 : length;
-
-        // self -> target 방향을 4방향으로 투영 (간단 버전)
-        int dx = target.Position.X - self.Position.X;
-        int dy = target.Position.Y - self.Position.Y;
-
-        int stepX = 0, stepY = 0;
-        if (System.Math.Abs(dx) >= System.Math.Abs(dy)) stepX = System.Math.Sign(dx);
-        else stepY = System.Math.Sign(dy);
-
-        if (stepX == 0 && stepY == 0) stepY = 1;
-
-        var list = new List<GridPos>(length);
-        int x = o.X, y = o.Y;
-        for (int i = 0; i < length; i++)
-        {
-            list.Add(new GridPos(x, y));
-            x += stepX;
-            y += stepY;
-        }
-        return list;
-    }
-
     #endregion
 
     /// <summary>

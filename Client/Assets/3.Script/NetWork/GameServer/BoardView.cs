@@ -234,16 +234,6 @@ public class BoardView : MonoBehaviour, IClientWorldView
         bool teleportLike = moveDist > 2.0f;       // 한 비트에 2m 이상 이동이면 이상
         bool desynced = driftFrom > 0.5f;      // 현재 위치가 from과 0.5m 이상 차이나면 이상
 
-        if (_dbgOnlyActorId < 0 || _dbgOnlyActorId == action.ActorId)
-        {
-            PosLog(
-                $"[POS] actor={action.ActorId} ActionKind={action.ActionKind} " +
-                $"grid {action.FromX},{action.FromY}->{action.ToX},{action.ToY} " +
-                $"world {fromW:F3}->{toW:F3} cur={curW:F3} " +
-                $"driftFrom={driftFrom:F3} moveDist={moveDist:F3} " +
-                $"{(teleportLike ? "TELEPORT?" : "")}{(desynced ? " DESYNC?" : "")}"
-            );
-        }
 
         StartCoroutine(LerpMove(go.transform, fromW, toW, moveLerpTime));
 

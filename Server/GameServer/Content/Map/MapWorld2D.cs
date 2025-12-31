@@ -246,7 +246,34 @@ public sealed class MapWorld2D : IGameWorld
         return true;
     }
 
-    // ==== 스킬/오브젝트 상태 예시 ====
+    // ==== Attack ====
+    public bool TryUseAttack(int actorId, /*나중에 직업별 일반공격 셋팅?*/int tartX, int tartY, List<HpUpdate> hpUpdates)
+    {
+        if (!_entities.TryGetValue(actorId, out var caster) || !caster.IsAlive)
+            return false;
+
+
+        bool anyHit = false;
+        foreach(var target in GetEntitiesAt(new GridPos(tartX, tartY)))
+        {
+            if (!target.IsAlive) continue;
+            if (target.Id == actorId) continue;
+
+            //if (!skill.CanHit(attacker, target))  // 일반 공격 혹은 공격 모듈화 필요
+            //    continue;
+
+            //if (!hitTargets.Add(target.Id))
+            //    continue;
+            SkillDef tmpDamage = new SkillDef();
+            tmpDamage.Damage = 10;
+            ApplySkillEffect(caster, target, tmpDamage, hpUpdates);
+            anyHit = true;
+        }
+        return anyHit;
+    }
+
+
+    // ==== 스킬/오브젝트 상태  ====
 
     public bool TryUseSkill(int actorId, string skillId, int targetX, int targetY, List<HpUpdate> hpUpdate)
     {

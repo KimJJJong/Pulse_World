@@ -20,7 +20,7 @@
                   "Type": 1,
                   "Target": {
                     "Type": 0,
-                    "MaxRange": 99,
+                    "MaxRange": 10,
                     "RequireAlive": true
                   },
                   "SkillId": "",
@@ -41,7 +41,7 @@
                   "Type": 1,
                   "Target": {
                     "Type": 0,
-                    "MaxRange": 99,
+                    "MaxRange": 10,
                     "RequireAlive": true
                   },
                   "SkillId": "",

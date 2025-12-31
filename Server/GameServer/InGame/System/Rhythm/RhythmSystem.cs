@@ -88,7 +88,7 @@ public sealed class RhythmSystem : IBeatClock
         }
     }
 
-    // (선택) 디버그 바 유틸
+    // 디버그 바 유틸
     public static string FormatJudgeBar(
         long currBeat, long nextBeat,
         long nowMs, long judgeCenterMs,
@@ -124,4 +124,41 @@ public sealed class RhythmSystem : IBeatClock
         long diff = nowMs - judgeCenterMs;
         return $"curBeat[{new string(chars)}]nextBeat diff={diff}ms win=±{windowMs}ms";
     }
+
+
+
+
+
+    public bool TryComputeJudge(long nowMs, double actionWindowMs, out JudgeResult result)
+    {
+        result = default;
+
+        var currBeat = GetCurrentBeatIndex(nowMs);
+        if (currBeat < 0)
+        {
+            Console.WriteLine("[OnClientActionRequest] song not started yet");
+            return false;
+        }
+
+        var nextBeat = currBeat + 1;
+        var centerMs = GetJudgeTimeMs(currBeat, nextBeat);
+
+        var diff = (int)(nowMs - centerMs);
+        var abs = Math.Abs(diff);
+
+        bool accepted = abs <= actionWindowMs;
+        long executeBeat = nextBeat; // 네 정책: 항상 nextBeat로 묶기
+
+        result = new JudgeResult(
+            currBeat: currBeat,
+            nextBeat: nextBeat,
+            centerMs: centerMs,
+            diffMs: diff,
+            accepted: accepted,
+            executeBeat: executeBeat
+        );
+
+        return true;
+    }
+
 }

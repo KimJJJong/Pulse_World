@@ -51,73 +51,44 @@ namespace GameServer.InGame.Manager.Beat
         /// </summary>
         public void OnClientActionRequest(int actorId, CS_ActionRequest req)
         {
-            var now = req.ClientSendTimeMs;//_time.NowMs;
+            long now = req.ClientSendTimeMs;
 
-            // ---- Beat 계산 ----
-            var currBeat = _clock.GetCurrentBeatIndex(now);
-            if (currBeat < 0)
-            {
-                Console.WriteLine("[OnClientActionRequest] song not started yet");
-                return;
-            }
-
-            var nextBeat = currBeat + 1;
-
-            // ---- 판정 중심(비트와 비트 사이 중간점) ----
-            // 네 설계: 입력은 항상 nextBeat 실행으로 묶으니까
-            // judge center는 (currBeat ~ nextBeat) 중간점 = GetJudgeTimeMs(nextBeat)
-            var judgeCenterMs = _clock.GetJudgeTimeMs(currBeat, nextBeat);
-
-            var diff = now - judgeCenterMs;
-            var abs = Math.Abs(diff);
-
-            // ---- 디버그 바 출력 (항상 찍고 싶으면 여기) ----
-            // halfSpanMs: "비트 사이 전체 폭"을 보여주고 싶으면 beatMs/2
-            int halfSpanMs = (int)Math.Round(_clock.GetBeatDurationMs() * 0.5); // RhythmSystem에 추가한 getter 필요
-            Console.WriteLine(
-                RhythmSystem.FormatJudgeBar(
-                    currBeat: currBeat,
-                    nextBeat: nextBeat,
+            if (!_clock.TryComputeJudge(
                     nowMs: now,
-                    judgeCenterMs: judgeCenterMs,
-                    windowMs: (int)_actionWindowMs,
-                    halfSpanMs: halfSpanMs,
-                    width: 36,
-                    marker: '^'
-                )
-            );
-
-            // ---- Window 체크 ----
-            if (abs > _actionWindowMs)
+                    actionWindowMs: _actionWindowMs,
+                    out var judge))
             {
-                Console.WriteLine($"[Reject] out of window. diff={diff}ms (±{_actionWindowMs}ms)");
+                // TryComputeJudge 안에서 song not started / out of range 등을 판단
                 return;
             }
 
-            // ---- 실행 Beat (기본: nextBeat 고정) ----
-            var executeBeat = nextBeat;
+            // 디버그 바 (항상 출력)
+            PrintJudgeBar(judge, now);
 
-            Console.WriteLine($"[Accept] currBeat={currBeat} executeBeat={executeBeat} diff={diff}ms");
-
-            var cmd = new PlayerActionCmd
+            if (!judge.IsAccepted)
             {
-                ActorId = actorId,
-                Kind = (ActionKind)req.ActionKind,
-                TargetCell = new GridPos(req.TargetX, req.TargetY),
+                Console.WriteLine($"[Reject] out of window. diff={judge.DiffMs}ms (±{_actionWindowMs}ms)");
+                return;
+            }
 
-                ExecuteBeat = executeBeat,
-
-                // debug 남기고 싶으면 주석 해제
-                //JudgedBeat = nextBeat,
-                JudgeDiffMs = (int)diff,
-
-                ClientSendTimeMs = req.ClientSendTimeMs,
-                ServerReceiveTimeMs = now
-            };
+            // Request -> Cmd 변환 (액션별 파싱/검증)
+            if (!ActionRequestTranslator.TryBuildCmd(actorId, req, judge.ExecuteBeat, judge.DiffMs, now, out var cmd, out var reason))
+            {
+                Console.WriteLine($"[Reject] invalid action payload. reason={reason}");
+                return;
+            }
 
             _scheduler.Enqueue(cmd);
+
+            Console.WriteLine($"[Accept] kind={cmd.Kind} currBeat={judge.CurrBeat} executeBeat={cmd.ExecuteBeat} diff={judge.DiffMs}ms");
         }
 
+     
+        /// <summary>
+        /// sync Setting
+        /// </summary>
+        /// <param name="actorId"></param>
+        /// <param name="req"></param>
         public void OnClientCalibRequest(int actorId, CS_CalibHit req)
         {
             var now = req.ClientSendTimeMs;//_time.NowMs;
@@ -168,7 +139,6 @@ namespace GameServer.InGame.Manager.Beat
         public void ScheduleServerCommand(long beatIndex, PlayerActionCmd cmd)
         {
             var currBeat = _clock.GetCurrentBeatIndex(_time.NowMs);
-            //Console.WriteLine($"[Enqueue] actor={cmd.ActorId} kind={cmd.Kind} reqBeat={cmd.RequestedBeat}");
 
             cmd.ExecuteBeat = beatIndex;
             _scheduler.Enqueue(cmd);
@@ -189,7 +159,7 @@ namespace GameServer.InGame.Manager.Beat
             {
 
 
-                if (cmd.ActorId >= 0 && cmd.ActorId < 100) Console.WriteLine($"[OnBeat] ActionId:{cmd.ActorId} || Beat : {beatIndex}");
+                //if (cmd.ActorId >= 0 && cmd.ActorId < 100) Console.WriteLine($"[OnBeat] ActionId:{cmd.ActorId} || Beat : {beatIndex}");
 
                 if (!_world.TryGetActorPosition(cmd.ActorId, out var fromPos))
                 {
@@ -226,6 +196,14 @@ namespace GameServer.InGame.Manager.Beat
                             toPos = fromPos;
                         }
                         break;
+                    case ActionKind.Attack:
+                        {
+                                accepted = _world.TryUseAttack(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
+
+                            //toPos = fromPos;
+                            break;
+
+                        }
 
                     case ActionKind.Skill:
                         {
@@ -297,5 +275,49 @@ namespace GameServer.InGame.Manager.Beat
         {
             _scheduler.RemoveByActor(actorId);
         }
+   
+
+    ///============== Util ====================
+       private void PrintJudgeBar(JudgeResult judge, long nowMs)
+        {
+            int halfSpanMs = (int)Math.Round(_clock.GetBeatDurationMs() * 0.5);
+
+            Console.WriteLine(
+                RhythmSystem.FormatJudgeBar(
+                    currBeat: judge.CurrBeat,
+                    nextBeat: judge.NextBeat,
+                    nowMs: nowMs,
+                    judgeCenterMs: judge.CenterMs,
+                    windowMs: (int)_actionWindowMs,
+                    halfSpanMs: halfSpanMs,
+                    width: 36,
+                    marker: '^'
+                )
+            );
+        }
+
+    }
+
+}
+
+
+
+public readonly struct JudgeResult
+{
+    public readonly long CurrBeat;
+    public readonly long NextBeat;
+    public readonly long CenterMs;
+    public readonly int DiffMs;
+    public readonly bool IsAccepted;
+    public readonly long ExecuteBeat;
+
+    public JudgeResult(long currBeat, long nextBeat, long centerMs, int diffMs, bool accepted, long executeBeat)
+    {
+        CurrBeat = currBeat;
+        NextBeat = nextBeat;
+        CenterMs = centerMs;
+        DiffMs = diffMs;
+        IsAccepted = accepted;
+        ExecuteBeat = executeBeat;
     }
 }
