@@ -1,0 +1,96 @@
+syntax = "proto3";
+package controlplane.v1;
+option csharp_namespace = "ControlPlane.Grpc.V1";
+
+service ControlPlane {
+  rpc IssueTicket (IssueTicketRequest) returns (IssueTicketResponse);
+  rpc VerifyTicket (VerifyTicketRequest) returns (VerifyTicketResponse);
+  rpc RegisterServer (RegisterServerRequest) returns (RegisterServerResponse);
+  rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+enum TicketTarget {
+  TICKET_TARGET_UNSPECIFIED = 0;
+  TICKET_TARGET_TOWN = 1;
+  TICKET_TARGET_GAME = 2;
+}
+
+enum ServerType {
+  SERVER_TYPE_UNSPECIFIED = 0;
+  SERVER_TYPE_TOWN = 1;
+  SERVER_TYPE_GAME = 2;
+}
+
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+
+  ERROR_CODE_TICKET_NOT_FOUND = 10;
+  ERROR_CODE_TICKET_EXPIRED = 11;
+  ERROR_CODE_TICKET_ALREADY_USED = 12;
+  ERROR_CODE_TICKET_TARGET_MISMATCH = 13;
+
+  ERROR_CODE_SERVER_NOT_FOUND = 20;
+  ERROR_CODE_UNAUTHORIZED = 90;
+}
+
+message ServerEndpoint { string host = 1; int32 port = 2; }
+message Error { ErrorCode code = 1; string message = 2; }
+
+message IssueTicketRequest {
+  string uid = 1;
+  TicketTarget target = 2;
+  string key = 3;
+  string preferred_server_id = 4;
+  int32 ttl_seconds = 5;
+}
+
+message IssueTicketResponse {
+  bool ok = 1;
+  Error error = 2;
+  string ticket_id = 3;
+  int64 expire_at_ms = 4;
+  string server_id = 5;
+  ServerEndpoint endpoint = 6;
+}
+
+message VerifyTicketRequest {
+  string ticket_id = 1;
+  TicketTarget expected_target = 2;
+  string verifier_server_id = 3;
+}
+
+message VerifyTicketResponse {
+  bool ok = 1;
+  Error error = 2;
+  string uid = 3;
+  string issued_server_id = 4;
+  string key = 5;
+}
+
+message RegisterServerRequest {
+  string server_id = 1;
+  ServerType type = 2;
+  ServerEndpoint endpoint = 3;
+  int32 capacity = 4;
+  string region = 5;
+  string build_version = 6;
+}
+
+message RegisterServerResponse {
+  bool ok = 1;
+  Error error = 2;
+  int64 server_now_ms = 3;
+}
+
+message HeartbeatRequest {
+  string server_id = 1;
+  ServerType type = 2;
+  int32 load = 3;
+  int32 current_sessions = 4;
+}
+
+message HeartbeatResponse {
+  bool ok = 1;
+  Error error = 2;
+  int64 server_now_ms = 3;
+}

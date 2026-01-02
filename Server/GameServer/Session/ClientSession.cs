@@ -43,7 +43,7 @@ public class ClientSession : PacketSession
 
     public override void OnDisconnected(EndPoint endPoint)
     {
-        RoomManager.TryGet(MatchId, out var room);
+        GameManager.TryGet(MatchId, out var room);
         room.Unbind(this);
 
         SessionManager.Instance.Remove(this);

@@ -1,12 +1,104 @@
-﻿using System;
+﻿using GameServer.Content.Map;
+using GameServer.Content.Map.Interface;
+using GameServer.InGame.Manager.Entity;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace GameServer.Rooms
+public abstract class SessionBase
 {
-    internal class SessionBase
+    public int SessionId { get; }
+
+    // 월드 / 맵
+    public IGameWorld World { get; protected set; }
+    public MapWorld2D World2D { get; protected set; }
+    protected readonly Map2D _map;
+
+    // 외부 시스템
+    protected readonly IServerTime _time;
+    protected readonly IGameBroadcaster _broadcaster;
+
+    // 룸 구성 요소
+    protected readonly List<MapEntity> _players = new();
+    protected readonly Dictionary<int, int> _slotToActorId = new(); // slot -> actorId
+
+    public int GetActorIdBySlot(int slot)
+        => _slotToActorId.TryGetValue(slot, out var id) ? id : -1;
+
+    protected SessionBase(int sessionId, IServerTime time, IGameBroadcaster broadcaster, Map2D map)
+    {
+        SessionId = sessionId;
+        _time = time;
+        _broadcaster = broadcaster;
+        _map = map;
+
+        World2D = new MapWorld2D(map, broadcaster);
+        World = World2D;
+    }
+
+    // =====================================================
+    // 공통: 플레이어 정리
+    // =====================================================
+    public virtual void OnPlayerLeft(int slot)
+    {
+        int actorId = GetActorIdBySlot(slot);
+        if (actorId < 0)
+        {
+            Console.WriteLine($"[OnPlayerLeft] actorId < 0 : actorId :{actorId}");
+            return;
+        }
+
+        CleanupActor(actorId);
+
+        var p = _players.Find(x => x.Id == actorId);
+        if (p != null) p.IsAlive = false;
+
+        _players.RemoveAll(x => x.Id == actorId);
+        _slotToActorId.Remove(slot);
+    }
+
+    /// <summary>
+    /// 세션별 추가 정리 포인트.
+    /// 기본은 월드 디스폰만.
+    /// </summary>
+    protected virtual void CleanupActor(int actorId)
+    {
+        World2D.Despawn(actorId);
+    }
+
+    // =====================================================
+    // 공통: 플레이어 초기 스폰/매핑
+    // =====================================================
+    protected void InitPlayers(IEnumerable<MapEntity> players)
+    {
+        _players.Clear();
+        _slotToActorId.Clear();
+
+        foreach (var p in players)
+        {
+            if (!World2D.TrySpawn(p, p.Position))
+            {
+                Console.WriteLine($"[InitPlayers] Player spawn failed for slot={p.GetState<int>("Slot")}");
+                continue;
+            }
+
+            _players.Add(p);
+
+            int slot = p.GetState<int>("Slot");
+            _slotToActorId[slot] = p.Id;
+
+            Console.WriteLine($"[InitPlayers] Player spawned: slot={slot}, actorId={p.Id}");
+        }
+    }
+
+    // =====================================================
+    // 공통: init 패킷 전송 (세션마다 패킷 구조가 다를 수 있어서 abstract)
+    // =====================================================
+    public abstract void SendInitPacketToPlayer(ClientSession s);
+
+    // =====================================================
+    // 세션 Update (Town은 여기서 snapshot 등)
+    // =====================================================
+    public virtual void Update()
     {
     }
 }

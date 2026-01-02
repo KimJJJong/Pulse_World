@@ -114,7 +114,7 @@ class PacketHandler
             }
 
             // 3) 룸 바인딩 (세션 필드 선세팅  입장)
-            GameRoom room = RoomManager.GetOrCreate(matchId);
+            GameRoom room = GameManager.GetOrCreate(matchId);
 
             s.MatchId = matchId;
             s.Uid = uid;
@@ -184,7 +184,7 @@ class PacketHandler
             return;
         }
 
-        var room = RoomManager.GetOrCreate(session.MatchId);
+        var room = GameManager.GetOrCreate(session.MatchId);
         session.Loaded = true;
 
         bool allReady =  room.MarkLoadedAsync(session);
@@ -246,7 +246,7 @@ class PacketHandler
         ClientSession clientSession = (ClientSession)session;
         CS_ActionRequest req = (CS_ActionRequest)packet;
 
-        RoomManager.TryGet(clientSession.MatchId, out var room);//clientSession.roo
+        GameManager.TryGet(clientSession.MatchId, out var room);//clientSession.roo
         if(room == null)
         {
             session.Send(new SC_Warn { code = 2000, msg ="ROOM_NOT_FOUND"}.Write());
@@ -262,7 +262,7 @@ class PacketHandler
         ClientSession clientSession = (ClientSession)session;
         CS_CalibHit req = (CS_CalibHit)packet;
 
-        RoomManager.TryGet(clientSession.MatchId, out var room);//clientSession.roo
+        GameManager.TryGet(clientSession.MatchId, out var room);//clientSession.roo
         if (room == null)
         {
             session.Send(new SC_Warn { code = 2000, msg = "ROOM_NOT_FOUND" }.Write());

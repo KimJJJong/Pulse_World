@@ -21,7 +21,9 @@ static class Program
 {
     static Listener _clientListener = new Listener();
 
-    static GameWorker _worker;
+    static DomainWorker _gameWorker;
+    static DomainWorker _townWoker;
+
 
     static string _gsId = "gs1";
     static string _publicHost = "127.0.0.1";
@@ -165,14 +167,23 @@ static class Program
         );
 
 
+        _gameWorker = new DomainWorker(
+            name: "GameWoker",
+            snapshotGetter: GameManager.GetUpdatablesSnapshot,
+            tickMs: 15);
 
+        _townWoker = new DomainWorker(
+            name: "TownWoker",
+            snapshotGetter: TownManager.GetUpdatablesSnapshot,
+            tickMs: 100);
 
-        _worker = new GameWorker(tickMs: 15);
-        _worker.Start();
-
+        _gameWorker.Start();
+        _townWoker.Start();
         Console.WriteLine("Server started. Press ENTER to exit...");
         Console.ReadLine();
-        _worker.Dispose();
+        
+        _townWoker?.Dispose();
+        _gameWorker?.Dispose();
 
         try { Task.Delay(200).Wait(); } catch { }
     }

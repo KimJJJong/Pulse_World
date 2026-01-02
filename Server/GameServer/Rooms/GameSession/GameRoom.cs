@@ -16,7 +16,7 @@ using GameServer.Content.Map;
 using static SC_AllPlayersLoaded;
 #endregion
 
-public sealed class GameRoom : IGameBroadcaster
+public sealed class GameRoom : IGameBroadcaster, IUpdatable
 {
     readonly object _lock = new();
 
@@ -104,7 +104,7 @@ public sealed class GameRoom : IGameBroadcaster
 
             Console.WriteLine($"Length!@#!$!@%!#$!#@ : {_broadcastSnapshot.Length}");
             if (_broadcastSnapshot.Length <= 0)
-                RoomManager.Remove(MatchId);
+                GameManager.Remove(MatchId);
              
         }
     }

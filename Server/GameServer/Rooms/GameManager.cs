@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-public static class RoomManager
+public static class GameManager
 {
     static readonly ConcurrentDictionary<string, GameRoom> _rooms = new();
 
@@ -16,7 +16,8 @@ public static class RoomManager
     public static void Remove(string matchId)
         => _rooms.TryRemove(matchId, out _);
 
-    public static GameRoom[] GetRoomsSnapshot()
-        => _rooms.Values.ToArray();
+    public static IUpdatable[] GetUpdatablesSnapshot()
+        => _rooms.Values.Cast<IUpdatable>().ToArray();
+
 }
 
