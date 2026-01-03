@@ -44,7 +44,7 @@ public enum TelegraphOriginType : byte
 public sealed class MonsterPatternSet
 {
     public List<MonsterPatternDef> Monsters { get; set; } = new();
-    public MonsterPatternDef? GetMonster(string monsterType)
+    public MonsterPatternDef GetMonster(string monsterType)
         => Monsters.Find(m => m.MonsterType == monsterType);
 }
 
@@ -55,7 +55,7 @@ public sealed class MonsterPatternDef
     public List<PhaseDef> Phases { get; set; } = new();
     public List<PhaseTransitionDef> Transitions { get; set; } = new();
 
-    public PhaseDef? GetPhase(string id)
+    public PhaseDef GetPhase(string id)
         => Phases.Find(p => p.Id == id);
 }
 

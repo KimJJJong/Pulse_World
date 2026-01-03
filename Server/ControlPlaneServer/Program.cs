@@ -7,6 +7,17 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddGrpc(o =>
+{
+    o.EnableDetailedErrors = true;   // 핵심
+});
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
+
+
+
 builder.WebHost.ConfigureKestrel(o =>
 {
     o.ListenAnyIP(50051, lo => lo.Protocols = HttpProtocols.Http2);

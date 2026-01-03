@@ -20,6 +20,7 @@ public sealed class ServerRegistryService
     public async Task RegisterAsync(RegisterServerRequest r, long nowMs)
     {
         var key = _redis.Key($"{RegistryKeys.ServerPrefix}{(int)r.Type}:{r.ServerId}");
+        Console.WriteLine($"[REG] Register key={key}");
 
         await _redis.Db.HashSetAsync(key, new HashEntry[]
         {
@@ -33,15 +34,28 @@ public sealed class ServerRegistryService
             new("updatedAt", nowMs),
         });
 
+        var exists = await _redis.Db.KeyExistsAsync(key);
+        Console.WriteLine($"[REG] Register key exists={exists}");
+
+
         await _redis.Db.KeyExpireAsync(key, TimeSpan.FromSeconds(_opt.HeartbeatTtlSeconds));
     }
 
     public async Task<bool> HeartbeatAsync(HeartbeatRequest r, long nowMs)
     {
         var key = _redis.Key($"{RegistryKeys.ServerPrefix}{(int)r.Type}:{r.ServerId}");
+        Console.WriteLine($"[REG] Heartbeat key={key}");
 
+        var exists = await _redis.Db.KeyExistsAsync(key);
+        Console.WriteLine($"[REG] Heartbeat exists={exists}");
+
+        if (!exists) return false;
         if (!await _redis.Db.KeyExistsAsync(key))
+        {
+            Console.WriteLine($"[REG] Heartbeat NOT FOUND key={key}");
             return false;
+        }
+
 
         await _redis.Db.HashSetAsync(key, new HashEntry[]
         {

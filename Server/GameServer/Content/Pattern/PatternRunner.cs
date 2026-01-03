@@ -406,12 +406,12 @@ public sealed class PatternRunner
     //    // MVP: ClosestPlayer만
     //    return FindClosestPlayer(m, players, out _);
     //}
-    private MapEntity? FindTarget(
+    private MapEntity FindTarget(
     MapEntity self,
     IList<MapEntity> players,
     TargetDef target)
     {
-        MapEntity? best = null;
+        MapEntity best = null;
         int bestDist = int.MaxValue;
 
         // 1) 후보 필터링

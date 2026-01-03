@@ -11,9 +11,11 @@ public sealed class RedisStore : IDisposable
 
     public RedisStore(IOptions<RedisOptions> opt)
     {
+
         _mux = ConnectionMultiplexer.Connect(opt.Value.ConnectionString);
         Db = _mux.GetDatabase();
         Prefix = string.IsNullOrWhiteSpace(opt.Value.KeyPrefix) ? "cp:" : opt.Value.KeyPrefix;
+        Console.WriteLine($"[REDIS] prefix={Prefix} db={(Db.Multiplexer.GetEndPoints().FirstOrDefault()?.ToString() ?? "")}");
     }
 
     public string Key(string raw) => Prefix + raw;

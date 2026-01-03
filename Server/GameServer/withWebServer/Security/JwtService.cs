@@ -93,7 +93,7 @@ public sealed class JwtService : IJwtService
 
     public (string token, string jti, string nonce)
         IssueTokenHs256
-        (IDictionary<string, object> claims, TimeSpan ttl, string issuer = null, string audience = null)
+        (IDictionary<string, object> claims, TimeSpan ttl, string issuer = null!, string audience = null!)
     {
         EnsureHsKey();
 
@@ -118,12 +118,12 @@ public sealed class JwtService : IJwtService
 
     public (bool ok, IDictionary<string, object> dict, string code)
         ValidateTokenHs256
-        (string token, string issuer = null, string audience = null)
+        (string token, string issuer = null!, string audience = null!)
     {
         EnsureHsKey();
         var handler = new JwtSecurityTokenHandler();
         if (handler.ReadJwtToken(token).Header.Alg != SecurityAlgorithms.HmacSha256)
-            return (false, null, "alg_mismatch");
+            return (false, null!, "alg_mismatch");
 
         try
         {

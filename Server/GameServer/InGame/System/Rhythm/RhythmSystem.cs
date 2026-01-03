@@ -22,7 +22,7 @@ public sealed class RhythmSystem : IBeatClock
     private readonly double _baseBeatMs;
     private long _lastProcessedBeat = -1;
 
-    public event Action<long>? OnBeat;
+    public event Action<long> OnBeat;
 
     public RhythmSystem(IServerTime time, RhythmConfig config, long songStartServerTimeMs)
     {

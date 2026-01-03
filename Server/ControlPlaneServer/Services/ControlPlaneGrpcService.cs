@@ -68,6 +68,8 @@ public sealed class ControlPlaneGrpcService : Grpc.V1.ControlPlane.ControlPlaneB
 
     public override async Task<VerifyTicketResponse> VerifyTicket(VerifyTicketRequest request, ServerCallContext context)
     {
+
+        Console.WriteLine($"[VerfyTicket] Req : {request} || Context : {context}");
         if (!Auth(context))
             return FailVerify(ErrorCode.Unauthorized, "unauthorized");
 
@@ -94,23 +96,32 @@ public sealed class ControlPlaneGrpcService : Grpc.V1.ControlPlane.ControlPlaneB
 
     public override async Task<RegisterServerResponse> RegisterServer(RegisterServerRequest request, ServerCallContext context)
     {
-        if (!Auth(context))
-            return FailRegister(ErrorCode.Unauthorized, "unauthorized");
+        try
+        {
+            if (!Auth(context))
+                return FailRegister(ErrorCode.Unauthorized, "unauthorized");
 
-        if (string.IsNullOrWhiteSpace(request.ServerId))
-            return FailRegister(ErrorCode.Unspecified, "server_id required");
+            if (string.IsNullOrWhiteSpace(request.ServerId))
+                return FailRegister(ErrorCode.Unspecified, "server_id required");
 
-        if (request.Type == ServerType.Unspecified)
-            return FailRegister(ErrorCode.Unspecified, "type required");
+            if (request.Type == ServerType.Unspecified)
+                return FailRegister(ErrorCode.Unspecified, "type required");
 
-        if (request.Endpoint == null || string.IsNullOrWhiteSpace(request.Endpoint.Host) || request.Endpoint.Port <= 0)
-            return FailRegister(ErrorCode.Unspecified, "endpoint required");
+            if (request.Endpoint == null || string.IsNullOrWhiteSpace(request.Endpoint.Host) || request.Endpoint.Port <= 0)
+                return FailRegister(ErrorCode.Unspecified, "endpoint required");
 
-        long now = _time.NowMs();
-        await _registry.RegisterAsync(request, now);
+            long now = _time.NowMs();
+            await _registry.RegisterAsync(request, now);
 
-        return new RegisterServerResponse { Ok = true, ServerNowMs = now };
+            return new RegisterServerResponse { Ok = true, ServerNowMs = now };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CP][RegisterServer] EX: {ex}");
+            return FailRegister(ErrorCode.Unspecified, ex.Message);
+        }
     }
+
 
     public override async Task<HeartbeatResponse> Heartbeat(HeartbeatRequest request, ServerCallContext context)
     {
