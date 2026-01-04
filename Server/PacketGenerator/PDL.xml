@@ -1,35 +1,32 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <PDL>
 
-	<!-- 클라 -> 게임서버: 최초 접속/검증 -->
-	<packet name="CS_JoinGame">
-		<string name="matchId"/>
-		<string name="uid"/>
-		<string name="ticket"/><!-- RS256 -->
-		<int name="protoVer"/><!-- 예: 3 -->
-		<string name="nonce"/><!-- 1회성 -->
-		<string name="clientVer"/><!-- 예: "u6-0.1.3" -->
-		<string name="platform"/><!-- "Windows","Android" 등 -->
+	<packet name="CS_Handshake">
+		<string name="ticketId"/>
+		<string name="clientNonce"/>
 	</packet>
 
-	<!-- 게임서버 -> 클라: 환영/환경 -->
-	<packet name="SC_Welcome">
-		<string name="matchId"/>
-		<int name="slot"/>
-		<long name="serverTimeMs"/>
-		<int name="tickRate"/><!-- 30,60 등 -->
-		<int name="startTick"/><!-- 0 or 사전 동기값 -->
-		<string name="map"/>
-		<int name="seed"/>
-		<int name="latencyBudgetMs"/><!-- 시작 예약 지연여유 -->
-		<string name="startPolicy"/><!-- "AllLoaded" 등 -->
+	<packet name="SC_HandshakeOk">
+		<int name="State"/>		<!-- 1=TOWN, 2=GAME -->
+		<long name="Epoch"/>
+		<string name="Uid"/>
+		<string name="RoomId"/>		<!-- GAME일 때만 값, TOWN이면 "" -->
+		<long name="ServerNowMs"/>		<!-- 선택: 클라 타임보정용 -->
+		<int name="LeaseTtlSec"/>		<!-- 선택: 디버그/클라 표시용 -->
 	</packet>
 
-	<!-- 클라 -> 게임서버: 로딩 완료 -->
-	<packet name="CS_Loaded">
-		<string name="matchId"/>
-		<string name="uid"/>
+	<packet name="SC_HandshakeFail">
+		<int name="errorCode"/>
+		<string name="message"/>
 	</packet>
+
+	<packet name="SC_ForcedDisconnect">
+		<int name="Reason"/>		<!-- 1=MovedToGame, 2=DuplicateLogin, 3=EpochSuperseded -->
+		<long name="NewEpoch"/>		<!-- 서버가 알고 있으면 넣고, 모르면 0 -->
+		<string name="Message"/>
+	</packet>
+
+
 
 	<!-- 게임서버 -> 클라: 양측 로딩 완료 알림 -->
 	<packet name="SC_AllPlayersLoaded">

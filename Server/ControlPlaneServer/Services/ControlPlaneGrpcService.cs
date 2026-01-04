@@ -1,164 +1,400 @@
 ﻿using ControlPlane.Grpc.V1;
-using ControlPlane.Domain.Allocation;
-using ControlPlane.Domain.Registry;
-using ControlPlane.Domain.Tickets;
-using ControlPlane.Infra;
+using ControlPlaneServer.Domain.Allocation;
+using ControlPlaneServer.Domain.Presence;
+using ControlPlaneServer.Domain.Registry;
+using ControlPlaneServer.Domain.Rooms;
+using ControlPlaneServer.Domain.Tickets;
+using ControlPlaneServer.Domain.Transition;
+using ControlPlaneServer.Infra;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
 
-namespace ControlPlane.Services;
+namespace ControlPlaneServer.Services;
 
-public sealed class ControlPlaneGrpcService : Grpc.V1.ControlPlane.ControlPlaneBase
+public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.ControlPlaneBase
 {
-    private readonly AllocatorService _alloc;
-    private readonly ServerRegistryService _registry;
-    private readonly TicketService _tickets;
+    private readonly ControlPlaneOptions _opt;
     private readonly Infra.TimeProvider _time;
-    private readonly SecurityOptions _sec;
+
+    private readonly TicketService _tickets;
+    private readonly ServerRegistryService _registry;
+    private readonly AllocatorService _alloc;
+    private readonly TransitionService _trans;
+    private readonly PresenceService _presence;
+    private readonly ControlEventHub _hub;
+    private readonly RoomService _room;
 
     public ControlPlaneGrpcService(
-        AllocatorService alloc,
-        ServerRegistryService registry,
-        TicketService tickets,
+        IOptions<ControlPlaneOptions> opt,
         Infra.TimeProvider time,
-        IOptions<SecurityOptions> sec)
+        TicketService tickets,
+        ServerRegistryService registry,
+        AllocatorService alloc,
+        TransitionService trans,
+        PresenceService presence,
+        ControlEventHub hub,
+        RoomService room)
     {
-        _alloc = alloc;
-        _registry = registry;
-        _tickets = tickets;
+        _opt = opt.Value;
         _time = time;
-        _sec = sec.Value;
+        _tickets = tickets;
+        _registry = registry;
+        _alloc = alloc;
+        _trans = trans;
+        _presence = presence;
+        _hub = hub;
+        _room = room;
     }
+
+    private void RequireSecret(ServerCallContext ctx)
+    {
+        // 네가 이미 쓰는 방식에 맞춰서 header key 변경 가능
+        var md = ctx.RequestHeaders;
+        var secret = md.GetValue("x-cp-secret") ?? "";
+        if (secret != _opt.Secret)
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid control-plane secret"));
+    }
+
+    private static Error MakeError(ErrorCode code, string msg) => new Error { Code = code, Message = msg };
 
     public override async Task<IssueTicketResponse> IssueTicket(IssueTicketRequest request, ServerCallContext context)
     {
-        if (!Auth(context))
-            return FailIssue(ErrorCode.Unauthorized, "unauthorized");
+        RequireSecret(context);
 
-        if (string.IsNullOrWhiteSpace(request.Uid))
-            return FailIssue(ErrorCode.Unspecified, "uid required");
+        // issuedServerId/endpoint는 호출 주체(API)가 결정/전달하는 구조도 가능하지만,
+        // 여기서는 "preferred_server_id"를 pinned처럼 사용 가능하도록 남겨둠.
+        // 실제 운영에선 API가 AllocateGameServer로 serverId 받은 뒤 IssueTicket에 preferred_server_id를 넣는 방식이 깔끔함.
+        var target = request.Target == TicketTarget.Town ? "TOWN" : "GAME";
+        var pinned = request.PreferredServerId ?? "";
+        var ttl = request.TtlSeconds > 0 ? request.TtlSeconds : _opt.TicketDefaultTtlSeconds;
 
-        if (request.Target == TicketTarget.Unspecified)
-            return FailIssue(ErrorCode.Unspecified, "target required");
-
-        long now = _time.NowMs();
-
-        string serverId = _alloc.PickServerId(request.Target, request.PreferredServerId);
-        var endpoint = await _registry.GetEndpointAsync(request.Target, serverId);
-        if (endpoint == null)
-            return FailIssue(ErrorCode.ServerNotFound, $"server not found: {serverId}");
+        // issuedServerId는 일단 pinned가 있으면 pinned로, 없으면 "" (API가 endpoint를 같이 내려주는 구조라면 여기 비워도 됨)
+        var issuedServerId = pinned;
 
         var t = await _tickets.IssueAsync(
-            request.Uid,
-            request.Target,
-            serverId,
-            request.Key ?? "",
-            request.TtlSeconds > 0 ? request.TtlSeconds : null,
-            now);
+            uid: request.Uid,
+            target: target,
+            key: request.Key ?? "",
+            issuedServerId: issuedServerId,
+            pinnedServerId: pinned,
+            ttlSeconds: ttl
+        );
 
         return new IssueTicketResponse
         {
             Ok = true,
-            TicketId = t.Tid,
+            TicketId = t.TicketId,
             ExpireAtMs = t.ExpireAtMs,
-            ServerId = serverId,
-            Endpoint = endpoint
+            ServerId = issuedServerId,
+            Key = request.Key ?? ""
         };
     }
 
     public override async Task<VerifyTicketResponse> VerifyTicket(VerifyTicketRequest request, ServerCallContext context)
     {
+        RequireSecret(context);
 
-        Console.WriteLine($"[VerfyTicket] Req : {request} || Context : {context}");
-        if (!Auth(context))
-            return FailVerify(ErrorCode.Unauthorized, "unauthorized");
+        var expected = request.ExpectedTarget == TicketTarget.Town ? "TOWN" : "GAME";
+        var (ok, uid, key, issued, pinned, expAt, err) = await _tickets.VerifyAsync(request.TicketId, expected);
 
-        if (string.IsNullOrWhiteSpace(request.TicketId))
-            return FailVerify(ErrorCode.Unspecified, "ticket_id required");
-
-        if (request.ExpectedTarget == TicketTarget.Unspecified)
-            return FailVerify(ErrorCode.Unspecified, "expected_target required");
-
-        long now = _time.NowMs();
-
-        var r = await _tickets.VerifyAndConsumeAsync(request.TicketId, request.ExpectedTarget, now);
-        if (!r.Ok)
-            return FailVerify(r.Code, r.Reason);
+        if (!ok)
+        {
+            return new VerifyTicketResponse
+            {
+                Ok = false,
+                Error = MakeError((ErrorCode)MapTicketErr(err), $"Verify failed (code={err})")
+            };
+        }
 
         return new VerifyTicketResponse
         {
             Ok = true,
-            Uid = r.Uid,
-            IssuedServerId = r.ServerId,
-            Key = r.Key
+            Uid = uid,
+            Key = key,
+            IssuedServerId = issued
         };
     }
 
-    public override async Task<RegisterServerResponse> RegisterServer(RegisterServerRequest request, ServerCallContext context)
+    public override async Task<ReserveOrConsumeTicketResponse> ReserveOrConsumeTicket(ReserveOrConsumeTicketRequest request, ServerCallContext context)
     {
-        try
+        RequireSecret(context);
+
+        var expected = request.ExpectedTarget == TicketTarget.Town ? "TOWN" : "GAME";
+
+        var (ok, uid, key, issued, pinned, expAt, err) =
+            await _tickets.ReserveOrConsumeAsync(request.TicketId, expected, request.VerifierServerId, request.ConnId, request.NowMs);
+
+        if (!ok)
         {
-            if (!Auth(context))
-                return FailRegister(ErrorCode.Unauthorized, "unauthorized");
-
-            if (string.IsNullOrWhiteSpace(request.ServerId))
-                return FailRegister(ErrorCode.Unspecified, "server_id required");
-
-            if (request.Type == ServerType.Unspecified)
-                return FailRegister(ErrorCode.Unspecified, "type required");
-
-            if (request.Endpoint == null || string.IsNullOrWhiteSpace(request.Endpoint.Host) || request.Endpoint.Port <= 0)
-                return FailRegister(ErrorCode.Unspecified, "endpoint required");
-
-            long now = _time.NowMs();
-            await _registry.RegisterAsync(request, now);
-
-            return new RegisterServerResponse { Ok = true, ServerNowMs = now };
+            return new ReserveOrConsumeTicketResponse
+            {
+                Ok = false,
+                Error = MakeError((ErrorCode)MapTicketErr(err), $"Reserve/Consume failed (code={err})"),
+                IssuedServerId = issued ?? "",
+                PinnedServerId = pinned ?? "",
+                ExpireAtMs = expAt
+            };
         }
-        catch (Exception ex)
+
+        return new ReserveOrConsumeTicketResponse
         {
-            Console.WriteLine($"[CP][RegisterServer] EX: {ex}");
-            return FailRegister(ErrorCode.Unspecified, ex.Message);
-        }
+            Ok = true,
+            Uid = uid,
+            Key = key,
+            IssuedServerId = issued,
+            PinnedServerId = pinned,
+            ExpireAtMs = expAt
+        };
     }
 
+    public override async Task<AttachConnectionResponse> AttachConnection(AttachConnectionRequest request, ServerCallContext context)
+    {
+        RequireSecret(context);
+
+        string newState = request.State == PresenceState.Town ? "TOWN" : "GAME";
+
+        var (ok, err, newEpoch, prev) = await _presence.AttachAsync(
+            request.Uid,
+            newState,
+            request.ServerId,
+            request.ConnId,
+            request.LeaseTtlSeconds,
+            request.NowMs
+        );
+
+        if (!ok)
+        {
+            return new AttachConnectionResponse
+            {
+                Ok = false,
+                Error = MakeError((ErrorCode)MapPresenceErr(err), $"Attach failed (code={err})")
+            };
+        }
+
+        var resp = new AttachConnectionResponse
+        {
+            Ok = true,
+            Epoch = newEpoch
+        };
+
+        if (prev != null)
+        {
+            resp.PrevState = prev.State == "TOWN" ? PresenceState.Town : PresenceState.Game;
+            resp.PrevServerId = prev.ServerId;
+            resp.PrevConnId = prev.ConnId;
+            resp.PrevEpoch = prev.Epoch;
+        }
+
+        return resp;
+    }
+
+    public override async Task<RenewLeaseResponse> RenewLease(RenewLeaseRequest request, ServerCallContext context)
+    {
+        RequireSecret(context);
+
+        var (ok, err) = await _presence.RenewLeaseAsync(
+            request.Uid,
+            request.ServerId,
+            request.ConnId,
+            request.Epoch,
+            request.LeaseTtlSeconds,
+            request.NowMs
+        );
+
+        if (!ok)
+        {
+            return new RenewLeaseResponse
+            {
+                Ok = false,
+                Error = MakeError((ErrorCode)MapPresenceErr(err), $"Renew failed (code={err})")
+            };
+        }
+
+        return new RenewLeaseResponse
+        {
+            Ok = true,
+            ServerNowMs = _time.NowMs()
+        };
+    }
+
+    public override async Task<BeginOrReuseTransitionResponse> BeginOrReuseTransition(BeginOrReuseTransitionRequest request, ServerCallContext context)
+    {
+        RequireSecret(context);
+
+        // 현재는 MOVING_TO_GAME만 사용
+        var tr = await _trans.BeginOrReuseAsync(
+            uid: request.Uid,
+            toState: "MOVING_TO_GAME",
+            ctx: request.Ctx ?? "",
+            ttlSeconds: request.TtlSeconds
+        );
+
+        return new BeginOrReuseTransitionResponse
+        {
+            Ok = true,
+            TransitionId = tr.TransitionId,
+            ExpireAtMs = tr.ExpireAtMs
+        };
+    }
+
+    public override async Task<AllocateGameServerResponse> AllocateGameServer(AllocateGameServerRequest request, ServerCallContext context)
+    {
+        RequireSecret(context);
+
+        var (ok, server, reservation) = await _alloc.AllocateGameServerAsync(
+            request.Uid,
+            request.Region ?? "",
+            request.ReserveTtlSeconds
+        );
+
+        if (!ok || server == null || reservation == null)
+        {
+            return new AllocateGameServerResponse
+            {
+                Ok = false,
+                Error = MakeError(ErrorCode.AllocationFailed, "No available game server")
+            };
+        }
+
+        return new AllocateGameServerResponse
+        {
+            Ok = true,
+            ServerId = server.ServerId,
+            Endpoint = new ServerEndpoint { Host = server.Host, Port = server.Port },
+            ReservationId = reservation.ReservationId,
+            ExpireAtMs = reservation.ExpireAtMs
+        };
+    }
+
+    public override async Task<CreateRoomResponse> CreateRoom(CreateRoomRequest request, ServerCallContext context)
+    {
+        RequireSecret(context);
+
+        long now = request.NowMs > 0 ? request.NowMs : _time.NowMs();
+
+        // 1) reservation 검증 (uid/serverId/expire)
+        bool valid = await _alloc.ValidateReservationAsync(
+            reservationId: request.ReservationId,
+            uid: request.Uid,
+            serverId: request.ServerId,
+            nowMs: now
+        );
+
+        if (!valid)
+        {
+            return new CreateRoomResponse
+            {
+                Ok = false,
+                Error = MakeError(ErrorCode.ReservationInvalid, "Invalid or expired reservation")
+            };
+        }
+
+        // 2) room record 멱등 생성
+        var (created, room) = await _room.CreateIfAbsentAsync(
+            serverId: request.ServerId,
+            roomId: request.RoomId,
+            uid: request.Uid,
+            map: request.Map,
+            maxPlayers: request.MaxPlayers,
+            nowMs: now
+        );
+
+        // 3) reservation 소모(정석)
+        // 이미 room이 존재하는 경우에도 예약은 "소모"해도 OK지만,
+        // 재시도 시나리오 고려해서 created일 때만 소모해도 됨.
+        if (created)
+            await _alloc.ConsumeReservationAsync(request.ReservationId);
+
+        return new CreateRoomResponse { Ok = true };
+    }
+
+    //public override async Task RegisterServer(RegisterServerRequest request, ServerCallContext context)
+    //{
+    //    RequireSecret(context);
+
+    //    var type = request.Type == ServerType.Town ? "TOWN" : "GAME";
+    //    var s = new ServerRecord(
+    //        ServerId: request.ServerId,
+    //        Type: type,
+    //        Host: request.Endpoint?.Host ?? "127.0.0.1",
+    //        Port: request.Endpoint?.Port ?? 0,
+    //        Capacity: request.Capacity,
+    //        Region: request.Region ?? "",
+    //        BuildVersion: request.BuildVersion ?? "",
+    //        Load: 0,
+    //        CurrentSessions: 0,
+    //        LastHeartbeatMs: _time.NowMs()
+    //    );
+
+    //    await _registry.RegisterAsync(s);
+
+    //    // empty response style
+    //    // (proto는 RegisterServerResponse returns)
+    //    return ;
+    //}
+
+    public override async Task<RegisterServerResponse> RegisterServer(RegisterServerRequest request, ServerCallContext context)
+    {
+        RequireSecret(context);
+
+        var type = request.Type == ServerType.Town ? "TOWN" : "GAME";
+        var s = new ServerRecord(
+            ServerId: request.ServerId,
+            Type: type,
+            Host: request.Endpoint?.Host ?? "127.0.0.1",
+            Port: request.Endpoint?.Port ?? 0,
+            Capacity: request.Capacity,
+            Region: request.Region ?? "",
+            BuildVersion: request.BuildVersion ?? "",
+            Load: 0,
+            CurrentSessions: 0,
+            LastHeartbeatMs: _time.NowMs()
+        );
+
+        await _registry.RegisterAsync(s);
+
+        return new RegisterServerResponse { Ok = true, ServerNowMs = _time.NowMs() };
+    }
 
     public override async Task<HeartbeatResponse> Heartbeat(HeartbeatRequest request, ServerCallContext context)
     {
-        if (!Auth(context))
-            return FailHeartbeat(ErrorCode.Unauthorized, "unauthorized");
+        RequireSecret(context);
 
-        if (string.IsNullOrWhiteSpace(request.ServerId))
-            return FailHeartbeat(ErrorCode.Unspecified, "server_id required");
+        var type = request.Type == ServerType.Town ? "TOWN" : "GAME";
 
-        if (request.Type == ServerType.Unspecified)
-            return FailHeartbeat(ErrorCode.Unspecified, "type required");
+        await _registry.HeartbeatAsync(type, request.ServerId, request.Load, request.CurrentSessions);
 
-        long now = _time.NowMs();
-        bool ok = await _registry.HeartbeatAsync(request, now);
-        if (!ok)
-            return FailHeartbeat(ErrorCode.ServerNotFound, "server not found");
-
-        return new HeartbeatResponse { Ok = true, ServerNowMs = now };
+        return new HeartbeatResponse { Ok = true, ServerNowMs = _time.NowMs() };
     }
 
-    private bool Auth(ServerCallContext ctx)
+    public override async Task SubscribeControlEvents(SubscribeControlEventsRequest request, IServerStreamWriter<ControlEvent> responseStream, ServerCallContext context)
     {
-        // 최소: shared secret header
-        // caller should send metadata: "x-cp-secret: <secret>"
-        var secret = ctx.RequestHeaders.GetValue("x-cp-secret");
-        return !string.IsNullOrWhiteSpace(_sec.ServiceSharedSecret) && secret == _sec.ServiceSharedSecret;
+        RequireSecret(context);
+
+        var reader = _hub.Subscribe(request.ServerId);
+
+        await foreach (var ev in reader.ReadAllAsync(context.CancellationToken))
+        {
+            await responseStream.WriteAsync(ev);
+        }
     }
 
-    private static IssueTicketResponse FailIssue(ErrorCode code, string msg)
-        => new() { Ok = false, Error = new Error { Code = code, Message = msg } };
+    private static int MapTicketErr(int err)
+        => err switch
+        {
+            10 => (int)ErrorCode.TicketNotFound,
+            11 => (int)ErrorCode.TicketExpired,
+            12 => (int)ErrorCode.TicketAlreadyUsed,
+            13 => (int)ErrorCode.TicketTargetMismatch,
+            14 => (int)ErrorCode.TicketPinnedServerMismatch,
+            _ => (int)ErrorCode.Unspecified
+        };
 
-    private static VerifyTicketResponse FailVerify(ErrorCode code, string msg)
-        => new() { Ok = false, Error = new Error { Code = code, Message = msg } };
-
-    private static RegisterServerResponse FailRegister(ErrorCode code, string msg)
-        => new() { Ok = false, Error = new Error { Code = code, Message = msg } };
-
-    private static HeartbeatResponse FailHeartbeat(ErrorCode code, string msg)
-        => new() { Ok = false, Error = new Error { Code = code, Message = msg } };
+    private static int MapPresenceErr(int err)
+        => err switch
+        {
+            30 => (int)ErrorCode.PresenceEpochMismatch,
+            31 => (int)ErrorCode.PresenceNotFound,
+            _ => (int)ErrorCode.Unspecified
+        };
 }

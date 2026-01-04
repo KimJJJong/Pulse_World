@@ -1,22 +1,18 @@
-﻿namespace ControlPlane.Infra;
+﻿namespace ControlPlaneServer.Infra;
+
+public sealed class ControlPlaneOptions
+{
+    public string Secret { get; set; } = "CHANGE_ME";
+    public string Prefix { get; set; } = "cp:";
+
+    public int LeaseTtlSeconds { get; set; } = 30;
+    public int TicketDefaultTtlSeconds { get; set; } = 15;
+    public int ReservationTtlSeconds { get; set; } = 20;
+    public int TransitionTtlSeconds { get; set; } = 15;
+}
 
 public sealed class RedisOptions
 {
     public string ConnectionString { get; set; } = "localhost:6379";
-    public string KeyPrefix { get; set; } = "cp:";
-}
-
-public sealed class TicketOptions
-{
-    public int DefaultTtlSeconds { get; set; } = 30;
-}
-
-public sealed class RegistryOptions
-{
-    public int HeartbeatTtlSeconds { get; set; } = 10;
-}
-
-public sealed class SecurityOptions
-{
-    public string ServiceSharedSecret { get; set; } = "";
+    public int Database { get; set; } = 0;
 }

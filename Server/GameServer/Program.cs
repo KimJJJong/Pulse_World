@@ -30,6 +30,8 @@ static class Program
 
     static ControlPlane.Grpc.V1.ControlPlane.ControlPlaneClient? _cp;
     static ControlPlaneClientOptions _cpOpt;
+    public static ControlPlaneClient CP;
+
 
     // ---- Config-derived ----
     static ServerRole _role = ServerRole.Game;
@@ -200,6 +202,8 @@ static class Program
 
         var invoker = GrpcInvokerFactory.CreateControlPlaneInvoker(_cpOpt);
         _cp = new ControlPlane.Grpc.V1.ControlPlane.ControlPlaneClient(invoker);
+
+        CP = new ControlPlaneClient(_cp, _role.ToString());
     }
 
     static void StartListener()

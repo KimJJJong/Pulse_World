@@ -19,8 +19,12 @@ public class PacketManager
 		
 	public void Register()
 	{
-		_makeFunc.Add((ushort)PacketID.SC_Welcome, MakePacket<SC_Welcome>);
-		_handler.Add((ushort)PacketID.SC_Welcome, PacketHandler.SC_WelcomeHandler);
+		_makeFunc.Add((ushort)PacketID.SC_HandshakeOk, MakePacket<SC_HandshakeOk>);
+		_handler.Add((ushort)PacketID.SC_HandshakeOk, PacketHandler.SC_HandshakeOkHandler);
+		_makeFunc.Add((ushort)PacketID.SC_HandshakeFail, MakePacket<SC_HandshakeFail>);
+		_handler.Add((ushort)PacketID.SC_HandshakeFail, PacketHandler.SC_HandshakeFailHandler);
+		_makeFunc.Add((ushort)PacketID.SC_ForcedDisconnect, MakePacket<SC_ForcedDisconnect>);
+		_handler.Add((ushort)PacketID.SC_ForcedDisconnect, PacketHandler.SC_ForcedDisconnectHandler);
 		_makeFunc.Add((ushort)PacketID.SC_AllPlayersLoaded, MakePacket<SC_AllPlayersLoaded>);
 		_handler.Add((ushort)PacketID.SC_AllPlayersLoaded, PacketHandler.SC_AllPlayersLoadedHandler);
 		_makeFunc.Add((ushort)PacketID.SC_GameBegin, MakePacket<SC_GameBegin>);

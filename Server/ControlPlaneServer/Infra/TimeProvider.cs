@@ -1,4 +1,4 @@
-﻿namespace ControlPlane.Infra;
+﻿namespace ControlPlaneServer.Infra;
 
 public sealed class TimeProvider
 {

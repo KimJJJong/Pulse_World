@@ -4,12 +4,24 @@ using System.Net;
 using Shared;
 using System.Collections.Generic;
 using Server;
+using ControlPlane.Grpc.V1;
 
 
 public class ClientSession : PacketSession
 {
-    public string MatchId { get; set; }
+    public ServerType RealtimeState { get; set; } = ServerType.Unspecified;
     public string Uid { get; set; }
+
+    public string TicketId {  get; set; }
+    public string? Ctx { get; set; }          // roomId/matchId (Game), townId or "" (Town)
+    public long Epoch { get; set; }           // CP가 발급한 단일연결 세대값
+    public string? ConnId { get; set; }       // serverId:sessionId or GUID
+
+    public volatile bool Handshaked;          // 핸드셰이크 완료 여부
+
+    public string RoomId { get; set; } = "";
+
+    //public string MatchId { get; set; } // 참조 정리 필요    
     public int Slot { get; set; } = -1; 
     public bool Loaded { get; set; }
 

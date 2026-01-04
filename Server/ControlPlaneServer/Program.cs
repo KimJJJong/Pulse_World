@@ -1,9 +1,13 @@
-﻿using ControlPlane.Infra;
-using ControlPlane.Domain.Tickets;
-using ControlPlane.Domain.Registry;
-using ControlPlane.Domain.Allocation;
-using ControlPlane.Services;
+﻿
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using ControlPlaneServer.Infra;
+using ControlPlaneServer.Domain.Registry;
+using ControlPlaneServer.Domain.Tickets;
+using ControlPlaneServer.Domain.Allocation;
+using ControlPlaneServer.Domain.Transition;
+using ControlPlaneServer.Domain.Presence;
+using ControlPlaneServer.Services;
+using ControlPlaneServer.Domain.Rooms;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,23 +30,25 @@ builder.WebHost.ConfigureKestrel(o =>
 builder.Services.AddGrpc();
 
 // Options
+builder.Services.Configure<ControlPlaneOptions>(builder.Configuration.GetSection("ControlPlane"));
 builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection("Redis"));
-builder.Services.Configure<TicketOptions>(builder.Configuration.GetSection("Tickets"));
-builder.Services.Configure<RegistryOptions>(builder.Configuration.GetSection("ServerRegistry"));
-builder.Services.Configure<SecurityOptions>(builder.Configuration.GetSection("Security"));
 
 // Infra
-builder.Services.AddSingleton<ControlPlane.Infra.TimeProvider>();
+builder.Services.AddSingleton<ControlPlaneServer.Infra.TimeProvider>();
 builder.Services.AddSingleton<RedisStore>();
 
 // Domain
-builder.Services.AddSingleton<TicketService>();
 builder.Services.AddSingleton<ServerRegistryService>();
+builder.Services.AddSingleton<TicketService>();
 builder.Services.AddSingleton<AllocatorService>();
+builder.Services.AddSingleton<TransitionService>();
+builder.Services.AddSingleton<ControlEventHub>();      // CP -> realtime push
+builder.Services.AddSingleton<PresenceService>();      // Presence는 Hub를 사용해 Kick push
+builder.Services.AddSingleton<RoomService>();
 
 var app = builder.Build();
 
 app.MapGrpcService<ControlPlaneGrpcService>();
-app.MapGet("/", () => "ControlPlane gRPC running");
+app.MapGet("/", () => "ControlPlaneServer gRPC is running.");
 
 app.Run();

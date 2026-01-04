@@ -1,21 +1,12 @@
-﻿using ControlPlane.Grpc.V1;
+﻿namespace ControlPlaneServer.Domain.Tickets;
 
-namespace ControlPlane.Domain.Tickets;
-
-public sealed record TicketData(
-    string Tid,
+public sealed record TicketRecord(
+    string TicketId,
     string Uid,
-    TicketTarget Target,
-    string ServerId,
-    long ExpireAtMs,
-    string Key
-);
-
-public sealed record VerifyConsumeResult(
-    bool Ok,
-    string Uid,
-    string ServerId,
-    string Key,
-    ErrorCode Code,
-    string Reason
+    string Target,          // "TOWN" / "GAME"
+    string Key,             // ctx(roomId)
+    string IssuedServerId,  // 발급 시점에 결정한 serverId
+    string PinnedServerId,  // optional (Game 서버 고정)
+    bool Used,
+    long ExpireAtMs
 );

@@ -19,10 +19,8 @@ public class PacketManager
 		
 	public void Register()
 	{
-		_makeFunc.Add((ushort)PacketID.CS_JoinGame, MakePacket<CS_JoinGame>);
-		_handler.Add((ushort)PacketID.CS_JoinGame, PacketHandler.CS_JoinGameHandler);
-		_makeFunc.Add((ushort)PacketID.CS_Loaded, MakePacket<CS_Loaded>);
-		_handler.Add((ushort)PacketID.CS_Loaded, PacketHandler.CS_LoadedHandler);
+		_makeFunc.Add((ushort)PacketID.CS_Handshake, MakePacket<CS_Handshake>);
+		_handler.Add((ushort)PacketID.CS_Handshake, PacketHandler.CS_HandshakeHandler);
 		_makeFunc.Add((ushort)PacketID.CS_Ping, MakePacket<CS_Ping>);
 		_handler.Add((ushort)PacketID.CS_Ping, PacketHandler.CS_PingHandler);
 		_makeFunc.Add((ushort)PacketID.CS_CalibHit, MakePacket<CS_CalibHit>);

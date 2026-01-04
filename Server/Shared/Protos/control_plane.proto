@@ -2,13 +2,34 @@ syntax = "proto3";
 package controlplane.v1;
 option csharp_namespace = "ControlPlane.Grpc.V1";
 
+// ----------------------------
+// Service
+// ----------------------------
 service ControlPlane {
+
+  // ---- Existing ----
   rpc IssueTicket (IssueTicketRequest) returns (IssueTicketResponse);
   rpc VerifyTicket (VerifyTicketRequest) returns (VerifyTicketResponse);
   rpc RegisterServer (RegisterServerRequest) returns (RegisterServerResponse);
   rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+
+  // ---- Realtime handshake / single-connection enforcement ----
+  rpc ReserveOrConsumeTicket (ReserveOrConsumeTicketRequest) returns (ReserveOrConsumeTicketResponse);
+  rpc AttachConnection (AttachConnectionRequest) returns (AttachConnectionResponse);
+  rpc RenewLease (RenewLeaseRequest) returns (RenewLeaseResponse);
+
+  // ---- Transition + Allocation (APIServer가 사용) ----
+  rpc BeginOrReuseTransition (BeginOrReuseTransitionRequest) returns (BeginOrReuseTransitionResponse);
+  rpc AllocateGameServer (AllocateGameServerRequest) returns (AllocateGameServerResponse);
+  rpc CreateRoom (CreateRoomRequest) returns (CreateRoomResponse);
+
+  // ---- CP -> Realtime servers push events (Kick etc.) ----
+  rpc SubscribeControlEvents (SubscribeControlEventsRequest) returns (stream ControlEvent);
 }
 
+// ----------------------------
+// Enums
+// ----------------------------
 enum TicketTarget {
   TICKET_TARGET_UNSPECIFIED = 0;
   TICKET_TARGET_TOWN = 1;
@@ -28,19 +49,53 @@ enum ErrorCode {
   ERROR_CODE_TICKET_EXPIRED = 11;
   ERROR_CODE_TICKET_ALREADY_USED = 12;
   ERROR_CODE_TICKET_TARGET_MISMATCH = 13;
+  ERROR_CODE_TICKET_PINNED_SERVER_MISMATCH = 14;
+
+  ERROR_CODE_PRESENCE_EPOCH_MISMATCH = 30;
+  ERROR_CODE_PRESENCE_NOT_FOUND = 31;
+
+  ERROR_CODE_TRANSITION_NOT_FOUND = 40;
+  ERROR_CODE_TRANSITION_EXPIRED = 41;
+
+  ERROR_CODE_ALLOCATION_FAILED = 50;
+  ERROR_CODE_RESERVATION_INVALID = 51;
 
   ERROR_CODE_SERVER_NOT_FOUND = 20;
   ERROR_CODE_UNAUTHORIZED = 90;
 }
 
+enum PresenceState {
+  PRESENCE_STATE_UNSPECIFIED = 0;
+  PRESENCE_STATE_TOWN = 1;
+  PRESENCE_STATE_GAME = 2;
+}
+
+enum TransitionState {
+  TRANSITION_STATE_UNSPECIFIED = 0;
+  TRANSITION_STATE_MOVING_TO_GAME = 1;
+}
+
+enum KickReason {
+  KICK_REASON_UNSPECIFIED = 0;
+  KICK_REASON_MOVED_TO_GAME = 1;
+  KICK_REASON_DUPLICATE_LOGIN = 2;
+  KICK_REASON_EPOCH_SUPERSEDED = 3;
+}
+
+// ----------------------------
+// Common messages
+// ----------------------------
 message ServerEndpoint { string host = 1; int32 port = 2; }
 message Error { ErrorCode code = 1; string message = 2; }
 
+// ----------------------------
+// Ticket
+// ----------------------------
 message IssueTicketRequest {
   string uid = 1;
   TicketTarget target = 2;
-  string key = 3;
-  string preferred_server_id = 4;
+  string key = 3;                    // ctx (roomId 등). Town이면 ""도 가능.
+  string preferred_server_id = 4;    // target별 선호 서버(선택)
   int32 ttl_seconds = 5;
 }
 
@@ -50,7 +105,7 @@ message IssueTicketResponse {
   string ticket_id = 3;
   int64 expire_at_ms = 4;
   string server_id = 5;
-  ServerEndpoint endpoint = 6;
+  string key = 6;
 }
 
 message VerifyTicketRequest {
@@ -64,9 +119,123 @@ message VerifyTicketResponse {
   Error error = 2;
   string uid = 3;
   string issued_server_id = 4;
-  string key = 5;
+  string key = 5; // ctx
 }
 
+// ----------------------------
+// Reserve / Consume (핵심)
+// ----------------------------
+message ReserveOrConsumeTicketRequest {
+  string ticket_id = 1;
+  TicketTarget expected_target = 2;
+  string verifier_server_id = 3; // Town/Game serverId
+  string conn_id = 4;            // 서버가 만든 connId (Guid string)
+  int64 now_ms = 5;              // 서버 now(로그)
+}
+
+message ReserveOrConsumeTicketResponse {
+  bool ok = 1;
+  Error error = 2;
+  string uid = 3;
+  string key = 4;               // ctx(roomId)
+  string issued_server_id = 5;
+  string pinned_server_id = 6;  // 디버그/검증
+  int64 expire_at_ms = 7;
+}
+
+// ----------------------------
+// Presence (single realtime connection)
+// ----------------------------
+message AttachConnectionRequest {
+  string uid = 1;
+  PresenceState state = 2;       // TOWN/GAME
+  string server_id = 3;
+  string conn_id = 4;
+  int32 lease_ttl_seconds = 5;
+  int64 now_ms = 6;
+}
+
+message AttachConnectionResponse {
+  bool ok = 1;
+  Error error = 2;
+
+  int64 epoch = 3;
+
+  // 이전 연결 힌트(선택)
+  PresenceState prev_state = 4;
+  string prev_server_id = 5;
+  string prev_conn_id = 6;
+  int64 prev_epoch = 7;
+}
+
+message RenewLeaseRequest {
+  string uid = 1;
+  string server_id = 2;
+  string conn_id = 3;
+  int64 epoch = 4;
+  int32 lease_ttl_seconds = 5;
+  int64 now_ms = 6;
+}
+
+message RenewLeaseResponse {
+  bool ok = 1;
+  Error error = 2;
+  int64 server_now_ms = 3;
+}
+
+// ----------------------------
+// Transition + Allocation (API가 사용)
+// ----------------------------
+message BeginOrReuseTransitionRequest {
+  string uid = 1;
+  TransitionState to_state = 2;   // MOVING_TO_GAME
+  string ctx = 3;                // roomId / matchId
+  int32 ttl_seconds = 4;         // e.g. 15
+  int64 now_ms = 5;
+}
+
+message BeginOrReuseTransitionResponse {
+  bool ok = 1;
+  Error error = 2;
+  string transition_id = 3;
+  int64 expire_at_ms = 4;
+}
+
+message AllocateGameServerRequest {
+  string uid = 1;
+  string region = 2;          // optional
+  int32 reserve_ttl_seconds = 3; // reservation ttl
+  int64 now_ms = 4;
+}
+
+message AllocateGameServerResponse {
+  bool ok = 1;
+  Error error = 2;
+
+  string server_id = 3;
+  ServerEndpoint endpoint = 4;
+  string reservation_id = 5;
+  int64 expire_at_ms = 6;
+}
+
+message CreateRoomRequest {
+  string uid = 1;               // reservation 검증 위해 필요)
+  string server_id = 2;
+  string reservation_id = 3;
+  string room_id = 4;
+  string map = 5;
+  int32 max_players = 6;
+  int64 now_ms = 7;
+}
+
+message CreateRoomResponse {
+  bool ok = 1;
+  Error error = 2;
+}
+
+// ----------------------------
+// Server registry
+// ----------------------------
 message RegisterServerRequest {
   string server_id = 1;
   ServerType type = 2;
@@ -93,4 +262,25 @@ message HeartbeatResponse {
   bool ok = 1;
   Error error = 2;
   int64 server_now_ms = 3;
+}
+
+// ----------------------------
+// CP -> Realtime push events
+// ----------------------------
+message SubscribeControlEventsRequest {
+  string server_id = 1;
+  ServerType type = 2;
+}
+
+message ControlEvent {
+  oneof payload {
+    KickEvent kick = 1;
+  }
+}
+
+message KickEvent {
+  string uid = 1;
+  int64 min_epoch = 2;      // 이 epoch 이상이면 대상(보통 newEpoch)
+  KickReason reason = 3;
+  string message = 4;
 }

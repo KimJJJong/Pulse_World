@@ -6,23 +6,24 @@ using ServerCore;
 
 public enum PacketID
 {
-	CS_JoinGame = 1,
-	SC_Welcome = 2,
-	CS_Loaded = 3,
-	SC_AllPlayersLoaded = 4,
-	SC_GameBegin = 5,
-	SC_Error = 6,
-	SC_Warn = 7,
-	CS_Ping = 8,
-	SC_Pong = 9,
-	SC_InitGame = 10,
-	SC_CalibResult = 11,
-	CS_CalibHit = 12,
-	SC_BeatSync = 13,
-	CS_ActionRequest = 14,
-	SC_BeatActions = 15,
-	SC_BeatTelegraphs = 16,
-	SC_EntityDespawn = 17,
+	CS_Handshake = 1,
+	SC_HandshakeOk = 2,
+	SC_HandshakeFail = 3,
+	SC_ForcedDisconnect = 4,
+	SC_AllPlayersLoaded = 5,
+	SC_GameBegin = 6,
+	SC_Error = 7,
+	SC_Warn = 8,
+	CS_Ping = 9,
+	SC_Pong = 10,
+	SC_InitGame = 11,
+	SC_CalibResult = 12,
+	CS_CalibHit = 13,
+	SC_BeatSync = 14,
+	CS_ActionRequest = 15,
+	SC_BeatActions = 16,
+	SC_BeatTelegraphs = 17,
+	SC_EntityDespawn = 18,
 	
 }
 
@@ -34,17 +35,12 @@ public  interface IPacket
 }
 
 
-public class CS_JoinGame : IPacket
+public class CS_Handshake : IPacket
 {
-	public string matchId;
-	public string uid;
-	public string ticket;
-	public int protoVer;
-	public string nonce;
-	public string clientVer;
-	public string platform;
+	public string ticketId;
+	public string clientNonce;
 
-	public ushort Protocol { get { return (ushort)PacketID.CS_JoinGame; } }
+	public ushort Protocol { get { return (ushort)PacketID.CS_Handshake; } }
 
 	public void Read(ArraySegment<byte> segment)
 	{
@@ -53,32 +49,14 @@ public class CS_JoinGame : IPacket
 		ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
 		count += sizeof(ushort);
 		count += sizeof(ushort);
-		ushort matchIdLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+		ushort ticketIdLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 		count += sizeof(ushort);
-		this.matchId = Encoding.Unicode.GetString(s.Slice(count, matchIdLen));
-		count += matchIdLen;
-		ushort uidLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+		this.ticketId = Encoding.Unicode.GetString(s.Slice(count, ticketIdLen));
+		count += ticketIdLen;
+		ushort clientNonceLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 		count += sizeof(ushort);
-		this.uid = Encoding.Unicode.GetString(s.Slice(count, uidLen));
-		count += uidLen;
-		ushort ticketLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
-		count += sizeof(ushort);
-		this.ticket = Encoding.Unicode.GetString(s.Slice(count, ticketLen));
-		count += ticketLen;
-		this.protoVer = BitConverter.ToInt32(s.Slice(count, s.Length - count));
-		count += sizeof(int);
-		ushort nonceLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
-		count += sizeof(ushort);
-		this.nonce = Encoding.Unicode.GetString(s.Slice(count, nonceLen));
-		count += nonceLen;
-		ushort clientVerLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
-		count += sizeof(ushort);
-		this.clientVer = Encoding.Unicode.GetString(s.Slice(count, clientVerLen));
-		count += clientVerLen;
-		ushort platformLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
-		count += sizeof(ushort);
-		this.platform = Encoding.Unicode.GetString(s.Slice(count, platformLen));
-		count += platformLen;
+		this.clientNonce = Encoding.Unicode.GetString(s.Slice(count, clientNonceLen));
+		count += clientNonceLen;
 	}
 
 	public ArraySegment<byte> Write()
@@ -90,34 +68,16 @@ public class CS_JoinGame : IPacket
 		Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
 
 		count += sizeof(ushort);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.CS_JoinGame);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.CS_Handshake);
 		count += sizeof(ushort);
-		ushort matchIdLen = (ushort)Encoding.Unicode.GetBytes(this.matchId, 0, this.matchId.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), matchIdLen);
+		ushort ticketIdLen = (ushort)Encoding.Unicode.GetBytes(this.ticketId, 0, this.ticketId.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), ticketIdLen);
 		count += sizeof(ushort);
-		count += matchIdLen;
-		ushort uidLen = (ushort)Encoding.Unicode.GetBytes(this.uid, 0, this.uid.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), uidLen);
+		count += ticketIdLen;
+		ushort clientNonceLen = (ushort)Encoding.Unicode.GetBytes(this.clientNonce, 0, this.clientNonce.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), clientNonceLen);
 		count += sizeof(ushort);
-		count += uidLen;
-		ushort ticketLen = (ushort)Encoding.Unicode.GetBytes(this.ticket, 0, this.ticket.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), ticketLen);
-		count += sizeof(ushort);
-		count += ticketLen;
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.protoVer);
-		count += sizeof(int);
-		ushort nonceLen = (ushort)Encoding.Unicode.GetBytes(this.nonce, 0, this.nonce.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), nonceLen);
-		count += sizeof(ushort);
-		count += nonceLen;
-		ushort clientVerLen = (ushort)Encoding.Unicode.GetBytes(this.clientVer, 0, this.clientVer.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), clientVerLen);
-		count += sizeof(ushort);
-		count += clientVerLen;
-		ushort platformLen = (ushort)Encoding.Unicode.GetBytes(this.platform, 0, this.platform.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), platformLen);
-		count += sizeof(ushort);
-		count += platformLen;
+		count += clientNonceLen;
 		success &= BitConverter.TryWriteBytes(s, count);
 		if (success == false)
 			return null;
@@ -125,19 +85,16 @@ public class CS_JoinGame : IPacket
 	}
 }
 
-public class SC_Welcome : IPacket
+public class SC_HandshakeOk : IPacket
 {
-	public string matchId;
-	public int slot;
-	public long serverTimeMs;
-	public int tickRate;
-	public int startTick;
-	public string map;
-	public int seed;
-	public int latencyBudgetMs;
-	public string startPolicy;
+	public int State;
+	public long Epoch;
+	public string Uid;
+	public string RoomId;
+	public long ServerNowMs;
+	public int LeaseTtlSec;
 
-	public ushort Protocol { get { return (ushort)PacketID.SC_Welcome; } }
+	public ushort Protocol { get { return (ushort)PacketID.SC_HandshakeOk; } }
 
 	public void Read(ArraySegment<byte> segment)
 	{
@@ -146,30 +103,22 @@ public class SC_Welcome : IPacket
 		ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
 		count += sizeof(ushort);
 		count += sizeof(ushort);
-		ushort matchIdLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
-		count += sizeof(ushort);
-		this.matchId = Encoding.Unicode.GetString(s.Slice(count, matchIdLen));
-		count += matchIdLen;
-		this.slot = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		this.State = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
-		this.serverTimeMs = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+		this.Epoch = BitConverter.ToInt64(s.Slice(count, s.Length - count));
 		count += sizeof(long);
-		this.tickRate = BitConverter.ToInt32(s.Slice(count, s.Length - count));
-		count += sizeof(int);
-		this.startTick = BitConverter.ToInt32(s.Slice(count, s.Length - count));
-		count += sizeof(int);
-		ushort mapLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+		ushort UidLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 		count += sizeof(ushort);
-		this.map = Encoding.Unicode.GetString(s.Slice(count, mapLen));
-		count += mapLen;
-		this.seed = BitConverter.ToInt32(s.Slice(count, s.Length - count));
-		count += sizeof(int);
-		this.latencyBudgetMs = BitConverter.ToInt32(s.Slice(count, s.Length - count));
-		count += sizeof(int);
-		ushort startPolicyLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+		this.Uid = Encoding.Unicode.GetString(s.Slice(count, UidLen));
+		count += UidLen;
+		ushort RoomIdLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 		count += sizeof(ushort);
-		this.startPolicy = Encoding.Unicode.GetString(s.Slice(count, startPolicyLen));
-		count += startPolicyLen;
+		this.RoomId = Encoding.Unicode.GetString(s.Slice(count, RoomIdLen));
+		count += RoomIdLen;
+		this.ServerNowMs = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+		count += sizeof(long);
+		this.LeaseTtlSec = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		count += sizeof(int);
 	}
 
 	public ArraySegment<byte> Write()
@@ -181,32 +130,24 @@ public class SC_Welcome : IPacket
 		Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
 
 		count += sizeof(ushort);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.SC_Welcome);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.SC_HandshakeOk);
 		count += sizeof(ushort);
-		ushort matchIdLen = (ushort)Encoding.Unicode.GetBytes(this.matchId, 0, this.matchId.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), matchIdLen);
-		count += sizeof(ushort);
-		count += matchIdLen;
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.slot);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.State);
 		count += sizeof(int);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.serverTimeMs);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Epoch);
 		count += sizeof(long);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.tickRate);
-		count += sizeof(int);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.startTick);
-		count += sizeof(int);
-		ushort mapLen = (ushort)Encoding.Unicode.GetBytes(this.map, 0, this.map.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), mapLen);
+		ushort UidLen = (ushort)Encoding.Unicode.GetBytes(this.Uid, 0, this.Uid.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), UidLen);
 		count += sizeof(ushort);
-		count += mapLen;
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.seed);
-		count += sizeof(int);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.latencyBudgetMs);
-		count += sizeof(int);
-		ushort startPolicyLen = (ushort)Encoding.Unicode.GetBytes(this.startPolicy, 0, this.startPolicy.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), startPolicyLen);
+		count += UidLen;
+		ushort RoomIdLen = (ushort)Encoding.Unicode.GetBytes(this.RoomId, 0, this.RoomId.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), RoomIdLen);
 		count += sizeof(ushort);
-		count += startPolicyLen;
+		count += RoomIdLen;
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ServerNowMs);
+		count += sizeof(long);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.LeaseTtlSec);
+		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s, count);
 		if (success == false)
 			return null;
@@ -214,12 +155,12 @@ public class SC_Welcome : IPacket
 	}
 }
 
-public class CS_Loaded : IPacket
+public class SC_HandshakeFail : IPacket
 {
-	public string matchId;
-	public string uid;
+	public int errorCode;
+	public string message;
 
-	public ushort Protocol { get { return (ushort)PacketID.CS_Loaded; } }
+	public ushort Protocol { get { return (ushort)PacketID.SC_HandshakeFail; } }
 
 	public void Read(ArraySegment<byte> segment)
 	{
@@ -228,14 +169,12 @@ public class CS_Loaded : IPacket
 		ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
 		count += sizeof(ushort);
 		count += sizeof(ushort);
-		ushort matchIdLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+		this.errorCode = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		count += sizeof(int);
+		ushort messageLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 		count += sizeof(ushort);
-		this.matchId = Encoding.Unicode.GetString(s.Slice(count, matchIdLen));
-		count += matchIdLen;
-		ushort uidLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
-		count += sizeof(ushort);
-		this.uid = Encoding.Unicode.GetString(s.Slice(count, uidLen));
-		count += uidLen;
+		this.message = Encoding.Unicode.GetString(s.Slice(count, messageLen));
+		count += messageLen;
 	}
 
 	public ArraySegment<byte> Write()
@@ -247,16 +186,65 @@ public class CS_Loaded : IPacket
 		Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
 
 		count += sizeof(ushort);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.CS_Loaded);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.SC_HandshakeFail);
 		count += sizeof(ushort);
-		ushort matchIdLen = (ushort)Encoding.Unicode.GetBytes(this.matchId, 0, this.matchId.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), matchIdLen);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.errorCode);
+		count += sizeof(int);
+		ushort messageLen = (ushort)Encoding.Unicode.GetBytes(this.message, 0, this.message.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), messageLen);
 		count += sizeof(ushort);
-		count += matchIdLen;
-		ushort uidLen = (ushort)Encoding.Unicode.GetBytes(this.uid, 0, this.uid.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), uidLen);
+		count += messageLen;
+		success &= BitConverter.TryWriteBytes(s, count);
+		if (success == false)
+			return null;
+		return SendBufferHelper.Close(count);
+	}
+}
+
+public class SC_ForcedDisconnect : IPacket
+{
+	public int Reason;
+	public long NewEpoch;
+	public string Message;
+
+	public ushort Protocol { get { return (ushort)PacketID.SC_ForcedDisconnect; } }
+
+	public void Read(ArraySegment<byte> segment)
+	{
+		ushort count = 0;
+
+		ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
 		count += sizeof(ushort);
-		count += uidLen;
+		count += sizeof(ushort);
+		this.Reason = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		count += sizeof(int);
+		this.NewEpoch = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+		count += sizeof(long);
+		ushort MessageLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+		count += sizeof(ushort);
+		this.Message = Encoding.Unicode.GetString(s.Slice(count, MessageLen));
+		count += MessageLen;
+	}
+
+	public ArraySegment<byte> Write()
+	{
+		ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+		ushort count = 0;
+		bool success = true;
+
+		Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+		count += sizeof(ushort);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.SC_ForcedDisconnect);
+		count += sizeof(ushort);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Reason);
+		count += sizeof(int);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.NewEpoch);
+		count += sizeof(long);
+		ushort MessageLen = (ushort)Encoding.Unicode.GetBytes(this.Message, 0, this.Message.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), MessageLen);
+		count += sizeof(ushort);
+		count += MessageLen;
 		success &= BitConverter.TryWriteBytes(s, count);
 		if (success == false)
 			return null;
