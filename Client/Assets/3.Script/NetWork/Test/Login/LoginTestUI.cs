@@ -21,13 +21,13 @@ public class LoginTestUI : MonoBehaviour
             btnGuestLogin.onClick.AddListener(OnGuestLogin);
         if (btnGoogleLogin != null)
             btnGoogleLogin.onClick.AddListener(OnGoogleLogin);
-        _api = new LobbyApiClient("http://localhost:5000", "1.0.0");
+        _api = new LobbyApiClient("http://localhost:5290", "1.0.0");
 
     }
 
     private async void OnGuestLogin()
     {
-        string baseUrl = inputBaseUrl?.text.Trim() ?? "http://localhost:5000";
+        string baseUrl = inputBaseUrl?.text.Trim() ?? "http://localhost:5290";
         //TokenManager.Instance.InitBaseUrl(baseUrl);
 
         logArea.text = $"▶ 게스트 로그인 중... ({baseUrl})\n";
@@ -47,7 +47,7 @@ public class LoginTestUI : MonoBehaviour
     }
     private async void OnGoogleLogin()
     {
-        string baseUrl = inputBaseUrl?.text.Trim() ?? "http://localhost:5000";
+        string baseUrl = inputBaseUrl?.text.Trim() ?? "http://localhost:5290";
         //TokenManager.Instance.InitBaseUrl(baseUrl);
 
         logArea.text = $"▶ Google 로그인URL 수신 중... ({baseUrl})\n";

@@ -1,72 +1,71 @@
 ﻿using Server;
 using ServerCore;
+using Shared;
 using StackExchange.Redis;
 using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Util;
-using Shared;
 partial class PacketHandler
 {
-    public static int LeaseTtlSec = 30;
-    public static async void CS_Handshake(PacketSession session, IPacket packet)
+    public static async Task CS_HandshakeAsync(PacketSession session, CS_Handshake req)
     {
-        var s = (ClientSession)session;
-        var req = (CS_Handshake)packet;
+        var s = (ClientSession)session; // 네 세션 타입 확정
+        var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-        if (!string.IsNullOrEmpty(s.Uid))
+        // 0) 기본 검증
+        if (req == null || string.IsNullOrWhiteSpace(req.ticketId))
+        {
+            await s.SendHandshakeFailAsync("missing_ticket");
+            s.Close("missing_ticket");
             return;
-
-        var nowMs = AppRef.ServerTimeMs();
-        s.ConnId = Guid.NewGuid().ToString("N");
-
-        try
-        {
-            var ticketResponse = await Program.CP.ReserveOrConsumeAsync(
-                req.ticketId, ControlPlane.Grpc.V1.TicketTarget.Game,
-                s.ConnId, nowMs, CancellationToken.None);
-
-            if (!ticketResponse.Ok)
-            {
-                s.Send((new SC_HandshakeFail { errorCode = (int)ticketResponse.Error.Code, message = ticketResponse.Error.Message }).Write());
-                s.Disconnect();
-                return;
-            }
-
-            var a = await Program.CP.AttachAsync(
-                ticketResponse.Uid, ControlPlane.Grpc.V1.PresenceState.Game,
-                s.ConnId, LeaseTtlSec, nowMs, CancellationToken.None);
-
-            if (!a.Ok)
-            {
-                s.Send((new SC_HandshakeFail { errorCode = (int)a.Error.Code, message = a.Error.Message }).Write());
-                s.Disconnect();
-                return;
-            }
-
-            s.Uid = ticketResponse.Uid;
-            s.Epoch = a.Epoch;
-            s.RealtimeState = ControlPlane.Grpc.V1.ServerType.Game; // GAME
-            s.RoomId = ticketResponse.Key ?? "";
-
-            // 여기서 roomId로 룸 join
-            // if (!RoomManager.Instance.TryJoin(s.RoomId, s)) { fail... }
-
-            s.Send((new SC_HandshakeOk
-            {
-                State = 2,
-                Epoch = s.Epoch,
-                Uid = s.Uid,
-                RoomId = s.RoomId,
-                ServerNowMs = nowMs,
-                LeaseTtlSec = LeaseTtlSec
-            }).Write());
         }
-        catch (Exception ex)
+
+        // 1) CP: ReserveOrConsumeTicket + AttachConnection
+        var flow = ServerServices.HandshakeFlow;
+        var registry = ServerServices.Registry;
+        var renewer = ServerServices.LeaseRenewer;
+
+        var res = await flow.RunAsync(
+            ticketId: req.ticketId,
+            connId: s.ConnId,
+            nowMs: nowMs,
+            ct: s.ConnectionToken
+        );
+
+        if (!res.Success)
         {
-            s.Send((new SC_HandshakeFail { errorCode = 9999, message = ex.Message }).Write());
-            s.Disconnect();
+            await s.SendHandshakeFailAsync(res.ErrorMessage);
+            s.Close("handshake_fail:" + res.ErrorMessage);
+            return;
         }
+
+        // 2) 세션에 auth 바인딩
+        s.BindAuth(res.Uid, res.Epoch, res.Key);
+
+        // 3) uid -> conn registry 바인딩 (epoch 최신만 유지)
+        registry.Bind(res.Uid, res.Epoch, s);
+
+        // 4) OK 응답
+        await s.SendHandshakeOkAsync(res.Uid, res.Epoch, res.Key);
+
+        // 5) Lease renew 시작 (연결 동안 유지)
+        _ = Task.Run(async () =>
+        {
+            await renewer.RunAsync(
+                uid: res.Uid,
+                connId: s.ConnId,
+                epoch: res.Epoch,
+                isConnected: () => s.IsConnected,
+                onInvalid: (reason) =>
+                {
+                    s.Close("lease_invalid:" + reason);
+                    registry.UnbindIfMatch(res.Uid, s.ConnId, res.Epoch);
+                },
+                ct: s.ConnectionToken
+            );
+        });
     }
 
     //public static void CS_LoadedHandler(PacketSession s, IPacket p)
@@ -113,7 +112,10 @@ partial class PacketHandler
     //        room.ScheduleStart(startAtMs);
     //    }
     //}
+    public static void CS_HandshakeHandler(PacketSession session, IPacket packet)
+    {
 
+    }
     public static void CS_PingHandler(PacketSession session, IPacket packet)
     {
         ClientSession _session = (ClientSession)session;

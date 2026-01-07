@@ -9,6 +9,9 @@ using ControlPlaneServer.Domain.Presence;
 using ControlPlaneServer.Services;
 using ControlPlaneServer.Domain.Rooms;
 
+using Microsoft.Extensions.DependencyInjection;
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddGrpc(o =>
@@ -24,7 +27,7 @@ builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 builder.WebHost.ConfigureKestrel(o =>
 {
-    o.ListenAnyIP(50051, lo => lo.Protocols = HttpProtocols.Http2);
+    o.ListenAnyIP(5001, lo => lo.Protocols = HttpProtocols.Http2);
 });
 
 builder.Services.AddGrpc();

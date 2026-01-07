@@ -11,11 +11,12 @@ using Contracts.Packet;    //  공통 패킷 (MemberDto, RoomDto, GetRoomsRes, .
 public class RoomUIView : MonoBehaviour
 {
     [Header("Config")]
-    public string BaseUrl = "http://localhost:5000";
+    public string BaseUrl = "http://localhost:5290";
     public string ClientVersion = "1.0.0";
 
     [Header("Lobby UI")]
     public Button BtnRefresh;
+    public Button BtnSession;
     public Button BtnCreate;
     public InputField InputTitle;
     public Transform RoomListRoot;
@@ -50,6 +51,7 @@ public class RoomUIView : MonoBehaviour
         _cts = new CancellationTokenSource();
 
         if (BtnRefresh) BtnRefresh.onClick.AddListener(() => _ = RefreshRooms());
+        if (BtnSession) BtnSession.onClick.AddListener(() => _ = ClickSessionMove());
         if (BtnCreate) BtnCreate.onClick.AddListener(() => _ = CreateAndEnter());
         if (BtnReady) BtnReady.onClick.AddListener(() => _ = _room?.ToggleReadyAsync(true));
         if (BtnUnready) BtnUnready.onClick.AddListener(() => _ = _room?.ToggleReadyAsync(false));
@@ -97,6 +99,17 @@ public class RoomUIView : MonoBehaviour
                 item.Setup(r, this); // RoomItemView는 RoomDto를 받도록 구현되어 있어야 함
             }
         }
+    }
+    public async Task ClickSessionMove()
+    {
+        var res = await _api.TryGetTownTicketAsync();
+        if( res == null)
+        {
+            Debug.LogWarning("튕~");
+            return;
+        }
+        Debug.Log($"Ticket : {res.ticketId} ||HOST :  {res.host} ||Port:  {res.port} ");
+    
     }
 
     public async Task CreateAndEnter()

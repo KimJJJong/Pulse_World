@@ -80,6 +80,8 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
             ttlSeconds: ttl
         );
 
+        Console.WriteLine($"[IssueTicket] ReqUID : {request.Uid} || Target : {target} || key : {request.Key} || IssueServerId : {issuedServerId} || Pinned :{pinned} ||ttl :{ttl} " );
+
         return new IssueTicketResponse
         {
             Ok = true,
@@ -308,30 +310,6 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
         return new CreateRoomResponse { Ok = true };
     }
 
-    //public override async Task RegisterServer(RegisterServerRequest request, ServerCallContext context)
-    //{
-    //    RequireSecret(context);
-
-    //    var type = request.Type == ServerType.Town ? "TOWN" : "GAME";
-    //    var s = new ServerRecord(
-    //        ServerId: request.ServerId,
-    //        Type: type,
-    //        Host: request.Endpoint?.Host ?? "127.0.0.1",
-    //        Port: request.Endpoint?.Port ?? 0,
-    //        Capacity: request.Capacity,
-    //        Region: request.Region ?? "",
-    //        BuildVersion: request.BuildVersion ?? "",
-    //        Load: 0,
-    //        CurrentSessions: 0,
-    //        LastHeartbeatMs: _time.NowMs()
-    //    );
-
-    //    await _registry.RegisterAsync(s);
-
-    //    // empty response style
-    //    // (proto는 RegisterServerResponse returns)
-    //    return ;
-    //}
 
     public override async Task<RegisterServerResponse> RegisterServer(RegisterServerRequest request, ServerCallContext context)
     {
@@ -351,6 +329,8 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
             LastHeartbeatMs: _time.NowMs()
         );
 
+        Console.WriteLine($"[RegisterServer] tpy : {s.Type} || serverID :{s.ServerId} || Host : {s.Host} || Port: {s.Port}");
+
         await _registry.RegisterAsync(s);
 
         return new RegisterServerResponse { Ok = true, ServerNowMs = _time.NowMs() };
@@ -358,6 +338,7 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
 
     public override async Task<HeartbeatResponse> Heartbeat(HeartbeatRequest request, ServerCallContext context)
     {
+
         RequireSecret(context);
 
         var type = request.Type == ServerType.Town ? "TOWN" : "GAME";

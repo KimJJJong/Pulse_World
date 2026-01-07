@@ -1,9 +1,12 @@
+using Contracts.Packet; // gen-contracts.bat 로 생성된 DTO들 (WireJson 사용)
 using System;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-using Contracts.Packet; // gen-contracts.bat 로 생성된 DTO들 (WireJson 사용)
 
 namespace NetClient.Lobby
 {
@@ -80,7 +83,7 @@ namespace NetClient.Lobby
         {
             Debug.Log($"[GuestLoginAsync] baseUrl = {_baseUrl}");
 
-            var url = $"{_baseUrl}/login/guest";
+            var url = $"{_baseUrl}/auth/login/guest";
             //var body = WireJson.Serialize(new GuestLoginReq{ deviceId = deviceId ?? SystemInfo.deviceUniqueIdentifier });
             if (deviceId == null || deviceId.Length <= 2)
                 deviceId = SystemInfo.deviceUniqueIdentifier;
@@ -198,6 +201,63 @@ namespace NetClient.Lobby
 
             return await DoRequest();
         }
+        // --------------------------------------------------------------
+        // Post /session/ticket/town
+        // --------------------------------------------------------------
+        public async Task<TownTicketRes?> TryGetTownTicketAsync()
+        {
+            if (string.IsNullOrEmpty(AccessToken))
+            {
+                Debug.LogWarning("[TownTicket] ❌ No access token");
+                return null;
+            }
+
+            var url = $"http://localhost:5290/session/ticket/town";
+
+            // 서버가 body를 안 받는다면 {}로 보내면 됨
+            var body = WireJson.Serialize(new { });
+
+            using var req = new UnityWebRequest(url, "POST");
+            req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+            req.SetRequestHeader("X-Client-Version", _clientVersion);
+
+            // Bearer
+            req.SetRequestHeader("Authorization", $"Bearer {AccessToken}");
+
+            var op = req.SendWebRequest();
+            while (!op.isDone) await Task.Yield();
+
+            if (req.result == UnityWebRequest.Result.Success)
+            {
+                // JsonUtility는 top-level object만 잘 먹음(배열/딕셔너리 주의)
+                var jsonText = req.downloadHandler.text;
+                var res = JsonUtility.FromJson<TownTicketRes>(jsonText);
+
+                if (res == null || string.IsNullOrEmpty(res.ticketId))
+                {
+                    Debug.LogWarning($"[TownTicket] ⚠ Invalid response: {jsonText}");
+                    return null;
+                }
+
+                Debug.Log($"[TownTicket] ✅ ticketId={res.ticketId} exp={res.expireAtMs} town={res.host}:{res.port}");
+                return res;
+            }
+
+            // 인증 문제면 refresh 시도 → 재시도 패턴을 여기서 넣을 수도 있음
+            Debug.LogWarning($"[TownTicket] ⚠ Failed ({req.responseCode}) {req.error} body={req.downloadHandler.text}");
+            return null;
+        }
+        [Serializable]
+        public class TownTicketRes
+        {
+            public string ticketId;
+            public long expireAtMs;
+            public string host;
+            public int port;
+        }
+
 
         // --------------------------------------------------------------
         // POST /rooms
@@ -288,12 +348,20 @@ namespace NetClient.Lobby
         // --------------------------------------------------------------
         // 내부 DTO
         // --------------------------------------------------------------
-/*        [Serializable]
-        private sealed class LoginResJson
-        {
-            public string accessToken;
-            public string refreshToken;
-            public string refreshExpiresAt;
-        }*/
+        /*        [Serializable]
+                private sealed class LoginResJson
+                {
+                    public string accessToken;
+                    public string refreshToken;
+                    public string refreshExpiresAt;
+                }*/
+        [Serializable]
+        public sealed class IssueTownTicketResponse {
+            string TicketId;
+            long ExpireAtMs;
+            //EndpointDto Endpoint;
+        }
+        //public sealed record EndpointDto(string Host, int Port);
+
     }
 }
