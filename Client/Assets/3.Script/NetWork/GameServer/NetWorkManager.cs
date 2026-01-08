@@ -48,18 +48,19 @@ public class NetWorkManager : MonoBehaviour
 
     public void SendJoin()
     {
-        //CS_JoinGame join = new CS_JoinGame
-        //{
-        //    matchId   = MatchId,    // netWork
-        //    uid       = Uid,        //network
-        //    ticket    = _ticket,    //network
-        //    protoVer  = 1,//NetConfig.ProtoVer,  //local               
-        //    nonce     = Guid.NewGuid().ToString("N"),
-        //    clientVer = Application.version,    //local
-        //    platform  = Application.platform.ToString() //local
-        //};
-        ////Debug.Log("SendJoin");
-        //_session.Send(join.Write());
+        CS_Handshake join = new CS_Handshake
+        {
+            clientNonce = MatchId,    // netWork
+            ticketId = _ticket,
+            //uid = Uid,        //network
+            //ticket = _ticket,    //network
+            //protoVer = 1,//NetConfig.ProtoVer,  //local               
+            //nonce = Guid.NewGuid().ToString("N"),
+            //clientVer = Application.version,    //local
+            //platform = Application.platform.ToString() //local
+        };
+        //Debug.Log("SendJoin");
+        _session.Send(join.Write());
     }
 
     public void Send(ArraySegment<byte> sendBuff) => _session.Send(sendBuff);

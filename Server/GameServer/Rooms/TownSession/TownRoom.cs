@@ -46,6 +46,7 @@ public sealed class TownRoom : IGameBroadcaster, IUpdatable
         TownId = townId;
         _logger = logger ?? NullLogger.Instance;
         _slots.Clear();
+        StartTownIfNeeded();
     }
 
     // =========================
@@ -174,7 +175,7 @@ public sealed class TownRoom : IGameBroadcaster, IUpdatable
         }
 
         // 맵 로드 (TownMap으로 교체)
-        _map = MapDatabase.Get("TownMap"); // TODO: 실제 town map key로
+        _map = MapDatabase.Get("Twon_01"); // TODO: 실제 town map key로
 
         var time = new ServerTimeAdapter();
 

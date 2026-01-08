@@ -54,7 +54,7 @@ public static class ServerHost
                 services.AddSingleton<IRoleModule, GameRoleModule>();
                 services.AddSingleton<IRoleModule, TownRoleModule>();
 
-                // ---- Content (Game only에서 실행) ----
+                // ---- Content ----
                 services.AddHostedService<ContentInitHostedService>();
 
                 // ---- Worker ----
