@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -98,10 +99,11 @@ public sealed class TownScreen : MonoBehaviour
         }
 
         view.SetBusy(true);
-        var (ok, msg) = await TcpConnector.Instance.ConnectAsync(_lastTown.Endpoint.Host, _lastTown.Endpoint.Port);
+        var ep = new IPEndPoint(IPAddress.Parse(_lastTown.Endpoint.Host), _lastTown.Endpoint.Port);
+        NetworkManager.Instance.ConnectAndHandshake(ep, _lastTown.TicketId, clientNonce: "tmp");
         view.SetBusy(false);
 
-        view.SetStatus(msg);
+        view.SetStatus("msg");
 
         // TODO: ok면 핸드셰이크(티켓) 전송 연결
         // await TcpConnector.Instance.SendHandshakeAsync(_lastTown.TicketId, key:null);
@@ -116,10 +118,11 @@ public sealed class TownScreen : MonoBehaviour
         }
 
         view.SetBusy(true);
-        var (ok, msg) = await TcpConnector.Instance.ConnectAsync(_lastGame.Endpoint.Host, _lastGame.Endpoint.Port);
+        var ep = new IPEndPoint(IPAddress.Parse(_lastGame.Endpoint.Host), _lastGame.Endpoint.Port);
+        NetworkManager.Instance.ConnectAndHandshake(ep, _lastGame.TicketId, clientNonce: _lastGame.ServerId/*tmp*/, key: _lastGame.Key);
         view.SetBusy(false);
 
-        view.SetStatus(msg);
+        view.SetStatus("msg");
 
         // TODO: ok면 핸드셰이크(티켓+key) 전송 연결
         // await TcpConnector.Instance.SendHandshakeAsync(_lastGame.TicketId, _lastGame.Key);

@@ -9,8 +9,9 @@ using System.Threading.Tasks;
 using Util;
 partial class PacketHandler
 {
-    public static async Task CS_HandshakeAsync(PacketSession session, CS_Handshake req)
+    public static async void CS_HandshakeHandler(PacketSession session, IPacket packet)
     {
+        CS_Handshake req = (CS_Handshake)packet;
         var s = (ClientSession)session; // 네 세션 타입 확정
         var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -112,10 +113,7 @@ partial class PacketHandler
     //        room.ScheduleStart(startAtMs);
     //    }
     //}
-    public static void CS_HandshakeHandler(PacketSession session, IPacket packet)
-    {
 
-    }
     public static void CS_PingHandler(PacketSession session, IPacket packet)
     {
         ClientSession _session = (ClientSession)session;

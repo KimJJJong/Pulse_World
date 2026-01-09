@@ -194,7 +194,7 @@ public class RoomUIView : MonoBehaviour
             // NetWorkManager.Instance.Uid = MyUidProvider.Value;
             MainThreadDispatcher.Post(() =>
             {
-                NetWorkManager.Instance.ConnectAndJoin(begin.gsAddress.host, begin.gsAddress.port, begin.ticket, begin.protoVer);
+                //NetWorkManager.Instance.ConnectAndJoin(begin.gsAddress.host, begin.gsAddress.port, begin.ticket, begin.protoVer);
             });
 
         };
