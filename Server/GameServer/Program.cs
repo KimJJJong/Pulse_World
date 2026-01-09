@@ -10,6 +10,7 @@ public static class Program
     public static async Task Main(string[] args)
     {
         using IHost host = ServerHost.Build(args);
+        ServerServices.Init(host.Services);
         await host.RunAsync();
 
     }

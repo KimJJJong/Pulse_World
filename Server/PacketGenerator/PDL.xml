@@ -26,6 +26,12 @@
 		<string name="Message"/>
 	</packet>
 
+	<packet name ="SC_TownEnter">
+		<long name ="clientTimeMs"/>
+		<string name ="clientVersion"/>
+		<string name ="preferredRegion"/>
+	</packet>
+	
 
 
 	<!-- 게임서버 -> 클라: 양측 로딩 완료 알림 -->

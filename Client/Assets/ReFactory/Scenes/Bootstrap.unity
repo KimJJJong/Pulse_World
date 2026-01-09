@@ -149,7 +149,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AppBootstrap
   config: {fileID: 11400000, guid: 385342bbbdbf2b547bcd7be522438f2c, type: 2}
-  ignoreToken: 1
+  ignoreToken: 0
 --- !u!4 &705676784
 Transform:
   m_ObjectHideFlags: 0
@@ -181,7 +181,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &788542117
 MonoBehaviour:
   m_ObjectHideFlags: 0

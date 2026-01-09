@@ -64,10 +64,10 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
             ServerServices.Registry.UnbindIfMatch(Uid, ConnId, Epoch);
         }
 
-        /*        GameManager.TryGet(MatchId, out var room);
-                room.Unbind(this);
-                SessionManager.Instance.Remove(this);
-                Console.WriteLine($"OnDisconnected : {endPoint}");*/
+        GameManager.TryGet(MatchId, out var room);
+        room.Unbind(this);
+        SessionManager.Instance.Remove(this);
+        //Console.WriteLine($"OnDisconnected : {endPoint}");
     }
 
     public override void OnSend(int numOfBytes)

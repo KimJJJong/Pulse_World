@@ -8,8 +8,16 @@ public sealed class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance { get; private set; } = null!;
 
-    enum ConnState { Idle, Connecting, Connected }
+    enum ConnState { Idle, Connecting, Connected, Ready }
     ConnState _state = ConnState.Idle;
+
+    public bool IsReady => _state == ConnState.Ready;
+    public bool IsConnected => _state == ConnState.Connected || _state == ConnState.Ready;
+
+    // 정석: Network는 “신호만 발행”
+    public event Action? Ready;             // Handshake OK
+    public event Action? Disconnected;      // 끊김
+    public event Action<string>? Failed;    // HandshakeFail/Timeout 등
 
     readonly Connector _connector = new Connector();
     ServerSession _session = null!;
@@ -25,7 +33,6 @@ public sealed class NetworkManager : MonoBehaviour
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
-
         NewSession();
     }
 
@@ -35,11 +42,15 @@ public sealed class NetworkManager : MonoBehaviour
         TickTimeout();
     }
 
+    /// <summary>
+    /// Connect(TCP) -> CS_Handshake(1회) 까지.
+    /// OK는 SC_HandshakeOk에서 OnHandshakeSucceeded() 호출로 확정됨.
+    /// </summary>
     public void ConnectAndHandshake(IPEndPoint endPoint, string ticketId, string clientNonce, string? key = null)
     {
         _pending = new HandshakeArgs(endPoint, ticketId, clientNonce, key);
 
-        if (_state == ConnState.Connecting || _state == ConnState.Connected)
+        if (_state == ConnState.Connecting || _state == ConnState.Connected || _state == ConnState.Ready)
         {
             TrySendHandshakeOnce();
             return;
@@ -48,7 +59,7 @@ public sealed class NetworkManager : MonoBehaviour
         StartConnect(endPoint);
     }
 
-    public void Disconnect()
+    public void Disconnect(string reason = "")
     {
         _pending = null;
         _handshakeSent = false;
@@ -57,11 +68,14 @@ public sealed class NetworkManager : MonoBehaviour
 
         try { _session.Disconnect(); } catch { }
         NewSession();
+
+        if (!string.IsNullOrEmpty(reason))
+            Failed?.Invoke(reason);
     }
 
     public void Send(ArraySegment<byte> sendBuff)
     {
-        if (_state != ConnState.Connected) return;
+        if (!IsConnected) return;
         _session.Send(sendBuff);
     }
 
@@ -96,28 +110,33 @@ public sealed class NetworkManager : MonoBehaviour
 
     void OnDisconnectedMainThread()
     {
+        var wasReady = (_state == ConnState.Ready);
+
         _state = ConnState.Idle;
         _deadline = -1f;
         _handshakeSent = false;
 
-        // 원하면 자동 재연결은 여기서
-        // if (_pending != null) StartConnect(_pending.EndPoint);
+        // 씬이 판단할 수 있게 이벤트만 발행
+        Disconnected?.Invoke();
+
+        // 운영 정석: Ready였다가 끊긴 경우 UI에서 “재접속/로그인 이동” 결정
+        if (wasReady)
+            Failed?.Invoke("Disconnected");
     }
 
     void TrySendHandshakeOnce()
     {
-        if (_state != ConnState.Connected) return;
+        if (_state != ConnState.Connected && _state != ConnState.Ready) return;
         if (_handshakeSent) return;
         if (_pending == null) return;
 
         _handshakeSent = true;
 
-        // 기존 CS_Handshake 필드에 맞춰 작성
         var p = new CS_Handshake
         {
             clientNonce = _pending.ClientNonce,
             ticketId = _pending.TicketId,
-            // key 필드가 있다면 아래 주석 해제
+            // key 필드가 있다면 주석 해제
             // key = _pending.Key ?? ""
         };
 
@@ -131,7 +150,7 @@ public sealed class NetworkManager : MonoBehaviour
         if (Time.unscaledTime <= _deadline) return;
 
         Debug.LogWarning("[Network] connect timeout");
-        Disconnect();
+        Disconnect("ConnectTimeout");
     }
 
     void PumpPackets(int maxPerFrame)
@@ -140,13 +159,31 @@ public sealed class NetworkManager : MonoBehaviour
         {
             var packet = PacketQueue.Instance.Pop();
             if (packet == null) break;
+
             PacketManager.Instance.HandlePacket(_session, packet);
         }
     }
 
-    void NewSession()
+    void NewSession() => _session = new ServerSession();
+
+    // ====== Handshake 결과는 “패킷 핸들러”에서 호출 ======
+
+    public void OnHandshakeSucceeded()
     {
-        _session = new ServerSession();
+        if (_state != ConnState.Connected && _state != ConnState.Ready) return;
+
+        _state = ConnState.Ready;
+        Ready?.Invoke();
+    }
+
+    public void OnHandshakeFailed(string reason = "HandshakeFail")
+    {
+        Disconnect(reason);
+    }
+
+    public void OnForcedDisconnect(string reason = "ForcedDisconnect")
+    {
+        Disconnect(reason);
     }
 
     sealed class HandshakeArgs

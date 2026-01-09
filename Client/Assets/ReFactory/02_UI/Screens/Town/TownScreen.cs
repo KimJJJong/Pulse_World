@@ -98,15 +98,11 @@ public sealed class TownScreen : MonoBehaviour
             return;
         }
 
-        view.SetBusy(true);
-        var ep = new IPEndPoint(IPAddress.Parse(_lastTown.Endpoint.Host), _lastTown.Endpoint.Port);
-        NetworkManager.Instance.ConnectAndHandshake(ep, _lastTown.TicketId, clientNonce: "tmp");
-        view.SetBusy(false);
+        // clientNonce는 네 규격에 맞게(예: MatchId/Guid)
+        var clientNonce = "town-" + System.Guid.NewGuid().ToString("N");
 
-        view.SetStatus("msg");
-
-        // TODO: ok면 핸드셰이크(티켓) 전송 연결
-        // await TcpConnector.Instance.SendHandshakeAsync(_lastTown.TicketId, key:null);
+        ClientFlow.Instance.ConnectTown(_lastTown, clientNonce);
+        view.SetStatus("연결 시도 중... (Handshake 대기)");
     }
 
     async Task ConnectGameAsync()
@@ -117,16 +113,12 @@ public sealed class TownScreen : MonoBehaviour
             return;
         }
 
-        view.SetBusy(true);
-        var ep = new IPEndPoint(IPAddress.Parse(_lastGame.Endpoint.Host), _lastGame.Endpoint.Port);
-        NetworkManager.Instance.ConnectAndHandshake(ep, _lastGame.TicketId, clientNonce: _lastGame.ServerId/*tmp*/, key: _lastGame.Key);
-        view.SetBusy(false);
+        var clientNonce = "game-" + System.Guid.NewGuid().ToString("N");
 
-        view.SetStatus("msg");
-
-        // TODO: ok면 핸드셰이크(티켓+key) 전송 연결
-        // await TcpConnector.Instance.SendHandshakeAsync(_lastGame.TicketId, _lastGame.Key);
+        ClientFlow.Instance.ConnectGame(_lastGame, clientNonce);
+        view.SetStatus("연결 시도 중... (Handshake 대기)");
     }
+
 
     void RenderTownResult(SessionDtos.IssueTownTicketResponse d)
     {

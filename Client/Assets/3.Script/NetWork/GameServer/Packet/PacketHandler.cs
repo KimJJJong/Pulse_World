@@ -61,11 +61,48 @@ class PacketHandler
 
 
     public static void SC_HandshakeOkHandler(PacketSession session, IPacket packet)
-    { }
+    {
+        var p = (SC_HandshakeOk)packet;
+
+        // 1) 네트워크 상태 확정
+        NetworkManager.Instance.OnHandshakeSucceeded();
+
+        // 2) 서버에서 내려준 세션/매치 정보가 있다면 반영
+        // 예시 (필드가 있을 경우만)
+        // ClientGameState.Instance.MatchId = p.matchId;
+        // ClientGameState.Instance.ServerTimeMs = p.serverTimeMs;
+
+        UnityEngine.Debug.Log($"[Network] UID :{p.Uid} || STATE : {p.State} || Epoch : {p.Epoch} || RoomID : {p.RoomId}");
+    }
+
     public static void SC_HandshakeFailHandler(PacketSession session, IPacket packet)
-    { }
+    {
+        var p = (SC_HandshakeFail)packet;
+
+        // 1) 실패 사유 로깅
+        // 예: p.reason, p.code 등이 있다면 사용
+        UnityEngine.Debug.LogError("[Network] Handshake FAIL");
+
+        // 2) 연결 종료 및 상태 정리
+        NetworkManager.Instance.OnHandshakeFailed("HandshakeFail");
+
+        // 3) 필요하면 UI 알림/재시도 트리거
+        // UIManager.Instance.ShowError("서버 인증 실패");
+    }
+
     public static void SC_ForcedDisconnectHandler(PacketSession session, IPacket packet)
-    { }
+    {
+        var p = (SC_ForcedDisconnect)packet;
+
+        // 1) 서버 강제 종료 사유 로깅
+        UnityEngine.Debug.LogWarning("[Network] Forced disconnect by server");
+
+        // 2) 즉시 연결 정리
+        NetworkManager.Instance.OnForcedDisconnect("ForcedDisconnect");
+
+        // 3) UI 알림/로비 이동 등
+        // SceneRouter.Load(SceneNames.Town);
+    }
     /// <summary>
     /// rhytm
     /// </summary>

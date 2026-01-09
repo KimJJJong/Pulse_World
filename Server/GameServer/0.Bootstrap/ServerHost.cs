@@ -1,13 +1,18 @@
-﻿using Microsoft.AspNetCore.Routing;
+﻿using Grpc.Net.Client;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Server.Content;
+using Server.Domain.Auth;
+using Server.Domain.Connections;
+using Server.Infrastructure.ControlPlaneClient;
 using Server.Infrastructure.Options;
 using Server.Net;
 using Server.Runtime;
 using Server.Workers;
+using Shared.ControlPlane;
 
 namespace Server.Bootstrap;
 
@@ -36,6 +41,11 @@ public static class ServerHost
                     .Validate(o => !string.IsNullOrWhiteSpace(o.Address), "ControlPlane:Address required")
                     .ValidateOnStart();
 
+
+                services.AddSingleton<GrpcControlPlaneClient>();
+
+
+
                 // ---- RoleContext ----
                 services.AddSingleton<RoleContext>();
 
@@ -53,6 +63,11 @@ public static class ServerHost
                 services.AddSingleton<IRoleModuleResolver, RoleModuleResolver>();
                 services.AddSingleton<IRoleModule, GameRoleModule>();
                 services.AddSingleton<IRoleModule, TownRoleModule>();
+
+                services.AddSingleton<HandshakeFlow>();
+                services.AddSingleton<ConnectionRegistry>();
+                services.AddSingleton<PresenceLeaseRenewer>();
+
 
                 // ---- Content ----
                 services.AddHostedService<ContentInitHostedService>();
