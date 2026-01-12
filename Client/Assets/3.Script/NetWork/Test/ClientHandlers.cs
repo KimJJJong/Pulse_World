@@ -16,23 +16,42 @@ public class ClientHandlers : MonoBehaviour
     public static event System.Action OnBeatSyncReady;
 
 
-    //TestHUD HUD => TestHUD.Instance;
-    //BoardView BV => BoardView.Instance;
-    // [추가] (x,y) -> expireBeat (이 beat를 지나면 원복)
     private readonly System.Collections.Generic.Dictionary<(int x, int y), long> _telegraphExpireBeat
         = new System.Collections.Generic.Dictionary<(int x, int y), long>();
 
-    // [추가] 마지막으로 처리한 beat (중복 처리 방지)
     private long _lastTelegraphCleanupBeat = long.MinValue;
 
-    // [추가] BoardView 편의 접근
     private BoardView BV => BoardView.Instance;
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
+    public void HandleSC_InitMap( SC_InitMap p)
+    {
+        var mapName = p.MapId; // <-- SC_InitGame에 string MapName 추가 필요
 
+        var reg = MapRegistry.Instance;
+        if (reg == null)
+        {
+            Debug.LogError("[InitGame] MapRegistry.Instance is null. Scene에 MapRegistry를 배치해야 함.");
+            return;
+        }
+
+        if (!reg.TryGet(mapName, out var mapAsset) || mapAsset == null)
+        {
+            Debug.LogError($"[InitGame] MapAsset not found. mapName={mapName}. " +
+                           $"MapAsset 이름과 서버 MapName을 통일했는지 확인.");
+            return;
+        }
+
+        bool ok = GS.CreateMapFromAsset(mapAsset);
+        if (!ok)
+        {
+            Debug.LogError($"[InitGame] CreateMapFromAsset failed. mapName={mapName}");
+            return;
+        }
+    }
 
     public void Handle_SC_InitGame( SC_InitGame p )
     {
@@ -54,31 +73,22 @@ public class ClientHandlers : MonoBehaviour
             return;
         }
 
-        // 2) judgeWindowMs Set
         RhythmClient.Instance.judgeWindowMs = (float)p.ActionWindowMs;
         Debug.Log($" Get JudgeWindowMS :{RhythmClient.Instance.judgeWindowMs}");
 
-        // 1) MapAsset 기준으로 기존 파이프라인(CreateMap/SetTile/BoardView)을 그대로 사용
         bool ok = GS.CreateMapFromAsset(mapAsset);
         if (!ok)
         {
             Debug.LogError($"[InitGame] CreateMapFromAsset failed. mapName={mapName}");
             return;
         }
-        //int idx = 0;
-        //foreach (var t in p.tiless)
-        //{
-        //    int x = idx % p.MapWidth;
-        //    int y = idx / p.MapWidth;
-        //    GS.SetTile(x, y, t.TileKind);
-        //    idx++;
-        //}
+ 
 
         // 2) 플레이어 Actor 정보
         var actorIds = p.playerActorIdss.Select(pa => pa.ActorId).ToArray();
         GS.SetPlayerActorIds(actorIds);
         GS.SetMyActorId(p.MyActorId);
-        Debug.Log($"ActorId : {GS.MyActorId} ~!~!~@~!@~@~!@~!@");
+        Debug.Log($"ActorId : {GS.MyActorId} ~!~!~@~!@~@");
         // 3) 엔티티 스폰
         GS.ClearEntities();
         foreach (var e in p.spawnEntitiess)

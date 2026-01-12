@@ -21,8 +21,10 @@ public class PacketManager
 	{
 		_makeFunc.Add((ushort)PacketID.CS_Handshake, MakePacket<CS_Handshake>);
 		_handler.Add((ushort)PacketID.CS_Handshake, PacketHandler.CS_HandshakeHandler);
-		_makeFunc.Add((ushort)PacketID.CS_TownEnter, MakePacket<CS_TownEnter>);
-		_handler.Add((ushort)PacketID.CS_TownEnter, PacketHandler.CS_TownEnterHandler);
+		_makeFunc.Add((ushort)PacketID.CS_MapEnter, MakePacket<CS_MapEnter>);
+		_handler.Add((ushort)PacketID.CS_MapEnter, PacketHandler.CS_MapEnterHandler);
+		_makeFunc.Add((ushort)PacketID.CS_Ready, MakePacket<CS_Ready>);
+		_handler.Add((ushort)PacketID.CS_Ready, PacketHandler.CS_ReadyHandler);
 		_makeFunc.Add((ushort)PacketID.CS_Ping, MakePacket<CS_Ping>);
 		_handler.Add((ushort)PacketID.CS_Ping, PacketHandler.CS_PingHandler);
 		_makeFunc.Add((ushort)PacketID.CS_CalibHit, MakePacket<CS_CalibHit>);

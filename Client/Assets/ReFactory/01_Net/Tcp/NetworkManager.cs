@@ -137,7 +137,7 @@ public sealed class NetworkManager : MonoBehaviour
             ClientNonce = _pending.ClientNonce,
             TicketId = _pending.TicketId,
             // key 필드가 있다면 주석 해제
-            // key = _pending.Key ?? ""
+             Key = _pending.Key ?? "TestKey"
         };
 
         _session.Send(p.Write());

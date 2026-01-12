@@ -44,12 +44,12 @@ partial class PacketHandler
 
         // 2) 세션에 auth 바인딩
         s.BindAuth(res.Uid, res.Epoch, res.Key);
-
+        //Console.WriteLine($" UID : {res.Uid} || Epoch : {res.Epoch} || Key : {res.Key}");
         // 3) uid -> conn registry 바인딩 (epoch 최신만 유지)
         registry.Bind(res.Uid, res.Epoch, s);
 
         // 4) OK 응답
-        await s.SendHandshakeOkAsync(res.Uid, res.Epoch, res.Key);
+        await s.SendHandshakeOkAsync(res.Uid, res.Epoch,res.ServerRole , "Test_Val");
 
         // 5) Lease renew 시작 (연결 동안 유지)
         _ = Task.Run(async () =>
@@ -113,13 +113,43 @@ partial class PacketHandler
     //        room.ScheduleStart(startAtMs);
     //    }
     //}
-    public static void CS_TownEnterHandler(PacketSession session, IPacket packet)
+
+    public static void CS_MapEnterHandler(PacketSession session, IPacket packet)
     {
         var s = (ClientSession)session;
-        var p = (CS_TownEnter)packet;
+        var req = (CS_MapEnter)packet;
 
-        TownEnterHandler.Handle(s, p);
+        if (!s.HasAuth)
+        {
+            s.Close("map_enter_without_auth");
+            return;
+        }
+
+        var townId = "Town_01"; // req.MapId를 쓰려면 여기서 매핑
+        var room = TownManager.GetOrCreate(townId);
+
+        if (!room.BindOrReattach(s, out var slot, out var actorId))
+        {
+            s.Close("town_bind_fail");
+            return;
+        }
+
+        // TMP : TODO : Regureal
+        SC_InitMap tmpSend = new SC_InitMap();
+        tmpSend.MapId = "Town_01";
+        tmpSend.MyActorId = s.Slot;
+        tmpSend.SongId = "tmp";
+        s.Send(tmpSend.Write());
+
+        TownManager.GetOrCreate(tmpSend.MapId);//.Bind(whatSlot?,_session);
     }
+    public static void CS_ReadyHandler(PacketSession session, IPacket packet)
+    {
+        ClientSession _session = (ClientSession)session;
+        CS_MapEnter req = (CS_MapEnter)packet;
+
+    }
+
 
     public static void CS_PingHandler(PacketSession session, IPacket packet)
     {

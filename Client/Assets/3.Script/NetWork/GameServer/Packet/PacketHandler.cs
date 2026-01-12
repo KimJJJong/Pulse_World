@@ -64,15 +64,20 @@ class PacketHandler
     {
         var p = (SC_HandshakeOk)packet;
 
+        ClientNetContext.Instance.ApplyHandshakeOk(
+            uid: p.Uid,
+            serverTimeMs: p.ServerTimeMs,
+            sessionEpoch: p.SessionEpoch,
+            role: "Town"
+            );
+
         // 1) 네트워크 상태 확정
         NetworkManager.Instance.OnHandshakeSucceeded();
 
-        // 2) 서버에서 내려준 세션/매치 정보가 있다면 반영
-        // 예시 (필드가 있을 경우만)
-        // ClientGameState.Instance.MatchId = p.matchId;
-        // ClientGameState.Instance.ServerTimeMs = p.serverTimeMs;
+        TownFlow.OnHandshakeOk();
 
-        UnityEngine.Debug.Log($"[Network] UID :{p.Uid} || STATE : {p.ServerRole} || Epoch : {p.SessionEpoch} ||");
+
+        //UnityEngine.Debug.Log($"[Network] UID :{p.Uid} || STATE : {p.ServerRole} || Epoch : {p.SessionEpoch} ||");
     }
 
     public static void SC_HandshakeFailHandler(PacketSession session, IPacket packet)
@@ -85,6 +90,7 @@ class PacketHandler
 
         // 2) 연결 종료 및 상태 정리
         NetworkManager.Instance.OnHandshakeFailed("HandshakeFail");
+        ClientNetContext.Instance.ResetForReconnect();
 
         // 3) 필요하면 UI 알림/재시도 트리거
         // UIManager.Instance.ShowError("서버 인증 실패");
@@ -99,48 +105,32 @@ class PacketHandler
 
         // 2) 즉시 연결 정리
         NetworkManager.Instance.OnForcedDisconnect("ForcedDisconnect");
+        ClientNetContext.Instance.ResetForReconnect();
 
         // 3) UI 알림/로비 이동 등
         // SceneRouter.Load(SceneNames.Town);
     }
 
     ///TOWN
-    public static void SC_TownSnapshotHandler(PacketSession session, IPacket packet)
+    public static void SC_InitMapHandler(PacketSession session, IPacket packet)
     {
-        var p = (SC_TownSnapshot)packet;
+        var p = (SC_InitMap)packet;
 
-        TownWorld.Instance.ApplySnapshot(p);
-
-        TownHandlers.Instance.Handle_SC_TownSnapshot(p);
-
-        SceneRouter.Load(SceneNames.TownMap);
-
-        Debug.Log($"[Town] Snapshot ok rev={p.Revision} myActor={p.MyActorId} actors={p.actorss.Count}");
-        // TODO: 여기서 TownSceneView가 있다면 "렌더 시작" 트리거
+        // 1) 컨텍스트 저장
+        ClientNetContext.Instance.ApplyInitMap(
+            rev: p.Revision,
+            tickRate: p.TickRate,
+            mapId: p.MapId,
+            mapVersion: "Test",//p.MapVersion,
+            myActorId: p.MyActorId
+        );
+        ClientHandlers.Instance.HandleSC_InitMap((SC_InitMap)packet);
     }
 
-    public static void SC_TownActorJoinHandler(PacketSession session, IPacket packet)
+    public static void SC_ReadyAckHandler(PacketSession session, IPacket packet)
     {
-        var p = (SC_TownActorJoin)packet;
-        TownWorld.Instance.ApplyJoin(p);
+
     }
-
-    public static void SC_TownActorLeaveHandler(PacketSession session, IPacket packet)
-    {
-        var p = (SC_TownActorLeave)packet;
-        TownWorld.Instance.ApplyLeave(p);
-    }
-
-    // 너가 기존에 쓰는 비트 기반 액션 결과를 Town에서도 그대로 반영
-    //public static void SC_BeatActionsHandler(PacketSession session, IPacket packet)
-    //{
-    //    var p = (SC_BeatActions)packet;
-    //    TownWorld.Instance.ApplyBeatActions(p);
-
-    //    // 디버그용
-    //    // Debug.Log($"[Town] BeatActions beat={p.BeatIndex} count={p.BeatActionResult.Count}");
-    //}
-
 
 
 

@@ -64,6 +64,7 @@ public sealed class HandshakeFlow
             uid: v.Uid,
             key: v.Key ?? "",
             epoch: a.Epoch,
+            serverRole : (int)MyPresenceState(),
             prev: a
         );
     }
@@ -75,12 +76,13 @@ public sealed record HandshakeResult(
     string Uid,
     string Key,
     long Epoch,
+    int ServerRole,
     AttachConnectionResponse? Prev
 )
 {
     public static HandshakeResult Fail(string msg)
-        => new(false, msg, "", "", 0, null);
+        => new(false, msg, "", "", 0,0, null);
 
-    public static HandshakeResult Ok(string uid, string key, long epoch, AttachConnectionResponse prev)
-        => new(true, "", uid, key, epoch, prev);
+    public static HandshakeResult Ok(string uid, string key, long epoch,int serverRole, AttachConnectionResponse prev)
+        => new(true, "", uid, key, epoch,serverRole, prev);
 }

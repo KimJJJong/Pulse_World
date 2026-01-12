@@ -29,43 +29,68 @@
 	
 	<!--TOWN-->
 
-	<packet name ="CS_TownEnter">
-		<long name ="ClientTimeMs"/>
-		<int name ="LastKnownRevision"/>		<!-- 없으면 0 -->
-		<bool name ="WantSnapshot"/>		<!-- true -->
+	<!-- COMMON: Scene 로딩 완료 후 맵 스냅샷 요청 -->
+	<packet name="CS_MapEnter">
+		<long   name="ClientTimeMs"/>
+		<string name="MapId"/>
+		<!-- Town: "town", Game: matchId 또는 mapId -->
+		<int    name="LastKnownRevision"/>
+		<!-- 없으면 0 -->
+		<bool   name="WantSnapshot"/>
+		<!-- true -->
 	</packet>
 
-	<packet name ="SC_TownSnapshot">
-		<long name ="ServerTimeMs"/>
-		<int name ="Revision"/>
-		<int name ="MyActorId"/>
-		<string name ="MapId"/>
-		<int name ="TickRate"/>
-		<!-- Town이 tick 기반이면 사용, 아니면 0 -->
+	<!-- COMMON: 월드/맵/기존 인원/엔티티 스냅샷 (A 방식: 내 플레이어 포함) -->
+	<packet name="SC_InitMap">
+		<long name="ServerTimeMs"/>
+		<int  name="Revision"/>
+		<int  name="TickRate"/>
+		<!-- 안 쓰면 0 -->
 
-		<list name ="Actors">
-			<int name="ActorId"/>
+		<string name="MapId"/>
+		<int    name="MapVersion"/>
+
+		<int name="Mode"/>
+		<!-- 0=Town, 1=Game -->
+
+		<list name="Players">
+			<string name="Uid"/>
+			<int    name="Slot"/>
 			<string name="Name"/>
+			<int    name="Team"/>
+		</list>
+
+		<int name="MyActorId"/>
+		<int name="MySlot"/>
+
+		<list name="Entities">
+			<int name="EntityId"/>
+			<int name="EntityType"/>
+			<!-- PlayerActor/Unit/NPC 등 -->
+			<int name="OwnerSlot"/>
+			<!-- PlayerActor면 MySlot 등 -->
 			<int name="X"/>
 			<int name="Y"/>
-			<int name="Dir"/>			<!-- 0~3 or 0~7 -->
+			<int name="Dir"/>
+			<int name="Hp"/>
+			<int name="AppearanceId"/>
 		</list>
+
+		<!-- Game(리듬) 전용 초기 파라미터 (선택: 지금 너 구조랑 잘 맞음) -->
+		<double name="ActionWindowMs"/>
+		<string name="SongId"/>
+		<double name="Bpm"/>
+		<int    name="BaseBeatDivision"/>
 	</packet>
 
-
-	<packet name ="SC_TownActorJoin">
-		<int name ="Revision"/>
-		<int name ="ActorId"/>
-		<string name ="Name"/>
-		<int name ="X"/>
-		<int name ="Y"/>
-		<int name ="Dir"/>
+	<packet name="CS_Ready">
+		<int  name="Revision"/>
+		<long name="ClientTimeMs"/>
 	</packet>
 
-	<packet name ="SC_TownActorLeave">
-		<int name ="Revision"/>
-		<int name ="ActorId"/>
-		<int name ="Reason"/>		<!-- optional -->
+	<packet name="SC_ReadyAck">
+		<int  name="Revision"/>
+		<long name="ServerTimeMs"/>
 	</packet>
 	
 	

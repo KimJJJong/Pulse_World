@@ -1,7 +1,6 @@
 ﻿using ControlPlane.Grpc.V1;
 using Server;
 using Server.Presentation.Tcp;               // IAuthedTcpConnection (내가 만든 확장 인터페이스)
-using Server.Presentation.Tcp.PacketHandlers; // ITcpConnection
 using ServerCore;
 using Shared;
 using System;
@@ -27,12 +26,13 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
     public string Key { get;  set; } = ""; // roomId 같은 ctx
 
 
-
-
+    public int ActorId { get; set; } = -1;
+    public string CurrentWorldId { get; set; } = "";
+    public int SeatIndex {  get; set; } = -1;
 
   
    
-    public int Slot { get; set; } = -1; 
+    //public int Slot { get; set; } = -1; 
 
 
     public long LastPingAtMs { get; set; } = 0;
@@ -64,10 +64,13 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
             ServerServices.Registry.UnbindIfMatch(Uid, ConnId, Epoch);
         }
 
-        GameManager.TryGet(MatchId, out var room);
-        room.Unbind(this);
+        if (!string.IsNullOrEmpty(CurrentWorldId) &&
+        TownManager.TryGet(CurrentWorldId, out var world))
+        {
+            world.DetachIfMatch(Uid, Epoch, ConnId);
+        }
+
         SessionManager.Instance.Remove(this);
-        //Console.WriteLine($"OnDisconnected : {endPoint}");
     }
 
     public override void OnSend(int numOfBytes)
@@ -86,14 +89,15 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
     // -----------------------------
     // Handshake 응답 전송
     // -----------------------------
-    public Task SendHandshakeOkAsync(string uid, long epoch, string key)
+    public Task SendHandshakeOkAsync(string uid, long epoch,int serverRole, string key ="")
     {
         //  네 패킷 구조에 맞춰 SC_HandshakeOk 정의해서 보내면 됨
         var p = new SC_HandshakeOk
         {
             Uid = uid,
             SessionEpoch = epoch,
-            //r = key ?? ""      //Key -> Room id : TODO
+            ServerRole = serverRole,
+            //ke = key ?? ""      //Key -> Room id : TODO
         };
         
         Send(p.Write());

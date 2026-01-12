@@ -59,7 +59,7 @@ public sealed class ContentInitHostedService : IHostedService
         _log.LogInformation(
             "Content initialized (role={Role}, baseDir={BaseDir}, skills={Skills}, patterns={Patterns}, maps={Maps})",
             role.Name, baseDir, skills ?? "-", patterns ?? "-", maps ?? "-");
-        TownManager.GetOrCreate("Test_01");
+        TownManager.GetOrCreate("Town_01");
         Console.WriteLine("sdfadfsdfsdfsdfdsfsdfsdfdsfs");
         return Task.CompletedTask;
     }

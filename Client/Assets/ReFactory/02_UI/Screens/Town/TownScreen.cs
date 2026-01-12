@@ -101,8 +101,8 @@ public sealed class TownScreen : MonoBehaviour
         // clientNonce는 네 규격에 맞게(예: MatchId/Guid)
         var clientNonce = "town-" + System.Guid.NewGuid().ToString("N");
 
+        view.SetStatus("연결 시도 중... (Handshake 대기)"); 
         ClientFlow.Instance.ConnectTown(_lastTown, clientNonce);
-        view.SetStatus("연결 시도 중... (Handshake 대기)");
     }
 
     async Task ConnectGameAsync()

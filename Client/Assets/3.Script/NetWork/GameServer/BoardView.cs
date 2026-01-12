@@ -42,9 +42,13 @@ public class BoardView : MonoBehaviour, IClientWorldView
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        ClientGameState.Instance.WorldView = this;
     }
 
+    void Start()
+    {
+        ClientGameState.Instance.WorldView = this;
+
+    }
     #region IClientWorldView
 
     public void OnCreateMap(int width, int height)
