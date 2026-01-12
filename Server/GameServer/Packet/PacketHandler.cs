@@ -16,7 +16,7 @@ partial class PacketHandler
         var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         // 0) 기본 검증
-        if (req == null || string.IsNullOrWhiteSpace(req.ticketId))
+        if (req == null || string.IsNullOrWhiteSpace(req.TicketId))
         {
             await s.SendHandshakeFailAsync("missing_ticket");
             s.Close("missing_ticket");
@@ -29,7 +29,7 @@ partial class PacketHandler
         var renewer = ServerServices.LeaseRenewer;
 
         var res = await flow.RunAsync(
-            ticketId: req.ticketId,
+            ticketId: req.TicketId,
             connId: s.ConnId,
             nowMs: nowMs,
             ct: s.ConnectionToken
@@ -113,6 +113,13 @@ partial class PacketHandler
     //        room.ScheduleStart(startAtMs);
     //    }
     //}
+    public static void CS_TownEnterHandler(PacketSession session, IPacket packet)
+    {
+        var s = (ClientSession)session;
+        var p = (CS_TownEnter)packet;
+
+        TownEnterHandler.Handle(s, p);
+    }
 
     public static void CS_PingHandler(PacketSession session, IPacket packet)
     {

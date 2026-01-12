@@ -24,7 +24,7 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
     public bool HasAuth { get; private set; } = false;
     public string Uid { get; private set; } = "";
     public long Epoch { get; private set; } = 0;
-    public string Key { get; private set; } = ""; // roomId 같은 ctx
+    public string Key { get;  set; } = ""; // roomId 같은 ctx
 
 
 
@@ -92,8 +92,8 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
         var p = new SC_HandshakeOk
         {
             Uid = uid,
-            Epoch = epoch,
-            RoomId = key ?? ""      //Key -> Room id : TODO
+            SessionEpoch = epoch,
+            //r = key ?? ""      //Key -> Room id : TODO
         };
         
         Send(p.Write());

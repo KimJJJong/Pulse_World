@@ -134,8 +134,8 @@ public sealed class NetworkManager : MonoBehaviour
 
         var p = new CS_Handshake
         {
-            clientNonce = _pending.ClientNonce,
-            ticketId = _pending.TicketId,
+            ClientNonce = _pending.ClientNonce,
+            TicketId = _pending.TicketId,
             // key 필드가 있다면 주석 해제
             // key = _pending.Key ?? ""
         };

@@ -72,7 +72,7 @@ class PacketHandler
         // ClientGameState.Instance.MatchId = p.matchId;
         // ClientGameState.Instance.ServerTimeMs = p.serverTimeMs;
 
-        UnityEngine.Debug.Log($"[Network] UID :{p.Uid} || STATE : {p.State} || Epoch : {p.Epoch} || RoomID : {p.RoomId}");
+        UnityEngine.Debug.Log($"[Network] UID :{p.Uid} || STATE : {p.ServerRole} || Epoch : {p.SessionEpoch} ||");
     }
 
     public static void SC_HandshakeFailHandler(PacketSession session, IPacket packet)
@@ -103,6 +103,48 @@ class PacketHandler
         // 3) UI 알림/로비 이동 등
         // SceneRouter.Load(SceneNames.Town);
     }
+
+    ///TOWN
+    public static void SC_TownSnapshotHandler(PacketSession session, IPacket packet)
+    {
+        var p = (SC_TownSnapshot)packet;
+
+        TownWorld.Instance.ApplySnapshot(p);
+
+        TownHandlers.Instance.Handle_SC_TownSnapshot(p);
+
+        SceneRouter.Load(SceneNames.TownMap);
+
+        Debug.Log($"[Town] Snapshot ok rev={p.Revision} myActor={p.MyActorId} actors={p.actorss.Count}");
+        // TODO: 여기서 TownSceneView가 있다면 "렌더 시작" 트리거
+    }
+
+    public static void SC_TownActorJoinHandler(PacketSession session, IPacket packet)
+    {
+        var p = (SC_TownActorJoin)packet;
+        TownWorld.Instance.ApplyJoin(p);
+    }
+
+    public static void SC_TownActorLeaveHandler(PacketSession session, IPacket packet)
+    {
+        var p = (SC_TownActorLeave)packet;
+        TownWorld.Instance.ApplyLeave(p);
+    }
+
+    // 너가 기존에 쓰는 비트 기반 액션 결과를 Town에서도 그대로 반영
+    //public static void SC_BeatActionsHandler(PacketSession session, IPacket packet)
+    //{
+    //    var p = (SC_BeatActions)packet;
+    //    TownWorld.Instance.ApplyBeatActions(p);
+
+    //    // 디버그용
+    //    // Debug.Log($"[Town] BeatActions beat={p.BeatIndex} count={p.BeatActionResult.Count}");
+    //}
+
+
+
+
+
     /// <summary>
     /// rhytm
     /// </summary>

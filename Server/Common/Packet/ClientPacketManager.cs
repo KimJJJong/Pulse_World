@@ -25,6 +25,12 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_HandshakeFail, PacketHandler.SC_HandshakeFailHandler);
 		_makeFunc.Add((ushort)PacketID.SC_ForcedDisconnect, MakePacket<SC_ForcedDisconnect>);
 		_handler.Add((ushort)PacketID.SC_ForcedDisconnect, PacketHandler.SC_ForcedDisconnectHandler);
+		_makeFunc.Add((ushort)PacketID.SC_TownSnapshot, MakePacket<SC_TownSnapshot>);
+		_handler.Add((ushort)PacketID.SC_TownSnapshot, PacketHandler.SC_TownSnapshotHandler);
+		_makeFunc.Add((ushort)PacketID.SC_TownActorJoin, MakePacket<SC_TownActorJoin>);
+		_handler.Add((ushort)PacketID.SC_TownActorJoin, PacketHandler.SC_TownActorJoinHandler);
+		_makeFunc.Add((ushort)PacketID.SC_TownActorLeave, MakePacket<SC_TownActorLeave>);
+		_handler.Add((ushort)PacketID.SC_TownActorLeave, PacketHandler.SC_TownActorLeaveHandler);
 		_makeFunc.Add((ushort)PacketID.SC_AllPlayersLoaded, MakePacket<SC_AllPlayersLoaded>);
 		_handler.Add((ushort)PacketID.SC_AllPlayersLoaded, PacketHandler.SC_AllPlayersLoadedHandler);
 		_makeFunc.Add((ushort)PacketID.SC_GameBegin, MakePacket<SC_GameBegin>);

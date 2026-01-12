@@ -29,11 +29,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
     private const bool DBG_POS = false;
     private int _dbgOnlyActorId = -1; // -1이면 전부, 특정 ID만 보고 싶으면 그 값으로
 
-    private void PosLog(string msg)
-    {
-        if (!DBG_POS) return;
-        Debug.Log(msg);
-    }
+
     #endregion
 
     void Awake()
@@ -197,8 +193,6 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         _entityViews.Remove(entityId);
 
-        if (DBG_POS && (_dbgOnlyActorId < 0 || _dbgOnlyActorId == entityId))
-            PosLog($"[DESPAWN] entityId={entityId} viewRemoved");
     }
 
 
@@ -206,16 +200,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
     {
         if (!_entityViews.TryGetValue(action.ActorId, out var go) || go == null)
         {
-            if (DBG_POS && (_dbgOnlyActorId < 0 || _dbgOnlyActorId == action.ActorId))
-                PosLog($"[POS] DROP no view actor={action.ActorId} ActionKind={action.ActionKind} accepted={action.Accepted}");
             return;
         }
 
         if (!action.Accepted)
         {
-            if (DBG_POS && (_dbgOnlyActorId < 0 || _dbgOnlyActorId == action.ActorId))
-                PosLog($"[POS] REJECT actor={action.ActorId} ActionKind={action.ActionKind} from=({action.FromX},{action.FromY}) to=({action.ToX},{action.ToY})");
-            return;
+             return;
         }
 
         Vector3 fromW = GridToWorld(action.FromX, action.FromY);

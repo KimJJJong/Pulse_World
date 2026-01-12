@@ -1,18 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <PDL>
 
-	<packet name="CS_Handshake">
-		<string name="ticketId"/>
-		<string name="clientNonce"/>
+	<packet name ="CS_Handshake">
+		<string name ="TicketId"/>
+		<string name ="ClientNonce"/>
+		<int name ="ClientVersion"/>		<!-- optional: 빌드 넘버로 쓰면 좋음 (문자열이면 string으로) -->
+		<int name ="Target"/>		<!-- 0=Town, 1=Game (선택: 서버가 타겟 검증하면) -->
+		<string name ="Key"/>		<!-- optional: GameTicket에서만 쓰면 Town은 "" -->
 	</packet>
 
-	<packet name="SC_HandshakeOk">
-		<int name="State"/>		<!-- 1=TOWN, 2=GAME -->
-		<long name="Epoch"/>
-		<string name="Uid"/>
-		<string name="RoomId"/>		<!-- GAME일 때만 값, TOWN이면 "" -->
-		<long name="ServerNowMs"/>		<!-- 선택: 클라 타임보정용 -->
-		<int name="LeaseTtlSec"/>		<!-- 선택: 디버그/클라 표시용 -->
+	<packet name ="SC_HandshakeOk">
+		<string name ="Uid"/>		<long name ="ServerTimeMs"/>
+		<!-- time sync 기준 -->
+		<long name ="SessionEpoch"/>		<!-- 연결/세션 세대값(재접속/중복 구분) -->
+		<int name ="ServerRole"/>		<!-- 0=Town, 1=Game -->
 	</packet>
 
 	<packet name="SC_HandshakeFail">
@@ -25,14 +26,50 @@
 		<long name="NewEpoch"/>		<!-- 서버가 알고 있으면 넣고, 모르면 0 -->
 		<string name="Message"/>
 	</packet>
+	
+	<!--TOWN-->
 
-	<packet name ="SC_TownEnter">
-		<long name ="clientTimeMs"/>
-		<string name ="clientVersion"/>
-		<string name ="preferredRegion"/>
+	<packet name ="CS_TownEnter">
+		<long name ="ClientTimeMs"/>
+		<int name ="LastKnownRevision"/>		<!-- 없으면 0 -->
+		<bool name ="WantSnapshot"/>		<!-- true -->
+	</packet>
+
+	<packet name ="SC_TownSnapshot">
+		<long name ="ServerTimeMs"/>
+		<int name ="Revision"/>
+		<int name ="MyActorId"/>
+		<string name ="MapId"/>
+		<int name ="TickRate"/>
+		<!-- Town이 tick 기반이면 사용, 아니면 0 -->
+
+		<list name ="Actors">
+			<int name="ActorId"/>
+			<string name="Name"/>
+			<int name="X"/>
+			<int name="Y"/>
+			<int name="Dir"/>			<!-- 0~3 or 0~7 -->
+		</list>
+	</packet>
+
+
+	<packet name ="SC_TownActorJoin">
+		<int name ="Revision"/>
+		<int name ="ActorId"/>
+		<string name ="Name"/>
+		<int name ="X"/>
+		<int name ="Y"/>
+		<int name ="Dir"/>
+	</packet>
+
+	<packet name ="SC_TownActorLeave">
+		<int name ="Revision"/>
+		<int name ="ActorId"/>
+		<int name ="Reason"/>		<!-- optional -->
 	</packet>
 	
-
+	
+	<!--GAME-->
 
 	<!-- 게임서버 -> 클라: 양측 로딩 완료 알림 -->
 	<packet name="SC_AllPlayersLoaded">

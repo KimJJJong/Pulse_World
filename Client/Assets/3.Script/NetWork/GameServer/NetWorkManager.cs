@@ -150,8 +150,8 @@ public class NetWorkManager : MonoBehaviour
         // 서버 규격에 맞춰 CS_Handshake 작성
         var p = new CS_Handshake
         {
-            clientNonce = _pending.ClientNonce,
-            ticketId = _pending.TicketId,
+            ClientNonce = _pending.ClientNonce,
+            TicketId = _pending.TicketId,
             // TODO: server가 key 요구하면 여기에 추가
             // key = _pending.Key
         };
