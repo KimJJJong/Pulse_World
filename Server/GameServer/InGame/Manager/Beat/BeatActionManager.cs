@@ -127,7 +127,7 @@ namespace GameServer.InGame.Manager.Beat
             send.ServerNowMs = now;
             send.BeatIndex = nextBeat;
 
-            _broadcaster.SendToSlot(actorId, send);
+            _broadcaster.Broadcast(/*actorId, */send);
 
         }
 

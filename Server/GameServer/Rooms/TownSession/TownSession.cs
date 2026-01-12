@@ -25,16 +25,16 @@ public sealed class TownSession : SessionBase
     // 여기서는 "최소 변경"으로 SC_InitGame 재사용 예시로 작성.
     public override void SendInitPacketToPlayer(ClientSession s)
     {
-        int slot = s.Slot;
-        int actorId = GetActorIdBySlot(slot);
-        if (actorId < 0) return;
-        if (!World2D.ContainsEntity(actorId)) return;
+        int myActorId = s.ActorId;
+        if (myActorId < 0) return;
+        if (!_actorIds.Contains(myActorId)) return;
+        if (!World2D.ContainsEntity(myActorId)) return;
 
-        var pkt = BuildInitPacketForPlayer(slot);
+        var pkt = BuildInitPacketForPlayer(myActorId);
         s.Send(pkt.Write());
     }
 
-    private SC_InitGame BuildInitPacketForPlayer(int playerSlot)
+    private SC_InitGame BuildInitPacketForPlayer(int myActorId)
     {
         SC_InitGame packet = new SC_InitGame();
 
@@ -43,13 +43,13 @@ public sealed class TownSession : SessionBase
 
         packet.MapWidth = _map.Width;
         packet.MapHeight = _map.Height;
-        packet.MapName = "TownMap"; // TODO
+        packet.MapName = "Town_01"; // TODO
 
         packet.playerActorIdss.Clear();
         foreach (var p in _players)
             packet.playerActorIdss.Add(new SC_InitGame.PlayerActorIds { ActorId = p.Id });
 
-        packet.MyActorId = GetActorIdBySlot(playerSlot);
+        packet.MyActorId = myActorId;
 
         packet.spawnEntitiess.Clear();
         foreach (var p in _players)
@@ -58,10 +58,13 @@ public sealed class TownSession : SessionBase
             {
                 EntityId = p.Id,
                 EntityType = (int)p.Type,
-                OwnerSlot = p.GetState<int>("Slot"),
+
+                //  OwnerSlot 같은 slot 개념 제거  -> 그럼 OwnActor?
+                // OwnerSlot = ... (없애거나 0 고정)
+
                 X = p.Position.X,
                 Y = p.Position.Y,
-                Hp = p.GetState<int>("HP") // 마을이면 굳이 안 쓰면 0으로
+                Hp = p.GetState<int>("HP")
             });
         }
 
@@ -71,58 +74,34 @@ public sealed class TownSession : SessionBase
     // =====================================================
     // 클라이언트 입력 처리 (마을) — ActionRequest 그대로 받는다
     // =====================================================
-    public void OnClientActionPacketBySlot(int slot, CS_ActionRequest req)
+    public void OnClientActionPacketByActorId(int actorId, CS_ActionRequest req)
     {
-        int actorId = GetActorIdBySlot(slot);
         if (actorId < 0)
-        {
-            Console.WriteLine($"[Town ActionReq] Invalid slot={slot}");
             return;
-        }
 
-        // 여기서 Move만 처리(나머지는 무시/거절)
+        if (!_actorIds.Contains(actorId))
+            return;
+
         if (req.ActionKind != (int)ActionKind.Move)
             return;
 
-        // --- Move 파싱(프로젝트에 맞게 교체 필요) ---
-        // 가정 A) req에 "DirX/DirY"가 있고, 그리드 1칸 이동
-        // int dx = req.DirX;
-        // int dy = req.DirY;
-
-        // 가정 B) req에 목표 좌표 "X/Y"가 있음
-        // int x = req.X;
-        // int y = req.Y;
-
-        // 아래는 "Dir 기반 1칸 이동" 예시.
-        // 네 CS_ActionRequest 구조에 맞게 한 줄만 바꾸면 됨.
         if (!World2D.ContainsEntity(actorId))
             return;
 
-        // World2D에서 entity를 가져오는 API가 있으면 그걸 쓰고,
-        // 없으면 _players에서 찾아서 Position 수정해도 됨.
         var ent = _players.Find(e => e.Id == actorId);
         if (ent == null) return;
 
-        // TODO: 너 req에서 dx/dy를 꺼내라
+        // TODO: req에서 dx/dy 추출로 교체
         int dx = 0;
         int dy = 0;
-
-        // 예: req에서 방향을 가져오는 코드로 교체
-        // dx = req.MoveX;
-        // dy = req.MoveY;
 
         var nx = ent.Position.X + dx;
         var ny = ent.Position.Y + dy;
 
-        // 맵 범위 체크 (없으면 너 맵 API로 교체)
         if (!_map.InBounds(nx, ny))
             return;
 
         ent.Position = new GridPos(nx, ny);
-
-        // 마을은 즉시 브로드캐스트(스팸) 대신 Update()에서 snapshot으로 묶어 보내는 걸 추천
-        // 급하면 여기서 단건 broadcast도 가능:
-        // _broadcaster.Broadcast(BuildSingleMovePacket(actorId, nx, ny));
     }
 
     public override void Update()

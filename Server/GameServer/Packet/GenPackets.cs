@@ -325,12 +325,12 @@ public class SC_InitMap : IPacket
 	public string MapId;
 	public int MapVersion;
 	public int Mode;
+	public int MyActorId;
 	public class Players
 	{
 		public string Uid;
-		public int Slot;
+		public int ActorId;
 		public string Name;
-		public int Team;
 	
 		public void Read(ReadOnlySpan<byte> s, ref ushort count)
 		{
@@ -338,14 +338,12 @@ public class SC_InitMap : IPacket
 			count += sizeof(ushort);
 			this.Uid = Encoding.Unicode.GetString(s.Slice(count, UidLen));
 			count += UidLen;
-			this.Slot = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+			this.ActorId = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 			count += sizeof(int);
 			ushort NameLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 			count += sizeof(ushort);
 			this.Name = Encoding.Unicode.GetString(s.Slice(count, NameLen));
 			count += NameLen;
-			this.Team = BitConverter.ToInt32(s.Slice(count, s.Length - count));
-			count += sizeof(int);
 		}
 	
 		public bool Write(Span<byte> s, ref ushort count)
@@ -357,20 +355,16 @@ public class SC_InitMap : IPacket
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), UidLen);
 			count += sizeof(ushort);
 			count += UidLen;
-			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Slot);
+			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ActorId);
 			count += sizeof(int);
 			ushort NameLen = (ushort)Encoding.Unicode.GetBytes(this.Name, 0, this.Name.Length, segment.Array, segment.Offset + count + sizeof(ushort));
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), NameLen);
 			count += sizeof(ushort);
 			count += NameLen;
-			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Team);
-			count += sizeof(int);
 			return success;
 		}	
 	}
 	public List<Players> playerss = new List<Players>();
-	public int MyActorId;
-	public int MySlot;
 	public class Entities
 	{
 		public int EntityId;
@@ -455,6 +449,8 @@ public class SC_InitMap : IPacket
 		count += sizeof(int);
 		this.Mode = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
+		this.MyActorId = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		count += sizeof(int);
 		this.playerss.Clear();
 		ushort playersLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 		count += sizeof(ushort);
@@ -464,10 +460,6 @@ public class SC_InitMap : IPacket
 			players.Read(s, ref count);
 			playerss.Add(players);
 		}
-		this.MyActorId = BitConverter.ToInt32(s.Slice(count, s.Length - count));
-		count += sizeof(int);
-		this.MySlot = BitConverter.ToInt32(s.Slice(count, s.Length - count));
-		count += sizeof(int);
 		this.entitiess.Clear();
 		ushort entitiesLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 		count += sizeof(ushort);
@@ -514,14 +506,12 @@ public class SC_InitMap : IPacket
 		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Mode);
 		count += sizeof(int);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.MyActorId);
+		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)this.playerss.Count);
 		count += sizeof(ushort);
 		foreach (Players players in this.playerss)
 			success &= players.Write(s, ref count);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.MyActorId);
-		count += sizeof(int);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.MySlot);
-		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)this.entitiess.Count);
 		count += sizeof(ushort);
 		foreach (Entities entities in this.entitiess)

@@ -4,5 +4,5 @@
 public interface IGameBroadcaster
 {
     void Broadcast(IPacket pkt);
-    void SendToSlot(int slot, IPacket pkt);
+    //void SendToSlot(int slot, IPacket pkt);
 }

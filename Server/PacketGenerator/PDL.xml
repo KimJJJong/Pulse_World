@@ -44,31 +44,24 @@
 	<packet name="SC_InitMap">
 		<long name="ServerTimeMs"/>
 		<int  name="Revision"/>
-		<int  name="TickRate"/>
-		<!-- 안 쓰면 0 -->
+		<int  name="TickRate"/>		<!-- 안 쓰면 0 -->
 
 		<string name="MapId"/>
 		<int    name="MapVersion"/>
 
-		<int name="Mode"/>
-		<!-- 0=Town, 1=Game -->
+		<int name="Mode"/>		<!-- 0=Town, 1=Game -->
+		<int name="MyActorId"/>
 
 		<list name="Players">
 			<string name="Uid"/>
-			<int    name="Slot"/>
+			<int    name="ActorId"/>
 			<string name="Name"/>
-			<int    name="Team"/>
 		</list>
-
-		<int name="MyActorId"/>
-		<int name="MySlot"/>
 
 		<list name="Entities">
 			<int name="EntityId"/>
-			<int name="EntityType"/>
-			<!-- PlayerActor/Unit/NPC 등 -->
-			<int name="OwnerSlot"/>
-			<!-- PlayerActor면 MySlot 등 -->
+			<int name="EntityType"/>			<!-- PlayerActor/Unit/NPC 등 -->
+			<int name="OwnerSlot"/>			<!-- PlayerActor면 MySlot 등 -->
 			<int name="X"/>
 			<int name="Y"/>
 			<int name="Dir"/>

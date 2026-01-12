@@ -125,23 +125,23 @@ partial class PacketHandler
             return;
         }
 
-        var townId = "Town_01"; // req.MapId를 쓰려면 여기서 매핑
+        var townId = "Town_01";
         var room = TownManager.GetOrCreate(townId);
 
-        if (!room.BindOrReattach(s, out var slot, out var actorId))
+        if (!room.BindOrReattach(s, out var actorId))
         {
             s.Close("town_bind_fail");
             return;
         }
 
         // TMP : TODO : Regureal
-        SC_InitMap tmpSend = new SC_InitMap();
-        tmpSend.MapId = "Town_01";
-        tmpSend.MyActorId = s.Slot;
-        tmpSend.SongId = "tmp";
-        s.Send(tmpSend.Write());
+        //SC_InitMap tmpSend = new SC_InitMap();
+        //tmpSend.MapId = "Town_01";
+        //tmpSend.MyActorId = s.ActorId;
+        //tmpSend.SongId = "tmp";
+        //s.Send(tmpSend.Write());
 
-        TownManager.GetOrCreate(tmpSend.MapId);//.Bind(whatSlot?,_session);
+        //TownManager.GetOrCreate(tmpSend.MapId);//.Bind(whatSlot?,_session);
     }
     public static void CS_ReadyHandler(PacketSession session, IPacket packet)
     {

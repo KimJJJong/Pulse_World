@@ -19,10 +19,8 @@ public abstract class SessionBase
 
     // 룸 구성 요소
     protected readonly List<MapEntity> _players = new();
-    protected readonly Dictionary<int, int> _slotToActorId = new(); // slot -> actorId
+    protected readonly HashSet<int> _actorIds = new(); // slot -> actorId
 
-    public int GetActorIdBySlot(int slot)
-        => _slotToActorId.TryGetValue(slot, out var id) ? id : -1;
 
     protected SessionBase(int sessionId, IServerTime time, IGameBroadcaster broadcaster, Map2D map)
     {
@@ -38,12 +36,11 @@ public abstract class SessionBase
     // =====================================================
     // 공통: 플레이어 정리
     // =====================================================
-    public virtual void OnPlayerLeft(int slot)
+    public virtual void OnPlayerLeft(int actorId)
     {
-        int actorId = GetActorIdBySlot(slot);
         if (actorId < 0)
         {
-            Console.WriteLine($"[OnPlayerLeft] actorId < 0 : actorId :{actorId}");
+            Console.WriteLine($"[OnPlayerLeft] actorId < 0 : {actorId}");
             return;
         }
 
@@ -53,7 +50,7 @@ public abstract class SessionBase
         if (p != null) p.IsAlive = false;
 
         _players.RemoveAll(x => x.Id == actorId);
-        _slotToActorId.Remove(slot);
+        _actorIds.Remove(actorId);
     }
 
     /// <summary>
@@ -71,34 +68,24 @@ public abstract class SessionBase
     protected void InitPlayers(IEnumerable<MapEntity> players)
     {
         _players.Clear();
-        _slotToActorId.Clear();
+        _actorIds.Clear();
 
         foreach (var p in players)
         {
             if (!World2D.TrySpawn(p, p.Position))
             {
-                Console.WriteLine($"[InitPlayers] Player spawn failed for slot={p.GetState<int>("Slot")}");
+                Console.WriteLine($"[InitPlayers] Player spawn failed actorId={p.Id}");
                 continue;
             }
 
             _players.Add(p);
+            _actorIds.Add(p.Id);
 
-            int slot = p.GetState<int>("Slot");
-            _slotToActorId[slot] = p.Id;
-
-            Console.WriteLine($"[InitPlayers] Player spawned: slot={slot}, actorId={p.Id}");
+            Console.WriteLine($"[InitPlayers] Player spawned actorId={p.Id}");
         }
     }
 
-    // =====================================================
-    // 공통: init 패킷 전송 (세션마다 패킷 구조가 다를 수 있어서 abstract)
-    // =====================================================
     public abstract void SendInitPacketToPlayer(ClientSession s);
 
-    // =====================================================
-    // 세션 Update (Town은 여기서 snapshot 등)
-    // =====================================================
-    public virtual void Update()
-    {
-    }
+    public virtual void Update() { }
 }
