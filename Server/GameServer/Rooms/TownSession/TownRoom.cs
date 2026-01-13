@@ -135,7 +135,7 @@ public sealed class TownRoom : IGameBroadcaster, IUpdatable
                 _session.OnPlayerJoined(e);
 
                 // (선택) 기존 유저들에게 스폰 브로드캐스트를 따로 하고 싶으면 여기서
-                // _broadcaster.Broadcast(new SC_EntitySpawn { ... }.Write());
+                 //_broadcaster.Broadcast(new SC_EntitySpawn { ... }.Write());
             }
             else
             {

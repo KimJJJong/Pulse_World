@@ -250,7 +250,15 @@
 		<long name="BeatIndex"/>
 		<int name ="EntityId"/>
 	</packet>
-
+	
+	<packet name ="SC_EntitySpawn">
+		<long name="BeatIndex"/>
+		<int name ="EntityId"/>
+		<int name ="EntityType"/>
+		<int name ="X"/>
+		<int name ="Y"/>
+		<int name ="Hp"/>
+	</packet>
 	
 	
 	<!-- RhythmTest-->

@@ -53,6 +53,8 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_BeatTelegraphs, PacketHandler.SC_BeatTelegraphsHandler);
 		_makeFunc.Add((ushort)PacketID.SC_EntityDespawn, MakePacket<SC_EntityDespawn>);
 		_handler.Add((ushort)PacketID.SC_EntityDespawn, PacketHandler.SC_EntityDespawnHandler);
+		_makeFunc.Add((ushort)PacketID.SC_EntitySpawn, MakePacket<SC_EntitySpawn>);
+		_handler.Add((ushort)PacketID.SC_EntitySpawn, PacketHandler.SC_EntitySpawnHandler);
 
 	}
 

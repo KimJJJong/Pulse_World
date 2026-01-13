@@ -65,6 +65,19 @@ public sealed class TownSession : SessionBase
         _actorIds.Add(player.Id);
 
         Console.WriteLine($"[OnPlayerJoined] OK actorId={player.Id}");
+
+        var beat = _rhythm.GetCurrentBeatIndex(_time.NowMs);
+
+        _broadcaster.Broadcast(new SC_EntitySpawn
+        {
+            BeatIndex = beat,
+            EntityId = player.Id,
+            EntityType = (int)player.Type,
+            X = player.Position.X,
+            Y = player.Position.Y,
+            Hp = player.GetState<int>("HP")
+        });
+
     }
 
     /// <summary>

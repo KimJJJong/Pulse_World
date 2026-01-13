@@ -63,13 +63,7 @@ public sealed class MapWorld2D : IGameWorld
         if (!_entities.TryGetValue(entityId, out var e))
             return false;
 
-        // 이미 죽었어도 idempotent 하게 처리하고 싶으면 true 반환으로 바꿔도 됨
-        if (!e.IsAlive)
-        {
-            _entities.Remove(entityId);
-            return true;
-        }
-
+        // grid 정리(있으면)
         var pos = e.Position;
         var key = (pos.X, pos.Y);
 
@@ -80,15 +74,18 @@ public sealed class MapWorld2D : IGameWorld
                 _entitiesByGrid.Remove(key);
         }
 
+        // 월드에서 제거
         _entities.Remove(entityId);
-
+        Console.WriteLine("말소!!!!");
+        //  중요: 이미 죽었든 말든 “항상” despawn 전파
         _broadcaster.Broadcast(new SC_EntityDespawn
         {
+            BeatIndex = 0,      // Town에서 beat 넣고 싶으면 여기 말고 Session에서 보내는 구조로 바꾸는게 더 깔끔
             EntityId = entityId,
         });
 
+        // 상태 정리(객체 참조는 남아있을 수 있으니)
         e.IsAlive = false;
-        // 필요하면 Position을 (-1,-1) 같은 invalid로 바꿔도 됨
         return true;
     }
 

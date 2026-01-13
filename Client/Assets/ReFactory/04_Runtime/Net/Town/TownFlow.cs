@@ -12,7 +12,7 @@ public static class TownFlow
     public static void OnHandshakeOk()
     {
         // 1) Town 씬으로 이동(이미 Town이면 재로드 안 하려면 체크 가능)
-        SceneRouter.Load(SceneNames.TownMap);
+        //SceneRouter.Load(SceneNames.TownMap);
 
         // 2) Town 씬 로드 완료될 때까지 대기 후 MapEnter 보내기
         _ = WaitAndSendMapEnterAsync();

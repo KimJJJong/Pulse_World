@@ -49,6 +49,7 @@ public sealed class ConnectionRegistry : IConnectionKicker
             {
                 if (_byUid.TryUpdate(uid, newEntry, old))
                 {
+                    ForceRemoveFromWorldIfPossible(old.Conn);
                     // old 연결은 즉시 종료
                     old.Conn.Close($"superseded_by_new_epoch:{epoch}");
                     return;
@@ -62,7 +63,17 @@ public sealed class ConnectionRegistry : IConnectionKicker
             return;
         }
     }
-
+    private static void ForceRemoveFromWorldIfPossible(ITcpConnection oldConn)
+    {
+        // ClientSession이면 현재 월드에서 즉시 제거(=Despawn broadcast)
+        if (oldConn is ClientSession s &&
+            s.HasAuth &&
+            !string.IsNullOrEmpty(s.CurrentWorldId) &&
+            TownManager.TryGet(s.CurrentWorldId, out var world))
+        {
+            world.RemovePlayer(s.Uid, s.Epoch);
+        }
+    }
     /// <summary>
     /// 연결이 끊길 때 호출해서 uid 맵에서 정리.
     /// </summary>

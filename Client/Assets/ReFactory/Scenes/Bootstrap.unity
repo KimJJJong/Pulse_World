@@ -149,7 +149,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AppBootstrap
   config: {fileID: 11400000, guid: 385342bbbdbf2b547bcd7be522438f2c, type: 2}
-  ignoreToken: 0
+  ignoreToken: 1
 --- !u!4 &705676784
 Transform:
   m_ObjectHideFlags: 0

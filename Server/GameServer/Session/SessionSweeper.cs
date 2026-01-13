@@ -27,7 +27,7 @@ public static class SessionSweeper
                         {
                             // 로그 남기고 정리
                             LogManager.Instance.LogWarning("[Ping/Pong Issue]",$"Idle kick: {cs.Uid}/{cs.MatchId}");
-                            cs.Disconnect();
+                            cs.Close("PingPong Issue");
                         }
                     }
                 }

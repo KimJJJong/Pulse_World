@@ -61,6 +61,8 @@ partial class PacketHandler
                 isConnected: () => s.IsConnected,
                 onInvalid: (reason) =>
                 {
+                    Console.WriteLine($"[onInvalid] uid={res.Uid} epoch={res.Epoch} reason={reason}");
+
                     s.Close("lease_invalid:" + reason);
                     registry.UnbindIfMatch(res.Uid, s.ConnId, res.Epoch);
 

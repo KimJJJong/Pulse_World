@@ -67,7 +67,8 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
         if (!string.IsNullOrEmpty(CurrentWorldId) &&
         TownManager.TryGet(CurrentWorldId, out var world))
         {
-            world.DetachIfMatch(Uid, Epoch, ConnId);
+            world.RemovePlayer(Uid, Epoch);
+            //world.DetachIfMatch(Uid, Epoch, ConnId);
         }
 
         SessionManager.Instance.Remove(this);
