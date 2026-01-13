@@ -3,7 +3,7 @@ using UnityEngine;
 public class CameraFollow : MonoBehaviour
 {
     public Transform target;        // PlayerActor
-    public Vector3 offset = new Vector3(0, 2.5f, -4.5f);
+    public Vector3 offset = new Vector3(0, 2.0f, -2.0f);
     public float followSpeed = 10f;
     public float rotateSpeed = 10f;
 

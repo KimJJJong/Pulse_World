@@ -29,6 +29,8 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_InitMap, PacketHandler.SC_InitMapHandler);
 		_makeFunc.Add((ushort)PacketID.SC_ReadyAck, MakePacket<SC_ReadyAck>);
 		_handler.Add((ushort)PacketID.SC_ReadyAck, PacketHandler.SC_ReadyAckHandler);
+		_makeFunc.Add((ushort)PacketID.SC_TownBeatActions, MakePacket<SC_TownBeatActions>);
+		_handler.Add((ushort)PacketID.SC_TownBeatActions, PacketHandler.SC_TownBeatActionsHandler);
 		_makeFunc.Add((ushort)PacketID.SC_AllPlayersLoaded, MakePacket<SC_AllPlayersLoaded>);
 		_handler.Add((ushort)PacketID.SC_AllPlayersLoaded, PacketHandler.SC_AllPlayersLoadedHandler);
 		_makeFunc.Add((ushort)PacketID.SC_GameBegin, MakePacket<SC_GameBegin>);

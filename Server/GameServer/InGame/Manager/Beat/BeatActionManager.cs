@@ -30,7 +30,7 @@ namespace GameServer.InGame.Manager.Beat
             FrozenAttackRegistry frozenAttackRegistry,
             double actionWindowMs,
             int maxBeatLookAhead
-            /*int leadBeat*/)
+            )
         {
             _time = time;
             _broadcaster = broadcaster;
@@ -41,7 +41,6 @@ namespace GameServer.InGame.Manager.Beat
 
             _actionWindowMs = actionWindowMs;
             _maxBeatLookAhead = maxBeatLookAhead;
-            //_leadBeat = leadBeat;
 
         }
 
@@ -82,8 +81,48 @@ namespace GameServer.InGame.Manager.Beat
 
             Console.WriteLine($"[Accept] kind={cmd.Kind} currBeat={judge.CurrBeat} executeBeat={cmd.ExecuteBeat} diff={judge.DiffMs}ms");
         }
+        /// <summary>
+        /// Town
+        /// </summary>
+        /// <param name="actorId"></param>
+        /// <param name="req"></param>
+        public void OnTownClientActionRequest(int actorId, CS_TownActionRequest req)
+        {
+            long now = req.ClientSendTimeMs;
 
-     
+            if (!_clock.TryComputeJudge(
+                    nowMs: now,
+                    actionWindowMs: _actionWindowMs,
+                    out var judge))
+            {
+                // TryComputeJudge 안에서 song not started / out of range 등을 판단
+                return;
+            }
+
+            // 디버그 바 (항상 출력)
+            PrintJudgeBar(judge, now);
+
+            if (!judge.IsAccepted)
+            {
+                Console.WriteLine($"[Reject] out of window. diff={judge.DiffMs}ms (±{_actionWindowMs}ms)");
+                return;
+            }
+
+            // Request -> Cmd 변환 (액션별 파싱/검증)
+            if (!ActionRequestTranslator.TryBuildCmd(actorId, req, judge.ExecuteBeat, judge.DiffMs, now, out var cmd, out var reason))
+            {
+                Console.WriteLine($"[Reject] invalid action payload. reason={reason}");
+                return;
+            }
+
+            _scheduler.Enqueue(cmd);
+
+            Console.WriteLine($"[Accept] kind={cmd.Kind} currBeat={judge.CurrBeat} executeBeat={cmd.ExecuteBeat} diff={judge.DiffMs}ms");
+        }
+
+
+
+
         /// <summary>
         /// sync Setting
         /// </summary>
@@ -151,6 +190,7 @@ namespace GameServer.InGame.Manager.Beat
         /// </summary>
         public void OnBeat(long beatIndex)
         {
+            //Console.WriteLine("InBeat");
             var cmds = _scheduler.PopActions(beatIndex);
             if (cmds.Count == 0) return;
             var results = new List<SC_BeatActions.BeatActionResult>(cmds.Count);
@@ -163,7 +203,7 @@ namespace GameServer.InGame.Manager.Beat
 
                 if (!_world.TryGetActorPosition(cmd.ActorId, out var fromPos))
                 {
-                    //Console.WriteLine($"[BeatAction] unknown actorId={cmd.ActorId} kind={cmd.Kind}");
+                    Console.WriteLine($"[BeatAction] unknown actorId={cmd.ActorId} kind={cmd.Kind}");
 
                     // 프로토: 결과라도 내려주고 싶으면 아래 블록 유지
                     results.Add(new SC_BeatActions.BeatActionResult
@@ -267,7 +307,7 @@ namespace GameServer.InGame.Manager.Beat
             });
 
             _scheduler.DropBefore(beatIndex - 4);
-            _frozen.DropBefore(beatIndex - 16);
+            _frozen?.DropBefore(beatIndex - 16);
 
         }
 

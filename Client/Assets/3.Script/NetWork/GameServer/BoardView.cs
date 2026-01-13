@@ -185,6 +185,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (info.EntityId == ClientGameState.Instance.MyActorId)
         {
             CameraBinder.Instance?.Bind(go.transform);
+            RhythmInputControllerBinder.Instance?.Bind(go);
         }
 
 

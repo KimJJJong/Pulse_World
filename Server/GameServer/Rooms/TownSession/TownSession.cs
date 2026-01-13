@@ -1,6 +1,9 @@
 ﻿using GameServer.Content.Map;
+using GameServer.InGame.Manager.Beat;
 using GameServer.InGame.Manager.Entity;
+using GameServer.InGame.System.Rhythm;
 using System;
+using static SC_BeatTelegraphs;
 
 public sealed class TownSession : SessionBase
 {
@@ -8,16 +11,84 @@ public sealed class TownSession : SessionBase
     private readonly long _snapshotIntervalMs = 100; // 10Hz 권장
     private long _nextSnapshotMs;
 
-    public TownSession(int sessionId, IServerTime time, IGameBroadcaster broadcaster, Map2D map)
+    public BeatActionManager BeatActions { get; }
+
+    private readonly RhythmSystem _rhythm;
+    private readonly RhythmConfig _rhythmConfig;
+
+    public TownSession(
+        int sessionId,
+        IServerTime time,
+        IGameBroadcaster broadcaster,
+        RhythmSystem rhythm,
+        RhythmConfig rhythmConfig,
+        Map2D map
+        )
         : base(sessionId, time, broadcaster, map)
     {
+        _rhythm = rhythm;
+        _rhythmConfig = rhythmConfig;
+
+        BeatActions = new BeatActionManager(
+            time,
+            broadcaster,
+            rhythm,
+            World,
+            null,
+            _rhythmConfig.ActionWindowMs,       //Town은 Game과 차이를 둔다
+            _rhythmConfig.MaxBeatLookAhead      //필요없을거 같은데 지금은
+            );
+
         _nextSnapshotMs = _time.NowMs + _snapshotIntervalMs;
+
     }
 
     public void InitTown(System.Collections.Generic.IEnumerable<MapEntity> players)
     {
         InitPlayers(players);
-        Console.WriteLine("[InitTown] End");
+    }
+    public void OnPlayerJoined(MapEntity player)
+    {
+        if (player == null) return;
+
+        // 중복 방지
+        if (_actorIds.Contains(player.Id))
+            return;
+
+        if (!World2D.TrySpawn(player, player.Position))
+        {
+            Console.WriteLine($"[OnPlayerJoined] Spawn failed actorId={player.Id} pos={player.Position.X},{player.Position.Y}");
+            return;
+        }
+
+        _players.Add(player);
+        _actorIds.Add(player.Id);
+
+        Console.WriteLine($"[OnPlayerJoined] OK actorId={player.Id}");
+    }
+
+    /// <summary>
+    /// 재연결 시(reattach) 따로 스폰할 건 없지만,
+    /// 혹시 월드에서 사라진 경우 복구할 수 있는 안전망.
+    /// </summary>
+    public void EnsurePlayerSpawned(int actorId)
+    {
+        if (actorId < 0) return;
+        if (!_actorIds.Contains(actorId)) return;
+
+        if (World2D.ContainsEntity(actorId))
+            return;
+
+        var p = _players.Find(x => x.Id == actorId);
+        if (p == null) return;
+
+        if (!World2D.TrySpawn(p, p.Position))
+        {
+            Console.WriteLine($"[EnsurePlayerSpawned] respawn failed actorId={actorId}");
+            return;
+        }
+
+        Console.WriteLine($"[EnsurePlayerSpawned] respawn OK actorId={actorId}");
     }
 
     // 마을 init 패킷은 SC_InitGame 그대로 써도 되지만,
@@ -26,35 +97,56 @@ public sealed class TownSession : SessionBase
     public override void SendInitPacketToPlayer(ClientSession s)
     {
         int myActorId = s.ActorId;
-        if (myActorId < 0) return;
-        if (!_actorIds.Contains(myActorId)) return;
-        if (!World2D.ContainsEntity(myActorId)) return;
+        if (myActorId < 0)
+        {
+            Console.WriteLine($"[Init] FAIL myActorId<0 uid={s.Uid} epoch={s.Epoch} seat={s.SeatIndex} actor={s.ActorId}");
+            return;
+        }
 
+        if (!_actorIds.Contains(myActorId))
+        {
+            Console.WriteLine($"[Init] FAIL !_actorIds.Contains actor={myActorId} players={_players.Count} actorIds={_actorIds.Count}");
+            return;
+        }
+
+        if (!World2D.ContainsEntity(myActorId))
+        {
+            Console.WriteLine($"[Init] FAIL !World2D.ContainsEntity actor={myActorId}");
+            return;
+        }
+
+        Console.WriteLine($"[Init] OK actor={myActorId} players={_players.Count}");
         var pkt = BuildInitPacketForPlayer(myActorId);
+
         s.Send(pkt.Write());
     }
 
-    private SC_InitGame BuildInitPacketForPlayer(int myActorId)
+
+    private SC_InitMap BuildInitPacketForPlayer(int myActorId)
     {
-        SC_InitGame packet = new SC_InitGame();
+        SC_InitMap packet = new SC_InitMap();
 
         // 마을은 액션윈도 의미 없으면 0 or 큰값
-        packet.ActionWindowMs = 0;
+        packet.ActionWindowMs = _rhythmConfig.ActionWindowMs;
+        packet.SongId = "TestSong";
+        packet.Bpm = _rhythmConfig.Bpm;
+        packet.BaseBeatDivision = _rhythmConfig.BaseBeatDivision;
+        packet.SongStartServerTime = _rhythm.SongStartServerTimeMs;
 
         packet.MapWidth = _map.Width;
         packet.MapHeight = _map.Height;
-        packet.MapName = "Town_01"; // TODO
+        packet.MapId = "Town_01"; // TODO
 
-        packet.playerActorIdss.Clear();
+        packet.playerss.Clear();
         foreach (var p in _players)
-            packet.playerActorIdss.Add(new SC_InitGame.PlayerActorIds { ActorId = p.Id });
+            packet.playerss.Add(new SC_InitMap.Players { ActorId = p.Id, Name="Test", Uid="RealNeedit?" }); 
 
         packet.MyActorId = myActorId;
 
-        packet.spawnEntitiess.Clear();
+        packet.entitiess.Clear();
         foreach (var p in _players)
         {
-            packet.spawnEntitiess.Add(new SC_InitGame.SpawnEntities
+            packet.entitiess.Add(new SC_InitMap.Entities
             {
                 EntityId = p.Id,
                 EntityType = (int)p.Type,
@@ -76,32 +168,25 @@ public sealed class TownSession : SessionBase
     // =====================================================
     public void OnClientActionPacketByActorId(int actorId, CS_ActionRequest req)
     {
-        if (actorId < 0)
-            return;
+        if (actorId < 0) return;
+        BeatActions.OnClientActionRequest(actorId, req);
+    }
+    public void OnClientActionPacketByActorId(int actorId, CS_TownActionRequest req)
+    {
+        if (actorId < 0) return;
+        BeatActions.OnTownClientActionRequest(actorId, req);
+    }
 
-        if (!_actorIds.Contains(actorId))
-            return;
+    public void OnClientCalibPacketByActorId(int actorId, CS_CalibHit req)
+    {
+        if (actorId < 0) return;
+        BeatActions.OnClientCalibRequest(actorId, req);
+    }
 
-        if (req.ActionKind != (int)ActionKind.Move)
-            return;
+    public void OnBeat(long beatIndex)
+    {
 
-        if (!World2D.ContainsEntity(actorId))
-            return;
-
-        var ent = _players.Find(e => e.Id == actorId);
-        if (ent == null) return;
-
-        // TODO: req에서 dx/dy 추출로 교체
-        int dx = 0;
-        int dy = 0;
-
-        var nx = ent.Position.X + dx;
-        var ny = ent.Position.Y + dy;
-
-        if (!_map.InBounds(nx, ny))
-            return;
-
-        ent.Position = new GridPos(nx, ny);
+        BeatActions.OnBeat(beatIndex);
     }
 
     public override void Update()

@@ -63,6 +63,12 @@ partial class PacketHandler
                 {
                     s.Close("lease_invalid:" + reason);
                     registry.UnbindIfMatch(res.Uid, s.ConnId, res.Epoch);
+
+                    if (!string.IsNullOrEmpty(s.CurrentWorldId) &&
+                        TownManager.TryGet(s.CurrentWorldId, out var world))
+                    {
+                        world.RemovePlayer(res.Uid, res.Epoch); //  만료 확정 -> 완전 제거
+                    }
                 },
                 ct: s.ConnectionToken
             );
@@ -118,7 +124,7 @@ partial class PacketHandler
     {
         var s = (ClientSession)session;
         var req = (CS_MapEnter)packet;
-
+        Console.WriteLine("[IN]CS_MapEnterHandler");
         if (!s.HasAuth)
         {
             s.Close("map_enter_without_auth");
@@ -175,15 +181,37 @@ partial class PacketHandler
 
     }
 
+
+    public static void CS_TownActionRequestHandler(PacketSession session, IPacket packet)
+    {
+        ClientSession clientSession = (ClientSession)session;
+        CS_TownActionRequest req = (CS_TownActionRequest)packet;
+
+        TownManager.TryGet(clientSession.CurrentWorldId, out var action);
+        if (action == null)
+        {
+            session.Send(new SC_Warn { code = 2000, msg = "ROOM_NOT_FOUND" }.Write());
+            return;
+        }
+        action.OnCS_TownActionRequest(clientSession, req);
+    }
     public static void CS_ActionRequestHandler(PacketSession session, IPacket packet)
     {
         ClientSession clientSession = (ClientSession)session;
         CS_ActionRequest req = (CS_ActionRequest)packet;
 
+        //TownManager.TryGet(clientSession.CurrentWorldId, out var action);
+        //if (action == null)
+        //{
+        //    session.Send(new SC_Warn { code = 2000, msg = "ROOM_NOT_FOUND" }.Write());
+        //    return;
+        //}
+        //action.OnCS_ActionRequest(clientSession, req);
+
         GameManager.TryGet(clientSession.MatchId, out var room);//clientSession.roo
-        if(room == null)
+        if (room == null)
         {
-            session.Send(new SC_Warn { code = 2000, msg ="ROOM_NOT_FOUND"}.Write());
+            session.Send(new SC_Warn { code = 2000, msg = "ROOM_NOT_FOUND" }.Write());
             return;
         }
 

@@ -27,8 +27,36 @@ public class ClientHandlers : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
-    public void HandleSC_InitMap( SC_InitMap p)
+    //public void HandleSC_InitMap( SC_InitMap p)
+    //{
+    //    var mapName = p.MapId; // <-- SC_InitGame에 string MapName 추가 필요
+
+    //    var reg = MapRegistry.Instance;
+    //    if (reg == null)
+    //    {
+    //        Debug.LogError("[InitGame] MapRegistry.Instance is null. Scene에 MapRegistry를 배치해야 함.");
+    //        return;
+    //    }
+
+    //    if (!reg.TryGet(mapName, out var mapAsset) || mapAsset == null)
+    //    {
+    //        Debug.LogError($"[InitGame] MapAsset not found. mapName={mapName}. " +
+    //                       $"MapAsset 이름과 서버 MapName을 통일했는지 확인.");
+    //        return;
+    //    }
+
+    //    bool ok = GS.CreateMapFromAsset(mapAsset);
+    //    if (!ok)
+    //    {
+    //        Debug.LogError($"[InitGame] CreateMapFromAsset failed. mapName={mapName}");
+    //        return;
+    //    }
+    //}
+
+    public void HandleSC_InitMap(SC_InitMap p )
     {
+        Debug.Log("[In : Handle_SC_InitGame]");
+        // 1) 맵 생성
         var mapName = p.MapId; // <-- SC_InitGame에 string MapName 추가 필요
 
         var reg = MapRegistry.Instance;
@@ -45,35 +73,16 @@ public class ClientHandlers : MonoBehaviour
             return;
         }
 
-        bool ok = GS.CreateMapFromAsset(mapAsset);
-        if (!ok)
-        {
-            Debug.LogError($"[InitGame] CreateMapFromAsset failed. mapName={mapName}");
-            return;
-        }
-    }
-
-    public void Handle_SC_InitGame( SC_InitGame p )
-    {
-        Debug.Log("[In : Handle_SC_InitGame]");
-        // 1) 맵 생성
-        var mapName = p.MapName; // <-- SC_InitGame에 string MapName 추가 필요
-
-        var reg = MapRegistry.Instance;
-        if (reg == null)
-        {
-            Debug.LogError("[InitGame] MapRegistry.Instance is null. Scene에 MapRegistry를 배치해야 함.");
-            return;
-        }
-
-        if (!reg.TryGet(mapName, out var mapAsset) || mapAsset == null)
-        {
-            Debug.LogError($"[InitGame] MapAsset not found. mapName={mapName}. " +
-                           $"MapAsset 이름과 서버 MapName을 통일했는지 확인.");
-            return;
-        }
-
         RhythmClient.Instance.judgeWindowMs = (float)p.ActionWindowMs;
+        RhythmClient.Instance.OnBeatSync(new BeatSyncInfo
+        {
+            //ServerTimeMs = p.ServerSendTimeMs,
+            SongStartServerTimeMs = p.SongStartServerTime,
+            Bpm = p.Bpm,
+            BaseBeatDivision = p.BaseBeatDivision,
+            //BeatIndex = p.BeatIndex
+        });
+        OnBeatSyncReady?.Invoke();
         Debug.Log($" Get JudgeWindowMS :{RhythmClient.Instance.judgeWindowMs}");
 
         bool ok = GS.CreateMapFromAsset(mapAsset);
@@ -85,13 +94,13 @@ public class ClientHandlers : MonoBehaviour
  
 
         // 2) 플레이어 Actor 정보
-        var actorIds = p.playerActorIdss.Select(pa => pa.ActorId).ToArray();
+        var actorIds = p.playerss.Select(pa => pa.ActorId).ToArray();
         GS.SetPlayerActorIds(actorIds);
         GS.SetMyActorId(p.MyActorId);
         Debug.Log($"ActorId : {GS.MyActorId} ~!~!~@~!@~@");
         // 3) 엔티티 스폰
         GS.ClearEntities();
-        foreach (var e in p.spawnEntitiess)
+        foreach (var e in p.entitiess)
         {
             Debug.Log($"Spawn Entite [ ID :{e.EntityId} || Type : {(EntityType)e.EntityType} || (x,y) : ({e.X}, {e.Y}) || Hp : {e.Hp} ]");
             GS.SpawnOrUpdateEntity(new ClientEntityInfo
@@ -115,13 +124,34 @@ public class ClientHandlers : MonoBehaviour
 
     }
 
+    public void HandleSC_TownBeatActions(SC_TownBeatActions p)
+    {
+        foreach (var a in p.beatActionResults)
+        {
+            var action = new ClientBeatAction
+            {
+                BeatIndex = p.BeatIndex,
+                ActorId = a.ActorId,
+                ActionKind = a.ActionKind,
+                FromX = a.FromX,
+                FromY = a.FromY,
+                ToX = a.ToX,
+                ToY = a.ToY,
+                Accepted = a.Accepted
+            };
 
+            // 1) 이동/행동 반영
+            GS.OnBeatAction(action);
+          
+        }
+    }
 
     /// <summary>
     /// 서버 기준 Beat/리듬 동기화
     /// </summary>
     public void Handle_SC_BeatSync(SC_BeatSync p)
     {
+        Debug.Log("InHandelbeatSync");
         Rhythm.OnBeatSync(new BeatSyncInfo
         {
             //ServerTimeMs = p.ServerSendTimeMs,

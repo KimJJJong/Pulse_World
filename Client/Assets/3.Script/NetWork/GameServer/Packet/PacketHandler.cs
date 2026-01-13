@@ -115,7 +115,7 @@ class PacketHandler
     public static void SC_InitMapHandler(PacketSession session, IPacket packet)
     {
         var p = (SC_InitMap)packet;
-
+        Debug.Log("[IN]SC_InitMapHandler");
         // 1) 컨텍스트 저장
         ClientNetContext.Instance.ApplyInitMap(
             rev: p.Revision,
@@ -125,6 +125,16 @@ class PacketHandler
             myActorId: p.MyActorId
         );
         ClientHandlers.Instance.HandleSC_InitMap((SC_InitMap)packet);
+
+  
+        // 이거 나중에 GameStart Manager생기면 위임
+        if (PingManager.Instance is null)
+        {
+            UnityEngine.Debug.Log("PingManager Summon");
+            new GameObject("PingManager").AddComponent<PingManager>();
+        }
+        PingManager.Instance.Configure(interval: 2000, timeout: 6000, maxMiss: 3);
+        PingManager.Instance.StartLoop();
     }
 
     public static void SC_ReadyAckHandler(PacketSession session, IPacket packet)
@@ -133,6 +143,8 @@ class PacketHandler
     }
 
 
+    public static void SC_TownBeatActionsHandler(PacketSession session, IPacket packet)
+        => ClientHandlers.Instance.HandleSC_TownBeatActions((SC_TownBeatActions)packet);
 
 
     /// <summary>
@@ -140,8 +152,8 @@ class PacketHandler
     /// </summary>
     /// <param name="session"></param>
     /// <param name="packet"></param>
-    public static void SC_InitGameHandler(PacketSession session, IPacket packet)
-        => ClientHandlers.Instance.Handle_SC_InitGame((SC_InitGame)packet);
+    public static void SC_InitGameHandler(PacketSession session, IPacket packet) { }
+        //=> ClientHandlers.Instance.Handle_SC_InitGame((SC_InitGame)packet);
     public static void SC_CalibResultHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_CalibResult((SC_CalibResult)packet);
 

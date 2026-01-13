@@ -66,6 +66,8 @@ public static class ServerHost
 
                 services.AddSingleton<HandshakeFlow>();
                 services.AddSingleton<ConnectionRegistry>();
+                services.AddSingleton<IConnectionKicker>(sp => sp.GetRequiredService<ConnectionRegistry>());
+
                 services.AddSingleton<PresenceLeaseRenewer>();
 
 

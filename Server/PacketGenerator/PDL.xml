@@ -47,6 +47,8 @@
 		<int  name="TickRate"/>		<!-- 안 쓰면 0 -->
 
 		<string name="MapId"/>
+		<int name="MapWidth"/>
+		<int name="MapHeight"/>
 		<int    name="MapVersion"/>
 
 		<int name="Mode"/>		<!-- 0=Town, 1=Game -->
@@ -74,6 +76,7 @@
 		<string name="SongId"/>
 		<double name="Bpm"/>
 		<int    name="BaseBeatDivision"/>
+		<long name ="SongStartServerTime"/>
 	</packet>
 
 	<packet name="CS_Ready">
@@ -85,6 +88,29 @@
 		<int  name="Revision"/>
 		<long name="ServerTimeMs"/>
 	</packet>
+
+	<packet name ="CS_TownActionRequest">
+		<int name ="ActorId"/>
+		<int name ="ActionKind"/>
+		<int name ="TargetX"/>
+		<int name ="TargetY"/>
+		<long name ="ClientSendTimeMs"/>
+	</packet>
+
+	<packet name ="SC_TownBeatActions">
+		<long name ="BeatIndex"/>
+		<list name ="BeatActionResult">
+			<int name="ActorId"/>
+			<int name="ActionKind"/>
+			<int name="FromX"/>
+			<int name="FromY"/>
+			<int name="ToX"/>
+			<int name="ToY"/>
+			<bool name="Accepted"/>
+
+		</list>
+	</packet>
+	
 	
 	
 	<!--GAME-->

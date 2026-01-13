@@ -1,4 +1,4 @@
-﻿public static class ActionRequestTranslator
+﻿public static partial class ActionRequestTranslator
 {
     public static bool TryBuildCmd(
         int actorId,
