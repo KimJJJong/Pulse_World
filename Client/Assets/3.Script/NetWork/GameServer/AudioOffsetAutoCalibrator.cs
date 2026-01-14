@@ -43,9 +43,7 @@ public sealed class AudioOffsetAutoCalibrator : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        DontDestroyOnLoad(gameObject);
 
         if (_bgm == null)
             _bgm = FindFirstObjectByType<BgmSyncPlayer>();

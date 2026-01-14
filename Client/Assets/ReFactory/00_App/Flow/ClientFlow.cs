@@ -1,3 +1,4 @@
+// Assets/0_App/Flow/ClientFlow.cs
 using System.Net;
 using UnityEngine;
 
@@ -5,9 +6,9 @@ public sealed class ClientFlow : MonoBehaviour
 {
     public static ClientFlow Instance { get; private set; } = null!;
 
-    // “지금 연결이 어떤 목적이었나”를 기억해야 씬 전환이 깔끔해짐
-    enum Target { None, Town, Game, TownMap }
+    enum Target { None, TownMap, Game }
     Target _target = Target.None;
+    bool _entering;
 
     void Awake()
     {
@@ -17,9 +18,9 @@ public sealed class ClientFlow : MonoBehaviour
 
         NetworkManager.Instance.Ready += OnNetReady;
         NetworkManager.Instance.Failed += OnNetFailed;
+        NetworkManager.Instance.Disconnected += OnNetDisconnected;
     }
 
-    // LoginScreen/TownScreen 등 어디서든 호출 가능
     public void ConnectTown(SessionDtos.IssueTownTicketResponse ticket, string clientNonce)
     {
         _target = Target.TownMap;
@@ -36,21 +37,51 @@ public sealed class ClientFlow : MonoBehaviour
         NetworkManager.Instance.ConnectAndHandshake(ep, ticket.TicketId, clientNonce, ticket.Key);
     }
 
-    void OnNetReady()
+    async void OnNetReady()
     {
-        // 여기서 “씬을 바꾼다” (NetworkManager가 하면 안 됨)
-        if (_target == Target.Town)
-            SceneRouter.Load(SceneNames.Town);
-        else if (_target == Target.Game)
-            SceneRouter.Load(SceneNames.Game); // Game 씬이 있다면
-        else if (_target == Target.TownMap) 
-            SceneRouter.Load(SceneNames.TownMap);
+        if (_entering) return;
+        _entering = true;
+        try
+        {
+            if (_target == Target.TownMap)
+            {
+                await SceneRouter.LoadAsync(SceneNames.TownMap);
+
+                var ctx = Object.FindFirstObjectByType<TownSceneContext>();
+                if (ctx == null)
+                {
+                    Debug.LogError("[ClientFlow] TownSceneContext not found in TownMap scene");
+                    return;
+                }
+
+                await ctx.EnterTownAsync();
+            }
+            else if (_target == Target.Game)
+            {
+                await SceneRouter.LoadAsync(SceneNames.Game);
+                // TODO: GameSceneContext.EnterGameAsync()
+            }
+            else
+            {
+                Debug.LogWarning("[ClientFlow] Ready but target is None");
+            }
+        }
+        finally
+        {
+            _entering = false;
+        }
     }
 
     void OnNetFailed(string reason)
     {
-        Debug.LogWarning($"[Flow] Net failed: {reason}");
-        // 초기 운영 정석: 실패 시 Login으로 복귀(또는 Town이면 재시도 UI)
-         SceneRouter.Load(SceneNames.Login);
+        Debug.LogWarning($"[ClientFlow] Net failed: {reason}");
+        SessionContext.Instance.ResetForReconnect();
+        _ = SceneRouter.LoadAsync(SceneNames.Login);
+    }
+
+    void OnNetDisconnected()
+    {
+        // 여기서 정책 결정: TownMap에서 끊기면 재접속 UI? Login 복귀?
+        Debug.LogWarning("[ClientFlow] Disconnected");
     }
 }

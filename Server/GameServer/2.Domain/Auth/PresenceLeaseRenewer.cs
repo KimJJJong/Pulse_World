@@ -34,7 +34,7 @@ public sealed class PresenceLeaseRenewer
         {
             try
             {
-                Console.WriteLine($"[RenewLoop] uid={uid} epoch={epoch} connId={connId} periodMs={periodMs}");
+                //Console.WriteLine($"[RenewLoop] uid={uid} epoch={epoch} connId={connId} periodMs={periodMs}");
 
                 await Task.Delay((int)periodMs, ct);
 
@@ -49,7 +49,7 @@ public sealed class PresenceLeaseRenewer
                     LeaseTtlSeconds = _me.LeaseTtlSeconds,
                     NowMs = nowMs
                 }, ct);
-                Console.WriteLine($"[RenewResp] ok={resp.Ok} code={resp.Error?.Code} msg={resp.Error?.Message}");
+                //Console.WriteLine($"[RenewResp] ok={resp.Ok} code={resp.Error?.Code} msg={resp.Error?.Message}");
 
                 if (!resp.Ok)
                 {

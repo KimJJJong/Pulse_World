@@ -33,7 +33,7 @@ public sealed class NetworkManager : MonoBehaviour
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
-        NewSession();
+        //NewSession();
     }
 
     void Update()
@@ -67,7 +67,7 @@ public sealed class NetworkManager : MonoBehaviour
         _state = ConnState.Idle;
 
         try { _session.Disconnect(); } catch { }
-        NewSession();
+        //NewSession();
 
         if (!string.IsNullOrEmpty(reason))
             Failed?.Invoke(reason);
@@ -170,8 +170,7 @@ public sealed class NetworkManager : MonoBehaviour
 
     public void OnHandshakeSucceeded()
     {
-        if (_state != ConnState.Connected && _state != ConnState.Ready) return;
-
+        if (_state != ConnState.Connected) return;
         _state = ConnState.Ready;
         Ready?.Invoke();
     }

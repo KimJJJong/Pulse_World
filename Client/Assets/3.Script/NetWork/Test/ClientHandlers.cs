@@ -38,13 +38,13 @@ public class ClientHandlers : MonoBehaviour
         var reg = MapRegistry.Instance;
         if (reg == null)
         {
-            Debug.LogError("[InitGame] MapRegistry.Instance is null. Scene에 MapRegistry를 배치해야 함.");
+            Debug.LogError("[InitMap] MapRegistry.Instance is null. Scene에 MapRegistry를 배치해야 함.");
             return;
         }
 
         if (!reg.TryGet(mapName, out var mapAsset) || mapAsset == null)
         {
-            Debug.LogError($"[InitGame] MapAsset not found. mapName={mapName}. " +
+            Debug.LogError($"[InitMap] MapAsset not found. mapName={mapName}. " +
                            $"MapAsset 이름과 서버 MapName을 통일했는지 확인.");
             return;
         }

@@ -202,7 +202,7 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
             request.LeaseTtlSeconds,
             request.NowMs
         );
-        Console.WriteLine($"[RenewLease]Uid : {request.Uid} || sID: {request.ServerId}|| ttl:{request.LeaseTtlSeconds}");
+        //Console.WriteLine($"[RenewLease]Uid : {request.Uid} || sID: {request.ServerId}|| ttl:{request.LeaseTtlSeconds}");
         if (!ok)
         {
             Console.WriteLine($"[No]Uid : {request.Uid} || sID: {request.ServerId}|| Err:{err}");

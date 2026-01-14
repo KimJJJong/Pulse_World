@@ -68,10 +68,8 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
 
-        DontDestroyOnLoad(gameObject);
 
         _defaultSprite = CreateWhiteSprite();
 

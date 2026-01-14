@@ -8,18 +8,13 @@ public class RhythmInputControllerBinder : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
+
 
         Instance = this;
 
         if (Controller == null)
             Controller = FindFirstObjectByType<RhythmInputController>();
 
-        DontDestroyOnLoad(gameObject);
     }
 
     /// <summary>

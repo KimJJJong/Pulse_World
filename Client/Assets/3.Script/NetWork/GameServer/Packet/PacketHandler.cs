@@ -46,17 +46,17 @@ class PacketHandler
     {
         var p = (SC_HandshakeOk)packet;
 
-        ClientNetContext.Instance.ApplyHandshakeOk(
+        SessionContext.Instance.ApplyHandshakeOk(
             uid: p.Uid,
             serverTimeMs: p.ServerTimeMs,
             sessionEpoch: p.SessionEpoch,
-            role: "Town"
+            role: "Town"        //TODO : p. 받아와서 수정하도록
             );
 
-        // 1) 네트워크 상태 확정
+        // 2) 네트워크 상태 확정 (Ready 이벤트 발행 -> ClientFlow가 씬 전환)
         NetworkManager.Instance.OnHandshakeSucceeded();
 
-        TownFlow.OnHandshakeOk();
+        //TownFlow.OnHandshakeOk();
 
 
         //UnityEngine.Debug.Log($"[Network] UID :{p.Uid} || STATE : {p.ServerRole} || Epoch : {p.SessionEpoch} ||");
@@ -66,31 +66,26 @@ class PacketHandler
     {
         var p = (SC_HandshakeFail)packet;
 
-        // 1) 실패 사유 로깅
-        // 예: p.reason, p.code 등이 있다면 사용
-        UnityEngine.Debug.LogError("[Network] Handshake FAIL");
+        Debug.LogError("[Network] Handshake FAIL");
 
-        // 2) 연결 종료 및 상태 정리
+        // 1) 네트워크 매니저가 종료 처리(이벤트 발행 포함)
         NetworkManager.Instance.OnHandshakeFailed("HandshakeFail");
-        ClientNetContext.Instance.ResetForReconnect();
 
-        // 3) 필요하면 UI 알림/재시도 트리거
-        // UIManager.Instance.ShowError("서버 인증 실패");
+        // 2) 세션 컨텍스트 리셋
+        SessionContext.Instance.ResetForReconnect();
+
+        //  여기서 SceneRouter.Load 같은 것도 하지 않는 게 정석
+        //    -> ClientFlow가 Failed 이벤트 받아서 Login으로 보내는 정책 처리
     }
 
     public static void SC_ForcedDisconnectHandler(PacketSession session, IPacket packet)
     {
         var p = (SC_ForcedDisconnect)packet;
 
-        // 1) 서버 강제 종료 사유 로깅
-        UnityEngine.Debug.LogWarning("[Network] Forced disconnect by server");
+        Debug.LogWarning("[Network] Forced disconnect by server");
 
-        // 2) 즉시 연결 정리
         NetworkManager.Instance.OnForcedDisconnect("ForcedDisconnect");
-        ClientNetContext.Instance.ResetForReconnect();
-
-        // 3) UI 알림/로비 이동 등
-        // SceneRouter.Load(SceneNames.Town);
+        SessionContext.Instance.ResetForReconnect();
     }
 
     ///TOWN
@@ -99,24 +94,41 @@ class PacketHandler
         var p = (SC_InitMap)packet;
         Debug.Log("[IN]SC_InitMapHandler");
         // 1) 컨텍스트 저장
-        ClientNetContext.Instance.ApplyInitMap(
+        SessionContext.Instance.ApplyInitMap(
             rev: p.Revision,
             tickRate: p.TickRate,
             mapId: p.MapId,
-            mapVersion: "Test",//p.MapVersion,
-            myActorId: p.MyActorId
+            mapVersion: "Test",//p.MapVersion,  // 서버 필드이름 사용 TODO : 
+            myActorId: p.MyActorId,
+            map: p
+            
         );
-        ClientHandlers.Instance.HandleSC_InitMap((SC_InitMap)packet);
 
-  
-        // 이거 나중에 GameStart Manager생기면 위임
-        if (PingManager.Instance is null)
+
+        var townCtx = UnityEngine.Object.FindFirstObjectByType<TownSceneContext>();
+        if (townCtx != null)
         {
-            UnityEngine.Debug.Log("PingManager Summon");
-            new GameObject("PingManager").AddComponent<PingManager>();
+            townCtx.OnInitMap(p);
         }
-        PingManager.Instance.Configure(interval: 2000, timeout: 6000, maxMiss: 3);
-        PingManager.Instance.StartLoop();
+        else
+        {
+            // 씬 아직 준비 전이면 세션 컨텍스트만 저장된 상태.
+            // TownSceneContext.EnterTownAsync()에서 SessionContext.InitMapReceived 체크하고 처리 가능.
+            Debug.LogWarning("[SC_InitMap] TownSceneContext not found (scene not ready yet?)");
+        }
+
+        // 3) 기존 핸들러가 더 있다면, 그건 "씬 쪽"으로 옮기는 걸 추천
+         //ClientHandlers.Instance.HandleSC_InitMap((SC_InitMap)packet);
+        // -> TownSceneContext 내부로 옮기는게 정석(씬에 종속된 처리라면)
+
+        //ClientHandlers.Instance.HandleSC_InitMap((SC_InitMap)packet);
+        //if (PingManager.Instance is null)
+        //{
+        //    UnityEngine.Debug.Log("PingManager Summon");
+        //    new GameObject("PingManager").AddComponent<PingManager>();
+        //}
+        //PingManager.Instance.Configure(interval: 2000, timeout: 6000, maxMiss: 3);
+        //PingManager.Instance.StartLoop();
     }
 
     public static void SC_ReadyAckHandler(PacketSession session, IPacket packet)
