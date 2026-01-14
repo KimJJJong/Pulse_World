@@ -8,25 +8,7 @@ class PacketHandler
         SC_Error e = (SC_Error)packet;
         UnityEngine.Debug.LogError($"[Client] Error {e.code} {e.message}");
     }
-    //public static void SC_WelcomeHandler(PacketSession session, IPacket packet)
-    //{
-    //    SC_Welcome w = (SC_Welcome)packet;
-    //    ServerSession server = (ServerSession)session;
-    //    //TimeSync.SetOffsetFromServerNow(w.serverTimeMs);
 
-    //    UnityEngine.Debug.Log($"In WelconHandle : [{w.matchId}] || [{w.slot}]");
-
-    //    // 씬 로드 후 CS_Loaded 보고
-    //    UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("RhythmTest")
-    //        .completed += _ =>
-    //        {
-    //            CS_Loaded loaded = new CS_Loaded { matchId = w.matchId, uid = NetWorkManager.Instance.Uid };
-    //            NetWorkManager.Instance.Send(loaded.Write());
-    //        };
-    //    UnityEngine.Debug.Log($"MyActorId : {w.slot}");
-    //    ClientHandlers.Instance.GS.SetMyActorId( w.slot);
-
-    //}
     public static void SC_AllPlayersLoadedHandler(PacketSession session, IPacket packet)
     {
         // WelcomeHandler에서 load한 Scene 대기 후 해당 AllPlayerLoader 받으면 바로 시작 하도록

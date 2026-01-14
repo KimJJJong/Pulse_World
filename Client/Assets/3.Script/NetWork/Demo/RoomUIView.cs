@@ -103,13 +103,13 @@ public class RoomUIView : MonoBehaviour
     public async Task ClickSessionMove()
     {
         var res = await _api.TryGetTownTicketAsync();
-        if( res == null)
+        if (res == null)
         {
             Debug.LogWarning("튕~");
             return;
         }
         Debug.Log($"Ticket : {res.ticketId} ||HOST :  {res.host} ||Port:  {res.port} ");
-    
+
     }
 
     public async Task CreateAndEnter()

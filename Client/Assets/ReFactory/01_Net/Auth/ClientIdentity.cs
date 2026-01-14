@@ -34,4 +34,3 @@ public sealed class ClientIdentity
         return did;
     }
 }
-r

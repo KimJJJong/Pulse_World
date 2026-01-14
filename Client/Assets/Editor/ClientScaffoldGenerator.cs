@@ -58,7 +58,7 @@ public static class ClientScaffoldGenerator
         so.ApplyModifiedPropertiesWithoutUndo();
 
         // TcpConnector도 부팅 씬에 생성 (DontDestroy)
-        new GameObject("TcpConnector").AddComponent<TcpConnector>();
+        //new GameObject("TcpConnector").AddComponent<TcpConnector>();
 
         EditorSceneManager.SaveScene(scene, scenePath);
     }
