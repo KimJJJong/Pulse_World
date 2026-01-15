@@ -16,72 +16,67 @@ public class ClientHandlers : MonoBehaviour
     public static event System.Action OnBeatSyncReady;
 
 
-    //TestHUD HUD => TestHUD.Instance;
-    //BoardView BV => BoardView.Instance;
-    // [추가] (x,y) -> expireBeat (이 beat를 지나면 원복)
     private readonly System.Collections.Generic.Dictionary<(int x, int y), long> _telegraphExpireBeat
         = new System.Collections.Generic.Dictionary<(int x, int y), long>();
 
-    // [추가] 마지막으로 처리한 beat (중복 처리 방지)
     private long _lastTelegraphCleanupBeat = long.MinValue;
 
-    // [추가] BoardView 편의 접근
     private BoardView BV => BoardView.Instance;
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
+   
 
-
-    public void Handle_SC_InitGame( SC_InitGame p )
+    public void HandleSC_InitMap(SC_InitMap p )
     {
         Debug.Log("[In : Handle_SC_InitGame]");
         // 1) 맵 생성
-        var mapName = p.MapName; // <-- SC_InitGame에 string MapName 추가 필요
+        var mapName = p.MapId; // <-- SC_InitGame에 string MapName 추가 필요
 
         var reg = MapRegistry.Instance;
         if (reg == null)
         {
-            Debug.LogError("[InitGame] MapRegistry.Instance is null. Scene에 MapRegistry를 배치해야 함.");
+            Debug.LogError("[InitMap] MapRegistry.Instance is null. Scene에 MapRegistry를 배치해야 함.");
             return;
         }
 
         if (!reg.TryGet(mapName, out var mapAsset) || mapAsset == null)
         {
-            Debug.LogError($"[InitGame] MapAsset not found. mapName={mapName}. " +
+            Debug.LogError($"[InitMap] MapAsset not found. mapName={mapName}. " +
                            $"MapAsset 이름과 서버 MapName을 통일했는지 확인.");
             return;
         }
 
-        // 2) judgeWindowMs Set
         RhythmClient.Instance.judgeWindowMs = (float)p.ActionWindowMs;
+        RhythmClient.Instance.OnBeatSync(new BeatSyncInfo
+        {
+            //ServerTimeMs = p.ServerSendTimeMs,
+            SongStartServerTimeMs = p.SongStartServerTime,
+            Bpm = p.Bpm,
+            BaseBeatDivision = p.BaseBeatDivision,
+            //BeatIndex = p.BeatIndex
+        });
+        OnBeatSyncReady?.Invoke();
         Debug.Log($" Get JudgeWindowMS :{RhythmClient.Instance.judgeWindowMs}");
 
-        // 1) MapAsset 기준으로 기존 파이프라인(CreateMap/SetTile/BoardView)을 그대로 사용
         bool ok = GS.CreateMapFromAsset(mapAsset);
         if (!ok)
         {
             Debug.LogError($"[InitGame] CreateMapFromAsset failed. mapName={mapName}");
             return;
         }
-        //int idx = 0;
-        //foreach (var t in p.tiless)
-        //{
-        //    int x = idx % p.MapWidth;
-        //    int y = idx / p.MapWidth;
-        //    GS.SetTile(x, y, t.TileKind);
-        //    idx++;
-        //}
+ 
 
         // 2) 플레이어 Actor 정보
-        var actorIds = p.playerActorIdss.Select(pa => pa.ActorId).ToArray();
+        var actorIds = p.playerss.Select(pa => pa.ActorId).ToArray();
         GS.SetPlayerActorIds(actorIds);
         GS.SetMyActorId(p.MyActorId);
-        Debug.Log($"ActorId : {GS.MyActorId} ~!~!~@~!@~@~!@~!@");
+        Debug.Log($"ActorId : {GS.MyActorId} ~!~!~@~!@~@");
         // 3) 엔티티 스폰
         GS.ClearEntities();
-        foreach (var e in p.spawnEntitiess)
+        foreach (var e in p.entitiess)
         {
             Debug.Log($"Spawn Entite [ ID :{e.EntityId} || Type : {(EntityType)e.EntityType} || (x,y) : ({e.X}, {e.Y}) || Hp : {e.Hp} ]");
             GS.SpawnOrUpdateEntity(new ClientEntityInfo
@@ -105,13 +100,34 @@ public class ClientHandlers : MonoBehaviour
 
     }
 
+    public void HandleSC_TownBeatActions(SC_TownBeatActions p)
+    {
+        foreach (var a in p.beatActionResults)
+        {
+            var action = new ClientBeatAction
+            {
+                BeatIndex = p.BeatIndex,
+                ActorId = a.ActorId,
+                ActionKind = a.ActionKind,
+                FromX = a.FromX,
+                FromY = a.FromY,
+                ToX = a.ToX,
+                ToY = a.ToY,
+                Accepted = a.Accepted
+            };
 
+            // 1) 이동/행동 반영
+            GS.OnBeatAction(action);
+          
+        }
+    }
 
     /// <summary>
     /// 서버 기준 Beat/리듬 동기화
     /// </summary>
     public void Handle_SC_BeatSync(SC_BeatSync p)
     {
+        Debug.Log("InHandelbeatSync");
         Rhythm.OnBeatSync(new BeatSyncInfo
         {
             //ServerTimeMs = p.ServerSendTimeMs,
@@ -279,84 +295,40 @@ public class ClientHandlers : MonoBehaviour
         }
     }
 
+    public void Handle_SC_EntitySpawnHandler(SC_EntitySpawn p)
+    {
+        int id = p.EntityId;
+        bool spawn = GS.TryGetEntity(id, out var ent );
+        if( spawn)
+        {
+            Debug.LogWarning($"이미 Entity가 존재합니다 ID{id}|| MyId : {GS.MyActorId}");
+            return;
+        }
+
+        var entity = new ClientEntityInfo
+        {
+            EntityId = p.EntityId,
+            EntityType = p.EntityType,
+            X = p.X,
+            Y = p.Y,
+            Hp = p.Hp
+        };
+
+        // 1) GS에서 논리 제거 + WorldView(=BoardView)에게 despawn 알림까지 전파
+        GS.UpdateEntityState(entity);
+
+
+        Debug.Log($"[SC_EntitySpawn] entityId={entity.EntityId} spawn ");
+
+        if (id == GS.MyActorId)
+        {
+            Debug.LogWarning("[SC_EntitySpawn] My actor overload. Disable / show UI.");
+            
+        }
+    }
+
 
 }
 
 
 
-
-#region 이전 찌꺼기 
-/*// 필요한 SC_* 핸들러들만 예시 (나머지는 기존 프로젝트에 맞게 추가)
-*//*  public void Handle_SC_GameStartWithRollDice(SC_GameStartWithRollDice p)
-  {
-      GS.FirstDiceNonce = p.firstDiceRequestNonce;
-      HUD.SetStatus("ROLL FIRST DICE REQUEST");
-      HUD.EnableFirstDice(true);
-  }
-  public void Handle_SC_RollDiceForTurn(SC_RollDiceForTurn p)
-  {
-      GS.Turn = p.turn;
-      GS.PlayerTurnSlot = p.playerTurnSlot;
-      GS.DiceRequestNonce = p.diceRequestNonce;
-      HUD.SetTurn(GS.Turn, GS.PlayerTurnSlot);
-      HUD.EnableMove(GS.PlayerTurnSlot == GS.MySide);
-      HUD.SetStatus(GS.PlayerTurnSlot == GS.MySide ? "당신의 턴: 이동 주사위를 굴리세요" : "상대의 턴");
-  }
-  public void Handle_SC_PieceMoveConfirm(SC_PieceMoveConfirm p)
-  {
-      HUD.EnableMove(false);
-      if (p.paths != null && p.paths.Count > 0)
-          BV.AnimatePath(GS.PlayerTurnSlot, p.pieceType, p.paths);
-      else
-          BV.TeleportToLast(GS.PlayerTurnSlot, p.pieceType);
-      HUD.SetStatus(p.willFight ? "전투 발생!" : "이동 확정, 전투 없음");
-  }
-  public void Handle_SC_FightConfirm(SC_FightConfirm p)
-  {
-      GS.BattleNonce = p.battleNonce;
-      HUD.EnableBattleCards(p.isFight);
-      if (!p.isFight) { HUD.SetStatus("전투 없음"); return; }
-
-      HUD.SetStatus($"전투 시작 (turn={p.turn}) - 카드 선택 (1~10)");
-      if (p.piceInfos != null && p.piceInfos.Count > 0)
-      {
-          var fighters = p.piceInfos
-              .Select(x => new PieceRef(
-                  (PlayerSlot)x.playerSlotNum,
-                  (PieceType)x.piceNum))
-              .ToList();
-          BV.HighlightFighters(fighters);
-      }
-  }
-  public void Handle_SC_BattleResult(SC_BattleResult p)
-  {
-      HUD.EnableBattleCards(false);
-      BV.TeleportTo(p.losePlayerSlotNum, p.losePiceNum, p.newX, p.newY);
-      HUD.SetStatus($"전투 결과: {p.losePlayerSlotNum}/{p.losePiceNum} → ({p.newX},{p.newY})");
-      if (p.isGameEnd) HUD.SetStatus("카드 소진으로 게임 종료 체크 중…");
-  }
-  // ClientHandlers.cs 내부에 추가*//*
-
-public void Handle_SC_TurnEnd(SC_TurnEnd p)
-{
-    // 상태 표시 및 입력 잠금
-    HUD.SetStatus($"턴 종료. 다음 턴: {p.nextPlayerTurnSlot}");
-    HUD.EnableMove(false);
-    HUD.EnableBattleCards(false);
-
-    // (선택) 로컬 추정 업데이트 — 실제 턴 시작은 SC_RollDiceForTurn에서 확정됨
-    try { GS.Turn = p.turn + 1; } catch { *//* PDL에 turn 없으면 무시 *//* }
-}
-
-public void Handle_SC_WhoIsWinner(SC_WhoIsWinner p)
-{
-    var w = p.winnerSlot;
-    HUD.SetStatus(w < 0 ? "무승부" : $"승자: {w}");
-    //  HUD.ShowGameOver(w);
-
-    // 모든 입력 잠금
-    HUD.EnableMove(false);
-    HUD.EnableBattleCards(false);
-    HUD.EnableFirstDice(false);
-}*/
-#endregion

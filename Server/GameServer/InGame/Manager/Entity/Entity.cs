@@ -34,7 +34,7 @@ public /*sealed*/ class MapEntity
         IsAlive = true;     // 생성시에는 살아 있어야징
     }
 
-    public T? GetState<T>(string key)
+    public T GetState<T>(string key)
     {
         if (_states.TryGetValue(key, out var value) && value is T t)
             return t;

@@ -19,8 +19,18 @@ public class PacketManager
 		
 	public void Register()
 	{
-		_makeFunc.Add((ushort)PacketID.SC_Welcome, MakePacket<SC_Welcome>);
-		_handler.Add((ushort)PacketID.SC_Welcome, PacketHandler.SC_WelcomeHandler);
+		_makeFunc.Add((ushort)PacketID.SC_HandshakeOk, MakePacket<SC_HandshakeOk>);
+		_handler.Add((ushort)PacketID.SC_HandshakeOk, PacketHandler.SC_HandshakeOkHandler);
+		_makeFunc.Add((ushort)PacketID.SC_HandshakeFail, MakePacket<SC_HandshakeFail>);
+		_handler.Add((ushort)PacketID.SC_HandshakeFail, PacketHandler.SC_HandshakeFailHandler);
+		_makeFunc.Add((ushort)PacketID.SC_ForcedDisconnect, MakePacket<SC_ForcedDisconnect>);
+		_handler.Add((ushort)PacketID.SC_ForcedDisconnect, PacketHandler.SC_ForcedDisconnectHandler);
+		_makeFunc.Add((ushort)PacketID.SC_InitMap, MakePacket<SC_InitMap>);
+		_handler.Add((ushort)PacketID.SC_InitMap, PacketHandler.SC_InitMapHandler);
+		_makeFunc.Add((ushort)PacketID.SC_ReadyAck, MakePacket<SC_ReadyAck>);
+		_handler.Add((ushort)PacketID.SC_ReadyAck, PacketHandler.SC_ReadyAckHandler);
+		_makeFunc.Add((ushort)PacketID.SC_TownBeatActions, MakePacket<SC_TownBeatActions>);
+		_handler.Add((ushort)PacketID.SC_TownBeatActions, PacketHandler.SC_TownBeatActionsHandler);
 		_makeFunc.Add((ushort)PacketID.SC_AllPlayersLoaded, MakePacket<SC_AllPlayersLoaded>);
 		_handler.Add((ushort)PacketID.SC_AllPlayersLoaded, PacketHandler.SC_AllPlayersLoadedHandler);
 		_makeFunc.Add((ushort)PacketID.SC_GameBegin, MakePacket<SC_GameBegin>);
@@ -43,6 +53,8 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_BeatTelegraphs, PacketHandler.SC_BeatTelegraphsHandler);
 		_makeFunc.Add((ushort)PacketID.SC_EntityDespawn, MakePacket<SC_EntityDespawn>);
 		_handler.Add((ushort)PacketID.SC_EntityDespawn, PacketHandler.SC_EntityDespawnHandler);
+		_makeFunc.Add((ushort)PacketID.SC_EntitySpawn, MakePacket<SC_EntitySpawn>);
+		_handler.Add((ushort)PacketID.SC_EntitySpawn, PacketHandler.SC_EntitySpawnHandler);
 
 	}
 

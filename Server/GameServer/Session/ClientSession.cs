@@ -1,36 +1,47 @@
-﻿using ServerCore;
-using System;
-using System.Net;
+﻿using ControlPlane.Grpc.V1;
+using Server;
+using Server.Presentation.Tcp;               // IAuthedTcpConnection (내가 만든 확장 인터페이스)
+using ServerCore;
 using Shared;
+using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 
-
-public class ClientSession : PacketSession
+public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
 {
-    public string MatchId { get; set; }
-    public string Uid { get; set; }
-    public int Slot { get; set; } = -1; 
-    public bool Loaded { get; set; }
+
+    // ---- ITcpConnection ----
+    public string ConnId { get; } = Guid.NewGuid().ToString("N");
+    public bool IsConnected { get; private set; } = false;
+
+    private readonly CancellationTokenSource _cts = new();
+    public CancellationToken ConnectionToken => _cts.Token;
+
+    // ---- IAuthedTcpConnection ----
+    public bool HasAuth { get; private set; } = false;
+    public string Uid { get; private set; } = "";
+    public long Epoch { get; private set; } = 0;
+    public string Key { get;  set; } = ""; // roomId 같은 ctx
+
+
+    public int ActorId { get; set; } = -1;
+    public string CurrentWorldId { get; set; } = "";
+    public int SeatIndex {  get; set; } = -1;
+
+  
+   
+    //public int Slot { get; set; } = -1; 
+
 
     public long LastPingAtMs { get; set; } = 0;
     public int LastPingSeq { get; set; } = -1;
 
     public override void OnConnected(EndPoint endPoint)
     {
-        // tmp : Check PlayerNum
-        // Console.WriteLine($"OnConnected : {SessionID} In");
-
-        // TODO : Client 요청에 따른 Enter 관리
-        //Program.Room.Enter(this); 직접 처리 하지 않고 JobQueue : Push
-        //Program.Lobby.Push(() => Program.Lobby.Enter(this));
-
-        //Program.Room.Push(() => Program.Room.Enter(this));
-        //Program.Room.Enter(this);
-        Console.WriteLine($"GameServer와 ClientSession 이 연결되었습니다: {endPoint}");
-
-        //    S_ReqSessionInit reqPacket = new S_ReqSessionInit();
-
-
+        IsConnected = true;
+        Console.WriteLine($"GameServer와 ClientSession 이 연결되었습니다: {endPoint} connId={ConnId}");
 
 
 
@@ -43,30 +54,92 @@ public class ClientSession : PacketSession
 
     public override void OnDisconnected(EndPoint endPoint)
     {
-        RoomManager.TryGet(MatchId, out var room);
-        room.Unbind(this);
+        IsConnected = false;
+        try { _cts.Cancel(); } catch { }
+        Console.WriteLine($"OnDisconnected : {endPoint} connId={ConnId}");
 
-        SessionManager.Instance.Remove(this);
-
-/*        if (Room != null)
+        // registry정리
+        if (HasAuth)
         {
-            GameRoom room = Room;
-            room.RemoveClient(PlayingID);
-            Room = null;
+            ServerServices.Registry.UnbindIfMatch(Uid, ConnId, Epoch);
         }
 
+        if (!string.IsNullOrEmpty(CurrentWorldId) &&
+        TownManager.TryGet(CurrentWorldId, out var world))
+        {
+            world.RemovePlayer(Uid, Epoch);
+            //world.DetachIfMatch(Uid, Epoch, ConnId);
+        }
 
         SessionManager.Instance.Remove(this);
-        LogManager.Instance.LogInfo("ClientSession", $"Disconnected: {endPoint}");*/
-
-        Console.WriteLine($"OnDisconnected : {endPoint}");
     }
 
     public override void OnSend(int numOfBytes)
     {
-         //Console.WriteLine($"Transferred bytes: {numOfBytes}");
     }
 
-      
+
+    public void BindAuth(string uid, long epoch, string key)
+    {
+        HasAuth = true;
+        Uid = uid;
+        Epoch = epoch;
+        Key = key ?? "";
+    }
+
+    // -----------------------------
+    // Handshake 응답 전송
+    // -----------------------------
+    public Task SendHandshakeOkAsync(string uid, long epoch,int serverRole, string key ="")
+    {
+        //  네 패킷 구조에 맞춰 SC_HandshakeOk 정의해서 보내면 됨
+        var p = new SC_HandshakeOk
+        {
+            Uid = uid,
+            SessionEpoch = epoch,
+            ServerRole = serverRole,
+            //ke = key ?? ""      //Key -> Room id : TODO
+        };
+        
+        Send(p.Write());
+        return Task.CompletedTask;
+    }
+
+    public Task SendHandshakeFailAsync(string reason)
+    {
+        var p = new SC_HandshakeFail
+        {
+            message = reason ?? "handshake_failed"
+        };
+
+        Send(p.Write());
+        return Task.CompletedTask;
+    }
+
+    // -----------------------------
+    // Close
+    // -----------------------------
+    public void Close(string reason)
+    {
+        // 네 Session 종료 방식에 맞게 정리
+        Console.WriteLine($"[Close] connId={ConnId} reason={reason}");
+        try { _cts.Cancel(); } catch { }
+
+        Disconnect();
+    }
+
+    // -----------------------------
+    // Send helper (★ 여기만 네 코드에 맞게 연결)
+    // -----------------------------
+    //private void SendPacket(IPacket packet)
+    //{
+    //    // 네가 쓰는 ServerCore의 패킷 송신 방식에 맞춰 한 줄만 맞추면 끝.
+    //    // 흔한 패턴: packet.Write() -> Send(sendBuffer)
+    //    Send(sendBuffer);
+    //}
+
+
+
+
 }
 

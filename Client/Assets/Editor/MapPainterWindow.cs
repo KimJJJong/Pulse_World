@@ -11,6 +11,19 @@ public sealed class MapPainterWindow : EditorWindow
 
     private Vector2 _scroll;
     private const float CellSize = 28f;
+    private const float ViewHeight = 600f;
+
+    // 캐시(매번 new 금지)
+    private static readonly Color GridLineColor = new Color(0, 0, 0, 0.15f);
+    private static readonly GUIStyle CellLabelStyle = new GUIStyle(EditorStyles.miniLabel)
+    {
+        alignment = TextAnchor.MiddleCenter,
+        normal = { textColor = Color.black }
+    };
+
+    // 드래그 중 Undo 중복 방지
+    private bool _dragPainting;
+    private int _lastPaintIndex = -1;
 
     [MenuItem("RhythmRPG/Game/Map Painter")]
     public static void Open() => GetWindow<MapPainterWindow>("Map Painter");
@@ -19,30 +32,182 @@ public sealed class MapPainterWindow : EditorWindow
     {
         EditorGUILayout.Space(4);
 
+        // Map 변경 감지 시에만 EnsureSize
+        EditorGUI.BeginChangeCheck();
         _map = (MapAsset)EditorGUILayout.ObjectField("Map Asset", _map, typeof(MapAsset), false);
+        if (EditorGUI.EndChangeCheck() && _map != null)
+            _map.EnsureSize();
+
         if (_map == null)
         {
             EditorGUILayout.HelpBox("MapAsset을 만들고(우클릭 Create/Game/Map/MapAsset) 여기 넣어줘.", MessageType.Info);
             return;
         }
-        _map.EnsureSize();
-
 
         DrawSizeControls();
         EditorGUILayout.Space(8);
         DrawPalette();
         EditorGUILayout.Space(8);
-        try
-        {
-            DrawGrid();
-        }
-        catch (Exception ex)
-        {
-            EditorGUILayout.HelpBox(ex.ToString(), MessageType.Error);
-        }
+
+        try { DrawGridOptimized(); }
+        catch (Exception ex) { EditorGUILayout.HelpBox(ex.ToString(), MessageType.Error); }
+
         EditorGUILayout.Space(8);
         DrawExportHint();
     }
+
+    private void DrawGridOptimized()
+    {
+        int gridW = Mathf.RoundToInt(_map.Width * CellSize);
+        int gridH = Mathf.RoundToInt(_map.Height * CellSize);
+
+        // ScrollView 안에서 실제로 그릴 영역 확보
+        _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.Height(ViewHeight));
+
+        Rect gridRect = GUILayoutUtility.GetRect(gridW, gridH);
+        GUI.Box(gridRect, GUIContent.none);
+
+        // 입력 먼저 처리 (좌표 계산에 gridRect 필요)
+        HandlePaintOptimized(gridRect);
+
+        // === "보이는 영역만" 계산 ===
+        // ScrollView의 뷰포트(대략): 현재 창 폭/고정 높이
+        float viewW = position.width; // 대략치 (충분)
+        Rect viewRect = new Rect(_scroll.x, _scroll.y, viewW, ViewHeight);
+
+        int xMin = Mathf.Clamp(Mathf.FloorToInt(viewRect.xMin / CellSize), 0, _map.Width - 1);
+        int xMax = Mathf.Clamp(Mathf.CeilToInt(viewRect.xMax / CellSize), 0, _map.Width);
+        int yMin = Mathf.Clamp(Mathf.FloorToInt(viewRect.yMin / CellSize), 0, _map.Height - 1);
+        int yMax = Mathf.Clamp(Mathf.CeilToInt(viewRect.yMax / CellSize), 0, _map.Height);
+
+        // === 그리기: Repaint 이벤트에서만 ===
+        if (Event.current.type == EventType.Repaint)
+        {
+            // (1) 셀 채우기: visible range만 순회
+            for (int y = yMin; y < yMax; y++)
+            {
+                float cy = gridRect.y + y * CellSize;
+                for (int x = xMin; x < xMax; x++)
+                {
+                    Rect cellRect = new Rect(
+                        gridRect.x + x * CellSize,
+                        cy,
+                        CellSize,
+                        CellSize
+                    );
+
+                    var cell = _map.Get(x, y);
+                    DrawCellFast(cellRect, cell);
+                }
+            }
+
+            // (2) Grid line: 타일마다 4줄 X -> 세로/가로줄만 그리기
+            Handles.BeginGUI();
+            Handles.color = GridLineColor;
+
+            // 세로줄
+            for (int x = xMin; x <= xMax; x++)
+            {
+                float gx = gridRect.x + x * CellSize;
+                Handles.DrawLine(
+                    new Vector3(gx, gridRect.y + yMin * CellSize),
+                    new Vector3(gx, gridRect.y + yMax * CellSize)
+                );
+            }
+
+            // 가로줄
+            for (int y = yMin; y <= yMax; y++)
+            {
+                float gy = gridRect.y + y * CellSize;
+                Handles.DrawLine(
+                    new Vector3(gridRect.x + xMin * CellSize, gy),
+                    new Vector3(gridRect.x + xMax * CellSize, gy)
+                );
+            }
+
+            Handles.EndGUI();
+        }
+
+        EditorGUILayout.EndScrollView();
+    }
+
+    private void HandlePaintOptimized(Rect gridRect)
+    {
+        Event e = Event.current;
+        if (e == null) return;
+
+        // 마우스 업에서 드래그 상태 종료
+        if (e.type == EventType.MouseUp)
+        {
+            _dragPainting = false;
+            _lastPaintIndex = -1;
+            return;
+        }
+
+        bool isPaintEvent = (e.type == EventType.MouseDown || e.type == EventType.MouseDrag);
+        if (!isPaintEvent) return;
+        if (!gridRect.Contains(e.mousePosition)) return;
+
+        int x = Mathf.FloorToInt((e.mousePosition.x - gridRect.x) / CellSize);
+        int y = Mathf.FloorToInt((e.mousePosition.y - gridRect.y) / CellSize);
+        if (!_map.InBounds(x, y)) return;
+
+        int index = y * _map.Width + x;
+
+        // 같은 칸에 드래그 중복 칠하기 방지 (불필요 SetDirty/리페인트/Undo 감소)
+        if (index == _lastPaintIndex && e.type == EventType.MouseDrag)
+            return;
+        _lastPaintIndex = index;
+
+        // Undo는 MouseDown에서 1번만
+        if (e.type == EventType.MouseDown)
+        {
+            UnityEditor.Undo.RecordObject(_map, "Paint Tile");
+            _dragPainting = true;
+        }
+        else if (e.type == EventType.MouseDrag)
+        {
+            // MouseDown 없이 Drag가 오는 경우 방어
+            if (!_dragPainting)
+            {
+                UnityEditor.Undo.RecordObject(_map, "Paint Tile");
+                _dragPainting = true;
+            }
+        }
+
+        if (e.button == 0)
+            _map.Set(x, y, new TileCell { Kind = _paintKind, Variant = (byte)_paintVariant });
+        else if (e.button == 1)
+            _map.Set(x, y, default);
+
+        EditorUtility.SetDirty(_map);
+        e.Use();
+        Repaint(); // 입력 시 즉시 갱신
+    }
+
+    private void DrawCellFast(Rect r, TileCell cell)
+    {
+        Color baseColor = cell.Kind switch
+        {
+            TileKind.None => new Color(0.2f, 0.2f, 0.2f, 0.35f),
+            TileKind.Floor => new Color(0.3f, 0.75f, 0.35f, 0.85f),
+            TileKind.Wall => new Color(0.55f, 0.55f, 0.55f, 0.9f),
+            TileKind.Spawn => new Color(0.35f, 0.55f, 0.85f, 0.9f),
+            _ => new Color(1, 0, 1, 0.9f),
+        };
+
+        float t = (cell.Variant & 0x0F) / 15f; // % 대신 비트 & (미세하지만 싸게)
+        Color vColor = Color.Lerp(baseColor, Color.white, 0.15f * t);
+        EditorGUI.DrawRect(r, vColor);
+
+        // 라벨은 비용 큼: 필요하면 옵션으로 끄는 게 더 좋음
+        if (cell.Kind != TileKind.None)
+        {
+            GUI.Label(r, $"{(byte)cell.Kind}:{cell.Variant}", CellLabelStyle);
+        }
+    }
+
+    // ==== 기존 함수들(그대로 써도 됨) ====
 
     private void DrawSizeControls()
     {
@@ -63,7 +228,7 @@ public sealed class MapPainterWindow : EditorWindow
                     UnityEditor.Undo.RecordObject(_map, "Resize Map");
                     _map.Width = w;
                     _map.Height = h;
-                    _map.Cells = new TileCell[w * h]; // 기본 None
+                    _map.Cells = new TileCell[w * h];
                     EditorUtility.SetDirty(_map);
                 }
             }
@@ -101,106 +266,6 @@ public sealed class MapPainterWindow : EditorWindow
                 MessageType.None
             );
         }
-    }
-
-    private void DrawGrid()
-    {
-        // 마우스 이벤트 받기 위해 Rect 확보
-        int gridW = Mathf.RoundToInt(_map.Width * CellSize);
-        int gridH = Mathf.RoundToInt(_map.Height * CellSize);
-
-        _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.Height(600));
-
-
-        Rect gridRect = GUILayoutUtility.GetRect(gridW, gridH);
-        GUI.Box(gridRect, GUIContent.none);
-
-        HandlePaint(gridRect);
-
-        // 그리기
-        for (int y = 0; y < _map.Height; y++)
-        {
-            for (int x = 0; x < _map.Width; x++)
-            {
-                Rect cellRect = new Rect(
-                    gridRect.x + x * CellSize,
-                    gridRect.y + y * CellSize,
-                    CellSize,
-                    CellSize
-                );
-
-                var cell = _map.Get(x, y);
-                DrawCell(cellRect, cell);
-
-                // grid line
-                Handles.color = new Color(0, 0, 0, 0.15f);
-                Handles.DrawLine(new Vector3(cellRect.x, cellRect.y), new Vector3(cellRect.xMax, cellRect.y));
-                Handles.DrawLine(new Vector3(cellRect.x, cellRect.yMax), new Vector3(cellRect.xMax, cellRect.yMax));
-                Handles.DrawLine(new Vector3(cellRect.x, cellRect.y), new Vector3(cellRect.x, cellRect.yMax));
-                Handles.DrawLine(new Vector3(cellRect.xMax, cellRect.y), new Vector3(cellRect.xMax, cellRect.yMax));
-            }
-        }
-
-        EditorGUILayout.EndScrollView();
-    }
-
-    private void HandlePaint(Rect gridRect)
-    {
-        Event e = Event.current;
-        if (e == null) return;
-
-        bool isPaintEvent = (e.type == EventType.MouseDown || e.type == EventType.MouseDrag);
-        if (!isPaintEvent) return;
-
-        if (!gridRect.Contains(e.mousePosition)) return;
-
-        int x = Mathf.FloorToInt((e.mousePosition.x - gridRect.x) / CellSize);
-        int y = Mathf.FloorToInt((e.mousePosition.y - gridRect.y) / CellSize);
-
-        if (!_map.InBounds(x, y)) return;
-
-        // 좌클릭: 칠하기 / 우클릭: 지우기
-        UnityEditor.Undo.RecordObject(_map, "Paint Tile");
-
-        if (e.button == 0)
-        {
-            _map.Set(x, y, new TileCell { Kind = _paintKind, Variant = (byte)_paintVariant });
-        }
-        else if (e.button == 1)
-        {
-            _map.Set(x, y, default);
-        }
-
-        EditorUtility.SetDirty(_map);
-        e.Use();
-    }
-
-    private void DrawCell(Rect r, TileCell cell)
-    {
-        // Kind에 따른 기본 톤 + Variant에 따른 밝기/패턴 차이
-        Color baseColor = cell.Kind switch
-        {
-            TileKind.None => new Color(0.2f, 0.2f, 0.2f, 0.35f),
-            TileKind.Floor => new Color(0.3f, 0.75f, 0.35f, 0.85f),
-            TileKind.Wall => new Color(0.55f, 0.55f, 0.55f, 0.9f),
-            TileKind.Spawn => new Color(0.35f, 0.55f, 0.85f, 0.9f),
-            _ => new Color(1, 0, 1, 0.9f),
-        };
-
-        // Variant가 다르면 색이 살짝 달라지게(눈으로 구분)
-        float t = (cell.Variant % 16) / 15f; // 0~1
-        Color vColor = Color.Lerp(baseColor, Color.white, 0.15f * t);
-
-        EditorGUI.DrawRect(r, vColor);
-
-        // 텍스트로도 Kind/Variant 보이게
-        var label = cell.Kind == TileKind.None ? "" : $"{(byte)cell.Kind}:{cell.Variant}";
-        var style = new GUIStyle(EditorStyles.miniLabel)
-        {
-            alignment = TextAnchor.MiddleCenter,
-            normal = { textColor = Color.black }
-        };
-        GUI.Label(r, label, style);
     }
 
     private void DrawExportHint()

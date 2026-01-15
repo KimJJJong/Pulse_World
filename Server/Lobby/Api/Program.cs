@@ -3,6 +3,9 @@ using Lobby.Api.Extensions.Auth;
 using Lobby.Api.Extensions.Middleware;
 using Lobby.Infrastructure;
 using Serilog;
+using ControlPlane.Grpc.V1;
+using Shared.ControlPlane;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +17,9 @@ builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
+
+builder.Services.Configure<ControlPlaneClientOptions>(builder.Configuration.GetSection("ControlPlane"));
+
 
 // =========================================
 //  Serilog 설정
@@ -42,6 +48,14 @@ builder.Services.AddControllers()
 //  DI: Lobby Services, DB, Redis
 
 builder.Services.AddLobbyServices(builder.Configuration);
+
+builder.Services.AddSingleton(sp =>
+{
+    var opt = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ControlPlaneClientOptions>>().Value;
+    var invoker = GrpcInvokerFactory.CreateControlPlaneInvoker(opt);
+    return new ControlPlane.Grpc.V1.ControlPlane.ControlPlaneClient(invoker);
+});
+
 
 //  JWT Auth (RS256)
 

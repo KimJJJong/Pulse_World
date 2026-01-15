@@ -29,26 +29,21 @@ public class BoardView : MonoBehaviour, IClientWorldView
     private const bool DBG_POS = false;
     private int _dbgOnlyActorId = -1; // -1이면 전부, 특정 ID만 보고 싶으면 그 값으로
 
-    private void PosLog(string msg)
-    {
-        if (!DBG_POS) return;
-        Debug.Log(msg);
-    }
+
     #endregion
 
     void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
 
-        ClientGameState.Instance.WorldView = this;
+        Instance = this;
+
     }
 
+    void Start()
+    {
+        ClientGameState.Instance.WorldView = this;
+
+    }
     #region IClientWorldView
 
     public void OnCreateMap(int width, int height)
@@ -185,6 +180,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (info.EntityId == ClientGameState.Instance.MyActorId)
         {
             CameraBinder.Instance?.Bind(go.transform);
+            RhythmInputControllerBinder.Instance?.Bind(go);
         }
 
 
@@ -197,8 +193,6 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         _entityViews.Remove(entityId);
 
-        if (DBG_POS && (_dbgOnlyActorId < 0 || _dbgOnlyActorId == entityId))
-            PosLog($"[DESPAWN] entityId={entityId} viewRemoved");
     }
 
 
@@ -206,16 +200,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
     {
         if (!_entityViews.TryGetValue(action.ActorId, out var go) || go == null)
         {
-            if (DBG_POS && (_dbgOnlyActorId < 0 || _dbgOnlyActorId == action.ActorId))
-                PosLog($"[POS] DROP no view actor={action.ActorId} ActionKind={action.ActionKind} accepted={action.Accepted}");
             return;
         }
 
         if (!action.Accepted)
         {
-            if (DBG_POS && (_dbgOnlyActorId < 0 || _dbgOnlyActorId == action.ActorId))
-                PosLog($"[POS] REJECT actor={action.ActorId} ActionKind={action.ActionKind} from=({action.FromX},{action.FromY}) to=({action.ToX},{action.ToY})");
-            return;
+             return;
         }
 
         Vector3 fromW = GridToWorld(action.FromX, action.FromY);
@@ -234,16 +224,6 @@ public class BoardView : MonoBehaviour, IClientWorldView
         bool teleportLike = moveDist > 2.0f;       // 한 비트에 2m 이상 이동이면 이상
         bool desynced = driftFrom > 0.5f;      // 현재 위치가 from과 0.5m 이상 차이나면 이상
 
-        if (_dbgOnlyActorId < 0 || _dbgOnlyActorId == action.ActorId)
-        {
-            PosLog(
-                $"[POS] actor={action.ActorId} ActionKind={action.ActionKind} " +
-                $"grid {action.FromX},{action.FromY}->{action.ToX},{action.ToY} " +
-                $"world {fromW:F3}->{toW:F3} cur={curW:F3} " +
-                $"driftFrom={driftFrom:F3} moveDist={moveDist:F3} " +
-                $"{(teleportLike ? "TELEPORT?" : "")}{(desynced ? " DESYNC?" : "")}"
-            );
-        }
 
         StartCoroutine(LerpMove(go.transform, fromW, toW, moveLerpTime));
 

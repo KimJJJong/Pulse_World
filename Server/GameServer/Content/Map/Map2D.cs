@@ -4,8 +4,12 @@ using System.Collections.Generic;
 namespace GameServer.Content.Map;
 public sealed class Map2D
 {
+    private static readonly Random _rng = new Random();
+
     private readonly TileKind[,] _tiles;
-    private List<(int, int)> _spawnPoints;
+    private readonly List<(int, int)> _spawnPoints = new();
+    private List<(int, int)> _shuffledSpawns = new();
+    private int _spawnCursor = 0;
     public int Width { get; }
     public int Height { get; }
 
@@ -44,12 +48,28 @@ public sealed class Map2D
         _spawnPoints.Add((x,y));
     }
 
-
-    public (int, int) GetSpawnPoint(int slot)
+    public (int, int) GetSpawnPointRandom()
     {
-        if (_spawnPoints.Count - 1 < slot) return (-1, -1);
+        if (_spawnPoints.Count == 0)
+            return (-1, -1);
 
-        return _spawnPoints[slot];
+        if (_shuffledSpawns.Count == 0 || _spawnCursor >= _shuffledSpawns.Count)
+            ShuffleSpawnPoints();
+
+        return _shuffledSpawns[_spawnCursor++];
     }
-    
+
+    private void ShuffleSpawnPoints()
+    {
+        _shuffledSpawns = new List<(int, int)>(_spawnPoints);
+        for (int i = _shuffledSpawns.Count - 1; i > 0; i--)
+        {
+            int j = _rng.Next(i + 1);
+            (_shuffledSpawns[i], _shuffledSpawns[j]) =
+                (_shuffledSpawns[j], _shuffledSpawns[i]);
+        }
+        _spawnCursor = 0;
+    }
+
+
 }

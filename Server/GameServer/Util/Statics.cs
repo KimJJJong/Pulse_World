@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Server.withWebServer.Security;
+//using Server.withWebServer.Security;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +11,6 @@ namespace Util
 {
     public static class AppRef
     {
-        public static JwtService Jwt = null!;
         public static IConfiguration Cfg = null!;
         public static CancellationTokenSource Cts = new();
         static readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();

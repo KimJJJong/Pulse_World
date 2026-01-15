@@ -68,10 +68,8 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
 
-        DontDestroyOnLoad(gameObject);
 
         _defaultSprite = CreateWhiteSprite();
 
@@ -101,7 +99,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
         string bgmText = "";
         if (_bgm != null)
         {
-            // ✅ 새 구조: DeviceOffset + AutoAlignOffset (+ optional AlignCenter)
+            //  새 구조: DeviceOffset + AutoAlignOffset (+ optional AlignCenter)
             double centerMs = _bgm.AlignToBeatCenter ? (beatMs * 0.5) : 0.0;
             double audioOffsetMs = centerMs + _bgm.DeviceOffsetMs + _bgm.AutoAlignOffsetMs;
 

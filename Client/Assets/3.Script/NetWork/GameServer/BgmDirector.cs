@@ -18,9 +18,7 @@ public sealed class BgmDirector : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        DontDestroyOnLoad(gameObject);
 
         if (_player == null) _player = GetComponentInChildren<BgmSyncPlayer>(true);
         if (_audioSource == null) _audioSource = GetComponentInChildren<AudioSource>(true);

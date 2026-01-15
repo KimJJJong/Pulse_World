@@ -98,7 +98,7 @@ public sealed class PingManager : MonoBehaviour
             lastSentAtMs = now;
             sentCount++;
 
-            NetWorkManager.Instance.Send(new CS_Ping { seq = s, clientSendMs = now }.Write());
+            NetworkManager.Instance.Send(new CS_Ping { seq = s, clientSendMs = now }.Write());
 
             // timeout 대기
             var deadline = now + timeoutMs;

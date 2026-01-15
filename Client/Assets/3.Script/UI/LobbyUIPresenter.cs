@@ -16,7 +16,7 @@ public enum MapType
 public class LobbyUIPresenter : MonoBehaviour
 {
     [Header("Config")]
-    public string baseUrl = "http://localhost:5000";
+    public string baseUrl = "http://localhost:5290";
     public string clientVersion = "1.0.0";
 
     [Header("UI Object")]

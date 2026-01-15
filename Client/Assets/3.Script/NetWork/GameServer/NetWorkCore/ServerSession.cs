@@ -13,6 +13,7 @@ namespace Client
     class ServerSession : PacketSession
     {
         public Action OnConnectedAction;
+        public Action OnDisconnectedAction;
         public Action<IPacket> OnRecvPacketAction;
 
 
@@ -28,7 +29,11 @@ namespace Client
   
         public override void OnDisconnected(EndPoint endPoint)
         {
-            Debug.Log($"OnDisconnected : {endPoint}");
+            MainThreadDispatcher.Post(() =>
+            {
+                Debug.Log($"[Client] Disconnected {endPoint}");
+                OnDisconnectedAction?.Invoke();
+            });
         }
 
         public override void OnRecvPacket(ArraySegment<byte> buffer)

@@ -6,4 +6,7 @@
     long GetJudgeTimeMs(long currentBeat, long nextBeat);     // Bpm, currentIndex 확인후 exBeat와 currentBeat
 
     long GetBeatDurationMs();
+
+
+    bool TryComputeJudge(long nowMs, double actionWindowMs, out JudgeResult result);
 }

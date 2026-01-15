@@ -1,35 +1,119 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <PDL>
 
-	<!-- 클라 -> 게임서버: 최초 접속/검증 -->
-	<packet name="CS_JoinGame">
-		<string name="matchId"/>
-		<string name="uid"/>
-		<string name="ticket"/><!-- RS256 -->
-		<int name="protoVer"/><!-- 예: 3 -->
-		<string name="nonce"/><!-- 1회성 -->
-		<string name="clientVer"/><!-- 예: "u6-0.1.3" -->
-		<string name="platform"/><!-- "Windows","Android" 등 -->
+	<packet name ="CS_Handshake">
+		<string name ="TicketId"/>
+		<string name ="ClientNonce"/>
+		<int name ="ClientVersion"/>		<!-- optional: 빌드 넘버로 쓰면 좋음 (문자열이면 string으로) -->
+		<int name ="Target"/>		<!-- 0=Town, 1=Game (선택: 서버가 타겟 검증하면) -->
+		<string name ="Key"/>		<!-- optional: GameTicket에서만 쓰면 Town은 "" -->
 	</packet>
 
-	<!-- 게임서버 -> 클라: 환영/환경 -->
-	<packet name="SC_Welcome">
-		<string name="matchId"/>
-		<int name="slot"/>
-		<long name="serverTimeMs"/>
-		<int name="tickRate"/><!-- 30,60 등 -->
-		<int name="startTick"/><!-- 0 or 사전 동기값 -->
-		<string name="map"/>
-		<int name="seed"/>
-		<int name="latencyBudgetMs"/><!-- 시작 예약 지연여유 -->
-		<string name="startPolicy"/><!-- "AllLoaded" 등 -->
+	<packet name ="SC_HandshakeOk">
+		<string name ="Uid"/>		<long name ="ServerTimeMs"/>
+		<!-- time sync 기준 -->
+		<long name ="SessionEpoch"/>		<!-- 연결/세션 세대값(재접속/중복 구분) -->
+		<int name ="ServerRole"/>		<!-- 0=Town, 1=Game -->
 	</packet>
 
-	<!-- 클라 -> 게임서버: 로딩 완료 -->
-	<packet name="CS_Loaded">
-		<string name="matchId"/>
-		<string name="uid"/>
+	<packet name="SC_HandshakeFail">
+		<int name="errorCode"/>
+		<string name="message"/>
 	</packet>
+
+	<packet name="SC_ForcedDisconnect">
+		<int name="Reason"/>		<!-- 1=MovedToGame, 2=DuplicateLogin, 3=EpochSuperseded -->
+		<long name="NewEpoch"/>		<!-- 서버가 알고 있으면 넣고, 모르면 0 -->
+		<string name="Message"/>
+	</packet>
+	
+	<!--TOWN-->
+
+	<!-- COMMON: Scene 로딩 완료 후 맵 스냅샷 요청 -->
+	<packet name="CS_MapEnter">
+		<long   name="ClientTimeMs"/>
+		<string name="MapId"/>
+		<!-- Town: "town", Game: matchId 또는 mapId -->
+		<int    name="LastKnownRevision"/>
+		<!-- 없으면 0 -->
+		<bool   name="WantSnapshot"/>
+		<!-- true -->
+	</packet>
+
+	<!-- COMMON: 월드/맵/기존 인원/엔티티 스냅샷 (A 방식: 내 플레이어 포함) -->
+	<packet name="SC_InitMap">
+		<long name="ServerTimeMs"/>
+		<int  name="Revision"/>
+		<int  name="TickRate"/>		<!-- 안 쓰면 0 -->
+
+		<string name="MapId"/>
+		<int name="MapWidth"/>
+		<int name="MapHeight"/>
+		<int    name="MapVersion"/>
+
+		<int name="Mode"/>		<!-- 0=Town, 1=Game -->
+		<int name="MyActorId"/>
+
+		<list name="Players">
+			<string name="Uid"/>
+			<int    name="ActorId"/>
+			<string name="Name"/>
+		</list>
+
+		<list name="Entities">
+			<int name="EntityId"/>
+			<int name="EntityType"/>			<!-- PlayerActor/Unit/NPC 등 -->
+			<int name="OwnerSlot"/>			<!-- PlayerActor면 MySlot 등 -->
+			<int name="X"/>
+			<int name="Y"/>
+			<int name="Dir"/>
+			<int name="Hp"/>
+			<int name="AppearanceId"/>
+		</list>
+
+		<!-- Game(리듬) 전용 초기 파라미터 (선택: 지금 너 구조랑 잘 맞음) -->
+		<double name="ActionWindowMs"/>
+		<string name="SongId"/>
+		<double name="Bpm"/>
+		<int    name="BaseBeatDivision"/>
+		<long name ="SongStartServerTime"/>
+	</packet>
+
+	<packet name="CS_Ready">
+		<int  name="Revision"/>
+		<long name="ClientTimeMs"/>
+	</packet>
+
+	<packet name="SC_ReadyAck">
+		<int  name="Revision"/>
+		<long name="ServerTimeMs"/>
+	</packet>
+
+	<packet name ="CS_TownActionRequest">
+		<int name ="ActorId"/>
+		<int name ="ActionKind"/>
+		<int name ="TargetX"/>
+		<int name ="TargetY"/>
+		<long name ="ClientSendTimeMs"/>
+	</packet>
+
+	<packet name ="SC_TownBeatActions">
+		<long name ="BeatIndex"/>
+		<list name ="BeatActionResult">
+			<int name="ActorId"/>
+			<int name="ActionKind"/>
+			<int name="FromX"/>
+			<int name="FromY"/>
+			<int name="ToX"/>
+			<int name="ToY"/>
+			<bool name="Accepted"/>
+
+		</list>
+	</packet>
+	
+	
+	
+	<!--GAME-->
 
 	<!-- 게임서버 -> 클라: 양측 로딩 완료 알림 -->
 	<packet name="SC_AllPlayersLoaded">
@@ -166,13 +250,20 @@
 		<long name="BeatIndex"/>
 		<int name ="EntityId"/>
 	</packet>
-
+	
+	<packet name ="SC_EntitySpawn">
+		<long name="BeatIndex"/>
+		<int name ="EntityId"/>
+		<int name ="EntityType"/>
+		<int name ="X"/>
+		<int name ="Y"/>
+		<int name ="Hp"/>
+	</packet>
 	
 	
 	<!-- RhythmTest-->
-	
 
-	
+
 
 </PDL>
 

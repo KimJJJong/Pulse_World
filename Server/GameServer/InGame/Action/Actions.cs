@@ -19,8 +19,6 @@ public sealed class PendingAction
 /// </summary>
 public sealed class PlayerActionCmd
 {
-    public long JudgedBeat {  get; set; }
-    public int JudgeDiffMs { get; set; }
 
 
     /// <summary>행동의 주체가 되는 Actor ID (플레이어, 몬스터 등)</summary>
@@ -34,29 +32,15 @@ public sealed class PlayerActionCmd
     /// Move면 이동하려는 칸, Skill이면 스킬 중심 좌표 등으로 해석.
     /// </summary>
     public GridPos TargetCell { get; init; }
-    /// <summary>
-    /// 
-    /// </summary>
+
     public string SkillId { get; init; }
 
 
-    /// <summary>
-    /// 이 액션이 실행될 Beat 번호.
-    /// - 클라가 직접 넣어도 되지만,
-    ///   보통 서버가 판정 (TryRegisterAction) 후 세팅하는 값을 기준으로 사용.
-    /// </summary>
     public long ExecuteBeat { get; set; }
 
-    /// <summary>
-    /// 클라이언트 기준 이 명령을 보낸 시각 (ms).
-    /// RTT 계산, 판정 보정 등에 사용 가능.
-    /// </summary>
     public long ClientSendTimeMs { get; init; }
 
-    /// <summary>
-    /// 서버 기준 이 명령을 수신한 시각 (ms).
-    /// Beat 판정, ActionWindow 체크 등에 사용.
-    /// </summary>
+ 
     public long ServerReceiveTimeMs { get; set; }
 
     public override string ToString()
