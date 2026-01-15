@@ -17,6 +17,8 @@ public sealed class IssueGameTicketHandler
 
     public async Task<IssueGameTicketResult> HandleAsync(IssueGameTicketCommand cmd, CancellationToken ct)
     {
+
+        //Console.WriteLine( $" roomID : {cmd.RoomId} || Map :{cmd.Map} || Player : {cmd.MaxPlayers} || Uid : {cmd.Uid}");
         if (string.IsNullOrWhiteSpace(cmd.RoomId))
             throw new ApiException(400, ErrorCodes.InvalidRequest, "RoomId required.");
         if (string.IsNullOrWhiteSpace(cmd.Map))

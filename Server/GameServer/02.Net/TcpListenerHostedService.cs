@@ -25,10 +25,13 @@ public sealed class TcpListenerHostedService : IHostedService
 
     public Task StartAsync(CancellationToken ct)
     {
+
         var ep = BuildEndPoint(_opt.Bind.Host, _opt.Bind.Port);
 
         _listener.Init(ep, () => SessionManager.Instance.Generate<ClientSession>());
 
+        _log.LogInformation("Listening bind={Host}:{Port} role={Role}",
+    _opt.Bind.Host, _opt.Bind.Port, _opt.Role.Name);
         _log.LogInformation("Listening on {Bind} (public {PublicHost}:{PublicPort}) id={Id}",
             ep, _opt.Public.Host, _opt.Public.Port, _opt.ServerId);
 

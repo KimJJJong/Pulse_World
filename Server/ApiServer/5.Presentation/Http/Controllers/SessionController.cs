@@ -22,6 +22,7 @@ public sealed class SessionController : ControllerBase
             new IssueTownTicketCommand(uid, req.PreferredRegion),
             ct);
 
+        Console.WriteLine($"endPoint :{result.Endpoint.Host} : {result.Endpoint.Port}");
         return Ok(new SessionDtos.IssueTownTicketResponse(
             TicketId: result.TicketId,
             ExpireAtMs: result.ExpireAtMs,
@@ -36,6 +37,7 @@ public sealed class SessionController : ControllerBase
         CancellationToken ct)
     {
         var uid = HttpContext.RequireUid();
+        //Console.WriteLine($" roomID : {req.RoomId} || Map :{req.Map} || Player : {req.MaxPlayers} || Uid : {uid}");
 
         var result = await handler.HandleAsync(
             new IssueGameTicketCommand(uid, req.RoomId, req.Map, req.MaxPlayers, req.PreferredRegion),

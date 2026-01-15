@@ -175,9 +175,9 @@ public class RhythmInputController : MonoBehaviour
     }
 
     /// <summary>
-    /// ✅ (새) Hold 상태 업데이트: GetKey 기반
+    /// Hold 상태 업데이트: GetKey 기반
     /// - WASD: Move
-    /// - Arrow: Attack
+    /// - 
     /// - 동시에 눌리면 "기존과 동일하게" 위에서 먼저 매칭되는 1개만
     /// </summary>
     bool TryUpdateHoldState(out Vector2Int dir, out ActionKind kind)
@@ -192,10 +192,10 @@ public class RhythmInputController : MonoBehaviour
         if (Input.GetKey(KeyCode.D)) { dir = Vector2Int.right; kind = ActionKind.Move; return true; }
 
         // Arrow -> Attack
-        if (Input.GetKey(KeyCode.UpArrow)) { dir = Vector2Int.up; kind = ActionKind.Attack; return true; }
-        if (Input.GetKey(KeyCode.DownArrow)) { dir = Vector2Int.down; kind = ActionKind.Attack; return true; }
-        if (Input.GetKey(KeyCode.LeftArrow)) { dir = Vector2Int.left; kind = ActionKind.Attack; return true; }
-        if (Input.GetKey(KeyCode.RightArrow)) { dir = Vector2Int.right; kind = ActionKind.Attack; return true; }
+        //if (Input.GetKey(KeyCode.UpArrow)) { dir = Vector2Int.up; kind = ActionKind.Attack; return true; }
+        //if (Input.GetKey(KeyCode.DownArrow)) { dir = Vector2Int.down; kind = ActionKind.Attack; return true; }
+        //if (Input.GetKey(KeyCode.LeftArrow)) { dir = Vector2Int.left; kind = ActionKind.Attack; return true; }
+        //if (Input.GetKey(KeyCode.RightArrow)) { dir = Vector2Int.right; kind = ActionKind.Attack; return true; }
 
         return false;
     }
