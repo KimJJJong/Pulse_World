@@ -126,7 +126,7 @@ partial class PacketHandler
     {
         var s = (ClientSession)session;
         var req = (CS_MapEnter)packet;
-        Console.WriteLine("[IN]CS_MapEnterHandler");
+        Console.WriteLine($"[IN]CS_MapEnterHandler : MapId: {req.MapId}");
         if (!s.HasAuth)
         {
             s.Close("map_enter_without_auth");

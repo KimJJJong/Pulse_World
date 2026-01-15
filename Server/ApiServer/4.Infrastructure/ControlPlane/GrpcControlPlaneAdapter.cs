@@ -4,6 +4,7 @@ using ApiServer.Infrastructure.Options;
 using ApiServer.Shared.Errors;
 using ControlPlane.Grpc.V1;
 using Grpc.Core;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Options;
 using Shared.ControlPlane;
 
@@ -157,7 +158,7 @@ private CallOptions MakeCallOptions(CancellationToken ct)
             throw ToApiException(resp.Error, "CreateRoom failed.");
     }
 
-    public async Task<(string ticketId, long expireAtMs, string serverId, string key)> IssueTicketAsync(
+    public async Task<(string ticketId, long expireAtMs, string serverId, string key, Application.Ports.Models.Endpoint endpoint)> IssueTicketAsync(
         string uid, string target, string key, string preferredServerId, int ttlSeconds, CancellationToken ct)
     {
         var tgt = target == "GAME" ? TicketTarget.Game : TicketTarget.Town;
@@ -182,12 +183,14 @@ private CallOptions MakeCallOptions(CancellationToken ct)
         }
         catch (RpcException ex)
         {
-            throw new ApiException(502, "cp_rpc_failed", ex.Status.Detail);
+            throw new ApiException(502, "cp_rpc_failed", $"Server not found: {preferredServerId}");
         }
 
         if (!resp.Ok)
             throw ToApiException(resp.Error, "IssueTicket failed.");
 
-        return (resp.TicketId, resp.ExpireAtMs, resp.ServerId, resp.Key);
+        var endPoint = new Application.Ports.Models.Endpoint(resp.Endpoint.Host, resp.Endpoint.Port) ;
+
+        return (resp.TicketId, resp.ExpireAtMs, resp.ServerId, resp.Key, endPoint);
     }
 }

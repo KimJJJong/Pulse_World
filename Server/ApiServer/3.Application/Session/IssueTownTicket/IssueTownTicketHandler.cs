@@ -1,5 +1,4 @@
 ﻿using ApiServer.Application.Ports;
-using ApiServer.Application.Ports.Models;
 using ApiServer.Infrastructure.Options;
 using ApiServer.Shared.Abstractions;
 using Microsoft.Extensions.Options;
@@ -27,17 +26,28 @@ public sealed class IssueTownTicketHandler
         var nowMs = _time.UtcNow.ToUnixTimeMilliseconds();
 
         //  Town endpoint는 ApiServer가 config로 소유(현재 proto 기준 정석)
-        var endpoint = new Ports.Models.Endpoint(_town.Host, _town.Port);
-        Console.WriteLine(endpoint);
+        //var endpoint = new Ports.Models.Endpoint(_town.Host, _town.Port);
         // Town ticket 발급
-        var (tid, expAt, _, _) = await _cp.IssueTicketAsync(
-            uid: cmd.Uid,
-            target: "TOWN",
-            key: "",
-            preferredServerId: "",
-            ttlSeconds: 30,
-            ct: ct);
+        Console.WriteLine("[IN] HandleAsync");
 
-        return new IssueTownTicketResult(tid, expAt, endpoint);
+        try
+        {
+            var (tid, expAt, _, _, endPoint) = await _cp.IssueTicketAsync(
+                uid: cmd.Uid, 
+                target: "TOWN",
+                key: "",
+                preferredServerId: "ts1",   //TODO : loadBalance할라면 Allocate로 수정
+                ttlSeconds: 30,
+                ct: ct);
+
+            Console.WriteLine($"[AFTER] IssueTicketAsync ok endpoint={endPoint}");
+            return new IssueTownTicketResult(tid, expAt, endPoint);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[EX] {ex.GetType().FullName}: {ex.Message}");
+            Console.WriteLine(ex.ToString());
+            throw;
+        }
     }
 }

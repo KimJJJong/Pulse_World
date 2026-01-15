@@ -56,8 +56,8 @@ public sealed class IssueGameTicketHandler
             nowMs: nowMs,
             ct: ct);
 
-        // 4) IssueTicket (pinned)
-        var (tid, expAt, _, key) = await _cp.IssueTicketAsync(
+        // 4) IssueTicket (pinned)      : 여기 EndPoint 는 IssueTicket에서 받아오는거 Allocate와는 다르지만 값은 같아야지
+        var (tid, expAt, _, key, _endPoint) = await _cp.IssueTicketAsync(
             uid: cmd.Uid,
             target: "GAME",
             key: cmd.RoomId,

@@ -29,7 +29,7 @@ public interface IControlPlanePort
         long nowMs,
         CancellationToken ct);
 
-    Task<(string ticketId, long expireAtMs, string serverId, string key)> IssueTicketAsync(
+    Task<(string ticketId, long expireAtMs, string serverId, string key, Models.Endpoint endpoint)> IssueTicketAsync(
         string uid,
         string target,             // "TOWN" | "GAME"
         string key,                // roomId or ""

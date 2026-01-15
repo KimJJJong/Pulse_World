@@ -46,11 +46,27 @@ class PacketHandler
     {
         var p = (SC_HandshakeOk)packet;
 
+
+        // 이친구도 조금더 엘래강스하게 뺄 수 없을까?
+        string serverRole = "Unknown";
+        switch (p.ServerRole)
+        {
+            case 1:
+                serverRole = "Town";
+                break;
+            case 2:
+                serverRole = "Game";
+                break;
+            default:
+                serverRole = "Undefine";
+                break;
+        }
+
         SessionContext.Instance.ApplyHandshakeOk(
             uid: p.Uid,
             serverTimeMs: p.ServerTimeMs,
             sessionEpoch: p.SessionEpoch,
-            role: "Town"        //TODO : p. 받아와서 수정하도록
+            role: serverRole
             );
 
         // 2) 네트워크 상태 확정 (Ready 이벤트 발행 -> ClientFlow가 씬 전환)
@@ -88,7 +104,6 @@ class PacketHandler
         SessionContext.Instance.ResetForReconnect();
     }
 
-    ///TOWN
     public static void SC_InitMapHandler(PacketSession session, IPacket packet)
     {
         var p = (SC_InitMap)packet;
@@ -117,18 +132,6 @@ class PacketHandler
             Debug.LogWarning("[SC_InitMap] TownSceneContext not found (scene not ready yet?)");
         }
 
-        // 3) 기존 핸들러가 더 있다면, 그건 "씬 쪽"으로 옮기는 걸 추천
-         //ClientHandlers.Instance.HandleSC_InitMap((SC_InitMap)packet);
-        // -> TownSceneContext 내부로 옮기는게 정석(씬에 종속된 처리라면)
-
-        //ClientHandlers.Instance.HandleSC_InitMap((SC_InitMap)packet);
-        //if (PingManager.Instance is null)
-        //{
-        //    UnityEngine.Debug.Log("PingManager Summon");
-        //    new GameObject("PingManager").AddComponent<PingManager>();
-        //}
-        //PingManager.Instance.Configure(interval: 2000, timeout: 6000, maxMiss: 3);
-        //PingManager.Instance.StartLoop();
     }
 
     public static void SC_ReadyAckHandler(PacketSession session, IPacket packet)

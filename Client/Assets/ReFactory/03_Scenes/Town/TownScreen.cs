@@ -14,8 +14,8 @@ public sealed class TownScreen : MonoBehaviour
     void Awake()
     {
         // 기본값(UX)
-        view.TownPreferredRegion.text = "kr";
-        view.GamePreferredRegion.text = "kr";
+        view.TownPreferredRegion.text = "local";
+        view.GamePreferredRegion.text = "local";
         view.GameRoomId.text = "room-1";
         view.GameMap.text = "map_01";
         view.GameMaxPlayers.text = "2";
@@ -43,6 +43,7 @@ public sealed class TownScreen : MonoBehaviour
 
         var root = AppBootstrap.Instance.Root;
         var region = (view.TownPreferredRegion.text ?? "").Trim();
+
 
         var r = await root.SessionApi.IssueTownTicketAsync(region);
         view.SetBusy(false);
@@ -74,11 +75,13 @@ public sealed class TownScreen : MonoBehaviour
         if (!int.TryParse((view.GameMaxPlayers.text ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var maxPlayers))
             maxPlayers = 2;
 
+        Debug.Log($"[IssueGameTicketAsync] regin: {region} || roomId: {roomId} || Map :{map} || MaxPlayer: {maxPlayers}");
         var r = await root.SessionApi.IssueGameTicketAsync(roomId, map, maxPlayers, region);
         view.SetBusy(false);
 
         if (!r.Ok)
         {
+            Debug.LogWarning(r.Error);
             view.SetStatus(r.Error);
             ClearGameResult();
             return;

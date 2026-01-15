@@ -106,6 +106,8 @@ message IssueTicketResponse {
   int64 expire_at_ms = 4;
   string server_id = 5;
   string key = 6;
+
+  ServerEndpoint endpoint = 7;
 }
 
 message VerifyTicketRequest {

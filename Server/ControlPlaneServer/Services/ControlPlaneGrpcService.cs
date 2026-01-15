@@ -80,7 +80,18 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
             ttlSeconds: ttl
         );
 
-        Console.WriteLine($"[IssueTicket] ReqUID : {request.Uid} || Target : {target} || key : {request.Key} || IssueServerId : {issuedServerId} || Pinned :{pinned} ||ttl :{ttl} " );
+        var server = await _registry.GetAsync(target, pinned);
+
+        if (server == null)
+        {
+            return new IssueTicketResponse
+            {
+                Ok = false,
+                Error = MakeError(ErrorCode.ServerNotFound, $"Server not found: {issuedServerId}")
+            };
+        }
+
+        Console.WriteLine($"[IssueTicket] EndPoint: {server.Host} : {server.Port} ReqUID : {request.Uid} || Target : {target} || key : {request.Key} || IssueServerId : {issuedServerId} || Pinned :{pinned} ||ttl :{ttl} " );
 
         return new IssueTicketResponse
         {
@@ -88,7 +99,8 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
             TicketId = t.TicketId,
             ExpireAtMs = t.ExpireAtMs,
             ServerId = issuedServerId,
-            Key = request.Key ?? ""
+            Key = request.Key ?? "",
+            Endpoint = new ServerEndpoint { Host = server.Host, Port = server.Port }
         };
     }
 
@@ -122,7 +134,7 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
         RequireSecret(context);
 
         var expected = request.ExpectedTarget == TicketTarget.Town ? "TOWN" : "GAME";
-
+        //Console.WriteLine($"expected : {expected} || tickId :{request.TicketId} || VerifireServerid:{request.VerifierServerId}|| ConnId :{request.ConnId}|| ");
         var (ok, uid, key, issued, pinned, expAt, err) =
             await _tickets.ReserveOrConsumeAsync(request.TicketId, expected, request.VerifierServerId, request.ConnId, request.NowMs);
 
@@ -250,7 +262,7 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
             request.Region ?? "",
             request.ReserveTtlSeconds
         );
-
+        //Console.WriteLine($"[AllocateGameServer]Uid: {request.Uid} || Server: {server} || Reservation: {reservation} ");
         if (!ok || server == null || reservation == null)
         {
             return new AllocateGameServerResponse
