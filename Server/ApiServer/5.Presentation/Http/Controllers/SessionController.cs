@@ -16,14 +16,12 @@ public sealed class SessionController : ControllerBase
         [FromBody] SessionDtos.IssueTownTicketRequest req,
         CancellationToken ct)
     {
-        Console.WriteLine("[IN] /session/ticket/town");
         var uid = HttpContext.RequireUid();
 
         var result = await handler.HandleAsync(
             new IssueTownTicketCommand(uid, req.PreferredRegion),
             ct);
 
-        Console.WriteLine($"endPoint :{result.Endpoint.Host} : {result.Endpoint.Port}");
         return Ok(new SessionDtos.IssueTownTicketResponse(
             TicketId: result.TicketId,
             ExpireAtMs: result.ExpireAtMs,

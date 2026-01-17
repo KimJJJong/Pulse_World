@@ -64,7 +64,7 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
         // issuedServerId/endpoint는 호출 주체(API)가 결정/전달하는 구조도 가능하지만,
         // 여기서는 "preferred_server_id"를 pinned처럼 사용 가능하도록 남겨둠.
         // 실제 운영에선 API가 AllocateGameServer로 serverId 받은 뒤 IssueTicket에 preferred_server_id를 넣는 방식이 깔끔함.
-        var target = request.Target == TicketTarget.Town ? "TOWN" : "GAME";
+        var target = request.Target == TicketTarget.Town ? "Town" : "Game";
         var pinned = request.PreferredServerId ?? "";
         var ttl = request.TtlSeconds > 0 ? request.TtlSeconds : _opt.TicketDefaultTtlSeconds;
 
@@ -108,7 +108,7 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
     {
         RequireSecret(context);
 
-        var expected = request.ExpectedTarget == TicketTarget.Town ? "TOWN" : "GAME";
+        var expected = request.ExpectedTarget == TicketTarget.Town ? "Town" : "Game";
         var (ok, uid, key, issued, pinned, expAt, err) = await _tickets.VerifyAsync(request.TicketId, expected);
 
         if (!ok)
@@ -133,8 +133,8 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
     {
         RequireSecret(context);
 
-        var expected = request.ExpectedTarget == TicketTarget.Town ? "TOWN" : "GAME";
-        //Console.WriteLine($"expected : {expected} || tickId :{request.TicketId} || VerifireServerid:{request.VerifierServerId}|| ConnId :{request.ConnId}|| ");
+        var expected = request.ExpectedTarget == TicketTarget.Town ? "Town" : "Game";
+        Console.WriteLine($"[ReserveOrConsumeTicket] expected : {expected} || tickId :{request.TicketId} || VerifireServerid:{request.VerifierServerId}|| ConnId :{request.ConnId}|| ");
         var (ok, uid, key, issued, pinned, expAt, err) =
             await _tickets.ReserveOrConsumeAsync(request.TicketId, expected, request.VerifierServerId, request.ConnId, request.NowMs);
 
@@ -165,7 +165,7 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
     {
         RequireSecret(context);
 
-        string newState = request.State == PresenceState.Town ? "TOWN" : "GAME";
+        string newState = request.State == PresenceState.Town ? "Town" : "Game";
 
         var (ok, err, newEpoch, prev) = await _presence.AttachAsync(
             request.Uid,
@@ -193,7 +193,7 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
 
         if (prev != null)
         {
-            resp.PrevState = prev.State == "TOWN" ? PresenceState.Town : PresenceState.Game;
+            resp.PrevState = prev.State == "Town" ? PresenceState.Town : PresenceState.Game;
             resp.PrevServerId = prev.ServerId;
             resp.PrevConnId = prev.ConnId;
             resp.PrevEpoch = prev.Epoch;
@@ -329,7 +329,7 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
     {
         RequireSecret(context);
 
-        var type = request.Type == ServerType.Town ? "TOWN" : "GAME";
+        var type = request.Type == ServerType.Town ? "Town" : "Game";
         var s = new ServerRecord(
             ServerId: request.ServerId,
             Type: type,
@@ -355,7 +355,7 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
 
         RequireSecret(context);
 
-        var type = request.Type == ServerType.Town ? "TOWN" : "GAME";
+        var type = request.Type == ServerType.Town ? "Town" : "Game";
 
         await _registry.HeartbeatAsync(type, request.ServerId, request.Load, request.CurrentSessions);
 

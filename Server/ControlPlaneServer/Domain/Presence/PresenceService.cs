@@ -49,7 +49,7 @@ public sealed class PresenceService
         // 단일 실시간 연결 정책: 이전 서버가 있고, 다른 서버면 Kick 발행
         if (prev != null && prev.ServerId != serverId)
         {
-            var reason = (newState == "GAME") ? KickReason.MovedToGame : KickReason.DuplicateLogin;
+            var reason = (newState == "Game") ? KickReason.MovedToGame : KickReason.DuplicateLogin;
 
             _hub.PublishToServer(prev.ServerId, new ControlEvent
             {

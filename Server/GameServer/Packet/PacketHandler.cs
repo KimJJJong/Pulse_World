@@ -12,7 +12,7 @@ partial class PacketHandler
     public static async void CS_HandshakeHandler(PacketSession session, IPacket packet)
     {
         CS_Handshake req = (CS_Handshake)packet;
-        var s = (ClientSession)session; // 네 세션 타입 확정
+        var s = (ClientSession)session;                         
         var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         // 0) 기본 검증
@@ -49,7 +49,7 @@ partial class PacketHandler
         registry.Bind(res.Uid, res.Epoch, s);
 
         // 4) OK 응답
-        await s.SendHandshakeOkAsync(res.Uid, res.Epoch,res.ServerRole , "Test_Val");
+        await s.SendHandshakeOkAsync(res.Uid, res.Epoch,res.ServerRole , res.Key);
 
         // 5) Lease renew 시작 (연결 동안 유지)
         _ = Task.Run(async () =>

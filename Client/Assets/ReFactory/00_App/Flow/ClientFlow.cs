@@ -1,6 +1,7 @@
 // Assets/0_App/Flow/ClientFlow.cs
 using System.Net;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public sealed class ClientFlow : MonoBehaviour
 {
@@ -34,6 +35,7 @@ public sealed class ClientFlow : MonoBehaviour
         _target = Target.Game;
 
         var ep = new IPEndPoint(IPAddress.Parse(ticket.Endpoint.Host), ticket.Endpoint.Port);
+        Debug.Log($"[HandshakeArgs]endpoint :{ep} || Ticket :{ticket.TicketId} || Nonce: {clientNonce} || key :{ticket.Key} ");
         NetworkManager.Instance.ConnectAndHandshake(ep, ticket.TicketId, clientNonce, ticket.Key);
     }
 

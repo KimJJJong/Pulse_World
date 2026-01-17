@@ -1,5 +1,6 @@
 ﻿using ControlPlane.Grpc.V1;
 using Microsoft.Extensions.Options;
+using Server.Bootstrap;
 using Server.Infrastructure.ControlPlaneClient;
 using Server.Infrastructure.Options;
 using System;
@@ -11,9 +12,9 @@ namespace Server.Domain.Auth;
 public sealed class PresenceLeaseRenewer
 {
     private readonly GrpcControlPlaneClient _cp;
-    private readonly ServerIdentityOptions _me;
+    private readonly ServerOptions _me;
 
-    public PresenceLeaseRenewer(GrpcControlPlaneClient cp, IOptions<ServerIdentityOptions> me)
+    public PresenceLeaseRenewer(GrpcControlPlaneClient cp, IOptions<ServerOptions> me)
     {
         _cp = cp;
         _me = me.Value;
@@ -28,7 +29,7 @@ public sealed class PresenceLeaseRenewer
         CancellationToken ct)
     {
         // ttl=10이면 3~5초마다 renew 권장
-        var periodMs = Math.Max(1000, (_me.LeaseTtlSeconds * 1000) / 2);
+        var periodMs = Math.Max(1000, (_me.PresenceLeaseTtlSeconds * 1000) / 2);
 
         while (!ct.IsCancellationRequested && isConnected())
         {
@@ -46,7 +47,7 @@ public sealed class PresenceLeaseRenewer
                     ServerId = _me.ServerId,
                     ConnId = connId,
                     Epoch = epoch,
-                    LeaseTtlSeconds = _me.LeaseTtlSeconds,
+                    LeaseTtlSeconds = _me.PresenceLeaseTtlSeconds,
                     NowMs = nowMs
                 }, ct);
                 //Console.WriteLine($"[RenewResp] ok={resp.Ok} code={resp.Error?.Code} msg={resp.Error?.Message}");

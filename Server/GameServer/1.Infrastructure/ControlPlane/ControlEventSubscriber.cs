@@ -3,6 +3,7 @@ using Grpc.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Server.Bootstrap;
 using Server.Infrastructure.Options;
 using System;
 using System.Threading;
@@ -16,7 +17,7 @@ namespace Server.Infrastructure.ControlPlaneClient;
 public sealed class ControlEventSubscriber : BackgroundService
 {
     private readonly GrpcControlPlaneClient _cp;
-    private readonly ServerIdentityOptions _me;
+    private readonly ServerOptions _me;
     private readonly ILogger<ControlEventSubscriber> _log;
 
     // 실제 서버에서는 "uid -> connection" 맵이 필요.
@@ -25,7 +26,7 @@ public sealed class ControlEventSubscriber : BackgroundService
 
     public ControlEventSubscriber(
         GrpcControlPlaneClient cp,
-        IOptions<ServerIdentityOptions> me,
+        IOptions<ServerOptions> me,
         IConnectionKicker kicker,
         ILogger<ControlEventSubscriber> log)
     {
@@ -41,7 +42,7 @@ public sealed class ControlEventSubscriber : BackgroundService
         {
             try
             {
-                var type = _me.Type == "GAME" ? ServerType.Game : ServerType.Town;
+                var type = _me.Role.Name == "Game" ? ServerType.Game : ServerType.Town;
 
                 using var call = _cp.SubscribeControlEvents(new SubscribeControlEventsRequest
                 {

@@ -1,7 +1,9 @@
 ﻿using ControlPlane.Grpc.V1;
 using Microsoft.Extensions.Options;
+using Server.Bootstrap;
 using Server.Infrastructure.ControlPlaneClient;
 using Server.Infrastructure.Options;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,19 +15,19 @@ namespace Server.Domain.Auth;
 public sealed class HandshakeFlow
 {
     private readonly GrpcControlPlaneClient _cp;
-    private readonly ServerIdentityOptions _me;
+    private readonly ServerOptions _me;
 
-    public HandshakeFlow(GrpcControlPlaneClient cp, IOptions<ServerIdentityOptions> me)
+    public HandshakeFlow(GrpcControlPlaneClient cp, IOptions<ServerOptions> me)
     {
         _cp = cp;
         _me = me.Value;
     }
 
     private TicketTarget MyTicketTarget()
-        => _me.Type == "GAME" ? TicketTarget.Game : TicketTarget.Town;
+        => _me.Role.Name == "Game" ? TicketTarget.Game : TicketTarget.Town;
 
     private PresenceState MyPresenceState()
-        => _me.Type == "GAME" ? PresenceState.Game : PresenceState.Town;
+        => _me.Role.Name == "Game" ? PresenceState.Game : PresenceState.Town;
 
     public async Task<HandshakeResult> RunAsync(
         string ticketId,
@@ -34,6 +36,7 @@ public sealed class HandshakeFlow
         CancellationToken ct)
     {
         // 1) ReserveOrConsumeTicket (서버가 어떤 타겟인지로 expected_target 결정)
+        Console.WriteLine($"[RunAsync] TicketId: {ticketId} || expectedTarget: {MyTicketTarget()} ||VerifierServerId: {_me.ServerId}|| connectionId: {connId}");
         var v = await _cp.ReserveOrConsumeTicketAsync(new ReserveOrConsumeTicketRequest
         {
             TicketId = ticketId,
@@ -53,7 +56,7 @@ public sealed class HandshakeFlow
             State = MyPresenceState(),
             ServerId = _me.ServerId,
             ConnId = connId,
-            LeaseTtlSeconds = _me.LeaseTtlSeconds,
+            LeaseTtlSeconds = _me.PresenceLeaseTtlSeconds,
             NowMs = nowMs
         }, ct);
 

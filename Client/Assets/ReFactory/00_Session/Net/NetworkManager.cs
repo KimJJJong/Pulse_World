@@ -50,6 +50,8 @@ public sealed class NetworkManager : MonoBehaviour
     {
         _pending = new HandshakeArgs(endPoint, ticketId, clientNonce, key);
 
+            Debug.Log($"[HandshakeArgs]endpoint :{endPoint} || Ticket :{ticketId} || Nonce: {clientNonce} || key :{key} ");
+        Debug.Log($"state : {_state} ");
         if (_state == ConnState.Connecting || _state == ConnState.Connected || _state == ConnState.Ready)
         {
             TrySendHandshakeOnce();

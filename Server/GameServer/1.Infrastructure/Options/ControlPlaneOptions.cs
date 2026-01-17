@@ -7,6 +7,6 @@ public sealed class ControlPlaneOptions
     public string Secret { get; init; } = "";
 
     public string ServerId { get; set; } = "gs1";     // verifier_server_id
-    public string ServerType { get; set; } = "GAME";  // "TOWN" | "GAME"
+    public string ServerType { get; set; } = "Game";  // "TOWN" | "GAME"
     public int LeaseTtlSeconds { get; set; } = 10;
 }

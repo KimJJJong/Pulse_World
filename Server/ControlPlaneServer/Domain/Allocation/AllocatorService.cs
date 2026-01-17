@@ -24,7 +24,7 @@ public sealed class AllocatorService
     {
         reserveTtlSeconds = reserveTtlSeconds > 0 ? reserveTtlSeconds : _opt.ReservationTtlSeconds;
 
-        var servers = await _reg.ListAsync("GAME");
+        var servers = await _reg.ListAsync("Game");
 
         if (!string.IsNullOrWhiteSpace(region))
             servers = servers.Where(s => string.Equals(s.Region, region, StringComparison.OrdinalIgnoreCase)).ToList();
