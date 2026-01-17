@@ -18,6 +18,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 
+using ApiServer.Presentation.WebSockets;
+
 namespace ApiServer.Bootstrap;
 
 public static class DependencyInjection
@@ -76,6 +78,10 @@ public static class DependencyInjection
         services.AddSingleton<IIdempotencyStore, InMemoryIdempotencyStore>();
 
         services.AddSingleton<AccessTokenValidator>();
+
+        // WebSockets
+        services.AddSingleton<ConnectionManager>();
+        services.AddScoped<RoomWebSocketHandler>();
 
         return services;
     }

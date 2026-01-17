@@ -27,7 +27,7 @@ public sealed class HandshakeFlow
         => _me.Role.Name == "Game" ? TicketTarget.Game : TicketTarget.Town;
 
     private PresenceState MyPresenceState()
-        => _me.Role.Name == "Game" ? PresenceState.Game : PresenceState.Town;
+        => _me.Role.Name == "Game" ? PresenceState.StateGame : PresenceState.StateTown;
 
     public async Task<HandshakeResult> RunAsync(
         string ticketId,

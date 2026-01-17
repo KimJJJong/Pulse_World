@@ -25,12 +25,20 @@ public sealed class AccessTokenAuthMiddleware
         }
 
         var auth = ctx.Request.Headers.Authorization.ToString();
-        if (string.IsNullOrWhiteSpace(auth) || !auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-            throw new ApiException(401, ErrorCodes.Unauthorized, "Missing Authorization Bearer token.");
+        var token = "";
 
-        var token = auth["Bearer ".Length..].Trim();
+        if (!string.IsNullOrWhiteSpace(auth) && auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            token = auth["Bearer ".Length..].Trim();
+        }
+        // WebSocket support
+        else if (ctx.Request.Query.ContainsKey("access_token"))
+        {
+            token = ctx.Request.Query["access_token"].ToString();
+        }
+
         if (string.IsNullOrWhiteSpace(token))
-            throw new ApiException(401, ErrorCodes.Unauthorized, "Empty bearer token.");
+            throw new ApiException(401, ErrorCodes.Unauthorized, "Missing Authorization Bearer token.");
 
         try
         {

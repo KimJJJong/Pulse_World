@@ -8,5 +8,5 @@ public sealed class TownRoleModule : IRoleModule
     public string Name => "Town";
     public int DefaultTickMs => 100;
     public bool NeedsContentInit => true;
-    public ServerType ToServerType() => ServerType.Town;
+    public ServerType ToServerType() => ServerType.TypeTown;
 }

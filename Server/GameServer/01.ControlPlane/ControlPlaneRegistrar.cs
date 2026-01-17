@@ -62,7 +62,7 @@ public sealed class ControlPlaneRegistrar
         var resp = await _cp.RegisterServerAsync(req, cancellationToken: ct);
 
         if (!resp.Ok)
-            throw new Exception($"[CP] Register failed: {resp.Error?.Code} {resp.Error?.Message}");
+            throw new Exception($"[CP] Register failed (No Error Details in proto)");
 
         _log.LogInformation("[CP] Registered ok now={Now} type={Type} id={Id}",
             resp.ServerNowMs, req.Type, req.ServerId);

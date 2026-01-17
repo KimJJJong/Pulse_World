@@ -8,6 +8,7 @@ using ControlPlaneServer.Domain.Transition;
 using ControlPlaneServer.Domain.Presence;
 using ControlPlaneServer.Services;
 using ControlPlaneServer.Domain.Rooms;
+using ControlPlaneServer.Domain.WaitingRoom;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -48,6 +49,7 @@ builder.Services.AddSingleton<TransitionService>();
 builder.Services.AddSingleton<ControlEventHub>();      // CP -> realtime push
 builder.Services.AddSingleton<PresenceService>();      // Presence는 Hub를 사용해 Kick push
 builder.Services.AddSingleton<RoomService>();
+builder.Services.AddSingleton<WaitingRoomService>();
 
 var app = builder.Build();
 

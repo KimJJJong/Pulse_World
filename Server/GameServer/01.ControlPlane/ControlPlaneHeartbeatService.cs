@@ -52,7 +52,7 @@ public sealed class ControlPlaneHeartbeatService : BackgroundService
                 }, cancellationToken: ct);
 
                 if (!resp.Ok)
-                    _log.LogWarning("[CP] Heartbeat fail code={Code} msg={Msg}", resp.Error?.Code, resp.Error?.Message);
+                    _log.LogWarning("[CP] Heartbeat fail (No details in proto)");
             }
             catch (Exception ex)
             {

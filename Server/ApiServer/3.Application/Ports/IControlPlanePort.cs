@@ -36,4 +36,25 @@ public interface IControlPlanePort
         string preferredServerId,  // pinned server id or ""
         int ttlSeconds,
         CancellationToken ct);
+
+    // --- Waiting Room ---
+    // Returns (roomId, fullDto)
+    Task<(string? roomId, WaitingRoomDto? room)> CreateWaitingRoomAsync(
+        string title, 
+        string mapId, 
+        int maxPlayers, 
+        string ownerUid, 
+        string ownerName,
+        CancellationToken ct);
+
+    Task<(bool ok, WaitingRoomDto? room)> JoinWaitingRoomAsync(string roomId, string uid, string name, CancellationToken ct);
+    Task LeaveWaitingRoomAsync(string roomId, string uid, CancellationToken ct);
+    Task<bool> SetMemberReadyAsync(string roomId, string uid, bool ready, CancellationToken ct);
+    Task<(bool ok, WaitingRoomDto? room)> GetWaitingRoomAsync(string roomId, CancellationToken ct);
+    
+    // Returns (gameServerId, endpoint, userTickets)
+    Task<(string gameServerId, Models.Endpoint endpoint, Dictionary<string, string> userTickets)> StartGameSessionAsync(
+        string roomId, 
+        string uid, 
+        CancellationToken ct);
 }

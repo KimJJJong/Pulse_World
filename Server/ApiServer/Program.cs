@@ -20,8 +20,16 @@ app.UseMiddleware<ProblemDetailsMiddleware>();
 app.UseRouting();
 
 app.UseMiddleware<AccessTokenAuthMiddleware>();
-
 app.UseMiddleware<IdempotencyForGameTicketMiddleware>();
+
+app.UseWebSockets();
+
+app.Map("/hub/room", async context =>
+{
+    // Resolve scoped handler
+    var handler = context.RequestServices.GetRequiredService<ApiServer.Presentation.WebSockets.RoomWebSocketHandler>();
+    await handler.HandleAsync(context);
+});
 
 app.MapControllers();
 app.Run();

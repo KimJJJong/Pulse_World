@@ -36,6 +36,7 @@ public sealed class RedisStore
     public string KeyServer(string type, string serverId) => $"{Prefix}server:{type}:{serverId}";
     public string KeyReservation(string reservationId) => $"{Prefix}reservation:{reservationId}";
     public string KeyRoom(string serverId, string roomId) => $"{Prefix}room:{serverId}:{roomId}";
+    public string KeyWaitingRoom(string roomId) => $"{Prefix}waiting_room:{roomId}";
 
     // ----- Ticket: ReserveOrConsume -----
     // Return tuple: (ok:int, errCode:int, uid, key, issuedServerId, pinnedServerId, expireAtMs)

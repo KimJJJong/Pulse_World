@@ -63,8 +63,7 @@ public sealed class ControlPlaneClient
     {
         return _cp.SubscribeControlEvents(new SubscribeControlEventsRequest
         {
-            ServerId = _serverId,
-            Type = type
+            ServerId = _serverId
         }, cancellationToken: ct);
     }
 }

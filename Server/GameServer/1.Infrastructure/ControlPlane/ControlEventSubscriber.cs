@@ -42,12 +42,11 @@ public sealed class ControlEventSubscriber : BackgroundService
         {
             try
             {
-                var type = _me.Role.Name == "Game" ? ServerType.Game : ServerType.Town;
+                var type = _me.Role.Name == "Game" ? ServerType.TypeGame : ServerType.TypeTown;
 
                 using var call = _cp.SubscribeControlEvents(new SubscribeControlEventsRequest
                 {
-                    ServerId = _me.ServerId,
-                    Type = type
+                    ServerId = _me.ServerId
                 }, stoppingToken);
 
                 await foreach (var ev in call.ResponseStream.ReadAllAsync(stoppingToken))
