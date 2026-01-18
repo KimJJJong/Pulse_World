@@ -6,19 +6,19 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/ReFactory/Scenes/Bootstrap.unity
+    path: Assets/MainProject/Scenes/Bootstrap.unity
     guid: 11018f3cb474860449cb08e854a179bc
   - enabled: 1
-    path: Assets/ReFactory/Scenes/Login.unity
+    path: Assets/MainProject/Scenes/Login.unity
     guid: ec590037d7fc94b4282785ded4e3db59
   - enabled: 1
-    path: Assets/ReFactory/Scenes/Town.unity
+    path: Assets/MainProject/Scenes/Town.unity
     guid: 10599d21c53d6374480abe1a1c81ace7
   - enabled: 1
-    path: Assets/ReFactory/Scenes/TownMap.unity
+    path: Assets/MainProject/Scenes/TownMap.unity
     guid: 0387cf06f874f3349bdda5ccbcd1cb25
   - enabled: 1
-    path: Assets/ReFactory/Scenes/Game.unity
+    path: Assets/MainProject/Scenes/Game.unity
     guid: 5d40203c1e9230d449ef53a52ee34af8
   - enabled: 0
     path: Assets/1.Level/Lobby.unity

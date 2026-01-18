@@ -26,7 +26,7 @@ public sealed class RoomWebSocketHandler
             return;
         }
 
-        var uid = context.Items["Uid"]?.ToString() ?? context.Request.Query["uid"].ToString();
+        var uid = context.Items["uid"]?.ToString() ?? context.Request.Query["uid"].ToString();
         var name = context.Request.Query["name"].ToString();
         var roomId = context.Request.Query["roomId"].ToString();
 
