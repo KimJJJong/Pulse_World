@@ -222,10 +222,15 @@ private CallOptions MakeCallOptions(CancellationToken ct)
         catch { return (false, null); }
     }
 
-    public async Task LeaveWaitingRoomAsync(string roomId, string uid, CancellationToken ct)
+    public async Task<bool> LeaveWaitingRoomAsync(string roomId, string uid, CancellationToken ct)
     {
          var req = new LeaveWaitingRoomRequest { RoomId = roomId, Uid = uid };
-         try { await _client.LeaveWaitingRoomAsync(req, MakeCallOptions(ct)); } catch {}
+         try 
+         { 
+             var resp = await _client.LeaveWaitingRoomAsync(req, MakeCallOptions(ct)); 
+             return resp.Ok;
+         } 
+         catch { return false; }
     }
 
     public async Task<bool> SetMemberReadyAsync(string roomId, string uid, bool ready, CancellationToken ct)
@@ -248,6 +253,23 @@ private CallOptions MakeCallOptions(CancellationToken ct)
             return (resp.Ok, MapDto(resp.Room));
         }
         catch { return (false, null); }
+    }
+
+    public async Task<(List<ApiServer.Application.Ports.Models.WaitingRoomDto> rooms, string nextCursor)> GetWaitingRoomListAsync(int limit, string cursor, CancellationToken ct)
+    {
+        var req = new GetWaitingRoomListRequest { Limit = limit, Cursor = cursor ?? "" };
+        try 
+        {
+            var resp = await _client.GetWaitingRoomListAsync(req, MakeCallOptions(ct));
+            var list = new List<ApiServer.Application.Ports.Models.WaitingRoomDto>();
+            foreach(var r in resp.Rooms)
+            {
+                var d = MapDto(r);
+                if(d != null) list.Add(d);
+            }
+            return (list, resp.NextCursor);
+        }
+        catch { return (new List<ApiServer.Application.Ports.Models.WaitingRoomDto>(), ""); }
     }
 
     public async Task<(string gameServerId, ApiServer.Application.Ports.Models.Endpoint endpoint, Dictionary<string, string> userTickets)> StartGameSessionAsync(

@@ -429,8 +429,8 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
     public override async Task<LeaveWaitingRoomResponse> LeaveWaitingRoom(LeaveWaitingRoomRequest request, ServerCallContext context)
     {
         RequireSecret(context);
-        await _waitingRoom.LeaveAsync(request.RoomId, request.Uid);
-        return new LeaveWaitingRoomResponse { Ok = true };
+        var changed = await _waitingRoom.LeaveAsync(request.RoomId, request.Uid);
+        return new LeaveWaitingRoomResponse { Ok = changed };
     }
 
     public override async Task<SetMemberReadyResponse> SetMemberReady(SetMemberReadyRequest request, ServerCallContext context)
@@ -448,6 +448,25 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
             return new GetWaitingRoomResponse { Ok = false };
         
         return new GetWaitingRoomResponse { Ok = true, Room = MapWaitingRoomToProto(dto!) };
+    }
+
+    public override async Task<GetWaitingRoomListResponse> GetWaitingRoomList(GetWaitingRoomListRequest request, ServerCallContext context)
+    {
+        RequireSecret(context);
+
+        var (list, nextCursor) = await _waitingRoom.GetListAsync(request.Limit, request.Cursor);
+        
+        var resp = new GetWaitingRoomListResponse
+        {
+            Ok = true,
+            NextCursor = nextCursor
+        };
+        foreach(var dto in list)
+        {
+            resp.Rooms.Add(MapWaitingRoomToProto(dto));
+        }
+        
+        return resp;
     }
 
     public override async Task<StartGameSessionResponse> StartGameSession(StartGameSessionRequest request, ServerCallContext context)

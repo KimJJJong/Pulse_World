@@ -52,7 +52,18 @@ public sealed class RoomWebSocketHandler
             // Broadcast Join
             await _conns.BroadcastAsync(roomId, new { type = "MemberJoin", uid, name });
             // Send Init
-            await _conns.SendToAsync(roomId, uid, new { type = "Init", room });
+            var clientRoom = new 
+            {
+                roomId = room.RoomId,
+                title = room.Title,
+                mapId = room.MapId,
+                maxPlayers = room.MaxPlayers,
+                ownerUid = room.OwnerUid,
+                status = room.Status,
+                memberUids = room.MemberUids,
+                memberReady = room.MemberReady.Select(kv => new { uid = kv.Key, ready = kv.Value }).ToList()
+            };
+            await _conns.SendToAsync(roomId, uid, new { type = "Init", room = clientRoom });
 
             var buffer = new byte[1024 * 4];
             while (ws.State == WebSocketState.Open)
@@ -72,8 +83,10 @@ public sealed class RoomWebSocketHandler
         {
             _conns.Remove(roomId, uid);
             // Leave (Check if socket closed normally vs crash?) - Just leave always
-            await _cp.LeaveWaitingRoomAsync(roomId, uid, CancellationToken.None);
-            await _conns.BroadcastAsync(roomId, new { type = "MemberLeave", uid });
+            if (await _cp.LeaveWaitingRoomAsync(roomId, uid, CancellationToken.None))
+            {
+                await _conns.BroadcastAsync(roomId, new { type = "MemberLeave", uid });
+            }
         }
     }
 

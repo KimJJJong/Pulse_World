@@ -29,6 +29,7 @@ service ControlPlane {
   rpc SetMemberReady(SetMemberReadyRequest) returns (SetMemberReadyResponse);
   rpc GetWaitingRoom(GetWaitingRoomRequest) returns (GetWaitingRoomResponse);
   rpc StartGameSession(StartGameSessionRequest) returns (StartGameSessionResponse); // Batch Start
+  rpc GetWaitingRoomList(GetWaitingRoomListRequest) returns (GetWaitingRoomListResponse);
 }
 
 // ==========================================
@@ -370,4 +371,17 @@ message StartGameSessionResponse {
   string game_server_id = 3;
   ServerEndpoint endpoint = 4;
   map<string, string> user_tickets = 5; 
+}
+
+message GetWaitingRoomListRequest {
+  int32 limit = 1;
+  string cursor = 2; // For Redis SCAN or simple offset if we used list, but here Set SCAN. 
+  // If using Set, cursor is string (ScanCursor).
+}
+
+message GetWaitingRoomListResponse {
+  bool ok = 1;
+  Error error = 2;
+  repeated WaitingRoomDto rooms = 3;
+  string next_cursor = 4;
 }

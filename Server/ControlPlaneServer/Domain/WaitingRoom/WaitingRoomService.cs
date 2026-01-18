@@ -46,6 +46,9 @@ public sealed class WaitingRoomService
         await _redis.Db.HashSetAsync(key, entries);
         await _redis.Db.KeyExpireAsync(key, TimeSpan.FromHours(1)); 
 
+        // Add index
+        await _redis.Db.SetAddAsync(_redis.KeyWaitingRoomIndex(), roomId);
+
         // Add owner
         await JoinAsync(roomId, ownerUid, ownerName); 
         
@@ -77,18 +80,19 @@ public sealed class WaitingRoomService
         return (true, "");
     }
 
-    public async Task LeaveAsync(string roomId, string uid)
+    public async Task<bool> LeaveAsync(string roomId, string uid)
     {
         var key = _redis.KeyWaitingRoom(roomId);
         var membersKey = $"{key}:members";
         
-        await _redis.Db.HashDeleteAsync(membersKey, uid);
+        var removed = await _redis.Db.HashDeleteAsync(membersKey, uid);
         
         var count = await _redis.Db.HashLengthAsync(membersKey);
         if (count == 0)
         {
             await _redis.Db.KeyDeleteAsync(key);
             await _redis.Db.KeyDeleteAsync(membersKey);
+            await _redis.Db.SetRemoveAsync(_redis.KeyWaitingRoomIndex(), roomId);
         }
         else
         {
@@ -102,8 +106,11 @@ public sealed class WaitingRoomService
                // Host Left -> Close Room
                await _redis.Db.KeyDeleteAsync(key);
                await _redis.Db.KeyDeleteAsync(membersKey);
+               await _redis.Db.SetRemoveAsync(_redis.KeyWaitingRoomIndex(), roomId);
             }
         }
+        
+        return removed;
     }
 
     public async Task<bool> SetReadyAsync(string roomId, string uid, bool ready)
@@ -166,5 +173,32 @@ public sealed class WaitingRoomService
         }
         
         return (true, dto);
+    }
+
+    public async Task<(List<WaitingRoomDto> rooms, string nextCursor)> GetListAsync(int limit, string cursor)
+    {
+        if (limit <= 0) limit = 10;
+        if (string.IsNullOrEmpty(cursor)) cursor = "0";
+
+        var result = await _redis.Db.ExecuteAsync("SSCAN", _redis.KeyWaitingRoomIndex(), cursor, "COUNT", limit);
+        var resArr = (RedisResult[])result;
+
+        var nextCursor = (string)resArr[0];
+        var ids = (RedisResult[])resArr[1];
+
+        var tasks = new List<Task<(bool, WaitingRoomDto?)>>();
+        foreach (var id in ids)
+        {
+            tasks.Add(GetAsync((string)id));
+        }
+
+        var results = await Task.WhenAll(tasks);
+        var list = new List<WaitingRoomDto>();
+        foreach (var (ok, dto) in results)
+        {
+            if (ok && dto != null) list.Add(dto);
+        }
+
+        return (list, nextCursor);
     }
 }
