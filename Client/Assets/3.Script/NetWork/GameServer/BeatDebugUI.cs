@@ -364,7 +364,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
         _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvasGo.AddComponent<CanvasScaler>();
         canvasGo.AddComponent<GraphicRaycaster>();
-        DontDestroyOnLoad(canvasGo);
+        //DontDestroyOnLoad(canvasGo);
 
         var panelGo = new GameObject("BeatPanel");
         panelGo.transform.SetParent(canvasGo.transform, false);

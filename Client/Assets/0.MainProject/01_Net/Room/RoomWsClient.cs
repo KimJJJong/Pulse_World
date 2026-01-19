@@ -99,7 +99,10 @@ using UnityEngine;
                 switch (basePkt.type)
                 {
                     case "Init":
+                        Debug.Log($"[RoomWsClient] Init Packet: {json}");
                         var initMsg = JsonUtility.FromJson<InitMsg>(json);
+                        var count = initMsg.room?.memberUids?.Count ?? 0;
+                        Debug.Log($"[RoomWsClient] Init Parsed Members: {count}");
                         OnInit?.Invoke(initMsg.room);
                         break;
                     case "MemberJoin":

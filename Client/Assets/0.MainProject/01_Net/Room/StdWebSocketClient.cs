@@ -19,11 +19,22 @@ using UnityEngine;
 
         public async Task ConnectAsync(string url, IDictionary<string, string> headers = null, CancellationToken ct = default)
         {
+            Debug.Log($"[StdWebSocketClient] Connecting to: {url}");
             _ws = new ClientWebSocket();
             if (headers != null)
                 foreach (var kv in headers) _ws.Options.SetRequestHeader(kv.Key, kv.Value);
 
-            await _ws.ConnectAsync(new Uri(url), ct);
+            try
+            {
+                await _ws.ConnectAsync(new Uri(url), ct);
+                Debug.Log("[StdWebSocketClient] Connection Established.");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[StdWebSocketClient] ConnectAsync Failed: {ex.GetType().Name} - {ex.Message} / Inner: {ex.InnerException?.Message}");
+                throw;
+            }
+
             _loopCts = new CancellationTokenSource();
             _ = ReceiveLoop(_loopCts.Token);
         }

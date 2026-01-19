@@ -9,19 +9,25 @@ namespace ApiServer.Presentation.Http.Controllers;
 public class RoomController : ControllerBase
 {
     private readonly IControlPlanePort _cp;
+    private readonly ILogger<RoomController> _logger;
 
-    public RoomController(IControlPlanePort cp)
+    public RoomController(IControlPlanePort cp, ILogger<RoomController> logger)
     {
         _cp = cp;
+        _logger = logger;
     }
 
     [HttpGet]
     public async Task<ActionResult<RoomListResponse>> GetList([FromQuery] int limit = 20, [FromQuery] string cursor = "")
     {
+        _logger.LogInformation("GetList Request: Limit={limit}, Cursor={cursor}", limit, cursor);
+
         if (limit > 50) limit = 50;
         
         var (rooms, nextCursor) = await _cp.GetWaitingRoomListAsync(limit, cursor, HttpContext.RequestAborted);
         
+        _logger.LogInformation("GetList Result: Count={count}, NextCursor={next}", rooms.Count, nextCursor);
+
         var resp = new RoomListResponse
         {
             nextCursor = nextCursor,
@@ -38,5 +44,41 @@ public class RoomController : ControllerBase
         };
 
         return Ok(resp);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateRoomRequest req)
+    {
+        var uid = HttpContext.Items["uid"]?.ToString() ?? "";
+        _logger.LogInformation("CreateRoom Request: Uid={uid}, ReqRoomId={reqId}, Map={map}", uid, req.roomId, req.mapId);
+
+        if (string.IsNullOrEmpty(uid)) return Unauthorized();
+
+        var name = HttpContext.Items["name"]?.ToString() ?? uid; // Fallback to UID if name missing
+        
+        // If title is missing, use roomId (from client input) or Default
+        var title = !string.IsNullOrEmpty(req.title) ? req.title : 
+                   !string.IsNullOrEmpty(req.roomId) ? req.roomId : $"{name}'s Room";
+
+        var (newId, room) = await _cp.CreateWaitingRoomAsync(
+            title, req.mapId, req.maxPlayers, uid, name, HttpContext.RequestAborted);
+
+        if (newId == null) 
+        {
+            _logger.LogWarning("CreateRoom Failed: Uid={uid}", uid);
+            return BadRequest("Create Failed");
+        }
+
+        _logger.LogInformation("CreateRoom Success: NewRoomId={newId}", newId);
+
+        return Ok(new { roomId = newId });
+    }
+
+    public class CreateRoomRequest
+    {
+        public string roomId { get; set; }
+        public string title { get; set; }
+        public string mapId { get; set; }
+        public int maxPlayers { get; set; }
     }
 }

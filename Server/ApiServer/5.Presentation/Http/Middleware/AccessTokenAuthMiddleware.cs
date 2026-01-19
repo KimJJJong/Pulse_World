@@ -7,10 +7,12 @@ namespace ApiServer.Presentation.Http.Middleware;
 public sealed class AccessTokenAuthMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<AccessTokenAuthMiddleware> _logger;
 
-    public AccessTokenAuthMiddleware(RequestDelegate next)
+    public AccessTokenAuthMiddleware(RequestDelegate next, ILogger<AccessTokenAuthMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task Invoke(HttpContext ctx, AccessTokenValidator validator)
@@ -38,7 +40,10 @@ public sealed class AccessTokenAuthMiddleware
         }
 
         if (string.IsNullOrWhiteSpace(token))
+        {
+            _logger.LogWarning("Auth Failed: Missing Token. Path={path}", path);
             throw new ApiException(401, ErrorCodes.Unauthorized, "Missing Authorization Bearer token.");
+        }
 
         try
         {
@@ -46,7 +51,12 @@ public sealed class AccessTokenAuthMiddleware
             var uid = AccessTokenValidator.ExtractUid(principal);
 
             if (string.IsNullOrWhiteSpace(uid))
-                throw new ApiException(401, ErrorCodes.Unauthorized, "Token missing uid(sub).");
+            {
+                 _logger.LogWarning("Auth Failed: Token missing uid. Path={path}", path);
+                 throw new ApiException(401, ErrorCodes.Unauthorized, "Token missing uid(sub).");
+            }
+            
+            _logger.LogInformation("Auth Success: Uid={uid}, Path={path}", uid, path);
 
             ctx.User = principal;
             ctx.Items["uid"] = uid;
@@ -55,10 +65,12 @@ public sealed class AccessTokenAuthMiddleware
         }
         catch (SecurityTokenExpiredException)
         {
+            _logger.LogWarning("Auth Failed: Token Expired. Path={path}", path);
             throw new ApiException(401, ErrorCodes.Unauthorized, "Access token expired.");
         }
-        catch (SecurityTokenException)
+        catch (SecurityTokenException ex)
         {
+            _logger.LogWarning(ex, "Auth Failed: Invalid Token. Path={path}", path);
             throw new ApiException(401, ErrorCodes.Unauthorized, "Invalid access token.");
         }
     }

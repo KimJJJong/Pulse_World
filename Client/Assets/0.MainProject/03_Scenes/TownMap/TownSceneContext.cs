@@ -1,3 +1,4 @@
+using NetClient.Room.UI;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -24,6 +25,10 @@ public sealed class TownSceneContext : MonoBehaviour
     [SerializeField] private HudPresenter _hud;
     [SerializeField] private BeatDebugUI_TMP _beatDebug;
 
+    [Header("RoomListPanel (비워도 자동 탐색)")]
+    [SerializeField] private ApiClientProvider _apiClientProvider;
+
+
     [Header("Net enter")]
     [SerializeField] private string _mapId = "town";
     [SerializeField] private bool _wantSnapshot = true;
@@ -33,6 +38,7 @@ public sealed class TownSceneContext : MonoBehaviour
     [SerializeField] private int _pingIntervalMs = 2000;
     [SerializeField] private int _pingTimeoutMs = 6000;
     [SerializeField] private int _pingMaxMiss = 3;
+
 
     bool _entered;
     bool _initMapApplied;
@@ -114,6 +120,8 @@ public sealed class TownSceneContext : MonoBehaviour
 
         if (_hud == null) _hud = FindFirstObjectByType<HudPresenter>();
         if (_beatDebug == null) _beatDebug = FindFirstObjectByType<BeatDebugUI_TMP>();
+
+        if (_apiClientProvider == null ) _apiClientProvider = FindFirstObjectByType<ApiClientProvider>();
     }
 
     void ValidateCriticalRefs()
@@ -129,6 +137,7 @@ public sealed class TownSceneContext : MonoBehaviour
         if (_cameraFollow == null) Debug.LogWarning("[TownSceneContext] CameraFollow not found on Camera.main");
         if (_inputBinder == null) Debug.LogWarning("[TownSceneContext] RhythmInputControllerBinder not found");
         if (_inputController == null) Debug.LogWarning("[TownSceneContext] RhythmInputController not found");
+        if (_apiClientProvider == null ) Debug.LogWarning("[TownSceneContext] ApiClientProvider not found");
     }
 
     void EnsureCoreBindings()

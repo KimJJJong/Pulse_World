@@ -37,6 +37,8 @@ public sealed class RoomWebSocketHandler
         }
 
         using var ws = await context.WebSockets.AcceptWebSocketAsync();
+        _logger.LogInformation("WS Connected: Room={roomId}, Uid={uid}", roomId, uid);
+
         _conns.Add(roomId, uid, ws);
 
         try
@@ -45,9 +47,12 @@ public sealed class RoomWebSocketHandler
             var (ok, room) = await _cp.JoinWaitingRoomAsync(roomId, uid, name, CancellationToken.None);
             if (!ok) 
             {
+                _logger.LogWarning("WS Join Failed: Room={roomId}, Uid={uid}", roomId, uid);
                 await CloseAsync(ws, "Join Failed");
                 return;
             }
+
+            _logger.LogInformation("WS Join Success: Room={roomId}, Uid={uid}", roomId, uid);
 
             // Broadcast Join
             await _conns.BroadcastAsync(roomId, new { type = "MemberJoin", uid, name });
@@ -81,6 +86,7 @@ public sealed class RoomWebSocketHandler
         }
         finally
         {
+            _logger.LogInformation("WS Disconnected: Room={roomId}, Uid={uid}", roomId, uid);
             _conns.Remove(roomId, uid);
             // Leave (Check if socket closed normally vs crash?) - Just leave always
             if (await _cp.LeaveWaitingRoomAsync(roomId, uid, CancellationToken.None))
@@ -92,6 +98,7 @@ public sealed class RoomWebSocketHandler
 
     private async Task ProcessMessageAsync(string roomId, string uid, string json)
     {
+        _logger.LogInformation("WS Msg: Room={roomId}, Uid={uid}, Payload={json}", roomId, uid, json);
         try 
         {
             using var doc = JsonDocument.Parse(json);
