@@ -1,4 +1,5 @@
 using ApiServer.Application.Ports;
+using ApiServer.Domain.WaitingRoom;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -8,12 +9,18 @@ namespace ApiServer.Presentation.WebSockets;
 public sealed class RoomWebSocketHandler
 {
     private readonly IControlPlanePort _cp;
+    private readonly WaitingRoomService _waitingRoom;
     private readonly ConnectionManager _conns;
     private readonly ILogger<RoomWebSocketHandler> _logger;
 
-    public RoomWebSocketHandler(IControlPlanePort cp, ConnectionManager conns, ILogger<RoomWebSocketHandler> logger)
+    public RoomWebSocketHandler(
+        IControlPlanePort cp, 
+        WaitingRoomService waitingRoom,
+        ConnectionManager conns, 
+        ILogger<RoomWebSocketHandler> logger)
     {
         _cp = cp;
+        _waitingRoom = waitingRoom;
         _conns = conns;
         _logger = logger;
     }
@@ -43,19 +50,27 @@ public sealed class RoomWebSocketHandler
 
         try
         {
-            // Join
-            var (ok, room) = await _cp.JoinWaitingRoomAsync(roomId, uid, name, CancellationToken.None);
+            // Join (Local)
+            var (ok, joinErr) = await _waitingRoom.JoinAsync(roomId, uid, name);
             if (!ok) 
             {
-                _logger.LogWarning("WS Join Failed: Room={roomId}, Uid={uid}", roomId, uid);
-                await CloseAsync(ws, "Join Failed");
+                _logger.LogWarning("WS Join Failed: Room={roomId}, Uid={uid}, Err={err}", roomId, uid, joinErr);
+                await CloseAsync(ws, "Join Failed: " + joinErr);
                 return;
+            }
+
+            var (_, room) = await _waitingRoom.GetAsync(roomId);
+            if (room == null) // Strange timing
+            {
+                 await CloseAsync(ws, "Room Disappeared");
+                 return;
             }
 
             _logger.LogInformation("WS Join Success: Room={roomId}, Uid={uid}", roomId, uid);
 
             // Broadcast Join
             await _conns.BroadcastAsync(roomId, new { type = "MemberJoin", uid, name });
+            
             // Send Init
             var clientRoom = new 
             {
@@ -88,8 +103,9 @@ public sealed class RoomWebSocketHandler
         {
             _logger.LogInformation("WS Disconnected: Room={roomId}, Uid={uid}", roomId, uid);
             _conns.Remove(roomId, uid);
-            // Leave (Check if socket closed normally vs crash?) - Just leave always
-            if (await _cp.LeaveWaitingRoomAsync(roomId, uid, CancellationToken.None))
+            
+            // Leave (Local)
+            if (await _waitingRoom.LeaveAsync(roomId, uid))
             {
                 await _conns.BroadcastAsync(roomId, new { type = "MemberLeave", uid });
             }
@@ -108,7 +124,8 @@ public sealed class RoomWebSocketHandler
             if (type == "Ready")
             {
                 var val = root.GetProperty("value").GetBoolean();
-                if (await _cp.SetMemberReadyAsync(roomId, uid, val, CancellationToken.None))
+                // SetReady (Local)
+                if (await _waitingRoom.SetReadyAsync(roomId, uid, val))
                 {
                     await _conns.BroadcastAsync(roomId, new { type = "MemberUpdate", uid, ready = val });
                 }
@@ -117,18 +134,67 @@ public sealed class RoomWebSocketHandler
             {
                 try 
                 {
-                    var (srvId, ep, tickets) = await _cp.StartGameSessionAsync(roomId, uid, CancellationToken.None);
-                    
-                    // Broadcast individual tickets
-                    foreach(var (memberUid, ticket) in tickets)
+                    // 1. Get Room Info for Ready Check (Local)
+                    var (ok, room) = await _waitingRoom.GetAsync(roomId);
+                    if (!ok || room == null)
+                        throw new Exception("Room info not found");
+
+                    if (room.OwnerUid != uid)
+                        throw new Exception("Only owner can start");
+
+                    // 2. Ready Check
+                    var allReady = room.MemberUids
+                        .Where(m => m != room.OwnerUid)
+                        .All(m => room.MemberReady.ContainsKey(m) && room.MemberReady[m]);
+
+                    if(!allReady) 
+                        throw new Exception("Not all members are ready");
+
+                    // 3. Allocate GameServer (RPC to CP)
+                    // ReserveTtl: 60s
+                    string serverId, reserveId;
+                    ApiServer.Application.Ports.Models.Endpoint ep;
+                    long expireAt;
+
+                    try 
                     {
-                        var payload = new 
-                        { 
-                            type = "GameStart", 
-                            endpoint = new { host = ep.Host, port = ep.Port },
-                            ticket = ticket
-                        };
-                        await _conns.SendToAsync(roomId, memberUid, payload);
+                        var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        (serverId, ep, reserveId, expireAt) = await _cp.AllocateGameServerAsync(uid, "", 60, nowMs, CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                         throw new Exception("No game server available: " + ex.Message);
+                    }
+
+                    // 4. Issue Tickets & Broadcast
+                    // (Ideally, CP should support BulkIssue, but for now loop)
+                    foreach(var memberUid in room.MemberUids)
+                    {
+                        // IssueTicket (RPC)
+                        // key: roomId (for validation in GS)
+                        try 
+                        {
+                            var (ticketOk, ticket, _, _, _) = await _cp.IssueTicketAsync(
+                                memberUid, 
+                                "GAME", 
+                                roomId, 
+                                serverId, // issuedServerId
+                                60, 
+                                CancellationToken.None
+                            );
+                            
+                            var payload = new 
+                            { 
+                                type = "GameStart", 
+                                endpoint = new { host = ep.Host, port = ep.Port },
+                                ticket = ticket
+                            };
+                            await _conns.SendToAsync(roomId, memberUid, payload);
+                        }
+                        catch (Exception ticketEx)
+                        {
+                            _logger.LogError(ticketEx, "Failed to issue ticket for {memberUid}", memberUid);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -146,6 +212,6 @@ public sealed class RoomWebSocketHandler
     private async Task CloseAsync(WebSocket ws, string reason)
     {
         if(ws.State == WebSocketState.Open)
-             await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, reason, CancellationToken.None);
+            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, reason, CancellationToken.None);
     }
 }

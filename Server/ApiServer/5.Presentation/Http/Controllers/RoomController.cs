@@ -8,12 +8,12 @@ namespace ApiServer.Presentation.Http.Controllers;
 [Route("rooms")]
 public class RoomController : ControllerBase
 {
-    private readonly IControlPlanePort _cp;
+    private readonly ApiServer.Domain.WaitingRoom.WaitingRoomService _roomService;
     private readonly ILogger<RoomController> _logger;
 
-    public RoomController(IControlPlanePort cp, ILogger<RoomController> logger)
+    public RoomController(ApiServer.Domain.WaitingRoom.WaitingRoomService roomService, ILogger<RoomController> logger)
     {
-        _cp = cp;
+        _roomService = roomService;
         _logger = logger;
     }
 
@@ -24,7 +24,7 @@ public class RoomController : ControllerBase
 
         if (limit > 50) limit = 50;
         
-        var (rooms, nextCursor) = await _cp.GetWaitingRoomListAsync(limit, cursor, HttpContext.RequestAborted);
+        var (rooms, nextCursor) = await _roomService.GetListAsync(limit, cursor);
         
         _logger.LogInformation("GetList Result: Count={count}, NextCursor={next}", rooms.Count, nextCursor);
 
@@ -60,8 +60,8 @@ public class RoomController : ControllerBase
         var title = !string.IsNullOrEmpty(req.title) ? req.title : 
                    !string.IsNullOrEmpty(req.roomId) ? req.roomId : $"{name}'s Room";
 
-        var (newId, room) = await _cp.CreateWaitingRoomAsync(
-            title, req.mapId, req.maxPlayers, uid, name, HttpContext.RequestAborted);
+        var newId = await _roomService.CreateAsync(
+            title, req.mapId, req.maxPlayers, uid, name);
 
         if (newId == null) 
         {

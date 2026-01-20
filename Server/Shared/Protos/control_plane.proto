@@ -22,14 +22,7 @@ service ControlPlane {
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
   rpc SubscribeControlEvents(SubscribeControlEventsRequest) returns (stream ControlEvent);
   
-  // --- NEW: Waiting Room (Lobby Logic) ---
-  rpc CreateWaitingRoom(CreateWaitingRoomRequest) returns (CreateWaitingRoomResponse);
-  rpc JoinWaitingRoom(JoinWaitingRoomRequest) returns (JoinWaitingRoomResponse);
-  rpc LeaveWaitingRoom(LeaveWaitingRoomRequest) returns (LeaveWaitingRoomResponse);
-  rpc SetMemberReady(SetMemberReadyRequest) returns (SetMemberReadyResponse);
-  rpc GetWaitingRoom(GetWaitingRoomRequest) returns (GetWaitingRoomResponse);
-  rpc StartGameSession(StartGameSessionRequest) returns (StartGameSessionResponse); // Batch Start
-  rpc GetWaitingRoomList(GetWaitingRoomListRequest) returns (GetWaitingRoomListResponse);
+
 }
 
 // ==========================================
@@ -287,101 +280,4 @@ message ControlEvent {
   }
 }
 
-// ==========================================
-// NEW: Waiting Room Messages
-// ==========================================
 
-message WaitingRoomDto {
-  string room_id = 1;
-  string title = 2;
-  string map_id = 3;
-  int32 max_players = 4;
-  string owner_uid = 5;
-  string status = 6; 
-  repeated string member_uids = 7; 
-  map<string, bool> member_ready = 8;
-}
-
-message CreateWaitingRoomRequest {
-  string title = 1;
-  string map_id = 2;
-  int32 max_players = 3;
-  string owner_uid = 4;
-  string owner_name = 5; 
-}
-
-message CreateWaitingRoomResponse {
-  bool ok = 1;
-  Error error = 2;
-  string room_id = 3;
-  WaitingRoomDto room = 4;
-}
-
-message JoinWaitingRoomRequest {
-  string room_id = 1;
-  string uid = 2;
-  string name = 3;
-}
-
-message JoinWaitingRoomResponse {
-  bool ok = 1;
-  Error error = 2;
-  WaitingRoomDto room = 3;
-}
-
-message LeaveWaitingRoomRequest {
-  string room_id = 1;
-  string uid = 2;
-}
-
-message LeaveWaitingRoomResponse {
-  bool ok = 1;
-  Error error = 2;
-}
-
-message SetMemberReadyRequest {
-  string room_id = 1;
-  string uid = 2;
-  bool ready = 3;
-}
-
-message SetMemberReadyResponse {
-  bool ok = 1;
-  Error error = 2;
-  bool current_ready = 3;
-}
-
-message GetWaitingRoomRequest {
-  string room_id = 1;
-}
-
-message GetWaitingRoomResponse {
-  bool ok = 1;
-  WaitingRoomDto room = 2;
-}
-
-message StartGameSessionRequest {
-  string room_id = 1;
-  string uid = 2; 
-}
-
-message StartGameSessionResponse {
-  bool ok = 1;
-  Error error = 2;
-  string game_server_id = 3;
-  ServerEndpoint endpoint = 4;
-  map<string, string> user_tickets = 5; 
-}
-
-message GetWaitingRoomListRequest {
-  int32 limit = 1;
-  string cursor = 2; // For Redis SCAN or simple offset if we used list, but here Set SCAN. 
-  // If using Set, cursor is string (ScanCursor).
-}
-
-message GetWaitingRoomListResponse {
-  bool ok = 1;
-  Error error = 2;
-  repeated WaitingRoomDto rooms = 3;
-  string next_cursor = 4;
-}

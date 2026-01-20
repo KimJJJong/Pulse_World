@@ -12,6 +12,7 @@ using ApiServer.Infrastructure.Persistence;
 using ApiServer.Infrastructure.Persistence.Repositories;
 using ApiServer.Infrastructure.Security;
 using ApiServer.Infrastructure.Time;
+using ApiServer.Domain.WaitingRoom;
 using ApiServer.Shared.Abstractions;
 using ApiServer.Shared.Http.Idempotency;
 using Microsoft.EntityFrameworkCore;
@@ -69,7 +70,13 @@ public static class DependencyInjection
 
         //Repositores / Stores
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
+        
+        // Redis
+        services.Configure<RedisOptions>(config.GetSection("Redis"));
+        services.AddSingleton<RedisStore>();
+        services.AddScoped<WaitingRoomService>();
 
         // Auth infra
         services.AddSingleton<IJwtIssuerPort, JwtIssuer>();

@@ -23,7 +23,6 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
     private readonly PresenceService _presence;
     private readonly ControlEventHub _hub;
     private readonly RoomService _room;
-    private readonly global::ControlPlaneServer.Domain.WaitingRoom.WaitingRoomService _waitingRoom;
 
     public ControlPlaneGrpcService(
         IOptions<ControlPlaneOptions> opt,
@@ -34,8 +33,7 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
         TransitionService trans,
         PresenceService presence,
         ControlEventHub hub,
-        RoomService room,
-        global::ControlPlaneServer.Domain.WaitingRoom.WaitingRoomService waitingRoom)
+        RoomService room)
     {
         _opt = opt.Value;
         _time = time;
@@ -46,7 +44,6 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
         _presence = presence;
         _hub = hub;
         _room = room;
-        _waitingRoom = waitingRoom;
     }
 
     private void RequireSecret(ServerCallContext ctx)
@@ -377,163 +374,8 @@ public sealed class ControlPlaneGrpcService : ControlPlane.Grpc.V1.ControlPlane.
         }
     }
 
-    // ==========================================
-    // Waiting Room Impl
-    // ==========================================
+    // WaitingRoom methods have been moved to ApiServer
 
-    public override async Task<CreateWaitingRoomResponse> CreateWaitingRoom(CreateWaitingRoomRequest request, ServerCallContext context)
-    {
-        RequireSecret(context);
-
-        var roomId = await _waitingRoom.CreateAsync(
-            request.Title,
-            request.MapId,
-            request.MaxPlayers,
-            request.OwnerUid,
-            request.OwnerName
-        );
-
-        if (roomId == null)
-        {
-            return new CreateWaitingRoomResponse
-            {
-                Ok = false,
-                Error = MakeError(ErrorCode.Unspecified, "Failed to create waiting room (collision?)")
-            };
-        }
-
-        var (exists, dto) = await _waitingRoom.GetAsync(roomId);
-        
-        return new CreateWaitingRoomResponse 
-        { 
-            Ok = true, 
-            RoomId = roomId,
-            Room = exists ? MapWaitingRoomToProto(dto!) : null
-        };
-    }
-
-    public override async Task<JoinWaitingRoomResponse> JoinWaitingRoom(JoinWaitingRoomRequest request, ServerCallContext context)
-    {
-        RequireSecret(context);
-
-        var (ok, err) = await _waitingRoom.JoinAsync(request.RoomId, request.Uid, request.Name);
-        if (!ok)
-        {
-             return new JoinWaitingRoomResponse { Ok = false, Error = MakeError(ErrorCode.Unspecified, err) };
-        }
-
-        var (_, dto) = await _waitingRoom.GetAsync(request.RoomId);
-        return new JoinWaitingRoomResponse { Ok = true, Room = MapWaitingRoomToProto(dto!) };
-    }
-
-    public override async Task<LeaveWaitingRoomResponse> LeaveWaitingRoom(LeaveWaitingRoomRequest request, ServerCallContext context)
-    {
-        RequireSecret(context);
-        var changed = await _waitingRoom.LeaveAsync(request.RoomId, request.Uid);
-        return new LeaveWaitingRoomResponse { Ok = changed };
-    }
-
-    public override async Task<SetMemberReadyResponse> SetMemberReady(SetMemberReadyRequest request, ServerCallContext context)
-    {
-        RequireSecret(context);
-        var success = await _waitingRoom.SetReadyAsync(request.RoomId, request.Uid, request.Ready);
-        return new SetMemberReadyResponse { Ok = success, CurrentReady = request.Ready }; 
-    }
-
-    public override async Task<GetWaitingRoomResponse> GetWaitingRoom(GetWaitingRoomRequest request, ServerCallContext context)
-    {
-        RequireSecret(context);
-        var (exists, dto) = await _waitingRoom.GetAsync(request.RoomId);
-        if (!exists) 
-            return new GetWaitingRoomResponse { Ok = false };
-        
-        return new GetWaitingRoomResponse { Ok = true, Room = MapWaitingRoomToProto(dto!) };
-    }
-
-    public override async Task<GetWaitingRoomListResponse> GetWaitingRoomList(GetWaitingRoomListRequest request, ServerCallContext context)
-    {
-        RequireSecret(context);
-
-        var (list, nextCursor) = await _waitingRoom.GetListAsync(request.Limit, request.Cursor);
-        
-        var resp = new GetWaitingRoomListResponse
-        {
-            Ok = true,
-            NextCursor = nextCursor
-        };
-        foreach(var dto in list)
-        {
-            resp.Rooms.Add(MapWaitingRoomToProto(dto));
-        }
-        
-        return resp;
-    }
-
-    public override async Task<StartGameSessionResponse> StartGameSession(StartGameSessionRequest request, ServerCallContext context)
-    {
-        RequireSecret(context);
-        
-        var (exists, room) = await _waitingRoom.GetAsync(request.RoomId);
-        if (!exists) return new StartGameSessionResponse { Ok = false, Error = MakeError(ErrorCode.Unspecified, "Room not found") };
-
-        if (room!.OwnerUid != request.Uid)
-             return new StartGameSessionResponse { Ok = false, Error = MakeError(ErrorCode.Unspecified, "Only owner can start") };
-
-        var (allocOk, server, reservation) = await _alloc.AllocateGameServerAsync(request.Uid, "KR", 60); 
-        if (!allocOk || server == null)
-             return new StartGameSessionResponse { Ok = false, Error = MakeError(ErrorCode.AllocationFailed, "No server available") };
-
-        var now = _time.NowMs();
-        await _room.CreateIfAbsentAsync(
-            server.ServerId,
-            request.RoomId, 
-            room.OwnerUid,
-            room.MapId,
-            room.MaxPlayers,
-            now
-        );
-        
-        if (reservation != null)
-             await _alloc.ConsumeReservationAsync(reservation.ReservationId);
-
-        var resp = new StartGameSessionResponse
-        {
-            Ok = true,
-            GameServerId = server.ServerId,
-            Endpoint = new ServerEndpoint { Host = server.Host, Port = server.Port }
-        };
-
-        foreach (var memberUid in room.MemberUids)
-        {
-            var t = await _tickets.IssueAsync(
-                uid: memberUid,
-                target: "Game",
-                key: request.RoomId,
-                issuedServerId: server.ServerId, 
-                pinnedServerId: server.ServerId,
-                ttlSeconds: 60
-            );
-            resp.UserTickets.Add(memberUid, t.TicketId);
-        }
-        
-        return resp;
-    }
-
-    private static ControlPlane.Grpc.V1.WaitingRoomDto MapWaitingRoomToProto(ControlPlaneServer.Domain.WaitingRoom.WaitingRoomDto dto)
-    {
-        var p = new ControlPlane.Grpc.V1.WaitingRoomDto
-        {
-            RoomId = dto.RoomId,
-            Title = dto.Title,
-            MapId = dto.MapId,
-            MaxPlayers = dto.MaxPlayers,
-            OwnerUid = dto.OwnerUid,
-            Status = dto.Status
-        };
-        p.MemberUids.AddRange(dto.MemberUids);
-        foreach(var kv in dto.MemberReady) p.MemberReady.Add(kv.Key, kv.Value);
-        return p;
-    }
 
     private static int MapTicketErr(int err)
         => err switch
