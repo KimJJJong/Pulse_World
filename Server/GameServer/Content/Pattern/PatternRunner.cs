@@ -168,7 +168,7 @@ public sealed class PatternRunner
                         MapEntity target = FindTarget(m, players, act.Target);
                         if (target == null)
                         {
-                            Console.WriteLine("[ScheduleTimeline : Attack ] (target == null)");
+                            // Console.WriteLine("[ScheduleTimeline : Attack ] (target == null)");
                             break;
                         }
 
@@ -236,7 +236,8 @@ public sealed class PatternRunner
 
     private bool EvalOne(ConditionDef c, MapEntity m, IList<MapEntity> players)
     {
-        _ = FindClosestPlayer(m, players, out int dist);
+        var target = FindClosestPlayer(m, players, out int dist);
+        if (target == null) return false;
 
         return c.Type switch
         {
@@ -535,13 +536,15 @@ public sealed class PatternRunner
         return list[0];
     }
 
-    private MapEntity FindClosestPlayer(MapEntity m, IList<MapEntity> players, out int dist)
+    private MapEntity? FindClosestPlayer(MapEntity m, IList<MapEntity> players, out int dist)
     {
-        MapEntity best = players[0];
+        MapEntity? best = null;
         dist = int.MaxValue;
 
         foreach (var p in players)
         {
+            if (!p.IsAlive) continue;
+
             int d = Math.Abs(p.Position.X - m.Position.X) + Math.Abs(p.Position.Y - m.Position.Y);
             if (d < dist) { dist = d; best = p; }
         }

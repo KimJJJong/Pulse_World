@@ -26,7 +26,7 @@ public static class SessionSweeper
                         if (last > 0 && (now - last) > IdleKick.TotalMilliseconds)
                         {
                             // 로그 남기고 정리
-                            LogManager.Instance.LogWarning("[Ping/Pong Issue]",$"Idle kick: {cs.Uid}/{cs.MatchId}");
+                            LogManager.Instance.LogWarning("[Ping/Pong Issue]",$"Idle kick: {cs.Uid}/{cs.CurrentWorldId}");
                             cs.Close("PingPong Issue");
                         }
                     }

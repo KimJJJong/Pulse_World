@@ -3,7 +3,7 @@ using UnityEngine;
 public class HudPresenter : MonoBehaviour
 {
     [SerializeField] private HudConfig _config;
-    [SerializeField] private HexHudView _view;          // ✅ HexHudView
+    [SerializeField] private HexHudView _view;          //  HexHudView
     [SerializeField] private SkillSlotView[] _skillSlots;
 
     private bool _iconsApplied;
@@ -21,7 +21,14 @@ public class HudPresenter : MonoBehaviour
     {
         var gs = ClientGameState.Instance;
         if (gs != null)
+        {
+            Debug.Log("[HudPresenter] Subscribed to MyEntityChanged");
             gs.MyEntityChanged += OnMyEntityChanged;
+        }
+        else
+        {
+            Debug.LogWarning("[HudPresenter] ClientGameState.Instance is NULL in OnEnable!");
+        }
 
         TryApplySkillIcons();
     }
@@ -35,6 +42,22 @@ public class HudPresenter : MonoBehaviour
 
     void Start()
     {
+        // 1. OnEnable 시점에 GS가 null이었을 수 있으므로 다시 체크
+        if (ClientGameState.Instance != null)
+        {
+            // 중복 구독 방지를 위해 제거 후 추가 (안전장치)
+            ClientGameState.Instance.MyEntityChanged -= OnMyEntityChanged;
+            ClientGameState.Instance.MyEntityChanged += OnMyEntityChanged;
+            
+            // 초기 상태 반영
+            if (ClientGameState.Instance.TryGetMyEntity(out var info))
+                OnMyEntityChanged(info);
+        }
+        else
+        {
+             Debug.LogError("[HudPresenter] ClientGameState is still null in Start!");
+        }
+
         TryApplySkillIcons();
     }
 
@@ -71,10 +94,8 @@ public class HudPresenter : MonoBehaviour
     private void OnMyEntityChanged(ClientEntityInfo me)
     {
 
-
         if (_config == null || _view == null)
         {
-
             Debug.Log($"[OnMyEntityChanged] _config == null || _view == null");
             return;
         }

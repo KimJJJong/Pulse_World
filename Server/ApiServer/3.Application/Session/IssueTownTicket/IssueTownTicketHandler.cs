@@ -9,16 +9,16 @@ public sealed class IssueTownTicketHandler
 {
     private readonly IControlPlanePort _cp;
     private readonly ITimeProvider _time;
-    private readonly TownEndpointOptions _town;
+    //private readonly TownEndpointOptions _town;
 
     public IssueTownTicketHandler(
         IControlPlanePort cp,
-        ITimeProvider time,
-        IOptions<TownEndpointOptions> town)
+        ITimeProvider time//,
+        /*IOptions<TownEndpointOptions> town*/)
     {
         _cp = cp;
         _time = time;
-        _town = town.Value;
+        //_town = town.Value;
     }
 
     public async Task<IssueTownTicketResult> HandleAsync(IssueTownTicketCommand cmd, CancellationToken ct)

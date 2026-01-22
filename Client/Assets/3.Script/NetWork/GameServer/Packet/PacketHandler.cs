@@ -46,6 +46,7 @@ class PacketHandler
     {
         var p = (SC_HandshakeOk)packet;
 
+        Debug.Log("SC_HandshakeOkHandler");
 
         // 이친구도 조금더 엘래강스하게 뺄 수 없을까?
         string serverRole = "Unknown";
@@ -67,6 +68,7 @@ class PacketHandler
             serverTimeMs: p.ServerTimeMs,
             sessionEpoch: p.SessionEpoch,
             role: serverRole
+
             );
 
         // 2) 네트워크 상태 확정 (Ready 이벤트 발행 -> ClientFlow가 씬 전환)
@@ -116,20 +118,37 @@ class PacketHandler
             mapVersion: "Test",//p.MapVersion,  // 서버 필드이름 사용 TODO : 
             myActorId: p.MyActorId,
             map: p
-            
+
         );
-
-
-        var townCtx = UnityEngine.Object.FindFirstObjectByType<TownSceneContext>();
-        if (townCtx != null)
+        if (p.Mode == 1)
         {
-            townCtx.OnInitMap(p);
+            var townCtx = UnityEngine.Object.FindFirstObjectByType<TownSceneContext>();
+            if (townCtx != null)
+            {
+                townCtx.OnInitMap(p);
+            }
+            else
+            {
+                // 씬 아직 준비 전이면 세션 컨텍스트만 저장된 상태.
+                // TownSceneContext.EnterTownAsync()에서 SessionContext.InitMapReceived 체크하고 처리 가능.
+                Debug.LogWarning("[SC_InitMap] TownSceneContext not found (scene not ready yet?)");
+            }
+
         }
-        else
+        else if (p.Mode == 2)
         {
-            // 씬 아직 준비 전이면 세션 컨텍스트만 저장된 상태.
-            // TownSceneContext.EnterTownAsync()에서 SessionContext.InitMapReceived 체크하고 처리 가능.
-            Debug.LogWarning("[SC_InitMap] TownSceneContext not found (scene not ready yet?)");
+            var gameCtx = UnityEngine.Object.FindFirstObjectByType<GameSceneContext>();
+            if (gameCtx != null)
+            {
+                gameCtx.OnInitMap(p);
+            }
+            else
+            {
+                // 씬 아직 준비 전이면 세션 컨텍스트만 저장된 상태.
+                // TownSceneContext.EnterTownAsync()에서 SessionContext.InitMapReceived 체크하고 처리 가능.
+                Debug.LogWarning("[SC_InitMap] TownSceneContext not found (scene not ready yet?)");
+            }
+
         }
 
     }
@@ -150,7 +169,7 @@ class PacketHandler
     /// <param name="session"></param>
     /// <param name="packet"></param>
     public static void SC_InitGameHandler(PacketSession session, IPacket packet) { }
-        //=> ClientHandlers.Instance.Handle_SC_InitGame((SC_InitGame)packet);
+    //=> ClientHandlers.Instance.Handle_SC_InitGame((SC_InitGame)packet);
     public static void SC_CalibResultHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_CalibResult((SC_CalibResult)packet);
 

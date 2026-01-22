@@ -68,10 +68,18 @@ public sealed class ConnectionRegistry : IConnectionKicker
         // ClientSession이면 현재 월드에서 즉시 제거(=Despawn broadcast)
         if (oldConn is ClientSession s &&
             s.HasAuth &&
-            !string.IsNullOrEmpty(s.CurrentWorldId) &&
-            TownManager.TryGet(s.CurrentWorldId, out var world))
+            !string.IsNullOrEmpty(s.CurrentWorldId))
         {
-            world.RemovePlayer(s.Uid, s.Epoch);
+            if (TownManager.TryGet(s.CurrentWorldId, out var tWorld))
+            {
+
+            tWorld.RemovePlayer(s.Uid, s.Epoch);
+            }
+            else if(GameManager.TryGet(s.CurrentWorldId, out var gWorld))
+            {
+                gWorld.RemovePlayer(s.Uid, s.Epoch);
+
+            }
         }
     }
     /// <summary>

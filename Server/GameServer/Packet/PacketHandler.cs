@@ -44,7 +44,7 @@ partial class PacketHandler
 
         // 2) 세션에 auth 바인딩
         s.BindAuth(res.Uid, res.Epoch, res.Key);
-        //Console.WriteLine($" UID : {res.Uid} || Epoch : {res.Epoch} || Key : {res.Key}");
+        Console.WriteLine($"[HandShake] UID : {res.Uid} || Epoch : {res.Epoch} || Key : {res.Key}");
         // 3) uid -> conn registry 바인딩 (epoch 최신만 유지)
         registry.Bind(res.Uid, res.Epoch, s);
 
@@ -66,10 +66,24 @@ partial class PacketHandler
                     s.Close("lease_invalid:" + reason);
                     registry.UnbindIfMatch(res.Uid, s.ConnId, res.Epoch);
 
-                    if (!string.IsNullOrEmpty(s.CurrentWorldId) &&
-                        TownManager.TryGet(s.CurrentWorldId, out var world))
+                    if (!string.IsNullOrEmpty(s.CurrentWorldId))
                     {
-                        world.RemovePlayer(res.Uid, res.Epoch); //  만료 확정 -> 완전 제거
+                        // 1) Try Town
+                        if (TownManager.TryGet(s.CurrentWorldId, out var town))
+                        {
+                            Console.WriteLine($"[LeaseInvalid] Removing from Town: {town.TownId}");
+                            town.RemovePlayer(res.Uid, res.Epoch);
+                        }
+                        // 2) Try Game
+                        else if (GameManager.TryGet(s.CurrentWorldId, out var game))
+                        {
+                            Console.WriteLine($"[LeaseInvalid] Removing from Game: {game.MatchId}");
+                            game.RemovePlayer(res.Uid, res.Epoch);
+                        }
+                        else
+                        {
+                             Console.WriteLine($"[LeaseInvalid] World not found for: {s.CurrentWorldId}");
+                        }
                     }
                 },
                 ct: s.ConnectionToken
@@ -77,79 +91,66 @@ partial class PacketHandler
         });
     }
 
-    //public static void CS_LoadedHandler(PacketSession s, IPacket p)
-    //{
-    //    var session = (ClientSession)s;
-    //    var req = (CS_Loaded)p;
-
-    //    if (session.MatchId != req.matchId /*|| session.Uid != req.uid : UID자체를 클라측에서 받아 올 일이 없는게 맞다*/  )
-    //    {
-    //        Console.WriteLine(
-    //    $"[CS_LoadedHandler] Mismatch! session.MatchId={session.MatchId}, req.matchId={req.matchId}, ");
-    //        return;
-    //    }
-
-    //    var room = GameManager.GetOrCreate(session.MatchId);
-    //    session.Loaded = true;
-
-    //    bool allReady =  room.MarkLoadedAsync(session);
-
-
-    //    if (allReady)
-    //    {
-    //        var startAtMs = AppRef.ServerTimeMs() + 800; // 0.8초 후 시작
-
-    //        // 참가자 정보 스냅샷
-    //        var players = room.GetPlayersSnapshot(); // (uid, side, loaded) 목록
-
-    //        Console.WriteLine($"[GameReady] : {players} ");
-    //        room.Broadcast(new SC_AllPlayersLoaded
-    //        {
-    //            matchId = session.MatchId,
-    //            playerss = players
-    //                .Select(pl => new SC_AllPlayersLoaded.Players { uid = pl.uid, slot = pl.slot, loaded = pl.loaded })
-    //                .ToList()
-    //        });
-
-    //        room.Broadcast(new SC_GameBegin
-    //        {
-    //            matchId = session.MatchId!,
-    //            startAtMs = startAtMs,
-    //            startTick = 0
-    //        });
-
-    //        room.ScheduleStart(startAtMs);
-    //    }
-    //}
+   
 
     public static void CS_MapEnterHandler(PacketSession session, IPacket packet)
     {
         var s = (ClientSession)session;
         var req = (CS_MapEnter)packet;
-        Console.WriteLine($"[IN]CS_MapEnterHandler : MapId: {req.MapId}");
+        Console.WriteLine($"[IN]CS_MapEnterHandler : MapId: {req.MapId} Key: {s.Key}");
+
         if (!s.HasAuth)
         {
+            Console.WriteLine($"[CS_MapEnterHandler] Fail: NoAuth. Uid={s.Uid} Key={s.Key}");
             s.Close("map_enter_without_auth");
             return;
         }
 
-        var townId = "Town_01";
-        var room = TownManager.GetOrCreate(townId);
-
-        if (!room.BindOrReattach(s, out var actorId))
+        // 1) Game Mode (Key exists -> MatchId)
+        if (!string.IsNullOrEmpty(s.Key))
         {
-            s.Close("town_bind_fail");
-            return;
+            // GameRoom 생성 (Lazy)
+            // 주의: CP와 동기화된 Map 정보가 없으므로, 최초 생성 시 req.MapId를 신뢰하거나 기본값 사용
+            // GameRoom 내부에서 MapId를 설정할 수 있는 메소드가 필요할 수 있음 (현재는 Default 0)
+            var room = GameManager.GetOrCreate(s.Key);
+            
+            Console.WriteLine($"[GameRoom] Entering MatchId: {s.Key} (Count: {room.GetPlayersSnapshot().Count()})");
+
+            // (Optional) Room이 막 생성되었다면 MapId 등을 초기화
+            // if (room.MapId == 0) room.SetMapId(req.MapId); 
+
+            if (!room.BindOrReattach(s, out var actorId))
+            {
+                Console.WriteLine($"[CS_MapEnterHandler] BindFail: {s.Uid} -> {s.Key}");
+                s.Close("game_bind_fail");
+                return;
+            }
+
+            // Game은 "로딩 완료" 상태가 되어야 시작하므로 MarkLoaded
+            if (room.MarkLoadedAsync(s))
+            {
+                Console.WriteLine($"[GameRoom] All Loaded! Scheduling Start...");
+                // 모두 준비 완료되면 게임 시작 등을 처리 (GameRoom 내부)
+                var startAtMs = AppRef.ServerTimeMs() + 1000; // 1초 뒤 시작
+                room.BroadcastGameStart(startAtMs);
+            }
         }
+        // 2) Town Mode (Key empty)
+        else
+        {
+            var townId = "Town_01"; // Default Town
+            Console.WriteLine($"[TownRoom] Enter: {townId}");
+            var room = TownManager.GetOrCreate(townId);
 
-        // TMP : TODO : Regureal
-        //SC_InitMap tmpSend = new SC_InitMap();
-        //tmpSend.MapId = "Town_01";
-        //tmpSend.MyActorId = s.ActorId;
-        //tmpSend.SongId = "tmp";
-        //s.Send(tmpSend.Write());
-
-        //TownManager.GetOrCreate(tmpSend.MapId);//.Bind(whatSlot?,_session);
+            if (!room.BindOrReattach(s, out var actorId))
+            {
+                Console.WriteLine($"[CS_MapEnterHandler] Town BindFail: {s.Uid}");
+                s.Close("town_bind_fail");
+                return;
+            }
+            
+            // Town은 즉시 InitMap 전송 (BindOrReattach 내부에서 처리됨)
+        }
     }
     public static void CS_ReadyHandler(PacketSession session, IPacket packet)
     {
@@ -192,7 +193,7 @@ partial class PacketHandler
         TownManager.TryGet(clientSession.CurrentWorldId, out var action);
         if (action == null)
         {
-            session.Send(new SC_Warn { code = 2000, msg = "ROOM_NOT_FOUND" }.Write());
+            session.Send(new SC_Warn { code = 2000, msg = $"ROOM_NOT_FOUND : CurrentWorkdId: {clientSession.CurrentWorldId}" }.Write());
             return;
         }
         action.OnCS_TownActionRequest(clientSession, req);
@@ -210,10 +211,10 @@ partial class PacketHandler
         //}
         //action.OnCS_ActionRequest(clientSession, req);
 
-        GameManager.TryGet(clientSession.MatchId, out var room);//clientSession.roo
+        GameManager.TryGet(clientSession.CurrentWorldId, out var room);//clientSession.roo
         if (room == null)
         {
-            session.Send(new SC_Warn { code = 2000, msg = "ROOM_NOT_FOUND" }.Write());
+            session.Send(new SC_Warn { code = 2000, msg = $"ROOM_NOT_FOUND : CurrentWorkdId: {clientSession.CurrentWorldId}" }.Write());
             return;
         }
 
@@ -226,10 +227,10 @@ partial class PacketHandler
         ClientSession clientSession = (ClientSession)session;
         CS_CalibHit req = (CS_CalibHit)packet;
 
-        GameManager.TryGet(clientSession.MatchId, out var room);//clientSession.roo
+        GameManager.TryGet(clientSession.CurrentWorldId, out var room);//clientSession.roo
         if (room == null)
         {
-            session.Send(new SC_Warn { code = 2000, msg = "ROOM_NOT_FOUND" }.Write());
+            session.Send(new SC_Warn { code = 2000, msg = $"ROOM_NOT_FOUND : CurrentWorkdId: {clientSession.CurrentWorldId}" }.Write());
             return;
         }
 

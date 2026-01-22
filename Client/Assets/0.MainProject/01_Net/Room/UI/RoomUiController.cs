@@ -55,6 +55,7 @@ namespace NetClient.Room.UI
         string _cursor = "";
         bool _isLoadMore = false; // 필요하면 더보기 붙일 때 사용
         bool _amIReady = false;
+        string _currentRoomId = "";
 
         // 멤버 UI 부분갱신용
         readonly Dictionary<string, MemberItemView> _memberViews = new();
@@ -285,6 +286,7 @@ namespace NetClient.Room.UI
             ws.OnInit += room =>
             {
                 Debug.Log($"[RoomUiController] OnInit Received. RoomId={room?.roomId}, Members={room?.memberUids?.Count}");
+                _currentRoomId = room?.roomId;
                 SetWarn("");
                 if (txtRoomTitle) txtRoomTitle.text = string.IsNullOrEmpty(room.title) ? room.roomId : room.title;
 
@@ -367,8 +369,24 @@ namespace NetClient.Room.UI
                 SetWarn($"GameStart: {endpoint.host}:{endpoint.port}");
                 _ = DisposeWsIfAny();
 
-                // TODO: 여기서 게임 씬 전환 + TCP 접속 시작
-                // apiProvider.OnGameStart(endpoint, ticket) 등으로 위임 추천
+                // DTO 변환 (Global EndpointDto -> SessionDtos.EndpointDto)
+                var ticketResp = new SessionDtos.IssueGameTicketResponse
+                {
+                   Endpoint = new SessionDtos.EndpointDto { Host = endpoint.host, Port = endpoint.port },
+                   TicketId = ticket,
+                   Key = _currentRoomId // RoomId가 곧 GameServer의 Key(MatchId)
+                };
+
+                // ClientFlow를 통해 게임 서버 접속 및 씬 전환
+                if (ClientFlow.Instance != null)
+                {
+                   var nonce = System.Guid.NewGuid().ToString("N");
+                   ClientFlow.Instance.ConnectGame(ticketResp, nonce);
+                }
+                else
+                {
+                   SetWarn("ClientFlow instance is null. Cannot start game.");
+                }
             };
 
             ws.OnErrorMsg += msg => SetWarn($"Error: {msg}");

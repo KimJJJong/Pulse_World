@@ -19,6 +19,10 @@ public abstract class SessionBase
 
     // 룸 구성 요소
     protected readonly List<MapEntity> _players = new();
+    
+    // public accessor for checking
+    public List<MapEntity> Players => _players;
+
     protected readonly HashSet<int> _actorIds = new(); // slot -> actorId
 
 
@@ -51,6 +55,8 @@ public abstract class SessionBase
 
         _players.RemoveAll(x => x.Id == actorId);
         _actorIds.Remove(actorId);
+
+        Console.WriteLine($"[GameSession] OnPlayerLeft: Actor {actorId} removed. Remaining Players: {_players.Count}");
     }
 
     /// <summary>
@@ -83,6 +89,30 @@ public abstract class SessionBase
 
             Console.WriteLine($"[InitPlayers] Player spawned actorId={p.Id}");
         }
+    }
+
+    /// <summary>
+    /// 재연결 시(reattach) 따로 스폰할 건 없지만,
+    /// 혹시 월드에서 사라진 경우 복구할 수 있는 안전망.
+    /// </summary>
+    public virtual void EnsurePlayerSpawned(int actorId)
+    {
+        if (actorId < 0) return;
+        if (!_actorIds.Contains(actorId)) return;
+
+        if (World2D.ContainsEntity(actorId))
+            return;
+
+        var p = _players.Find(x => x.Id == actorId);
+        if (p == null) return;
+
+        if (!World2D.TrySpawn(p, p.Position))
+        {
+            Console.WriteLine($"[EnsurePlayerSpawned] respawn failed actorId={actorId}");
+            return;
+        }
+
+        Console.WriteLine($"[EnsurePlayerSpawned] respawn OK actorId={actorId}");
     }
 
     public abstract void SendInitPacketToPlayer(ClientSession s);

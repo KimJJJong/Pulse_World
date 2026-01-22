@@ -85,33 +85,39 @@ public sealed class GameSession : SessionBase
     // ===============================
     // Init Packet (actorId 통일)
     // ===============================
-    private SC_InitGame BuildInitPacketForPlayer(int myActorId)
+    private SC_InitMap BuildInitPacketForPlayer(int myActorId)
     {
-        SC_InitGame packet = new SC_InitGame();
+        SC_InitMap packet = new SC_InitMap();
 
+        packet.Mode = 2;
+        // 마을은 액션윈도 의미 없으면 0 or 큰값
         packet.ActionWindowMs = _rhythmConfig.ActionWindowMs;
+        packet.SongId = "TestSong";
+        packet.Bpm = _rhythmConfig.Bpm;
+        packet.BaseBeatDivision = _rhythmConfig.BaseBeatDivision;
+        packet.SongStartServerTime = _rhythm.SongStartServerTimeMs;
 
         packet.MapWidth = _map.Width;
         packet.MapHeight = _map.Height;
-        packet.MapName = "Map"; // TODO
+        packet.MapId = "Map"; // TODO
 
-        packet.playerActorIdss.Clear();
+           packet.playerss.Clear();
         foreach (var p in _players)
-            packet.playerActorIdss.Add(new SC_InitGame.PlayerActorIds { ActorId = p.Id });
+            packet.playerss.Add(new SC_InitMap.Players { ActorId = p.Id, Name="Test", Uid="RealNeedit?" });
 
         packet.MyActorId = myActorId;
 
-        packet.spawnEntitiess.Clear();
+        packet.entitiess.Clear();
 
         foreach (var p in _players)
         {
-            packet.spawnEntitiess.Add(new SC_InitGame.SpawnEntities
+            packet.entitiess.Add(new SC_InitMap.Entities
             {
                 EntityId = p.Id,
                 EntityType = (int)p.Type,
 
-                // ⚠️ 임시 호환: OwnerSlot 필드에 "OwnerActorId" 의미로 actorId를 넣는다.
-                OwnerSlot = p.Id,
+                //  OwnerSlot 같은 slot 개념 제거  -> 그럼 OwnActor?
+                // OwnerSlot = ... (없애거나 0 고정)
 
                 X = p.Position.X,
                 Y = p.Position.Y,
@@ -121,7 +127,7 @@ public sealed class GameSession : SessionBase
 
         foreach (var m in _monsters)
         {
-            packet.spawnEntitiess.Add(new SC_InitGame.SpawnEntities
+            packet.entitiess.Add(new SC_InitMap.Entities
             {
                 EntityId = m.Id,
                 EntityType = (int)m.Type,
@@ -160,7 +166,7 @@ public sealed class GameSession : SessionBase
         var pkt = BuildInitPacketForPlayer(myActorId);
         s.Send(pkt.Write());
 
-        Console.WriteLine($"[SendInitPacketToPlayer] Sent SC_InitGame myActorId={pkt.MyActorId}");
+        Console.WriteLine($"[SendInitPacketToPlayer] Sent SC_InitMap myActorId={pkt.MyActorId}");
     }
 
     // =====================================================

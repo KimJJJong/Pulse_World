@@ -10,6 +10,7 @@
         public long SessionEpoch { get; private set; }
         public string Role { get; private set; } = "Unknown";
         public bool HandshakeOk { get; private set; }
+    public string Key { get; private set; } = "";
 
         // ---- map ----
         public bool InitMapReceived { get; private set; }

@@ -174,7 +174,7 @@ public sealed class RoomWebSocketHandler
                         // key: roomId (for validation in GS)
                         try 
                         {
-                            var (ticketOk, ticket, _, _, _) = await _cp.IssueTicketAsync(
+                            var (ticketId, _, _, _, _) = await _cp.IssueTicketAsync(
                                 memberUid, 
                                 "GAME", 
                                 roomId, 
@@ -187,7 +187,7 @@ public sealed class RoomWebSocketHandler
                             { 
                                 type = "GameStart", 
                                 endpoint = new { host = ep.Host, port = ep.Port },
-                                ticket = ticket
+                                ticket = ticketId
                             };
                             await _conns.SendToAsync(roomId, memberUid, payload);
                         }

@@ -110,16 +110,8 @@ public sealed class TownScreen : MonoBehaviour
 
     async Task ConnectGameAsync()
     {
-        if (_lastGame == null)
-        {
-            view.SetStatus("먼저 Game 티켓을 발급하세요.");
-            return;
-        }
 
-        var clientNonce = "game-" + System.Guid.NewGuid().ToString("N");
-
-        ClientFlow.Instance.ConnectGame(_lastGame, clientNonce);
-        view.SetStatus("연결 시도 중... (Handshake 대기)");
+            view.SetStatus("GameRoom은 분리");
     }
 
 

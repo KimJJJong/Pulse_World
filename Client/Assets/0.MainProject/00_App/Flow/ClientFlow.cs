@@ -27,6 +27,8 @@ public sealed class ClientFlow : MonoBehaviour
         _target = Target.TownMap;
 
         var ep = new IPEndPoint(IPAddress.Parse(ticket.Endpoint.Host), ticket.Endpoint.Port);
+        Debug.Log($"[HandshakeArgs]endpoint :{ep} || Ticket :{ticket.TicketId} || Nonce: {clientNonce}  || target : {_target}");
+
         NetworkManager.Instance.ConnectAndHandshake(ep, ticket.TicketId, clientNonce);
     }
 
@@ -35,12 +37,14 @@ public sealed class ClientFlow : MonoBehaviour
         _target = Target.Game;
 
         var ep = new IPEndPoint(IPAddress.Parse(ticket.Endpoint.Host), ticket.Endpoint.Port);
-        Debug.Log($"[HandshakeArgs]endpoint :{ep} || Ticket :{ticket.TicketId} || Nonce: {clientNonce} || key :{ticket.Key} ");
+        Debug.Log($"[HandshakeArgs]endpoint :{ep} || Ticket :{ticket.TicketId} || Nonce: {clientNonce} || key :{ticket.Key} || target : {_target}");
         NetworkManager.Instance.ConnectAndHandshake(ep, ticket.TicketId, clientNonce, ticket.Key);
     }
 
     async void OnNetReady()
     {
+        Debug.Log("OnNetReady");
+
         if (_entering) return;
         _entering = true;
         try
@@ -60,8 +64,18 @@ public sealed class ClientFlow : MonoBehaviour
             }
             else if (_target == Target.Game)
             {
+                Debug.Log("InTargetGame");
                 await SceneRouter.LoadAsync(SceneNames.Game);
-                // TODO: GameSceneContext.EnterGameAsync()
+                // GameSceneContext 찾아서 진입 요청
+                var ctx = Object.FindFirstObjectByType<GameSceneContext>();
+                if (ctx != null)
+                {
+                    await ctx.EnterGameAsync();
+                }
+                else
+                {
+                    Debug.LogWarning("[ClientFlow] GameSceneContext not found in Game scene");
+                }
             }
             else
             {

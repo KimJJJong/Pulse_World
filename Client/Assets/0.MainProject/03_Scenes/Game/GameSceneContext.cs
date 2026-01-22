@@ -1,8 +1,8 @@
-using NetClient.Room.UI;
-using System.Threading.Tasks;
 using UnityEngine;
+using System.Threading.Tasks;
+using NetClient.Room.UI; // for ApiClientProvider, etc. if needed
 
-public sealed class TownSceneContext : MonoBehaviour
+public sealed class GameSceneContext : MonoBehaviour
 {
     [Header("Optional scene refs (비워도 자동 탐색)")]
     [SerializeField] private ClientGameState _gs;
@@ -20,7 +20,7 @@ public sealed class TownSceneContext : MonoBehaviour
     [SerializeField] private RhythmClient _rhythm;
     [SerializeField] private BgmDirector _bgmDirector;
     [SerializeField] private AudioOffsetAutoCalibrator _autoCalib;
-
+   
     [Header("HUD/Debug (비워도 자동 탐색)")]
     [SerializeField] private HudPresenter _hud;
     [SerializeField] private BeatDebugUI_TMP _beatDebug;
@@ -28,18 +28,16 @@ public sealed class TownSceneContext : MonoBehaviour
     [Header("RoomListPanel (비워도 자동 탐색)")]
     [SerializeField] private ApiClientProvider _apiClientProvider;
 
-
-    [Header("Net enter")]
-    [SerializeField] private string _mapId = "town";
-    [SerializeField] private bool _wantSnapshot = true;
-
     [Header("Runtime loops")]
     [SerializeField] private bool _ensurePingManager = true;
     [SerializeField] private int _pingIntervalMs = 2000;
     [SerializeField] private int _pingTimeoutMs = 6000;
     [SerializeField] private int _pingMaxMiss = 3;
 
-
+    [Header("Net enter")]
+    [SerializeField] private bool _autoEnter = true;
+    [SerializeField] private string _mapId = "game"; // 임시 기본값
+    
     bool _entered;
     bool _initMapApplied;
 
@@ -52,44 +50,47 @@ public sealed class TownSceneContext : MonoBehaviour
         EnsureCoreBindings();
         EnsureRuntimeLoops();
     }
-    private void Start()
-    {
-        TryApplyInitMapIfAlreadyReceived();
 
+    private async void Start()
+    {
+        // 씬 로드 직후 잠시 대기
+        await Task.Yield();
+
+        if (_autoEnter)
+            await EnterGameAsync();
     }
+
     public void OnInitMap(SC_InitMap p)
     {
         // 패킷이 먼저 와서 여기로 들어온 케이스
         ApplyInitMapOnce(p);
     }
-    /// <summary>
-    /// ClientFlow가 TownMap 씬 로드 후 호출.
-    /// </summary>
-    public async Task EnterTownAsync()
-    {
-        // 씬 로드 직후 1프레임 대기(선택): FindFirstObjectByType 안정화
-        await Task.Yield();
 
+    public async Task EnterGameAsync()
+    {
         if (_entered) return;
         _entered = true;
 
+        TryApplyInitMapIfAlreadyReceived();
+
         if (NetworkManager.Instance == null)
         {
-            Debug.LogError("[TownSceneContext] NetworkManager.Instance is null");
+            Debug.LogError("[GameSceneContext] NetworkManager instance is null!");
             return;
         }
 
-        long nowMs = NowLocalMs();
-
+        // GameServer 접속 시점에는 이미 Handshake로 MatchId(Key)가 바인딩되어 있음.
+        // 따라서 CS_MapEnter만 보내면 됨.
+        // MapId는 클라가 로드한 맵 이름을 보냄 (검증용)
         var req = new CS_MapEnter
         {
-            ClientTimeMs = nowMs,
+            ClientTimeMs = NowLocalMs(),
             MapId = _mapId,
             LastKnownRevision = 0,
-            WantSnapshot = _wantSnapshot
+            WantSnapshot = true
         };
 
-        Debug.Log("[TownSceneContext] CS_MapEnter sent");
+        Debug.Log($"[GameSceneContext] Sending CS_MapEnter... MapId={_mapId}");
         NetworkManager.Instance.Send(req.Write());
     }
 
@@ -121,7 +122,7 @@ public sealed class TownSceneContext : MonoBehaviour
         if (_hud == null) _hud = FindFirstObjectByType<HudPresenter>();
         if (_beatDebug == null) _beatDebug = FindFirstObjectByType<BeatDebugUI_TMP>();
 
-        if (_apiClientProvider == null ) _apiClientProvider = FindFirstObjectByType<ApiClientProvider>();
+        if (_apiClientProvider == null) _apiClientProvider = FindFirstObjectByType<ApiClientProvider>();
     }
 
     void ValidateCriticalRefs()
@@ -137,7 +138,7 @@ public sealed class TownSceneContext : MonoBehaviour
         if (_cameraFollow == null) Debug.LogWarning("[TownSceneContext] CameraFollow not found on Camera.main");
         if (_inputBinder == null) Debug.LogWarning("[TownSceneContext] RhythmInputControllerBinder not found");
         if (_inputController == null) Debug.LogWarning("[TownSceneContext] RhythmInputController not found");
-        if (_apiClientProvider == null ) Debug.LogWarning("[TownSceneContext] ApiClientProvider not found");
+        if (_apiClientProvider == null) Debug.LogWarning("[TownSceneContext] ApiClientProvider not found");
     }
 
     void EnsureCoreBindings()
@@ -201,10 +202,10 @@ public sealed class TownSceneContext : MonoBehaviour
         var h = ClientHandlers.Instance;
         if (h == null)
         {
-            Debug.LogError("[TownSceneContext] ClientHandlers missing in scene");
+            Debug.LogError("[GameSceneContext] ClientHandlers missing in scene");
             return;
         }
-
+        //p.MapId = "Map";    //TODO : fix
         h.HandleSC_InitMap(p);
 
         // (추가로 Context가 해야 하는 것들 있으면 여기서)
@@ -214,3 +215,4 @@ public sealed class TownSceneContext : MonoBehaviour
     static long NowLocalMs()
         => (long)(Time.realtimeSinceStartupAsDouble * 1000.0);
 }
+

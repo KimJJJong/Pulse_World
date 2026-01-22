@@ -25,6 +25,9 @@ public sealed class NetworkManager : MonoBehaviour
     HandshakeArgs? _pending;
     bool _handshakeSent;
 
+    // 현재 연결된 Endpoint
+    IPEndPoint? _currentEndPoint;
+
     [SerializeField] float connectTimeoutSeconds = 5f;
     float _deadline = -1f;
 
@@ -48,15 +51,31 @@ public sealed class NetworkManager : MonoBehaviour
     /// </summary>
     public void ConnectAndHandshake(IPEndPoint endPoint, string ticketId, string clientNonce, string? key = null)
     {
-        _pending = new HandshakeArgs(endPoint, ticketId, clientNonce, key);
+        Debug.Log($"[NetworkManager] Request Connect: {endPoint} (Current: {_currentEndPoint}) State: {_state}");
 
-            Debug.Log($"[HandshakeArgs]endpoint :{endPoint} || Ticket :{ticketId} || Nonce: {clientNonce} || key :{key} ");
-        Debug.Log($"state : {_state} ");
+        // 1. 이미 연결된 상태 확인 (Switching 판단)
         if (_state == ConnState.Connecting || _state == ConnState.Connected || _state == ConnState.Ready)
         {
-            TrySendHandshakeOnce();
-            return;
+            // 다른 서버로 이동인지 확인
+            if (_currentEndPoint != null && !_currentEndPoint.Equals(endPoint))
+            {
+                Debug.Log($"[NetworkManager] Switching Server detected: {_currentEndPoint} -> {endPoint}. Disconnecting...");
+                Disconnect(""); // 기존 연결 종료 (이때 _pending도 초기화됨)
+            }
+            else
+            {
+                // 같은 주소 -> Handshake Args만 갱신 후 재진행
+                Debug.Log("[NetworkManager] Already connected to same endpoint. Retrying handshake.");
+                _pending = new HandshakeArgs(endPoint, ticketId, clientNonce, key);
+                TrySendHandshakeOnce();
+                return;
+            }
         }
+        
+        // 2. 신규 연결 시작
+        // 중요: Disconnect 이후에 _pending을 설정해야 함 (Disconnect가 _pending을 null로 만들기 때문)
+        _pending = new HandshakeArgs(endPoint, ticketId, clientNonce, key);
+        Debug.Log($"[NetworkManager] Setting Pending Handshake: Ticket={ticketId} Key={key}");
 
         StartConnect(endPoint);
     }
@@ -68,7 +87,9 @@ public sealed class NetworkManager : MonoBehaviour
         _deadline = -1f;
         _state = ConnState.Idle;
 
-        try { _session.Disconnect(); } catch { }
+        Debug.Log($"[NetworkManager] Disconnect: {reason}");
+
+        try { _session?.Disconnect(); } catch { }
         //NewSession();
 
         if (!string.IsNullOrEmpty(reason))
@@ -85,9 +106,13 @@ public sealed class NetworkManager : MonoBehaviour
 
     void StartConnect(IPEndPoint endPoint)
     {
-        NewSession();
-        _handshakeSent = false;
+        Debug.Log($"[NetworkManager] StartConnect: {endPoint}");
+        _currentEndPoint = endPoint; 
 
+        NewSession(); // _session = new instance
+        var capturedSession = _session; 
+
+        _handshakeSent = false;
         _state = ConnState.Connecting;
         _deadline = Time.unscaledTime + Mathf.Max(1f, connectTimeoutSeconds);
 
@@ -95,23 +120,40 @@ public sealed class NetworkManager : MonoBehaviour
             endPoint,
             () =>
             {
-                _session.OnConnectedAction = OnConnectedMainThread;
-                _session.OnDisconnectedAction = OnDisconnectedMainThread;
-                return _session;
+                capturedSession.OnConnectedAction = () => OnConnectedMainThread(capturedSession);
+                capturedSession.OnDisconnectedAction = () => OnDisconnectedMainThread(capturedSession);
+                return capturedSession;
             },
             1
         );
     }
 
-    void OnConnectedMainThread()
+    void OnConnectedMainThread(ServerSession session)
     {
+        // 1. 세션 검증 (구 세션의 이벤트 무시)
+        if (session != _session)
+        {
+            Debug.Log("[NetworkManager] Ignoring OnConnected from obsolete session.");
+            return;
+        }
+
+        Debug.Log("[NetworkManager] Connected. Trying Handshake...");
         _state = ConnState.Connected;
         _deadline = -1f;
         TrySendHandshakeOnce();
     }
 
-    void OnDisconnectedMainThread()
+    void OnDisconnectedMainThread(ServerSession session)
     {
+        // 1. 세션 검증 (구 세션의 이벤트 무시)
+        if (session != _session)
+        {
+            Debug.Log("[NetworkManager] Ignoring OnDisconnected from obsolete session.");
+            return;
+        }
+
+        Debug.Log($"[NetworkManager] Disconnected. PrevState={_state}");
+
         var wasReady = (_state == ConnState.Ready);
 
         _state = ConnState.Idle;
@@ -122,17 +164,31 @@ public sealed class NetworkManager : MonoBehaviour
         Disconnected?.Invoke();
 
         // 운영 정석: Ready였다가 끊긴 경우 UI에서 “재접속/로그인 이동” 결정
+        // (단, Switching Server 때는 Ready가 아니었거나, Disconnect 호출로 이미 Idle일 수 있음)
         if (wasReady)
             Failed?.Invoke("Disconnected");
     }
 
     void TrySendHandshakeOnce()
     {
-        if (_state != ConnState.Connected && _state != ConnState.Ready) return;
-        if (_handshakeSent) return;
-        if (_pending == null) return;
+        if (_state != ConnState.Connected && _state != ConnState.Ready) 
+        {
+            Debug.Log($"[TrySendHandshakeOnce] Fail: State is {_state}");
+            return;
+        }
+        if (_handshakeSent) 
+        {
+            Debug.Log("[TrySendHandshakeOnce] Fail: Already Sent");
+            return;
+        }
+        if (_pending == null) 
+        {
+            Debug.LogError("[TrySendHandshakeOnce] Fail: Pending Args is NULL! (Did Disconnect clear it?)");
+            return;
+        }
 
         _handshakeSent = true;
+        Debug.Log($"[TrySendHandshakeOnce] Sending CS_Handshake... Ticket={_pending.TicketId}");
 
         var p = new CS_Handshake
         {
@@ -172,8 +228,13 @@ public sealed class NetworkManager : MonoBehaviour
 
     public void OnHandshakeSucceeded()
     {
-        if (_state != ConnState.Connected) return;
+        if (_state != ConnState.Connected) 
+        {
+            Debug.Log($"[OnHandshakeSucceeded] Warn: State is {_state} (Expected Connected). Continuing anyway as we received HandshakeOk.");
+            // 강제로 Ready로 가도 되는가? 받은거면 된거지.
+        }
         _state = ConnState.Ready;
+        Debug.Log("[NetworkManager] Handshake Succeeded -> Ready");
         Ready?.Invoke();
     }
 

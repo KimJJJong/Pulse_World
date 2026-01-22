@@ -27,12 +27,11 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
 
 
     public int ActorId { get; set; } = -1;
-    public string CurrentWorldId { get; set; } = "";
+    public override string CurrentWorldId { get; set; } = "";
     public int SeatIndex {  get; set; } = -1;
 
   
    
-    //public int Slot { get; set; } = -1; 
 
 
     public long LastPingAtMs { get; set; } = 0;
@@ -64,11 +63,18 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
             ServerServices.Registry.UnbindIfMatch(Uid, ConnId, Epoch);
         }
 
-        if (!string.IsNullOrEmpty(CurrentWorldId) &&
-        TownManager.TryGet(CurrentWorldId, out var world))
+        if (!string.IsNullOrEmpty(CurrentWorldId))
         {
-            world.RemovePlayer(Uid, Epoch);
-            //world.DetachIfMatch(Uid, Epoch, ConnId);
+            if (TownManager.TryGet(CurrentWorldId, out var world))
+            {
+                world.RemovePlayer(Uid, Epoch);
+            }
+            else if (GameManager.TryGet(CurrentWorldId, out var game))
+            {
+                 // GameRoom은 재접속을 위해 Detach만 수행
+                 Console.WriteLine($"[OnDisconnected] Detach from GameRoom: {game.MatchId}");
+                 game.DetachIfMatch(Uid, Epoch, ConnId);
+            }
         }
 
         SessionManager.Instance.Remove(this);
@@ -98,7 +104,7 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
             Uid = uid,
             SessionEpoch = epoch,
             ServerRole = serverRole,
-            //ke = key ?? ""      //Key -> Room id : TODO
+            //key = key ?? ""      //Key -> Room id : TODO
         };
         
         Send(p.Write());

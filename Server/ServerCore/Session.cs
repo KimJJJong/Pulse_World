@@ -11,7 +11,8 @@ namespace ServerCore
     public abstract class PacketSession : Session
     {
         public int SessionID { get; set; }
-        public string MatchId { get; set; }
+        //public string MatchId { get; set; }
+        public virtual string CurrentWorldId { get; set; }
 
         public static readonly int HeaderSize = 2;
 

@@ -80,29 +80,7 @@ public sealed class TownSession : SessionBase
 
     }
 
-    /// <summary>
-    /// 재연결 시(reattach) 따로 스폰할 건 없지만,
-    /// 혹시 월드에서 사라진 경우 복구할 수 있는 안전망.
-    /// </summary>
-    public void EnsurePlayerSpawned(int actorId)
-    {
-        if (actorId < 0) return;
-        if (!_actorIds.Contains(actorId)) return;
 
-        if (World2D.ContainsEntity(actorId))
-            return;
-
-        var p = _players.Find(x => x.Id == actorId);
-        if (p == null) return;
-
-        if (!World2D.TrySpawn(p, p.Position))
-        {
-            Console.WriteLine($"[EnsurePlayerSpawned] respawn failed actorId={actorId}");
-            return;
-        }
-
-        Console.WriteLine($"[EnsurePlayerSpawned] respawn OK actorId={actorId}");
-    }
 
     // 마을 init 패킷은 SC_InitGame 그대로 써도 되지만,
     // 보통은 SC_InitTown을 따로 두는 걸 추천.
@@ -139,6 +117,8 @@ public sealed class TownSession : SessionBase
     {
         SC_InitMap packet = new SC_InitMap();
 
+
+        packet.Mode = 1;    // tmp 마을, 게임 구분용
         // 마을은 액션윈도 의미 없으면 0 or 큰값
         packet.ActionWindowMs = _rhythmConfig.ActionWindowMs;
         packet.SongId = "TestSong";

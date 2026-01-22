@@ -23,61 +23,64 @@ public class ClientHandlers : MonoBehaviour
     private BoardView BV => BoardView.Instance;
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        //if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
    
 
     public void HandleSC_InitMap(SC_InitMap p )
     {
-        Debug.Log("[In : Handle_SC_InitGame]");
+        Debug.Log($"[ClientHandlers] HandleSC_InitMap: MapId={p.MapId} MyActorId={p.MyActorId}");
+        
         // 1) 맵 생성
-        var mapName = p.MapId; // <-- SC_InitGame에 string MapName 추가 필요
+        var mapName = p.MapId;
 
         var reg = MapRegistry.Instance;
         if (reg == null)
         {
-            Debug.LogError("[InitMap] MapRegistry.Instance is null. Scene에 MapRegistry를 배치해야 함.");
+            Debug.LogError("[InitMap] MapRegistry.Instance is null. MapRegistry가 씬에 배치되어 있어야 합니다.");
             return;
         }
 
         if (!reg.TryGet(mapName, out var mapAsset) || mapAsset == null)
         {
-            Debug.LogError($"[InitMap] MapAsset not found. mapName={mapName}. " +
-                           $"MapAsset 이름과 서버 MapName을 통일했는지 확인.");
+            Debug.LogError($"[InitMap] MapAsset not found: {mapName}");
+            // 실패 시에도 계속 진행할지 여부? 일단 Return
             return;
         }
 
-        RhythmClient.Instance.judgeWindowMs = (float)p.ActionWindowMs;
-        RhythmClient.Instance.OnBeatSync(new BeatSyncInfo
+        // Rhythm 동기화 (Town에서도 BGM 싱크 등을 위해 사용 가능)
+        if (RhythmClient.Instance != null)
         {
-            //ServerTimeMs = p.ServerSendTimeMs,
-            SongStartServerTimeMs = p.SongStartServerTime,
-            Bpm = p.Bpm,
-            BaseBeatDivision = p.BaseBeatDivision,
-            //BeatIndex = p.BeatIndex
-        });
-        OnBeatSyncReady?.Invoke();
-        Debug.Log($" Get JudgeWindowMS :{RhythmClient.Instance.judgeWindowMs}");
+            RhythmClient.Instance.judgeWindowMs = (float)p.ActionWindowMs;
+            RhythmClient.Instance.OnBeatSync(new BeatSyncInfo
+            {
+                SongStartServerTimeMs = p.SongStartServerTime,
+                Bpm = p.Bpm,
+                BaseBeatDivision = p.BaseBeatDivision,
+            });
+            OnBeatSyncReady?.Invoke();
+            Debug.Log($"[InitMap] Rhythm Sync: Bpm={p.Bpm}, SongStart={p.SongStartServerTime}");
+        }
 
         bool ok = GS.CreateMapFromAsset(mapAsset);
         if (!ok)
         {
-            Debug.LogError($"[InitGame] CreateMapFromAsset failed. mapName={mapName}");
+            Debug.LogError($"[InitMap] CreateMapFromAsset failed. mapName={mapName}");
             return;
         }
- 
 
         // 2) 플레이어 Actor 정보
         var actorIds = p.playerss.Select(pa => pa.ActorId).ToArray();
         GS.SetPlayerActorIds(actorIds);
         GS.SetMyActorId(p.MyActorId);
-        Debug.Log($"ActorId : {GS.MyActorId} ~!~!~@~!@~@");
-        // 3) 엔티티 스폰
+        Debug.Log($"[InitMap] MyActorId: {GS.MyActorId}, TotalEntities: {p.entitiess.Count}");
+
+        // 3) 엔티티 스폰 (기존 엔티티 클리어 후 생성)
         GS.ClearEntities();
         foreach (var e in p.entitiess)
         {
-            Debug.Log($"Spawn Entite [ ID :{e.EntityId} || Type : {(EntityType)e.EntityType} || (x,y) : ({e.X}, {e.Y}) || Hp : {e.Hp} ]");
+             Debug.Log($"Spawn Entity: ID={e.EntityId} Type={(EntityType)e.EntityType} Pos=({e.X},{e.Y}) HP={e.Hp}");
             GS.SpawnOrUpdateEntity(new ClientEntityInfo
             {
                 EntityId = e.EntityId,
@@ -88,7 +91,7 @@ public class ClientHandlers : MonoBehaviour
             });
         }
 
-        // 4) 초기화 완료 후 연출/카메라 등 (원하면 쪽에서 구현)
+        // 4) 초기화 완료 알림 (로딩 화면 끄기 등)
         GS.OnInitGameCompleted();
     }
 
@@ -168,9 +171,9 @@ public class ClientHandlers : MonoBehaviour
             // 2)  HP 변경 반영 (피격자들)
             if (a.hpUpdates != null && a.hpUpdates.Count > 0)
             {
+                Debug.Log($"[Handle_SC_BeatActions] hpUpdates count={a.hpUpdates.Count}");
                 foreach (var u in a.hpUpdates)
                 {
-
                     // u.EntityId, u.NewHp 가 있다고 가정
                     if (GS.TryGetEntity(u.EntityId, out var info))
                     {
@@ -180,7 +183,15 @@ public class ClientHandlers : MonoBehaviour
                         // 상태 갱신 + HUD 이벤트까지(Spawn 연출이 섞여있으면 별도 UpdateEntityState 추천)
                         GS.UpdateEntityState(info);
                     }
+                    else
+                    {
+                        Debug.LogWarning($"[HP_Change] Entity not found: {u.EntityId}");
+                    }
                 }
+            }
+            else
+            {
+                 // Debug.Log($"[Handle_SC_BeatActions] No hpUpdates for actor {a.ActorId}");
             }
 
             // 기존 로직

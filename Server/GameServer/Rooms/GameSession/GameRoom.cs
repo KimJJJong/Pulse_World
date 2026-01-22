@@ -1,37 +1,19 @@
-﻿// ===============================
-// GameRoom.cs  (slot 제거 + actorId 통일 + SeatIndex 내부 유지)
-// ===============================
+﻿using GameServer.Content.Map;
+using GameServer.InGame.Manager.Entity;
+using GameServer.InGame.System.Rhythm;
 using Interface;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Util;
 
-using GameServer.InGame.Manager.Beat;
-using GameServer.InGame.Manager.Entity;
-using GameServer.InGame.System.Rhythm;
-using GameServer.Content.Map;
-
-public sealed class GameRoom : IGameBroadcaster, IUpdatable
+public sealed class GameRoom : RoomBase
 {
-    readonly object _lock = new();
-
-    // actorId -> session (최신 연결)
-    readonly Dictionary<int, ClientSession?> _byActor = new();
-
-    // (uid, epoch) -> player ref (논리 플레이어)
-    readonly Dictionary<(string uid, long epoch), PlayerRef> _players = new();
-
     // 로딩 완료 체크(UID 기준)
     readonly HashSet<string> _loaded = new();
-
-    // broadcast snapshot
-    private ClientSession[] _broadcastSnapshot = Array.Empty<ClientSession>();
-    private bool _broadcastDirty = true;
 
     public string MatchId { get; }
     public int MapId { get; private set; } = 0;
@@ -48,129 +30,39 @@ public sealed class GameRoom : IGameBroadcaster, IUpdatable
     private RhythmConfig? _rhythmConfig;
     private Map2D? _map;
 
-    // ---- Settings ----
-    private readonly int _maxPlayers = 2; // 1v1이면 2
-    private readonly Queue<int> _freeSeats = new();
-    private int _nextPlayerActorId = 1;
-
-    // monster ids
     private int _nextMonsterId = 100;
 
-    // IServerTime 어댑터
-    private sealed class ServerTimeAdapter : IServerTime
-    {
-        public long NowMs => AppRef.ServerTimeMs();
-    }
-
     public GameRoom(string matchId, ILogger? logger = null, int maxPlayers = 2)
+        : base(maxPlayers, 1) // Start ActorId = 1
     {
         MatchId = matchId;
         Seed = Environment.TickCount;
         _logger = logger ?? NullLogger.Instance;
-
-        _maxPlayers = Math.Max(1, maxPlayers);
-
-        for (int i = 0; i < _maxPlayers; i++)
-            _freeSeats.Enqueue(i);
     }
 
-    // =====================================================
-    // Bind / Unbind (actorId 통일)
-    // =====================================================
-    public bool BindOrReattach(ClientSession s, out int actorId)
+    protected override SessionBase? GetSession() => _session;
+    protected override bool IsRoomRunning() => _phase == RoomPhase.Running;
+    protected override bool CheckRoomEnded() => _phase == RoomPhase.Ended;
+
+    protected override void UpdateSessionWorldId(ClientSession s)
     {
-        actorId = -1;
-
-        if (s == null || !s.HasAuth || string.IsNullOrEmpty(s.Uid))
-            return false;
-
-        lock (_lock)
-        {
-            if (_phase == RoomPhase.Ended) return false;
-
-            var key = (s.Uid!, s.Epoch);
-
-            // reattach
-            if (_players.TryGetValue(key, out var existing))
-            {
-                actorId = existing.ActorId;
-
-                existing.Attach(s);
-                _byActor[actorId] = s;
-
-                s.ActorId = actorId;
-                s.SeatIndex = existing.SeatIndex;
-                s.CurrentWorldId = MatchId;
-
-                _broadcastDirty = true;
-                return true;
-            }
-
-            // new join
-            if (_players.Count >= _maxPlayers) return false;
-            if (_freeSeats.Count == 0) return false;
-
-            actorId = _nextPlayerActorId++;
-            int seat = _freeSeats.Dequeue();
-
-            var p = new PlayerRef(s.Uid!, s.Epoch, actorId, seat);
-            p.Attach(s);
-
-            _players[key] = p;
-            _byActor[actorId] = s;
-
-            s.ActorId = actorId;
-            s.SeatIndex = seat;
-            s.CurrentWorldId = MatchId;
-
-            _broadcastDirty = true;
-            return true;
-        }
+        s.CurrentWorldId = MatchId;
     }
 
-    public void DetachIfMatch(string uid, long epoch, string connId)
+    protected override void MaybeEndIfEmpty()
     {
-        lock (_lock)
-        {
-            if (!_players.TryGetValue((uid, epoch), out var p))
-                return;
+        bool empty;
+        lock (_lock) empty = _players.Count == 0;
 
-            var cur = p.Conn;
-            if (cur == null || cur.ConnId != connId)
-                return;
+        Console.WriteLine($"[MaybeEndIfEmpty] MatchId={MatchId} Count={_players.Count}");
 
-            _byActor[p.ActorId] = null;
-            p.Detach();
+        if (!empty) return;
 
-            _broadcastDirty = true;
-        }
-
-        // (정석) grace 붙이려면 여기서 타이머 시작 후 RemovePlayer 호출
-    }
-
-    public void RemovePlayer(string uid, long epoch, string reason = "leave")
-    {
-        PlayerRef? p;
-
-        lock (_lock)
-        {
-            if (!_players.TryGetValue((uid, epoch), out p))
-                return;
-
-            _players.Remove((uid, epoch));
-            _byActor.Remove(p.ActorId);
-
-            _loaded.Remove(uid);
-
-            _freeSeats.Enqueue(p.SeatIndex);
-            _broadcastDirty = true;
-        }
-
-        _session?.OnPlayerLeft(p.ActorId);
-
-        GetBroadcastSnapshot();
-        if (_broadcastSnapshot.Length <= 0)
-            GameManager.Remove(MatchId);
+        Console.WriteLine($"[RoomEnd] ==============================================");
+        Console.WriteLine($"[RoomEnd] GameRoom {MatchId} DESTROYED. (Empty)");
+        Console.WriteLine($"[RoomEnd] ==============================================");
+        lock (_lock) _phase = RoomPhase.Ended;
+        GameManager.Remove(MatchId);
     }
 
     // =====================================================
@@ -180,18 +72,36 @@ public sealed class GameRoom : IGameBroadcaster, IUpdatable
     {
         lock (_lock)
         {
-            if (s?.Uid == null) return false;
+            if (s?.Uid == null)
+            {
+                Console.WriteLine("[GameRoom] MarkLoadedFail: Session or Uid null");
+                return false;
+            }
 
-            _loaded.Add(s.Uid);
+            if (!_loaded.Add(s.Uid))
+            {
+                // Already loaded
+            }
+            else
+            {
+                Console.WriteLine($"[GameRoom] Player Loaded: {s.Uid}. Total Loaded: {_loaded.Count}/{_players.Count}");
+            }
 
             // 현재 방의 논리 플레이어가 전부 로딩 완료인지 체크
+            bool allReady = true;
             foreach (var p in _players.Values)
             {
                 if (!_loaded.Contains(p.Uid))
-                    return false;
+                {
+                    allReady = false;
+                    break;
+                }
             }
 
-            return _players.Count > 0;
+            if (allReady)
+                Console.WriteLine($"[GameRoom] All Players Loaded! Count={_players.Count}");
+
+            return allReady && _players.Count > 0;
         }
     }
 
@@ -205,54 +115,62 @@ public sealed class GameRoom : IGameBroadcaster, IUpdatable
     }
 
     // =====================================================
-    // Broadcaster helpers
+    // Logic overrides
     // =====================================================
-    private void Broadcast(ArraySegment<byte> payload)
+    protected override void OnPlayerBound(RoomPlayer p, bool isNew)
     {
-        var targets = GetBroadcastSnapshot();
-        foreach (var t in targets)
-            t.Send(payload);
-    }
-
-    public void Broadcast(IPacket pkt) => Broadcast(pkt.Write());
-
-    private void SendTo(ClientSession s, ArraySegment<byte> payload) => s?.Send(payload);
-    public void SendTo(ClientSession s, IPacket pkt) => SendTo(s, pkt.Write());
-
-    public void SendToActor(int actorId, IPacket pkt)
-    {
-        ClientSession? target;
-        lock (_lock) _byActor.TryGetValue(actorId, out target);
-        target?.Send(pkt.Write());
-    }
-
-    public ClientSession? GetSessionByActor(int actorId)
-    {
-        lock (_lock) return _byActor.TryGetValue(actorId, out var s) ? s : null;
-    }
-
-    private ClientSession[] GetBroadcastSnapshot()
-    {
-        lock (_lock)
+        // 게임이 이미 시작된 경우, 재연결/중도 참여 처리
+        if (_phase == RoomPhase.Running)
         {
-            if (!_broadcastDirty)
-                return _broadcastSnapshot;
-
-            var list = new List<ClientSession>(_byActor.Count);
-            foreach (var s in _byActor.Values)
-            {
-                if (s != null)
-                    list.Add(s);
-            }
-
-            _broadcastSnapshot = list.ToArray();
-            _broadcastDirty = false;
-            return _broadcastSnapshot;
+            // Use base logic which enqueues EnsurePlayerSpawned + SendInitPacket
+            base.OnPlayerBound(p, isNew);
+        }
+        else
+        {
+             // 게임이 아직 시작되지 않음. 바인딩만 하고 BroadcastGameStart에서 Init 패킷 일괄 전송 대기.
+             // Don't enqueue Init packet here.
         }
     }
 
+    protected override void OnNewPlayerJoinedQueue(RoomPlayer p, SessionBase session)
+    {
+        // For GameRoom, entities are usually created at StartGameplay.
+        // If "Late Join" is allowed, we create entity here.
+        // Assuming NO late join for now in strict sense, but if it happens:
+        if (_map == null) return;
+
+        var spawnSet = _map.GetSpawnPointRandom();
+        var spawn = new GridPos(spawnSet.Item1, spawnSet.Item2);
+
+        var e = new MapEntity(
+            id: p.ActorId,
+            type: EntityType.Player,
+            initialPos: spawn
+        );
+        e.SetState("HP", 100);
+        e.SetState("Uid", p.Uid);
+
+        // GameSession InitGame takes a list, but we can't re-init.
+        // We should add a specific method to GameSession or just spawn to World.
+        // Using base SessionBase spawn logic inside EnsurePlayerSpawned might be enough if added to _players manually?
+        // SessionBase.InitPlayers clears _players list. Not good for single add.
+        
+        // Let's rely on EnsurePlayerSpawned check. If not in _players, we might be in trouble.
+        // Since GameRoom creates entities at Start, late joiners (newly created RoomPlayer after Start) won't have entities in _session._players.
+        // We need to add them.
+        
+        // However, RoomBase logic calls OnNewPlayerJoinedQueue only if IsRoomRunning.
+        // If running, we assume it's a verify-reconnect or late join.
+        // For now, let's assume we just log or try to spawn.
+        Console.WriteLine($"[GameRoom] Late join attempt for {p.Uid} (Actor {p.ActorId})");
+        
+        // Manually adding to session players list would require access. 
+        // SessionBase._players is protected.
+        // We can cast to specific session if needed or just skip for now as prototype focused on Reconnect.
+    }
+
     // =====================================================
-    // Start
+    // Start Logic
     // =====================================================
     public void ScheduleStart(long startAtMs)
     {
@@ -274,6 +192,33 @@ public sealed class GameRoom : IGameBroadcaster, IUpdatable
         });
     }
 
+    public void BroadcastGameStart(long startAtMs)
+    {
+        var loadedPkt = new SC_AllPlayersLoaded { matchId = MatchId };
+        lock (_lock)
+        {
+            foreach (var p in _players.Values)
+            {
+                loadedPkt.playerss.Add(new SC_AllPlayersLoaded.Players
+                {
+                    uid = p.Uid,
+                    slot = p.SeatIndex,
+                    loaded = true
+                });
+            }
+        }
+        Broadcast(loadedPkt);
+
+        ScheduleStart(startAtMs);
+
+        Broadcast(new SC_GameBegin
+        {
+            matchId = MatchId,
+            startAtMs = startAtMs,
+            startTick = 0
+        });
+    }
+
     private void StartGameplay()
     {
         lock (_lock)
@@ -283,10 +228,8 @@ public sealed class GameRoom : IGameBroadcaster, IUpdatable
             _phase = RoomPhase.Running;
         }
 
-        // 1) 맵
         _map = MapDatabase.Get("Map");
 
-        // 2) 리듬 설정
         _rhythmConfig = new RhythmConfig
         {
             Bpm = 120,
@@ -300,7 +243,6 @@ public sealed class GameRoom : IGameBroadcaster, IUpdatable
         var time = new ServerTimeAdapter();
         _rhythm = new RhythmSystem(time, _rhythmConfig, songStart);
 
-        // 3) GameSession 구성
         _session = new GameSession(
             sessionId: 0,
             time: time,
@@ -312,8 +254,7 @@ public sealed class GameRoom : IGameBroadcaster, IUpdatable
 
         _rhythm.OnBeat += _session.OnBeat;
 
-        // 4) 엔티티 생성 (players / monsters)
-        var players = BuildPlayerEntities_NoSlot();
+        var players = BuildPlayerEntities();
         var monsters = BuildMonsterEntitiesForPrototype();
 
         _session.InitGame(players, monsters);
@@ -321,7 +262,6 @@ public sealed class GameRoom : IGameBroadcaster, IUpdatable
         foreach (var s in GetBroadcastSnapshot())
             _session.SendInitPacketToPlayer(s);
 
-        // 5) BeatSync
         Broadcast(new SC_BeatSync
         {
             ServerSendTimeMs = AppRef.ServerTimeMs(),
@@ -334,7 +274,7 @@ public sealed class GameRoom : IGameBroadcaster, IUpdatable
         _logger.LogInformation("GameRoom {MatchId} started rhythm gameplay", MatchId);
     }
 
-    private List<MapEntity> BuildPlayerEntities_NoSlot()
+    private List<MapEntity> BuildPlayerEntities()
     {
         var players = new List<MapEntity>();
         if (_map == null) return players;
@@ -343,11 +283,11 @@ public sealed class GameRoom : IGameBroadcaster, IUpdatable
         {
             foreach (var p in _players.Values)
             {
-                var spawnSet = _map.GetSpawnPointRandom();//GetSpawnPoint(p.SeatIndex);
+                var spawnSet = _map.GetSpawnPointRandom();
                 var spawn = new GridPos(spawnSet.Item1, spawnSet.Item2);
 
                 var e = new MapEntity(
-                    id: p.ActorId, // ★ actorId
+                    id: p.ActorId,
                     type: EntityType.Player,
                     initialPos: spawn
                 );
@@ -376,126 +316,114 @@ public sealed class GameRoom : IGameBroadcaster, IUpdatable
         var id = Interlocked.Increment(ref _nextMonsterId);
         var m = new MapEntity(id, EntityType.Monster, new GridPos(x, y));
         m.SetState("HP", hp);
-
-        // ⚠️ ownerActorId 개념이면 -1 유지
         m.SetState("OwnerActorId", -1);
         return m;
     }
 
     // =====================================================
-    // Work queue / Update
-    // =====================================================
-    readonly System.Collections.Concurrent.ConcurrentQueue<Action> _q = new();
-    int _pumping = 0;
-
-    private void Enqueue(Action a) => _q.Enqueue(a);
-
-    private void PumpQueuedActions()
-    {
-        if (Interlocked.Exchange(ref _pumping, 1) == 1) return;
-        try { while (_q.TryDequeue(out var a)) a(); }
-        finally { _pumping = 0; }
-    }
-
-    private bool IsRunnableFor(ClientSession s)
-    {
-        if (_phase != RoomPhase.Running) return false;
-        if (s == null || !s.HasAuth) return false;
-
-        // actorId 최신 연결인지 확인(재연결/교체 안전)
-        int actorId = s.ActorId;
-        if (actorId < 0) return false;
-
-        lock (_lock)
-        {
-            return _byActor.TryGetValue(actorId, out var cur) && ReferenceEquals(cur, s);
-        }
-    }
-
-    public void Update()
-    {
-        if (_phase != RoomPhase.Running) return;
-
-        PumpQueuedActions();
-
-        _rhythm?.Update();
-        _session?.Update();
-    }
-
-    // =====================================================
-    // Packet Routing (actorId 통일)
+    // Packet Routing
     // =====================================================
     public void OnCS_ActionRequest(ClientSession s, CS_ActionRequest p)
         => Enqueue(() =>
         {
-            if (!IsRunnableFor(s))
-            {
-                s.Send(new SC_Warn { code = 2001, msg = "ROOM_NOT_RUNNING_OR_NOT_MEMBER" }.Write());
-                return;
-            }
-
-            if (_session == null)
-            {
-                s.Send(new SC_Warn { code = 2002, msg = "SESSION_NOT_READY" }.Write());
-                return;
-            }
-
-            int actorId = s.ActorId;
-            if (actorId < 0)
-            {
-                s.Send(new SC_Warn { code = 2003, msg = "UNKNOWN_ACTOR" }.Write());
-                return;
-            }
-
-            _session.OnClientActionPacketByActorId(actorId, p);
+            if (!ValidateSessionAction(s, out int actorId)) return;
+            _session?.OnClientActionPacketByActorId(actorId, p);
         });
 
     public void OnCS_CalibHit(ClientSession s, CS_CalibHit p)
         => Enqueue(() =>
         {
-            if (!IsRunnableFor(s))
-            {
-                s.Send(new SC_Warn { code = 2001, msg = "ROOM_NOT_RUNNING_OR_NOT_MEMBER" }.Write());
-                return;
-            }
-
-            if (_session == null)
-            {
-                s.Send(new SC_Warn { code = 2002, msg = "SESSION_NOT_READY" }.Write());
-                return;
-            }
-
-            int actorId = s.ActorId;
-            if (actorId < 0)
-            {
-                s.Send(new SC_Warn { code = 2003, msg = "UNKNOWN_ACTOR" }.Write());
-                return;
-            }
-
-            _session.OnClientCalibPacketByActorId(actorId, p);
+            if (!ValidateSessionAction(s, out int actorId)) return;
+            _session?.OnClientCalibPacketByActorId(actorId, p);
         });
 
-    // =====================================================
-    // PlayerRef
-    // =====================================================
-    private sealed class PlayerRef
+    private bool ValidateSessionAction(ClientSession s, out int actorId)
     {
-        public string Uid { get; }
-        public long Epoch { get; }
-        public int ActorId { get; }
-        public int SeatIndex { get; }
-
-        public ClientSession? Conn { get; private set; }
-
-        public PlayerRef(string uid, long epoch, int actorId, int seatIndex)
+        actorId = -1;
+        if (_phase != RoomPhase.Running || _session == null || s == null || !s.HasAuth)
         {
-            Uid = uid;
-            Epoch = epoch;
-            ActorId = actorId;
-            SeatIndex = seatIndex;
+            s.Send(new SC_Warn { code = 2001, msg = "ROOM_NOT_RUNNING_OR_NOT_MEMBER" }.Write());
+            return false;
         }
 
-        public void Attach(ClientSession s) => Conn = s;
-        public void Detach() => Conn = null;
+        actorId = s.ActorId;
+        if (actorId < 0)
+        {
+            s.Send(new SC_Warn { code = 2003, msg = "UNKNOWN_ACTOR" }.Write());
+            return false;
+        }
+
+        lock (_lock)
+        {
+            if (!_byActor.TryGetValue(actorId, out var cur) || !ReferenceEquals(cur, s))
+            {
+                s.Send(new SC_Warn { code = 3004, msg = "NOT_CURRENT_CONNECTION" }.Write());
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public ClientSession? GetSessionByActor(int actorId)
+    {
+        lock (_lock) return _byActor.TryGetValue(actorId, out var s) ? s : null;
+    }
+
+    public void SendToActor(int actorId, IPacket pkt)
+    {
+        ClientSession? target;
+        lock (_lock) _byActor.TryGetValue(actorId, out target);
+        target?.Send(pkt.Write());
+    }
+
+    public override void Update()
+    {
+        if (_phase != RoomPhase.Running) return;
+        base.Update();
+        
+        CheckDetachedPlayers();
+
+        _rhythm?.Update();
+    }
+
+    private void CheckDetachedPlayers()
+    {
+        // 1초에 한 번 정도만 체크해도 충분 (최적화)
+        if (Environment.TickCount64 % 1000 < 50) 
+        {
+            var now = Environment.TickCount64;
+            List<(string, long)> toRemove = null;
+
+            lock (_lock)
+            {
+                foreach (var p in _players.Values)
+                {
+                    if (p.Conn == null && p.LastDetachedTime > 0)
+                    {
+                        // 30초 이상 연결 끊김 상태면 강제 퇴장
+                        if (now - p.LastDetachedTime > 30_000)
+                        {
+                            if (toRemove == null) toRemove = new List<(string, long)>();
+                            toRemove.Add((p.Uid, p.Epoch));
+                        }
+                    }
+                }
+            }
+
+            if (toRemove != null)
+            {
+                foreach (var (uid, epoch) in toRemove)
+                {
+                    Console.WriteLine($"[GameRoom] Force Removing Detached Player: {uid}");
+                    RemovePlayer(uid, epoch);
+                }
+            }
+        }
+    }
+
+    private sealed class ServerTimeAdapter : IServerTime
+    {
+        public long NowMs => AppRef.ServerTimeMs();
     }
 }

@@ -62,12 +62,15 @@ public class ClientGameState : MonoBehaviour
     }
     public void CreateMap(int width, int height)
     {
-        Debug.Log($"[ IN: CreateMap ] width :{width} height :{height}");
+        Debug.Log($"[ClientGameState] CreateMap: Size=({width}x{height}) - Resetting Tiles");
         MapWidth = width;
         MapHeight = height;
         _tiles = new int[width, height];
 
-        WorldView?.OnCreateMap(width, height);
+        if (WorldView == null)
+            Debug.LogWarning("[ClientGameState] WorldView is null during CreateMap!");
+        else
+            WorldView.OnCreateMap(width, height);
     }
 
     public void SetTile(int x, int y, int tileKind)
@@ -117,18 +120,42 @@ public class ClientGameState : MonoBehaviour
 
     public void ClearEntities()
     {
+        Debug.Log($"[ClientGameState] ClearEntities. Count={_entities.Count}");
         _entities.Clear();
         WorldView?.OnClearEntities();
     }
 
     public void SpawnOrUpdateEntity(ClientEntityInfo info)
     {
+        // 1) 맵 범위 체크 (Debug)
+        if (MapWidth > 0 && MapHeight > 0)
+        {
+            if (info.X < 0 || info.X >= MapWidth || info.Y < 0 || info.Y >= MapHeight)
+            {
+                Debug.LogError($"[ClientGameState] Spawn Fail: Out of bounds. ID={info.EntityId} Pos=({info.X},{info.Y}) MapSize=({MapWidth}x{MapHeight})");
+                // 그래도 데이터는 넣을지, 리턴할지 결정. 일단 경고 후 진행.
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[ClientGameState] Spawn Warning: Map size not set yet. ID={info.EntityId}");
+        }
+
         _entities[info.EntityId] = info;
 
-        // State Change
-        WorldView?.OnSpawnOrUpdateEntity(info);
-        NotifyMyEntityChanged(info.EntityId);
+        // 2) WorldView 연결 체크
+        if (WorldView == null)
+        {
+            Debug.LogError($"[ClientGameState] WorldView is null! Entity renders will fail. ID={info.EntityId}");
+        }
+        else
+        {
+            // Debug.Log($"[ClientGameState] Spawning in View: ID={info.EntityId} Pos=({info.X},{info.Y})");
+            WorldView.OnSpawnOrUpdateEntity(info);
+        }
 
+        // State Change
+        NotifyMyEntityChanged(info.EntityId);
     }
     public void UpdateEntityState(ClientEntityInfo info)
     {
@@ -190,10 +217,27 @@ public class ClientGameState : MonoBehaviour
     #region UI
     private void NotifyMyEntityChanged(int entityId)
     {
-        if(entityId == MyActorId && _entities.TryGetValue(MyActorId, out var entity))
+        if (entityId != MyActorId) 
         {
-            //Debug.Log($"[NotifyMyEntityChanged] IN");
-            MyEntityChanged?.Invoke(entity);
+            // 내 것이 아님 (정상)
+            return;
+        }
+
+        if (_entities.TryGetValue(MyActorId, out var entity))
+        {
+            if (MyEntityChanged == null)
+            {
+                //Debug.LogWarning($"[NotifyMyEntityChanged] Found MyActor {MyActorId} but NO SUBSCRIBER!");
+            }
+            else
+            {
+                 // Debug.Log($"[NotifyMyEntityChanged] Invoking... Hp={entity.Hp}");
+                 MyEntityChanged.Invoke(entity);
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[NotifyMyEntityChanged] MyActorId matches {entityId}, but Entity NOT in dict!");
         }
     }
     #endregion
