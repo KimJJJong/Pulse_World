@@ -85,6 +85,7 @@ using System.Collections.Generic;
         public string type;
         public EndpointDto endpoint;
         public string ticket;
+        public string mapId;
     }
 
     [Serializable]

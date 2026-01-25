@@ -45,5 +45,6 @@ public static class SessionDtos
         [JsonProperty("serverId")] public string ServerId;
         [JsonProperty("endpoint")] public EndpointDto Endpoint;
         [JsonProperty("key")] public string Key;
+        [JsonProperty("mapId")] public string MapId;
     }
 }

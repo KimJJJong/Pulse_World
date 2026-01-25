@@ -201,7 +201,7 @@ public class ClientHandlers : MonoBehaviour
 
     public void Handle_SC_BeatTelegraphs(SC_BeatTelegraphs p)
     {
-        //Debug.Log($"[SC_BeatTelegraphs] beat={p.BeatIndex} count={p.telegraphss.Count}"); 
+        Debug.Log($"[SC_BeatTelegraphs] beat={p.BeatIndex} count={p.telegraphss.Count}"); 
 
         // BoardView가 없으면(씬 미배치) 일단 로그만
         if (BV == null)
@@ -217,8 +217,11 @@ public class ClientHandlers : MonoBehaviour
 
 
             // ===== 적용 범위 계산 =====
-            // 지금은 "Shape==Cells"만 확실히 처리 (서버가 Cells를 채워주는 구조라면 여기만으로 충분)
-            if (t.Shape != 0 || t.cellss == null || t.cellss.Count == 0)
+            // Shape가 0이 아니더라도 서버가 Cells를 계산해서 보내준다면 사용 가능하도록 수정
+            // Log for debugging
+            Debug.Log($"[Telegraph] Shape={t.Shape} Duration={t.DurationBeats} Cells={t.cellss?.Count ?? 0}");
+
+            if (t.cellss == null || t.cellss.Count == 0)
                 continue;
 
             // 이 텔레그래프는 몇 beat까지 유지?

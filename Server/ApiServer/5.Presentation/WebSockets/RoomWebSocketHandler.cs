@@ -187,7 +187,8 @@ public sealed class RoomWebSocketHandler
                             { 
                                 type = "GameStart", 
                                 endpoint = new { host = ep.Host, port = ep.Port },
-                                ticket = ticketId
+                                ticket = ticketId,
+                                mapId = room.MapId
                             };
                             await _conns.SendToAsync(roomId, memberUid, payload);
                         }

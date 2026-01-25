@@ -8,5 +8,6 @@ public sealed record IssueGameTicketResult(
     long ExpireAtMs,
     string ServerId,
     Ports.Models.Endpoint Endpoint,
-    string Key
+    string Key,
+    string MapId
 );

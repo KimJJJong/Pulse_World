@@ -97,17 +97,23 @@ public class BoardView : MonoBehaviour, IClientWorldView
         }
     }
 
+    private Renderer GetTileRenderer(GameObject tile)
+    {
+        if (tile == null) return null;
+        if (tile.TryGetComponent<Renderer>(out var r)) return r;
+        return tile.GetComponentInChildren<Renderer>();
+    }
+
     public void OnSetTile(int x, int y, int tileKind)
     {
-        if (_tiles == null)
-            return;
-        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1))
-            return;
+        if (_tiles == null) return;
+        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1)) return;
 
         var tile = _tiles[x, y];
         if (tile == null) return;
 
-        if (tile.TryGetComponent<Renderer>(out var rend))
+        var rend = GetTileRenderer(tile);
+        if (rend != null)
         {
             Color baseColor = GetTileColor(tileKind);
 
@@ -125,14 +131,32 @@ public class BoardView : MonoBehaviour, IClientWorldView
     /// </summary>
     public void SetTelegraphOverlay(int x, int y, bool on)
     {
-        if (_tiles == null) return;
-        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1)) return;
+        if (_tiles == null) 
+        {
+            Debug.LogWarning("[BoardView] SetTelegraphOverlay: _tiles is null");
+            return;
+        }
+        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1))
+        {
+            Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Out of bounds ({x},{y}) MapSize={_tiles.GetLength(0)}x{_tiles.GetLength(1)}");
+            return;
+        }
 
         var tile = _tiles[x, y];
-        if (tile == null) return;
+        if (tile == null)
+        {
+             Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Tile null at ({x},{y})");
+             return;
+        }
 
-        if (!tile.TryGetComponent<Renderer>(out var rend))
+        var rend = GetTileRenderer(tile);
+        if (rend == null)
+        {
+             Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Renderer missing at ({x},{y}) Obj={tile.name}");
             return;
+        }
+
+         Debug.Log($"[BoardView] SetTelegraphOverlay({x},{y}) - Rend={rend.name}, Mat={rend.material.name}, On={on}");
 
         if (on)
         {
@@ -157,10 +181,78 @@ public class BoardView : MonoBehaviour, IClientWorldView
         var tile = _tiles[x, y];
         if (tile == null) return;
 
-        if (!tile.TryGetComponent<Renderer>(out var rend))
-            return;
+        var rend = GetTileRenderer(tile);
+        if (rend != null)
+        {
+            rend.material.color = _baseTileColors[x, y];
+        }
+    }
+    
+    // ... [Inside TryBindTilesFromScene loop] ...
+    // Note: I cannot replace inside a large method easily with replace_file_content if I don't select the whole method.
+    // I will use a separate Replace call for TryBindTilesFromScene or just assume standard Replace works if I capture the block correctly.
+    // Wait, TryBindTilesFromScene logic needs to be updated too.
+    
+    public bool TryBindTilesFromScene(int width, int height)
+    {
+        // 최적화: TileIndex 컴포넌트에 의존하지 않고, 자식 오브젝트의 이름(Tile_x_y)을 파싱하여 바인딩
+        // O(ChildCount) 1회 순회로 끝냄.
 
-        rend.material.color = _baseTileColors[x, y];
+        var map = new Dictionary<(int x, int y), GameObject>();
+        
+        foreach (Transform child in transform)
+        {
+            // 이름 파싱: "Tile_x_y"
+            if (ParseTileName(child.name, out int x, out int y))
+            {
+                map[(x, y)] = child.gameObject;
+            }
+        }
+
+        // 전체 범위가 다 있는지 확인
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (!map.ContainsKey((x, y)))
+                {
+                    Debug.LogWarning($"[BoardView] Bind Fail: Missing tile at ({x},{y})");
+                    // 실패 시 즉시 리턴하거나, 일부만 바인딩할지 결정. 안전을 위해 false 리턴.
+                    return false;
+                }
+            }
+        }
+
+        // 성공 -> 실제 배열에 할당
+        ClearTiles(destroyGameObjects: false); 
+        _tiles = new GameObject[width, height];
+        _baseTileColors = new Color[width, height];
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                _tiles[x, y] = map[(x, y)];
+                
+                // [Fix] 베이크된 타일의 실제 색상을 초기값으로 저장 (Telegraph 복구용)
+                // Use GetTileRenderer here
+                var rend = GetTileRenderer(_tiles[x, y]);
+                if (rend != null)
+                {
+                    // material 접근 시 인스턴스 생성됨. (Telegraph에서도 어차피 생성하므로 무방)
+                    // [Fix] Editor Warning 방지를 위해 읽을 때는 sharedMaterial 사용
+                    _baseTileColors[x, y] = rend.sharedMaterial != null ? rend.sharedMaterial.color : Color.gray;
+                }
+                else
+                {
+                    Debug.LogWarning($"[BoardView] Bound tile at ({x},{y}) has no renderer!");
+                    _baseTileColors[x, y] = Color.gray;
+                }
+            }
+        }
+
+        Debug.Log($"[BoardView] Bind Success (NameBased): {width}x{height}");
+        return true;
     }
 
     public void OnClearEntities()
@@ -276,63 +368,66 @@ public class BoardView : MonoBehaviour, IClientWorldView
         return GridToWorld(x, y);
     }
     
-    public bool TryBindTilesFromScene(int width, int height)
-    {
-        // 최적화: TileIndex 컴포넌트에 의존하지 않고, 자식 오브젝트의 이름(Tile_x_y)을 파싱하여 바인딩
-        // O(ChildCount) 1회 순회로 끝냄.
+    //public bool TryBindTilesFromScene(int width, int height)
+    //{
+    //    // 최적화: TileIndex 컴포넌트에 의존하지 않고, 자식 오브젝트의 이름(Tile_x_y)을 파싱하여 바인딩
+    //    // O(ChildCount) 1회 순회로 끝냄.
 
-        var map = new Dictionary<(int x, int y), GameObject>();
+    //    var map = new Dictionary<(int x, int y), GameObject>();
         
-        foreach (Transform child in transform)
-        {
-            // 이름 파싱: "Tile_x_y"
-            if (ParseTileName(child.name, out int x, out int y))
-            {
-                map[(x, y)] = child.gameObject;
-            }
-        }
+    //    foreach (Transform child in transform)
+    //    {
+    //        // 이름 파싱: "Tile_x_y"
+    //        if (ParseTileName(child.name, out int x, out int y))
+    //        {
+    //            map[(x, y)] = child.gameObject;
+    //        }
+    //    }
 
-        // 전체 범위가 다 있는지 확인
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                if (!map.ContainsKey((x, y)))
-                {
-                    Debug.LogWarning($"[BoardView] Bind Fail: Missing tile at ({x},{y})");
-                    // 실패 시 즉시 리턴하거나, 일부만 바인딩할지 결정. 안전을 위해 false 리턴.
-                    return false;
-                }
-            }
-        }
+    //    // 전체 범위가 다 있는지 확인
+    //    for (int y = 0; y < height; y++)
+    //    {
+    //        for (int x = 0; x < width; x++)
+    //        {
+    //            if (!map.ContainsKey((x, y)))
+    //            {
+    //                Debug.LogWarning($"[BoardView] Bind Fail: Missing tile at ({x},{y})");
+    //                // 실패 시 즉시 리턴하거나, 일부만 바인딩할지 결정. 안전을 위해 false 리턴.
+    //                return false;
+    //            }
+    //        }
+    //    }
 
-        // 성공 -> 실제 배열에 할당
-        ClearTiles(destroyGameObjects: false); 
-        _tiles = new GameObject[width, height];
-        _baseTileColors = new Color[width, height];
+    //    // 성공 -> 실제 배열에 할당
+    //    ClearTiles(destroyGameObjects: false); 
+    //    _tiles = new GameObject[width, height];
+    //    _baseTileColors = new Color[width, height];
 
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                _tiles[x, y] = map[(x, y)];
+    //    for (int y = 0; y < height; y++)
+    //    {
+    //        for (int x = 0; x < width; x++)
+    //        {
+    //            _tiles[x, y] = map[(x, y)];
                 
-                // [Fix] 베이크된 타일의 실제 색상을 초기값으로 저장 (Telegraph 복구용)
-                if (_tiles[x, y].TryGetComponent<Renderer>(out var rend))
-                {
-                    // material 접근 시 인스턴스 생성됨. (Telegraph에서도 어차피 생성하므로 무방)
-                    _baseTileColors[x, y] = rend.material.color;
-                }
-                else
-                {
-                    _baseTileColors[x, y] = Color.gray;
-                }
-            }
-        }
+    //            // [Fix] 베이크된 타일의 실제 색상을 초기값으로 저장 (Telegraph 복구용)
+    //            // Use GetTileRenderer here
+    //            var rend = GetTileRenderer(_tiles[x, y]);
+    //            if (rend != null)
+    //            {
+    //                // material 접근 시 인스턴스 생성됨. (Telegraph에서도 어차피 생성하므로 무방)
+    //                _baseTileColors[x, y] = rend.material.color;
+    //            }
+    //            else
+    //            {
+    //                Debug.LogWarning($"[BoardView] Bound tile at ({x},{y}) has no renderer!");
+    //                _baseTileColors[x, y] = Color.gray;
+    //            }
+    //        }
+    //    }
 
-        Debug.Log($"[BoardView] Bind Success (NameBased): {width}x{height}");
-        return true;
-    }
+    //    Debug.Log($"[BoardView] Bind Success (NameBased): {width}x{height}");
+    //    return true;
+    //}
 
     private bool ParseTileName(string name, out int x, out int y)
     {

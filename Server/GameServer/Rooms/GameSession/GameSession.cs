@@ -99,7 +99,7 @@ public sealed class GameSession : SessionBase
 
         packet.MapWidth = _map.Width;
         packet.MapHeight = _map.Height;
-        packet.MapId = "Map"; // TODO
+        packet.MapId = _map.MapId; // TODO
 
            packet.playerss.Clear();
         foreach (var p in _players)

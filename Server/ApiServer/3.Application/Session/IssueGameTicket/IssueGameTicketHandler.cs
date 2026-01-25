@@ -71,7 +71,8 @@ public sealed class IssueGameTicketHandler
             ExpireAtMs: expAt,
             ServerId: serverId,
             Endpoint: endpoint,
-            Key: key
+            Key: key,
+            MapId: cmd.Map
         );
     }
 }

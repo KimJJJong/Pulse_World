@@ -32,12 +32,15 @@ public sealed class ClientFlow : MonoBehaviour
         NetworkManager.Instance.ConnectAndHandshake(ep, ticket.TicketId, clientNonce);
     }
 
+    string _mapId = "";
+
     public void ConnectGame(SessionDtos.IssueGameTicketResponse ticket, string clientNonce)
     {
         _target = Target.Game;
+        _mapId = ticket.MapId;
 
         var ep = new IPEndPoint(IPAddress.Parse(ticket.Endpoint.Host), ticket.Endpoint.Port);
-        Debug.Log($"[HandshakeArgs]endpoint :{ep} || Ticket :{ticket.TicketId} || Nonce: {clientNonce} || key :{ticket.Key} || target : {_target}");
+        Debug.Log($"[HandshakeArgs]endpoint :{ep} || Ticket :{ticket.TicketId} || Nonce: {clientNonce} || key :{ticket.Key} || target : {_target} || Map : {_mapId}");
         NetworkManager.Instance.ConnectAndHandshake(ep, ticket.TicketId, clientNonce, ticket.Key);
     }
 
@@ -51,7 +54,9 @@ public sealed class ClientFlow : MonoBehaviour
         {
             if (_target == Target.TownMap)
             {
+                Debug.Log($"[ClientFlow] Scene Load Start: {SceneNames.TownMap}");
                 await SceneRouter.LoadAsync(SceneNames.TownMap);
+                Debug.Log($"[ClientFlow] Scene Load Complete: {SceneNames.TownMap}");
 
                 var ctx = Object.FindFirstObjectByType<TownSceneContext>();
                 if (ctx == null)
@@ -64,12 +69,16 @@ public sealed class ClientFlow : MonoBehaviour
             }
             else if (_target == Target.Game)
             {
-                Debug.Log("InTargetGame");
-                await SceneRouter.LoadAsync(SceneNames.Game);
+                string sceneToLoad = !string.IsNullOrEmpty(_mapId) ? _mapId : SceneNames.Game;
+
+                Debug.Log($"[ClientFlow] Scene Load Start: {sceneToLoad} || MapId:{sceneToLoad}");
+                await SceneRouter.LoadAsync(sceneToLoad);
+                Debug.Log($"[ClientFlow] Scene Load Complete: {sceneToLoad}");
                 // GameSceneContext 찾아서 진입 요청
                 var ctx = Object.FindFirstObjectByType<GameSceneContext>();
                 if (ctx != null)
                 {
+                    ctx.SetMapId(_mapId);
                     await ctx.EnterGameAsync();
                 }
                 else
@@ -92,7 +101,8 @@ public sealed class ClientFlow : MonoBehaviour
     {
         Debug.LogWarning($"[ClientFlow] Net failed: {reason}");
         SessionContext.Instance.ResetForReconnect();
-        _ = SceneRouter.LoadAsync(SceneNames.Login);
+        Debug.Log($"[ClientFlow] Scene Load Start: {SceneNames.Login}");
+        _ = SceneRouter.LoadAsync(SceneNames.Login).ContinueWith(t => Debug.Log($"[ClientFlow] Scene Load Complete: {SceneNames.Login}"));
     }
 
     void OnNetDisconnected()

@@ -36,7 +36,7 @@ public sealed class GameSceneContext : MonoBehaviour
 
     [Header("Net enter")]
     [SerializeField] private bool _autoEnter = true;
-    [SerializeField] private string _mapId = "game"; // 임시 기본값
+    [SerializeField] private string _mapId = ""; // 임시 기본값
     
     bool _entered;
     bool _initMapApplied;
@@ -64,6 +64,11 @@ public sealed class GameSceneContext : MonoBehaviour
     {
         // 패킷이 먼저 와서 여기로 들어온 케이스
         ApplyInitMapOnce(p);
+    }
+
+    public void SetMapId(string mapId)
+    {
+        _mapId = mapId;
     }
 
     public async Task EnterGameAsync()

@@ -15,7 +15,7 @@ using UnityEngine;
         public event Action<string, string> OnMemberJoin; // uid, name
         public event Action<string> OnMemberLeave; // uid
         public event Action<string, bool> OnMemberUpdate; // uid, ready
-        public event Action<EndpointDto, string> OnGameStart; // endpoint, ticket
+        public event Action<EndpointDto, string, string> OnGameStart; // endpoint, ticket, mapId
         public event Action<string> OnErrorMsg;
         
         // Connection Events
@@ -119,7 +119,7 @@ using UnityEngine;
                         break;
                     case "GameStart":
                         var startMsg = JsonUtility.FromJson<GameStartMsg>(json);
-                        OnGameStart?.Invoke(startMsg.endpoint, startMsg.ticket);
+                        OnGameStart?.Invoke(startMsg.endpoint, startMsg.ticket, startMsg.mapId);
                         break;
                     case "Error":
                         var errMsg = JsonUtility.FromJson<ErrorMsg>(json);

@@ -112,7 +112,7 @@ partial class PacketHandler
             // GameRoom 생성 (Lazy)
             // 주의: CP와 동기화된 Map 정보가 없으므로, 최초 생성 시 req.MapId를 신뢰하거나 기본값 사용
             // GameRoom 내부에서 MapId를 설정할 수 있는 메소드가 필요할 수 있음 (현재는 Default 0)
-            var room = GameManager.GetOrCreate(s.Key);
+            var room = GameManager.GetOrCreate(s.Key, req.MapId);
             
             Console.WriteLine($"[GameRoom] Entering MatchId: {s.Key} (Count: {room.GetPlayersSnapshot().Count()})");
 

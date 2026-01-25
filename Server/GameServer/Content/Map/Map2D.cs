@@ -4,6 +4,8 @@ using System.Collections.Generic;
 namespace GameServer.Content.Map;
 public sealed class Map2D
 {
+    public string MapId = "";
+
     private static readonly Random _rng = new Random();
 
     private readonly TileKind[,] _tiles;
@@ -35,6 +37,8 @@ public sealed class Map2D
     {
         if (!InBounds(x, y)) return;
         _tiles[y, x] = kind;
+
+
     }
 
     public bool IsWalkable(int x, int y)

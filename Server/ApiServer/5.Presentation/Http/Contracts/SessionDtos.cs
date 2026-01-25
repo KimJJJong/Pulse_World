@@ -28,6 +28,7 @@ public static class SessionDtos
         long ExpireAtMs,
         string ServerId,
         EndpointDto Endpoint,
-        string Key
+        string Key,
+        string MapId
     );
 }

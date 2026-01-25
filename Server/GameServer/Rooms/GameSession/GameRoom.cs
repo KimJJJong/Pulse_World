@@ -16,7 +16,7 @@ public sealed class GameRoom : RoomBase
     readonly HashSet<string> _loaded = new();
 
     public string MatchId { get; }
-    public int MapId { get; private set; } = 0;
+    public string MapId { get; private set; }
     public int Seed { get; private set; } = 0;
 
     enum RoomPhase { Waiting, Loading, Countdown, Running, Ended }
@@ -32,10 +32,11 @@ public sealed class GameRoom : RoomBase
 
     private int _nextMonsterId = 100;
 
-    public GameRoom(string matchId, ILogger? logger = null, int maxPlayers = 2)
+    public GameRoom(string matchId, string mapId, ILogger? logger = null, int maxPlayers = 2)
         : base(maxPlayers, 1) // Start ActorId = 1
     {
         MatchId = matchId;
+        MapId = mapId;
         Seed = Environment.TickCount;
         _logger = logger ?? NullLogger.Instance;
     }
@@ -228,7 +229,7 @@ public sealed class GameRoom : RoomBase
             _phase = RoomPhase.Running;
         }
 
-        _map = MapDatabase.Get("Map");
+        _map = MapDatabase.Get(MapId);
 
         _rhythmConfig = new RhythmConfig
         {

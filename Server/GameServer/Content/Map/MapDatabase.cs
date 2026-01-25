@@ -13,7 +13,7 @@ public static class MapDatabase
         {
             MapContent mapSet = m.Value;
             Map2D map = new Map2D(width: mapSet.Width, height: mapSet.Height);
-
+            map.MapId = mapSet.MapId;
             int Length = mapSet.Width * mapSet.Height;
             Console.WriteLine($"[CreateMap] Length : {Length} || Height : {map.Height} || Width : {map.Width}");
             for (int y = 0; y < mapSet.Height; y++)
