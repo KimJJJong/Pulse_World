@@ -1,0 +1,418 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+public class BoardView : MonoBehaviour, IClientWorldView
+{
+    public static BoardView Instance { get; private set; }
+
+    [Header("Prefabs (자동 생성/할당 가능)")]
+    public GameObject playerPrefab;
+    public GameObject monsterPrefab;
+    public GameObject tilePrefab;
+
+    [Header("Rendering")]
+    public float cellSize = 1.0f;
+    public float moveLerpTime = 0.1f;
+
+    // entityId -> EntityVisual
+    private readonly Dictionary<int, EntityVisual> _entityViews = new();
+
+    // (x,y) -> Tile GameObject
+    private GameObject[,] _tiles;
+
+    private Color[,] _baseTileColors;
+
+    private static readonly Color TELEGRAPH_COLOR = Color.red;
+
+
+    #region Debug
+    private const bool DBG_POS = false;
+    private int _dbgOnlyActorId = -1; // -1이면 전부, 특정 ID만 보고 싶으면 그 값으로
+
+
+    #endregion
+
+    void Awake()
+    {
+
+        Instance = this;
+
+    }
+
+    void Start()
+    {
+        ClientGameState.Instance.WorldView = this;
+
+    }
+    #region IClientWorldView
+
+    public void OnCreateMap(int width, int height)
+    {
+        // 1) 씬에 이미 베이크된 타일이 있는지 확인하고 바인딩 시도
+        if (TryBindTilesFromScene(width, height))
+        {
+            Debug.Log($"[BoardView] OnCreateMap: Baked tiles bound. ({width}x{height})");
+            return;
+        }
+
+        // 2) 베이크된 타일이 없거나 부족하면 기존 방식(런타임 생성)으로 폴백
+        Debug.LogWarning($"[BoardView] OnCreateMap: No baked tiles found. Fallback to Instantiate. ({width}x{height})");
+        
+        ClearTiles(destroyGameObjects: true); // 기존 것 싹 날리고 새로 만듬
+
+        if (tilePrefab == null)
+        {
+            Debug.LogWarning("[BoardView] tilePrefab이 설정되지 않음. 타일을 생성하지 않습니다.");
+            return;
+        }
+
+        _tiles = new GameObject[width, height];
+        _baseTileColors = new Color[width, height];
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                var tile = Instantiate(tilePrefab, transform);
+                tile.name = $"Tile_{x}_{y}";
+                tile.transform.position = GridToWorld(x, y) + new Vector3(0, -2, 0);
+                
+                // 더 이상 TileIndex 컴포넌트 붙이지 않음.
+                // 이름(Tile_x_y)만 잘 지켜지면 문제 없음.
+
+                _tiles[x, y] = tile;
+                _baseTileColors[x, y] = Color.gray;
+            }
+        }
+    }
+
+    public Color GetTileColor(int tileKind)
+    {
+        switch (tileKind)
+        {
+            case 0: return Color.gray;
+            case 1: return Color.white;
+            case 2: return Color.cyan;
+            default: return Color.white;
+        }
+    }
+
+    public void OnSetTile(int x, int y, int tileKind)
+    {
+        if (_tiles == null)
+            return;
+        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1))
+            return;
+
+        var tile = _tiles[x, y];
+        if (tile == null) return;
+
+        if (tile.TryGetComponent<Renderer>(out var rend))
+        {
+            Color baseColor = GetTileColor(tileKind);
+
+            // [추가] "정상 상태 기본색"을 저장해둔다 (텔레그래프 해제 시 원복용)
+            if (_baseTileColors != null)
+                _baseTileColors[x, y] = baseColor;
+
+            rend.material.color = baseColor;
+        }
+    }
+
+    /// <summary>
+    /// 해당 좌표 타일을 "텔레그래프 빨강"으로 덮는다.
+    /// - base color는 건드리지 않는다. (원복은 RestoreTileColor에서)
+    /// </summary>
+    public void SetTelegraphOverlay(int x, int y, bool on)
+    {
+        if (_tiles == null) return;
+        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1)) return;
+
+        var tile = _tiles[x, y];
+        if (tile == null) return;
+
+        if (!tile.TryGetComponent<Renderer>(out var rend))
+            return;
+
+        if (on)
+        {
+            rend.material.color = TELEGRAPH_COLOR;
+        }
+        else
+        {
+            RestoreTileColor(x, y);
+        }
+    }
+
+    /// <summary>
+    /// tileKind 기반 기본색으로 원복한다.
+    /// - SetTile에서 저장해둔 base color 사용
+    /// </summary>
+    public void RestoreTileColor(int x, int y)
+    {
+        if (_tiles == null) return;
+        if (_baseTileColors == null) return;
+        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1)) return;
+
+        var tile = _tiles[x, y];
+        if (tile == null) return;
+
+        if (!tile.TryGetComponent<Renderer>(out var rend))
+            return;
+
+        rend.material.color = _baseTileColors[x, y];
+    }
+
+    public void OnClearEntities()
+    {
+        foreach (var kv in _entityViews)
+        {
+            if (kv.Value != null)
+                Destroy(kv.Value.gameObject);
+        }
+        _entityViews.Clear();
+    }
+
+    public void OnSpawnOrUpdateEntity(ClientEntityInfo info)
+    {
+        if (!_entityViews.TryGetValue(info.EntityId, out var visual) || visual == null)
+        {
+            GameObject prefab = ChoosePrefab(info.EntityType);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[BoardView] EntityType {info.EntityType}용 Prefab이 없음");
+                return;
+            }
+
+            GameObject go = Instantiate(prefab, transform);
+            go.name = $"Entity_{info.EntityId}";
+
+            // EntityVisual 컴포넌트 확인/추가
+            if (!go.TryGetComponent<EntityVisual>(out visual))
+            {
+                visual = go.AddComponent<EntityVisual>();
+            }
+            
+            _entityViews[info.EntityId] = visual;
+        }
+
+        if (info.EntityId == ClientGameState.Instance.MyActorId)
+        {
+            CameraBinder.Instance?.Bind(visual.transform);
+            RhythmInputControllerBinder.Instance?.Bind(visual.gameObject);
+        }
+
+        visual.transform.position = GridToWorld(info.X, info.Y);
+    }
+    public void OnDespawnEntity(int entityId)
+    {
+        if (_entityViews.TryGetValue(entityId, out var visual) && visual != null)
+            Destroy(visual.gameObject);
+
+        _entityViews.Remove(entityId);
+    }
+
+
+    [Header("Sync")]
+    [Range(0.1f, 1.0f)]
+    public float actionDurationRatio = 0.5f;
+
+    public void OnBeatAction(ClientBeatAction action, ClientEntityInfo entity)
+    {
+        if (!_entityViews.TryGetValue(action.ActorId, out var visual) || visual == null)
+        {
+            return;
+        }
+
+        if (!action.Accepted)
+        {
+             return;
+        }
+
+        Vector3 fromW = GridToWorld(action.FromX, action.FromY);
+        Vector3 toW = GridToWorld(action.ToX, action.ToY);
+
+        // 현재 트랜스폼
+        Vector3 curW = visual.transform.position;
+
+        // "현재 트랜스폼이 원래 from 위치와 얼마나 다른가" (드리프트/누적오차 체크)
+        float driftFrom = Vector3.Distance(curW, fromW);
+
+        // 이동 거리 (월드 기준)
+        float moveDist = Vector3.Distance(fromW, toW);
+
+        // 튐(텔레포트) 감지
+        bool teleportLike = moveDist > 2.0f;
+        bool desynced = driftFrom > 0.5f;
+
+        // [Sync] BPM 기반 이동 시간 계산
+        double beatMs = RhythmClient.Instance.GetBeatDurationMs();
+        
+        // 1Beat 시간(초) * 비율 (예: 0.5초 * 0.5 = 0.25초 만에 행동 끝냄)
+        float duration = (float)(beatMs / 1000.0) * actionDurationRatio;
+
+        // [Refactor] EntityVisual에게 위임
+        visual.StartMove(fromW, toW, duration);
+
+        // [Sync] 공격 애니메이션 연결
+        if (action.ActionKind == (int)ActionKind.Attack) 
+        {
+            visual.PlayAttack(duration);
+        }
+    }
+
+    public void OnInitGameCompleted()
+    {
+        Debug.Log("[BoardView] InitGameCompleted");
+    }
+
+    #endregion
+
+    #region Map Binding & Baking
+    
+    // 에디터 툴(BoardViewMapBakerWindow)에서 호출하기 위해 public으로 변경
+    public Vector3 GridToWorldPublic(int x, int y)
+    {
+        return GridToWorld(x, y);
+    }
+    
+    public bool TryBindTilesFromScene(int width, int height)
+    {
+        // 최적화: TileIndex 컴포넌트에 의존하지 않고, 자식 오브젝트의 이름(Tile_x_y)을 파싱하여 바인딩
+        // O(ChildCount) 1회 순회로 끝냄.
+
+        var map = new Dictionary<(int x, int y), GameObject>();
+        
+        foreach (Transform child in transform)
+        {
+            // 이름 파싱: "Tile_x_y"
+            if (ParseTileName(child.name, out int x, out int y))
+            {
+                map[(x, y)] = child.gameObject;
+            }
+        }
+
+        // 전체 범위가 다 있는지 확인
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (!map.ContainsKey((x, y)))
+                {
+                    Debug.LogWarning($"[BoardView] Bind Fail: Missing tile at ({x},{y})");
+                    // 실패 시 즉시 리턴하거나, 일부만 바인딩할지 결정. 안전을 위해 false 리턴.
+                    return false;
+                }
+            }
+        }
+
+        // 성공 -> 실제 배열에 할당
+        ClearTiles(destroyGameObjects: false); 
+        _tiles = new GameObject[width, height];
+        _baseTileColors = new Color[width, height];
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                _tiles[x, y] = map[(x, y)];
+                
+                // [Fix] 베이크된 타일의 실제 색상을 초기값으로 저장 (Telegraph 복구용)
+                if (_tiles[x, y].TryGetComponent<Renderer>(out var rend))
+                {
+                    // material 접근 시 인스턴스 생성됨. (Telegraph에서도 어차피 생성하므로 무방)
+                    _baseTileColors[x, y] = rend.material.color;
+                }
+                else
+                {
+                    _baseTileColors[x, y] = Color.gray;
+                }
+            }
+        }
+
+        Debug.Log($"[BoardView] Bind Success (NameBased): {width}x{height}");
+        return true;
+    }
+
+    private bool ParseTileName(string name, out int x, out int y)
+    {
+        x = -1; 
+        y = -1;
+        if (!name.StartsWith("Tile_")) return false;
+
+        var parts = name.Split('_'); // Tile, x, y
+        if (parts.Length < 3) return false;
+
+        if (int.TryParse(parts[1], out x) && int.TryParse(parts[2], out y))
+            return true;
+
+        return false;
+    }
+
+    #endregion
+
+    #region Helper
+
+    private GameObject ChoosePrefab(int entityType)
+    {
+        // 서버 EntityType enum과 맞춰야 함
+        // 예: 0 = Player, 1 = Monster
+        switch (entityType)
+        {
+            case 0:
+                return playerPrefab;
+            case 1:
+                return playerPrefab;
+            default:
+                return monsterPrefab;//!= null ? playerPrefab : monsterPrefab;
+        }
+    }
+
+    private Vector3 GridToWorld(int x, int y)
+    {
+        float targetX = x * cellSize;
+        float targetZ = y * cellSize;
+        float height = GetGroundHeight(targetX, targetZ);
+        
+        return new Vector3(targetX, height, targetZ);
+    }
+
+    private float GetGroundHeight(float x, float z)
+    {
+        // 높이 10에서 아래로 레이캐스트
+        Ray ray = new Ray(new Vector3(x, 20f, z), Vector3.down);
+        // Debug.DrawRay(ray.origin, ray.direction * 50f, Color.red, 2.0f); // Editor Debug
+
+        if (Physics.Raycast(ray, out RaycastHit hit, 50f))
+        {
+            //Debug.Log($"[GetGroundHeight] Hit! ({x}, {z}) -> Y={hit.point.y} Collider={hit.collider.name}");
+            return hit.point.y;
+        }
+        
+        Debug.LogWarning($"[GetGroundHeight] Miss! ({x}, {z}) -> Defaulting to 0");
+        return 0f; // 바닥 없으면 0
+    }
+
+
+    private void ClearTiles(bool destroyGameObjects = true)
+    {
+        if (_tiles == null)
+            return;
+
+        int w = _tiles.GetLength(0);
+        int h = _tiles.GetLength(1);
+
+        if (destroyGameObjects)
+        {
+            for (int x = 0; x < w; x++)
+                for (int y = 0; y < h; y++)
+                    if (_tiles[x, y] != null)
+                        Destroy(_tiles[x, y]);
+        }
+
+        _tiles = null;
+        _baseTileColors = null;
+    }
+
+    #endregion
+}

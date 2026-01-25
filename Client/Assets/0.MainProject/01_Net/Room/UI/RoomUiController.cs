@@ -33,7 +33,8 @@ namespace NetClient.Room.UI
 
         [Header("Create Modal")]
         [SerializeField] TMP_InputField inputRoomId;
-        [SerializeField] TMP_InputField inputMapId;
+        //[SerializeField] TMP_InputField inputMapId;
+        [SerializeField] TMP_Dropdown inputMapIds;
         [SerializeField] TMP_InputField inputMaxPlayers;
         [SerializeField] Button btnCreateConfirm;
         [SerializeField] Button btnCreateCancel;
@@ -85,6 +86,13 @@ namespace NetClient.Room.UI
 
             ShowRoomList();
             UI_Refresh();
+
+            // [Request] MapId Dropdown 초기화
+            if (inputMapIds != null)
+            {
+                inputMapIds.ClearOptions();
+                inputMapIds.AddOptions(new List<string> { "Map", "Game_01", "Game_Forest_01" });
+            }
         }
 
         async void OnDestroy()
@@ -191,7 +199,7 @@ namespace NetClient.Room.UI
         {
             // 입력 초기화
             if (inputRoomId) inputRoomId.text = "";
-            if (inputMapId) inputMapId.text = "";
+            //if (inputMapId) inputMapId.text = "";
             if (inputMaxPlayers) inputMaxPlayers.text = "4";
 
             ShowCreateModal(true);
@@ -205,7 +213,15 @@ namespace NetClient.Room.UI
         public async void UI_CreateConfirm()
         {
             var roomId = inputRoomId ? inputRoomId.text.Trim() : "";
-            var mapId = inputMapId ? inputMapId.text.Trim() : "";
+            // var mapId = inputMapId ? inputMapId.text.Trim() : "";
+            
+            // Dropdown에서 선택된 텍스트 가져오기
+            var mapId = "1";
+            if (inputMapIds != null && inputMapIds.options.Count > 0)
+            {
+                mapId = inputMapIds.options[inputMapIds.value].text;
+            }
+
             var maxPlayersStr = inputMaxPlayers ? inputMaxPlayers.text.Trim() : "4";
 
             if (string.IsNullOrEmpty(mapId))

@@ -266,7 +266,9 @@ public sealed class MapWorld2D : IGameWorld
             ApplySkillEffect(caster, target, tmpDamage, hpUpdates);
             anyHit = true;
         }
-        return anyHit;
+        // [Attack] 허공에 공격해도(Miss) 행동 자체는 유효하므로 true 반환
+        // 그래야 클라에서 Animation이 재생됨 (Action.Accepted = true)
+        return true; 
     }
 
 
