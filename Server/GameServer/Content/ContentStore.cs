@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GameServer.InGame.Director.Data;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -9,6 +10,8 @@ public static class ContentStore
     public static SkillSet? Skills { get; private set; }
     public static MonsterPatternSet? Patterns { get; private set; }
     public static Dictionary<string, MapContent>? Maps { get; private set; }
+    // [NEW]
+    public static Dictionary<string, GameServer.InGame.Director.Data.StageScenario>? Stages { get; private set; }
 
     /// <summary>
     /// ContentStore는 프로세스 당 1회만 초기화된다.
@@ -21,7 +24,8 @@ public static class ContentStore
     public static void Init(
         string? skillsDir,
         string? patternsDir,
-        string? mapsDir)
+        string? mapsDir,
+        string? stagesDir) // Added
     {
         if (_initialized)
             throw new InvalidOperationException("ContentStore already initialized.");
@@ -77,6 +81,23 @@ public static class ContentStore
                 throw new Exception("Map content invalid");
 
             MapDatabase.LoadFrom(Maps);
+        }
+
+        // ---------- Stages [NEW] ----------
+        if (!string.IsNullOrWhiteSpace(stagesDir))
+        {
+            EnsureDirExists(stagesDir, "Stages");
+
+            Stages = StageLoader.LoadFromDirectory(stagesDir);
+            
+            // Register to DataManager
+            Console.WriteLine($"[ContentStore] Loading Stages from: {stagesDir}");
+            foreach(var s in Stages.Values)
+            {
+                StageDataManager.Register(s);
+                Console.WriteLine($"   > [LOADED] MapId: {s.MapId.PadRight(15)} | BPM: {s.RhythmSettings?.Bpm} | Spawns: {s.InitialSpawns?.Count} | Events: {s.Events?.Count}");
+            }
+            Console.WriteLine($"[ContentStore] Total {Stages.Count} Stages loaded.");
         }
 
         _initialized = true;

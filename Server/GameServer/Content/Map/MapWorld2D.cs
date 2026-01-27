@@ -9,6 +9,7 @@ using GameServer.InGame.Manager.Entity;
 public sealed class MapWorld2D : IGameWorld
 {
     private readonly IGameBroadcaster _broadcaster;
+    public event Action<int> OnEntityDead;
 
     private readonly Map2D _map;
     public Map2D Map => _map;
@@ -356,7 +357,8 @@ public sealed class MapWorld2D : IGameWorld
 
         if (after <= 0)
         {
-            // 죽으면 despawn
+            // 죽으면 event -> despawn
+            OnEntityDead?.Invoke(target.Id);
             Despawn(target.Id);
         }
     }

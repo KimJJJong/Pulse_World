@@ -57,9 +57,12 @@ public sealed class PatternRunner
         if (beatIndex < st.LockedUntilBeat) return;
 
         MonsterPatternDef def = _patterns.GetMonster(monsterType);
+        if (def == null) // Fallback to Default if not found
+             def = _patterns.GetMonster("Default");
+
         if (def == null)
         {
-            Console.WriteLine($"[Run] MonsterPatterDef == null");
+            // Still null? Stop.
             return;
         }
         ApplyPhaseTransitions(def, monster, st, beatIndex);

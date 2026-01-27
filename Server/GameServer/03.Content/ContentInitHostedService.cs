@@ -47,18 +47,20 @@ public sealed class ContentInitHostedService : IHostedService
         string? skills = rc.LoadSkills ? Path.Combine(baseDir, rc.SkillsRelDir) : null;
         string? patterns = rc.LoadPatterns ? Path.Combine(baseDir, rc.PatternsRelDir) : null;
         string? maps = rc.LoadMaps ? Path.Combine(baseDir, rc.MapsRelDir) : null;
+        string? stages = rc.LoadStages ? Path.Combine(baseDir, rc.StagesRelDir) : null; // [NEW]
 
         // 존재 검사(원하면 경고만 찍고 계속 진행하도록 바꿔도 됨)
         EnsureDir(role.Name, "skills", skills);
         EnsureDir(role.Name, "patterns", patterns);
         EnsureDir(role.Name, "maps", maps);
+        EnsureDir(role.Name, "stages", stages); // [NEW]
 
 
-        ContentStore.Init(skills, patterns, maps);
+        ContentStore.Init(skills, patterns, maps, stages);
 
         _log.LogInformation(
-            "Content initialized (role={Role}, baseDir={BaseDir}, skills={Skills}, patterns={Patterns}, maps={Maps})",
-            role.Name, baseDir, skills ?? "-", patterns ?? "-", maps ?? "-");
+            "Content initialized (role={Role}, baseDir={BaseDir}, skills={Skills}, patterns={Patterns}, maps={Maps}, stages={Stages})",
+            role.Name, baseDir, skills ?? "-", patterns ?? "-", maps ?? "-", stages ?? "-");
         return Task.CompletedTask;
     }
 

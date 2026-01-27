@@ -159,11 +159,11 @@ public sealed class TownSession : SessionBase
     // =====================================================
     // 클라이언트 입력 처리 (마을) — ActionRequest 그대로 받는다
     // =====================================================
-    public void OnClientActionPacketByActorId(int actorId, CS_ActionRequest req)
-    {
-        if (actorId < 0) return;
-        BeatActions.OnClientActionRequest(actorId, req);
-    }
+    //public void OnClientActionPacketByActorId(int actorId, CS_ActionRequest req)
+    //{
+    //    if (actorId < 0) return;
+    //    BeatActions.OnClientActionRequest(actorId, req);
+    //}
     public void OnClientActionPacketByActorId(int actorId, CS_TownActionRequest req)
     {
         if (actorId < 0) return;

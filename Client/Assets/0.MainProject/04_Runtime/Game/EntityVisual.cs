@@ -32,7 +32,7 @@ public class EntityVisual : MonoBehaviour
         {
             _animator.speed = 1.0f / duration;
             _animator.SetBool("IsMoving", true);
-            Debug.Log($"[EntityVisual] StartMove: Duration={duration:F2}s, Speed={_animator.speed:F2}");
+            //Debug.Log($"[EntityVisual] StartMove: Duration={duration:F2}s, Speed={_animator.speed:F2}");
         }
 
         // Rotation (LookAt)

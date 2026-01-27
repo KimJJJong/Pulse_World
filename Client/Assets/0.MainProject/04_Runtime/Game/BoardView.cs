@@ -156,7 +156,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
             return;
         }
 
-         Debug.Log($"[BoardView] SetTelegraphOverlay({x},{y}) - Rend={rend.name}, Mat={rend.material.name}, On={on}");
+         //Debug.Log($"[BoardView] SetTelegraphOverlay({x},{y}) - Rend={rend.name}, Mat={rend.material.name}, On={on}");
 
         if (on)
         {

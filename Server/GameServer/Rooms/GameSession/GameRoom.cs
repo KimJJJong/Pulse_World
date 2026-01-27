@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Util;
+using GameServer.InGame.Director.Data; // Added
 
 public sealed class GameRoom : RoomBase
 {
@@ -231,15 +232,30 @@ public sealed class GameRoom : RoomBase
 
         _map = MapDatabase.Get(MapId);
 
+        // NEW: Load Data from ContentStore (Real)
+        var stageData = StageDataManager.Get(MapId);
+        if (stageData == null)
+        {
+            _logger.LogError("Stage Data Not Found: {MapId}. Falling back to default Config.", MapId);
+            stageData = new StageScenario 
+            { 
+                MapId = MapId, 
+                RhythmSettings = new RhythmSettingsData { Bpm=120, ActionWindowMs=100 },
+                InitialSpawns = new List<SpawnData>()
+            };
+        }
+
+        var rSetting = stageData.RhythmSettings;
+
         _rhythmConfig = new RhythmConfig
         {
-            Bpm = 120,
-            BaseBeatDivision = 1,
-            ActionWindowMs = 100,
+            Bpm = rSetting.Bpm,
+            BaseBeatDivision = rSetting.BaseBeatDivision,
+            ActionWindowMs = rSetting.ActionWindowMs,
             MaxBeatLookAhead = 2,
         };
 
-        long songStart = AppRef.ServerTimeMs() + 1000;
+        long songStart = AppRef.ServerTimeMs() + rSetting.StartDelayMs;
 
         var time = new ServerTimeAdapter();
         _rhythm = new RhythmSystem(time, _rhythmConfig, songStart);
@@ -256,9 +272,13 @@ public sealed class GameRoom : RoomBase
         _rhythm.OnBeat += _session.OnBeat;
 
         var players = BuildPlayerEntities();
-        var monsters = BuildMonsterEntitiesForPrototype();
+        
+        // OLD: Monsters list pass
+        // var monsters = BuildMonsterEntitiesForPrototype();
+        // _session.InitGame(players, monsters);
 
-        _session.InitGame(players, monsters);
+        // NEW: Pass Scenario
+        _session.InitGame(players, stageData);
 
         foreach (var s in GetBroadcastSnapshot())
             _session.SendInitPacketToPlayer(s);
@@ -303,23 +323,11 @@ public sealed class GameRoom : RoomBase
         return players;
     }
 
-    private List<MapEntity> BuildMonsterEntitiesForPrototype()
-    {
-        var monsters = new List<MapEntity>
-        {
-            CreateMonster(x: 10, y: 16, hp: 50)
-        };
-        return monsters;
-    }
+    // Mock Loader Removed
+    // private StageScenario LoadStageData(string mapId) ...
 
-    private MapEntity CreateMonster(int x, int y, int hp)
-    {
-        var id = Interlocked.Increment(ref _nextMonsterId);
-        var m = new MapEntity(id, EntityType.Monster, new GridPos(x, y));
-        m.SetState("HP", hp);
-        m.SetState("OwnerActorId", -1);
-        return m;
-    }
+    // OLD Monster Builder Removed
+    // private List<MapEntity> BuildMonsterEntitiesForPrototype() ...
 
     // =====================================================
     // Packet Routing

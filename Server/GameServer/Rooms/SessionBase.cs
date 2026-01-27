@@ -12,6 +12,7 @@ public abstract class SessionBase
     public IGameWorld World { get; protected set; }
     public MapWorld2D World2D { get; protected set; }
     protected readonly Map2D _map;
+    public Map2D Map => _map;
 
     // 외부 시스템
     protected readonly IServerTime _time;
