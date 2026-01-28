@@ -23,6 +23,8 @@ public sealed class RhythmSystem : IBeatClock
     private long _lastProcessedBeat = -1;
 
     public event Action<long> OnBeat;
+    // Window 종료 시점 이벤트 추가
+    public event Action<long> OnJudgeWindowEnd;
 
     public RhythmSystem(IServerTime time, RhythmConfig config, long songStartServerTimeMs)
     {
@@ -57,13 +59,11 @@ public sealed class RhythmSystem : IBeatClock
     // 추가: 클라와 같은 시그니처
     public long GetJudgeTimeMs(long beatIndex)
     {
-        if (beatIndex <= 0) return GetBeatTimeMs(0);
-        long prev = GetBeatTimeMs(beatIndex - 1);
-        long cur = GetBeatTimeMs(beatIndex);
-        return prev + (cur - prev) / 2;
+        // beatIndex에 해당하는 정확한 시간
+        return _songStartServerTimeMs + (long)Math.Round(beatIndex * _baseBeatMs);
     }
 
-    // 기존 유지
+    // 기존 유지 (중간 시간 구하기) - 쓰임처가 줄어들 수 있음
     public long GetJudgeTimeMs(long currentBeat, long nextBeat)
     {
         long currMs = GetBeatTimeMs(currentBeat);
@@ -75,16 +75,44 @@ public sealed class RhythmSystem : IBeatClock
     public long GetBeatTimeMs(long beatIndex)
         => _songStartServerTimeMs + (long)Math.Round(beatIndex * _baseBeatMs);
 
+    private long _lastWindowEndBeat = -1;
+
     public void Update()
     {
         var now = _time.NowMs;
         var beat = GetCurrentBeatIndex(now);
-        if (beat <= _lastProcessedBeat) return;
 
-        for (long b = _lastProcessedBeat + 1; b <= beat; b++)
+        // 1. OnBeat (Beat 시작점)
+        if (beat > _lastProcessedBeat)
         {
-            _lastProcessedBeat = b;
-            OnBeat?.Invoke(b);
+            for (long b = _lastProcessedBeat + 1; b <= beat; b++)
+            {
+                _lastProcessedBeat = b;
+                OnBeat?.Invoke(b);
+            }
+        }
+
+        // 2. OnJudgeWindowEnd (Beat + Window)
+        // 현재 시간 기준으로, "이미 지난 비트"들에 대해 윈도우가 닫혔는지 확인
+        // 최적화를 위해 beat 범위 내에서 검사하거나, 그냥 간단히 loop
+        // 여기서는 _lastWindowEndBeat를 두어 순차 처리
+        
+        // 검사할 후보: _lastWindowEndBeat + 1 부터 현재 beat까지?
+        // 아니면 현재 시간 기준 역산?
+        // 안전하게: _lastWindowEndBeat + 1 비트의 닫히는 시간 < now 이면 호출
+        
+        long targetBeat = _lastWindowEndBeat + 1;
+        long targetBeatTime = GetBeatTimeMs(targetBeat);
+        long windowEndTime = targetBeatTime + (long)_config.ActionWindowMs;
+
+        while (now >= windowEndTime)
+        {
+            _lastWindowEndBeat = targetBeat;
+            OnJudgeWindowEnd?.Invoke(targetBeat);
+
+            targetBeat++;
+            targetBeatTime = GetBeatTimeMs(targetBeat);
+            windowEndTime = targetBeatTime + (long)_config.ActionWindowMs;
         }
     }
 
@@ -126,34 +154,38 @@ public sealed class RhythmSystem : IBeatClock
     }
 
 
-
-
-
     public bool TryComputeJudge(long nowMs, double actionWindowMs, out JudgeResult result)
     {
         result = default;
 
-        var currBeat = GetCurrentBeatIndex(nowMs);
-        if (currBeat < 0)
+        // 1. 노래 시작 전
+        if (nowMs < _songStartServerTimeMs)
         {
-            Console.WriteLine("[OnClientActionRequest] song not started yet");
+           // Console.WriteLine("[OnClientActionRequest] song not started yet");
             return false;
         }
 
-        var nextBeat = currBeat + 1;
-        var centerMs = GetJudgeTimeMs(currBeat, nextBeat);
+        // 2. 가장 가까운 비트 찾기
+        long nearestBeat = GetNearestBeatIndex(nowMs);
+        long beatTime = GetBeatTimeMs(nearestBeat);
 
-        var diff = (int)(nowMs - centerMs);
-        var abs = Math.Abs(diff);
+        long diff = nowMs - beatTime; // 양수면 늦게 침, 음수면 빨리 침
+        long absDiff = Math.Abs(diff);
 
-        bool accepted = abs <= actionWindowMs;
-        long executeBeat = nextBeat; // 네 정책: 항상 nextBeat로 묶기
+        bool accepted = absDiff <= actionWindowMs;
+
+        // ExecuteBeat는 판정된 그 비트
+        long executeBeat = nearestBeat;
+
+        // 참고: currBeat는 시간상 "지나간" 비트 (floor)
+        long currBeat = GetCurrentBeatIndex(nowMs);
+        long nextBeat = currBeat + 1;
 
         result = new JudgeResult(
             currBeat: currBeat,
             nextBeat: nextBeat,
-            centerMs: centerMs,
-            diffMs: diff,
+            centerMs: beatTime, // Center is now the Beat Time
+            diffMs: (int)diff,
             accepted: accepted,
             executeBeat: executeBeat
         );

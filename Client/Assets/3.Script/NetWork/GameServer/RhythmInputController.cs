@@ -114,6 +114,11 @@ public class RhythmInputController : MonoBehaviour
             return;
         }
 
+        // [Debug] Input Sync Check
+        long curBeat = Rhythm.GetCurrentBeatIndex();
+        double progress = Rhythm.GetCurrentBeatProgress01();
+        Debug.Log($"[ClientInput] ServerTime={serverNow} Beat={curBeat} Progress={progress:F3} Kind={kind}");
+
         SendActionRouted(kind, tx, ty, serverNow);
         _lastSendLocalMs = nowLocalMs;
     }
@@ -217,10 +222,10 @@ public class RhythmInputController : MonoBehaviour
             return;
 
         long t0 = Rhythm.GetBeatTimeMs(beat);
-        long t1 = Rhythm.GetBeatTimeMs(beat + 1);
-        long mid = (t0 + t1) / 2;
+        //long t1 = Rhythm.GetBeatTimeMs(beat + 1);
+        //long mid = (t0 + t1) / 2;
 
-        if (serverNowMs >= mid)
+        if (serverNowMs >= t0)
         {
             BeatDebugUI_TMP.Instance?.MarkHitNow();
 

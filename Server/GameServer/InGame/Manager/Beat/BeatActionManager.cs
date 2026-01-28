@@ -16,6 +16,7 @@ namespace GameServer.InGame.Manager.Beat
         private readonly IGameWorld _world;
 
         private readonly BeatScheduler _scheduler = new();
+        private readonly BeatScheduler _delayedScheduler = new(); // Attack/Skill용 지연 큐
         private readonly FrozenAttackRegistry _frozen;
 
         //private readonly int _leadBeat;
@@ -42,6 +43,11 @@ namespace GameServer.InGame.Manager.Beat
             _actionWindowMs = actionWindowMs;
             _maxBeatLookAhead = maxBeatLookAhead;
 
+            // RhythmSystem 이벤트 구독 (만약 clock이 RhythmSystem이라면)
+            if (_clock is RhythmSystem rhythmSys)
+            {
+                rhythmSys.OnJudgeWindowEnd += OnJudgeWindowEnd;
+            }
         }
 
         /// <summary>
@@ -77,10 +83,54 @@ namespace GameServer.InGame.Manager.Beat
                 return;
             }
 
-            _scheduler.Enqueue(cmd);
-
             Console.WriteLine($"[Accept] kind={cmd.Kind} currBeat={judge.CurrBeat} executeBeat={cmd.ExecuteBeat} diff={judge.DiffMs}ms");
+
+            // --- Move: 즉시 실행 ---
+            if (cmd.Kind == ActionKind.Move)
+            {
+                ProcessImmediateMove(cmd, judge.ExecuteBeat);
+            }
+            // --- Attack/Skill: 지연 실행 (OnJudgeWindowEnd) ---
+            else
+            {
+                _delayedScheduler.Enqueue(cmd);
+            }
         }
+
+        private void ProcessImmediateMove(PlayerActionCmd cmd, long beatIndex)
+        {
+            if (!_world.TryGetActorPosition(cmd.ActorId, out var fromPos)) return;
+
+            var toPos = cmd.TargetCell;
+            bool accepted = _world.TryMove(cmd.ActorId, toPos);
+            
+            if (!accepted)
+            {
+                toPos = fromPos;
+            }
+
+            // 즉시 브로드캐스트
+            var result = new SC_BeatActions.BeatActionResult
+            {
+                ActorId = cmd.ActorId,
+                ActionKind = (int)cmd.Kind,
+                FromX = fromPos.X,
+                FromY = fromPos.Y,
+                ToX = toPos.X,
+                ToY = toPos.Y,
+                Accepted = accepted,
+                hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>()
+            };
+
+            // Move는 단건으로 바로 보냄 (혹은 BeatActions에 담아서 보냄 -> 구조상 배칭이 나을 수도 있으나 '즉시' 요구사항 따름)
+            // 여기서는 BeatActions 패킷 포맷을 재활용
+             _broadcaster.Broadcast(new SC_BeatActions
+            {
+                BeatIndex = beatIndex, // 이 비트에 대한 움직임임
+                beatActionResults = new List<SC_BeatActions.BeatActionResult> { result }
+            });
+        }
+
         /// <summary>
         /// Town
         /// </summary>
@@ -104,7 +154,8 @@ namespace GameServer.InGame.Manager.Beat
 
             if (!judge.IsAccepted)
             {
-                Console.WriteLine($"[Reject] out of window. diff={judge.DiffMs}ms (±{_actionWindowMs}ms)");
+                // [Debug] Log Server Action Reject
+                Console.WriteLine($"[ServerAction] REJECT | ClientTime={now} ServerRecv={_time.NowMs} Diff={judge.DiffMs}ms (Window=±{_actionWindowMs})");
                 return;
             }
 
@@ -115,9 +166,18 @@ namespace GameServer.InGame.Manager.Beat
                 return;
             }
 
-            _scheduler.Enqueue(cmd);
+            // Town에서도 Move 즉시? -> 보통 Town은 전투가 없으므로 비슷하게 처리하거나, 그냥 기존 scheduler 써도 무방하나 일관성 위해 즉시 처리
+            if (cmd.Kind == ActionKind.Move)
+            {
+                ProcessImmediateMove(cmd, judge.ExecuteBeat);
+            }
+            else
+            {
+                _delayedScheduler.Enqueue(cmd);
+            }
 
-            Console.WriteLine($"[Accept] kind={cmd.Kind} currBeat={judge.CurrBeat} executeBeat={cmd.ExecuteBeat} diff={judge.DiffMs}ms");
+            // [Debug] Log Server Action Accept
+            Console.WriteLine($"[ServerAction] ACCEPT | ClientTime={now} ServerRecv={_time.NowMs} Diff={judge.DiffMs}ms Kind={cmd.Kind}");
         }
 
 
@@ -140,19 +200,24 @@ namespace GameServer.InGame.Manager.Beat
                 return;
             }
 
-            var nextBeat = currBeat + 1;
+            // [변경] Nearest Beat 기준
+            var nearestBeat = _clock.GetNearestBeatIndex(now);
+            var judgeTimeMs = _clock.GetBeatTimeMs(nearestBeat); // 이것이 Target Time
 
-            var judgeCenterMs = _clock.GetJudgeTimeMs(currBeat, nextBeat);
+            // [Debug] Verify logic
+            // Console.WriteLine($"[Calib] Now={now} NearestBeat={nearestBeat} TargetTime={judgeTimeMs}");
 
-            int diff = (int)(now - judgeCenterMs);
+            int diff = (int)(now - judgeTimeMs);
 
-            int halfSpanMs = (int)Math.Round(_clock.GetBeatDurationMs() * 0.5); // RhythmSystem에 추가한 getter 필요
+            int halfSpanMs = (int)Math.Round(_clock.GetBeatDurationMs() * 0.5); 
+            
+            // DebugBar: currBeat ~ currBeat+1 사이에서의 위치를 보여주되, Target은 nearestBeat임을 인지
             Console.WriteLine(
                 RhythmSystem.FormatJudgeBar(
                     currBeat: currBeat,
-                    nextBeat: nextBeat,
+                    nextBeat: currBeat + 1,
                     nowMs: now,
-                    judgeCenterMs: judgeCenterMs,
+                    judgeCenterMs: judgeTimeMs, // Center가 이제 BeatTime
                     windowMs: (int)_actionWindowMs,
                     halfSpanMs: halfSpanMs,
                     width: 36,
@@ -164,7 +229,7 @@ namespace GameServer.InGame.Manager.Beat
 
             send.DiffMs = diff;
             send.ServerNowMs = now;
-            send.BeatIndex = nextBeat;
+            send.BeatIndex = nearestBeat; // 판정 대상 Beat
 
             _broadcaster.Broadcast(/*actorId, */send);
 
@@ -186,26 +251,42 @@ namespace GameServer.InGame.Manager.Beat
 
         /// <summary>
         /// RhythmSystem에서 Beat가 도래할 때마다 호출.
-        /// 해당 Beat에 예약된 액션들을 꺼내서 World에 적용하고, 결과를 SC_BeatActions로 브로드캐스트.
+        /// AI 이동 등 스케줄된 액션 처리. (플레이어 Move는 이미 처리됨)
         /// </summary>
         public void OnBeat(long beatIndex)
         {
-            //Console.WriteLine("InBeat");
             var cmds = _scheduler.PopActions(beatIndex);
-            if (cmds.Count == 0) return;
-            var results = new List<SC_BeatActions.BeatActionResult>(cmds.Count);
+            if (cmds.Count > 0)
+            {
+                ProcessBatchActions(beatIndex, cmds);
+                
+                // Original logic: DropBefore only if processed? 
+                // Actually, original code had `if (cmds.Count == 0) return;` before DropBefore.
+                // So yes, only if actions existed.
+                _scheduler.DropBefore(beatIndex - 4);
+                _frozen?.DropBefore(beatIndex - 16);
+            }
+        }
+
+        public void OnJudgeWindowEnd(long beatIndex)
+        {
+             var cmds = _delayedScheduler.PopActions(beatIndex);
+             if (cmds.Count > 0)
+             {
+                 ProcessBatchActions(beatIndex, cmds);
+             }
+        }
+
+        private void ProcessBatchActions(long beatIndex, List<PlayerActionCmd> cmds)
+        {
+             var results = new List<SC_BeatActions.BeatActionResult>(cmds.Count);
 
             foreach (var cmd in cmds)
             {
-
-
-                //if (cmd.ActorId >= 0 && cmd.ActorId < 100) Console.WriteLine($"[OnBeat] ActionId:{cmd.ActorId} || Beat : {beatIndex}");
-
                 if (!_world.TryGetActorPosition(cmd.ActorId, out var fromPos))
                 {
                     Console.WriteLine($"[BeatAction] unknown actorId={cmd.ActorId} kind={cmd.Kind}");
 
-                    // 프로토: 결과라도 내려주고 싶으면 아래 블록 유지
                     results.Add(new SC_BeatActions.BeatActionResult
                     {
                         ActorId = cmd.ActorId,
@@ -227,41 +308,32 @@ namespace GameServer.InGame.Manager.Beat
                 switch (cmd.Kind)
                 {
                     case ActionKind.Move:
+                        // 스케줄러에 들어있던 Move라면 여기서 처리 (AI 등)
                         toPos = cmd.TargetCell;
                         accepted = _world.TryMove(cmd.ActorId, toPos);
-                        //Console.WriteLine($"[Move] Entity : {cmd.ActorId} || {fromPos} -> {toPos}");
                         if (!accepted)
                         {
-                            //Console.WriteLine($"[MoveRejected] actor={cmd.ActorId} from={fromPos} to={toPos}");
                             toPos = fromPos;
                         }
                         break;
                     case ActionKind.Attack:
                         {
-                                accepted = _world.TryUseAttack(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
-
-                            //toPos = fromPos;
+                            accepted = _world.TryUseAttack(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
                             break;
-
                         }
 
                     case ActionKind.Skill:
                         {
-                            //  Frozen cells가 있으면 그걸로 판정(예고와 동일)
                             if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
                             {
-                                //Console.WriteLine($"[ActionKin.Skill] Infrozen || Attacker : {cmd.ActorId}");
                                 accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells, hpUpdates);
                             }
                             else
                             {
-                                //  fallback (플레이어 입력 등)
                                 accepted = _world.TryUseSkill(cmd.ActorId, cmd.SkillId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
                             }
-
                             toPos = fromPos;
                             break;
-
                         }
 
                     case ActionKind.Wait:
@@ -293,7 +365,7 @@ namespace GameServer.InGame.Manager.Beat
                     ToX = toPos.X,
                     ToY = toPos.Y,
                     Accepted = accepted,
-
+                    
                     hpUpdates = pktHpUpdates
                 });
             }
@@ -305,10 +377,6 @@ namespace GameServer.InGame.Manager.Beat
                 BeatIndex = beatIndex,
                 beatActionResults = results
             });
-
-            _scheduler.DropBefore(beatIndex - 4);
-            _frozen?.DropBefore(beatIndex - 16);
-
         }
 
         public void CancelActor(int actorId)

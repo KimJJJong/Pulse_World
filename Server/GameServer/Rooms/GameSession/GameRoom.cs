@@ -313,7 +313,7 @@ public sealed class GameRoom : RoomBase
                     initialPos: spawn
                 );
 
-                e.SetState("HP", 100);
+                e.SetState("HP", 10000);
                 e.SetState("Uid", p.Uid);
 
                 players.Add(e);

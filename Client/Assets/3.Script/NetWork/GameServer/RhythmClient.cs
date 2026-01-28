@@ -35,14 +35,8 @@ public class RhythmClient : MonoBehaviour
 
     public long GetJudgeTimeMs(long beatIndex)
     {
-        if (beatIndex <= 0)
-            return GetBeatTimeMs(0);
-
-        long prev = GetBeatTimeMs(beatIndex - 1);
-        long cur = GetBeatTimeMs(beatIndex);
-
-        // overflow 안전 중간점
-        return prev + (cur - prev) / 2;
+        // 서버와 동일하게: BeatIndex 기준 정확한 시간
+        return GetBeatTimeMs(beatIndex);
     }
     public long GetBeatTimeMs(long beatIndex)
     {

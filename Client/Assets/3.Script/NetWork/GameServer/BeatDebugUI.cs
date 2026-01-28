@@ -41,8 +41,12 @@ public class BeatDebugUI_TMP : MonoBehaviour
     // UI parts
     private Image _barBg;
     private Image _progressFill;
-    private Image _windowBand;
-    private Image _centerLine;
+    // Window Band: Left(0.0) -> Right(within 0~1) and Right(1.0) -> Left
+    private Image _windowBandLeft;
+    private Image _windowBandRight;
+    
+    private Image _centerLineLeft;
+    private Image _centerLineRight;
 
     private Sprite _defaultSprite;
 
@@ -100,6 +104,10 @@ public class BeatDebugUI_TMP : MonoBehaviour
         if (_bgm != null)
         {
             //  새 구조: DeviceOffset + AutoAlignOffset (+ optional AlignCenter)
+            //  BeatCenter(0.5) 가 아니라 이제 0.0/1.0 이지만,
+            //  BgmSyncPlayer의 AlignToBeatCenter 로직이 서버와 클라의 '기준'을 어디로 잡느냐에 따라 다를 수 있음.
+            //  일단 단순 디버그 텍스트는 유지.
+            
             double centerMs = _bgm.AlignToBeatCenter ? (beatMs * 0.5) : 0.0;
             double audioOffsetMs = centerMs + _bgm.DeviceOffsetMs + _bgm.AutoAlignOffsetMs;
 
@@ -156,7 +164,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
                 $"Progress: {progress:0.000}\n" +
                 $"ServerNow: {serverNow} ms\n" +
                 $"BeatMs: {beatMs:0.0}\n" +
-                $"Window: ±{judgeWindowMs:0}ms (center=0.5)\n" +
+                $"Window: ±{judgeWindowMs:0}ms (Target: Beat Edge)\n" +
                 $"HitMarkers: {_markers.Count}/{maxHitMarkers}" +
                 bgmText +
                 calibText +
@@ -192,16 +200,30 @@ public class BeatDebugUI_TMP : MonoBehaviour
         double beatMs = Rhythm.GetBeatDurationMs();
         float p = (float)Rhythm.GetCurrentBeatProgress01(); // 0~1
 
-        // center=0.5 기준 diffMs(부호 포함)
-        float signedMs = (p - 0.5f) * (float)beatMs;
-        int diffMs = Mathf.RoundToInt(signedMs);
+        // Nearest Beat Logic:
+        // 0.0 ~ 0.5 -> Target 0.0 (Current Beat) -> Late (+)
+        // 0.5 ~ 1.0 -> Target 1.0 (Next Beat) -> Early (-)
+        
+        float signedMs;
+        if (p < 0.5f)
+        {
+             // 0.1 -> 0.1 * beatMs (Late)
+             signedMs = p * (float)beatMs;
+        }
+        else
+        {
+             // 0.9 -> (0.9 - 1.0) * beatMs = -0.1 * beatMs (Early)
+             signedMs = (p - 1.0f) * (float)beatMs;
+        }
 
+        int diffMs = Mathf.RoundToInt(signedMs);
         float distMs = Mathf.Abs(signedMs);
         bool inWindow = distMs <= judgeWindowMs;
 
         // window 밖 초과분 정규화
         float outMs = Mathf.Max(0f, distMs - judgeWindowMs);
 
+        // 시각적 정규화 기준 (0.5비트 거리까지)
         float denomMs;
         if (normalizeByHalfBeat)
             denomMs = Mathf.Max(1f, (float)beatMs * 0.5f - judgeWindowMs);
@@ -230,6 +252,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
             }
         }
 
+        // Visual Width
         float width = hitMarkerBaseWidthPx + (inWindow ? 0f : (t * maxExtraWidthPx));
 
         var marker = GetOrCreateMarker();
@@ -328,6 +351,26 @@ public class BeatDebugUI_TMP : MonoBehaviour
     {
         if (_barBg == null) return;
         float barWidthPx = _barBg.rectTransform.rect.width;
+        // 0.0 = Left, 1.0 = Right
+        // AnchorMin/Max가 (0,0) (0,1) 이라 가정하면:
+        // Actually typical UI anchor:
+        // If Anchor (0,0) (1,1) -> offsetMin/Max
+        // If Anchor (0,0) -> anchoredPosition gives offset from Bottom-Left.
+        // Let's assume Anchors are set properly in CreateCanvasAndUI?
+        // Wait, _barBg Layout:
+        // AnchorMin: 0,0
+        // AnchorMax: 1, 0.15f
+        
+        // Markers use:
+        // AnchorMin 0.5, 0
+        // AnchorMax 0.5, 1
+        // So x=0 is center.
+        
+        // Refactoring: Marker Parent is _barBg.
+        // Let's change Anchor to (0,0)-(0,1) Left Aligned so x=progress*width works easily?
+        // Or keep Centered Anchor and calculate offset from center?
+        // (progress - 0.5) * width is correct for Centered Anchor.
+        
         float x = (progress01 - 0.5f) * barWidthPx;
         rt.anchoredPosition = new Vector2(x, 0f);
     }
@@ -341,17 +384,43 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
     private void UpdateWindowBand(double beatMs)
     {
-        if (_windowBand == null || _barBg == null) return;
+        if (_barBg == null) return;
+        
+        if (_windowBandLeft == null && _windowBandRight == null) return;
 
-        float halfRatio = (float)(judgeWindowMs / beatMs);
-        halfRatio = Mathf.Clamp01(halfRatio);
+        // judgeWindowMs / beatMs
+        float ratio = (float)(judgeWindowMs / beatMs); // One-side ratio
+        ratio = Mathf.Clamp01(ratio);
 
         float barWidthPx = _barBg.rectTransform.rect.width;
-        float bandWidthPx = (halfRatio * 2f) * barWidthPx;
+        float bandWidthPx = ratio * barWidthPx; // width for One Side
 
-        var rt = _windowBand.rectTransform;
-        rt.sizeDelta = new Vector2(bandWidthPx, 0f);
-        rt.anchoredPosition = Vector2.zero;
+        // Left Band: covers [0, ratio]
+        // Anchor is Center (0.5). So Left Edge is -0.5*W.
+        // We want it at Left Edge. 
+         if (_windowBandLeft != null)
+        {
+            var rt = _windowBandLeft.rectTransform;
+            rt.sizeDelta = new Vector2(bandWidthPx, 0f);
+            
+            // Position: Left Edge + halfWidth
+            // Left Edge of Bar relative to Center is -barWidth/2.
+            // Pos = -barWidth/2 + bandWidth/2
+            float x = (-barWidthPx * 0.5f) + (bandWidthPx * 0.5f);
+            rt.anchoredPosition = new Vector2(x, 0f);
+        }
+
+        // Right Band: covers [1-ratio, 1]
+         if (_windowBandRight != null)
+        {
+            var rt = _windowBandRight.rectTransform;
+            rt.sizeDelta = new Vector2(bandWidthPx, 0f);
+            
+            // Position: Right Edge - halfWidth
+            // Right Edge = +barWidth/2
+            float x = (barWidthPx * 0.5f) - (bandWidthPx * 0.5f);
+            rt.anchoredPosition = new Vector2(x, 0f);
+        }
     }
 
     // ---------------- UI Creation ----------------
@@ -420,33 +489,55 @@ public class BeatDebugUI_TMP : MonoBehaviour
         fillRect.offsetMin = Vector2.zero;
         fillRect.offsetMax = Vector2.zero;
 
-        // window band
-        var winGo = new GameObject("JudgeWindowBand");
-        winGo.transform.SetParent(barBgGo.transform, false);
-        _windowBand = winGo.AddComponent<Image>();
-        ApplySprite(_windowBand, sliced: true);
-        _windowBand.color = new Color(0f, 1f, 0f, 0.30f);
+        // window band LEFT
+        var winGoL = new GameObject("JudgeWindowBandL");
+        winGoL.transform.SetParent(barBgGo.transform, false);
+        _windowBandLeft = winGoL.AddComponent<Image>();
+        ApplySprite(_windowBandLeft, sliced: true);
+        _windowBandLeft.color = new Color(0f, 1f, 0f, 0.30f);
+        var winRectL = _windowBandLeft.rectTransform;
+        winRectL.anchorMin = new Vector2(0.5f, 0f);
+        winRectL.anchorMax = new Vector2(0.5f, 1f);
+        winRectL.pivot = new Vector2(0.5f, 0.5f); 
+        winRectL.anchoredPosition = Vector2.zero;
 
-        var winRect = _windowBand.rectTransform;
-        winRect.anchorMin = new Vector2(0.5f, 0f);
-        winRect.anchorMax = new Vector2(0.5f, 1f);
-        winRect.pivot = new Vector2(0.5f, 0.5f);
-        winRect.anchoredPosition = Vector2.zero;
-        winRect.sizeDelta = new Vector2(10f, 0f);
+        // window band RIGHT
+        var winGoR = new GameObject("JudgeWindowBandR");
+        winGoR.transform.SetParent(barBgGo.transform, false);
+        _windowBandRight = winGoR.AddComponent<Image>();
+        ApplySprite(_windowBandRight, sliced: true);
+        _windowBandRight.color = new Color(0f, 1f, 0f, 0.30f);
+        var winRectR = _windowBandRight.rectTransform;
+        winRectR.anchorMin = new Vector2(0.5f, 0f);
+        winRectR.anchorMax = new Vector2(0.5f, 1f);
+        winRectR.pivot = new Vector2(0.5f, 0.5f);
+        winRectR.anchoredPosition = Vector2.zero;
 
-        // center line
-        var centerGo = new GameObject("CenterLine");
-        centerGo.transform.SetParent(barBgGo.transform, false);
-        _centerLine = centerGo.AddComponent<Image>();
-        ApplySprite(_centerLine, sliced: true);
-        _centerLine.color = new Color(1f, 1f, 1f, 0.85f);
+        // center line LEFT
+        var centerGoL = new GameObject("CenterLineL");
+        centerGoL.transform.SetParent(barBgGo.transform, false);
+        _centerLineLeft = centerGoL.AddComponent<Image>();
+        ApplySprite(_centerLineLeft, sliced: true);
+        _centerLineLeft.color = new Color(1f, 1f, 1f, 0.85f);
+        var cLRect = _centerLineLeft.rectTransform;
+        cLRect.anchorMin = new Vector2(0f, 0f); // Left Edge
+        cLRect.anchorMax = new Vector2(0f, 1f);
+        cLRect.pivot = new Vector2(0.5f, 0.5f);
+        cLRect.anchoredPosition = Vector2.zero;
+        cLRect.sizeDelta = new Vector2(2f, 0f);
 
-        var centerRect = _centerLine.rectTransform;
-        centerRect.anchorMin = new Vector2(0.5f, 0f);
-        centerRect.anchorMax = new Vector2(0.5f, 1f);
-        centerRect.pivot = new Vector2(0.5f, 0.5f);
-        centerRect.anchoredPosition = Vector2.zero;
-        centerRect.sizeDelta = new Vector2(2f, 0f);
+        // center line RIGHT
+        var centerGoR = new GameObject("CenterLineR");
+        centerGoR.transform.SetParent(barBgGo.transform, false);
+        _centerLineRight = centerGoR.AddComponent<Image>();
+        ApplySprite(_centerLineRight, sliced: true);
+        _centerLineRight.color = new Color(1f, 1f, 1f, 0.85f);
+        var cRRect = _centerLineRight.rectTransform;
+        cRRect.anchorMin = new Vector2(1f, 0f); // Right Edge
+        cRRect.anchorMax = new Vector2(1f, 1f);
+        cRRect.pivot = new Vector2(0.5f, 0.5f);
+        cRRect.anchoredPosition = Vector2.zero;
+        cRRect.sizeDelta = new Vector2(2f, 0f);
     }
 
     private (Image img, TextMeshProUGUI label) CreateHitMarkerWithLabel(Transform parent)

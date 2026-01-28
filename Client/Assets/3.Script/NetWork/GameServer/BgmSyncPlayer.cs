@@ -32,7 +32,7 @@ public sealed class BgmSyncPlayer : MonoBehaviour
     [SerializeField] private float _nearEndEpsilonSec = 0.05f;
 
     [Header("Beat Align (Audio Only)")]
-    [SerializeField] private bool _alignToBeatCenter = true;
+    [SerializeField] private bool _alignToBeatCenter = false; // [Change] Default false for Nearest input
 
     [Tooltip("장치(스피커/이어폰) 고정 지연 보정용(작게). +면 음악이 빨리 들림")]
     [SerializeField] private int _deviceOffsetMs = 0;
