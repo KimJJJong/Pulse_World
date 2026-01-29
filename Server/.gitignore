@@ -31,4 +31,8 @@ Thumbs.db
 
 # === [ File ]
 GenPackets.bat
-appsettings.json
+# appsettings.json (Tracked for structure sync)
+
+# === [ Data & Secrets ] ===
+data/
+.env
