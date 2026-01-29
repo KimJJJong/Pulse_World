@@ -4,7 +4,7 @@ namespace NetClient.Room.UI
 {
     public sealed class ApiClientProvider : MonoBehaviour
     {
-        [SerializeField] string baseWs = "ws://localhost:5290";
+        [SerializeField] string baseWs = "ws://localhost:5000";
 
         public ApiClient Api => AppBootstrap.Instance.Root.Api;
 

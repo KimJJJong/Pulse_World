@@ -12,59 +12,120 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 3s
       timeout: 3s
       retries: 5
-#    ports:
-#      - "5432:5432"
+    ports:
+      - "5432:5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
     container_name: redis_cache
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
     restart: always
-#    ports:
-#      - "6379:6379"
+    ports:
+      - "6379:6379"
 
-  lobby:
+  controlplane:
     build:
-      context: ./Lobby
-      dockerfile: Dockerfile
-    container_name: lobby_server
+      context: .
+      dockerfile: ControlPlaneServer/Dockerfile
+    container_name: controlplane_server
+    restart: always
+    depends_on:
+      redis:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Docker"
+      DOTNET_ENVIRONMENT: "Docker"
+      # ControlPlane uses defaults (DB 0) from appsettings.json, just updating host/pass
+      Redis__ConnectionString: "redis:6379,password=${REDIS_PASSWORD},abortConnect=False"
+    ports:
+      - "5001:5001"
+
+  apiserver:
+    build:
+      context: .
+      dockerfile: ApiServer/Dockerfile
+    container_name: api_server
     restart: always
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
-    env_file:
-      - .env
-    environment:
-      ASPNETCORE_ENVIRONMENT: "Docker"
-      DOTNET_ENVIRONMENT: "Docker"
-      REDIS_PASSWORD: "${REDIS_PASSWORD}"
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./migrations:/app/migrations
-
-  gameserver:
-    build:
-      context: .
-      dockerfile: ./GameServer/Dockerfile
-    container_name: game_server
-    restart: always
-    depends_on:
-      redis:
+      controlplane:
         condition: service_started
     env_file:
       - .env
     environment:
       ASPNETCORE_ENVIRONMENT: "Docker"
       DOTNET_ENVIRONMENT: "Docker"
-      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+      Db__ConnectionString: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Pooling=true;Maximum Pool Size=50"
+      # ApiServer explicitly uses DB 1 (config in appsettings.json uses Database: 1)
+      # We override connection string but should ideally keep the DB separation.
+      # The appsettings.json separates config into "Redis:ConnectionString" and "Redis:Database".
+      # So overriding just ConnectionString is safe, Database value (1) from appsettings.json will act as secondary param if code logic works that way.
+      # However, wait. ApiServer code likely uses `Redis:Database` int value.
+      # Let's check ApiServer/Program.cs or related. Assuming standard pattern, just setting connection string updates host.
+      Redis__ConnectionString: "redis:6379,password=${REDIS_PASSWORD},abortConnect=False"
+      ControlPlane__Address: "http://controlplane:5001"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./migrations:/app/migrations
+
+  townserver:
+    build:
+      context: .
+      dockerfile: GameServer/Dockerfile
+    container_name: town_server
+    command: [ "--role", "Town" ]
+    restart: always
+    depends_on:
+      controlplane:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Docker"
+      DOTNET_ENVIRONMENT: "Docker"
+      # appsettings.Town.json을 사용하므로 Bind/Public Port 오버라이드 제거
+      ControlPlane__Address: "http://controlplane:5001"
+
+      # Content Path Overrides (mapped via volume)
+      Server__Content__DefaultBaseDir: "/app/Content/02.Town"
+      Server__Content__Town__BaseDir: "/app/Content/02.Town"
+
     ports:
       - "13221:13221"
+    volumes:
+      - ./GameServer/Content:/app/Content
+
+  gameserver:
+    build:
+      context: .
+      dockerfile: GameServer/Dockerfile
+    container_name: game_server
+    command: [ "--role", "Game" ]
+    restart: always
+    depends_on:
+      controlplane:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Docker"
+      DOTNET_ENVIRONMENT: "Docker"
+      # appsettings.Game.json을 사용하므로 Bind/Public Port 오버라이드 제거
+      ControlPlane__Address: "http://controlplane:5001"
+
+      # Content Path Overrides
+      Server__Content__DefaultBaseDir: "/app/Content/01.Game"
+      Server__Content__Game__BaseDir: "/app/Content/01.Game"
+
+    ports:
+      - "13222:13222"
+    volumes:
+      - ./GameServer/Content:/app/Content

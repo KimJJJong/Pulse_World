@@ -4,6 +4,9 @@ using ApiServer.Presentation.Http.Middleware;
 var builder = WebApplication.CreateBuilder(args);
 
 // Options + DI
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
 builder.Services
     .AddApiOptions(builder.Configuration)
     .AddApiServices(builder.Configuration);
@@ -32,4 +35,7 @@ app.Map("/hub/room", async context =>
 });
 
 app.MapControllers();
+app.MapControllers();
+await app.ApplyMigrationsAsync();
+
 app.Run();

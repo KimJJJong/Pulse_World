@@ -33,6 +33,10 @@ public static class ServerHost
 
                 // 필요하면 여기서 더 추가 가능:
                 // cfg.AddJsonFile("appsettings.Local.json", optional:true, reloadOnChange:true);
+
+                // [Fix] Docker Environment Variables가 appsettings.{Role}.json 보다 우선순위를 가지도록 다시 추가
+                cfg.AddEnvironmentVariables();
+                cfg.AddCommandLine(args);
             })
             .ConfigureServices((ctx, services) =>
             {

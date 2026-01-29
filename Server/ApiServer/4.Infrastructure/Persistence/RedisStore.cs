@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace ApiServer.Infrastructure.Persistence;
@@ -15,13 +17,26 @@ public sealed class RedisStore
     private readonly ConnectionMultiplexer _mux;
     private readonly IDatabase _db;
     private readonly RedisOptions _opt;
+    private readonly ILogger<RedisStore> _log;
 
-    public RedisStore(IOptions<RedisOptions> redisOpt)
+    public RedisStore(IOptions<RedisOptions> redisOpt, ILogger<RedisStore> log)
     {
         _opt = redisOpt.Value;
+        _log = log;
 
-        _mux = ConnectionMultiplexer.Connect(_opt.ConnectionString);
-        _db = _mux.GetDatabase(_opt.Database);
+        try
+        {
+            _mux = ConnectionMultiplexer.Connect(_opt.ConnectionString);
+            _db = _mux.GetDatabase(_opt.Database);
+
+            var endpoints = string.Join(",", _mux.GetEndPoints().Select(e => e.ToString()));
+            _log.LogInformation($"[RedisStore] Connected to {endpoints}, Database={_opt.Database}, Prefix={_opt.Prefix}");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, $"[RedisStore] Failed to connect to Redis: {_opt.ConnectionString}");
+            throw;
+        }
     }
 
     public IDatabase Db => _db;

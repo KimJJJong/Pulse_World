@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace ControlPlaneServer.Infra;
@@ -14,12 +16,23 @@ public sealed class RedisStore
     //private readonly LuaScript _luaAttachPresence;
     //private readonly LuaScript _luaRenewLease;
 
-    public RedisStore(IOptions<RedisOptions> redisOpt, IOptions<ControlPlaneOptions> cpOpt)
+    public RedisStore(IOptions<RedisOptions> redisOpt, IOptions<ControlPlaneOptions> cpOpt, ILogger<RedisStore> log)
     {
         _opt = cpOpt.Value;
 
-        _mux = ConnectionMultiplexer.Connect(redisOpt.Value.ConnectionString);
-        _db = _mux.GetDatabase(redisOpt.Value.Database);
+        try
+        {
+            _mux = ConnectionMultiplexer.Connect(redisOpt.Value.ConnectionString);
+            _db = _mux.GetDatabase(redisOpt.Value.Database);
+
+            var endpoints = string.Join(",", _mux.GetEndPoints().Select(e => e.ToString()));
+            log.LogInformation($"[RedisStore] Connected to {endpoints}, Database={redisOpt.Value.Database}, Prefix={_opt.Prefix}");
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, $"[RedisStore] Failed to connect to Redis: {redisOpt.Value.ConnectionString}");
+            throw;
+        }
 
         //_luaReserveOrConsume = LuaScript.Load(LuaTexts.ReserveOrConsumeTicket);
         //_luaAttachPresence = LuaScript.Prepare(LuaTexts.AttachPresence);
