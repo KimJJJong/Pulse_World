@@ -1,0 +1,16 @@
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\bin\Release\net8.0\ServerCore.deps.json
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\bin\Release\net8.0\ServerCore.dll
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\bin\Release\net8.0\ServerCore.pdb
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\bin\Release\net8.0\Shared.dll
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\bin\Release\net8.0\Shared.pdb
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\obj\Release\net8.0\ServerCore.csproj.AssemblyReference.cache
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\obj\Release\net8.0\ServerCore.GeneratedMSBuildEditorConfig.editorconfig
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\obj\Release\net8.0\ServerCore.AssemblyInfoInputs.cache
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\obj\Release\net8.0\ServerCore.AssemblyInfo.cs
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\obj\Release\net8.0\ServerCore.csproj.CoreCompileInputs.cache
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\obj\Release\net8.0\ServerCore.sourcelink.json
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\obj\Release\net8.0\ServerCore.csproj.Up2Date
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\obj\Release\net8.0\ServerCore.dll
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\obj\Release\net8.0\refint\ServerCore.dll
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\obj\Release\net8.0\ServerCore.pdb
+D:\Git\Server\Trick_Or_Troll\Server\ServerCore\obj\Release\net8.0\ref\ServerCore.dll
