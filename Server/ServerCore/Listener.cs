@@ -58,9 +58,13 @@ namespace ServerCore
                 if (args.SocketError == SocketError.Success)
                 {
                     Session session = _sessionFactory.Invoke();
+                    
+                    // [Fix] Cache EndPoint before Start, as Start might close socket on error
+                    EndPoint endPoint = args.AcceptSocket.RemoteEndPoint;
                     session.Start(args.AcceptSocket);
-                    session.OnConnected(args.AcceptSocket.RemoteEndPoint);
-                    LogManager.Instance.LogInfo("Listener", $"Accepted connection from {args.AcceptSocket.RemoteEndPoint}");
+                    session.OnConnected(endPoint);
+                    
+                    LogManager.Instance.LogInfo("Listener", $"Accepted connection from {endPoint}");
                 }
                 /*else
                     Console.WriteLine(args.SocketError.ToString());*/
