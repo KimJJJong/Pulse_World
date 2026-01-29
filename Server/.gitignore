@@ -31,7 +31,7 @@ Thumbs.db
 
 # === [ File ]
 GenPackets.bat
-appsettings.json
+# appsettings.json
 
 # === [ Docker & DB Data ] ===
 .env
