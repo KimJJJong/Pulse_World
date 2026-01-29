@@ -12,7 +12,14 @@ if [ ! -f .env ]; then
     fi
 fi
 
-# 2. Add execute permission (just in case)
+# 2. Cleanup Legacy Data (Fixes Permission Denied)
+if [ -d "data/postgres" ]; then
+    echo "[start.sh] Removing legacy data/postgres to prevent permission errors..."
+    # Try removing. If fails, ask user for sudo.
+    rm -rf data/postgres 2>/dev/null || sudo rm -rf data/postgres
+fi
+
+# 3. Add execute permission (just in case)
 chmod +x start.sh 2>/dev/null
 
 # 3. Docker Compose Up
