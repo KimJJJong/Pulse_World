@@ -61,18 +61,22 @@ namespace ServerCore
                     
                     // [Fix] Cache EndPoint before Start, as Start might close socket on error
                     EndPoint endPoint = args.AcceptSocket.RemoteEndPoint;
+                    LogManager.Instance.LogInfo("Listener", $"[Pre-Start] Accepted connection from {endPoint}");
+
                     session.Start(args.AcceptSocket);
                     session.OnConnected(endPoint);
                     
-                    LogManager.Instance.LogInfo("Listener", $"Accepted connection from {endPoint}");
+                    LogManager.Instance.LogInfo("Listener", $"[Post-Start] Session initialized for {endPoint}");
                 }
-                /*else
-                    Console.WriteLine(args.SocketError.ToString());*/
+                else
+                {
+                    LogManager.Instance.LogError("Listener", $"Socket accept failed: {args.SocketError}");
+                    //Console.WriteLine(args.SocketError.ToString());
+                }
             }
 			catch (Exception e)
 			{
-                LogManager.Instance.LogError("Listener", $"AcceptSocket Error: {e}");
-                //Console.WriteLine($"Err Connect Fail : { e.Message }");
+                LogManager.Instance.LogError("Listener", $"AcceptSocket Exception: {e}");
 			}
 			finally
 			{
