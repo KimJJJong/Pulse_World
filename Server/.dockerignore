@@ -1,0 +1,21 @@
+# Version Control
+.git
+.gitignore
+
+# IDES
+.vs
+.idea
+*.sln.docstates
+*.suo
+*.user
+*.userosscache
+*.sln.iml
+
+# Build Results
+**/bin/
+**/obj/
+
+# Docker
+.dockerignore
+docker-compose.yml
+.env

@@ -34,5 +34,5 @@ GenPackets.bat
 # appsettings.json (Tracked for structure sync)
 
 # === [ Data & Secrets ] ===
-data/
+/data/
 .env
