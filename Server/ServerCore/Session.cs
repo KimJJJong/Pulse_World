@@ -4,7 +4,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using Shared;
 
 namespace ServerCore
 {
@@ -83,21 +82,20 @@ namespace ServerCore
         public void Start(Socket socket)
         {
             _socket = socket;
-            _socket.NoDelay = true;
+            _socket.NoDelay = true;     //TODO : Test delay
             _recvArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnRecvCompleted);
             _sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSendCompleted);
 
-            LogManager.Instance.LogInfo("Session", "Session Started");
             RegisterRecv();
         }
 
-        public void Send(List<ArraySegment<byte>> sendBufferList)
+        public void Send(List<ArraySegment<byte>> snedBufferList)
         {
-            if (sendBufferList.Count == 0) return;
+            if (snedBufferList.Count == 0) return;
 
             lock (_lock)
             {
-                foreach (ArraySegment<byte> sendBuffer in sendBufferList)
+                foreach (ArraySegment<byte> sendBuffer in snedBufferList)
                 {
                     _sendQueue.Enqueue(sendBuffer);
 
@@ -105,13 +103,16 @@ namespace ServerCore
                         RegisterSend();
                 }
             }
+
         }
 
         public void Send(ArraySegment<byte> sendBuff)
         {
+
             lock (_lock)
             {
                 _sendQueue.Enqueue(sendBuff);
+                // 보내고 있지 않을때의 경우 ResgisterSend 진행
                 if (_pendingList.Count == 0)
                     RegisterSend();
             }
@@ -119,25 +120,27 @@ namespace ServerCore
 
         public void Disconnect()
         {
-            if (Interlocked.Exchange(ref _disconnected, 1) == 1) return;
+            // 중복 Disconnect 방지
+            if (Interlocked.Exchange(ref _disconnected, 1) == 1)
+                return;
 
-            EndPoint ep = _socket.RemoteEndPoint;
-            LogManager.Instance.LogInfo("Session", $"Disconnecting session from {ep}");
-
-            OnDisconnected(ep);
+            OnDisconnected(_socket.RemoteEndPoint);
             _socket.Shutdown(SocketShutdown.Both);
             _socket.Close();
             Clear();
+
         }
 
         #region 네트워크 통신
 
         void RegisterSend()
         {
+            // 완벽하지 않슈
             if (_disconnected == 1) return;
 
             while (_sendQueue.Count > 0)
             {
+                // ArraySegment : C#에서 주소 참조가 어렵기 때문에 사용하는 형식 
                 ArraySegment<byte> buff = _sendQueue.Dequeue();
                 _pendingList.Add(buff);
             }
@@ -151,8 +154,9 @@ namespace ServerCore
             }
             catch (Exception ex)
             {
-                LogManager.Instance.LogError("Session", $"RegisterSend Failed : {ex}");
+                Console.WriteLine($"RegisterSend Failed : {ex}");
             }
+
         }
 
         void OnSendCompleted(object sender, SocketAsyncEventArgs args)
@@ -173,7 +177,7 @@ namespace ServerCore
                     }
                     catch (Exception e)
                     {
-                        LogManager.Instance.LogError("Session", $"OnSendCompleted Failed {e}");
+                        Console.WriteLine($"OnSendCompleted Failed {e}");
                     }
                 }
                 else
@@ -199,34 +203,35 @@ namespace ServerCore
             }
             catch (Exception ex)
             {
-                LogManager.Instance.LogError("Session", $"RegisterRecv Failed : {ex}");
+                Console.WriteLine($"RegisterRecv Failed : {ex}");
             }
         }
 
+        // Memory 충돌 다소 안전 : 내부 argument만사용
         void OnRecvCompleted(object sender, SocketAsyncEventArgs args)
         {
             if (args.BytesTransferred > 0 && args.SocketError == SocketError.Success)
             {
                 try
                 {
+                    // 받은 Bytes만큼 Write 커서 이동
                     if (_recvBuffer.OnWrite(args.BytesTransferred) == false)
                     {
-                        LogManager.Instance.LogError("Session", "OnWrite Failed");
                         Disconnect();
                         return;
                     }
 
+                    // 컨텐츠 쪽으로 데이터를 넘겨주고 얼마나 처리했는지 받는다
                     int processLen = OnRecv(_recvBuffer.ReadSegment);
                     if (processLen < 0 || _recvBuffer.DataSize < processLen)
                     {
-                        LogManager.Instance.LogError("Session", $"OnRecv ProcessLen Error: {processLen}, DataSize: {_recvBuffer.DataSize}");
                         Disconnect();
                         return;
                     }
 
+                    // Read 커서 이동
                     if (_recvBuffer.OnRead(processLen) == false)
                     {
-                        LogManager.Instance.LogError("Session", "OnRead Failed");
                         Disconnect();
                         return;
                     }
@@ -235,12 +240,11 @@ namespace ServerCore
                 }
                 catch (Exception e)
                 {
-                    LogManager.Instance.LogError("Session", $"OnRecvCompleted Exception: {e}");
+                    Console.WriteLine($"OnRecvCompleted Failed {e}");
                 }
             }
             else
             {
-                LogManager.Instance.LogInfo("Session", $"OnRecvCompleted Disconnect Signal: {args.SocketError}, Bytes: {args.BytesTransferred}");
                 Disconnect();
             }
         }

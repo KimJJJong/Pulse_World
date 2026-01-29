@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 989d7804a020a834d8432747d2a151ce, type: 3}
   m_Name: AppConfig
   m_EditorClassIdentifier: Assembly-CSharp::AppConfig
-  BaseUrl: http://127.0.0.1:5000
+  BaseUrl: http://jjongserver.ddns.net:80
   TimeoutSeconds: 15
   ClientVersion: 0.1.0

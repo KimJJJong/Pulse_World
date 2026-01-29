@@ -58,25 +58,17 @@ namespace ServerCore
                 if (args.SocketError == SocketError.Success)
                 {
                     Session session = _sessionFactory.Invoke();
-                    
-                    // [Fix] Cache EndPoint before Start, as Start might close socket on error
-                    EndPoint endPoint = args.AcceptSocket.RemoteEndPoint;
-                    LogManager.Instance.LogInfo("Listener", $"[Pre-Start] Accepted connection from {endPoint}");
-
                     session.Start(args.AcceptSocket);
-                    session.OnConnected(endPoint);
-                    
-                    LogManager.Instance.LogInfo("Listener", $"[Post-Start] Session initialized for {endPoint}");
+                    session.OnConnected(args.AcceptSocket.RemoteEndPoint);
+                    LogManager.Instance.LogInfo("Listener", $"Accepted connection from {args.AcceptSocket.RemoteEndPoint}");
                 }
-                else
-                {
-                    LogManager.Instance.LogError("Listener", $"Socket accept failed: {args.SocketError}");
-                    //Console.WriteLine(args.SocketError.ToString());
-                }
+                /*else
+                    Console.WriteLine(args.SocketError.ToString());*/
             }
 			catch (Exception e)
 			{
-                LogManager.Instance.LogError("Listener", $"AcceptSocket Exception: {e}");
+                LogManager.Instance.LogError("Listener", $"AcceptSocket Error: {e}");
+                //Console.WriteLine($"Err Connect Fail : { e.Message }");
 			}
 			finally
 			{
