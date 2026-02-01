@@ -129,9 +129,33 @@ public sealed class GameRoom : RoomBase
         }
         else
         {
-             // 게임이 아직 시작되지 않음. 바인딩만 하고 BroadcastGameStart에서 Init 패킷 일괄 전송 대기.
-             // Don't enqueue Init packet here.
+             // 게임이 아직 시작되지 않음. 대기실 갱신 패킷 전송.
+             // (Waiting 상태에서는 아직 Entity가 없으므로 InitPacket 대신 AllPlayersLoaded나 별도 패킷으로 갱신)
+             // 여기서는 기존 AllPlayersLoaded 패킷 재활용 (loaded=false/true 상태 반영)
+
+             ScheduleBroadcastPlayerList();
         }
+    }
+
+    private void ScheduleBroadcastPlayerList()
+    {
+        Enqueue(() =>
+        {
+            var pkt = new SC_AllPlayersLoaded { matchId = MatchId };
+            lock (_lock)
+            {
+                foreach (var p in _players.Values)
+                {
+                    pkt.playerss.Add(new SC_AllPlayersLoaded.Players
+                    {
+                        uid = p.Uid,
+                        slot = p.SeatIndex,
+                        loaded = _loaded.Contains(p.Uid)
+                    });
+                }
+            }
+            Broadcast(pkt);
+        });
     }
 
     protected override void OnNewPlayerJoinedQueue(RoomPlayer p, SessionBase session)
