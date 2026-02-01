@@ -186,4 +186,7 @@ class PacketHandler
 
     public static void SC_EntitySpawnHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_EntitySpawnHandler((SC_EntitySpawn)packet);
+
+    public static void SC_ReturnToTownHandler(PacketSession session, IPacket packet)
+        => ClientHandlers.Instance.Handle_SC_ReturnToTown((SC_ReturnToTown)packet);
 }

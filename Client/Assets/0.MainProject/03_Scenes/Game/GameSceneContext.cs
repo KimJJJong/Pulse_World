@@ -71,6 +71,9 @@ public sealed class GameSceneContext : MonoBehaviour
         _mapId = mapId;
     }
 
+    int _maxPlayers = 2;
+    public void SetMaxPlayers(int max) => _maxPlayers = max;
+
     public async Task EnterGameAsync()
     {
         if (_entered) return;
@@ -92,7 +95,8 @@ public sealed class GameSceneContext : MonoBehaviour
             ClientTimeMs = NowLocalMs(),
             MapId = _mapId,
             LastKnownRevision = 0,
-            WantSnapshot = true
+            WantSnapshot = true,
+            MaxPlayers = _maxPlayers
         };
 
         Debug.Log($"[GameSceneContext] Sending CS_MapEnter... MapId={_mapId}");

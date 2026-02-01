@@ -78,6 +78,7 @@ namespace RhythmRPG.Editor.StageBuilder
     {
         SpawnMonster,
         Broadcast,
-        OpenGate
+        OpenGate,
+        ReturnToTown
     }
 }

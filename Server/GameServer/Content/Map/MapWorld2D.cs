@@ -183,6 +183,17 @@ public sealed class MapWorld2D : IGameWorld
         }
     }
 
+    // ==== 이동 처리 ====
+
+    private const bool DBG_MOVE_FAIL = true;
+    private const bool DBG_MOVE_OK = false; // 필요할 때만 true
+
+    private void MoveLog(string msg)
+    {
+        if (!DBG_MOVE_FAIL && !DBG_MOVE_OK) return;
+        Console.WriteLine(msg);
+    }
+
     public bool TryMove(int actorId, GridPos target)
     {
         if (!_entities.TryGetValue(actorId, out MapEntity e))

@@ -22,6 +22,8 @@ public sealed class ApiClient
         _identity = identity;
     }
 
+    public string BaseUrl => _baseUrl;
+
     public Task<ApiResult<T>> GetJsonAsync<T>(string path, bool attachAuth, string etag = null)
     {
         return SendWithAuthRetryAsync<T>("GET", path, null, attachAuth, null, etag);

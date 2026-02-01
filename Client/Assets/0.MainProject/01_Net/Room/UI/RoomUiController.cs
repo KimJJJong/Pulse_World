@@ -380,9 +380,9 @@ namespace NetClient.Room.UI
                 RefreshReadyButton();
             };
 
-            ws.OnGameStart += (endpoint, ticket, mapId) =>
+            ws.OnGameStart += (endpoint, ticket, mapId, maxPlayers) =>
             {
-                SetWarn($"GameStart: {endpoint.host}:{endpoint.port} Map:{mapId}");
+                SetWarn($"GameStart: {endpoint.host}:{endpoint.port} Map:{mapId} Max:{maxPlayers}");
                 _ = DisposeWsIfAny();
 
                 // DTO 변환 (Global EndpointDto -> SessionDtos.EndpointDto)
@@ -391,7 +391,8 @@ namespace NetClient.Room.UI
                    Endpoint = new SessionDtos.EndpointDto { Host = endpoint.host, Port = endpoint.port },
                    TicketId = ticket,
                    Key = _currentRoomId, // RoomId가 곧 GameServer의 Key(MatchId)
-                   MapId = mapId
+                   MapId = mapId,
+                   MaxPlayers = maxPlayers
                 };
 
                 // ClientFlow를 통해 게임 서버 접속 및 씬 전환

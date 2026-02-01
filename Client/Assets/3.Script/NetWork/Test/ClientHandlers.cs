@@ -340,7 +340,11 @@ public class ClientHandlers : MonoBehaviour
         }
     }
 
-
+    public void Handle_SC_ReturnToTown(SC_ReturnToTown p)
+    {
+        Debug.Log("[ClientHandlers] Received ReturnToTown");
+        ClientFlow.Instance.ReturnToTown();
+    }
 }
 
 

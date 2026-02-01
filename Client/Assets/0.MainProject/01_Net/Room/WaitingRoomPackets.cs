@@ -86,6 +86,7 @@ using System.Collections.Generic;
         public EndpointDto endpoint;
         public string ticket;
         public string mapId;
+        public int maxPlayers;
     }
 
     [Serializable]

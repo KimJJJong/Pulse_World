@@ -41,6 +41,8 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_Warn, PacketHandler.SC_WarnHandler);
 		_makeFunc.Add((ushort)PacketID.SC_Pong, MakePacket<SC_Pong>);
 		_handler.Add((ushort)PacketID.SC_Pong, PacketHandler.SC_PongHandler);
+		_makeFunc.Add((ushort)PacketID.SC_ReturnToTown, MakePacket<SC_ReturnToTown>);
+		_handler.Add((ushort)PacketID.SC_ReturnToTown, PacketHandler.SC_ReturnToTownHandler);
 		_makeFunc.Add((ushort)PacketID.SC_InitGame, MakePacket<SC_InitGame>);
 		_handler.Add((ushort)PacketID.SC_InitGame, PacketHandler.SC_InitGameHandler);
 		_makeFunc.Add((ushort)PacketID.SC_CalibResult, MakePacket<SC_CalibResult>);

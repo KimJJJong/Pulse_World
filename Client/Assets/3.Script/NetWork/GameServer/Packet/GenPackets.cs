@@ -22,15 +22,16 @@ public enum PacketID
 	SC_Warn = 14,
 	CS_Ping = 15,
 	SC_Pong = 16,
-	SC_InitGame = 17,
-	SC_CalibResult = 18,
-	CS_CalibHit = 19,
-	SC_BeatSync = 20,
-	CS_ActionRequest = 21,
-	SC_BeatActions = 22,
-	SC_BeatTelegraphs = 23,
-	SC_EntityDespawn = 24,
-	SC_EntitySpawn = 25,
+	SC_ReturnToTown = 17,
+	SC_InitGame = 18,
+	SC_CalibResult = 19,
+	CS_CalibHit = 20,
+	SC_BeatSync = 21,
+	CS_ActionRequest = 22,
+	SC_BeatActions = 23,
+	SC_BeatTelegraphs = 24,
+	SC_EntityDespawn = 25,
+	SC_EntitySpawn = 26,
 	
 }
 
@@ -270,6 +271,7 @@ public class CS_MapEnter : IPacket
 	public string MapId;
 	public int LastKnownRevision;
 	public bool WantSnapshot;
+	public int MaxPlayers;
 
 	public ushort Protocol { get { return (ushort)PacketID.CS_MapEnter; } }
 
@@ -290,6 +292,8 @@ public class CS_MapEnter : IPacket
 		count += sizeof(int);
 		this.WantSnapshot = BitConverter.ToBoolean(s.Slice(count, s.Length - count));
 		count += sizeof(bool);
+		this.MaxPlayers = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		count += sizeof(int);
 	}
 
 	public ArraySegment<byte> Write()
@@ -313,6 +317,8 @@ public class CS_MapEnter : IPacket
 		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.WantSnapshot);
 		count += sizeof(bool);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.MaxPlayers);
+		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s, count);
 		if (success == false)
 			return null;
@@ -1112,6 +1118,41 @@ public class SC_Pong : IPacket
 		count += sizeof(long);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.serverSendMs);
 		count += sizeof(long);
+		success &= BitConverter.TryWriteBytes(s, count);
+		if (success == false)
+			return null;
+		return SendBufferHelper.Close(count);
+	}
+}
+
+public class SC_ReturnToTown : IPacket
+{
+	
+
+	public ushort Protocol { get { return (ushort)PacketID.SC_ReturnToTown; } }
+
+	public void Read(ArraySegment<byte> segment)
+	{
+		ushort count = 0;
+
+		ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+		count += sizeof(ushort);
+		count += sizeof(ushort);
+		
+	}
+
+	public ArraySegment<byte> Write()
+	{
+		ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+		ushort count = 0;
+		bool success = true;
+
+		Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+		count += sizeof(ushort);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.SC_ReturnToTown);
+		count += sizeof(ushort);
+		
 		success &= BitConverter.TryWriteBytes(s, count);
 		if (success == false)
 			return null;

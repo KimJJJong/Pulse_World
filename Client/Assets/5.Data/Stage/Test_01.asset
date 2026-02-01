@@ -35,14 +35,14 @@ MonoBehaviour:
     Conditions:
     - Type: 0
       TargetId: 1
-      Count: 1
+      Count: 2
       Area:
         x: 0
         y: 0
         width: 0
         height: 0
     Actions:
-    - Type: 0
-      ParamId: 101
-      Position: {x: 14, y: 16}
-      StringVal: spawnMonster
+    - Type: 3
+      ParamId: 0
+      Position: {x: 0, y: 0}
+      StringVal: 

@@ -15,7 +15,7 @@ using UnityEngine;
         public event Action<string, string> OnMemberJoin; // uid, name
         public event Action<string> OnMemberLeave; // uid
         public event Action<string, bool> OnMemberUpdate; // uid, ready
-        public event Action<EndpointDto, string, string> OnGameStart; // endpoint, ticket, mapId
+        public event Action<EndpointDto, string, string, int> OnGameStart; // endpoint, ticket, mapId, maxPlayers
         public event Action<string> OnErrorMsg;
         
         // Connection Events
@@ -106,7 +106,9 @@ using UnityEngine;
                         OnInit?.Invoke(initMsg.room);
                         break;
                     case "MemberJoin":
+                        Debug.Log($"[RoomWsClient] MemberJoin Packet: {json}");
                         var joinMsg = JsonUtility.FromJson<MemberJoinMsg>(json);
+                        Debug.Log($"[RoomWsClient] MemberJoin Parsed: uid={joinMsg.uid}, name={joinMsg.name}");
                         OnMemberJoin?.Invoke(joinMsg.uid, joinMsg.name);
                         break;
                     case "MemberLeave":
@@ -119,7 +121,7 @@ using UnityEngine;
                         break;
                     case "GameStart":
                         var startMsg = JsonUtility.FromJson<GameStartMsg>(json);
-                        OnGameStart?.Invoke(startMsg.endpoint, startMsg.ticket, startMsg.mapId);
+                        OnGameStart?.Invoke(startMsg.endpoint, startMsg.ticket, startMsg.mapId, startMsg.maxPlayers);
                         break;
                     case "Error":
                         var errMsg = JsonUtility.FromJson<ErrorMsg>(json);

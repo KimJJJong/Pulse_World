@@ -105,7 +105,7 @@ public sealed class TownScreen : MonoBehaviour
         var clientNonce = "town-" + System.Guid.NewGuid().ToString("N");
 
         view.SetStatus("연결 시도 중... (Handshake 대기)"); 
-        ClientFlow.Instance.ConnectTown(_lastTown, clientNonce);
+        await ClientFlow.Instance.ConnectTown(_lastTown, clientNonce);
     }
 
     async Task ConnectGameAsync()
