@@ -49,7 +49,8 @@ public sealed class SessionController : ControllerBase
             ServerId: result.ServerId,
             Endpoint: new SessionDtos.EndpointDto(result.Endpoint.Host, result.Endpoint.Port),
             Key: result.Key,
-            MapId: result.MapId
+            MapId: result.MapId,
+            MaxPlayers: result.MaxPlayers
         ));
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace ApiServer.Presentation.Http.Contracts;
+﻿using System.Text.Json.Serialization;
+
+namespace ApiServer.Presentation.Http.Contracts;
 
 public static class SessionDtos
 {
@@ -27,8 +29,9 @@ public static class SessionDtos
         string TicketId,
         long ExpireAtMs,
         string ServerId,
-        [property: JsonProperty("key")] string Key,
-        [property: JsonProperty("mapId")] string MapId,
-        [property: JsonProperty("maxPlayers")] int MaxPlayers
+        EndpointDto Endpoint,
+        [property: JsonPropertyName("key")] string Key,
+        [property: JsonPropertyName("mapId")] string MapId,
+        [property: JsonPropertyName("maxPlayers")] int MaxPlayers
     );
 }

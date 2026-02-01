@@ -9,5 +9,6 @@ public sealed record IssueGameTicketResult(
     string ServerId,
     Ports.Models.Endpoint Endpoint,
     string Key,
-    string MapId
+    string MapId,
+    int MaxPlayers
 );
