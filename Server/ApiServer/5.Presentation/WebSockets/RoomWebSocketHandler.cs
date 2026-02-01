@@ -198,7 +198,7 @@ public sealed class RoomWebSocketHandler
                                 endpoint = new { host = ep.Host, port = ep.Port },
                                 ticket = ticketId,
                                 mapId = room.MapId,
-                                maxPlayers = room.MaxPlayers
+                                maxPlayers = room.MemberUids.Count // 실제 참여 인원으로 시작
                             };
                             await _conns.SendToAsync(roomId, memberUid, payload);
                         }
