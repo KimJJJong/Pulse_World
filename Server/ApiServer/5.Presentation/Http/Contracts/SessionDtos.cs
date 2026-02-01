@@ -27,8 +27,8 @@ public static class SessionDtos
         string TicketId,
         long ExpireAtMs,
         string ServerId,
-        EndpointDto Endpoint,
-        string Key,
-        string MapId
+        [property: JsonProperty("key")] string Key,
+        [property: JsonProperty("mapId")] string MapId,
+        [property: JsonProperty("maxPlayers")] int MaxPlayers
     );
 }

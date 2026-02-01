@@ -7,8 +7,8 @@ public static class GameManager
 {
     static readonly ConcurrentDictionary<string, GameRoom> _rooms = new();
 
-    public static GameRoom GetOrCreate(string matchId, string mapId)
-        => _rooms.GetOrAdd(matchId, id => new GameRoom(id, mapId));
+    public static GameRoom GetOrCreate(string matchId, string mapId, int maxPlayers)
+        => _rooms.GetOrAdd(matchId, id => new GameRoom(id, mapId, maxPlayers: maxPlayers));
 
     public static bool TryGet(string matchId, out GameRoom room)
         => _rooms.TryGetValue(matchId, out room);

@@ -38,6 +38,7 @@
 		<!-- 없으면 0 -->
 		<bool   name="WantSnapshot"/>
 		<!-- true -->
+		<int    name="MaxPlayers"/>
 	</packet>
 
 	<!-- COMMON: 월드/맵/기존 인원/엔티티 스냅샷 (A 방식: 내 플레이어 포함) -->

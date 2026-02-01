@@ -271,6 +271,7 @@ public class CS_MapEnter : IPacket
 	public string MapId;
 	public int LastKnownRevision;
 	public bool WantSnapshot;
+	public int MaxPlayers;
 
 	public ushort Protocol { get { return (ushort)PacketID.CS_MapEnter; } }
 
@@ -291,6 +292,8 @@ public class CS_MapEnter : IPacket
 		count += sizeof(int);
 		this.WantSnapshot = BitConverter.ToBoolean(s.Slice(count, s.Length - count));
 		count += sizeof(bool);
+		this.MaxPlayers = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		count += sizeof(int);
 	}
 
 	public ArraySegment<byte> Write()
@@ -314,6 +317,8 @@ public class CS_MapEnter : IPacket
 		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.WantSnapshot);
 		count += sizeof(bool);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.MaxPlayers);
+		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s, count);
 		if (success == false)
 			return null;

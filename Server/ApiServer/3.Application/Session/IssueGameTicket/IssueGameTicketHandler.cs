@@ -72,7 +72,8 @@ public sealed class IssueGameTicketHandler
             ServerId: serverId,
             Endpoint: endpoint,
             Key: key,
-            MapId: cmd.Map
+            MapId: cmd.Map,
+            MaxPlayers: cmd.MaxPlayers
         );
     }
 }
