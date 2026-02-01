@@ -100,10 +100,13 @@ public sealed class GameRoom : RoomBase
                 }
             }
 
-            if (allReady)
-                Console.WriteLine($"[GameRoom] All Players Loaded! Count={_players.Count}");
+            if (allReady && _players.Count >= _maxPlayers)
+            {
+                Console.WriteLine($"[GameRoom] All Players ({_players.Count}) Loaded! Count={_players.Count}");
+                return true;
+            }
 
-            return allReady && _players.Count > 0;
+            return false;
         }
     }
 
@@ -122,6 +125,8 @@ public sealed class GameRoom : RoomBase
     protected override void OnPlayerBound(RoomPlayer p, bool isNew)
     {
         // 게임이 이미 시작된 경우, 재연결/중도 참여 처리
+        // 주의: ScheduleStart 등에 의해 Countdown 중일 때도 Running으로 취급할지 고민 필요
+        // 여기서는 Running 상태면 진입 허용
         if (_phase == RoomPhase.Running)
         {
             // Use base logic which enqueues EnsurePlayerSpawned + SendInitPacket
@@ -200,7 +205,15 @@ public sealed class GameRoom : RoomBase
     // =====================================================
     public void ScheduleStart(long startAtMs)
     {
-        _phase = RoomPhase.Countdown;
+        lock(_lock)
+        {
+            if (_phase == RoomPhase.Running || _phase == RoomPhase.Countdown || _phase == RoomPhase.Ended)
+            {
+                _logger.LogWarning("[GameRoom] ScheduleStart ignored. Phase is already {Phase}", _phase);
+                return;
+            }
+            _phase = RoomPhase.Countdown;
+        }
         var delay = Math.Max(0, (int)(startAtMs - AppRef.ServerTimeMs()));
 
         _ = Task.Run(async () =>
