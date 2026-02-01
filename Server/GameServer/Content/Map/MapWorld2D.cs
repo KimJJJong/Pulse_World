@@ -67,17 +67,38 @@ public sealed class MapWorld2D : IGameWorld
         // grid 정리(있으면)
         var pos = e.Position;
         var key = (pos.X, pos.Y);
+        bool removedFromGrid = false;
 
         if (_entitiesByGrid.TryGetValue(key, out var set))
         {
-            set.Remove(entityId);
-            if (set.Count == 0)
-                _entitiesByGrid.Remove(key);
+            if (set.Remove(entityId))
+            {
+                removedFromGrid = true;
+                if (set.Count == 0)
+                    _entitiesByGrid.Remove(key);
+            }
+        }
+
+        // Fast remove failed -> Scan all (Safety Fallback)
+        if (!removedFromGrid)
+        {
+            Console.WriteLine($"[Despawn] Fast remove failed for {entityId} at ({pos.X},{pos.Y}). Scanning grid...");
+            var keysToRemove = new List<(int, int)>();
+            foreach (var kv in _entitiesByGrid)
+            {
+                if (kv.Value.Remove(entityId))
+                {
+                    Console.WriteLine($"[Despawn] Found & Removed {entityId} at ({kv.Key.x},{kv.Key.y})");
+                    if (kv.Value.Count == 0) keysToRemove.Add(kv.Key);
+                }
+            }
+            foreach (var k in keysToRemove) _entitiesByGrid.Remove(k);
         }
 
         // 월드에서 제거
         _entities.Remove(entityId);
-        Console.WriteLine("말소!!!!");
+        Console.WriteLine($"[Despawn] Entity {entityId} Removed. (Alive? {e.IsAlive})");
+
         //  중요: 이미 죽었든 말든 “항상” despawn 전파
         _broadcaster.Broadcast(new SC_EntityDespawn
         {
@@ -89,7 +110,6 @@ public sealed class MapWorld2D : IGameWorld
         e.IsAlive = false;
         return true;
     }
-
 
     // ==== 위치 조회 ====
 
@@ -163,18 +183,6 @@ public sealed class MapWorld2D : IGameWorld
         }
     }
 
-
-    // ==== 이동 처리 ====
-
-    private const bool DBG_MOVE_FAIL = true;
-    private const bool DBG_MOVE_OK = false; // 필요할 때만 true
-
-    private void MoveLog(string msg)
-    {
-        if (!DBG_MOVE_FAIL && !DBG_MOVE_OK) return;
-        Console.WriteLine(msg);
-    }
-
     public bool TryMove(int actorId, GridPos target)
     {
         if (!_entities.TryGetValue(actorId, out MapEntity e))
@@ -205,23 +213,49 @@ public sealed class MapWorld2D : IGameWorld
             return false;
         }
 
-        // 3) 인접(4방)
-        var dx = Math.Abs(target.X - from.X);
-        var dy = Math.Abs(target.Y - from.Y);
-        //if (dx + dy != 1)
-        //{
-        //    if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL NotAdjacent actor={actorId} from=({from.X},{from.Y}) target=({target.X},{target.Y}) dx={dx} dy={dy}");
-        //    return false;
-        //}
+        // 3) 인접(4방) - Optional
 
-        // 4) 점유
+        // 4) 점유 (Robust Logic)
         var targetKey = (target.X, target.Y);
         if (_entitiesByGrid.TryGetValue(targetKey, out var occ) && occ.Count > 0)
         {
-            // 누가 막는지도 출력 (1칸에 1개만이라면 First만 찍어도 충분)
-            int blocker = occ.First();
-            //if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL Occupied actor={actorId} from=({from.X},{from.Y}) target=({target.X},{target.Y}) by={blocker} occCount={occ.Count}");
-            return false;
+            // 실제 존재하는 Entity인지, 살아있는지 확인 (Ghost Cleanup)
+            bool actualCollision = false;
+            int blockerId = -1;
+            List<int> ghosts = null;
+
+            foreach (var occupantId in occ)
+            {
+                if (_entities.TryGetValue(occupantId, out var occupant) && occupant.IsAlive)
+                {
+                    actualCollision = true;
+                    blockerId = occupantId;
+                    break; 
+                }
+                else
+                {
+                    // Ghost detected (not in _entities or !IsAlive)
+                    if (ghosts == null) ghosts = new List<int>();
+                    ghosts.Add(occupantId);
+                }
+            }
+
+            // Lazy Cleanup
+            if (ghosts != null)
+            {
+                foreach (var g in ghosts)
+                {
+                    occ.Remove(g);
+                    Console.WriteLine($"[TryMove] Cleaned up Ghost {g} at ({target.X},{target.Y})");
+                }
+                if (occ.Count == 0) _entitiesByGrid.Remove(targetKey);
+            }
+
+            if (actualCollision)
+            {
+                //if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL Occupied actor={actorId} target=({target.X},{target.Y}) by={blockerId}");
+                return false;
+            }
         }
 
         // 5) 반영
