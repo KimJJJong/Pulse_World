@@ -196,7 +196,19 @@ public sealed class WaitingRoomService
         var list = new List<WaitingRoomDto>();
         foreach (var (ok, dto) in results)
         {
-            if (ok && dto != null) list.Add(dto);
+            if (ok && dto != null) 
+            {
+                // Lazy Cleanup: Remove empty rooms
+                if (dto.MemberUids.Count == 0)
+                {
+                    // Fire and forget cleanup
+                    _ = _redis.Db.KeyDeleteAsync(_redis.KeyWaitingRoom(dto.RoomId));
+                    _ = _redis.Db.KeyDeleteAsync($"{_redis.KeyWaitingRoom(dto.RoomId)}:members");
+                    _ = _redis.Db.SetRemoveAsync(_redis.KeyWaitingRoomIndex(), dto.RoomId);
+                    continue;
+                }
+                list.Add(dto);
+            }
         }
 
         return (list, nextCursor);

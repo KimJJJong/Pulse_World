@@ -143,12 +143,21 @@ public sealed class RoomWebSocketHandler
                         throw new Exception("Only owner can start");
 
                     // 2. Ready Check
+                    _logger.LogInformation("Start Check Room={roomId} Owner={owner} Members={members} Ready={ready}", 
+                        roomId, 
+                        room.OwnerUid, 
+                        string.Join(",", room.MemberUids), 
+                        string.Join(",", room.MemberReady.Select(kv => $"{kv.Key}:{kv.Value}")));
+
                     var allReady = room.MemberUids
                         .Where(m => m != room.OwnerUid)
-                        .All(m => room.MemberReady.ContainsKey(m) && room.MemberReady[m]);
+                        .All(m => room.MemberReady.TryGetValue(m, out var isReady) && isReady);
 
                     if(!allReady) 
-                        throw new Exception("Not all members are ready");
+                    {
+                        _logger.LogWarning("Start Fail: Not all ready. Room={roomId}", roomId);
+                        throw new Exception("참가자가 모두 준비해야 시작할 수 있습니다."); // User friendly message
+                    }
 
                     // 3. Allocate GameServer (RPC to CP)
                     // ReserveTtl: 60s

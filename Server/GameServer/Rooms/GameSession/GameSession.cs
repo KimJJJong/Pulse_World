@@ -298,4 +298,10 @@ public sealed class GameSession : SessionBase
     {
         // 필요하면 Tick 기반 처리
     }
+
+    public void BroadcastReturnToTown()
+    {
+        Console.WriteLine("[GameSession] Broadcast ReturnToTown");
+        _broadcaster.Broadcast(new SC_ReturnToTown());
+    }
 }

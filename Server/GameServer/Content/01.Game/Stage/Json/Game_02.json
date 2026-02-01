@@ -1,11 +1,11 @@
 {
-    "MapId": "Game",
+    "MapId": "Game_02",
     "Description": "testDirection",
     "RhythmSettings": {
         "SongKey": "DefaultSong",
         "Bpm": 120,
         "BaseBeatDivision": 1,
-        "ActionWindowMs": 70,
+        "ActionWindowMs": 75,
         "StartDelayMs": 2000
     },
     "InitialSpawns": [
@@ -32,7 +32,7 @@
                 {
                     "Type": "MonsterAllDead",
                     "TargetId": 1,
-                    "Count": 2,
+                    "Count": 1,
                     "Area": {
                         "X": 0,
                         "Y": 0,
@@ -43,11 +43,11 @@
             ],
             "Actions": [
                 {
-                    "Type": "ReturnToTown",
-                    "ParamId": 0,
-                    "X": 0,
-                    "Y": 0,
-                    "StringVal": ""
+                    "Type": "SpawnMonster",
+                    "ParamId": 101,
+                    "X": 14,
+                    "Y": 16,
+                    "StringVal": "spawnMonster"
                 }
             ]
         }

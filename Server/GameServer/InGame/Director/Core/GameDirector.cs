@@ -140,6 +140,12 @@ namespace GameServer.InGame.Director.Core
             Console.WriteLine($"[Generate Broadcast] {msg}");
         }
 
+        public void ReturnToTown()
+        {
+            Console.WriteLine("[GameDirector] Triggering ReturnToTown");
+            _session.BroadcastReturnToTown();
+        }
+
         // ========================================================
         //  Factory Methods (Reflection or Switch)
         // ========================================================
@@ -163,6 +169,7 @@ namespace GameServer.InGame.Director.Core
             {
                 case "SpawnMonster": act = new ActionSpawnMonster(); break;
                 case "Broadcast": act = new ActionBroadcast(); break;
+                case "ReturnToTown": act = new ActionReturnToTown(); break;
             }
             act?.Init(data);
             return act;
@@ -173,6 +180,14 @@ namespace GameServer.InGame.Director.Core
             public EventData Data;
             public List<EventCondition> Conditions = new();
             public List<EventAction> Actions = new();
+        }
+
+        private class ActionReturnToTown : EventAction
+        {
+            public override void Execute(GameDirector director)
+            {
+                director.ReturnToTown();
+            }
         }
     }
 }

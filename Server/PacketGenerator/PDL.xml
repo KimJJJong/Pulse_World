@@ -152,6 +152,10 @@
 		<long   name="serverRecvMs"/>
 		<long   name="serverSendMs"/>
 	</packet>
+
+    <packet name="SC_ReturnToTown">
+    </packet>
+
 	<!-- GameLogic-->
 	
 	
