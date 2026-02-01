@@ -122,4 +122,3 @@ D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\obj\Debug\net8.0\ApiServer.pd
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\obj\Debug\net8.0\ApiServer.genruntimeconfig.cache
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\obj\Debug\net8.0\ref\ApiServer.dll
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\bin\Debug\net8.0\System.IO.Hashing.dll
-D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
