@@ -67,12 +67,12 @@ namespace GameServer.InGame.Manager.Beat
                 return;
             }
 
-            // 디버그 바 (항상 출력)
-            PrintJudgeBar(judge, now);
+            // 디버그 바 //Debug
+            //PrintJudgeBar(judge, now);
 
             if (!judge.IsAccepted)
-            {
-                Console.WriteLine($"[Reject] out of window. diff={judge.DiffMs}ms (±{_actionWindowMs}ms)");
+            {   //Debug
+                //Console.WriteLine($"[Reject] out of window. diff={judge.DiffMs}ms (±{_actionWindowMs}ms)");
                 return;
             }
 
@@ -82,8 +82,8 @@ namespace GameServer.InGame.Manager.Beat
                 Console.WriteLine($"[Reject] invalid action payload. reason={reason}");
                 return;
             }
-
-            Console.WriteLine($"[Accept] kind={cmd.Kind} currBeat={judge.CurrBeat} executeBeat={cmd.ExecuteBeat} diff={judge.DiffMs}ms");
+            //Debug
+            //Console.WriteLine($"[Accept] kind={cmd.Kind} currBeat={judge.CurrBeat} executeBeat={cmd.ExecuteBeat} diff={judge.DiffMs}ms");
 
             // --- Move: 즉시 실행 ---
             if (cmd.Kind == ActionKind.Move)

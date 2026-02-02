@@ -9,10 +9,10 @@ public enum EntityType : byte
     Object = 3,
 }
 
-public /*sealed*/ class MapEntity
+public  class MapEntity
 {
     /// <summary>
-    /// 0 ~  99   : Player 영역 (슬롯 개수 내)
+    /// 0 ~  99   : Player 영역 
     //100 ~ 999 : 일반 몬스터
     //1000~1999 : 소환수/펫
     //2000~2999 : 투사체

@@ -448,7 +448,7 @@ public sealed class GameRoom : RoomBase
                     if (p.Conn == null && p.LastDetachedTime > 0)
                     {
                         // 30초 이상 연결 끊김 상태면 강제 퇴장
-                        if (now - p.LastDetachedTime > 30_000)
+                        if (now - p.LastDetachedTime > 10_000)
                         {
                             if (toRemove == null) toRemove = new List<(string, long)>();
                             toRemove.Add((p.Uid, p.Epoch));

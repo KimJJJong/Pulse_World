@@ -10,6 +10,7 @@ using GameServer.InGame.System.Rhythm;
 using System;
 using System.Collections.Generic;
 using Util;
+using GameServer.Content.Game.Entity;
 
 public sealed class GameSession : SessionBase
 {
@@ -25,6 +26,7 @@ public sealed class GameSession : SessionBase
     // 전투용 엔티티
     private readonly List<MapEntity> _monsters = new();
     private readonly MonsterAIController _monsterAI;
+    private readonly EntityIdGenerator _idGen = new EntityIdGenerator(); // [NEW] ID Generator
     
     // [Director]
     public GameDirector Director { get; private set; }
@@ -40,6 +42,9 @@ public sealed class GameSession : SessionBase
     {
         _rhythm = rhythm;
         _rhythmConfig = rhythmConfig;
+
+        // Load Entity Data
+        EntityDataManager.Instance.Load();
 
         BeatActions = new BeatActionManager(
             time,
@@ -141,34 +146,55 @@ public sealed class GameSession : SessionBase
         Console.WriteLine($"[InitGame] End (Director Loaded). Sent BeatSync (Start:{sync.SongStartServerTimeMs})");
     }
     
-    // Director 전용 몬스터 소환 함수
-    public void SpawnMonsterInternal(int monsterId, int x, int y, int groupId, string aiKey)
+    // Director 전용 엔티티(몬스터/오브젝트) 소환 함수
+    public void SpawnEntityInternal(int entityId, EntityType type, int x, int y, int groupId, string aiKeyOrPattern)
     {
-        // 간단한 ID 생성 (실제론 GameManager 등에서 유니크 ID 발급 필요할 수 있음)
-        // 여기선 임시로 Random or Hash 사용, 혹은 GameRoom에서 관리하던 NextId 가져와야 함.
-        // 하지만 SessionBase는 NextActorId 관리를 안 함. 
-        // 프로토타입: 현재 Tick + Hash 조합
-        int newId = (int)(Environment.TickCount64 & 0x7FFFFFFF) + x * 1000 + y; 
+        int newId = _idGen.Generate(type);
 
-        var m = new MapEntity(newId, EntityType.Monster, new GridPos(x, y));
-        m.SetState("HP", 50); // TODO: MonsterTable 조회
-        m.SetState("GroupId", groupId);
+        var e = new MapEntity(newId, type, new GridPos(x, y));
         
-        if (World2D.TrySpawn(m, m.Position))
+        // entityId param is technically the ModelId (TypeId) from Data
+        e.SetState("ModelId", entityId); 
+
+        // [Data Driven Stats]
+        int maxHp = 10;
+        var entityData = EntityDataManager.Instance.Get(entityId);
+        if (entityData != null)
         {
-            _monsters.Add(m);
-            _monsterAI.RegisterMonster(m, aiKey);
-            Console.WriteLine($"[GameSession] Spawned Monster {monsterId} at ({x},{y}). AI={aiKey}");
+            maxHp = entityData.MaxHp;
+             Console.WriteLine($"[Spawn] Found Data for {entityId}: HP={maxHp}");
+        }
+        else
+        {
+            // Fallback
+            if (type == EntityType.Monster) maxHp = 50;
+        }
+
+        e.SetState("HP", maxHp);
+        e.SetState("GroupId", groupId);
+
+        if (type == EntityType.Monster && !string.IsNullOrEmpty(aiKeyOrPattern))
+        {
+             _monsterAI.RegisterMonster(e, aiKeyOrPattern);
+        }
+        // Objects might use aiKeyOrPattern for Pattern logic in future
+        
+        if (World2D.TrySpawn(e, e.Position))
+        {
+            _monsters.Add(e); // _monsters 리스트 이름을 _entities로 바꾸는게 좋겠지만 일단 같이 관리 (MapEntity니까)
+            
+            Console.WriteLine($"[GameSession] Spawned Entity {entityId}({type}) at ({x},{y}). Pattern={aiKeyOrPattern}");
 
             // Broadcast Spawn
             var pkt = new SC_EntitySpawn
             {
-                BeatIndex = 0, // dynamic spawn
-                EntityId = m.Id,
-                EntityType = (int)m.Type,
-                X = m.Position.X,
-                Y = m.Position.Y,
-                Hp = m.GetState<int>("HP")
+                BeatIndex = 0,
+                EntityId = e.Id,
+                EntityType = (int)e.Type,
+                ModelId = e.GetState<int>("ModelId"), 
+                X = e.Position.X,
+                Y = e.Position.Y,
+                Hp = e.GetState<int>("HP")
             };
             _broadcaster.Broadcast(pkt);
         }
@@ -226,7 +252,8 @@ public sealed class GameSession : SessionBase
                 OwnerSlot = -1,
                 X = m.Position.X,
                 Y = m.Position.Y,
-                Hp = m.GetState<int>("HP")
+                Hp = m.GetState<int>("HP"),
+                AppearanceId = m.GetState<int>("ModelId") // [NEW] Map to AppearanceId
             });
         }
 
@@ -292,6 +319,29 @@ public sealed class GameSession : SessionBase
         BeatActions.OnBeat(beatIndex);
         
         Director.NotifyEvent(new GameEventContext { Type = EventType.Beat, TimeMs = AppRef.ServerTimeMs() });
+
+        CleanupDeadEntities();
+    }
+
+    private void CleanupDeadEntities()
+    {
+        // Remove dead monsters and release IDs
+        _monsters.RemoveAll(m => 
+        {
+            if (!m.IsAlive)
+            {
+                _idGen.Release(m.Id);
+                _monsterAI.UnregisterMonster(m.Id);
+                // Also ensure it's removed from World2D if not already?
+                // World2D removal often happens on death, but let's be safe:
+                if (World2D.ContainsEntity(m.Id))
+                    World2D.Despawn(m.Id);
+                    
+                Console.WriteLine($"[GameSession] Entity {m.Id} Cleaned Up & ID Released.");
+                return true;
+            }
+            return false;
+        });
     }
 
     public override void Update()

@@ -1,6 +1,7 @@
 using GameServer.Content.Map;
 using GameServer.InGame.Director.Data;
 using GameServer.InGame.Director.Events;
+using GameServer.InGame.Manager.Entity; // [NEW] for EntityType enum
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -150,7 +151,19 @@ namespace GameServer.InGame.Director.Core
                 }
             }
 
-            _session.SpawnMonsterInternal(data.MonsterId, data.X, data.Y, data.GroupId, data.AI);
+            _session.SpawnEntityInternal(data.MonsterId, EntityType.Monster, data.X, data.Y, data.GroupId, data.AI);
+        }
+
+        public void SpawnObject(SpawnObjectData data)
+        {
+             var map = _session.Map;
+             if (map != null && !map.IsWalkable(data.X, data.Y))
+             {
+                 // Object는 벽에 생성될 수도 있으니 체크 완화 필요할 수도 있음
+                 Console.WriteLine($"[GameDirector] Spawn Object Failed. Invalid Pos ({data.X},{data.Y})");
+                 return;
+             }
+             _session.SpawnEntityInternal(data.EntityId, (EntityType)data.EntityType, data.X, data.Y, data.GroupId, data.Pattern);
         }
 
         public void BroadcastMessage(string msg)
@@ -169,7 +182,7 @@ namespace GameServer.InGame.Director.Core
 
         public void OpenGate(int x, int y)
         {
-            var map = _session.Map?.Map;
+            var map = _session.Map;
             if (map != null)
             {
                 // Gate logic: Set tile to Floor to make it walkable

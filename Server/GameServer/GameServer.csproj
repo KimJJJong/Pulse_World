@@ -40,6 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="StackExchange.Redis" Version="2.9.17" />
   </ItemGroup>
 
@@ -59,6 +60,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Folder Include="Content\01.Game\Entity\Json\" />
 	  <Folder Include="Content\02.Town\Pattern\" />
 	  <Folder Include="Content\02.Town\Skill\" />
 	  <Folder Include="Content\Map\Json\" />

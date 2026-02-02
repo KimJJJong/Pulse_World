@@ -12,6 +12,7 @@ namespace GameServer.InGame.Director.Data
         public RhythmSettingsData RhythmSettings = new RhythmSettingsData();
         
         public List<SpawnData> InitialSpawns = new List<SpawnData>();
+        public List<SpawnObjectData> InitialObjects = new List<SpawnObjectData>(); // [NEW]
         
         public List<EventData> Events = new List<EventData>();
     }
@@ -34,6 +35,17 @@ namespace GameServer.InGame.Director.Data
         public int Y;
         public string AI = "Default"; // AI Type Key
         public int GroupId = 0; // For event triggering (e.g., "Group 1 All Dead")
+    }
+
+    [Serializable]
+    public class SpawnObjectData
+    {
+        public int EntityId;
+        public int EntityType; // 3=Object
+        public int X;
+        public int Y;
+        public int GroupId;
+        public string Pattern; // Interaction/State Pattern
     }
 
     [Serializable]

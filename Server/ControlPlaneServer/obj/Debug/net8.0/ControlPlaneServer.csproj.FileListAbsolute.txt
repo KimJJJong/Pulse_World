@@ -43,4 +43,3 @@ D:\Git\Server\RhythmRPG\RhythmRPG\Server\ControlPlaneServer\obj\Debug\net8.0\ref
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ControlPlaneServer\obj\Debug\net8.0\ControlPlaneServer.pdb
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ControlPlaneServer\obj\Debug\net8.0\ControlPlaneServer.genruntimeconfig.cache
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ControlPlaneServer\obj\Debug\net8.0\ref\ControlPlaneServer.dll
-D:\Git\Server\RhythmRPG\RhythmRPG\Server\ControlPlaneServer\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

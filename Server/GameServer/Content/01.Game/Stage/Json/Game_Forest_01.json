@@ -1,0 +1,92 @@
+{
+    "MapId": "Game_Forest_01",
+    "Description": "Game_Forest_01\nMap~~~",
+    "RhythmSettings": {
+        "SongKey": "DefaultSong",
+        "Bpm": 120,
+        "BaseBeatDivision": 1,
+        "ActionWindowMs": 100,
+        "StartDelayMs": 2000
+    },
+    "InitialSpawns": [
+        {
+            "MonsterId": 100,
+            "X": 15,
+            "Y": 10,
+            "AI": "Default",
+            "GroupId": 10
+        },
+        {
+            "MonsterId": 101,
+            "X": 10,
+            "Y": 11,
+            "AI": "Default",
+            "GroupId": 10
+        }
+    ],
+    "InitialObjects": [],
+    "Events": [
+        {
+            "EventId": 1,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "MonsterAllDead",
+                    "TargetId": 10,
+                    "Count": 2,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SpawnMonster",
+                    "ParamId": 100,
+                    "X": 15,
+                    "Y": 11,
+                    "StringVal": "",
+                    "GroupId": 11
+                },
+                {
+                    "Type": "SpawnMonster",
+                    "ParamId": 101,
+                    "X": 15,
+                    "Y": 12,
+                    "StringVal": "",
+                    "GroupId": 11
+                }
+            ]
+        },
+        {
+            "EventId": 2,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "MonsterAllDead",
+                    "TargetId": 11,
+                    "Count": 2,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "ReturnToTown",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "StringVal": "",
+                    "GroupId": 0
+                }
+            ]
+        }
+    ]
+}

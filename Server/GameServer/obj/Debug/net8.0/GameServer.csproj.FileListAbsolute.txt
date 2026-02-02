@@ -36,3 +36,4 @@ D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\obj\Debug\net8.0\refint\Game
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\obj\Debug\net8.0\GameServer.pdb
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\obj\Debug\net8.0\GameServer.genruntimeconfig.cache
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\obj\Debug\net8.0\ref\GameServer.dll
+D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\bin\Debug\net8.0\Newtonsoft.Json.dll
