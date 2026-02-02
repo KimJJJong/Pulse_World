@@ -8,7 +8,15 @@ public class BoardView : MonoBehaviour, IClientWorldView
     [Header("Prefabs (자동 생성/할당 가능)")]
     public GameObject playerPrefab;
     public GameObject monsterPrefab;
+
     public GameObject tilePrefab;
+    
+    // [System.Serializable]
+    // public struct EntityPrefabMapping ... // Removed (Auto Load)
+    // public List<EntityPrefabMapping> entityPrefabs ... // Removed
+
+    // Runtime Cache
+    private Dictionary<int, GameObject> _entityPrefabCache = new Dictionary<int, GameObject>();
 
     [Header("Rendering")]
     public float cellSize = 1.0f;
@@ -41,9 +49,37 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     void Start()
     {
+        // Load Entity Path Map
+        LoadEntityMapping();
         ClientGameState.Instance.WorldView = this;
-
     }
+
+    private void LoadEntityMapping()
+    {
+        var textAsset = Resources.Load<TextAsset>("Data/EntityData");
+        if (textAsset != null)
+        {
+            try 
+            {
+                var root = JsonUtility.FromJson<EntityDataRoot>(textAsset.text);
+                foreach(var e in root.Entities)
+                {
+                    if (!string.IsNullOrEmpty(e.ResourcePath))
+                        _entityPathMap[e.EntityId] = e.ResourcePath;
+                }
+                Debug.Log($"[BoardView] Loaded {_entityPathMap.Count} entity paths from JSON.");
+            }
+            catch(System.Exception ex)
+            {
+                Debug.LogError($"[BoardView] Failed to parse EntityData.json: {ex.Message}");
+            }
+        }
+    }
+
+    [System.Serializable]
+    class EntityDataRoot { public List<EntityDataDTO> Entities; }
+    [System.Serializable]
+    class EntityDataDTO { public int EntityId; public string ResourcePath; }
     #region IClientWorldView
 
     public void OnCreateMap(int width, int height)
@@ -269,7 +305,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
     {
         if (!_entityViews.TryGetValue(info.EntityId, out var visual) || visual == null)
         {
-            GameObject prefab = ChoosePrefab(info.EntityType);
+            GameObject prefab = ChoosePrefab(info.EntityType, info.ModelId);
             if (prefab == null)
             {
                 Debug.LogWarning($"[BoardView] EntityType {info.EntityType}용 Prefab이 없음");
@@ -448,18 +484,51 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     #region Helper
 
-    private GameObject ChoosePrefab(int entityType)
+    private Dictionary<int, string> _entityPathMap = new Dictionary<int, string>(); // [ID -> ResourcePath]
+
+    private GameObject ChoosePrefab(int entityType, int modelId)
     {
-        // 서버 EntityType enum과 맞춰야 함
-        // 예: 0 = Player, 1 = Monster
+        // 1. Check Runtime Cache
+        if (_entityPrefabCache.TryGetValue(modelId, out var prefab))
+            return prefab;
+
+        // 2. Load via Path Map
+        string loadPath = "";
+        if (_entityPathMap.TryGetValue(modelId, out var mappedPath))
+        {
+            loadPath = mappedPath;
+        }
+        else
+        {
+            // Fallback: Legacy Naming
+            loadPath = $"Entities/Entity_{modelId}";
+        }
+
+        var def = Resources.Load<RhythmRPG.Editor.StageBuilder.EntityDefinitionSO>(loadPath);
+        
+        if (def != null && def.Prefab != null)
+        {
+            _entityPrefabCache[modelId] = def.Prefab;
+            Debug.Log($"[BoardView] Loaded Entity {modelId} from '{loadPath}'");
+            return def.Prefab;
+        }
+        else
+        {
+            if (modelId > 0)
+                Debug.LogWarning($"[BoardView] Failed to load Entity {modelId}. Path='{loadPath}'");
+        }
+
+        // 3. Fallback based on type (Legacy)
         switch (entityType)
         {
-            case 0:
+            case (int)EntityType.Player: // 1
                 return playerPrefab;
-            case 1:
-                return playerPrefab;
+            case (int)EntityType.Monster: // 2
+                return monsterPrefab;
+            case (int)EntityType.Object: // 3
+                return monsterPrefab; // 임시: 오브젝트도 없을 땐 몬스터? 아니면 null
             default:
-                return monsterPrefab;//!= null ? playerPrefab : monsterPrefab;
+                return monsterPrefab;
         }
     }
 

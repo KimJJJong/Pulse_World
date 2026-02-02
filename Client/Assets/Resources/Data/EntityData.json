@@ -1,0 +1,18 @@
+{
+    "Entities": [
+        {
+            "EntityId": 100,
+            "Name": "Pawn_B",
+            "EntityType": 2,
+            "MaxHp": 50,
+            "ResourcePath": "Data/Entity_100_Monster_BlackPawn"
+        },
+        {
+            "EntityId": 101,
+            "Name": "Pawn_W",
+            "EntityType": 2,
+            "MaxHp": 50,
+            "ResourcePath": "Data/Entity_101_Monster_WhitePawn"
+        }
+    ]
+}

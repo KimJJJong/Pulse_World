@@ -80,11 +80,12 @@ public class ClientHandlers : MonoBehaviour
         GS.ClearEntities();
         foreach (var e in p.entitiess)
         {
-             Debug.Log($"Spawn Entity: ID={e.EntityId} Type={(EntityType)e.EntityType} Pos=({e.X},{e.Y}) HP={e.Hp}");
+            Debug.Log($"Spawn Entity: ID={e.EntityId} Type={(EntityType)e.EntityType} Pos=({e.X},{e.Y}) HP={e.Hp}");
             GS.SpawnOrUpdateEntity(new ClientEntityInfo
             {
                 EntityId = e.EntityId,
                 EntityType = e.EntityType,
+                ModelId = e.AppearanceId,
                 X = e.X,
                 Y = e.Y,
                 Hp = e.Hp
@@ -311,8 +312,8 @@ public class ClientHandlers : MonoBehaviour
     public void Handle_SC_EntitySpawnHandler(SC_EntitySpawn p)
     {
         int id = p.EntityId;
-        bool spawn = GS.TryGetEntity(id, out var ent );
-        if( spawn)
+        bool exists = GS.TryGetEntity(id, out var ent);
+        if (exists)
         {
             Debug.LogWarning($"이미 Entity가 존재합니다 ID{id}|| MyId : {GS.MyActorId}");
             return;
@@ -322,21 +323,21 @@ public class ClientHandlers : MonoBehaviour
         {
             EntityId = p.EntityId,
             EntityType = p.EntityType,
+            ModelId = p.ModelId,
             X = p.X,
             Y = p.Y,
             Hp = p.Hp
         };
 
-        // 1) GS에서 논리 제거 + WorldView(=BoardView)에게 despawn 알림까지 전파
-        GS.UpdateEntityState(entity);
-
+        // 1) GS에서 논리 제거 + WorldView(=BoardView)에게 despawn 알림까지 전파 (? Comment seems copy paste from Despawn, but ok)
+        // SpawnOrUpdateEntity uses entity info to spawn.
+        GS.SpawnOrUpdateEntity(entity);
 
         Debug.Log($"[SC_EntitySpawn] entityId={entity.EntityId} spawn ");
 
         if (id == GS.MyActorId)
         {
             Debug.LogWarning("[SC_EntitySpawn] My actor overload. Disable / show UI.");
-            
         }
     }
 

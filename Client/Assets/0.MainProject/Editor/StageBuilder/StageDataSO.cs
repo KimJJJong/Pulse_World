@@ -13,12 +13,25 @@ namespace RhythmRPG.Editor.StageBuilder
         [Header("Rhythm Settings")]
         public RhythmSettingsSO Rhythm = new RhythmSettingsSO();
 
+        [Header("Init (Entity Registry)")]
+        public List<StageRegisteredEntity> Registry = new List<StageRegisteredEntity>();
+
         [Header("Content")]
         public List<SpawnInfoSO> InitialSpawns = new List<SpawnInfoSO>();
+        public List<SpawnInfoSO> InitialObjects = new List<SpawnInfoSO>(); // [Refactor] Unified Type
         public List<EventInfoSO> Events = new List<EventInfoSO>();
 
         // [ContextMenu("Export JSON")]
         // public void Export() => StageExporter.Export(this);
+    }
+
+    [System.Serializable]
+    public class StageRegisteredEntity
+    {
+        public string Key; // e.g. "Slime_A"
+        public EntityDefinitionSO EntityDef;
+        public int DefaultGroupId;
+        public string DefaultAI_Pattern = "Default"; // AI for Monster, Pattern for Object
     }
 
     [System.Serializable]
@@ -34,11 +47,16 @@ namespace RhythmRPG.Editor.StageBuilder
     [System.Serializable]
     public class SpawnInfoSO
     {
-        public int MonsterId;
+        public string EntityKey; // [Refactor] Reference Registry Key
         public Vector2Int Position;
-        public string AI = "Default";
-        public int GroupId;
+        
+        // Optional Overrides (-1 or Empty means use Default)
+        public int OverrideGroupId = -1; 
+        public string OverrideAI_Pattern = ""; 
     }
+
+    // [System.Serializable]
+    // public class SpawnObjectInfoSO { ... } // Merged into SpawnInfoSO
 
     [System.Serializable]
     public class EventInfoSO
@@ -62,10 +80,11 @@ namespace RhythmRPG.Editor.StageBuilder
     public class ActionInfoSO
     {
         public ActionType Type;
-        public int ParamId;
+        public string HeaderParam; // EntityKey, MapId, etc.
+        public int ParamId; // (Deprecated or for specific IDs?)
         public Vector2Int Position;
-        public string StringVal;
-        public int GroupId;
+        public string StringVal; // (Deprecated or Extra)
+        public int GroupId; // Override?
     }
 
     public enum ConditionType

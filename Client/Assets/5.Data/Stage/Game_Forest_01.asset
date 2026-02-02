@@ -12,13 +12,75 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de39e0c2de14cb84395dcd7da3da8f09, type: 3}
   m_Name: Game_Forest_01
   m_EditorClassIdentifier: Assembly-CSharp-Editor::RhythmRPG.Editor.StageBuilder.StageDataSO
-  MapId: 
-  Description: 
+  MapId: Game_Forest_01
+  Description: 'Game_Forest_01
+
+    Map~~~'
   Rhythm:
     SongKey: DefaultSong
     Bpm: 120
     BaseBeatDivision: 1
     ActionWindowMs: 100
     StartDelayMs: 2000
-  InitialSpawns: []
-  Events: []
+  Registry:
+  - Key: Pawn_B
+    EntityDef: {fileID: 11400000, guid: 4d1fd5f939bf33c4d9160ed9f85e13b0, type: 2}
+    DefaultGroupId: 10
+    DefaultAI_Pattern: Default
+  - Key: Pawn_W
+    EntityDef: {fileID: 11400000, guid: 52b325b7794eb904988b22fed578e9bf, type: 2}
+    DefaultGroupId: 10
+    DefaultAI_Pattern: Default
+  InitialSpawns:
+  - EntityKey: Pawn_B
+    Position: {x: 15, y: 32}
+    OverrideGroupId: 10
+    OverrideAI_Pattern: 
+  - EntityKey: Pawn_W
+    Position: {x: 10, y: 33}
+    OverrideGroupId: 10
+    OverrideAI_Pattern: Default
+  InitialObjects: []
+  Events:
+  - EventId: 1
+    IsOneShot: 1
+    Conditions:
+    - Type: 0
+      TargetId: 10
+      Count: 2
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+    Actions:
+    - Type: 0
+      HeaderParam: Pawn_B
+      ParamId: 0
+      Position: {x: 15, y: 30}
+      StringVal: 
+      GroupId: 11
+    - Type: 0
+      HeaderParam: Pawn_W
+      ParamId: 0
+      Position: {x: 15, y: 31}
+      StringVal: 
+      GroupId: 11
+  - EventId: 1
+    IsOneShot: 1
+    Conditions:
+    - Type: 0
+      TargetId: 11
+      Count: 2
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+    Actions:
+    - Type: 3
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0}
+      StringVal: 
+      GroupId: 0

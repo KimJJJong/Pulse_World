@@ -28,17 +28,72 @@ namespace RhythmRPG.Editor.StageBuilder
                 StartDelayMs = stage.Rhythm.StartDelayMs
             };
             
-            foreach(var s in stage.InitialSpawns)
+            // 1. Build Registry Map
+            var registryMap = new Dictionary<string, StageRegisteredEntity>();
+            foreach(var reg in stage.Registry)
             {
-                dto.InitialSpawns.Add(new SpawnDataDTO { 
-                    MonsterId = s.MonsterId,
-                    X = s.Position.x,
-                    Y = s.Position.y,
-                    AI = s.AI,
-                    GroupId = s.GroupId
-                });
+                if (!string.IsNullOrEmpty(reg.Key) && !registryMap.ContainsKey(reg.Key))
+                {
+                    registryMap.Add(reg.Key, reg);
+                }
             }
 
+            // Convert SO to DTO
+            //var dto = new StageScenarioDTO();
+            dto.MapId = stage.MapId;
+            dto.Description = stage.Description;
+            dto.RhythmSettings = new RhythmSettingsDTO 
+            {
+                SongKey = stage.Rhythm.SongKey,
+                Bpm = stage.Rhythm.Bpm,
+                BaseBeatDivision = stage.Rhythm.BaseBeatDivision,
+                ActionWindowMs = stage.Rhythm.ActionWindowMs,
+                StartDelayMs = stage.Rhythm.StartDelayMs
+            };
+            
+            // 2. Process Initial Spawns (Unified List -> Split by Type)
+            // Combine InitialSpawns and InitialObjects (both are SpawnInfoSO now)
+            var allSpawns = new List<SpawnInfoSO>();
+            allSpawns.AddRange(stage.InitialSpawns);
+            allSpawns.AddRange(stage.InitialObjects);
+
+            foreach(var s in allSpawns)
+            {
+                if (string.IsNullOrEmpty(s.EntityKey) || !registryMap.TryGetValue(s.EntityKey, out var reg))
+                {
+                    Debug.LogWarning($"[StageExporter] EntityKey '{s.EntityKey}' not found in Registry!");
+                    continue;
+                }
+
+                if (reg.EntityDef == null) continue;
+
+                int groupId = (s.OverrideGroupId != -1) ? s.OverrideGroupId : reg.DefaultGroupId;
+                string ai_pattern = (!string.IsNullOrEmpty(s.OverrideAI_Pattern)) ? s.OverrideAI_Pattern : reg.DefaultAI_Pattern;
+
+                if (reg.EntityDef.Type == EntityType.Monster)
+                {
+                    dto.InitialSpawns.Add(new SpawnDataDTO { 
+                        MonsterId = reg.EntityDef.EntityId,
+                        X = s.Position.x,
+                        Y = s.Position.y,
+                        AI = ai_pattern,
+                        GroupId = groupId
+                    });
+                }
+                else // Object, etc.
+                {
+                    dto.InitialObjects.Add(new SpawnObjectDTO {
+                        EntityId = reg.EntityDef.EntityId,
+                        EntityType = (int)reg.EntityDef.Type,
+                        X = s.Position.x,
+                        Y = s.Position.y,
+                        GroupId = groupId,
+                        Pattern = ai_pattern
+                    });
+                }
+            }
+
+            // 3. Process Events
             foreach(var e in stage.Events)
             {
                 var evtDto = new EventDataDTO 
@@ -59,12 +114,21 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 foreach(var a in e.Actions)
                 {
+                    int paramId = a.ParamId;
+                    
+                    // Resolve EntityKey for Spawn/Action if HeaderParam is used
+                    if (!string.IsNullOrEmpty(a.HeaderParam) && registryMap.TryGetValue(a.HeaderParam, out var reg))
+                    {
+                        // Insert ID from Registry
+                         paramId = reg.EntityDef.EntityId;
+                    }
+
                     evtDto.Actions.Add(new ActionDataDTO {
                         Type = a.Type.ToString(),
-                        ParamId = a.ParamId,
+                        ParamId = paramId,
                         X = a.Position.x,
                         Y = a.Position.y,
-                        StringVal = a.StringVal,
+                        StringVal = a.StringVal, // Keep if still used, or could use HeaderParam?
                         GroupId = a.GroupId
                     });
                 }
@@ -94,6 +158,7 @@ namespace RhythmRPG.Editor.StageBuilder
             public string Description;
             public RhythmSettingsDTO RhythmSettings;
             public List<SpawnDataDTO> InitialSpawns = new List<SpawnDataDTO>();
+            public List<SpawnObjectDTO> InitialObjects = new List<SpawnObjectDTO>(); // [NEW]
             public List<EventDataDTO> Events = new List<EventDataDTO>();
         }
 
@@ -115,6 +180,17 @@ namespace RhythmRPG.Editor.StageBuilder
             public int Y;
             public string AI;
             public int GroupId;
+        }
+
+        [System.Serializable]
+        public class SpawnObjectDTO
+        {
+            public int EntityId;
+            public int EntityType;
+            public int X;
+            public int Y;
+            public int GroupId;
+            public string Pattern;
         }
 
         [System.Serializable]

@@ -63,8 +63,16 @@ namespace RhythmRPG.Editor.StageBuilder
             EditorGUILayout.PropertyField(so.FindProperty("Rhythm"));
 
             EditorGUILayout.Space();
-            GUILayout.Label("Initial Spawns", EditorStyles.boldLabel);
+            GUILayout.Label("Entity Registry (Define Entities & Keys)", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(so.FindProperty("Registry"));
+
+            EditorGUILayout.Space();
+            GUILayout.Label("Initial Spawns (Monsters)", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(so.FindProperty("InitialSpawns"));
+
+            EditorGUILayout.Space();
+            GUILayout.Label("Initial Objects (Gate/Trap/Etc)", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(so.FindProperty("InitialObjects"));
             
             EditorGUILayout.Space();
             GUILayout.Label("Events", EditorStyles.boldLabel);

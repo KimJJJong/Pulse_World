@@ -1859,6 +1859,7 @@ public class SC_EntitySpawn : IPacket
 	public long BeatIndex;
 	public int EntityId;
 	public int EntityType;
+	public int ModelId;
 	public int X;
 	public int Y;
 	public int Hp;
@@ -1877,6 +1878,8 @@ public class SC_EntitySpawn : IPacket
 		this.EntityId = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
 		this.EntityType = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		count += sizeof(int);
+		this.ModelId = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
 		this.X = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
@@ -1902,6 +1905,8 @@ public class SC_EntitySpawn : IPacket
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.EntityId);
 		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.EntityType);
+		count += sizeof(int);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ModelId);
 		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.X);
 		count += sizeof(int);

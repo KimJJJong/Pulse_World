@@ -253,6 +253,7 @@ public struct ClientEntityInfo
 {
     public int EntityId;
     public int EntityType;
+    public int ModelId;
     public int X;
     public int Y;
     public int Hp;
