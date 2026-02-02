@@ -65,6 +65,7 @@ namespace RhythmRPG.Editor.StageBuilder
         public int ParamId;
         public Vector2Int Position;
         public string StringVal;
+        public int GroupId;
     }
 
     public enum ConditionType

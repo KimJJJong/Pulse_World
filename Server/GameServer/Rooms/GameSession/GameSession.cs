@@ -297,6 +297,8 @@ public sealed class GameSession : SessionBase
     public override void Update()
     {
         // 필요하면 Tick 기반 처리
+        Director.Update(AppRef.ServerTimeMs());
+
     }
 
     public void BroadcastReturnToTown()

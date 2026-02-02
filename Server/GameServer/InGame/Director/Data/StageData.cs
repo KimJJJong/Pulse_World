@@ -67,6 +67,7 @@ namespace GameServer.InGame.Director.Data
         public int X;
         public int Y;
         public string StringVal; // Message, AI Key
+        public int GroupId;
     }
 
     [Serializable]

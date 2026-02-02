@@ -23,7 +23,7 @@ public /*sealed*/ class MapEntity
     public GridPos Position { get; internal set; }
     public bool IsAlive { get; internal set; } = true;
 
-    // 상태: "HP", "Stun", "Buff_Speed" 등 확장 가능
+    // 상태: "HP", "Stun", ~~
     private readonly Dictionary<string, object> _states = new();
 
     public MapEntity(int id, EntityType type, GridPos initialPos)

@@ -16,6 +16,9 @@ namespace GameServer.InGame.Director.Core
         private readonly HashSet<int> _executedEvents = new();
         private readonly List<RuntimeEvent> _runtimeEvents = new();
         
+        private long _startTime;
+
+        
         // Tracking for Conditions (e.g. Monster Kill Count)
         // GroupId -> Dead Count
         public Dictionary<int, int> MonsterGroupDeadCounts { get; private set; } = new();
@@ -31,6 +34,8 @@ namespace GameServer.InGame.Director.Core
             _executedEvents.Clear();
             _runtimeEvents.Clear();
             MonsterGroupDeadCounts.Clear();
+            _startTime = 0;
+
 
             if (_currentScenario == null) return;
 
@@ -101,7 +106,7 @@ namespace GameServer.InGame.Director.Core
 
                 if (allMet)
                 {
-                    Console.WriteLine($"[GameDirector] Event {evt.Data.EventId} Triggered!");
+                    Console.WriteLine($"[GameDirector] Event {evt.Data.EventId} {evt.Data.Actions} Triggered!");
                     
                     foreach (var action in evt.Actions)
                     {
@@ -113,6 +118,21 @@ namespace GameServer.InGame.Director.Core
                 }
             }
         }
+
+        public void Update(long currentTick)
+        {
+            if (_startTime == 0) _startTime = currentTick;
+            
+            // Re-trigger checking for TimeElapsed events
+            NotifyEvent(new GameEventContext { Type = EventType.None });
+        }
+        
+        public long GetElapsedTime(long currentTick)
+        {
+             if (_startTime == 0) return 0;
+             return currentTick - _startTime;
+        }
+
 
         // ========================================================
         //  Helper Methods for Actions
@@ -144,7 +164,24 @@ namespace GameServer.InGame.Director.Core
         {
             Console.WriteLine("[GameDirector] Triggering ReturnToTown");
             _session.BroadcastReturnToTown();
+            _session.BroadcastReturnToTown();
         }
+
+        public void OpenGate(int x, int y)
+        {
+            var map = _session.Map?.Map;
+            if (map != null)
+            {
+                // Gate logic: Set tile to Floor to make it walkable
+                map.Set(x, y, TileKind.Floor);
+                Console.WriteLine($"[GameDirector] OpenGate at ({x},{y})");
+                
+                // Optional: Broadcast map update to clients if needed? 
+                // Currently Map is static on client, but we might need a packet for TileChange.
+                // For now, server logic allows movement.
+            }
+        }
+
 
         // ========================================================
         //  Factory Methods (Reflection or Switch)
@@ -170,6 +207,8 @@ namespace GameServer.InGame.Director.Core
                 case "SpawnMonster": act = new ActionSpawnMonster(); break;
                 case "Broadcast": act = new ActionBroadcast(); break;
                 case "ReturnToTown": act = new ActionReturnToTown(); break;
+                case "OpenGate": act = new ActionOpenGate(); break;
+
             }
             act?.Init(data);
             return act;
@@ -182,6 +221,7 @@ namespace GameServer.InGame.Director.Core
             public List<EventAction> Actions = new();
         }
 
+        /*
         private class ActionReturnToTown : EventAction
         {
             public override void Execute(GameDirector director)
@@ -189,5 +229,7 @@ namespace GameServer.InGame.Director.Core
                 director.ReturnToTown();
             }
         }
+        */
+
     }
 }

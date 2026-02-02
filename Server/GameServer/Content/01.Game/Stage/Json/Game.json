@@ -43,10 +43,10 @@
             ],
             "Actions": [
                 {
-                    "Type": "ReturnToTown",
-                    "ParamId": 0,
-                    "X": 0,
-                    "Y": 0,
+                    "Type": "SpawnMonster",
+                    "ParamId": 103,
+                    "X": 12,
+                    "Y": 15,
                     "StringVal": ""
                 }
             ]

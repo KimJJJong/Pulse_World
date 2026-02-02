@@ -64,7 +64,8 @@ namespace RhythmRPG.Editor.StageBuilder
                         ParamId = a.ParamId,
                         X = a.Position.x,
                         Y = a.Position.y,
-                        StringVal = a.StringVal
+                        StringVal = a.StringVal,
+                        GroupId = a.GroupId
                     });
                 }
 
@@ -142,6 +143,7 @@ namespace RhythmRPG.Editor.StageBuilder
             public int X;
             public int Y;
             public string StringVal;
+            public int GroupId;
         }
 
         [System.Serializable]

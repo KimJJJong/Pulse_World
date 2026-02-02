@@ -491,7 +491,7 @@ namespace RhythmRPG.EditorTools
 
         static void EnsureEventSystem()
         {
-            if (UnityEngine.Object.FindObjectOfType<EventSystem>() != null)
+            if (UnityEngine.Object.FindAnyObjectByType<EventSystem>() != null)
                 return;
 
             var es = new GameObject("EventSystem");
@@ -501,7 +501,7 @@ namespace RhythmRPG.EditorTools
 
         static Canvas FindOrCreateCanvas()
         {
-            var canvas = UnityEngine.Object.FindObjectOfType<Canvas>();
+            var canvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
             if (canvas != null) return canvas;
 
             var go = new GameObject("Canvas");

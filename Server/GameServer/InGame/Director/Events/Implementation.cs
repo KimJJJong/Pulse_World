@@ -1,5 +1,7 @@
 using GameServer.InGame.Director.Core;
 using System;
+using Util;
+
 
 namespace GameServer.InGame.Director.Events
 {
@@ -44,10 +46,11 @@ namespace GameServer.InGame.Director.Events
     {
         public override bool Check(GameDirector director, GameEventContext context)
         {
-            // Simple check: if current time > start + delay
-            // But we need State in Director to know "StartTime".
-            // For now, let's assume Director handles timer events or we poll.
-            return false; // TODO: Implement Time Logic
+            long elapsed = director.GetElapsedTime(AppRef.ServerTimeMs()); 
+
+            // Assuming _data.Count holds the duration in milliseconds
+            return elapsed >= _data.Count; 
+
         }
     }
 
@@ -63,8 +66,8 @@ namespace GameServer.InGame.Director.Events
                 MonsterId = _data.ParamId,
                 X = _data.X,
                 Y = _data.Y,
-                AI = _data.StringVal, // Assuming AI Key stored here
-                GroupId = 0 // Default for spawned ones
+                AI = _data.StringVal, 
+                GroupId = _data.GroupId
             };
             director.SpawnMonster(spawnData);
         }
@@ -77,4 +80,21 @@ namespace GameServer.InGame.Director.Events
             director.BroadcastMessage(_data.StringVal);
         }
     }
+
+    public class ActionOpenGate : EventAction
+    {
+        public override void Execute(GameDirector director)
+        {
+            director.OpenGate(_data.X, _data.Y);
+        }
+    }
+
+    public class ActionReturnToTown : EventAction
+    {
+        public override void Execute(GameDirector director)
+        {
+            director.ReturnToTown();
+        }
+    }
+
 }
