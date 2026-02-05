@@ -22,7 +22,7 @@ public class RhythmInputController : MonoBehaviour
 
     [Header("Input")]
     [SerializeField] float inputCooldownMs = 80f;
-    [SerializeField] bool holdAutoInput = false;
+    [SerializeField] public bool holdAutoInput = false;
     [SerializeField] float rotateAngle = 90f;
     [SerializeField] public GameObject targetObject = null;
 

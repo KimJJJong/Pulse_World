@@ -106,6 +106,7 @@ public sealed class TownSceneContext : MonoBehaviour
 
         if (_inputBinder == null) _inputBinder = FindFirstObjectByType<RhythmInputControllerBinder>();
         if (_inputController == null) _inputController = FindFirstObjectByType<RhythmInputController>();
+        _inputController.holdAutoInput = true;
 
         if (_cameraBinder == null) _cameraBinder = FindFirstObjectByType<CameraBinder>();
         if (_cameraFollow == null)
