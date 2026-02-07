@@ -23,6 +23,13 @@ namespace GameServer.InGame.Manager.Beat
         private readonly double _actionWindowMs;
         private readonly int _maxBeatLookAhead;
 
+        // Move Frequency Limiter
+        private readonly Dictionary<int, long> _lastMoveBeat = new();
+        private readonly Dictionary<int, int> _moveCountInBeat = new();
+
+        // Optimized Buffer
+        private readonly List<PlayerActionCmd> _cmdBuffer = new(64);
+
         public BeatActionManager(
             IServerTime time,
             IGameBroadcaster broadcaster,
@@ -88,6 +95,14 @@ namespace GameServer.InGame.Manager.Beat
             // --- Move: 즉시 실행 ---
             if (cmd.Kind == ActionKind.Move)
             {
+                // [Fix] Prevent double move in single beat
+                if (!TryConsumeMoveLimit(actorId, judge.ExecuteBeat))
+                {
+                    // Optional: Log rejection
+                    // Console.WriteLine($"[Reject] Move limit exceeded for Actor {actorId} at Beat {judge.ExecuteBeat}");
+                    return; 
+                }
+
                 ProcessImmediateMove(cmd, judge.ExecuteBeat);
             }
             // --- Attack/Skill: 지연 실행 (OnJudgeWindowEnd) ---
@@ -255,10 +270,10 @@ namespace GameServer.InGame.Manager.Beat
         /// </summary>
         public void OnBeat(long beatIndex)
         {
-            var cmds = _scheduler.PopActions(beatIndex);
-            if (cmds.Count > 0)
+            _scheduler.PopActions(beatIndex, _cmdBuffer);
+            if (_cmdBuffer.Count > 0)
             {
-                ProcessBatchActions(beatIndex, cmds);
+                ProcessBatchActions(beatIndex, _cmdBuffer);
                 
                 // Original logic: DropBefore only if processed? 
                 // Actually, original code had `if (cmds.Count == 0) return;` before DropBefore.
@@ -270,10 +285,10 @@ namespace GameServer.InGame.Manager.Beat
 
         public void OnJudgeWindowEnd(long beatIndex)
         {
-             var cmds = _delayedScheduler.PopActions(beatIndex);
-             if (cmds.Count > 0)
+             _delayedScheduler.PopActions(beatIndex, _cmdBuffer);
+             if (_cmdBuffer.Count > 0)
              {
-                 ProcessBatchActions(beatIndex, cmds);
+                 ProcessBatchActions(beatIndex, _cmdBuffer);
              }
         }
 
@@ -326,7 +341,15 @@ namespace GameServer.InGame.Manager.Beat
                         {
                             if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
                             {
-                                accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells, hpUpdates);
+                                // Logic Extension for NewSkill System
+                                if (frozen.CustomDamage.HasValue)
+                                {
+                                    accepted = _world.TryUseCustomSkill(cmd.ActorId, frozen.CustomDamage.Value, frozen.Cells, hpUpdates);
+                                }
+                                else
+                                {
+                                    accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells, hpUpdates);
+                                }
                             }
                             else
                             {
@@ -404,6 +427,48 @@ namespace GameServer.InGame.Manager.Beat
             );
         }
 
+        // --------------------------------------------------------------------
+        // Move Frequency Limiter Logic
+        // --------------------------------------------------------------------
+
+        private bool TryConsumeMoveLimit(int actorId, long beatIndex)
+        {
+            if (!_lastMoveBeat.TryGetValue(actorId, out long lastBeat))
+            {
+                lastBeat = -1;
+            }
+
+            int count = 0;
+            if (lastBeat == beatIndex)
+            {
+                _moveCountInBeat.TryGetValue(actorId, out count);
+            }
+            else
+            {
+                // New beat, reset
+                count = 0;
+            }
+
+            int max = GetMaxMoveCount(actorId);
+
+            if (count >= max)
+            {
+                return false;
+            }
+
+            // Update State
+            _lastMoveBeat[actorId] = beatIndex;
+            _moveCountInBeat[actorId] = count + 1;
+
+            return true;
+        }
+
+        private int GetMaxMoveCount(int actorId)
+        {
+            // TODO: Retrieve from Skill/Buff/Stat if needed
+            // Currently fixed to 1 per beat
+            return 1;
+        }
     }
 
 }
@@ -427,5 +492,6 @@ public readonly struct JudgeResult
         DiffMs = diffMs;
         IsAccepted = accepted;
         ExecuteBeat = executeBeat;
+
     }
 }

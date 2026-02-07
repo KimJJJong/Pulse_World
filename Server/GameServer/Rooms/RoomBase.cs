@@ -218,7 +218,11 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
 
     public void PumpQueuedActions()
     {
-        if (Interlocked.Exchange(ref _pumping, 1) == 1) return;
+        if (Interlocked.Exchange(ref _pumping, 1) == 1) 
+        {
+            Console.WriteLine($"[RoomBase] Update Tick Skipped! (Lock Contention) RoomId={GetHashCode()}"); 
+            return;
+        }
         try { while (_q.TryDequeue(out var a)) a(); }
         finally { _pumping = 0; }
     }

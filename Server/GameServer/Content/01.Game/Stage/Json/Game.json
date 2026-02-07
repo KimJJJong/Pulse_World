@@ -5,25 +5,11 @@
         "SongKey": "DefaultSong",
         "Bpm": 120,
         "BaseBeatDivision": 1,
-        "ActionWindowMs": 70,
+        "ActionWindowMs": 150,
         "StartDelayMs": 2000
     },
-    "InitialSpawns": [
-        {
-            "MonsterId": 101,
-            "X": 10,
-            "Y": 16,
-            "AI": "Default",
-            "GroupId": 1
-        },
-        {
-            "MonsterId": 102,
-            "X": 12,
-            "Y": 16,
-            "AI": "Default",
-            "GroupId": 1
-        }
-    ],
+    "InitialSpawns": [],
+    "InitialObjects": [],
     "Events": [
         {
             "EventId": 1,
@@ -43,11 +29,13 @@
             ],
             "Actions": [
                 {
-                    "Type": "SpawnMonster",
-                    "ParamId": 103,
-                    "X": 12,
-                    "Y": 15,
-                    "StringVal": ""
+                    "Type": "ReturnToTown",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0
                 }
             ]
         }

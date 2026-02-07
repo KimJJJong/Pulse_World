@@ -33,25 +33,18 @@ namespace GameServer.InGame.Manager.Beat
         /// <summary>
         /// 해당 beat에 예약된 액션들을 모두 반환하고, 내부에서 제거한다.
         /// </summary>
-        public List<PlayerActionCmd> PopActions(long beatIndex)
+        public void PopActions(long beatIndex, List<PlayerActionCmd> outList)
         {
+            outList.Clear();
             if (!_byBeat.TryGetValue(beatIndex, out var perActor) || perActor.Count == 0)
-                return new List<PlayerActionCmd>(0);
+                return;
 
-            var list = new List<PlayerActionCmd>(perActor.Count);
             foreach (var cmd in perActor.Values)
-                list.Add(cmd);
+                outList.Add(cmd);
 
-            list.Sort(static (a, b) => a.Kind.CompareTo(b.Kind));
-            //var list = perActor.Values
-            //    .OrderBy(cmd=>cmd.Kind)
-            //    .ToList();
-
-            //foreach (var kv in perActor)
-            //    list.Add(kv.Value);
+            outList.Sort((a, b) => a.Kind.CompareTo(b.Kind));
 
             _byBeat.Remove(beatIndex);
-            return list;
         }
 
         /// <summary>

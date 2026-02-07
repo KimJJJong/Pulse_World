@@ -1,4 +1,6 @@
 ﻿using GameServer.InGame.Director.Data;
+using GameServer.Content.Skill;
+using GameShared.Data; // [NEW] Added for NewSkillDef
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,10 +9,10 @@ public static class ContentStore
 {
     private static bool _initialized;
 
-    public static SkillSet? Skills { get; private set; }
+    // [MODIFIED] Legacy SkillSet -> List<NewSkillDef>
+    public static List<NewSkillDef>? Skills { get; private set; }
     public static MonsterPatternSet? Patterns { get; private set; }
     public static Dictionary<string, MapContent>? Maps { get; private set; }
-    // [NEW]
     public static Dictionary<string, GameServer.InGame.Director.Data.StageScenario>? Stages { get; private set; }
 
     /// <summary>
@@ -25,7 +27,7 @@ public static class ContentStore
         string? skillsDir,
         string? patternsDir,
         string? mapsDir,
-        string? stagesDir) // Added
+        string? stagesDir)
     {
         if (_initialized)
             throw new InvalidOperationException("ContentStore already initialized.");
@@ -35,19 +37,44 @@ public static class ContentStore
         if (!string.IsNullOrWhiteSpace(patternsDir) && string.IsNullOrWhiteSpace(skillsDir))
             throw new InvalidOperationException("Patterns require Skills. Provide skillsDir when patternsDir is set.");
 
-        // ---------- Skills ----------
+        // ---------- Skills (New System) ----------
         if (!string.IsNullOrWhiteSpace(skillsDir))
         {
             EnsureDirExists(skillsDir, "Skills");
 
-            Skills = SkillLoader.LoadFromDirectory(skillsDir, out var sReport);
-            SkillLoader.Validate(Skills, sReport);
-            SkillLoader.PrintReport(sReport);
+            // [MODIFIED] Use NewSkillLoader
+            Skills = NewSkillLoader.LoadFromDirectory(skillsDir, out var sReport);
+            
+            // Log Summary (User Requested Format)
+            if (sReport.Errors > 0)
+            {
+                 Console.WriteLine($"[NewSkillLoader] Errors: {sReport.Errors}");
+                 foreach(var err in sReport.ErrorLines) Console.WriteLine(err);
+            }
+
+            Console.WriteLine("[SkillLoader] ===== Load Summary =====");
+            Console.WriteLine($"  FilesScanned  : {sReport.FilesScanned}");
+            Console.WriteLine($"  SkillsLoaded  : {sReport.SkillsLoaded}");
+            Console.WriteLine($"  Warnings      : {sReport.Warnings}");
+            Console.WriteLine($"  Errors        : {sReport.Errors}");
+            
+            if (sReport.LoadedSkillIds.Count > 0)
+            {
+                // Join skill IDs
+                string skillList = string.Join(", ", sReport.LoadedSkillIds);
+                Console.WriteLine($"  SkillIds({sReport.SkillsLoaded}) : {skillList}");
+            }
+            else
+            {
+                Console.WriteLine("  SkillIds(0) : None");
+            }
+            Console.WriteLine("[SkillLoader] ========================");
 
             if (sReport.Errors > 0)
                 throw new Exception("Skill content invalid");
 
-            SkillDatabase.LoadFrom(Skills);
+            // [MODIFIED] Use NewSkillDatabase
+            NewSkillDatabase.LoadFrom(Skills);
         }
 
         // ---------- Patterns ----------
@@ -57,10 +84,11 @@ public static class ContentStore
 
             Patterns = PatternLoader.LoadFromDirectory(patternsDir, out var pReport);
 
-            // Skills를 로드했기 때문에 SkillDatabase는 유효해야 함
+            // [MODIFIED] Use NewSkillDatabase for validation
             PatternLoader.Validate(
                 Patterns,
-                skillId => SkillDatabase.TryGet(skillId, out _),
+                // Check if skill exists in NewSkillDatabase
+                skillId => NewSkillDatabase.TryGet(skillId, out _),
                 pReport
             );
 
@@ -83,7 +111,7 @@ public static class ContentStore
             MapDatabase.LoadFrom(Maps);
         }
 
-        // ---------- Stages [NEW] ----------
+        // ---------- Stages ----------
         if (!string.IsNullOrWhiteSpace(stagesDir))
         {
             EnsureDirExists(stagesDir, "Stages");

@@ -6,7 +6,7 @@ public sealed class Map2D
 {
     public string MapId = "";
 
-    private static readonly Random _rng = new Random();
+    private readonly Random _rng;
 
     private readonly TileKind[,] _tiles;
     private readonly List<(int, int)> _spawnPoints = new();
@@ -21,6 +21,7 @@ public sealed class Map2D
         Height = height;
         _tiles = new TileKind[height, width];
         _spawnPoints = new List<(int, int)>();
+        _rng = new Random(Environment.TickCount); // Seed with TickCount or similar unique per instance
     }
 
     public bool InBounds(int x, int y)

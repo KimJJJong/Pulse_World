@@ -12,5 +12,7 @@ public interface IGameWorld
     bool TryUseSkillArea(int actorId, string skillId, IReadOnlyList<GridPos> cells, List<HpUpdate> hpUpdates);
 
     bool TryUseAttack(int actorId, /*나중에 직업별 일반공격 셋팅?*/int tartX, int tartY, List<HpUpdate> hpUpdates);
-
+    
+    // For Pattern Custom Damage
+    bool TryUseCustomSkill(int actorId, int damage, IReadOnlyList<GridPos> cells, List<HpUpdate> hpUpdates);
 }

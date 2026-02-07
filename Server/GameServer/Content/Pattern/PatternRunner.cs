@@ -54,48 +54,56 @@ public sealed class PatternRunner
         // LockedUntilBeat 정의:
         // - "이 비트 미만에서는 패턴 선택/스케줄링을 금지" (beatIndex < LockedUntilBeat이면 return)
         // - 즉 LockedUntilBeat == 현재 beat 이면 '이제 패턴 실행 가능' 상태
-        if (beatIndex < st.LockedUntilBeat) return;
-
-        MonsterPatternDef def = _patterns.GetMonster(monsterType);
-        if (def == null) // Fallback to Default if not found
-             def = _patterns.GetMonster("Default");
-
-        if (def == null)
+        
+        // [Refactor] Pattern Selection Logic comes FIRST
+        // This allows newly added skills to be updated in the SAME beat loop below.
+        
+        if (beatIndex >= st.LockedUntilBeat)
         {
-            // Still null? Stop.
-            return;
+            MonsterPatternDef def = _patterns.GetMonster(monsterType);
+            if (def == null) 
+                 def = _patterns.GetMonster("Default");
+
+            if (def != null)
+            {
+                ApplyPhaseTransitions(def, monster, st, beatIndex);
+
+                PhaseDef phase = def.GetPhase(st.PhaseId) ?? def.GetPhase(def.DefaultPhase);
+                if (phase != null && phase.Selectors.Count > 0)
+                {
+                    List<SelectorDef> candidates = new List<SelectorDef>(8);
+                    foreach (var sel in phase.Selectors)
+                    {
+                        if (IsInCooldown(st, sel.Id, beatIndex)) continue;
+                        if (!EvaluateWhen(sel.When, monster, players)) continue;
+                        candidates.Add(sel);
+                    }
+
+                    if (candidates.Count > 0)
+                    {
+                        SelectorDef picked = WeightedPick(candidates);
+
+                        long locked = ScheduleTimeline(beatIndex, monster, players, picked);
+                        st.LockedUntilBeat = Math.Max(st.LockedUntilBeat, locked);
+
+                        if (picked.CooldownBeats > 0)
+                            st.Cooldowns[picked.Id] = beatIndex + picked.CooldownBeats;
+                    }
+                }
+            }
         }
-        ApplyPhaseTransitions(def, monster, st, beatIndex);
 
-
-        if (def == null)
+        // 2. Active Skills Update (매 비트 실행)
+        // Now includes any skills just added above.
+        for (int i = st.ActiveSkills.Count - 1; i >= 0; i--)
         {
-            Console.WriteLine($"[Run] MonsterPatterDef == null");
-            return;
+            var skill = st.ActiveSkills[i];
+            skill.Update((int)beatIndex);
+            if (!skill.IsRunning)
+            {
+                st.ActiveSkills.RemoveAt(i);
+            }
         }
-
-        PhaseDef phase = def.GetPhase(st.PhaseId) ?? def.GetPhase(def.DefaultPhase);
-        if (phase == null || phase.Selectors.Count == 0)
-        {
-            Console.WriteLine($"[Run] phase == null || phase.Selectors.Count == 0");
-            return;
-        }
-        List<SelectorDef> candidates = new List<SelectorDef>(8);
-        foreach (var sel in phase.Selectors)
-        {
-            if (IsInCooldown(st, sel.Id, beatIndex)) continue;
-            if (!EvaluateWhen(sel.When, monster, players)) continue;
-            candidates.Add(sel);
-        }
-        if (candidates.Count == 0) return;
-
-        SelectorDef picked = WeightedPick(candidates);
-
-        long locked = ScheduleTimeline(beatIndex, monster, players, picked);
-        st.LockedUntilBeat = Math.Max(st.LockedUntilBeat, locked);
-
-        if (picked.CooldownBeats > 0)
-            st.Cooldowns[picked.Id] = beatIndex + picked.CooldownBeats;
     }
     /// <summary>
     /// // ScheduleTimeline 반환값(last):
@@ -123,24 +131,28 @@ public sealed class PatternRunner
 
             last = Math.Max(last, executeBeat);
 
-
             switch (act.Type)
             {
                 case ActionType.Wait:
+                    last = Math.Max(last, executeBeat + 1); // Consumes 1 beat
                     break;
 
                 case ActionType.MoveStepToward:
                     {
+                        last = Math.Max(last, executeBeat + 1); // Consumes 1 beat
                         MapEntity target = FindTarget(m, players, act.Target);
                         if (target == null)
                         {
                             //Console.WriteLine("[ScheduleTimeline : MoveStepToward ] (target == null)");
                             break;
                         }
-                        var nextPos = StepTowards(plannedPos, target.Position);
+                        var nextPos = GetPathPosition(plannedPos, target.Position, act.MoveDistance);
 
                         if(! _map2d.IsWalkable(nextPos.X, nextPos.Y) )
                         {
+                            // If target is blocked, maybe try 1 step? Or just stay.
+                            // For now, let's try to find a walkable spot on the path if the end is blocked?
+                            // Or simplistically:
                             nextPos = plannedPos;
                         }
                         var cmd = new PlayerActionCmd
@@ -157,72 +169,39 @@ public sealed class PatternRunner
 
                         break;
                     }
-                // 중요(동기화/신뢰성):
-                // 텔레그래프(예고)와 실제 공격 판정은 반드시 동일한 Area 정의를 사용해야 한다.
-                // 현재는 originPoint만 고정하고 실제 판정은 _world.TryUseSkill() 내부 규칙에 의존한다.
-                // 운영 단계에서는 아래 둘 중 하나로 통일 필요:
-                //  1) 서버에서 areaCells를 미리 계산해 Freeze하고, executeBeat에 그 cells로 판정한다.
-                //  2) TryUseSkill가 항상 "originPoint + (skill/area정의)"만으로 판정하게 만들어
-                //     월드 상태(타겟 이동/방향 등)에 의해 area가 달라지지 않게 한다.
-
                 case ActionType.Attack:
+                    // Attack is just a wrapper for Skill in the new system.
+                    ProcessSkillAction(m, act, executeBeat, ref last);
+                    break;
+
+                case ActionType.CastSkill:
+                    ProcessSkillAction(m, act, executeBeat, ref last);
+                    break;
+
+                case ActionType.Move:
                     {
-
-                        MapEntity target = FindTarget(m, players, act.Target);
-                        if (target == null)
+                        last = Math.Max(last, executeBeat + 1); // Consumes 1 beat
+                        // Strategy Move
+                        GridPos targetPos = ResolveMoveStrategy(plannedPos, m, players, act);
+                        
+                        // Basic validation
+                        if (!_map2d.IsWalkable(targetPos.X, targetPos.Y))
                         {
-                            // Console.WriteLine("[ScheduleTimeline : Attack ] (target == null)");
-                            break;
+                             targetPos = plannedPos; 
                         }
 
-                        var originPoint = ResolveOriginPoint(m, target, act.Area);
-
-                        if (!SkillDatabase.TryGet(act.SkillId, out var skill))
-                        {
-                            Console.WriteLine($"[Attack] Skill not found: {act.SkillId}");
-                            break;
-                        }
-
-                        //  SkillDef 기준 Freeze
-                        var frozenCells = ComputeCellsFromSkill(skill, plannedPos/*originPoint*/, self: m, target: target, areaHint: act.Area);
-                        _frozen.Put(m.Id, executeBeat, act.SkillId, frozenCells);
-
-                        if (act.TelegraphBeats > 0)
-                            needsPadding = true;
-
-                        // 텔레그래프 예약 (Shape=Cells로 frozenCells 그대로)
-                        int teleBeats = Math.Max(0, act.TelegraphBeats);
-                        if (teleBeats > 0)
-                        {
-                            long teleBeat = executeBeat - teleBeats;
-                            if (teleBeat >= baseBeat)
-                            {
-                                var entry = BuildTelegraphEntry(
-                                    casterId: m.Id,
-                                    styleId: act.TelegraphStyleId,
-                                    durationBeats: teleBeats,
-                                    frozenCells: frozenCells
-                                );
-                                //Console.WriteLine($"[ScheduleTimeLine] TeleIndex :{teleBeat} ");
-                                _telegraph.Schedule(teleBeat, entry);
-                            }
-                        }
-
-                        // 실제 공격 예약
                         var cmd = new PlayerActionCmd
                         {
                             ActorId = m.Id,
-                            Kind = ActionKind.Skill,
-                            SkillId = act.SkillId,
-                            TargetCell = originPoint,
+                            Kind = ActionKind.Move,
+                            TargetCell = targetPos,
                             ClientSendTimeMs = 0,
                             ServerReceiveTimeMs = 0
                         };
-                        //Console.WriteLine($"[ScheduleTimeLine] DamageBeatIndex :{executeBeat} || Action : {ActionKind.Skill}");
                         _actions.ScheduleServerCommand(executeBeat, cmd);
+                        plannedPos = targetPos;
                         break;
                     }
-
             }
         }
         //Console.WriteLine($"[ScheduleTimeLine] LockCount :{last}=========================");
@@ -249,155 +228,12 @@ public sealed class PatternRunner
             _ => true
         };
     }
-    #region Shape
-    private List<GridPos> ComputeCellsFromSkill(
-        SkillDef skill,
-        GridPos origin,
-        MapEntity self,
-        MapEntity target,
-        AreaDef areaHint)
-    {
-        return skill.Shape switch
-        {
-            SkillAoeShape.Cells =>
-                new List<GridPos>(areaHint.Cells), // (운영에서 금지하려면 여기서 throw/return empty)
-
-            SkillAoeShape.Diamond =>
-                BuildDiamond(origin, radius: skill.ParamA),
-
-            SkillAoeShape.Rect =>
-                BuildRectOriented(origin, width: skill.ParamA, height: skill.ParamB,
-                                  self: self, target: target, skill: skill),
-
-            SkillAoeShape.Line =>
-                BuildLineOriented(origin, length: skill.ParamA,
-                                  self: self, target: target, skill: skill),
-
-            _ =>
-                BuildDiamond(origin, 1)
-        };
-    }
-
-
-
-    private static List<GridPos> BuildRectOriented(
-    GridPos origin,
-    int width,
-    int height,
-    MapEntity self,
-    MapEntity target,
-    SkillDef skill)
-    {
-        width = width <= 0 ? 1 : width;
-        height = height <= 0 ? 1 : height;
-
-        var (sx, sy) = ResolveStep4(self, target, skill);
-
-        // 진행방향에 수직인 좌우 방향(perp)
-        int px = -sy;
-        int py = sx;
-
-        int halfW = width / 2;
-
-        var list = new List<GridPos>(width * height);
-
-        // i=0..height-1 : 진행방향으로 뻗는 길이
-        for (int i = 0; i < height; i++)
-        {
-            int baseX = origin.X + sx * i;
-            int baseY = origin.Y + sy * i;
-
-            // 좌우 폭
-            for (int w = -halfW; w <= halfW; w++)
-            {
-                int x = baseX + px * w;
-                int y = baseY + py * w;
-                list.Add(new GridPos(x, y));
-            }
-        }
-
-        return list;
-    }
-
-
-    private static List<GridPos> BuildDiamond(GridPos o, int radius)
-    {
-        radius = radius <= 0 ? 1 : radius;
-        var list = new List<GridPos>();
-        for (int dx = -radius; dx <= radius; dx++)
-            for (int dy = -radius; dy <= radius; dy++)
-                if (System.Math.Abs(dx) + System.Math.Abs(dy) <= radius)
-                    list.Add(new GridPos(o.X + dx, o.Y + dy));
-        return list;
-    }
-
-    private static List<GridPos> BuildLineOriented(
-    GridPos origin,
-    int length,
-    MapEntity self,
-    MapEntity target,
-    SkillDef skill)
-    {
-        length = length <= 0 ? 1 : length;
-
-        var (sx, sy) = ResolveStep4(self, target, skill);
-
-        var list = new List<GridPos>(length);
-        int x = origin.X, y = origin.Y;
-
-        for (int i = 0; i < length; i++)
-        {
-            list.Add(new GridPos(x, y));
-            x += sx;
-            y += sy;
-        }
-
-        return list;
-    }
-
-
-    #endregion
-
-    /// <summary>
-    /// 방향 계산 Utill
-    /// </summary>
-    /// <param name="self"></param>
-    /// <param name="target"></param>
-    /// <param name="skill"></param>
-    /// <returns></returns>
-    private static (int stepX, int stepY) ResolveStep4(
-    MapEntity self,
-    MapEntity target,
-    SkillDef skill)
-    {
-        switch (skill.DirType)
-        {
-            case SkillDirType.Fixed:
-                return skill.FixedDir switch
-                {
-                    FixedDir.Up => (0, 1),
-                    FixedDir.Right => (1, 0),
-                    FixedDir.Down => (0, -1),
-                    FixedDir.Left => (-1, 0),
-                    _ => (0, 1)
-                };
-
-            case SkillDirType.SelfToTarget:
-            default:
-                {
-                    int dx = target.Position.X - self.Position.X;
-                    int dy = target.Position.Y - self.Position.Y;
-
-                    int stepX = 0, stepY = 0;
-                    if (Math.Abs(dx) >= Math.Abs(dy)) stepX = Math.Sign(dx);
-                    else stepY = Math.Sign(dy);
-
-                    // 같은 칸이면 기본 Up
-                    if (stepX == 0 && stepY == 0) stepY = 1;
-                    return (stepX, stepY);
-                }
-        }
-    }
+    // [REMOVED] Legacy SkillDef Helper Methods (Dead Code)
+    /*
+     * ComputeCellsFromSkill, ResolveStep4, BuildRectOriented, etc. 
+     * were removed because they depended on the deleted SkillDef class 
+     * and were not used in the new PatternRunner logic.
+     */
 
 
     // TargetDef 확장 포인트:
@@ -551,6 +387,18 @@ public sealed class PatternRunner
         return best;
     }
 
+    // New helper: Moves 'steps' count towards 'to'
+    private GridPos GetPathPosition(GridPos from, GridPos to, int steps)
+    {
+        GridPos curr = from;
+        for (int i = 0; i < steps; i++)
+        {
+            if (curr.X == to.X && curr.Y == to.Y) break;
+            curr = StepTowards(curr, to);
+        }
+        return curr;
+    }
+
     private GridPos StepTowards(GridPos from, GridPos to)
     {
         int dx = to.X - from.X;
@@ -599,11 +447,110 @@ public sealed class PatternRunner
         }
     }
 
+    private GridPos ResolveMoveStrategy(GridPos currentPos, MapEntity m, IList<MapEntity> players, ActionDef act)
+    {
+        int dist = act.MoveDistance;
+        if (dist <= 0) return currentPos;
+
+        switch (act.MoveStrategy)
+        {
+            case MoveStrategy.Random:
+                {
+                    // Simple random neighbor loop multiplied by dist? 
+                    // Or simple jump? Basic random implementation:
+                    int[] dx = { 0, 0, 1, -1 };
+                    int[] dy = { 1, -1, 0, 0 };
+                    
+                    // Try to find a valid spot 'dist' away in one of 4 directions
+                    List<GridPos> valids = new();
+                    
+                    for(int i=0; i<4; i++)
+                    {
+                        var cand = new GridPos(currentPos.X + dx[i]*dist, currentPos.Y + dy[i]*dist);
+                        if (_map2d.IsWalkable(cand.X, cand.Y)) valids.Add(cand);
+                    }
+                    if (valids.Count > 0) return valids[_rng.Next(valids.Count)];
+                    return currentPos;
+                }
+            case MoveStrategy.Flee:
+                {
+                    var target = FindTarget(m, players, act.Target);
+                    if (target == null) return currentPos; // No target to flee from
+                    
+                    // Calculate vector away from target
+                    int dx = currentPos.X - target.Position.X;
+                    int dy = currentPos.Y - target.Position.Y;
+                    
+                    int sx = 0, sy = 0;
+                    if (Math.Abs(dx) >= Math.Abs(dy)) sx = Math.Sign(dx);
+                    else sy = Math.Sign(dy);
+                    
+                    if (sx == 0 && sy == 0) sx = 1; // Emergency move right if overlapped
+
+                    // Move 'dist' steps in that direction
+                    return new GridPos(currentPos.X + sx * dist, currentPos.Y + sy * dist);
+                }
+            case MoveStrategy.Forward:
+                 {
+                    // Forward = Toward Target (simplified)
+                    // Move 'dist' steps towards target
+                    var target = FindClosestPlayer(m, players, out _);
+                    if (target == null) return currentPos;
+                    return GetPathPosition(currentPos, target.Position, dist);
+                 }
+            case MoveStrategy.Backward:
+                 {
+                    // Backward = Away from Target (same as Flee but assumes closest player? logic)
+                    // Reusing Flee logic but forcing closest player if no target specified?
+                    
+                    var target = FindClosestPlayer(m, players, out _);
+                    if (target == null) return currentPos;
+
+                    // Same flee logic as above
+                    int dx = currentPos.X - target.Position.X;
+                    int dy = currentPos.Y - target.Position.Y;
+                    
+                    int sx = 0, sy = 0;
+                    if (Math.Abs(dx) >= Math.Abs(dy)) sx = Math.Sign(dx);
+                    else sy = Math.Sign(dy);
+                    
+                    if (sx == 0 && sy == 0) sx = -1; // Different fallback than flee?
+
+                    return new GridPos(currentPos.X + sx * dist, currentPos.Y + sy * dist);
+                 }
+            default:
+                return currentPos;
+        }
+    }
+
+    private void ProcessSkillAction(MapEntity m, ActionDef act, long executeBeat, ref long last)
+    {
+        if (!GameServer.Content.Skill.NewSkillDatabase.TryGet(act.SkillId, out var skillDef))
+        {
+            //Console.WriteLine($"[PatternRunner] Skill not found: {act.SkillId}");
+            return;
+        }
+
+        var runner = new GameServer.Content.Skill.SkillRunner(m.Id, _world, _actions, _frozen, _telegraph);
+        runner.StartSkill(skillDef, (int)executeBeat);
+
+        if (_rt.TryGetValue(m.Id, out var rt))
+        {
+            rt.ActiveSkills.Add(runner);
+        }
+
+        long endBeat = executeBeat + skillDef.TotalDurationBeats;
+        last = Math.Max(last, endBeat);
+    }
+
     private sealed class RuntimeState
     {
         public string PhaseId = "P1";
 
         public long LockedUntilBeat = -1;
         public Dictionary<string, long> Cooldowns = new();
+        
+        // New Skill System
+        public List<GameServer.Content.Skill.SkillRunner> ActiveSkills = new();
     }
 }

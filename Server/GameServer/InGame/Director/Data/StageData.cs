@@ -33,6 +33,7 @@ namespace GameServer.InGame.Director.Data
         public int MonsterId;
         public int X;
         public int Y;
+        public int Z; // [NEW] From Unity Z
         public string AI = "Default"; // AI Type Key
         public int GroupId = 0; // For event triggering (e.g., "Group 1 All Dead")
     }
@@ -44,6 +45,7 @@ namespace GameServer.InGame.Director.Data
         public int EntityType; // 3=Object
         public int X;
         public int Y;
+        public int Z; // [NEW] From Unity Z
         public int GroupId;
         public string Pattern; // Interaction/State Pattern
     }
@@ -78,6 +80,7 @@ namespace GameServer.InGame.Director.Data
         public int ParamId; // MonsterId, GateId
         public int X;
         public int Y;
+        public int Z; // [NEW] From Unity Z
         public string StringVal; // Message, AI Key
         public int GroupId;
     }

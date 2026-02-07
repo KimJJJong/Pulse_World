@@ -11,16 +11,18 @@
     "InitialSpawns": [
         {
             "MonsterId": 100,
-            "X": 15,
-            "Y": 10,
-            "AI": "Default",
+            "X": 17,
+            "Y": 0,
+            "Z": 14,
+            "AI": "Base_Test_P",
             "GroupId": 10
         },
         {
             "MonsterId": 101,
-            "X": 10,
-            "Y": 11,
-            "AI": "Default",
+            "X": 18,
+            "Y": 0,
+            "Z": 6,
+            "AI": "Base_Test_P",
             "GroupId": 10
         }
     ],
@@ -46,17 +48,19 @@
                 {
                     "Type": "SpawnMonster",
                     "ParamId": 100,
-                    "X": 15,
-                    "Y": 11,
-                    "StringVal": "",
+                    "X": 26,
+                    "Y": 0,
+                    "Z": 13,
+                    "StringVal": "Base_Test_P",
                     "GroupId": 11
                 },
                 {
                     "Type": "SpawnMonster",
                     "ParamId": 101,
-                    "X": 15,
-                    "Y": 12,
-                    "StringVal": "",
+                    "X": 26,
+                    "Y": 0,
+                    "Z": 6,
+                    "StringVal": "Base_Test_P",
                     "GroupId": 11
                 }
             ]
@@ -70,7 +74,7 @@
                     "TargetId": 11,
                     "Count": 2,
                     "Area": {
-                        "X": 0,
+                        "X": -3,
                         "Y": 0,
                         "W": 0,
                         "H": 0
@@ -83,6 +87,7 @@
                     "ParamId": 0,
                     "X": 0,
                     "Y": 0,
+                    "Z": 0,
                     "StringVal": "",
                     "GroupId": 0
                 }

@@ -1,0 +1,173 @@
+{
+  "SkillId": "Warning_Damage_Test",
+  "TotalDurationBeats": 2,
+  "Tracks": [
+    {
+      "TrackName": "Track 0",
+      "Events": [
+        {
+          "TriggerBeat": 0,
+          "DurationBeats": 1,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 1,
+                  "Y": 0
+                },
+                {
+                  "X": 3,
+                  "Y": 0
+                },
+                {
+                  "X": 0,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": 3
+                },
+                {
+                  "X": -1,
+                  "Y": 2
+                },
+                {
+                  "X": -2,
+                  "Y": 1
+                },
+                {
+                  "X": -3,
+                  "Y": 0
+                },
+                {
+                  "X": -2,
+                  "Y": -1
+                },
+                {
+                  "X": -1,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": -3
+                },
+                {
+                  "X": 1,
+                  "Y": -2
+                },
+                {
+                  "X": 2,
+                  "Y": -1
+                },
+                {
+                  "X": 2,
+                  "Y": 1
+                },
+                {
+                  "X": 1,
+                  "Y": 2
+                },
+                {
+                  "X": -1,
+                  "Y": 0
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ]
+            },
+            "ColorSteps": []
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 1",
+      "Events": [
+        {
+          "TriggerBeat": 1,
+          "DurationBeats": 1,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": -1,
+                  "Y": 0
+                },
+                {
+                  "X": 1,
+                  "Y": 0
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": 1
+                },
+                {
+                  "X": -1,
+                  "Y": 2
+                },
+                {
+                  "X": 0,
+                  "Y": 3
+                },
+                {
+                  "X": 1,
+                  "Y": 2
+                },
+                {
+                  "X": 2,
+                  "Y": 1
+                },
+                {
+                  "X": 3,
+                  "Y": 0
+                },
+                {
+                  "X": 2,
+                  "Y": -1
+                },
+                {
+                  "X": 1,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": -3
+                },
+                {
+                  "X": -1,
+                  "Y": -2
+                },
+                {
+                  "X": -2,
+                  "Y": -1
+                },
+                {
+                  "X": -3,
+                  "Y": 0
+                },
+                {
+                  "X": -2,
+                  "Y": 1
+                }
+              ]
+            },
+            "Amount": 10,
+            "HitPlayers": true,
+            "HitMonsters": false,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    }
+  ]
+}

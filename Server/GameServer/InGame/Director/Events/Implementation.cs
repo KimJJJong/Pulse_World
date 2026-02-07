@@ -66,6 +66,7 @@ namespace GameServer.InGame.Director.Events
                 MonsterId = _data.ParamId,
                 X = _data.X,
                 Y = _data.Y,
+                Z = _data.Z, // [Unified] Pass Z
                 AI = _data.StringVal, 
                 GroupId = _data.GroupId
             };
@@ -85,7 +86,7 @@ namespace GameServer.InGame.Director.Events
     {
         public override void Execute(GameDirector director)
         {
-            director.OpenGate(_data.X, _data.Y);
+            director.OpenGate(_data.X, _data.Z); // [Unified] Use Z as Y
         }
     }
 

@@ -6,6 +6,7 @@ public sealed class FrozenAttackRegistry
     {
         public string SkillId = "";
         public List<GridPos> Cells = new();
+        public int? CustomDamage = null; // NewSkill 시스템용 직접 데미지
     }
 
     // (actorId, beat) -> frozen
@@ -17,6 +18,16 @@ public sealed class FrozenAttackRegistry
         {
             SkillId = skillId,
             Cells = cells
+        };
+    }
+
+    public void PutRaw(int actorId, long beat, int damage, List<GridPos> cells)
+    {
+        _map[(actorId, beat)] = new FrozenAttack
+        {
+            SkillId = string.Empty, // SkillId 없음
+            Cells = cells,
+            CustomDamage = damage
         };
     }
 

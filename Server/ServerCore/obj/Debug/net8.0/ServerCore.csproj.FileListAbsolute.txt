@@ -39,9 +39,9 @@ D:\Git\Server\RhythmRPG\RhythmRPG\Server\ServerCore\obj\Debug\net8.0\ServerCore.
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ServerCore\obj\Debug\net8.0\ServerCore.AssemblyInfoInputs.cache
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ServerCore\obj\Debug\net8.0\ServerCore.AssemblyInfo.cs
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ServerCore\obj\Debug\net8.0\ServerCore.csproj.CoreCompileInputs.cache
+D:\Git\Server\RhythmRPG\RhythmRPG\Server\ServerCore\obj\Debug\net8.0\ServerCore.sourcelink.json
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ServerCore\obj\Debug\net8.0\ServerCore.csproj.Up2Date
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ServerCore\obj\Debug\net8.0\ServerCore.dll
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ServerCore\obj\Debug\net8.0\refint\ServerCore.dll
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ServerCore\obj\Debug\net8.0\ServerCore.pdb
 D:\Git\Server\RhythmRPG\RhythmRPG\Server\ServerCore\obj\Debug\net8.0\ref\ServerCore.dll
-D:\Git\Server\RhythmRPG\RhythmRPG\Server\ServerCore\obj\Debug\net8.0\ServerCore.sourcelink.json

@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using GameShared.Data;
 
 public sealed class ContentRegistry
 {
-    public SkillSet Skills { get; }
+    public List<NewSkillDef> Skills { get; }
     public MonsterPatternSet Patterns { get; }
 
     // MapId -> MapContent
     public IReadOnlyDictionary<string, MapContent> Maps { get; }
 
     public ContentRegistry(
-        SkillSet skills,
+        List<NewSkillDef> skills,
         MonsterPatternSet patterns,
         Dictionary<string, MapContent> maps)
     {

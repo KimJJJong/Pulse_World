@@ -9,7 +9,8 @@ public static class PatternLoader
     {
         PropertyNameCaseInsensitive = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true
+        AllowTrailingCommas = true,
+        IncludeFields = true // [FIX] Added to support field-based DTOs
     };
 
     public sealed class PatternLoadReport

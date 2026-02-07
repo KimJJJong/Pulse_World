@@ -142,28 +142,34 @@ namespace GameServer.InGame.Director.Core
         {
             // Validate with Map
             var map = _session.Map; // Access Map via Session
+            int mapX = data.X;
+            int mapY = data.Z; // [Unified] Use Z as Map Y
+
             if (map != null)
             {
-                if (!map.IsWalkable(data.X, data.Y))
+                if (!map.IsWalkable(mapX, mapY))
                 {
-                    Console.WriteLine($"[GameDirector] Spawn Failed. Invalid Pos ({data.X},{data.Y}) for Monster {data.MonsterId}");
+                    Console.WriteLine($"[GameDirector] Spawn Failed. Invalid Pos ({mapX},{mapY}) for Monster {data.MonsterId}");
                     return;
                 }
             }
 
-            _session.SpawnEntityInternal(data.MonsterId, EntityType.Monster, data.X, data.Y, data.GroupId, data.AI);
+            _session.SpawnEntityInternal(data.MonsterId, EntityType.Monster, mapX, mapY, data.GroupId, data.AI);
         }
 
         public void SpawnObject(SpawnObjectData data)
         {
              var map = _session.Map;
-             if (map != null && !map.IsWalkable(data.X, data.Y))
+             int mapX = data.X;
+             int mapY = data.Z; // [Unified] Use Z as Map Y
+
+             if (map != null && !map.IsWalkable(mapX, mapY))
              {
                  // Object는 벽에 생성될 수도 있으니 체크 완화 필요할 수도 있음
-                 Console.WriteLine($"[GameDirector] Spawn Object Failed. Invalid Pos ({data.X},{data.Y})");
+                 Console.WriteLine($"[GameDirector] Spawn Object Failed. Invalid Pos ({mapX},{mapY})");
                  return;
              }
-             _session.SpawnEntityInternal(data.EntityId, (EntityType)data.EntityType, data.X, data.Y, data.GroupId, data.Pattern);
+             _session.SpawnEntityInternal(data.EntityId, (EntityType)data.EntityType, mapX, mapY, data.GroupId, data.Pattern);
         }
 
         public void BroadcastMessage(string msg)

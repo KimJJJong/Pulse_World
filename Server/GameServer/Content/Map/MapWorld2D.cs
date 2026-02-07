@@ -3,8 +3,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq;
 using GameServer.Content.Map.Interface;
 using GameServer.InGame.Manager.Entity;
+using GameServer.Content.Skill; // [NEW]
+using GameShared.Data; // [NEW]
 
 public sealed class MapWorld2D : IGameWorld
 {
@@ -295,25 +298,20 @@ public sealed class MapWorld2D : IGameWorld
         if (!_entities.TryGetValue(actorId, out var caster) || !caster.IsAlive)
             return false;
 
-
-        bool anyHit = false;
-        foreach(var target in GetEntitiesAt(new GridPos(tartX, tartY)))
+        // [Refactor] Legacy SkillDef 제거 -> 직접 데미지 로직 사용
+        // Basic Attack = Damage 10, Range 1 (Diamond)
+        
+        var center = new GridPos(tartX, tartY);
+        // 타겟 위치에 있는 적들 식별
+        foreach(var target in GetEntitiesAt(center))
         {
             if (!target.IsAlive) continue;
             if (target.Id == actorId) continue;
 
-            //if (!skill.CanHit(attacker, target))  // 일반 공격 혹은 공격 모듈화 필요
-            //    continue;
-
-            //if (!hitTargets.Add(target.Id))
-            //    continue;
-            SkillDef tmpDamage = new SkillDef();
-            tmpDamage.Damage = 10;
-            ApplySkillEffect(caster, target, tmpDamage, hpUpdates);
-            anyHit = true;
+            // Apply Damage 10
+            ApplyCustomDamage(caster, target, 10, hpUpdates);
         }
-        // [Attack] 허공에 공격해도(Miss) 행동 자체는 유효하므로 true 반환
-        // 그래야 클라에서 Animation이 재생됨 (Action.Accepted = true)
+        
         return true; 
     }
 
@@ -325,28 +323,94 @@ public sealed class MapWorld2D : IGameWorld
         if (!_entities.TryGetValue(actorId, out var caster) || !caster.IsAlive)
             return false;
 
-        // 프로토타입: 스킬 정의 없으면 기본값
-        var skill = SkillDatabase.GetOrDefault(skillId);
+        // [Refactor] Use NewSkillDatabase
+        if (!NewSkillDatabase.TryGet(skillId, out var skill))
+        {
+            Console.WriteLine($"[TryUseSkill] Skill not found: {skillId}");
+            return false;
+        }
 
-        var center = new GridPos(targetX, targetY);
-
-        var cells = BuildDiamond(center, radius: 1);
-
-        return TryUseSkillArea(actorId, skillId, cells, hpUpdate);
+        // Note: NewSkill uses Timeline (SkillRunner). 
+        // Instant usage via TryUseSkill is not fully supported without a Runner.
+        // For now, we assume this method is only called for simple/legacy cases or debugging.
+        // If we want to support it, we should instantiate a SkillRunner here, 
+        // BUT SkillRunner needs dependencies (actions, frozen, etc.) which MapWorld2D lacks.
+        // 
+        // Suggestion: Caller (BeatActionManager) should use SkillRunner directly.
+        // Returning true to prevent crash, but log warning.
+        
+        Console.WriteLine($"[TryUseSkill] Warning: Caller should use SkillRunner for {skillId}");
+        return true;
     }
 
-    //  Freeze 셀 기반 판정(텔레그래프=판정 보장)
+    // Helper to apply raw damage (NewSkill System)
+    public bool TryUseCustomSkill(int actorId, int damage, List<GridPos> cells, List<HpUpdate> hpUpdates)
+    {
+        if (!TryGetEntity(actorId, out var attacker) || !attacker.IsAlive)
+            return false;
+
+        bool anyHit = false;
+
+        foreach (var c in cells)
+        {
+            if (!IsInside(c.X, c.Y)) continue;
+            // if (IsBlocked(c.X, c.Y)) continue; // Custom skill might ignore walls or have its own flags
+
+            foreach (var target in GetEntitiesAt(new GridPos(c.X, c.Y)))
+            {
+                if (!target.IsAlive) continue;
+                if (target.Id == actorId) continue;
+
+                // TODO: Friendly Fire Check (if needed)
+
+                // Apply Damage
+                int before = target.GetState<int>("HP");
+                int after = Math.Max(0, before - damage);
+                
+                if (before != after)
+                {
+                    target.SetState("HP", after);
+                    hpUpdates.Add(new HpUpdate(target.Id, after));
+                    Console.WriteLine($"[TryUseCustomSkill] Attacker:{attacker.Id} Hit:{target.Id} DMG:{damage} HP:{before}->{after}");
+
+                    if (after <= 0)
+                    {
+                        OnEntityDead?.Invoke(target.Id);
+                        Despawn(target.Id);
+                    }
+                    anyHit = true;
+                }
+            }
+        }
+        return anyHit;
+    }
+
     public bool TryUseSkillArea(int actorId, string skillId, IReadOnlyList<GridPos> cells, List<HpUpdate> hpUpdates)
     {
         if (!TryGetEntity(actorId, out var attacker) || !attacker.IsAlive)
             return false;
 
-        // 스킬 정의 조회
-        if (!SkillDatabase.TryGet(skillId, out var skill))
+        // [Refactor] Use NewSkillDatabase
+        if (!NewSkillDatabase.TryGet(skillId, out var skill))
         {
-            // 운영 기준: 여기서 false가 더 안전함
-            // 프로토타입이면 아래처럼 기본값으로 처리 가능
-            skill = SkillDatabase.GetOrDefault(skillId);
+             // Log?
+             return false;
+        }
+
+        // NewSkillDef doesn't have simple "Damage" field in root.
+        // It has Actions -> DamageAction.
+        // We need to find the damage amount if we want to apply it here.
+        // Logic: Iterate tracks, find first DamageAction?
+        
+        int damage = 0;
+        foreach(var t in skill.Tracks) {
+            foreach(var e in t.Events) {
+                if(e.Action is DamageAction da) {
+                    damage = da.Amount;
+                    break;
+                }
+            }
+            if(damage > 0) break;
         }
 
         var hitTargets = new HashSet<int>();
@@ -357,39 +421,75 @@ public sealed class MapWorld2D : IGameWorld
             if (!IsInside(c.X, c.Y))
                 continue;
 
-            // 스킬이 "벽에 막힘"이면, 해당 셀이 벽이면 스킵
-            if (skill.BlockedByWall && IsBlocked(c.X, c.Y))
-                continue;
+            // BlockedByWall is not directly on NewSkillDef. 
+            // Assume false or check generic flags if added.
 
-            // 한 셀에 여러 엔티티가 있을 수 있으니 전부 순회
             foreach (var target in GetEntitiesAt(new GridPos(c.X, c.Y)))
             {
                 if (!target.IsAlive) continue;
                 if (target.Id == actorId) continue;
 
-                if (!skill.CanHit(attacker, target))
-                    continue;
-
                 if (!hitTargets.Add(target.Id))
                     continue;
 
-                ApplySkillEffect(attacker, target, skill, hpUpdates);
+                ApplyCustomDamage(attacker, target, damage, hpUpdates);
                 anyHit = true;
             }
         }
 
         return anyHit;
     }
+
+    public bool TryUseCustomSkill(int actorId, int damage, IReadOnlyList<GridPos> cells, List<HpUpdate> hpUpdates)
+    {
+        if (!_entities.TryGetValue(actorId, out var attacker)) return false; 
+        // Or if actorId is invalid, we might still process? usually need attacker info for hit check?
+        // Pattern damage usually hits Players. 
+        // If attacker is null (e.g. environment), we might skip alliance check?
+        // Let's assume attacker exists.
+
+        bool anyHit = false;
+        HashSet<int> hitTargets = new();
+
+        foreach (var c in cells)
+        {
+            if (!IsInside(c.X, c.Y)) continue;
+
+            foreach (var target in GetEntitiesAt(new GridPos(c.X, c.Y)))
+            {
+                if (!target.IsAlive) continue;
+                if (target.Id == actorId) continue; // Self-hit check
+                
+                // Alliance Check? 
+                // CustomSkill is usually Monster -> Player.
+                if (attacker != null)
+                {
+                    // Simple check: Monster shouldn't hit Monster, Player shouldn't hit Player
+                    if (attacker.Type == target.Type) continue; 
+                }
+
+                if (!hitTargets.Add(target.Id)) continue;
+
+                ApplyCustomDamage(attacker, target, damage, hpUpdates);
+                anyHit = true;
+            }
+        }
+        return anyHit;
+    }
+
     // ==== 내부 유틸 ====
     private bool IsInside(int x, int y) => _map.InBounds(x, y);
 
     // 프로토 기준: walkable 아니면 "벽/장애물"로 간주
     private bool IsBlocked(int x, int y) => !_map.IsWalkable(x, y);
 
-    private void ApplySkillEffect(MapEntity attacker, MapEntity target, SkillDef skill, List<HpUpdate> hpUpdates)
+    // [REMOVED] ApplySkillEffect (Legacy)
+
+
+    private void ApplyCustomDamage(MapEntity attacker, MapEntity target, int damage, List<HpUpdate> hpUpdates)
     {
         int before = target.GetState<int>("HP");
-        int after = Math.Max(0, before - skill.Damage);
+        int after = Math.Max(0, before - damage);
 
         if (after == before)
             return;
@@ -398,7 +498,7 @@ public sealed class MapWorld2D : IGameWorld
 
         hpUpdates.Add(new HpUpdate(target.Id, after));
 
-        Console.WriteLine($"[ApplySkillEffect] Attacker:{attacker.Id} Target:{target.Id} HP {before}->{after}");
+        Console.WriteLine($"[ApplyDamage] Attacker:{attacker?.Id??-1} Target:{target.Id} HP {before}->{after}");
 
         if (after <= 0)
         {
