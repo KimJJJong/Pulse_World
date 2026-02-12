@@ -16,6 +16,7 @@ MonoBehaviour:
   Description: 'Game_Forest_01
 
     Map~~~'
+  MapPrefab: {fileID: 0}
   Rhythm:
     SongKey: DefaultSong
     Bpm: 120
@@ -24,22 +25,20 @@ MonoBehaviour:
     StartDelayMs: 2000
   Registry:
   - Key: Pawn_B
-    EntityDef: {fileID: 11400000, guid: 4d1fd5f939bf33c4d9160ed9f85e13b0, type: 2}
+    EntityDef: {fileID: 11400000, guid: bd8a2194694122240af24ed0a718df7d, type: 2}
     DefaultGroupId: 10
-    DefaultAI_Pattern: Default
+    PatternRef: {fileID: 11400000, guid: 445266891432cb94292ce44372e24f8e, type: 2}
   - Key: Pawn_W
-    EntityDef: {fileID: 11400000, guid: 52b325b7794eb904988b22fed578e9bf, type: 2}
+    EntityDef: {fileID: 11400000, guid: add6b7526831b354ab21177ef64c9e4f, type: 2}
     DefaultGroupId: 10
-    DefaultAI_Pattern: Default
+    PatternRef: {fileID: 11400000, guid: 445266891432cb94292ce44372e24f8e, type: 2}
   InitialSpawns:
   - EntityKey: Pawn_B
-    Position: {x: 15, y: 32}
+    Position: {x: 17, y: 0, z: 14}
     OverrideGroupId: 10
-    OverrideAI_Pattern: 
   - EntityKey: Pawn_W
-    Position: {x: 10, y: 33}
+    Position: {x: 18, y: 0, z: 6}
     OverrideGroupId: 10
-    OverrideAI_Pattern: Default
   InitialObjects: []
   Events:
   - EventId: 1
@@ -57,23 +56,23 @@ MonoBehaviour:
     - Type: 0
       HeaderParam: Pawn_B
       ParamId: 0
-      Position: {x: 15, y: 30}
+      Position: {x: 26, y: 0, z: 13}
       StringVal: 
       GroupId: 11
     - Type: 0
       HeaderParam: Pawn_W
       ParamId: 0
-      Position: {x: 15, y: 31}
+      Position: {x: 26, y: 0, z: 6}
       StringVal: 
       GroupId: 11
-  - EventId: 1
+  - EventId: 2
     IsOneShot: 1
     Conditions:
     - Type: 0
       TargetId: 11
       Count: 2
       Area:
-        x: 0
+        x: -3
         y: 0
         width: 0
         height: 0
@@ -81,6 +80,6 @@ MonoBehaviour:
     - Type: 3
       HeaderParam: 
       ParamId: 0
-      Position: {x: 0, y: 0}
+      Position: {x: 0, y: 0, z: 0}
       StringVal: 
       GroupId: 0

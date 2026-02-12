@@ -117,7 +117,7 @@ public class RhythmInputController : MonoBehaviour
         // [Debug] Input Sync Check
         long curBeat = Rhythm.GetCurrentBeatIndex();
         double progress = Rhythm.GetCurrentBeatProgress01();
-        Debug.Log($"[ClientInput] ServerTime={serverNow} Beat={curBeat} Progress={progress:F3} Kind={kind}");
+        //Debug.Log($"[ClientInput] ServerTime={serverNow} Beat={curBeat} Progress={progress:F3} Kind={kind}");
 
         SendActionRouted(kind, tx, ty, serverNow);
         _lastSendLocalMs = nowLocalMs;

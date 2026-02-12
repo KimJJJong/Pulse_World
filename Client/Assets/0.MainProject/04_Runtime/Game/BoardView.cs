@@ -342,7 +342,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
 
     [Header("Sync")]
-    [Range(0.1f, 1.0f)]
+    [Range(0.1f, 2.0f)]
     public float actionDurationRatio = 0.5f;
 
     public void OnBeatAction(ClientBeatAction action, ClientEntityInfo entity)
@@ -386,6 +386,10 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (action.ActionKind == (int)ActionKind.Attack) 
         {
             visual.PlayAttack(duration);
+        }
+        else if (action.ActionKind == (int)ActionKind.Skill)
+        {
+            visual.PlaySkill(duration);
         }
     }
 

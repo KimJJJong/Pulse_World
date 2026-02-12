@@ -1,0 +1,7 @@
+﻿group_id,description,item_id,rate,min_amount,max_amount
+9001,Slime Drops,3001,0.5,1,2
+9001,Slime Drops,1001,0.1,1,1
+9002,Skeleton Drops,3002,0.4,1,3
+9002,Skeleton Drops,2001,0.05,1,1
+9100,Boss Dragon Drops,2002,1.0,1,1
+9100,Boss Dragon Drops,5001,1.0,1000,5000

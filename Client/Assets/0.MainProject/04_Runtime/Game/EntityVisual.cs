@@ -85,6 +85,17 @@ public class EntityVisual : MonoBehaviour
         }
     }
 
+    public void PlaySkill(float duration)
+    {
+        if (_animator != null)
+        {
+            _animator.speed = 1.0f / duration;
+            // 스킬 애니메이션이 따로 있다면 "Skill", 없다면 "Attack" 재사용
+            // 현재는 "Attack" 재사용
+            _animator.SetTrigger("Attack");
+        }
+    }
+
     public void PlayHit()
     {
         if (_animator != null) _animator.SetTrigger("Hit");

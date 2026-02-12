@@ -1,0 +1,8 @@
+﻿id,name,type,grade,max_stack,sell_price,icon_path,description,effect_id,effect_val
+1001,Healing Potion,Consumable,Common,99,10,Icons/Potion_Red,HP를 50 회복합니다.,101,50
+1002,Mana Potion,Consumable,Common,99,20,Icons/Potion_Blue,MP를 30 회복합니다.,102,30
+3001,Iron Ore,Material,Common,999,5,Icons/Ore_Iron,철광석입니다.,0,0
+3002,Leather,Material,Common,999,5,Icons/Leather,가죽입니다.,0,0
+4001,Sword Schematic,Blueprint,Uncommon,10,100,Icons/Blueprint_Sword,검 제작 도면입니다.,0,0
+5001,Gold,Currency,Common,999999,0,Icons/Coin_Gold,골드.,0,0
+5002,Diamond,Currency,Rare,999999,0,Icons/Gem_Diamond,유료 재화.,0,0

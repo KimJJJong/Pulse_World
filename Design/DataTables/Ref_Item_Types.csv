@@ -1,0 +1,7 @@
+﻿code,name,description
+0,None,없음
+1,Equipment,장비
+2,Consumable,소비
+3,Material,재료
+4,Blueprint,도면
+5,Currency,재화

@@ -115,7 +115,7 @@ namespace GameServer.Content.Skill
             
             // [Debug] CustomCells Validation
             if (action.Shape.GetShapeType() == ShapeType.CustomCells)
-                Console.WriteLine($"[SkillRunner] Warning CustomCells: {cells.Count} cells generated from Shape.");
+                //Console.WriteLine($"[SkillRunner] Warning CustomCells: {cells.Count} cells generated from Shape.");
 
             // [Fix] Snapshot the warned cells to ensure Damage hits the exact warned area (Ground Targeting),
             // even if the caster moves afterwards.

@@ -9,6 +9,7 @@ namespace RhythmRPG.Editor.StageBuilder
         [Header("Basic Info")]
         public string MapId;
         [TextArea] public string Description;
+        public GameObject MapPrefab; // [NEW] For Scene View Editing
 
         [Header("Rhythm Settings")]
         public RhythmSettingsSO Rhythm = new RhythmSettingsSO();
@@ -31,7 +32,9 @@ namespace RhythmRPG.Editor.StageBuilder
         public string Key; // e.g. "Slime_A"
         public EntityDefinitionSO EntityDef;
         public int DefaultGroupId;
-        public string DefaultAI_Pattern = "Default"; // AI for Monster, Pattern for Object
+        
+        // [Refactor] Decoupling: Explicit Pattern Reference (Registry Level)
+        public MonsterPatternSO PatternRef;
     }
 
     [System.Serializable]
@@ -48,11 +51,10 @@ namespace RhythmRPG.Editor.StageBuilder
     public class SpawnInfoSO
     {
         public string EntityKey; // [Refactor] Reference Registry Key
-        public Vector2Int Position;
+        public Vector3 Position;
         
         // Optional Overrides (-1 or Empty means use Default)
         public int OverrideGroupId = -1; 
-        public string OverrideAI_Pattern = ""; 
     }
 
     // [System.Serializable]
@@ -82,7 +84,7 @@ namespace RhythmRPG.Editor.StageBuilder
         public ActionType Type;
         public string HeaderParam; // EntityKey, MapId, etc.
         public int ParamId; // (Deprecated or for specific IDs?)
-        public Vector2Int Position;
+        public Vector3 Position;
         public string StringVal; // (Deprecated or Extra)
         public int GroupId; // Override?
     }

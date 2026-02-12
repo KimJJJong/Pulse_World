@@ -68,14 +68,30 @@ namespace RhythmRPG.Editor.StageBuilder
                 if (reg.EntityDef == null) continue;
 
                 int groupId = (s.OverrideGroupId != -1) ? s.OverrideGroupId : reg.DefaultGroupId;
-                string ai_pattern = (!string.IsNullOrEmpty(s.OverrideAI_Pattern)) ? s.OverrideAI_Pattern : reg.DefaultAI_Pattern;
+                
+                string ai_pattern = "";
+                // [Refactor] Use Registry Pattern Reference
+                if (reg.PatternRef != null)
+                {
+                    if (reg.PatternRef.Data != null && !string.IsNullOrEmpty(reg.PatternRef.Data.MonsterType))
+                    {
+                        ai_pattern = reg.PatternRef.Data.MonsterType;
+                    }
+                    else
+                    {
+                        // Fallback to Asset Name if internal ID is missing
+                        ai_pattern = reg.PatternRef.name;
+                        Debug.LogWarning($"[StageExporter] PatternRef '{reg.PatternRef.name}' has empty MonsterType. Using Asset Name as ID.");
+                    }
+                }
 
                 if (reg.EntityDef.Type == EntityType.Monster)
                 {
                     dto.InitialSpawns.Add(new SpawnDataDTO { 
                         MonsterId = reg.EntityDef.EntityId,
-                        X = s.Position.x,
-                        Y = s.Position.y,
+                        X = (int)s.Position.x,
+                        Y = (int)s.Position.y,
+                        Z = (int)s.Position.z, // [NEW]
                         AI = ai_pattern,
                         GroupId = groupId
                     });
@@ -85,8 +101,9 @@ namespace RhythmRPG.Editor.StageBuilder
                     dto.InitialObjects.Add(new SpawnObjectDTO {
                         EntityId = reg.EntityDef.EntityId,
                         EntityType = (int)reg.EntityDef.Type,
-                        X = s.Position.x,
-                        Y = s.Position.y,
+                        X = (int)s.Position.x,
+                        Y = (int)s.Position.y,
+                        Z = (int)s.Position.z, // [NEW]
                         GroupId = groupId,
                         Pattern = ai_pattern
                     });
@@ -115,20 +132,39 @@ namespace RhythmRPG.Editor.StageBuilder
                 foreach(var a in e.Actions)
                 {
                     int paramId = a.ParamId;
+                    string ai_pattern = a.StringVal; // Default to existing value
                     
                     // Resolve EntityKey for Spawn/Action if HeaderParam is used
                     if (!string.IsNullOrEmpty(a.HeaderParam) && registryMap.TryGetValue(a.HeaderParam, out var reg))
                     {
                         // Insert ID from Registry
                          paramId = reg.EntityDef.EntityId;
+
+                         // [Refactor] Extract Pattern from Registry for SpawnMonster Action
+                         if (a.Type == ActionType.SpawnMonster) 
+                         {
+                             if (reg.PatternRef != null)
+                             {
+                                if (reg.PatternRef.Data != null && !string.IsNullOrEmpty(reg.PatternRef.Data.MonsterType))
+                                {
+                                    ai_pattern = reg.PatternRef.Data.MonsterType;
+                                }
+                                else
+                                {
+                                    ai_pattern = reg.PatternRef.name;
+                                    Debug.LogWarning($"[StageExporter] Action PatternRef '{reg.PatternRef.name}' has empty MonsterType. Using Asset Name.");
+                                }
+                             }
+                         }
                     }
 
                     evtDto.Actions.Add(new ActionDataDTO {
                         Type = a.Type.ToString(),
                         ParamId = paramId,
-                        X = a.Position.x,
-                        Y = a.Position.y,
-                        StringVal = a.StringVal, // Keep if still used, or could use HeaderParam?
+                        X = (int)a.Position.x,
+                        Y = (int)a.Position.y,
+                        Z = (int)a.Position.z, // [NEW]
+                        StringVal = ai_pattern, // Use resolved pattern
                         GroupId = a.GroupId
                     });
                 }
@@ -137,12 +173,20 @@ namespace RhythmRPG.Editor.StageBuilder
             }
 
             string finalJson = JsonUtility.ToJson(dto, true);
+            
+            // Save to Server Path
+            string projectRoot = System.IO.Directory.GetParent(Application.dataPath).FullName; 
+            string serverPath = System.IO.Path.Combine(projectRoot, "../Server/GameServer/Content/01.Game/Stage/Json"); 
+            
+            serverPath = System.IO.Path.GetFullPath(serverPath);
 
-            // Save
-            string path = "Assets/Resources/Data/Stage";
-            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+            if (!Directory.Exists(serverPath))
+            {
+                try { Directory.CreateDirectory(serverPath); }
+                catch { serverPath = "Assets/Resources/Data/Stage"; }
+            }
 
-            string fullPath = $"{path}/{stage.MapId}.json";
+            string fullPath = $"{serverPath}/{stage.MapId}.json";
             File.WriteAllText(fullPath, finalJson);
 
             AssetDatabase.Refresh();
@@ -178,6 +222,7 @@ namespace RhythmRPG.Editor.StageBuilder
             public int MonsterId;
             public int X;
             public int Y;
+            public int Z; // [NEW] Unity Z
             public string AI;
             public int GroupId;
         }
@@ -189,6 +234,7 @@ namespace RhythmRPG.Editor.StageBuilder
             public int EntityType;
             public int X;
             public int Y;
+            public int Z; // [NEW] Unity Z
             public int GroupId;
             public string Pattern;
         }
@@ -218,6 +264,7 @@ namespace RhythmRPG.Editor.StageBuilder
             public int ParamId;
             public int X;
             public int Y;
+            public int Z; // [NEW] Unity Z
             public string StringVal;
             public int GroupId;
         }

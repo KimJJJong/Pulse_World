@@ -1,0 +1,6 @@
+﻿id,name,equip_slot,grade,base_atk,base_def,base_str,base_dex,max_enhance,sell_price,model_path,icon_path
+2001,Novice Sword,Weapon,Common,10,0,0,0,5,50,Prefabs/Weapon/Sword001,Icons/W_Sword001
+2002,Iron Sword,Weapon,Uncommon,25,0,5,0,10,200,Prefabs/Weapon/Sword002,Icons/W_Sword002
+2101,Leather Helmet,Head,Common,0,5,0,0,5,30,Prefabs/Armor/Helm001,Icons/A_Helm001
+2201,Leather Armor,Armor,Common,0,10,0,2,5,40,Prefabs/Armor/Body001,Icons/A_Body001
+2401,Speed Boots,Shoes,Rare,0,3,0,10,10,500,Prefabs/Armor/Boots002,Icons/A_Boots002
