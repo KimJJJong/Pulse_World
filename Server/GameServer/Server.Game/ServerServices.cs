@@ -11,6 +11,10 @@ public static class ServerServices
     public static HandshakeFlow HandshakeFlow => GetRequired<HandshakeFlow>();
     public static ConnectionRegistry Registry => GetRequired<ConnectionRegistry>();
     public static PresenceLeaseRenewer LeaseRenewer => GetRequired<PresenceLeaseRenewer>();
+    
+    // Inventory
+    public static GameServer.Content.Item.InventoryManager InventoryManager => GetRequired<GameServer.Content.Item.InventoryManager>();
+    public static GameServer.Content.Item.ItemTemplateManager ItemTemplates => GetRequired<GameServer.Content.Item.ItemTemplateManager>();
 
     // (필요하면) CP client, options 등도 동일 패턴으로 노출 가능
     // public static GrpcControlPlaneClient Cp => GetRequired<GrpcControlPlaneClient>();
@@ -27,6 +31,8 @@ public static class ServerServices
         _ = HandshakeFlow;
         _ = Registry;
         _ = LeaseRenewer;
+        _ = InventoryManager;
+        _ = ItemTemplates;
     }
 
     private static T GetRequired<T>() where T : class

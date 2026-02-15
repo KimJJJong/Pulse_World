@@ -1,30 +1,15 @@
-﻿//using Microsoft.Extensions.DependencyInjection;
-//using Server.Domain.Auth;
-//using Server.Domain.Connections;
-//using Server.Infrastructure.ControlPlaneClient;
-//using Server.Presentation.Tcp.PacketHandlers;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-//namespace Server.Bootstrap;
+namespace Server.Bootstrap;
 
-//public static class DependencyInjection
-//{
-//    public static IServiceCollection AddServerServices(this IServiceCollection services)
-//    {
-//        services.AddSingleton<GrpcControlPlaneClient>();
-
-//        services.AddSingleton<HandshakeFlow>();
-//        services.AddSingleton<PresenceLeaseRenewer>();
-
-//        // Kick subscriber
-//        services.AddHostedService<ControlEventSubscriber>();
-
-
-//        services.AddSingleton<ConnectionRegistry>();
-//        services.AddSingleton<IConnectionKicker>(sp => sp.GetRequiredService<ConnectionRegistry>());
-
-//        services.AddSingleton<HandshakeHandler>();
-
-
-//        return services;
-//    }
-//}
+public static class DependencyInjection
+{
+    public static IServiceCollection AddServerServices(this IServiceCollection services, HostBuilderContext context)
+    {
+        // Moved to ServerHost.cs
+        // This file is currently unused but kept for structure if needed later.
+        
+        return services;
+    }
+}

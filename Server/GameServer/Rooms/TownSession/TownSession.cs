@@ -110,6 +110,41 @@ public sealed class TownSession : SessionBase
         var pkt = BuildInitPacketForPlayer(myActorId);
 
         s.Send(pkt.Write());
+
+        //  Inventory Init
+        System.Threading.Tasks.Task.Run(async () =>
+        {
+            var invItems = await ServerServices.InventoryManager.LoadInventoryAsync(s.SessionID.ToString());
+            
+            var invPkt = new SC_Inventory();
+            foreach(var item in invItems)
+            {
+                var equipTmpl = ServerServices.ItemTemplates.GetEquipment(item.TemplateId);
+                if (equipTmpl != null)
+                {
+                    invPkt.equipmentss.Add(new SC_Inventory.Equipments
+                    {
+                        InstanceId = item.InstanceId,
+                        TemplateId = item.TemplateId,
+                        SlotIndex = item.SlotIndex,
+                        EnhancementLevel = item.EnhancementLevel,
+                        IsEquipped = item.IsEquipped
+                    });
+                }
+                else
+                {
+                    invPkt.itemss.Add(new SC_Inventory.Items
+                    {
+                        InstanceId = item.InstanceId,
+                        TemplateId = item.TemplateId,
+                        Amount = item.Amount,
+                        SlotIndex = item.SlotIndex
+                    });
+                }
+            }
+            s.Send(invPkt.Write());
+            Console.WriteLine($"[TownSession] Sent SC_Inventory to Actor {myActorId} ({invPkt.itemss.Count} Items, {invPkt.equipmentss.Count} Equipments)");
+        });
     }
 
 
@@ -119,7 +154,6 @@ public sealed class TownSession : SessionBase
 
 
         packet.Mode = 1;    // tmp 마을, 게임 구분용
-        // 마을은 액션윈도 의미 없으면 0 or 큰값
         packet.ActionWindowMs = _rhythmConfig.ActionWindowMs;
         packet.SongId = "TestSong";
         packet.Bpm = _rhythmConfig.Bpm;
@@ -159,11 +193,6 @@ public sealed class TownSession : SessionBase
     // =====================================================
     // 클라이언트 입력 처리 (마을) — ActionRequest 그대로 받는다
     // =====================================================
-    //public void OnClientActionPacketByActorId(int actorId, CS_ActionRequest req)
-    //{
-    //    if (actorId < 0) return;
-    //    BeatActions.OnClientActionRequest(actorId, req);
-    //}
     public void OnClientActionPacketByActorId(int actorId, CS_TownActionRequest req)
     {
         if (actorId < 0) return;

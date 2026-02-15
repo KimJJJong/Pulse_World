@@ -305,7 +305,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
     {
         if (!_entityViews.TryGetValue(info.EntityId, out var visual) || visual == null)
         {
-            GameObject prefab = ChoosePrefab(info.EntityType, info.ModelId);
+            GameObject prefab = ChoosePrefab(info.EntityType, info.AppearanceId);
             if (prefab == null)
             {
                 Debug.LogWarning($"[BoardView] EntityType {info.EntityType}용 Prefab이 없음");

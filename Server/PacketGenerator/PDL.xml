@@ -263,6 +263,7 @@
 		<int name ="X"/>
 		<int name ="Y"/>
 		<int name ="Hp"/>
+		<int name ="AppearanceId"/>
 	</packet>
 	
 	
@@ -270,5 +271,49 @@
 
 
 
-</PDL>
+	<!-- INVENTORY -->
+	<packet name="CS_GetInventory">
+	</packet>
 
+	<packet name="SC_Inventory">
+		<list name="Items">
+			<long name="InstanceId"/>
+			<int name="TemplateId"/>
+			<int name="Amount"/>
+			<int name="SlotIndex"/>
+		</list>
+		<list name="Equipments">
+			<long name="InstanceId"/>
+			<int name="TemplateId"/>
+			<int name="SlotIndex"/>
+			<int name="EnhancementLevel"/>
+			<bool name="IsEquipped"/>
+			<string name="BaseStats"/>
+			<string name="RandomOptions"/>
+		</list>
+	</packet>
+
+	<packet name="CS_EquipItem">
+		<long name="InstanceId"/>
+		<bool name="Equip"/>
+	</packet>
+
+	<packet name="SC_EquipResult">
+		<bool name="Success"/>
+		<long name="InstanceId"/>
+		<bool name="Equipped"/>
+	</packet>
+
+	<!-- CHEAT / DEBUG -->
+	<packet name="CS_Cheat">
+		<int name="CheatCode"/>
+		<int name="Param1"/>
+		<int name="Param2"/>
+	</packet>
+
+	<packet name="CS_DestroyItem">
+		<long name="InstanceId"/>
+		<int name="Amount"/>
+	</packet>
+
+</PDL>

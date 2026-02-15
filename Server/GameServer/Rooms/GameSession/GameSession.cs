@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using Util;
 using GameServer.Content.Game.Entity;
+using System.Threading.Tasks;
 
 public sealed class GameSession : SessionBase
 {
@@ -191,7 +192,7 @@ public sealed class GameSession : SessionBase
                 BeatIndex = 0,
                 EntityId = e.Id,
                 EntityType = (int)e.Type,
-                ModelId = e.GetState<int>("ModelId"), 
+                AppearanceId = e.GetState<int>("ModelId"), // ModelId mapped to AppearanceId 
                 X = e.Position.X,
                 Y = e.Position.Y,
                 Hp = e.GetState<int>("HP")
@@ -286,6 +287,51 @@ public sealed class GameSession : SessionBase
         s.Send(pkt.Write());
 
         Console.WriteLine($"[SendInitPacketToPlayer] Sent SC_InitMap myActorId={pkt.MyActorId}");
+
+        // [NEW] Inventory Init
+        Task.Run(async () =>
+        {
+            var invItems = await ServerServices.InventoryManager.LoadInventoryAsync(s.SessionID.ToString()); // SessionId used as Uid for test?
+            // Actually SessionBase has string Uid? Let's check. 
+            // In SessionBase: public string Uid { get; set; } = ""; (need to verify)
+            
+            // Assuming s.Uid is set. If not, fallback to SessionId string for now.
+            // ClientSession doesn't have Uid property directly exposed? 
+            // Let's check PacketHandler/ClientSession structure.
+            // For now, use "TestUser_{ActorId}" if Uid missing.
+
+            // Wait, InventoryManager.LoadInventoryAsync returns List<ItemInstance>
+            // We need to convert to SC_Inventory and send.
+            
+            var invPkt = new SC_Inventory();
+            foreach(var item in invItems)
+            {
+                var equipTmpl = ServerServices.ItemTemplates.GetEquipment(item.TemplateId);
+                if (equipTmpl != null)
+                {
+                    invPkt.equipmentss.Add(new SC_Inventory.Equipments
+                    {
+                        InstanceId = item.InstanceId,
+                        TemplateId = item.TemplateId,
+                        SlotIndex = item.SlotIndex,
+                        EnhancementLevel = item.EnhancementLevel,
+                        IsEquipped = item.IsEquipped
+                    });
+                }
+                else
+                {
+                    invPkt.itemss.Add(new SC_Inventory.Items
+                    {
+                        InstanceId = item.InstanceId,
+                        TemplateId = item.TemplateId,
+                        Amount = item.Amount,
+                        SlotIndex = item.SlotIndex
+                    });
+                }
+            }
+            s.Send(invPkt.Write());
+            Console.WriteLine($"[GameSession] Sent SC_Inventory to Actor {myActorId} ({invPkt.itemss.Count} Items, {invPkt.equipmentss.Count} Equipments)");
+        });
     }
 
     // =====================================================

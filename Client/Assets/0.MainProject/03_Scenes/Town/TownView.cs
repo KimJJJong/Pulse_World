@@ -12,19 +12,7 @@ public sealed class TownView : MonoBehaviour
     public TMP_Text TownEndpointText = null!;
     public Button TownConnectButton = null!;
 
-    [Header("Game Ticket")]
-    public TMP_InputField GamePreferredRegion = null!;
-    public TMP_InputField GameRoomId = null!;
-    public TMP_InputField GameMap = null!;
-    public TMP_InputField GameMaxPlayers = null!;
-    public Button GameIssueButton = null!;
-    public TMP_Text GameTransitionIdText = null!;
-    public TMP_Text GameTicketIdText = null!;
-    public TMP_Text GameExpireText = null!;
-    public TMP_Text GameServerIdText = null!;
-    public TMP_Text GameEndpointText = null!;
-    public TMP_Text GameKeyText = null!;
-    public Button GameConnectButton = null!;
+  
 
     [Header("Feedback")]
     public TMP_Text StatusText = null!;
@@ -37,8 +25,7 @@ public sealed class TownView : MonoBehaviour
         if (TownIssueButton) TownIssueButton.interactable = !on;
         if (TownConnectButton) TownConnectButton.interactable = !on;
 
-        if (GameIssueButton) GameIssueButton.interactable = !on;
-        if (GameConnectButton) GameConnectButton.interactable = !on;
+
     }
 
     public void SetStatus(string msg)

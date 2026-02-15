@@ -31,35 +31,65 @@ public class ClientGameState : MonoBehaviour
         Instance = this;
     }
 
+    public bool IsMapGenerationComplete { get; private set; } = false;
+    public float MapGenProgress { get; private set; } = 0f;
+
     #region 맵
-    public bool CreateMapFromAsset(MapAsset asset)
+    // 기존 동기 메서드 -> Coroutine 호출용 래퍼로 사용하거나, 외부에서 StartCoroutine(Co_...) 호출
+    public void StartMapGeneration(MapAsset asset)
     {
+        StartCoroutine(Co_CreateMapFromAsset(asset));
+    }
+
+    public System.Collections.IEnumerator Co_CreateMapFromAsset(MapAsset asset)
+    {
+        IsMapGenerationComplete = false;
+        MapGenProgress = 0f;
+
         if (asset == null)
         {
             Debug.LogError("[ClientGameState] CreateMapFromAsset failed: asset is null");
-            return false;
+            IsMapGenerationComplete = true; // 실패해도 완료 처리는 해야 무한 로딩 방지
+            yield break;
         }
 
-        asset.EnsureSize(); // 에디터에서 배열 꼬여도 안전
+        asset.EnsureSize(); 
 
-        // 1) 기존 흐름 유지: CreateMap -> SetTile -> WorldView.OnSetTile
+        // 1) 맵 초기화
         CreateMap(asset.Width, asset.Height);
+        yield return null; // 한 프레임 대기
 
-        // 2) 타일 채우기: 여기서도 기존 SetTile만 호출한다 (다른 시스템 영향 X)
+        // 2) 타일 채우기 (비동기 분산)
+        int totalTiles = asset.Width * asset.Height;
+        int processedCount = 0;
+        int tilesPerFrame = 200; // 한 프레임당 처리할 타일 수 (조절 가능)
+
         for (int y = 0; y < asset.Height; y++)
         {
             for (int x = 0; x < asset.Width; x++)
             {
                 var cell = asset.Get(x, y);
-
-                // 서버는 TileKind만 필요하다고 했으니, 클라에서도 tileKind = cell.k만 우선 사용.
-                // (추후 variant(v)를 렌더링에 쓰고 싶으면 BoardView에서 추가로 처리하면 됨)
                 SetTile(x, y, (int)cell.Kind);
+
+                processedCount++;
+                
+                // 진행률 갱신
+                if (processedCount % tilesPerFrame == 0)
+                {
+                    MapGenProgress = (float)processedCount / totalTiles;
+                    yield return null; // 프레임 양보
+                }
             }
         }
 
-        return true;
+        MapGenProgress = 1.0f;
+        IsMapGenerationComplete = true;
+        Debug.Log("[ClientGameState] Map Generation Complete (Async)");
     }
+
+    // (기존 동기 메서드는 하위 호환성 위해 남겨두거나 삭제. 여기서는 덮어씌웠으므로 삭제됨)
+    // 필요한 경우 오버로딩: public bool CreateMapFromAssetSync(MapAsset asset) { ... }
+
     public void CreateMap(int width, int height)
     {
         Debug.Log($"[ClientGameState] CreateMap: Size=({width}x{height}) - Resetting Tiles");
@@ -253,7 +283,7 @@ public struct ClientEntityInfo
 {
     public int EntityId;
     public int EntityType;
-    public int ModelId;
+    public int AppearanceId; // Renamed from ModelId
     public int X;
     public int Y;
     public int Hp;

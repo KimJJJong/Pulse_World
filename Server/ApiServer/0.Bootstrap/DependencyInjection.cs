@@ -72,6 +72,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
+        services.AddScoped<IInventoryRepository, InventoryRepository>();
         
         // Redis
         services.Configure<RedisOptions>(config.GetSection("Redis"));

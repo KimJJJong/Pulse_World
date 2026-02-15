@@ -133,6 +133,88 @@ namespace ApiServer.Migrations
                     b.ToTable("user_identities", (string)null);
                 });
 
+            modelBuilder.Entity("ApiServer.Domain.Items.Equipment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("AcquiredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("acquired_at");
+
+                    b.Property<string>("BaseStats")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("base_stats");
+
+                    b.Property<int>("EnhancementLevel")
+                        .HasColumnType("integer")
+                        .HasColumnName("enhancement_level");
+
+                    b.Property<bool>("IsEquipped")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_equipped");
+
+                    b.Property<string>("OwnerUid")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("owner_uid");
+
+                    b.Property<string>("RandomOptions")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("random_options");
+
+                    b.Property<int>("SlotIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("slot_index");
+
+                    b.Property<int>("TemplateId")
+                        .HasColumnType("integer")
+                        .HasColumnName("template_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("equipments");
+                });
+
+            modelBuilder.Entity("ApiServer.Domain.Items.Item", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("integer")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("OwnerUid")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("owner_uid");
+
+                    b.Property<int>("SlotIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("slot_index");
+
+                    b.Property<int>("TemplateId")
+                        .HasColumnType("integer")
+                        .HasColumnName("template_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("items");
+                });
+
             modelBuilder.Entity("ApiServer.Domain.Users.User", b =>
                 {
                     b.Property<string>("Uid")

@@ -20,7 +20,7 @@ namespace RhythmRPG.EditorTools
         const string RoomItemPrefabPath = PrefabDir + "/RoomListItem.prefab";
         const string MemberItemPrefabPath = PrefabDir + "/MemberItem.prefab";
 
-        [MenuItem("RhythmRPG/UI/Generate Room UI")]
+        [MenuItem("Tools/UI/Generate Room UI")]
         public static void Generate()
         {
             EnsureFolders();

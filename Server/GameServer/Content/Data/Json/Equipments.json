@@ -1,0 +1,72 @@
+[
+  {
+    "id": 2001,
+    "name": "Novice Sword",
+    "equip_slot": "Weapon",
+    "grade": "Common",
+    "base_atk": 10,
+    "base_def": 0,
+    "base_str": 0,
+    "base_dex": 0,
+    "max_enhance": 5,
+    "sell_price": 50,
+    "model_path": "Prefabs/Weapon/Sword001",
+    "icon_path": "Icons/W_Sword001"
+  },
+  {
+    "id": 2002,
+    "name": "Iron Sword",
+    "equip_slot": "Weapon",
+    "grade": "Uncommon",
+    "base_atk": 25,
+    "base_def": 0,
+    "base_str": 5,
+    "base_dex": 0,
+    "max_enhance": 10,
+    "sell_price": 200,
+    "model_path": "Prefabs/Weapon/Sword002",
+    "icon_path": "Icons/W_Sword002"
+  },
+  {
+    "id": 2101,
+    "name": "Leather Helmet",
+    "equip_slot": "Head",
+    "grade": "Common",
+    "base_atk": 0,
+    "base_def": 5,
+    "base_str": 0,
+    "base_dex": 0,
+    "max_enhance": 5,
+    "sell_price": 30,
+    "model_path": "Prefabs/Armor/Helm001",
+    "icon_path": "Icons/A_Helm001"
+  },
+  {
+    "id": 2201,
+    "name": "Leather Armor",
+    "equip_slot": "Armor",
+    "grade": "Common",
+    "base_atk": 0,
+    "base_def": 10,
+    "base_str": 0,
+    "base_dex": 2,
+    "max_enhance": 5,
+    "sell_price": 40,
+    "model_path": "Prefabs/Armor/Body001",
+    "icon_path": "Icons/A_Body001"
+  },
+  {
+    "id": 2401,
+    "name": "Speed Boots",
+    "equip_slot": "Shoes",
+    "grade": "Rare",
+    "base_atk": 0,
+    "base_def": 3,
+    "base_str": 0,
+    "base_dex": 10,
+    "max_enhance": 10,
+    "sell_price": 500,
+    "model_path": "Prefabs/Armor/Boots002",
+    "icon_path": "Icons/A_Boots002"
+  }
+]

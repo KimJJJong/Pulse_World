@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem.HID;
 using System.Collections.Generic;
+using Client.Content.Item;
 
 public class ClientHandlers : MonoBehaviour
 {
@@ -63,12 +64,15 @@ public class ClientHandlers : MonoBehaviour
             Debug.Log($"[InitMap] Rhythm Sync: Bpm={p.Bpm}, SongStart={p.SongStartServerTime}");
         }
 
-        bool ok = GS.CreateMapFromAsset(mapAsset);
-        if (!ok)
-        {
-            Debug.LogError($"[InitMap] CreateMapFromAsset failed. mapName={mapName}");
-            return;
-        }
+        // CreateMapFromAsset -> Co_CreateMapFromAsset (Coroutine)
+        // ClientHandlers는 MonoBehaviour이므로 StartCoroutine 가능
+        GS.StartMapGeneration(mapAsset);
+        
+        // 주의: 맵 생성이 비동기로 돌기 때문에, 아래 로직들이 맵 생성 완료 전에 실행될 수 있음.
+        // 하지만 Actor/Entity 세팅은 맵 타일과 독립적인 경우가 많음.
+        // 만약 맵 타일에 의존적인 로직(예: 스폰 위치 유효성 체크 등)이 있다면
+        // GS.IsMapGenerationComplete를 기다리는 코루틴으로 감싸야 함.
+        // 현재 구조상으로는 Entity Spawn이 좌표만 저장하므로 괜찮을 것으로 판단됨.
 
         // 2) 플레이어 Actor 정보
         var actorIds = p.playerss.Select(pa => pa.ActorId).ToArray();
@@ -85,7 +89,7 @@ public class ClientHandlers : MonoBehaviour
             {
                 EntityId = e.EntityId,
                 EntityType = e.EntityType,
-                ModelId = e.AppearanceId,
+                AppearanceId = e.AppearanceId,
                 X = e.X,
                 Y = e.Y,
                 Hp = e.Hp
@@ -323,14 +327,12 @@ public class ClientHandlers : MonoBehaviour
         {
             EntityId = p.EntityId,
             EntityType = p.EntityType,
-            ModelId = p.ModelId,
+            AppearanceId = p.AppearanceId, // fix: ModelId -> AppearanceId
             X = p.X,
             Y = p.Y,
             Hp = p.Hp
         };
 
-        // 1) GS에서 논리 제거 + WorldView(=BoardView)에게 despawn 알림까지 전파 (? Comment seems copy paste from Despawn, but ok)
-        // SpawnOrUpdateEntity uses entity info to spawn.
         GS.SpawnOrUpdateEntity(entity);
 
         Debug.Log($"[SC_EntitySpawn] entityId={entity.EntityId} spawn ");
@@ -345,6 +347,49 @@ public class ClientHandlers : MonoBehaviour
     {
         Debug.Log("[ClientHandlers] Received ReturnToTown");
         ClientFlow.Instance.ReturnToTown();
+    }
+
+    public void Handle_SC_Inventory(SC_Inventory p)
+    {
+        Debug.Log($"[ClientHandlers] Received Inventory: {p.itemss.Count} items, {p.equipmentss.Count} equips");
+        
+        if (InventoryManager.Instance == null)
+        {
+             // Lazy init if missing
+             var go = new GameObject("InventoryManager");
+             go.AddComponent<InventoryManager>(); // Awake will set Instance
+             go.AddComponent<InventoryDebugUI>();
+             // Ensure Item Data is loaded
+             if (ItemDataManager.Instance == null)
+             {
+                 var dataGo = new GameObject("ItemDataManager");
+                 dataGo.AddComponent<ItemDataManager>();
+             }
+        }
+        else
+        {
+            // Ensure UI exists on the existing manager
+            if (InventoryManager.Instance.GetComponent<InventoryDebugUI>() == null)
+            {
+                 InventoryManager.Instance.gameObject.AddComponent<InventoryDebugUI>();
+            }
+             // Ensure Item Data is loaded
+             if (ItemDataManager.Instance == null)
+             {
+                 var dataGo = new GameObject("ItemDataManager");
+                 dataGo.AddComponent<ItemDataManager>();
+             }
+        }
+        
+        InventoryManager.Instance.OnInventoryReceived(p);
+    }
+
+    public void Handle_SC_EquipResult(SC_EquipResult p)
+    {
+        Debug.Log($"[ClientHandlers] EquipResult: Success={p.Success}, Item={p.InstanceId}, Equipped={p.Equipped}");
+       
+        if (InventoryManager.Instance != null)
+            InventoryManager.Instance.OnEquipResult(p);
     }
 }
 

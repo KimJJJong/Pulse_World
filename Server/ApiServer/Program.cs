@@ -1,5 +1,6 @@
 using ApiServer.Bootstrap;
 using ApiServer.Presentation.Http.Middleware;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +12,11 @@ builder.Services
     .AddApiOptions(builder.Configuration)
     .AddApiServices(builder.Configuration);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Use PascalCase (matches C# properties)
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
@@ -22,6 +27,7 @@ app.UseMiddleware<ProblemDetailsMiddleware>();
 
 app.UseRouting();
 
+app.UseMiddleware<ApiKeyAuthMiddleware>();
 app.UseMiddleware<AccessTokenAuthMiddleware>();
 app.UseMiddleware<IdempotencyForGameTicketMiddleware>();
 

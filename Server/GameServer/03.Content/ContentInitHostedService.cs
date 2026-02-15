@@ -7,6 +7,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using GameServer.Content.Item;
 
 namespace Server.Content;
 
@@ -15,15 +16,18 @@ public sealed class ContentInitHostedService : IHostedService
     private readonly ILogger<ContentInitHostedService> _log;
     private readonly IRoleModuleResolver _roleResolver;
     private readonly ServerOptions _opt;
+    private readonly ItemTemplateManager _itemTemplateManager;
 
     public ContentInitHostedService(
         ILogger<ContentInitHostedService> log,
         IRoleModuleResolver roleResolver,
-        IOptions<ServerOptions> opt)
+        IOptions<ServerOptions> opt,
+        ItemTemplateManager itemTemplateManager)
     {
         _log = log;
         _roleResolver = roleResolver;
         _opt = opt.Value;
+        _itemTemplateManager = itemTemplateManager;
     }
 
     public Task StartAsync(CancellationToken ct)
@@ -49,17 +53,20 @@ public sealed class ContentInitHostedService : IHostedService
         string? maps = rc.LoadMaps ? Path.Combine(baseDir, rc.MapsRelDir) : null;
         string? stages = rc.LoadStages ? Path.Combine(baseDir, rc.StagesRelDir) : null; // [NEW]
 
-        // 존재 검사(원하면 경고만 찍고 계속 진행하도록 바꿔도 됨)
+        // 존재 검사
         EnsureDir(role.Name, "skills", skills);
         EnsureDir(role.Name, "patterns", patterns);
         EnsureDir(role.Name, "maps", maps);
-        EnsureDir(role.Name, "stages", stages); // [NEW]
+        EnsureDir(role.Name, "stages", stages); 
+
 
 
         ContentStore.Init(skills, patterns, maps, stages);
 
+        _itemTemplateManager.Load(); // [NEW] Items
+
         _log.LogInformation(
-            "Content initialized (role={Role}, baseDir={BaseDir}, skills={Skills}, patterns={Patterns}, maps={Maps}, stages={Stages})",
+            "Content initialized (role={Role}, baseDir={BaseDir}, skills={Skills}, patterns={Patterns}, maps={Maps}, stages={Stages}, items=Loaded)",
             role.Name, baseDir, skills ?? "-", patterns ?? "-", maps ?? "-", stages ?? "-");
         return Task.CompletedTask;
     }

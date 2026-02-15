@@ -15,25 +15,21 @@ public sealed class TownScreen : MonoBehaviour
     {
         // 기본값(UX)
         view.TownPreferredRegion.text = "local";
-        view.GamePreferredRegion.text = "local";
-        view.GameRoomId.text = "room-1";
-        view.GameMap.text = "map_01";
-        view.GameMaxPlayers.text = "2";
+        //view.GamePreferredRegion.text = "local";
+        //view.GameRoomId.text = "room-1";
+        //view.GameMap.text = "map_01";
+        //view.GameMaxPlayers.text = "2";
 
         ClearTownResult();
-        ClearGameResult();
 
         view.SetBusy(false);
         view.SetStatus("");
 
         view.TownIssueButton.onClick.AddListener(() => _ = IssueTownTicketAsync());
-        view.GameIssueButton.onClick.AddListener(() => _ = IssueGameTicketAsync());
 
         view.TownConnectButton.onClick.AddListener(() => _ = ConnectTownAsync());
-        view.GameConnectButton.onClick.AddListener(() => _ = ConnectGameAsync());
 
         view.TownConnectButton.interactable = false;
-        view.GameConnectButton.interactable = false;
     }
 
     async Task IssueTownTicketAsync()
@@ -61,37 +57,6 @@ public sealed class TownScreen : MonoBehaviour
         view.TownConnectButton.interactable = true;
     }
 
-    async Task IssueGameTicketAsync()
-    {
-        view.SetStatus("");
-        view.SetBusy(true);
-
-        var root = AppBootstrap.Instance.Root;
-
-        var region = (view.GamePreferredRegion.text ?? "").Trim();
-        var roomId = (view.GameRoomId.text ?? "").Trim();
-        var map = (view.GameMap.text ?? "").Trim();
-
-        if (!int.TryParse((view.GameMaxPlayers.text ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var maxPlayers))
-            maxPlayers = 2;
-
-        Debug.Log($"[IssueGameTicketAsync] regin: {region} || roomId: {roomId} || Map :{map} || MaxPlayer: {maxPlayers}");
-        var r = await root.SessionApi.IssueGameTicketAsync(roomId, map, maxPlayers, region);
-        view.SetBusy(false);
-
-        if (!r.Ok)
-        {
-            Debug.LogWarning(r.Error);
-            view.SetStatus(r.Error);
-            ClearGameResult();
-            return;
-        }
-
-        _lastGame = r.Data;
-        RenderGameResult(r.Data);
-        view.SetStatus("Game 티켓 발급 완료");
-        view.GameConnectButton.interactable = true;
-    }
 
     async Task ConnectTownAsync()
     {
@@ -122,15 +87,7 @@ public sealed class TownScreen : MonoBehaviour
         view.TownEndpointText.text = $"Endpoint: {d.Endpoint.Host}:{d.Endpoint.Port}";
     }
 
-    void RenderGameResult(SessionDtos.IssueGameTicketResponse d)
-    {
-        view.GameTransitionIdText.text = $"TransitionId: {d.TransitionId}";
-        view.GameTicketIdText.text = $"TicketId: {d.TicketId}";
-        view.GameExpireText.text = $"ExpireAtMs: {d.ExpireAtMs}";
-        view.GameServerIdText.text = $"ServerId: {d.ServerId}";
-        view.GameEndpointText.text = $"Endpoint: {d.Endpoint.Host}:{d.Endpoint.Port}";
-        view.GameKeyText.text = $"Key: {d.Key}";
-    }
+
 
     void ClearTownResult()
     {
@@ -141,15 +98,4 @@ public sealed class TownScreen : MonoBehaviour
         _lastTown = null;
     }
 
-    void ClearGameResult()
-    {
-        view.GameTransitionIdText.text = "TransitionId: -";
-        view.GameTicketIdText.text = "TicketId: -";
-        view.GameExpireText.text = "ExpireAtMs: -";
-        view.GameServerIdText.text = "ServerId: -";
-        view.GameEndpointText.text = "Endpoint: -";
-        view.GameKeyText.text = "Key: -";
-        view.GameConnectButton.interactable = false;
-        _lastGame = null;
-    }
 }

@@ -189,4 +189,10 @@ class PacketHandler
 
     public static void SC_ReturnToTownHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_ReturnToTown((SC_ReturnToTown)packet);
+
+    public static void SC_InventoryHandler(PacketSession session, IPacket packet)
+        => ClientHandlers.Instance.Handle_SC_Inventory((SC_Inventory)packet);
+
+    public static void SC_EquipResultHandler(PacketSession session, IPacket packet)
+        => ClientHandlers.Instance.Handle_SC_EquipResult((SC_EquipResult)packet);
 }

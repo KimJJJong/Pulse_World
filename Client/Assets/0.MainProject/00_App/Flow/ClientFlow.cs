@@ -110,7 +110,17 @@ public sealed class ClientFlow : MonoBehaviour
             if (_target == Target.TownMap)
             {
                 Debug.Log($"[ClientFlow] Scene Load Start: {SceneNames.TownMap}");
-                await SceneRouter.LoadAsync(SceneNames.TownMap);
+                
+                // [LoadingScene] 적용
+                LoadingSceneController.TargetSceneName = SceneNames.TownMap;
+                UnityEngine.SceneManagement.SceneManager.LoadScene("LoadingScene");
+
+                // Target Scene이 로드될 때까지 대기 (LoadingSceneController가 Additive로 로드함)
+                while (UnityEngine.SceneManagement.SceneManager.GetSceneByName(SceneNames.TownMap).isLoaded == false)
+                {
+                    await Task.Yield();
+                }
+
                 Debug.Log($"[ClientFlow] Scene Load Complete: {SceneNames.TownMap}");
 
                 var ctx = UnityEngine.Object.FindFirstObjectByType<TownSceneContext>();
@@ -127,8 +137,19 @@ public sealed class ClientFlow : MonoBehaviour
                 string sceneToLoad = !string.IsNullOrEmpty(_mapId) ? _mapId : SceneNames.Game;
 
                 Debug.Log($"[ClientFlow] Scene Load Start: {sceneToLoad} || MapId:{sceneToLoad}");
-                await SceneRouter.LoadAsync(sceneToLoad);
+                
+                // [LoadingScene] 적용
+                LoadingSceneController.TargetSceneName = sceneToLoad;
+                UnityEngine.SceneManagement.SceneManager.LoadScene("LoadingScene");
+
+                // Target Scene이 로드될 때까지 대기
+                while (UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneToLoad).isLoaded == false)
+                {
+                    await Task.Yield();
+                }
+
                 Debug.Log($"[ClientFlow] Scene Load Complete: {sceneToLoad}");
+                
                 // GameSceneContext 찾아서 진입 요청
                 var ctx = UnityEngine.Object.FindFirstObjectByType<GameSceneContext>();
                 if (ctx != null)

@@ -26,6 +26,13 @@ public sealed class AccessTokenAuthMiddleware
             return;
         }
 
+        // 이미 이전 미들웨어(ApiKeyAuth)에서 인증된 경우 패스
+        if (ctx.User.Identity?.IsAuthenticated == true)
+        {
+            await _next(ctx);
+            return;
+        }
+
         var auth = ctx.Request.Headers.Authorization.ToString();
         var token = "";
 

@@ -8,6 +8,7 @@ using Server.Domain.Connections;
 using Server.Infrastructure.ControlPlaneClient;
 using Server.Infrastructure.Options;
 using Server.Net;
+using GameServer.Infrastructure.Api;
 using Server.Runtime;
 using Server.Workers;
 using System;
@@ -28,7 +29,10 @@ public static class ServerHost
                 if (!string.IsNullOrWhiteSpace(role))
                 {
                     // appsettings.Town.json / appsettings.Game.json 같은 파일을 추가 로드
-                    cfg.AddJsonFile($"appsettings.{role}.json", optional: true, reloadOnChange: true);
+                    Console.WriteLine($"[DEBUG] Detected Role: {role}");
+                    string configFile = $"appsettings.{role}.json";
+                    Console.WriteLine($"[DEBUG] Loading {configFile} (Optional, ReloadOnChange)");
+                    cfg.AddJsonFile(configFile, optional: true, reloadOnChange: true);
                 }
 
                 // 필요하면 여기서 더 추가 가능:
@@ -40,17 +44,17 @@ public static class ServerHost
             })
             .ConfigureServices((ctx, services) =>
             {
-                // ---- Options 바인딩 ----
-                services.AddOptions<ServerOptions>()
-                    .Bind(ctx.Configuration.GetSection("Server"))
-                    .Validate(o => !string.IsNullOrWhiteSpace(o.ServerId), "Server:ServerId is required")
-                    .Validate(o => o.Bind.Port > 0, "Server:Bind:Port must be > 0")
-                    .ValidateOnStart();
-
                 services.AddOptions<ControlPlaneOptions>()
                     .Bind(ctx.Configuration.GetSection("ControlPlane"))
                     .Validate(o => !string.IsNullOrWhiteSpace(o.Address), "ControlPlane:Address required")
                     .ValidateOnStart();
+                    
+                // Server Options (This was missing!)
+                services.Configure<ServerOptions>(ctx.Configuration.GetSection("Server"));
+
+                // ApiServer Client
+                services.Configure<ApiServerOptions>(ctx.Configuration.GetSection("ApiServer"));
+                services.AddHttpClient<IApiServerClient, ApiServerClient>();
 
 
                 services.AddSingleton<GrpcControlPlaneClient>();
@@ -101,7 +105,20 @@ public static class ServerHost
                 // Role startups
                 services.AddSingleton<IRoleStartup, TownStartup>();
                 services.AddSingleton<IRoleStartup, GameStartup>();
-                services.AddHostedService<RoleStartupHostedService>();
+
+                // Redis (for InventoryManager)
+                services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp =>
+                {
+                    var config = ctx.Configuration.GetSection("Redis:ConnectionString").Value;
+                    if (string.IsNullOrEmpty(config))
+                        config = "127.0.0.1:6379"; // fallback
+                    return StackExchange.Redis.ConnectionMultiplexer.Connect(config);
+                });
+
+                // Content Managers
+                services.AddSingleton<GameServer.Content.Item.ItemTemplateManager>();
+                services.AddSingleton<GameServer.Content.Item.IItemTemplateManager>(sp => sp.GetRequiredService<GameServer.Content.Item.ItemTemplateManager>());
+                services.AddSingleton<GameServer.Content.Item.InventoryManager>();
 
                 // ---- (선택) Logger, LogManager 연동 ----
                 // 지금 LogManager.Instance 쓰고 있으면, ILogger로 천천히 이관 추천

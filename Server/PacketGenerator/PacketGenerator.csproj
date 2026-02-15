@@ -14,4 +14,9 @@
     <OutputPath>bin\</OutputPath>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="GenPackets.cs" />
+    <Compile Remove="ClientPacketManager.cs" />
+    <Compile Remove="ServerPacketManager.cs" />
+  </ItemGroup>
 </Project>
