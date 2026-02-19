@@ -75,10 +75,12 @@ services:
       # Let's check ApiServer/Program.cs or related. Assuming standard pattern, just setting connection string updates host.
       Redis__ConnectionString: "redis:6379,password=${REDIS_PASSWORD},abortConnect=False"
       ControlPlane__Address: "http://controlplane:5001"
+      ItemDataPath: "/app/Content/Data/Json"
     ports:
       - "5000:5000"
     volumes:
       - ./migrations:/app/migrations
+      - ./GameServer/Content:/app/Content
 
   townserver:
     build:
