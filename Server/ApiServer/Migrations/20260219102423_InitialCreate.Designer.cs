@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ApiServer.Migrations
 {
     [DbContext(typeof(ApiDbContext))]
-    [Migration("20260218103400_SingleTableRefactoring")]
-    partial class SingleTableRefactoring
+    [Migration("20260219102423_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
