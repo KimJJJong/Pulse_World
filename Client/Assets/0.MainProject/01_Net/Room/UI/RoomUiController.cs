@@ -95,6 +95,12 @@ namespace NetClient.Room.UI
             }
         }
 
+        private void Start()
+        {
+            gameObject.SetActive(false);
+
+        }
+
         async void OnDestroy()
         {
             try

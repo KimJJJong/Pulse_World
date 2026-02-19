@@ -315,7 +315,10 @@ public sealed class GameSession : SessionBase
                         TemplateId = item.TemplateId,
                         SlotIndex = item.SlotIndex,
                         EnhancementLevel = item.EnhancementLevel,
-                        IsEquipped = item.IsEquipped
+                        IsEquipped = item.IsEquipped,
+                        BaseStats = Newtonsoft.Json.JsonConvert.SerializeObject(item.BaseStats),
+                        RandomOptions = Newtonsoft.Json.JsonConvert.SerializeObject(item.RandomOptions),
+                        AcquiredAt = item.AcquiredAt.ToString("O")
                     });
                 }
                 else
@@ -325,7 +328,8 @@ public sealed class GameSession : SessionBase
                         InstanceId = item.InstanceId,
                         TemplateId = item.TemplateId,
                         Amount = item.Amount,
-                        SlotIndex = item.SlotIndex
+                        SlotIndex = item.SlotIndex,
+                        AcquiredAt = item.AcquiredAt.ToString("O")
                     });
                 }
             }

@@ -4,6 +4,7 @@ using System;
 using System.Threading.Tasks;
 using GameServer.Content.Item;
 using System.Collections.Generic;
+using System.Linq;
 
 partial class PacketHandler
 {
@@ -113,10 +114,17 @@ partial class PacketHandler
                 }
 
                 // 3. Save (This regenerates IDs in current Repo implementation)
+                Console.WriteLine($"[Cheat] Pre-Save: Total={items.Count}, Equips={items.Count(x => ServerServices.ItemTemplates.GetEquipment(x.TemplateId) != null)}, New(ID=0)={items.Count(x => x.InstanceId == 0)}");
+                foreach (var dbg in items)
+                    Console.WriteLine($"  -> ID={dbg.InstanceId} TID={dbg.TemplateId} Slot={dbg.SlotIndex} Amt={dbg.Amount}");
+                
                 await ServerServices.InventoryManager.SaveInventoryAsync(uid, items);
 
                 // 4. Reload to get new IDs
                 var reloadedItems = await ServerServices.InventoryManager.LoadInventoryAsync(uid);
+                Console.WriteLine($"[Cheat] Post-Reload: Total={reloadedItems.Count}");
+                foreach (var dbg in reloadedItems)
+                    Console.WriteLine($"  -> ID={dbg.InstanceId} TID={dbg.TemplateId} Slot={dbg.SlotIndex} Amt={dbg.Amount}");
 
                 // 5. Send SC_Inventory
                 var invPkt = new SC_Inventory();
@@ -133,7 +141,8 @@ partial class PacketHandler
                             EnhancementLevel = item.EnhancementLevel,
                             IsEquipped = item.IsEquipped,
                             BaseStats = Newtonsoft.Json.JsonConvert.SerializeObject(item.BaseStats),
-                            RandomOptions = Newtonsoft.Json.JsonConvert.SerializeObject(item.RandomOptions)
+                            RandomOptions = Newtonsoft.Json.JsonConvert.SerializeObject(item.RandomOptions),
+                            AcquiredAt = item.AcquiredAt.ToString("O")
                         });
                     }
                     else
@@ -143,17 +152,18 @@ partial class PacketHandler
                             InstanceId = item.InstanceId,
                             TemplateId = item.TemplateId,
                             Amount = item.Amount,
-                            SlotIndex = item.SlotIndex
+                            SlotIndex = item.SlotIndex,
+                            AcquiredAt = item.AcquiredAt.ToString("O")
                         });
                     }
                 }
                 s.Send(invPkt.Write());
-                Console.WriteLine($"[Cheat] Added Item {templateId}x{amount}. Sent refreshed inventory.");
+                Console.WriteLine($"[Cheat] Added Item {templateId}x{amount}. Sent refreshed inventory ({invPkt.itemss.Count} Items, {invPkt.equipmentss.Count} Equips).");
 
             }
             catch(Exception ex)
             {
-                Console.WriteLine($"[Cheat] Error: {ex.Message}");
+                Console.WriteLine($"[Cheat] Error: {ex.Message}\n{ex.StackTrace}");
             }
         });
     }

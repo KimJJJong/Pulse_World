@@ -4,7 +4,24 @@ using UnityEngine;
 
 public class RhythmInputController : MonoBehaviour
 {
-    public static RhythmInputController Instance { get; private set; }
+    private static RhythmInputController _instance;
+    public static RhythmInputController Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindAnyObjectByType<RhythmInputController>();
+                if (_instance == null)
+                {
+                    var go = new GameObject("RhythmInputController");
+                    _instance = go.AddComponent<RhythmInputController>();
+                    DontDestroyOnLoad(go);
+                }
+            }
+            return _instance;
+        }
+    }
 
     ClientGameState GS => ClientGameState.Instance;
     RhythmClient Rhythm => RhythmClient.Instance;
@@ -26,6 +43,9 @@ public class RhythmInputController : MonoBehaviour
     [SerializeField] float rotateAngle = 90f;
     [SerializeField] public GameObject targetObject = null;
 
+    // UI blocking flag
+    public bool IsInputBlocked { get; set; } = false;
+
     long _lastSendLocalMs = 0;
 
     // --- Hold Auto 상태 ---
@@ -36,14 +56,17 @@ public class RhythmInputController : MonoBehaviour
     // "이번 beatIndex에서 이미 발사했는가" 체크용
     long _lastFiredBeatIndex = long.MinValue;
 
-    private void Awake()
-    {
-        Instance = this;
-    }
+    //private void Awake()
+    //{
+    //    Instance = this;
+    //}
 
     void Update()
     {
         if (!IsReady())
+            return;
+
+        if (IsInputBlocked)
             return;
 
         if (allowRuntimeToggle && Input.GetKeyDown(toggleKey))

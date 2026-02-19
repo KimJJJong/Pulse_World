@@ -19,6 +19,7 @@ public interface IApiServerClient
 {
     Task<T?> GetAsync<T>(string endpoint);
     Task<bool> PostAsync<T>(string endpoint, T payload);
+    Task<bool> DeleteAsync(string endpoint);
 }
 
 public class ApiServerClient : IApiServerClient
@@ -75,6 +76,28 @@ public class ApiServerClient : IApiServerClient
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to POST {Endpoint}", endpoint);
+            return false;
+        }
+    }
+
+
+    public async Task<bool> DeleteAsync(string endpoint)
+    {
+        try
+        {
+            var response = await _client.DeleteAsync(endpoint);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to DELETE {Endpoint}. Status: {Status}, Error: {Error}", endpoint, response.StatusCode, error);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to DELETE {Endpoint}", endpoint);
             return false;
         }
     }

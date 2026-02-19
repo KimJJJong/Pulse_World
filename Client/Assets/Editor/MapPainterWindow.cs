@@ -213,26 +213,59 @@ public sealed class MapPainterWindow : EditorWindow
     {
         using (new EditorGUILayout.VerticalScope("box"))
         {
-            EditorGUILayout.LabelField("Size", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Map Size", EditorStyles.boldLabel);
 
-            int w = EditorGUILayout.IntField("Width", _map.Width);
-            int h = EditorGUILayout.IntField("Height", _map.Height);
+            EditorGUI.BeginChangeCheck();
 
-            w = Mathf.Clamp(w, 1, 256);
-            h = Mathf.Clamp(h, 1, 256);
+            EditorGUILayout.BeginHorizontal();
+            int newW = EditorGUILayout.DelayedIntField("Width", _map.Width);
+            int newH = EditorGUILayout.DelayedIntField("Height", _map.Height);
+            EditorGUILayout.EndHorizontal();
 
-            if (w != _map.Width || h != _map.Height)
+            if (EditorGUI.EndChangeCheck())
             {
-                if (GUILayout.Button("Apply Resize (data reset)"))
+                newW = Mathf.Clamp(newW, 1, 256);
+                newH = Mathf.Clamp(newH, 1, 256);
+
+                if (newW != _map.Width || newH != _map.Height)
                 {
-                    UnityEditor.Undo.RecordObject(_map, "Resize Map");
-                    _map.Width = w;
-                    _map.Height = h;
-                    _map.Cells = new TileCell[w * h];
-                    EditorUtility.SetDirty(_map);
+                   ResizeMap(newW, newH);
                 }
             }
+            
+            EditorGUILayout.HelpBox("Width/Height 변경 시 즉시 반영됨 (데이터 유지)", MessageType.Info);
         }
+    }
+
+    private void ResizeMap(int w, int h)
+    {
+        UnityEditor.Undo.RecordObject(_map, "Resize Map");
+
+        // 1. 기존 데이터 백업
+        int oldW = _map.Width;
+        int oldH = _map.Height;
+        var oldCells = _map.Cells;
+
+        // 2. 새 사이즈로 변경 및 할당
+        _map.Width = w;
+        _map.Height = h;
+        _map.Cells = new TileCell[w * h];
+
+        // 3. 겹치는 영역 복사 (2D 좌표 기준)
+        int copyW = Mathf.Min(oldW, w);
+        int copyH = Mathf.Min(oldH, h);
+
+        for (int y = 0; y < copyH; y++)
+        {
+            for (int x = 0; x < copyW; x++)
+            {
+                int oldIdx = y * oldW + x;
+                int newIdx = y * w + x;
+                _map.Cells[newIdx] = oldCells[oldIdx];
+            }
+        }
+
+        EditorUtility.SetDirty(_map);
     }
 
     private void DrawPalette()

@@ -3,6 +3,7 @@ using GameServer.InGame.Manager.Beat;
 using GameServer.InGame.Manager.Entity;
 using GameServer.InGame.System.Rhythm;
 using System;
+using System.Linq;
 using static SC_BeatTelegraphs;
 
 public sealed class TownSession : SessionBase
@@ -114,10 +115,15 @@ public sealed class TownSession : SessionBase
         //  Inventory Init
         System.Threading.Tasks.Task.Run(async () =>
         {
-            var invItems = await ServerServices.InventoryManager.LoadInventoryAsync(s.SessionID.ToString());
+            // Force Reload from API to ensure sync (e.g. Equip changed in Home)
+            var invItems = await ServerServices.InventoryManager.LoadInventoryAsync(s.Uid, forceReload: true);
             
             var invPkt = new SC_Inventory();
-            foreach(var item in invItems)
+            
+            // Sort by SlotIndex
+            var sortedItems = invItems.OrderBy(x => x.SlotIndex).ToList();
+
+            foreach(var item in sortedItems)
             {
                 var equipTmpl = ServerServices.ItemTemplates.GetEquipment(item.TemplateId);
                 if (equipTmpl != null)
@@ -128,7 +134,10 @@ public sealed class TownSession : SessionBase
                         TemplateId = item.TemplateId,
                         SlotIndex = item.SlotIndex,
                         EnhancementLevel = item.EnhancementLevel,
-                        IsEquipped = item.IsEquipped
+                        IsEquipped = item.IsEquipped,
+                        BaseStats = Newtonsoft.Json.JsonConvert.SerializeObject(item.BaseStats),
+                        RandomOptions = Newtonsoft.Json.JsonConvert.SerializeObject(item.RandomOptions),
+                        AcquiredAt = item.AcquiredAt.ToString("O")
                     });
                 }
                 else
@@ -138,7 +147,8 @@ public sealed class TownSession : SessionBase
                         InstanceId = item.InstanceId,
                         TemplateId = item.TemplateId,
                         Amount = item.Amount,
-                        SlotIndex = item.SlotIndex
+                        SlotIndex = item.SlotIndex,
+                        AcquiredAt = item.AcquiredAt.ToString("O")
                     });
                 }
             }

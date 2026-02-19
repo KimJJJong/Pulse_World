@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using System;
 
 namespace Client.Content.Item
 {
@@ -73,6 +74,9 @@ namespace Client.Content.Item
             {
                 foreach (var equip in wrapper.list)
                 {
+                    // Fix: Equipment JSON doesn't have "type" field
+                    if (string.IsNullOrEmpty(equip.type)) equip.type = "Equipment";
+
                     if (!_equipments.ContainsKey(equip.id))
                         _equipments.Add(equip.id, equip);
                     
@@ -93,6 +97,11 @@ namespace Client.Content.Item
         {
              if (_equipments.TryGetValue(id, out var equip)) return equip;
              return null;
+        }
+
+        internal object GetTemplate(int templateId)
+        {
+            throw new NotImplementedException();
         }
 
         [System.Serializable]

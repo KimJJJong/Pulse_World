@@ -109,4 +109,50 @@ public class InventoryTests
             It.Is<string>(s => s.Contains(uid)), 
             It.IsAny<object>()), Times.Once);
     }
+    [Fact]
+    public async Task SaveInventoryAsync_ResolvesIdCollision()
+    {
+        // Arrange
+        var uid = "test_user_collision";
+        var items = new List<ItemInstance>
+        {
+            new ItemInstance { InstanceId = 1, TemplateId = 101, Amount = 1, SlotIndex = 0 }, // Item ID 1
+            new ItemInstance { InstanceId = 2000000001, TemplateId = 201, SlotIndex = 0, IsEquipped = true } // Equipment ID 1 (Offset applied)
+        };
+
+        _mockTemplates.Setup(x => x.Get(101)).Returns(new ItemTemplate { Id = 101, Type = ItemType.Consumable });
+        _mockTemplates.Setup(x => x.Get(201)).Returns(new ItemTemplate { Id = 201, Type = ItemType.Equipment });
+        _mockApiClient.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<object>())).ReturnsAsync(true);
+
+        // Act
+        await _manager.SaveInventoryAsync(uid, items);
+
+        // Assert
+        _mockApiClient.Verify(x => x.PostAsync(
+            It.Is<string>(s => s.Contains(uid)),
+            It.Is<object>(obj => VerifyIds(obj, 1, 1)) // Verify both are sent as 1
+        ), Times.Once);
+    }
+
+    private bool VerifyIds(object request, long expectedItemId, long expectedEquipId)
+    {
+        // Use reflection to access private DTO properties
+        var type = request.GetType();
+        var itemsProp = type.GetProperty("Items");
+        var equipsProp = type.GetProperty("Equipments");
+        
+        var items = (System.Collections.IEnumerable)itemsProp.GetValue(request);
+        var equips = (System.Collections.IEnumerable)equipsProp.GetValue(request);
+        
+        long actualItemId = -1;
+        long actualEquipId = -1;
+
+        foreach(var i in items) 
+            actualItemId = (long)i.GetType().GetProperty("Id").GetValue(i);
+            
+        foreach(var e in equips) 
+            actualEquipId = (long)e.GetType().GetProperty("Id").GetValue(e);
+
+        return actualItemId == expectedItemId && actualEquipId == expectedEquipId;
+    }
 }

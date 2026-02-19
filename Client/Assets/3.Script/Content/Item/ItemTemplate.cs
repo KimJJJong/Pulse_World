@@ -60,6 +60,7 @@ namespace Client.Content.Item
         public int base_hp; // "hp" in json? Check json
         public float crit_rate;
         public float crit_dmg;
+        public string model_path;
 
         public EquipmentSlot SlotEnum => System.Enum.TryParse(equip_slot, true, out EquipmentSlot res) ? res : EquipmentSlot.None;
     }

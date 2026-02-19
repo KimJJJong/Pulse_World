@@ -25,11 +25,11 @@ public sealed class TownScreen : MonoBehaviour
         view.SetBusy(false);
         view.SetStatus("");
 
-        view.TownIssueButton.onClick.AddListener(() => _ = IssueTownTicketAsync());
+        //view.TownIssueButton.onClick.AddListener(() => _ = IssueTownTicketAsync());
 
         view.TownConnectButton.onClick.AddListener(() => _ = ConnectTownAsync());
 
-        view.TownConnectButton.interactable = false;
+        //view.TownConnectButton.interactable = false;
     }
 
     async Task IssueTownTicketAsync()
@@ -60,6 +60,8 @@ public sealed class TownScreen : MonoBehaviour
 
     async Task ConnectTownAsync()
     {
+        await IssueTownTicketAsync();
+
         if (_lastTown == null)
         {
             view.SetStatus("먼저 Town 티켓을 발급하세요.");
@@ -69,6 +71,8 @@ public sealed class TownScreen : MonoBehaviour
         // clientNonce는 네 규격에 맞게(예: MatchId/Guid)
         var clientNonce = "town-" + System.Guid.NewGuid().ToString("N");
 
+        //view.TownConnectButton.interactable 
+        view.SetBusy(false);
         view.SetStatus("연결 시도 중... (Handshake 대기)"); 
         await ClientFlow.Instance.ConnectTown(_lastTown, clientNonce);
     }

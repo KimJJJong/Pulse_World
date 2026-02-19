@@ -322,6 +322,36 @@ public class BoardView : MonoBehaviour, IClientWorldView
             }
             
             _entityViews[info.EntityId] = visual;
+
+            // [New] Character Visual Controller Setup
+            if (visual.TryGetComponent<RhythmRPG.Visual.CharacterVisualController>(out var visualCtrl))
+            {
+                // Game Scene Context
+                visualCtrl.SetContext(RhythmRPG.Visual.CharacterContext.Game);
+
+                // If it's my player, load equipment from InventoryManager
+                if (info.EntityId == ClientGameState.Instance.MyActorId)
+                {
+                    // Convert Long InstanceID to TemplateID(int) list for visual loading
+                    // Note: This needs to be robust. Ideally BoardView receives this info.
+                    // For now, if it is MY player, I can read from local InventoryManager.
+                    // For OTHER players, we need network data (EntityInfo should contain appearance data).
+                    
+                    var myEquips = InventoryManager.Instance.Equipments;
+                    List<int> equippedTemplateIds = new List<int>();
+                    foreach(var e in myEquips)
+                    {
+                        if (e.IsEquipped) equippedTemplateIds.Add(e.TemplateId);
+                    }
+                    visualCtrl.UpdateEquipments(equippedTemplateIds);
+                }
+                else
+                {
+                   // For other players/monsters, we need appearance info in ClientEntityInfo.
+                   // Currently ClientEntityInfo only has 'AppearanceId' (ModelId).
+                   // TODO: Extend protocol to sync equipment for other players.
+                }
+            }
         }
 
         if (info.EntityId == ClientGameState.Instance.MyActorId)

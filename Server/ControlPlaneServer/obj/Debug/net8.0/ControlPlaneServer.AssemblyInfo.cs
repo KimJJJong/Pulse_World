@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ControlPlaneServer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+01bc8390f80801e28643988931f5405194665d03")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+878016cf8a03e98ad82654bb79a5ebe18f59b3c0")]
 [assembly: System.Reflection.AssemblyProductAttribute("ControlPlaneServer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ControlPlaneServer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

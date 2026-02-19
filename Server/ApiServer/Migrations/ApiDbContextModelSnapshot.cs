@@ -133,7 +133,7 @@ namespace ApiServer.Migrations
                     b.ToTable("user_identities", (string)null);
                 });
 
-            modelBuilder.Entity("ApiServer.Domain.Items.Equipment", b =>
+            modelBuilder.Entity("ApiServer.Domain.Items.GameItem", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -145,6 +145,10 @@ namespace ApiServer.Migrations
                     b.Property<DateTimeOffset>("AcquiredAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("acquired_at");
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("integer")
+                        .HasColumnName("amount");
 
                     b.Property<string>("BaseStats")
                         .IsRequired()
@@ -180,39 +184,7 @@ namespace ApiServer.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("equipments");
-                });
-
-            modelBuilder.Entity("ApiServer.Domain.Items.Item", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<int>("Amount")
-                        .HasColumnType("integer")
-                        .HasColumnName("amount");
-
-                    b.Property<string>("OwnerUid")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("owner_uid");
-
-                    b.Property<int>("SlotIndex")
-                        .HasColumnType("integer")
-                        .HasColumnName("slot_index");
-
-                    b.Property<int>("TemplateId")
-                        .HasColumnType("integer")
-                        .HasColumnName("template_id");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("items");
+                    b.ToTable("game_items");
                 });
 
             modelBuilder.Entity("ApiServer.Domain.Users.User", b =>

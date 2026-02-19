@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 
 namespace GameServer.Content.Item;
@@ -32,6 +33,9 @@ public class ItemInstance
     
     [JsonProperty("equipped")]
     public bool IsEquipped { get; set; }
+
+    [JsonProperty("acquiredAt")]
+    public DateTimeOffset AcquiredAt { get; set; }
 
     [JsonIgnore]
     public bool IsDirty { get; set; }

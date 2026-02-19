@@ -358,7 +358,7 @@ public class ClientHandlers : MonoBehaviour
              // Lazy init if missing
              var go = new GameObject("InventoryManager");
              go.AddComponent<InventoryManager>(); // Awake will set Instance
-             go.AddComponent<InventoryDebugUI>();
+
              // Ensure Item Data is loaded
              if (ItemDataManager.Instance == null)
              {
@@ -369,10 +369,7 @@ public class ClientHandlers : MonoBehaviour
         else
         {
             // Ensure UI exists on the existing manager
-            if (InventoryManager.Instance.GetComponent<InventoryDebugUI>() == null)
-            {
-                 InventoryManager.Instance.gameObject.AddComponent<InventoryDebugUI>();
-            }
+
              // Ensure Item Data is loaded
              if (ItemDataManager.Instance == null)
              {

@@ -32,7 +32,8 @@ public static class ServerServices
         _ = Registry;
         _ = LeaseRenewer;
         _ = InventoryManager;
-        _ = ItemTemplates;
+        // Explicitly load data
+        ItemTemplates.Load();
     }
 
     private static T GetRequired<T>() where T : class

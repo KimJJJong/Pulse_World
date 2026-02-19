@@ -1,6 +1,6 @@
 [
   {
-    "id": 1001,
+    "id": 400001,
     "name": "Healing Potion",
     "type": "Consumable",
     "grade": "Common",
@@ -12,7 +12,7 @@
     "effect_val": 50
   },
   {
-    "id": 1002,
+    "id": 400002,
     "name": "Mana Potion",
     "type": "Consumable",
     "grade": "Common",
@@ -24,7 +24,7 @@
     "effect_val": 30
   },
   {
-    "id": 3001,
+    "id": 500001,
     "name": "Iron Ore",
     "type": "Material",
     "grade": "Common",
@@ -36,7 +36,7 @@
     "effect_val": 0
   },
   {
-    "id": 3002,
+    "id": 500002,
     "name": "Leather",
     "type": "Material",
     "grade": "Common",
@@ -48,7 +48,7 @@
     "effect_val": 0
   },
   {
-    "id": 4001,
+    "id": 500101,
     "name": "Sword Schematic",
     "type": "Blueprint",
     "grade": "Uncommon",
@@ -60,7 +60,7 @@
     "effect_val": 0
   },
   {
-    "id": 5001,
+    "id": 500201,
     "name": "Gold",
     "type": "Currency",
     "grade": "Common",
@@ -72,7 +72,7 @@
     "effect_val": 0
   },
   {
-    "id": 5002,
+    "id": 500202,
     "name": "Diamond",
     "type": "Currency",
     "grade": "Rare",

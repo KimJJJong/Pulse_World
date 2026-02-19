@@ -1970,6 +1970,7 @@ public class SC_Inventory : IPacket
 		public int TemplateId;
 		public int Amount;
 		public int SlotIndex;
+		public string AcquiredAt;
 	
 		public void Read(ReadOnlySpan<byte> s, ref ushort count)
 		{
@@ -1981,6 +1982,10 @@ public class SC_Inventory : IPacket
 			count += sizeof(int);
 			this.SlotIndex = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 			count += sizeof(int);
+			ushort AcquiredAtLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+			count += sizeof(ushort);
+			this.AcquiredAt = Encoding.Unicode.GetString(s.Slice(count, AcquiredAtLen));
+			count += AcquiredAtLen;
 		}
 	
 		public bool Write(Span<byte> s, ref ushort count)
@@ -1996,6 +2001,10 @@ public class SC_Inventory : IPacket
 			count += sizeof(int);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.SlotIndex);
 			count += sizeof(int);
+			ushort AcquiredAtLen = (ushort)Encoding.Unicode.GetBytes(this.AcquiredAt, 0, this.AcquiredAt.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), AcquiredAtLen);
+			count += sizeof(ushort);
+			count += AcquiredAtLen;
 			return success;
 		}	
 	}
@@ -2009,6 +2018,7 @@ public class SC_Inventory : IPacket
 		public bool IsEquipped;
 		public string BaseStats;
 		public string RandomOptions;
+		public string AcquiredAt;
 	
 		public void Read(ReadOnlySpan<byte> s, ref ushort count)
 		{
@@ -2030,6 +2040,10 @@ public class SC_Inventory : IPacket
 			count += sizeof(ushort);
 			this.RandomOptions = Encoding.Unicode.GetString(s.Slice(count, RandomOptionsLen));
 			count += RandomOptionsLen;
+			ushort AcquiredAtLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+			count += sizeof(ushort);
+			this.AcquiredAt = Encoding.Unicode.GetString(s.Slice(count, AcquiredAtLen));
+			count += AcquiredAtLen;
 		}
 	
 		public bool Write(Span<byte> s, ref ushort count)
@@ -2055,6 +2069,10 @@ public class SC_Inventory : IPacket
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), RandomOptionsLen);
 			count += sizeof(ushort);
 			count += RandomOptionsLen;
+			ushort AcquiredAtLen = (ushort)Encoding.Unicode.GetBytes(this.AcquiredAt, 0, this.AcquiredAt.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), AcquiredAtLen);
+			count += sizeof(ushort);
+			count += AcquiredAtLen;
 			return success;
 		}	
 	}

@@ -3,6 +3,7 @@ using ServerCore;
 using System;
 using System.Threading.Tasks;
 using GameServer.Content.Item;
+using System.Linq;
 
 partial class PacketHandler
 {
@@ -27,36 +28,7 @@ partial class PacketHandler
                 }
                 var invItems = await ServerServices.InventoryManager.LoadInventoryAsync(uid);
                 
-                var invPkt = new SC_Inventory();
-                foreach(var item in invItems)
-                {
-                    var equipTmpl = ServerServices.ItemTemplates.GetEquipment(item.TemplateId);
-                    if (equipTmpl != null)
-                    {
-                        invPkt.equipmentss.Add(new SC_Inventory.Equipments
-                        {
-                            InstanceId = item.InstanceId,
-                            TemplateId = item.TemplateId,
-                            SlotIndex = item.SlotIndex,
-                            EnhancementLevel = item.EnhancementLevel,
-                            IsEquipped = item.IsEquipped,
-                            BaseStats = Newtonsoft.Json.JsonConvert.SerializeObject(item.BaseStats),
-                            RandomOptions = Newtonsoft.Json.JsonConvert.SerializeObject(item.RandomOptions)
-                        });
-                    }
-                    else
-                    {
-                        invPkt.itemss.Add(new SC_Inventory.Items
-                        {
-                            InstanceId = item.InstanceId,
-                            TemplateId = item.TemplateId,
-                            Amount = item.Amount,
-                            SlotIndex = item.SlotIndex
-                        });
-                    }
-                }
-                s.Send(invPkt.Write());
-                Console.WriteLine($"[CS_GetInventory] Sent {invPkt.itemss.Count} Items, {invPkt.equipmentss.Count} Equipments to {s.ActorId}");
+                SendInventory(s, invItems);
             }
             catch(Exception ex)
             {
@@ -125,7 +97,7 @@ partial class PacketHandler
         ClientSession s = (ClientSession)session;
         CS_DestroyItem req = (CS_DestroyItem)packet;
 
-        Console.WriteLine($"[CS_DestroyItem] ActorId: {s.ActorId} InstanceId: {req.InstanceId} Amount: {req.Amount}");
+        Console.WriteLine($"[GameLog] [Destroy] Request - Actor: {s.ActorId} InstanceId: {req.InstanceId} Amount: {req.Amount}");
 
         Task.Run(async () =>
         {
@@ -133,6 +105,11 @@ partial class PacketHandler
             {
                 string uid = s.Uid;
                 if (string.IsNullOrEmpty(uid)) return;
+                if (req.Amount <= 0)
+                {
+                    Console.WriteLine($"[GameLog] [Destroy] Invalid Amount: {req.Amount}");
+                    return;
+                }
 
                 var items = await ServerServices.InventoryManager.LoadInventoryAsync(uid);
                 var target = items.Find(x => x.InstanceId == req.InstanceId);
@@ -141,54 +118,85 @@ partial class PacketHandler
                 {
                     if (req.Amount >= target.Amount)
                     {
-                        items.Remove(target);
-                        Console.WriteLine($"[Destroy] Removed Item {target.InstanceId}");
+                        // Use New API for Deletion
+                        await ServerServices.InventoryManager.DeleteItemAsync(uid, target);
+                        Console.WriteLine($"[GameLog] [Destroy] Deleted Item {target.InstanceId} (TID:{target.TemplateId}) via API");
+                        
+                        // Force Reload to sync client (Cache was cleared in DeleteItemAsync)
+                        var reloadedItems = await ServerServices.InventoryManager.LoadInventoryAsync(uid);
+                        SendInventory(s, reloadedItems);
+                        return;
                     }
                     else
                     {
                         target.Amount -= req.Amount;
-                        Console.WriteLine($"[Destroy] Decreased Item {target.InstanceId} by {req.Amount} -> {target.Amount}");
+                        Console.WriteLine($"[GameLog] [Destroy] Decreased Item {target.InstanceId} by {req.Amount} -> {target.Amount}");
+                        
+                        // Compact/Merge Stacks
+                        ServerServices.InventoryManager.CompactInventory(items);
+
+                        await ServerServices.InventoryManager.SaveInventoryAsync(uid, items);
+                        
+                        // Send Refresh (Sorted by SlotIndex)
+                         var reloadedItems = await ServerServices.InventoryManager.LoadInventoryAsync(uid); // Force refresh implicitly via KeyDelete
+                         SendInventory(s, reloadedItems);
                     }
-                    
-                    await ServerServices.InventoryManager.SaveInventoryAsync(uid, items);
-                    
-                    // Send Refresh
+                }
+
+                else
+                {
+                     Console.WriteLine($"[GameLog] [Destroy] Target NOT found. ID: {req.InstanceId}. Current Items: {string.Join(", ", items.Select(x => $"{x.InstanceId}({x.TemplateId})"))}");
+                     
+                     // Force Sync: Client has wrong ID, so send current state
                      var reloadedItems = await ServerServices.InventoryManager.LoadInventoryAsync(uid);
-                     var invPkt = new SC_Inventory();
-                     foreach(var item in reloadedItems)
-                     {
-                        var equipTmpl = ServerServices.ItemTemplates.GetEquipment(item.TemplateId);
-                        if (equipTmpl != null)
-                        {
-                            invPkt.equipmentss.Add(new SC_Inventory.Equipments
-                            {
-                                InstanceId = item.InstanceId,
-                                TemplateId = item.TemplateId,
-                                SlotIndex = item.SlotIndex,
-                                EnhancementLevel = item.EnhancementLevel,
-                                IsEquipped = item.IsEquipped,
-                                BaseStats = Newtonsoft.Json.JsonConvert.SerializeObject(item.BaseStats),
-                                RandomOptions = Newtonsoft.Json.JsonConvert.SerializeObject(item.RandomOptions)
-                            });
-                        }
-                        else
-                        {
-                            invPkt.itemss.Add(new SC_Inventory.Items
-                            {
-                                InstanceId = item.InstanceId,
-                                TemplateId = item.TemplateId,
-                                Amount = item.Amount,
-                                SlotIndex = item.SlotIndex
-                            });
-                        }
-                     }
-                     s.Send(invPkt.Write());
+                     SendInventory(s, reloadedItems);
                 }
             }
             catch(Exception ex)
             {
-                Console.WriteLine($"[CS_DestroyItem] Error: {ex.Message}");
+                Console.WriteLine($"[GameLog] [Destroy] Error: {ex.Message}");
             }
         });
+    }
+
+
+    private static void SendInventory(ClientSession s, System.Collections.Generic.List<ItemInstance> items)
+    {
+        var invPkt = new SC_Inventory();
+        
+        // Sort by SlotIndex
+        var sortedItems = items.OrderBy(x => x.SlotIndex).ToList();
+        
+        foreach(var item in sortedItems)
+        {
+            var equipTmpl = ServerServices.ItemTemplates.GetEquipment(item.TemplateId);
+            if (equipTmpl != null)
+            {
+                invPkt.equipmentss.Add(new SC_Inventory.Equipments
+                {
+                    InstanceId = item.InstanceId,
+                    TemplateId = item.TemplateId,
+                    SlotIndex = item.SlotIndex,
+                    EnhancementLevel = item.EnhancementLevel,
+                    IsEquipped = item.IsEquipped,
+                    BaseStats = Newtonsoft.Json.JsonConvert.SerializeObject(item.BaseStats),
+                    RandomOptions = Newtonsoft.Json.JsonConvert.SerializeObject(item.RandomOptions),
+                    AcquiredAt = item.AcquiredAt.ToString("O")
+                });
+            }
+            else
+            {
+                invPkt.itemss.Add(new SC_Inventory.Items
+                {
+                    InstanceId = item.InstanceId,
+                    TemplateId = item.TemplateId,
+                    Amount = item.Amount,
+                    SlotIndex = item.SlotIndex,
+                    AcquiredAt = item.AcquiredAt.ToString("O")
+                });
+            }
+        }
+        s.Send(invPkt.Write());
+        Console.WriteLine($"[SendInventory] Sent {invPkt.itemss.Count} Items, {invPkt.equipmentss.Count} Equipments to {s.ActorId}");
     }
 }

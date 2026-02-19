@@ -281,6 +281,7 @@
 			<int name="TemplateId"/>
 			<int name="Amount"/>
 			<int name="SlotIndex"/>
+			<string name="AcquiredAt"/>
 		</list>
 		<list name="Equipments">
 			<long name="InstanceId"/>
@@ -290,6 +291,7 @@
 			<bool name="IsEquipped"/>
 			<string name="BaseStats"/>
 			<string name="RandomOptions"/>
+			<string name="AcquiredAt"/>
 		</list>
 	</packet>
 

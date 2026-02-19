@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WebGenerater")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4671ea7c807e7c0e1f667cafa949a18e8b1fefd0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+878016cf8a03e98ad82654bb79a5ebe18f59b3c0")]
 [assembly: System.Reflection.AssemblyProductAttribute("WebGenerater")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WebGenerater")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

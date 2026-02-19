@@ -10,7 +10,7 @@
     },
     "InitialSpawns": [
         {
-            "MonsterId": 100,
+            "MonsterId": 1000,
             "X": 17,
             "Y": 0,
             "Z": 14,
@@ -18,7 +18,7 @@
             "GroupId": 10
         },
         {
-            "MonsterId": 101,
+            "MonsterId": 1001,
             "X": 18,
             "Y": 0,
             "Z": 6,
@@ -47,7 +47,7 @@
             "Actions": [
                 {
                     "Type": "SpawnMonster",
-                    "ParamId": 100,
+                    "ParamId": 1000,
                     "X": 26,
                     "Y": 0,
                     "Z": 13,
@@ -56,7 +56,7 @@
                 },
                 {
                     "Type": "SpawnMonster",
-                    "ParamId": 101,
+                    "ParamId": 1001,
                     "X": 26,
                     "Y": 0,
                     "Z": 6,

@@ -14,9 +14,8 @@ public sealed class ApiDbContext : DbContext
     public DbSet<UserIdentity> UserIdentities => Set<UserIdentity>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     
-    // Inventory
-    public DbSet<ApiServer.Domain.Items.Item> Items => Set<ApiServer.Domain.Items.Item>();
-    public DbSet<ApiServer.Domain.Items.Equipment> Equipments => Set<ApiServer.Domain.Items.Equipment>();
+    // Inventory (Single Table)
+    public DbSet<ApiServer.Domain.Items.GameItem> GameItems => Set<ApiServer.Domain.Items.GameItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

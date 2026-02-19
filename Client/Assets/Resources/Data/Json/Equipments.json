@@ -1,7 +1,8 @@
 [
   {
-    "id": 2001,
+    "id": 100001,
     "name": "Novice Sword",
+    "type": "Equipment",
     "equip_slot": "Weapon",
     "grade": "Common",
     "base_atk": 10,
@@ -14,8 +15,9 @@
     "icon_path": "Icons/W_Sword001"
   },
   {
-    "id": 2002,
+    "id": 100002,
     "name": "Iron Sword",
+    "type": "Equipment",
     "equip_slot": "Weapon",
     "grade": "Uncommon",
     "base_atk": 25,
@@ -28,8 +30,9 @@
     "icon_path": "Icons/W_Sword002"
   },
   {
-    "id": 2101,
+    "id": 200001,
     "name": "Leather Helmet",
+    "type": "Equipment",
     "equip_slot": "Head",
     "grade": "Common",
     "base_atk": 0,
@@ -42,8 +45,9 @@
     "icon_path": "Icons/A_Helm001"
   },
   {
-    "id": 2201,
+    "id": 210001,
     "name": "Leather Armor",
+    "type": "Equipment",
     "equip_slot": "Armor",
     "grade": "Common",
     "base_atk": 0,
@@ -56,8 +60,9 @@
     "icon_path": "Icons/A_Body001"
   },
   {
-    "id": 2401,
+    "id": 240001,
     "name": "Speed Boots",
+    "type": "Equipment",
     "equip_slot": "Shoes",
     "grade": "Rare",
     "base_atk": 0,

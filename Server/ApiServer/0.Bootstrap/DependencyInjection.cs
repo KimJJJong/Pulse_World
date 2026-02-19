@@ -17,6 +17,7 @@ using ApiServer.Shared.Abstractions;
 using ApiServer.Shared.Http.Idempotency;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using ApiServer.Application.Services;
 
 
 using ApiServer.Presentation.WebSockets;
@@ -57,6 +58,9 @@ public static class DependencyInjection
         IConfiguration config)
     {
         // DbContext / JWT / Google / CP Client 등록 예정
+        // Services
+        services.AddSingleton<IItemTemplateService, ItemTemplateService>();
+
         // DbContext 
         services.AddDbContext<ApiDbContext>((sp, opt) =>
         {
