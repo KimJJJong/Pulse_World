@@ -32,6 +32,10 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     private static readonly Color TELEGRAPH_COLOR = Color.red;
 
+    // Client-Side Prediction: 이미 로컬에서 모션을 재생한 Attack/Skill을 추적
+    // 서버 응답(SC_BeatActions)에서 중복 애니메이션 재생을 방지
+    private bool _attackPredicted = false;
+
 
     #region Debug
     private const bool DBG_POS = false;
@@ -412,7 +416,20 @@ public class BoardView : MonoBehaviour, IClientWorldView
         // [Refactor] EntityVisual에게 위임
         visual.StartMove(fromW, toW, duration);
 
-        // [Sync] 공격 애니메이션 연결
+        // ── Client-Side Prediction 체크 ──
+        // 내 Actor의 Attack/Skill은 입력 시점에 이미 모션을 재생했으므로 스킵
+        bool isMyActor = action.ActorId == ClientGameState.Instance.MyActorId;
+        bool isAttackOrSkill = action.ActionKind == (int)ActionKind.Attack 
+                            || action.ActionKind == (int)ActionKind.Skill;
+
+        if (isMyActor && isAttackOrSkill && _attackPredicted)
+        {
+            // 예측 완료 → 플래그 리셋 (다음 입력을 위해)
+            _attackPredicted = false;
+            return; // 모션 재생 스킵 (HP 업데이트는 ClientHandlers에서 별도 처리)
+        }
+
+        // [Sync] 공격 애니메이션 연결 (다른 플레이어/몬스터 or Prediction 안 된 경우)
         if (action.ActionKind == (int)ActionKind.Attack) 
         {
             visual.PlayAttack(duration);
@@ -421,6 +438,23 @@ public class BoardView : MonoBehaviour, IClientWorldView
         {
             visual.PlaySkill(duration);
         }
+    }
+
+    /// <summary>
+    /// Client-Side Prediction: 입력 시점에 내 캐릭터의 공격/스킬 모션을 즉시 재생
+    /// RhythmInputController에서 호출됨
+    /// </summary>
+    public void PlayAttackPrediction(int actorId, ActionKind kind, float duration)
+    {
+        if (!_entityViews.TryGetValue(actorId, out var visual) || visual == null)
+            return;
+
+        if (kind == ActionKind.Attack)
+            visual.PlayAttack(duration);
+        else if (kind == ActionKind.Skill)
+            visual.PlaySkill(duration);
+
+        _attackPredicted = true;
     }
 
     public void OnInitGameCompleted()

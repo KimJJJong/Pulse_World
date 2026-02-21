@@ -1,4 +1,7 @@
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using System.Collections.Generic;
 
 public class CameraObstacleFade : MonoBehaviour
@@ -171,25 +174,22 @@ public class CameraObstacleFade : MonoBehaviour
             return;
         }
         
-        using (new UnityEditor.Handles.DrawingScope(Gizmos.color))
-        {
-            Vector3 forward = p2 - p1;
-            Quaternion rot = Quaternion.LookRotation(forward);
-            Vector3 pointOffset = radius / forward.magnitude * forward;
-            float length = forward.magnitude;
-            Vector3 center = p1 + forward * 0.5f;
-            
-            Gizmos.matrix = Matrix4x4.TRS(center, rot, Vector3.one);
-            Gizmos.DrawWireCube(Vector3.zero, new Vector3(radius * 2, radius * 2, length));
-            Gizmos.matrix = Matrix4x4.identity;
-            
-            Gizmos.DrawWireSphere(p1, radius);
-            Gizmos.DrawWireSphere(p2, radius);
-            Gizmos.DrawLine(p1 + rot * Vector3.up * radius, p2 + rot * Vector3.up * radius);
-            Gizmos.DrawLine(p1 - rot * Vector3.up * radius, p2 - rot * Vector3.up * radius);
-            Gizmos.DrawLine(p1 + rot * Vector3.right * radius, p2 + rot * Vector3.right * radius);
-            Gizmos.DrawLine(p1 - rot * Vector3.right * radius, p2 - rot * Vector3.right * radius);
-        }
+        Vector3 forward = p2 - p1;
+        Quaternion rot = Quaternion.LookRotation(forward);
+        float length = forward.magnitude;
+        Vector3 center = p1 + forward * 0.5f;
+        
+        Matrix4x4 oldMatrix = Gizmos.matrix;
+        Gizmos.matrix = Matrix4x4.TRS(center, rot, Vector3.one);
+        Gizmos.DrawWireCube(Vector3.zero, new Vector3(radius * 2, radius * 2, length));
+        Gizmos.matrix = oldMatrix;
+        
+        Gizmos.DrawWireSphere(p1, radius);
+        Gizmos.DrawWireSphere(p2, radius);
+        Gizmos.DrawLine(p1 + rot * Vector3.up * radius, p2 + rot * Vector3.up * radius);
+        Gizmos.DrawLine(p1 - rot * Vector3.up * radius, p2 - rot * Vector3.up * radius);
+        Gizmos.DrawLine(p1 + rot * Vector3.right * radius, p2 + rot * Vector3.right * radius);
+        Gizmos.DrawLine(p1 - rot * Vector3.right * radius, p2 - rot * Vector3.right * radius);
     }
 
     void OnDrawGizmos()

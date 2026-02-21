@@ -65,6 +65,19 @@ public class RhythmClient : MonoBehaviour
         return (long)(elapsed / beatMs);
     }
 
+    /// <summary>
+    /// 서버 RhythmSystem.GetNearestBeatIndex와 동일: 가장 가까운 비트 반환 (반올림)
+    /// </summary>
+    public long GetNearestBeatIndex(long serverNowMs)
+    {
+        var elapsed = serverNowMs - ServerSongStartMs;
+        if (elapsed < 0) return 0;
+
+        double beatMs = GetBeatDurationMs();
+        var idxFloat = elapsed / beatMs;
+        return (long)System.Math.Round(idxFloat, System.MidpointRounding.AwayFromZero);
+    }
+
     public double GetBeatDurationMs()
     {
         if (Bpm <= 0 || BaseBeatDivision <= 0)

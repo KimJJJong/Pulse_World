@@ -56,6 +56,9 @@ public class RhythmInputController : MonoBehaviour
     // "이번 beatIndex에서 이미 발사했는가" 체크용
     long _lastFiredBeatIndex = long.MinValue;
 
+    // Client-Side Prediction: 공격/스킬 비트당 1회 제한
+    long _lastAttackPredictionBeat = long.MinValue;
+
     //private void Awake()
     //{
     //    Instance = this;
@@ -313,8 +316,6 @@ public class RhythmInputController : MonoBehaviour
 
     void SendGameAction(ActionKind kind, int targetX, int targetY, long serverNowMs)
     {
-        // TODO: 네 프로젝트 실제 패킷명으로 바꿔줘.
-        // 예: CS_GameActionRequest, CS_ActionRequest, CS_BattleActionRequest 등
         CS_ActionRequest pkt = new CS_ActionRequest
         {
             ActorId = GS.MyActorId,
@@ -325,5 +326,42 @@ public class RhythmInputController : MonoBehaviour
         };
 
         NetworkManager.Instance.Send(pkt.Write());
+
+        // ── Client-Side Prediction: 공격/스킬 모션 즉시 재생 ──
+        // 조건: Judge Window 내 + 해당 비트에서 아직 미발동
+        if (kind == ActionKind.Attack || kind == ActionKind.Skill)
+        {
+            TryPlayAttackPrediction(kind, serverNowMs);
+        }
+    }
+
+    /// <summary>
+    /// Judge Window 내이고 해당 비트에서 아직 공격 모션을 재생하지 않은 경우에만
+    /// 내 캐릭터의 공격/스킬 모션을 즉시 재생 (Client Prediction)
+    /// </summary>
+    void TryPlayAttackPrediction(ActionKind kind, long serverNowMs)
+    {
+        // 1) Nearest Beat 기준 Judge Window 체크
+        long nearestBeat = Rhythm.GetNearestBeatIndex(serverNowMs);
+        long beatTimeMs = Rhythm.GetBeatTimeMs(nearestBeat);
+        long diff = System.Math.Abs(serverNowMs - beatTimeMs);
+
+        if (diff > (long)Rhythm.judgeWindowMs)
+            return; // Window 밖 → 모션 스킵
+
+        // 2) 해당 비트에서 이미 재생했으면 스킵 (1비트 1회)
+        if (nearestBeat == _lastAttackPredictionBeat)
+            return;
+
+        _lastAttackPredictionBeat = nearestBeat;
+
+        // 3) 모션 재생
+        var bv = BoardView.Instance;
+        if (bv == null) return;
+
+        double beatMs = Rhythm.GetBeatDurationMs();
+        float duration = (float)(beatMs / 1000.0) * bv.actionDurationRatio;
+
+        bv.PlayAttackPrediction(GS.MyActorId, kind, duration);
     }
 }

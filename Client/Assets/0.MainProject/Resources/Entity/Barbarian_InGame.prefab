@@ -1014,6 +1014,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntityVisual
   _animator: {fileID: 0}
+  _attackSound: {fileID: 8300000, guid: 9e140376a890def4ea0c8c6d3cdef1d6, type: 3}
 --- !u!1 &2870523794981691266
 GameObject:
   m_ObjectHideFlags: 0
