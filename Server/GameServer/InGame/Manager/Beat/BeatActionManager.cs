@@ -255,12 +255,22 @@ namespace GameServer.InGame.Manager.Beat
 
 
         // 서버에서 직접 예약하고 싶은 명령 (몬스터 AI 등)
+        // Move → _scheduler (OnBeat: Beat 시작점에 위치 갱신)
+        // Attack/Skill → _delayedScheduler (OnJudgeWindowEnd: 입력 윈도우 종료 후 데미지 적용)
+        //   → 플레이어가 Warning을 보고 회피 입력할 시간을 보장
         public void ScheduleServerCommand(long beatIndex, PlayerActionCmd cmd)
         {
-            var currBeat = _clock.GetCurrentBeatIndex(_time.NowMs);
-
             cmd.ExecuteBeat = beatIndex;
-            _scheduler.Enqueue(cmd);
+
+            if (cmd.Kind == ActionKind.Move || cmd.Kind == ActionKind.Wait)
+            {
+                _scheduler.Enqueue(cmd);
+            }
+            else
+            {
+                // Attack/Skill: 입력 윈도우가 닫힌 후 실행 (OnJudgeWindowEnd)
+                _delayedScheduler.Enqueue(cmd);
+            }
         }
 
 

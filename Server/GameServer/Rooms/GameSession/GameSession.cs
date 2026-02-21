@@ -370,6 +370,7 @@ public sealed class GameSession : SessionBase
         
         Director.NotifyEvent(new GameEventContext { Type = EventType.Beat, TimeMs = AppRef.ServerTimeMs() });
 
+        Director.Update(AppRef.ServerTimeMs());
         CleanupDeadEntities();
     }
 
@@ -397,7 +398,6 @@ public sealed class GameSession : SessionBase
     public override void Update()
     {
         // 필요하면 Tick 기반 처리
-        Director.Update(AppRef.ServerTimeMs());
 
     }
 
