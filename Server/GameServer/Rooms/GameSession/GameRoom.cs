@@ -221,7 +221,14 @@ public sealed class GameRoom : RoomBase
             try
             {
                 await Task.Delay(delay, AppRef.Cts.Token);
-                StartGameplay();
+                lock (_lock)
+                {
+                    if (_phase == RoomPhase.Countdown)
+                    {
+                        _phase = RoomPhase.Running;
+                        _logger.LogInformation("GameRoom {MatchId} started rhythm gameplay at {Time}", MatchId, AppRef.ServerTimeMs());
+                    }
+                }
             }
             catch (TaskCanceledException) { }
             catch (Exception ex)
@@ -248,6 +255,8 @@ public sealed class GameRoom : RoomBase
         }
         Broadcast(loadedPkt);
 
+        SetupGameplay(startAtMs); // [New] 미리 세팅하고 정보를 쏜다
+
         ScheduleStart(startAtMs);
 
         Broadcast(new SC_GameBegin
@@ -258,13 +267,12 @@ public sealed class GameRoom : RoomBase
         });
     }
 
-    private void StartGameplay()
+    private void SetupGameplay(long startAtMs)
     {
         lock (_lock)
         {
-            if (_phase == RoomPhase.Running || _phase == RoomPhase.Ended)
+            if (_session != null) // 이미 세팅되었다면 무시
                 return;
-            _phase = RoomPhase.Running;
         }
 
         _map = MapDatabase.Get(MapId);
@@ -292,7 +300,7 @@ public sealed class GameRoom : RoomBase
             MaxBeatLookAhead = 2,
         };
 
-        long songStart = AppRef.ServerTimeMs() + rSetting.StartDelayMs;
+        long songStart = startAtMs + rSetting.StartDelayMs; // [Change] 현재 시간이 아닌 약속된 미래 시간 사용
 
         var time = new ServerTimeAdapter();
         _rhythm = new RhythmSystem(time, _rhythmConfig, songStart);
@@ -326,10 +334,10 @@ public sealed class GameRoom : RoomBase
             SongStartServerTimeMs = songStart,
             Bpm = _rhythmConfig.Bpm,
             BaseBeatDivision = _rhythmConfig.BaseBeatDivision,
-            BeatIndex = _rhythm.GetCurrentBeatIndex(time.NowMs),
+            BeatIndex = 0, // [Change] 어차피 과거/미래이므로 일단 0을 보내고 클라가 계산하게 함
         });
 
-        _logger.LogInformation("GameRoom {MatchId} started rhythm gameplay", MatchId);
+        _logger.LogInformation("GameRoom {MatchId} pre-scheduled rhythm gameplay. Start at {startAt}", MatchId, startAtMs);
     }
 
     private List<MapEntity> BuildPlayerEntities()

@@ -177,7 +177,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         }
         if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1))
         {
-            Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Out of bounds ({x},{y}) MapSize={_tiles.GetLength(0)}x{_tiles.GetLength(1)}");
+            //Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Out of bounds ({x},{y}) MapSize={_tiles.GetLength(0)}x{_tiles.GetLength(1)}");
             return;
         }
 

@@ -26,8 +26,15 @@ public sealed class BgmSyncPlayer : MonoBehaviour
 
     [Header("Sync Policy (Non-loop)")]
     [SerializeField] private float _syncIntervalSec = 0.05f;
-    [SerializeField] private float _hardSeekThresholdSec = 0.08f;
+    [SerializeField] private float _hardSeekThresholdSec = 0.5f; // [Change] 80ms -> 500ms
     [SerializeField] private float _ignoreThresholdSec = 0.02f;
+    [SerializeField] private float _pitchThresholdSec = 0.07f; // [Change] 0.05 -> 0.07 (DSP 버퍼 지연 무시용)
+    
+    [Header("Pitch Tuning")]
+    [SerializeField] private float _maxPitchRate = 1.02f; // 최대 +2% 빠름
+    [SerializeField] private float _minPitchRate = 0.98f; // 최소 -2% 느림
+    [SerializeField] private float _pitchLerpSpeed = 5.0f; // 자연스러운 Pitch 복구
+
     [SerializeField] private float _preRollSec = 0.3f;
     [SerializeField] private float _nearEndEpsilonSec = 0.05f;
 
@@ -153,6 +160,8 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         _audioSource.time = 0f;
         _audioSource.loop = false;
         _audioSource.playOnAwake = false;
+        _audioSource.pitch = 1.0f; // 초기화
+        _isScheduled = false; // 추가: 스케줄 여부 변수
     }
 
     public void StopSync()
@@ -162,7 +171,10 @@ public sealed class BgmSyncPlayer : MonoBehaviour
 
         State = SyncState.Idle;
         _startedEventRaised = false;
+        _isScheduled = false;
     }
+
+    private bool _isScheduled = false;
 
     void Update()
     {
@@ -208,6 +220,23 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         if (elapsedSec < 0)
         {
             if (State != SyncState.Starting) State = SyncState.Starting;
+
+            // [New] Pre-roll Scheduling: 정확한 DSP 시간에 예약 재생
+            if (!_isScheduled && !_audioSource.isPlaying)
+            {
+                double timeToStartSec = Math.Abs(elapsedSec);
+                
+                // [Crucial Fix] TimeSync가 FastPing으로 웜업을 끝내기 전에 너무 일찍(예: 1초 전) 예약해버리면
+                // 잘못된 서버 시간 오차가 `PlayScheduled`에 영구적으로 화석처럼 굳어버림.
+                // 웜업이 끝난 직후인 시작 0.2초 전에 완벽해진 서버 시간으로 최종 스케줄링.
+                if (timeToStartSec <= 0.2 && timeToStartSec > 0.01) 
+                {
+                    double exactDspTime = AudioSettings.dspTime + timeToStartSec;
+                    _audioSource.PlayScheduled(exactDspTime);
+                    _isScheduled = true;
+                    Debug.Log($"[BgmSyncPlayer] PlayScheduled in {timeToStartSec:F3}s (DSP: {exactDspTime:F2})");
+                }
+            }
             return;
         }
 
@@ -219,8 +248,9 @@ public sealed class BgmSyncPlayer : MonoBehaviour
             return;
         }
 
-        if (!_audioSource.isPlaying)
+        if (!_audioSource.isPlaying && !_isScheduled)
         {
+            // 혹여나 사전 예약이 실패한 채로 시간이 지났다면 강제 즉시 재생
             SeekTo((float)elapsedSec);
             _audioSource.Play();
             State = SyncState.Playing;
@@ -232,6 +262,17 @@ public sealed class BgmSyncPlayer : MonoBehaviour
             }
             return;
         }
+        else if (_audioSource.isPlaying && _isScheduled)
+        {
+            // 예약 재생이 실제 발동된 상태 처리
+            _isScheduled = false; // 플래그 초기화
+            State = SyncState.Playing;
+            if (!_startedEventRaised)
+            {
+                _startedEventRaised = true;
+                OnSongStarted?.Invoke();
+            }
+        }
 
         if (State != SyncState.Playing)
             State = SyncState.Playing;
@@ -239,15 +280,49 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         float actualSec = _audioSource.time;
         float expectedSec = (float)elapsedSec;
 
+        // drift = Audio시간 - 서버목표시간. 
+        // 양수면 오디오가 서버보다 앞서감(빠름) -> 느리게 (Pitch < 1)
+        // 음수면 오디오가 서버보다 뒤쳐짐(느림) -> 빠르게 (Pitch > 1)
         float drift = actualSec - expectedSec;
         float abs = Mathf.Abs(drift);
 
-        if (abs <= _ignoreThresholdSec)
-            return;
-
         if (abs >= _hardSeekThresholdSec)
         {
+            Debug.LogWarning($"[BgmSyncPlayer] Hard Seek triggered! Drift: {drift * 1000f:F1}ms");
             SeekTo(expectedSec);
+            _audioSource.pitch = 1.0f;
+            return;
+        }
+        
+        // Pitch Bending Logic
+        if (abs > _pitchThresholdSec)
+        {
+            float targetPitch = 1.0f;
+            if (drift > 0) // 오디오가 빠름
+            {
+                targetPitch = _minPitchRate;
+            }
+            else // 오디오가 느림
+            {
+                targetPitch = _maxPitchRate;
+            }
+            
+            _audioSource.pitch = Mathf.Lerp(_audioSource.pitch, targetPitch, Time.deltaTime * _pitchLerpSpeed);
+            
+            // [User Request] Pitch 건드릴 때마다 워닝 로그 출력
+            Debug.LogWarning($"[BgmSyncPlayer] Pitch Adjusted = {_audioSource.pitch:F3} (Drift: {drift * 1000f:F1}ms)");
+        }
+        else
+        {
+            // 오차가 _pitchThresholdSec 이내로 들어오면 서서히 원상복구
+            if (Mathf.Abs(_audioSource.pitch - 1.0f) > 0.001f)
+            {
+                _audioSource.pitch = Mathf.Lerp(_audioSource.pitch, 1.0f, Time.deltaTime * _pitchLerpSpeed);
+            }
+            else
+            {
+                _audioSource.pitch = 1.0f;
+            }
         }
     }
 

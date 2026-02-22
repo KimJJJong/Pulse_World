@@ -131,7 +131,10 @@ public sealed class PingManager : MonoBehaviour
                 status = "OK";
             }
 
-            try { await Task.Delay(intervalMs, ct); }
+            // [추가] 빠른 TimeSync 웜업을 위해 최초 10번은 100ms 간격으로 Fast Ping 난사
+            int sleepMs = (sentCount <= 10) ? 100 : intervalMs;
+
+            try { await Task.Delay(sleepMs, ct); }
             catch (TaskCanceledException) { break; }
         }
     }
