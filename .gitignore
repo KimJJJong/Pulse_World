@@ -54,6 +54,10 @@ ExportedObj/
 *.pdb.meta
 *.mdb.meta
 
+# appsettings 
+**/appsettings.*.json
+**/appsettings.json
+
 # Unity3D generated file on crash reports
 sysinfo.txt
 

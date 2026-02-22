@@ -152,6 +152,22 @@ public class ClientHandlers : MonoBehaviour
     }
 
     /// <summary>
+    /// 즉각적인 공격/스킬 브로드캐스트 처리 (애니메이션 선행 재생)
+    /// </summary>
+    public void Handle_SC_ActionInstantBroadcast(SC_ActionInstantBroadcast p)
+    {
+        if (BV == null) return;
+        
+        // 내 캐릭터(로컬)를 포함한 모든 액터의 즉각적인 공격/스킬 연출을 서버 브로드캐스트에 의존하여 처리합니다.
+        
+        // 1Beat 시간(초) * 비율
+        double beatMs = Rhythm.GetBeatDurationMs();
+        float duration = (float)(beatMs / 1000.0) * BV.actionDurationRatio;
+
+        BV.PlayInstantActionBroadcast(p.ActorId, (ActionKind)p.ActionKind, duration);
+    }
+
+    /// <summary>
     /// Beat마다 확정된 액션들
     /// </summary>
     public void Handle_SC_BeatActions(SC_BeatActions p)

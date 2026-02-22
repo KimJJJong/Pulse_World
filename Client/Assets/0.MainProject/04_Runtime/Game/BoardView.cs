@@ -32,10 +32,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     private static readonly Color TELEGRAPH_COLOR = Color.red;
 
-    // Client-Side Prediction: 이미 로컬에서 모션을 재생한 Attack/Skill을 추적
+    // Client-Side Prediction & Instant Broadcast: 이미 모션을 재생한 Attack/Skill을 추적
     // 서버 응답(SC_BeatActions)에서 중복 애니메이션 재생을 방지
-    private bool _attackPredicted = false;
-
+    private Dictionary<int, float> _recentInstantActions = new();
 
     #region Debug
     private const bool DBG_POS = false;
@@ -413,48 +412,66 @@ public class BoardView : MonoBehaviour, IClientWorldView
         // 1Beat 시간(초) * 비율 (예: 0.5초 * 0.5 = 0.25초 만에 행동 끝냄)
         float duration = (float)(beatMs / 1000.0) * actionDurationRatio;
 
-        // [Refactor] EntityVisual에게 위임
-        visual.StartMove(fromW, toW, duration);
+        if (action.ActionKind == (int)ActionKind.Move)
+        {
+            // [Refactor] EntityVisual에게 위임
+            visual.StartMove(fromW, toW, duration);
+        }
 
-        // ── Client-Side Prediction 체크 ──
-        // 내 Actor의 Attack/Skill은 입력 시점에 이미 모션을 재생했으므로 스킵
-        bool isMyActor = action.ActorId == ClientGameState.Instance.MyActorId;
+        // ── Client-Side Prediction & Instant Broadcast 체크 ──
+        // 내 Actor 뿐만 아니라, 서버의 SC_ActionInstantBroadcast로 먼저 재생된 애니메이션을 추적
         bool isAttackOrSkill = action.ActionKind == (int)ActionKind.Attack 
                             || action.ActionKind == (int)ActionKind.Skill;
 
-        if (isMyActor && isAttackOrSkill && _attackPredicted)
+        if (isAttackOrSkill)
         {
-            // 예측 완료 → 플래그 리셋 (다음 입력을 위해)
-            _attackPredicted = false;
-            return; // 모션 재생 스킵 (HP 업데이트는 ClientHandlers에서 별도 처리)
+            if (_recentInstantActions.TryGetValue(action.ActorId, out float lastActionTime))
+            {
+                // 최근 1.5초(충분히 넉넉한 윈도우) 내에 트리거된 액션이면 이미 재생된 것으로 간주
+                if (Time.time - lastActionTime < 1.5f)
+                {
+                    // 판정 완료, 리셋 (연속 판정을 위해)
+                    _recentInstantActions.Remove(action.ActorId);
+                    return; // 모션 재생 스킵 (HP 업데이트는 ClientHandlers에서 별도 처리)
+                }
+                else 
+                {
+                    _recentInstantActions.Remove(action.ActorId);
+                }
+            }
         }
 
         // [Sync] 공격 애니메이션 연결 (다른 플레이어/몬스터 or Prediction 안 된 경우)
+        bool isMine = (ClientGameState.Instance != null && action.ActorId == ClientGameState.Instance.MyActorId);
+        
         if (action.ActionKind == (int)ActionKind.Attack) 
         {
-            visual.PlayAttack(duration);
+            visual.PlayAttack(duration, isMine);
         }
         else if (action.ActionKind == (int)ActionKind.Skill)
         {
-            visual.PlaySkill(duration);
+            visual.PlaySkill(duration, isMine);
         }
     }
 
+
     /// <summary>
-    /// Client-Side Prediction: 입력 시점에 내 캐릭터의 공격/스킬 모션을 즉시 재생
-    /// RhythmInputController에서 호출됨
+    /// SC_ActionInstantBroadcast 처리: 즉각적인 공격/스킬 브로드캐스트 재생 
     /// </summary>
-    public void PlayAttackPrediction(int actorId, ActionKind kind, float duration)
+    public void PlayInstantActionBroadcast(int actorId, ActionKind kind, float duration)
     {
         if (!_entityViews.TryGetValue(actorId, out var visual) || visual == null)
             return;
 
-        if (kind == ActionKind.Attack)
-            visual.PlayAttack(duration);
-        else if (kind == ActionKind.Skill)
-            visual.PlaySkill(duration);
+        bool isMine = (ClientGameState.Instance != null && actorId == ClientGameState.Instance.MyActorId);
 
-        _attackPredicted = true;
+        if (kind == ActionKind.Attack)
+            visual.PlayAttack(duration, isMine);
+        else if (kind == ActionKind.Skill)
+            visual.PlaySkill(duration, isMine);
+
+        // 시간 기록 (이중 재생 방지)
+        _recentInstantActions[actorId] = Time.time;
     }
 
     public void OnInitGameCompleted()

@@ -33,6 +33,14 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.CS_CalibHit, PacketHandler.CS_CalibHitHandler);
 		_makeFunc.Add((ushort)PacketID.CS_ActionRequest, MakePacket<CS_ActionRequest>);
 		_handler.Add((ushort)PacketID.CS_ActionRequest, PacketHandler.CS_ActionRequestHandler);
+		_makeFunc.Add((ushort)PacketID.CS_GetInventory, MakePacket<CS_GetInventory>);
+		_handler.Add((ushort)PacketID.CS_GetInventory, PacketHandler.CS_GetInventoryHandler);
+		_makeFunc.Add((ushort)PacketID.CS_EquipItem, MakePacket<CS_EquipItem>);
+		_handler.Add((ushort)PacketID.CS_EquipItem, PacketHandler.CS_EquipItemHandler);
+		_makeFunc.Add((ushort)PacketID.CS_Cheat, MakePacket<CS_Cheat>);
+		_handler.Add((ushort)PacketID.CS_Cheat, PacketHandler.CS_CheatHandler);
+		_makeFunc.Add((ushort)PacketID.CS_DestroyItem, MakePacket<CS_DestroyItem>);
+		_handler.Add((ushort)PacketID.CS_DestroyItem, PacketHandler.CS_DestroyItemHandler);
 
 	}
 

@@ -5,12 +5,17 @@ public class EntityVisual : MonoBehaviour
 {
     [Header("Components")]
     [SerializeField] private Animator _animator;
-    // [SerializeField] private SpriteRenderer _renderer; // 3D에서는 불필요
+    [SerializeField] private AudioSource _audioSource;
+
+    [Header("SFX")]
+    [SerializeField] private AudioClip _attackSound;
+    [SerializeField] private AudioClip _skillSound;
 
     // Optional: If you want to auto-find components on Awake
     private void Awake()
     {
         if (_animator == null) _animator = GetComponent<Animator>();
+        if (_audioSource == null) _audioSource = GetComponent<AudioSource>();
     }
 
     public void Bind(Animator animator)
@@ -75,7 +80,7 @@ public class EntityVisual : MonoBehaviour
         }
     }
 
-    public void PlayAttack(float duration)
+    public void PlayAttack(float duration, bool isMine = false)
     {
         if (_animator != null)
         {
@@ -83,9 +88,11 @@ public class EntityVisual : MonoBehaviour
             _animator.speed = 1.0f / duration; 
             _animator.SetTrigger("Attack");
         }
+
+        PlaySoundWithTimingLog(_attackSound, "Attack", isMine);
     }
 
-    public void PlaySkill(float duration)
+    public void PlaySkill(float duration, bool isMine = false)
     {
         if (_animator != null)
         {
@@ -93,6 +100,40 @@ public class EntityVisual : MonoBehaviour
             // 스킬 애니메이션이 따로 있다면 "Skill", 없다면 "Attack" 재사용
             // 현재는 "Attack" 재사용
             _animator.SetTrigger("Attack");
+        }
+
+        PlaySoundWithTimingLog(_skillSound, "Skill", isMine);
+    }
+
+    private void PlaySoundWithTimingLog(AudioClip clip, string actionName, bool isMine)
+    {
+        if (_audioSource != null && clip != null)
+        {
+            _audioSource.PlayOneShot(clip);
+        }
+
+        // [User Request] Sound 실행 시점을 Peek와의 +-를 WarnignLogin로 클라에 출력
+        if (RhythmClient.Instance != null)
+        {
+            long serverNowMs = RhythmClient.Instance.GetCurrentServerTimeMs();
+            long nearestBeat = RhythmClient.Instance.GetNearestBeatIndex(serverNowMs);
+            long beatTimeMs = RhythmClient.Instance.GetBeatTimeMs(nearestBeat);
+            
+            long diff = serverNowMs - beatTimeMs;
+            
+            // Peak(비트)보다 일찍 쳤으면 음수, 늦게 쳤으면 양수
+            Debug.LogWarning($"[SFX Timing] {actionName} sound played. Diff to Peak: {diff}ms (Nearest Beat: {nearestBeat})");
+
+            // [User Request] 플레이어의 Input 과 Sound play 의 Diff도 디버깅 추가
+            if (isMine && RhythmInputController.Instance != null)
+            {
+                long inputMs = RhythmInputController.LastAttackInputServerTimeMs;
+                if (inputMs > 0)
+                {
+                    long diffToInput = serverNowMs - inputMs;
+                    Debug.LogWarning($"[SFX Timing] {actionName} sound played. Diff to Input: {diffToInput}ms");
+                }
+            }
         }
     }
 

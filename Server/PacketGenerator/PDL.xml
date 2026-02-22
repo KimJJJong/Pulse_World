@@ -213,6 +213,11 @@
 		<long name ="ClientSendTimeMs"/>
 	</packet>
 
+	<packet name ="SC_ActionInstantBroadcast">
+		<int name ="ActorId"/>
+		<int name ="ActionKind"/>
+	</packet>
+
 	<packet name ="SC_BeatActions">
 		<long name ="BeatIndex"/>
 		<list name ="BeatActionResult">

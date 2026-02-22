@@ -173,6 +173,9 @@ class PacketHandler
     public static void SC_CalibResultHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_CalibResult((SC_CalibResult)packet);
 
+    public static void SC_ActionInstantBroadcastHandler(PacketSession session, IPacket packet)
+         => ClientHandlers.Instance.Handle_SC_ActionInstantBroadcast((SC_ActionInstantBroadcast)packet);
+
     public static void SC_BeatActionsHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_BeatActions((SC_BeatActions)packet);
     public static void SC_BeatSyncHandler(PacketSession session, IPacket packet)

@@ -59,6 +59,9 @@ public class RhythmInputController : MonoBehaviour
     // Client-Side Prediction: 공격/스킬 비트당 1회 제한
     long _lastAttackPredictionBeat = long.MinValue;
 
+    // 본인의 최근 공격 입력 시간을 기록 (로그용)
+    public static long LastAttackInputServerTimeMs { get; private set; }
+
     //private void Awake()
     //{
     //    Instance = this;
@@ -327,41 +330,10 @@ public class RhythmInputController : MonoBehaviour
 
         NetworkManager.Instance.Send(pkt.Write());
 
-        // ── Client-Side Prediction: 공격/스킬 모션 즉시 재생 ──
-        // 조건: Judge Window 내 + 해당 비트에서 아직 미발동
+        // [User Request] 본인 공격/스킬의 100% 서버 동기화를 위해 클라 자체 선입력 재생(Prediction) 제외
         if (kind == ActionKind.Attack || kind == ActionKind.Skill)
         {
-            TryPlayAttackPrediction(kind, serverNowMs);
+            LastAttackInputServerTimeMs = serverNowMs;
         }
-    }
-
-    /// <summary>
-    /// Judge Window 내이고 해당 비트에서 아직 공격 모션을 재생하지 않은 경우에만
-    /// 내 캐릭터의 공격/스킬 모션을 즉시 재생 (Client Prediction)
-    /// </summary>
-    void TryPlayAttackPrediction(ActionKind kind, long serverNowMs)
-    {
-        // 1) Nearest Beat 기준 Judge Window 체크
-        long nearestBeat = Rhythm.GetNearestBeatIndex(serverNowMs);
-        long beatTimeMs = Rhythm.GetBeatTimeMs(nearestBeat);
-        long diff = System.Math.Abs(serverNowMs - beatTimeMs);
-
-        if (diff > (long)Rhythm.judgeWindowMs)
-            return; // Window 밖 → 모션 스킵
-
-        // 2) 해당 비트에서 이미 재생했으면 스킵 (1비트 1회)
-        if (nearestBeat == _lastAttackPredictionBeat)
-            return;
-
-        _lastAttackPredictionBeat = nearestBeat;
-
-        // 3) 모션 재생
-        var bv = BoardView.Instance;
-        if (bv == null) return;
-
-        double beatMs = Rhythm.GetBeatDurationMs();
-        float duration = (float)(beatMs / 1000.0) * bv.actionDurationRatio;
-
-        bv.PlayAttackPrediction(GS.MyActorId, kind, duration);
     }
 }

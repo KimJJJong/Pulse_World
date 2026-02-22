@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ControlPlaneServer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+36bfb71dc8cb4987ddec57b06dc11bff4ef75b41")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5ced095a0600f3553b8bbe38ca7984260ab15bb8")]
 [assembly: System.Reflection.AssemblyProductAttribute("ControlPlaneServer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ControlPlaneServer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

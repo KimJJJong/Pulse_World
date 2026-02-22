@@ -109,6 +109,16 @@ namespace GameServer.InGame.Manager.Beat
             else
             {
                 _delayedScheduler.Enqueue(cmd);
+                
+                //  즉각적인 공격 액션 브로드캐스트 전송
+                if (cmd.Kind == ActionKind.Attack || cmd.Kind == ActionKind.Skill)
+                {
+                    _broadcaster.Broadcast(new SC_ActionInstantBroadcast
+                    {
+                        ActorId = cmd.ActorId,
+                        ActionKind = (int)cmd.Kind
+                    });
+                }
             }
         }
 
@@ -189,6 +199,16 @@ namespace GameServer.InGame.Manager.Beat
             else
             {
                 _delayedScheduler.Enqueue(cmd);
+                
+                // [NEW] 즉각적인 공격 액션 브로드캐스트 전송
+                if (cmd.Kind == ActionKind.Attack || cmd.Kind == ActionKind.Skill)
+                {
+                    _broadcaster.Broadcast(new SC_ActionInstantBroadcast
+                    {
+                        ActorId = cmd.ActorId,
+                        ActionKind = (int)cmd.Kind
+                    });
+                }
             }
 
             // [Debug] Log Server Action Accept

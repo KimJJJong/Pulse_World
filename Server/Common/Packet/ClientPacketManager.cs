@@ -49,6 +49,8 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_CalibResult, PacketHandler.SC_CalibResultHandler);
 		_makeFunc.Add((ushort)PacketID.SC_BeatSync, MakePacket<SC_BeatSync>);
 		_handler.Add((ushort)PacketID.SC_BeatSync, PacketHandler.SC_BeatSyncHandler);
+		_makeFunc.Add((ushort)PacketID.SC_ActionInstantBroadcast, MakePacket<SC_ActionInstantBroadcast>);
+		_handler.Add((ushort)PacketID.SC_ActionInstantBroadcast, PacketHandler.SC_ActionInstantBroadcastHandler);
 		_makeFunc.Add((ushort)PacketID.SC_BeatActions, MakePacket<SC_BeatActions>);
 		_handler.Add((ushort)PacketID.SC_BeatActions, PacketHandler.SC_BeatActionsHandler);
 		_makeFunc.Add((ushort)PacketID.SC_BeatTelegraphs, MakePacket<SC_BeatTelegraphs>);
@@ -57,6 +59,10 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_EntityDespawn, PacketHandler.SC_EntityDespawnHandler);
 		_makeFunc.Add((ushort)PacketID.SC_EntitySpawn, MakePacket<SC_EntitySpawn>);
 		_handler.Add((ushort)PacketID.SC_EntitySpawn, PacketHandler.SC_EntitySpawnHandler);
+		_makeFunc.Add((ushort)PacketID.SC_Inventory, MakePacket<SC_Inventory>);
+		_handler.Add((ushort)PacketID.SC_Inventory, PacketHandler.SC_InventoryHandler);
+		_makeFunc.Add((ushort)PacketID.SC_EquipResult, MakePacket<SC_EquipResult>);
+		_handler.Add((ushort)PacketID.SC_EquipResult, PacketHandler.SC_EquipResultHandler);
 
 	}
 
