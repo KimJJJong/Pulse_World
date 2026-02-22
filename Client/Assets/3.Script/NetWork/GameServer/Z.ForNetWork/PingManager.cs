@@ -190,6 +190,41 @@ public sealed class PingManager : MonoBehaviour
         if (timeout.HasValue) timeoutMs = Math.Max(500, timeout.Value);
         if (maxMiss.HasValue) maxConsecMiss = Math.Max(1, maxMiss.Value);
     }
+
+    void OnGUI()
+    {
+        if (!running) return;
+
+        // 화면 우측 상단 배치
+        int width = 300;
+        int height = 100;
+        Rect rect = new Rect(Screen.width - width - 10, 10, width, height);
+
+        // 반투명 배경 박스
+        GUI.Box(rect, "");
+
+        // 글꼴 색상 및 정렬 설정
+        GUIStyle style = new GUIStyle(GUI.skin.label);
+        style.fontSize = 20;
+        style.alignment = TextAnchor.UpperLeft;
+        
+        // 텍스트 내용 조립
+        string text = $"[Network Sync]\n" +
+                      $"<color=#00FF00>RTT(Avg):</color> {avgRttMs}ms (Max:{maxRttMs})\n" +
+                      $"<color=#FFFF00>Offset:</color> {TimeSync.OffsetMs:F1}ms\n" +
+                      $"<color=#00FFFF>Status:</color> {(sentCount <= 10 ? "Warming Up" : status)}";
+
+        // 약간의 그림자 효과를 위해 검은색 텍스트 먼저 찍기
+        style.normal.textColor = Color.black;
+        Rect shadowRect = new Rect(rect.x + 6, rect.y + 6, rect.width, rect.height);
+        GUI.Label(shadowRect, text, style);
+
+        // 그 위에 하얀색 텍스트 (RichText 허용)
+        style.richText = true;
+        style.normal.textColor = Color.white;
+        Rect textRect = new Rect(rect.x + 5, rect.y + 5, rect.width, rect.height);
+        GUI.Label(textRect, text, style);
+    }
 }
 
 [AttributeUsage(AttributeTargets.Field)] public class ReadOnlyAttribute : PropertyAttribute { }

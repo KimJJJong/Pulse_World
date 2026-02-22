@@ -26,14 +26,15 @@ public sealed class BgmSyncPlayer : MonoBehaviour
 
     [Header("Sync Policy (Non-loop)")]
     [SerializeField] private float _syncIntervalSec = 0.05f;
-    [SerializeField] private float _hardSeekThresholdSec = 0.5f; // [Change] 80ms -> 500ms
-    [SerializeField] private float _ignoreThresholdSec = 0.02f;
-    [SerializeField] private float _pitchThresholdSec = 0.07f; // [Change] 0.05 -> 0.07 (DSP 버퍼 지연 무시용)
+    [SerializeField] private float _hardSeekThresholdSec = 0.5f;
+    [SerializeField] private float _pitchStartThresholdSec = 0.08f; // 피치 조절(Catch-up) 시작 기준
+    [SerializeField] private float _pitchStopThresholdSec = 0.02f; // 피치 조절 완료(휴식) 기준
     
     [Header("Pitch Tuning")]
     [SerializeField] private float _maxPitchRate = 1.02f; // 최대 +2% 빠름
     [SerializeField] private float _minPitchRate = 0.98f; // 최소 -2% 느림
-    [SerializeField] private float _pitchLerpSpeed = 5.0f; // 자연스러운 Pitch 복구
+
+    private bool _isCatchingUp = false;
 
     [SerializeField] private float _preRollSec = 0.3f;
     [SerializeField] private float _nearEndEpsilonSec = 0.05f;
@@ -153,6 +154,7 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         State = SyncState.Waiting;
         _nextSyncAt = Time.unscaledTimeAsDouble;
         _startedEventRaised = false;
+        _isCatchingUp = false;
 
         if (_audioSource.isPlaying)
             _audioSource.Stop();
@@ -160,8 +162,6 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         _audioSource.time = 0f;
         _audioSource.loop = false;
         _audioSource.playOnAwake = false;
-        _audioSource.pitch = 1.0f; // 초기화
-        _isScheduled = false; // 추가: 스케줄 여부 변수
     }
 
     public void StopSync()
@@ -171,10 +171,8 @@ public sealed class BgmSyncPlayer : MonoBehaviour
 
         State = SyncState.Idle;
         _startedEventRaised = false;
-        _isScheduled = false;
+        _isCatchingUp = false;
     }
-
-    private bool _isScheduled = false;
 
     void Update()
     {
@@ -220,23 +218,6 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         if (elapsedSec < 0)
         {
             if (State != SyncState.Starting) State = SyncState.Starting;
-
-            // [New] Pre-roll Scheduling: 정확한 DSP 시간에 예약 재생
-            if (!_isScheduled && !_audioSource.isPlaying)
-            {
-                double timeToStartSec = Math.Abs(elapsedSec);
-                
-                // [Crucial Fix] TimeSync가 FastPing으로 웜업을 끝내기 전에 너무 일찍(예: 1초 전) 예약해버리면
-                // 잘못된 서버 시간 오차가 `PlayScheduled`에 영구적으로 화석처럼 굳어버림.
-                // 웜업이 끝난 직후인 시작 0.2초 전에 완벽해진 서버 시간으로 최종 스케줄링.
-                if (timeToStartSec <= 0.2 && timeToStartSec > 0.01) 
-                {
-                    double exactDspTime = AudioSettings.dspTime + timeToStartSec;
-                    _audioSource.PlayScheduled(exactDspTime);
-                    _isScheduled = true;
-                    Debug.Log($"[BgmSyncPlayer] PlayScheduled in {timeToStartSec:F3}s (DSP: {exactDspTime:F2})");
-                }
-            }
             return;
         }
 
@@ -248,9 +229,8 @@ public sealed class BgmSyncPlayer : MonoBehaviour
             return;
         }
 
-        if (!_audioSource.isPlaying && !_isScheduled)
+        if (!_audioSource.isPlaying)
         {
-            // 혹여나 사전 예약이 실패한 채로 시간이 지났다면 강제 즉시 재생
             SeekTo((float)elapsedSec);
             _audioSource.Play();
             State = SyncState.Playing;
@@ -261,17 +241,6 @@ public sealed class BgmSyncPlayer : MonoBehaviour
                 OnSongStarted?.Invoke();
             }
             return;
-        }
-        else if (_audioSource.isPlaying && _isScheduled)
-        {
-            // 예약 재생이 실제 발동된 상태 처리
-            _isScheduled = false; // 플래그 초기화
-            State = SyncState.Playing;
-            if (!_startedEventRaised)
-            {
-                _startedEventRaised = true;
-                OnSongStarted?.Invoke();
-            }
         }
 
         if (State != SyncState.Playing)
@@ -291,38 +260,33 @@ public sealed class BgmSyncPlayer : MonoBehaviour
             Debug.LogWarning($"[BgmSyncPlayer] Hard Seek triggered! Drift: {drift * 1000f:F1}ms");
             SeekTo(expectedSec);
             _audioSource.pitch = 1.0f;
+            _isCatchingUp = false;
             return;
         }
         
-        // Pitch Bending Logic
-        if (abs > _pitchThresholdSec)
+        // --- 데드밴드(Hysteresis) 피치 싱크 로직 ---
+        if (!_isCatchingUp && abs >= _pitchStartThresholdSec)
         {
-            float targetPitch = 1.0f;
-            if (drift > 0) // 오디오가 빠름
-            {
-                targetPitch = _minPitchRate;
-            }
-            else // 오디오가 느림
-            {
-                targetPitch = _maxPitchRate;
-            }
-            
-            _audioSource.pitch = Mathf.Lerp(_audioSource.pitch, targetPitch, Time.deltaTime * _pitchLerpSpeed);
-            
-            // [User Request] Pitch 건드릴 때마다 워닝 로그 출력
-            Debug.LogWarning($"[BgmSyncPlayer] Pitch Adjusted = {_audioSource.pitch:F3} (Drift: {drift * 1000f:F1}ms)");
+            _isCatchingUp = true;
+            Debug.LogWarning($"[BgmSyncPlayer] Catch-up 진입! (Drift: {drift * 1000f:F1}ms)");
+        }
+        else if (_isCatchingUp && abs <= _pitchStopThresholdSec)
+        {
+            _isCatchingUp = false;
+            _audioSource.pitch = 1.0f;
+            Debug.LogWarning($"[BgmSyncPlayer] Catch-up 완료 및 정배속(1.0) 복원. (Drift: {drift * 1000f:F1}ms)");
+        }
+
+        if (_isCatchingUp)
+        {
+            float targetPitch = (drift > 0) ? _minPitchRate : _maxPitchRate;
+            _audioSource.pitch = targetPitch; // 즉작적인 피치 적용 (Lerp 제거하여 교정시간 단축)
+            // 매 프레임 로그를 찍으면 부하가 심하므로 상태 전환 시(위)에만 로그 출력
         }
         else
         {
-            // 오차가 _pitchThresholdSec 이내로 들어오면 서서히 원상복구
-            if (Mathf.Abs(_audioSource.pitch - 1.0f) > 0.001f)
-            {
-                _audioSource.pitch = Mathf.Lerp(_audioSource.pitch, 1.0f, Time.deltaTime * _pitchLerpSpeed);
-            }
-            else
-            {
-                _audioSource.pitch = 1.0f;
-            }
+            if (_audioSource.pitch != 1.0f)
+                _audioSource.pitch = 1.0f; // 안전 보장
         }
     }
 

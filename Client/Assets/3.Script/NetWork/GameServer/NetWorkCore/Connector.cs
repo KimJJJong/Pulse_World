@@ -16,6 +16,7 @@ namespace ServerCore
 			{
 			// 휴대폰 설정
 			Socket socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			socket.NoDelay = true; // [Fix] Disable Nagle's algorithm to prevent ping packet buffering
 			_sessionFactory = sessionFactory;
 
 			SocketAsyncEventArgs args = new SocketAsyncEventArgs();

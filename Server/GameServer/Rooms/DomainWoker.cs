@@ -45,11 +45,31 @@ public sealed class DomainWorker : IDisposable
                 }
             }
 
+            // 고정밀 하이브리드 슬립 (Hybrid Precision Sleep)
+            // 남은 시간을 계산하여, 2ms 이상 남았으면 OS Sleep으로 CPU를 양보하고
+            // 마지막 1~2ms는 SpinWait로 대기하여 1ms 이하의 오차 정밀도를 확보합니다.
+            long targetDuration = _tickMs * Stopwatch.Frequency / 1000;
+            
+            while (sw.ElapsedTicks < targetDuration)
+            {
+                long remainMs = (targetDuration - sw.ElapsedTicks) * 1000 / Stopwatch.Frequency;
+                if (remainMs > 2)
+                {
+                    Thread.Sleep(1);
+                }
+                else
+                {
+                    Thread.SpinWait(10);
+                }
+            }
+            
             sw.Stop();
-            int elapsed = (int)sw.ElapsedMilliseconds;
-            int delay = _tickMs - elapsed;
-            if (delay > 0) Thread.Sleep(delay);
-            else Console.WriteLine($"[{_name}] Tick Overrun: {elapsed}ms");
+            long elapsed = sw.ElapsedMilliseconds;
+            if (elapsed > _tickMs + 5) 
+            {
+                // 극심한 오버런인 경우에만 로깅
+                // Console.WriteLine($"[{_name}] Tick Overrun: {elapsed}ms");
+            }
         }
     }
 
