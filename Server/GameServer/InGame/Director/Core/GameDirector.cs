@@ -182,6 +182,7 @@ namespace GameServer.InGame.Director.Core
         public void ReturnToTown()
         {
             Console.WriteLine("[GameDirector] Triggering ReturnToTown");
+            _session.BroadcastReturnToTown();
         }
 
         public void OpenGate(int x, int y)

@@ -71,6 +71,7 @@ namespace GameServer.InGame.Manager.Beat
                     out var judge))
             {
                 // TryComputeJudge 안에서 song not started / out of range 등을 판단
+                Console.WriteLine($"[BeatActionManager] [Reject] TryComputeJudge failed for Actor={actorId}. nowMs={now}");
                 return;
             }
 
@@ -79,14 +80,14 @@ namespace GameServer.InGame.Manager.Beat
 
             if (!judge.IsAccepted)
             {   //Debug
-                //Console.WriteLine($"[Reject] out of window. diff={judge.DiffMs}ms (±{_actionWindowMs}ms)");
+                Console.WriteLine($"[BeatActionManager] [Reject] Out of window. Actor={actorId} diff={judge.DiffMs}ms (±{_actionWindowMs}ms)");
                 return;
             }
 
             // Request -> Cmd 변환 (액션별 파싱/검증)
             if (!ActionRequestTranslator.TryBuildCmd(actorId, req, judge.ExecuteBeat, judge.DiffMs, now, out var cmd, out var reason))
             {
-                Console.WriteLine($"[Reject] invalid action payload. reason={reason}");
+                Console.WriteLine($"[BeatActionManager] [Reject] Invalid action payload. reason={reason}");
                 return;
             }
             //Debug
@@ -99,7 +100,7 @@ namespace GameServer.InGame.Manager.Beat
                 if (!TryConsumeMoveLimit(actorId, judge.ExecuteBeat))
                 {
                     // Optional: Log rejection
-                    // Console.WriteLine($"[Reject] Move limit exceeded for Actor {actorId} at Beat {judge.ExecuteBeat}");
+                    Console.WriteLine($"[BeatActionManager] [Reject] Move limit exceeded for Actor {actorId} at Beat {judge.ExecuteBeat}");
                     return; 
                 }
 
