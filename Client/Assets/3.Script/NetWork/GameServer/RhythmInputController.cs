@@ -1,6 +1,6 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
-// using Contracts.Packet; // CS_ActionRequest
 
 public class RhythmInputController : MonoBehaviour
 {
@@ -62,10 +62,142 @@ public class RhythmInputController : MonoBehaviour
     // 본인의 최근 공격 입력 시간을 기록 (로그용)
     public static long LastAttackInputServerTimeMs { get; private set; }
 
-    //private void Awake()
-    //{
-    //    Instance = this;
-    //}
+    InputAction _moveAction;
+    InputAction _attackAction;
+
+    void OnEnable()
+    {
+        if (_moveAction == null)
+        {
+            _moveAction = new InputAction("Move", type: InputActionType.Value, binding: "2DVector");
+            _moveAction.AddCompositeBinding("2DVector")
+                .With("Up", "<Keyboard>/w")
+                .With("Down", "<Keyboard>/s")
+                .With("Left", "<Keyboard>/a")
+                .With("Right", "<Keyboard>/d");
+
+            _attackAction = new InputAction("Attack", type: InputActionType.Value, binding: "2DVector");
+            _attackAction.AddCompositeBinding("2DVector")
+                .With("Up", "<Keyboard>/upArrow")
+                .With("Down", "<Keyboard>/downArrow")
+                .With("Left", "<Keyboard>/leftArrow")
+                .With("Right", "<Keyboard>/rightArrow");
+
+            // discrete movement/attack usually feels more responsive on 'started' than 'performed' or 'canceled'
+            _moveAction.started += OnMovePerformed;
+            _attackAction.started += OnAttackPerformed;
+        }
+        _moveAction.Enable();
+        _attackAction.Enable();
+    }
+
+    void OnDisable()
+    {
+        _moveAction?.Disable();
+        _attackAction?.Disable();
+    }
+
+    void OnDestroy()
+    {
+        _moveAction?.Dispose();
+        _attackAction?.Dispose();
+    }
+
+    void OnMovePerformed(InputAction.CallbackContext ctx)
+    {
+        if (holdAutoInput) return;
+        HandleInputEvent(ctx, ActionKind.Move);
+    }
+
+    void OnAttackPerformed(InputAction.CallbackContext ctx)
+    {
+        if (holdAutoInput) return;
+        HandleInputEvent(ctx, ActionKind.Attack);
+    }
+
+    void HandleInputEvent(InputAction.CallbackContext ctx, ActionKind kind)
+    {
+        if (!IsReady() || IsInputBlocked) 
+        {
+            Debug.Log($"[RhythmInput] Ignored. Ready: {IsReady()}, Blocked: {IsInputBlocked}");
+            return;
+        }
+        
+        Vector2 val = ctx.ReadValue<Vector2>();
+        
+        // Strict orthogonal casting
+        Vector2Int dir = Vector2Int.zero;
+        if (Mathf.Abs(val.x) > Mathf.Abs(val.y))
+        {
+            dir.x = val.x > 0 ? 1 : (val.x < 0 ? -1 : 0);
+        }
+        else
+        {
+            dir.y = val.y > 0 ? 1 : (val.y < 0 ? -1 : 0);
+        }
+
+        Debug.Log($"[RhythmInput] Raw Vector2: {val} => Dir: {dir}");
+        if (dir == Vector2Int.zero) return;
+
+        // [Extreme Optimization] OS 레벨 하드웨어 인터럽트 시간(ctx.time)을 
+        // Stopwatch 단조 시간 체계로 변환하여 0 Frame 지연 타임스탬프를 획득.
+        double unityTimeNow = Time.realtimeSinceStartupAsDouble;
+        double ageSec = unityTimeNow - ctx.time;
+        long currentStopwatchMs = LocalNowMs();
+        long trueLocalNowMs = currentStopwatchMs - (long)(ageSec * 1000.0);
+
+        if (!PassCooldown(trueLocalNowMs)) 
+        {
+            Debug.Log($"[RhythmInput] Blocked by Cooldown.");
+            return;
+        }
+
+        if (!GS.TryGetMyEntity(out var me)) 
+        {
+            Debug.Log($"[RhythmInput] Cannot find MyEntity.");
+            return;
+        }
+
+        var rdir = RotateDirByTarget(dir);
+        int tx = me.X + rdir.x;
+        int ty = me.Y + rdir.y;
+        
+        Debug.Log($"[RhythmInput] Firing {kind} to ({tx}, {ty}) with 0-frame delay.");
+
+        long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
+        BeatDebugUI_TMP.Instance?.MarkHitNow();
+
+        if (kind == ActionKind.Attack || kind == ActionKind.Skill)
+        {
+            LastAttackInputServerTimeMs = serverNow;
+
+            // [Client-Side Prediction] 로컬에서 즉시 0ms 딜레이로 애니메이션/SFX 재생
+            if (BoardView.Instance != null && Rhythm != null)
+            {
+                long nearestBeat = Rhythm.GetNearestBeatIndex(serverNow);
+                if (_lastAttackPredictionBeat != nearestBeat)
+                {
+                    _lastAttackPredictionBeat = nearestBeat;
+                    double beatMs = Rhythm.GetBeatDurationMs();
+                    float duration = (float)(beatMs / 1000.0) * BoardView.Instance.actionDurationRatio;
+                    BoardView.Instance.PlayInstantActionBroadcast(me.EntityId, kind, duration);
+                }
+                else
+                {
+                    Debug.Log($"[RhythmInput] Attack Prediction ignored. Already predicted for Beat: {nearestBeat}");
+                }
+            }
+        }
+
+        if (TrySendCalib(serverNow))
+        {
+            _lastSendLocalMs = trueLocalNowMs;
+            return;
+        }
+
+        SendActionRouted(kind, tx, ty, serverNow);
+        _lastSendLocalMs = trueLocalNowMs;
+    }
 
     void Update()
     {
@@ -118,38 +250,7 @@ public class RhythmInputController : MonoBehaviour
             return;
         }
 
-        // 기존 입력 모드(KeyDown 1회)
-        if (!PassCooldown(nowLocalMs))
-            return;
-
-        if (!TryGetInput(out var dir, out var kind))
-            return;
-
-        if (!GS.TryGetMyEntity(out var me2))
-            return;
-
-        // ✅ 버그 수정: 회전 적용된 rdir를 써야 함
-        var rdir2 = RotateDirByTarget(dir);
-        int tx = me2.X + rdir2.x;
-        int ty = me2.Y + rdir2.y;
-
-        long serverNow = Rhythm.GetCurrentServerTimeMs();
-
-        BeatDebugUI_TMP.Instance?.MarkHitNow();
-
-        if (TrySendCalib(serverNow))
-        {
-            _lastSendLocalMs = nowLocalMs;
-            return;
-        }
-
-        // [Debug] Input Sync Check
-        long curBeat = Rhythm.GetCurrentBeatIndex();
-        double progress = Rhythm.GetCurrentBeatProgress01();
-        //Debug.Log($"[ClientInput] ServerTime={serverNow} Beat={curBeat} Progress={progress:F3} Kind={kind}");
-
-        SendActionRouted(kind, tx, ty, serverNow);
-        _lastSendLocalMs = nowLocalMs;
+        // 수동 입력(단발 탭)은 Update 대신 InputAction의 Event Callback(HandleInputEvent)에서 즉시 처리됩니다.
     }
 
     bool IsReady()
@@ -163,7 +264,7 @@ public class RhythmInputController : MonoBehaviour
     }
 
     static long LocalNowMs()
-        => (long)(Time.realtimeSinceStartupAsDouble * 1000.0);
+        => TimeSync.LocalNowMs();
 
     bool PassCooldown(long nowLocalMs)
         => (nowLocalMs - _lastSendLocalMs) >= inputCooldownMs;
@@ -231,11 +332,7 @@ public class RhythmInputController : MonoBehaviour
         if (Input.GetKey(KeyCode.A)) { dir = Vector2Int.left; kind = ActionKind.Move; return true; }
         if (Input.GetKey(KeyCode.D)) { dir = Vector2Int.right; kind = ActionKind.Move; return true; }
 
-        // Arrow Hold 공격을 원하면 여기 주석 해제
-        // if (Input.GetKey(KeyCode.UpArrow)) { dir = Vector2Int.up; kind = ActionKind.Attack; return true; }
-        // if (Input.GetKey(KeyCode.DownArrow)) { dir = Vector2Int.down; kind = ActionKind.Attack; return true; }
-        // if (Input.GetKey(KeyCode.LeftArrow)) { dir = Vector2Int.left; kind = ActionKind.Attack; return true; }
-        // if (Input.GetKey(KeyCode.RightArrow)) { dir = Vector2Int.right; kind = ActionKind.Attack; return true; }
+
 
         return false;
     }
@@ -290,6 +387,8 @@ public class RhythmInputController : MonoBehaviour
             Debug.LogError("NetworkManager.Instance NULL");
             return;
         }
+
+        Debug.Log($"[RhythmInput] SendActionRouted: Channel={channel}, ActorId={GS.MyActorId}, Kind={kind}, Target=({targetX},{targetY})");
 
         switch (channel)
         {

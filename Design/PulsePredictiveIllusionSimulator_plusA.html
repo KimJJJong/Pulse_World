@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse World: Predictive Latency Simulator</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            background: #1a1a24;
+            color: #ddd;
+            padding: 15px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #f2a900;
+            margin-top: 0;
+            font-size: 20px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 5px;
+        }
+
+        .panel {
+            background: #2b2b36;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+            border: 1px solid #444;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: none;
+            background: #4caf50;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 13px;
+            margin-right: 5px;
+        }
+
+        .btn-stop {
+            background: #e24a4a;
+        }
+
+        .btn-mode {
+            background: #34495e;
+            border: 1px solid #2c3e50;
+            padding: 8px 12px;
+            font-size: 13px;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 5px;
+            cursor: pointer;
+            color: #ddd;
+        }
+
+        .btn-mode:hover {
+            background: #465a6f;
+        }
+
+        .btn-mode.active {
+            background: #fff;
+            color: #d35400;
+            font-weight: bold;
+        }
+
+        .btn-genre {
+            background: #8e44ad;
+            border: 1px solid #732d91;
+            padding: 6px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            color: #fff;
+            border-radius: 4px;
+            margin-right: 4px;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+
+        .btn-genre.active {
+            background: #fff;
+            color: #8e44ad;
+            font-weight: bold;
+        }
+
+        /* Latency Toggles */
+        .toggle-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            background: #111;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            border: 2px solid transparent;
+        }
+
+        .toggle-btn.t-0ms {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        .toggle-btn.t-raw {
+            background: #c0392b;
+            color: #fff;
+        }
+
+        .toggle-btn.t-ill {
+            background: #00bcd4;
+            color: #fff;
+        }
+
+        .toggle-btn.t-pred {
+            background: #9b59b6;
+            color: #fff;
+        }
+
+        .toggle-btn.active {
+            border-color: #fff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            transform: scale(1.02);
+            z-index: 10;
+        }
+
+        .spec-container {
+            display: flex;
+            gap: 12px;
+        }
+
+        .spec-sidebar {
+            flex: 1;
+            min-width: 280px;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .spec-main {
+            flex: 3;
+            overflow: hidden;
+        }
+
+        .chord-prog-box {
+            margin-top: 5px;
+            background: #222;
+            padding: 8px;
+            font-weight: bold;
+            color: #81c784;
+            text-align: center;
+            border: 1px dashed #555;
+        }
+
+        .desc-box {
+            background: #111;
+            padding: 12px;
+            border-left: 4px solid #f2a900;
+            font-size: 12px;
+            color: #bbb;
+            line-height: 1.5;
+            min-height: 80px;
+        }
+
+        .grid-container {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 10px;
+            margin-top: 10px;
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .track {
+            display: flex;
+            align-items: stretch;
+            margin-bottom: 3px;
+        }
+
+        .track-label {
+            width: 140px;
+            min-width: 140px;
+            padding-left: 8px;
+            font-weight: bold;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            background: #333;
+            border-top-left-radius: 4px;
+            border-bottom-left-radius: 4px;
+            border-right: 2px solid #111;
+            color: #aaa;
+        }
+
+        .track-sub {
+            font-size: 9px;
+            color: #777;
+            margin-top: 2px;
+            line-height: 1;
+            font-weight: normal;
+        }
+
+        .steps {
+            display: flex;
+            position: relative;
+        }
+
+        .step {
+            width: 28px;
+            height: 35px;
+            background: #3c3c4a;
+            border: 1px solid #222;
+            border-right: 1px solid #111;
+            box-sizing: border-box;
+            font-size: 9px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            color: #fff;
+        }
+
+        .step:hover {
+            background: #5a5a6e;
+        }
+
+        /* Interactive coloring */
+        .step.active {
+            font-weight: bold;
+            color: #fff;
+            border-color: #888;
+        }
+
+        .step.active[data-type="sys"] {
+            background: #f39c12;
+            border-color: #f1c40f;
+        }
+
+        /* Local Player */
+        .step.active[data-type="loc"] {
+            background: #e74c3c;
+            border-color: #ff7675;
+        }
+
+        /* Remote Network */
+        .step.active[data-type="rem"] {
+            background: #3498db;
+            border-color: #81ecec;
+        }
+
+        .step.current {
+            box-shadow: inset 0 0 0 2px #ffeb3b;
+            z-index: 5;
+        }
+
+        .step.beat-start {
+            border-left: 2px solid #888;
+        }
+
+        .step.bar-start {
+            border-left: 3px solid #e91e63;
+        }
+
+        .step.first-beat {
+            background: #2a2a35;
+        }
+
+        .header-bar {
+            display: flex;
+            font-size: 10px;
+            color: #888;
+            font-weight: bold;
+            margin-left: 140px;
+        }
+
+        .header-cell {
+            width: 448px;
+            text-align: center;
+            border-left: 3px solid #e91e63;
+            background: #111;
+            padding: 2px;
+        }
+
+        .status-txt {
+            float: right;
+            font-weight: bold;
+            color: #aaa;
+            margin-top: 3px;
+            font-size: 13px;
+        }
+
+        .status-on {
+            color: #81c784;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🌐 Pulse World: Predictive Latency Simulator</h1>
+
+    <div class="spec-container">
+        <div class="spec-sidebar">
+
+            <div class="panel">
+                <strong style="color: #00bcd4; font-size:14px;">🎛️ Network Mode</strong>
+                <p style="font-size:11px; margin:4px 0 10px 0; color:#888;">원격 트랙(파란색)의 지연(Ping)을 처리하는 방식을 선택합니다.</p>
+                <div class="toggle-container" style="flex-direction:column; gap:5px; margin-top:0;">
+                    <div class="toggle-btn t-0ms active" id="btn_net_0ms" onclick="setNetMode('0ms')">1. 0ms 완전 동기화
+                        (오프라인)</div>
+                    <div class="toggle-btn t-raw" id="btn_net_raw" onclick="setNetMode('raw')">2. 원본 물리 지연 (Broken)
+                    </div>
+                    <div class="toggle-btn t-ill" id="btn_net_ill" onclick="setNetMode('ill')">3. 환상 보정 (전체 Smearing)
+                    </div>
+                    <div class="toggle-btn t-pred" id="btn_net_pred" onclick="setNetMode('pred')">4. 예측 보정 (첫타 지연 + 후속타
+                        0ms)</div>
+                </div>
+            </div>
+
+            <div class="panel" style="display:flex; gap:10px;">
+                <div style="flex:1;">
+                    <strong style="color: #fff; font-size:12px;">🎵 Instrument Palette</strong>
+                    <div style="margin-top:5px;">
+                        <button class="btn-genre active" id="btn_g_synth" onclick="setGenre('synth')">Modern
+                            Synth</button>
+                        <button class="btn-genre" id="btn_g_orch" onclick="setGenre('orch')">Acoustral/Orch</button>
+                        <button class="btn-genre" id="btn_g_8bit" onclick="setGenre('8bit')">8-Bit Retro</button>
+                    </div>
+                </div>
+                <div style="flex:1;">
+                    <strong style="color: #fff; font-size:12px;">⏱ BPM / 🌐 Ping</strong>
+                    <div style="display:flex; justify-content:space-between; margin-top:5px; align-items:center;">
+                        <span style="font-size:11px; color:#aaa; width:40px;">BPM:</span>
+                        <input type="number" id="bpmInput" value="110"
+                            style="flex:1; background:#444; color:#fff; border:1px solid #777; padding:4px; font-weight:bold;">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top:5px; align-items:center;">
+                        <span style="font-size:11px; color:#aaa; width:40px;">Ping:</span>
+                        <div style="display:flex; flex:1; align-items:center;">
+                            <input type="number" id="pingInput" value="100" onchange="updatePing()"
+                                style="flex:1; background:#444; color:#ffeb3b; border:1px solid #777; padding:4px; font-weight:bold;">
+                            <span style="font-size:11px; color:#aaa; margin-left:3px;">ms</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" style="flex:1;">
+                <strong style="color: #4CAF50; font-size:14px; display:block; margin-top:5px;">▶ Scenarios</strong>
+                <button class="btn-mode active" id="btn_s_town" onclick="loadScenario('town')">🏙️ Town (E Minor /
+                    Sparse)</button>
+                <button class="btn-mode" id="btn_s_stage" onclick="loadScenario('stage')">⚔️ Stage (Call &
+                    Response)</button>
+                <button class="btn-mode" id="btn_s_elite" onclick="loadScenario('elite')">🔥 Elite (Secondary
+                    Dominant)</button>
+                <strong style="color: #e24a4a; font-size:12px; display:block; margin-top:10px; margin-bottom:5px;">Boss
+                    Raid (Epic & Chaos)</strong>
+                <button class="btn-mode" id="btn_s_raid1" onclick="loadScenario('raid1')">👁️ Raid Ph1
+                    (Awakening)</button>
+                <button class="btn-mode" id="btn_s_raid2" onclick="loadScenario('raid2')">💥 Raid Ph2 (Tritone
+                    Clash)</button>
+                <button class="btn-mode" id="btn_s_raid3" onclick="loadScenario('raid3')">💀 Raid Ph3 (Epic Density
+                    100%)</button>
+            </div>
+        </div>
+
+        <div class="spec-main">
+            <div class="panel">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <button class="btn" onclick="play()">▶ PLAY (재생)</button>
+                        <button class="btn btn-stop" onclick="stop()">■ STOP (정지)</button>
+                    </div>
+                    <!-- Dynamic Local Player Selector -->
+                    <div
+                        style="background:#111; padding:5px 10px; border-radius:4px; border:1px solid #444; color:#ddd; font-size:12px;">
+                        <strong>👤 내 캐릭터(Local 0ms) 선택:</strong>
+                        <select id="localPlayerSelect" onchange="updateTrackRoles()"
+                            style="background:#333; color:#fff; border:1px solid #777; margin-left:5px; padding:2px; font-weight:bold;">
+                            <option value="LocA">🛡️ Tank (Heavy)</option>
+                            <option value="LocB">🗡️ Melee (Arp)</option>
+                            <option value="RemX">🏹 Ranged (Sync)</option>
+                            <option value="RemY">🪄 Supp (Pad)</option>
+                        </select>
+                    </div>
+                    <div id="statusText" style="font-weight:bold; color:#27ae60; font-size:14px;">[Mode: 0ms Perfect
+                        Sync]</div>
+                </div>
+
+                <div class="chord-prog-box" id="chordProg">Em 👉 C 👉 G 👉 D (Natural Minor)</div>
+                <div class="desc-box" id="descBox">...</div>
+
+                <div class="grid-container" id="gridContainer">
+                    <div class="header-bar" id="headerBar"></div>
+                    <div id="gridBody"></div>
+                </div>
+                <div style="font-size:11px; color:#aaa; text-align:right; margin-top:5px;">🖱️ 그리드의 <strong>빈 칸을
+                        클릭</strong>하면 현재 화성에 맞는 음표가 추가됩니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==== AUDIO ENGINE & LATENCY CORE ====
+        let ac = null;
+        let masterGain = null;
+        let isPlaying = false;
+        let currentStep = 0;
+        let nextNoteTime = 0.0;
+        let timerID;
+
+        let DIV = 4; // 16th notes
+        let BARS = 4; // 64 steps
+        let totalSteps = BARS * 4 * DIV;
+
+        let currentNetMode = '0ms'; // '0ms', 'raw', 'ill', 'pred'
+        let currentGenre = 'synth'; // 'synth', 'orch', '8bit'
+        let pingDelayMs = 0.100; // 100ms physical ping delay
+        let localPlayerId = "LocA"; // Default local player
+
+        let tracks = [
+            { id: "SysD", name: "Drums (Kick/Hat)<br><span class='track-sub'>System (0ms)</span>", color: "#f39c12", type: "sys" },
+            { id: "SysB", name: "Bass Layer<br><span class='track-sub'>System (0ms)</span>", color: "#f39c12", type: "sys" },
+            { id: "LocA", name: "🛡️ Tank<br><span class='track-sub' id='sub_LocA'>🔴 Local (0ms)</span>", color: "#e74c3c", type: "loc" },
+            { id: "LocB", name: "🗡️ Melee<br><span class='track-sub' id='sub_LocB'>🔵 Remote (Ping)</span>", color: "#3498db", type: "rem" },
+            { id: "RemX", name: "🏹 Ranged<br><span class='track-sub' id='sub_RemX'>🔵 Remote (Ping)</span>", color: "#3498db", type: "rem" },
+            { id: "RemY", name: "🪄 Supp<br><span class='track-sub' id='sub_RemY'>🔵 Remote (Ping)</span>", color: "#3498db", type: "rem" }
+        ];
+
+        let chordTimeline = [];
+        let curScenario = 'town';
+
+        function initAudio() {
+            if (!ac) {
+                ac = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = ac.createGain(); masterGain.gain.value = 0.8; masterGain.connect(ac.destination);
+            }
+            if (ac.state === 'suspended') ac.resume();
+        }
+
+        function noteToFreq(noteStr) {
+            if (!noteStr) return 0;
+            const notes = { "C": -9, "C#": -8, "D": -7, "D#": -6, "E": -5, "F": -4, "F#": -3, "G": -2, "G#": -1, "A": 0, "A#": 1, "B": 2, "Bb": 1 };
+            let match = noteStr.match(/([A-Ga-g]#?b?)(\d)/);
+            if (match) {
+                let n = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                let oct = parseInt(match[2]);
+                if (notes[n] !== undefined) return 440 * Math.pow(2, (notes[n] + (oct - 4) * 12) / 12);
+            }
+            return 0;
+        }
+
+        // ==== LATENCY AWARE SYNTHESIS ====
+        function playNote(freq, time, typeStr, isRemote = false) {
+            if (freq === 0) return;
+
+            // Genre specific waveforms
+            let baseWave = 'sawtooth'; let durLen = 0.2; let filtCut = 2000;
+            if (currentGenre === 'orch') { baseWave = 'sine'; filtCut = 1000; durLen = 0.4; }
+            if (currentGenre === '8bit') { baseWave = 'square'; filtCut = 4000; }
+
+            if (typeStr === 'sysbass') {
+                if (currentGenre === 'orch') baseWave = 'sawtooth'; // contrabass
+                filtCut = 600; durLen = 0.4;
+            }
+            else if (typeStr === 'pad') { baseWave = 'sine'; filtCut = 1200; durLen = 0.8; }
+
+            const g = ac.createGain(); g.connect(masterGain);
+            const osc = ac.createOscillator(); osc.type = baseWave; osc.frequency.value = freq;
+            const flt = ac.createBiquadFilter(); flt.type = 'lowpass';
+
+            // APPLY AUDIO SMEARING ON REMOTE IF ILLUSION MODE
+            if (isRemote && (currentNetMode === 'ill' || currentNetMode === 'pred')) {
+                // Smear: slow attack, long release, lower cutoff to blend
+                flt.frequency.setValueAtTime(filtCut * 0.6, time);
+                g.gain.setValueAtTime(0.01, time);
+                g.gain.linearRampToValueAtTime(0.3, time + 0.05); // slow attack
+                g.gain.exponentialRampToValueAtTime(0.01, time + 0.6); // Smear tail (hide lag)
+                durLen = 0.7;
+            } else {
+                // Raw / 0ms / Predictive(Predicted hits): Sharp attack
+                flt.frequency.setValueAtTime(filtCut, time); flt.frequency.exponentialRampToValueAtTime(400, time + durLen);
+                g.gain.setValueAtTime(0.01, time);
+                g.gain.linearRampToValueAtTime(0.5, time + 0.01); // Sharp attack shows 100ms error immediately
+                g.gain.exponentialRampToValueAtTime(0.01, time + durLen);
+            }
+
+            osc.connect(flt); flt.connect(g);
+            osc.start(time); osc.stop(time + durLen + 0.1);
+        }
+
+        function playDrum(note, time) {
+            let n = note.toLowerCase();
+            const g = ac.createGain(); g.connect(masterGain);
+            let isKick = n.includes("kick"); let isSnr = n.includes("snare"); let isHat = n.includes("hat");
+
+            if (currentGenre === "8bit") {
+                if (isKick) {
+                    const osc = ac.createOscillator(); osc.type = 'square'; osc.frequency.setValueAtTime(150, time);
+                    const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(1000, time); f.frequency.exponentialRampToValueAtTime(100, time + 0.2);
+                    osc.connect(f); f.connect(g);
+                    g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.8, time + 0.01); g.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+                    osc.start(time); osc.stop(time + 0.3);
+                } else { // noise
+                    const buf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
+                    for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = (Math.random() > 0.5 ? 1 : -1);
+                    const src = ac.createBufferSource(); src.buffer = buf; src.connect(g);
+                    g.gain.setValueAtTime(0.5, time); g.gain.exponentialRampToValueAtTime(0.01, time + (isSnr ? 0.15 : 0.05)); src.start(time);
+                }
+            } else { // Modern/Orch
+                if (isKick) {
+                    const osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(120, time); osc.frequency.exponentialRampToValueAtTime(20, time + 0.4);
+                    g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.9, time + 0.05); g.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
+                    osc.connect(g); osc.start(time); osc.stop(time + 0.5);
+                } else if (isSnr) {
+                    const osc = ac.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(200, time);
+                    g.gain.setValueAtTime(0.5, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+                    osc.connect(g); osc.start(time); osc.stop(time + 0.3);
+                    const buf = ac.createBuffer(1, ac.sampleRate * 0.2, ac.sampleRate);
+                    for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                    const src = ac.createBufferSource(); src.buffer = buf;
+                    const filt = ac.createBiquadFilter(); filt.type = 'highpass'; filt.frequency.value = 1500;
+                    src.connect(filt); filt.connect(g); src.start(time);
+                } else if (isHat) {
+                    const buf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
+                    for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                    const src = ac.createBufferSource(); src.buffer = buf;
+                    const filt = ac.createBiquadFilter(); filt.type = 'highpass'; filt.frequency.value = 8000;
+                    src.connect(filt); filt.connect(g);
+                    g.gain.setValueAtTime(0.3, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+                    src.start(time);
+                }
+            }
+        }
+
+        // ==== UI & LOGIC ====
+        function updateTrackRoles() {
+            localPlayerId = document.getElementById("localPlayerSelect").value;
+            tracks.forEach(trk => {
+                if (trk.id !== "SysD" && trk.id !== "SysB") {
+                    if (trk.id === localPlayerId) {
+                        trk.type = "loc";
+                        trk.color = "#e74c3c"; // Red
+                    } else {
+                        trk.type = "rem";
+                        trk.color = "#3498db"; // Blue
+                    }
+                }
+            });
+            tracks.forEach(trk => {
+                if (trk.id !== "SysD" && trk.id !== "SysB") {
+                    let subEl = document.getElementById("sub_" + trk.id);
+                    if (subEl) {
+                        subEl.innerHTML = trk.type === "loc" ? "🔴 Local (0ms)" : "🔵 Remote (Ping)";
+                    }
+                    let trackLabelEls = document.querySelectorAll(".track-label");
+                    trackLabelEls.forEach(el => {
+                        if (el.innerHTML.includes(trk.id)) {
+                            el.style.borderLeftColor = trk.color;
+                        }
+                    });
+                    document.querySelectorAll(`.step[data-inst='${trk.id}']`).forEach(el => {
+                        el.dataset.type = trk.type;
+                    });
+                }
+            });
+        }
+
+        function updatePing() {
+            let val = parseInt(document.getElementById("pingInput").value);
+            if (isNaN(val) || val < 0) val = 0;
+            pingDelayMs = val / 1000.0;
+            setNetMode(currentNetMode);
+        }
+
+        function setNetMode(mode) {
+            currentNetMode = mode;
+            document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn_net_' + mode).classList.add('active');
+
+            let pingVal = document.getElementById("pingInput").value;
+            let t = document.getElementById("statusText");
+            if (mode === '0ms') { t.innerText = "[Mode: 0ms Perfect Sync]"; t.style.color = "#27ae60"; }
+            if (mode === 'raw') { t.innerText = `[Mode: ${pingVal}ms Ping / Broken Sync]`; t.style.color = "#c0392b"; }
+            if (mode === 'ill') { t.innerText = `[Mode: ${pingVal}ms Ping / Full Illusion (All Smear)]`; t.style.color = "#00bcd4"; }
+            if (mode === 'pred') { t.innerText = `[Mode: ${pingVal}ms Ping / Predictive (1st hit Smear, rest Predict 0ms)]`; t.style.color = "#9b59b6"; }
+        }
+
+        function setGenre(g) {
+            currentGenre = g;
+            document.querySelectorAll('.btn-genre').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn_g_' + g).classList.add('active');
+        }
+
+        function buildGrid() {
+            let header = document.getElementById("headerBar");
+            header.innerHTML = `
+        <div class="header-cell">Bar 1</div><div class="header-cell">Bar 2</div>
+        <div class="header-cell">Bar 3</div><div class="header-cell">Bar 4</div>
+    `;
+            const container = document.getElementById("gridBody");
+            container.innerHTML = '';
+            tracks.forEach(trk => {
+                let trackDiv = document.createElement("div");
+                trackDiv.className = "track";
+                let nameHtml = trk.name;
+                let borderCol = trk.color;
+                let labelStr = `<div class="track-label" style="border-left-color:${borderCol}">${nameHtml}</div>`;
+                let stepsStr = `<div class="steps">`;
+                for (let i = 0; i < totalSteps; i++) {
+                    let extraClass = '';
+                    if (i % 16 === 0) extraClass += ' bar-start';
+                    else if (i % 4 === 0) extraClass += ' beat-start';
+                    if (Math.floor(i / 4) % 4 === 0) extraClass += ' first-beat';
+                    stepsStr += `<div class="step ${extraClass}" data-inst="${trk.id}" data-type="${trk.type}" data-col="${i}" onclick="toggleStep(this)"></div>`;
+                }
+                stepsStr += `</div>`;
+                trackDiv.innerHTML = labelStr + stepsStr;
+                container.appendChild(trackDiv);
+            });
+        }
+
+        function clearGrid() {
+            document.querySelectorAll('.step.active').forEach(el => {
+                el.classList.remove('active'); el.dataset.note = ""; el.innerHTML = "";
+            });
+        }
+
+        function setS(inst, stepIdx, note) {
+            let el = document.querySelector(`.step[data-inst='${inst}'][data-col='${stepIdx}']`);
+            if (el) {
+                el.classList.add('active');
+                el.dataset.note = note;
+                el.innerHTML = note.replace("Hat", "H").replace("Snare", "S").replace("Kick", "K");
+            }
+        }
+
+        // ==== HARMONIC ENGINE ====
+        function getCurrentChordName(stepIdx) {
+            let activeChord = chordTimeline.find(c => stepIdx >= c.start && stepIdx < c.end);
+            return activeChord ? activeChord.name : "Em";
+        }
+
+        function getBakedNote(trackId, stepIdx) {
+            if (trackId === "SysD") {
+                return (stepIdx % DIV === 0 && Math.floor(stepIdx / DIV) % 2 === 0) ? "Kick" : "Hat";
+            }
+            let chordName = getCurrentChordName(stepIdx);
+            let notes = ["E4"];
+            if (chordName === "Em") notes = { SysB: "E2", LocA: "E2", LocB: "B4", RemX: "E5", RemY: "G5" };
+            else if (chordName === "C") notes = { SysB: "C2", LocA: "C2", LocB: "G4", RemX: "C5", RemY: "E5" };
+            else if (chordName === "Am") notes = { SysB: "A1", LocA: "A1", LocB: "C5", RemX: "E5", RemY: "A5" };
+            else if (chordName === "G") notes = { SysB: "G2", LocA: "G2", LocB: "D5", RemX: "G5", RemY: "B5" };
+            else if (chordName === "D") notes = { SysB: "D2", LocA: "D2", LocB: "A4", RemX: "D5", RemY: "F#5" };
+            else if (chordName === "B7") notes = { SysB: "B1", LocA: "B1", LocB: "D#5", RemX: "F#5", RemY: "A5" };
+            else if (chordName === "Bb") notes = { SysB: "Bb1", LocA: "Bb1", LocB: "F4", RemX: "D5", RemY: "Ab5" };
+            else if (chordName === "Em(Raid)") notes = { SysB: "E1", LocA: "E2", LocB: "B4", RemX: "E6", RemY: "G5" };
+            else if (chordName === "Chaos") notes = { SysB: "E1", LocA: "E2", LocB: "F#4", RemX: "Bb5", RemY: "C#6" };
+            return notes[trackId] || "E4";
+        }
+
+        function toggleStep(element) {
+            if (element.classList.contains('active')) {
+                element.classList.remove('active'); element.dataset.note = ""; element.innerHTML = "";
+            } else {
+                let inst = element.dataset.inst;
+                let stepIdx = parseInt(element.dataset.col);
+                let note = getBakedNote(inst, stepIdx);
+                element.classList.add('active'); element.dataset.note = note;
+                element.innerHTML = note.replace("Hat", "H").replace("Snare", "S").replace("Kick", "K");
+            }
+        }
+
+        // ==== SCENARIOS ====
+        function loadScenario(type) {
+            curScenario = type;
+            document.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn_s_' + type).classList.add('active');
+            stop(); clearGrid();
+
+            let desc = ""; let prog = "";
+
+            if (type === "town") {
+                prog = "Em (1 bar) 👉 C (1 bar) 👉 G (1 bar) 👉 D (1 bar)";
+                chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "G" }, { start: 48, end: 64, name: "D" }];
+                desc = "<strong>🏙️ Town: Sparse Sync</strong><br>- <b>화성:</b> Town의 뼈대 세계관 (Em-C-G-D).<br>- 'Raw' 모드에서 얼마나 리듬이 부서지는지 먼저 확인하세요.";
+                [0, 8, 16, 24, 32, 40, 48, 56].forEach(s => setS("SysD", s, "Kick"));
+                [4, 12, 20, 28, 36, 44, 52, 60].forEach(s => setS("SysD", s, "Hat"));
+                [0, 16, 32, 48].forEach(s => setS("SysB", s, getBakedNote("SysB", s)));
+                [0, 16, 32, 48].forEach(s => setS("LocA", s, getBakedNote("LocA", s)));
+                [4, 20, 36, 52].forEach(s => setS("RemX", s, getBakedNote("RemX", s)));
+            }
+            else if (type === "stage") {
+                prog = "Em (1 bar) 👉 C (1 bar) 👉 G (1 bar) 👉 D (1 bar)";
+                chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "G" }, { start: 48, end: 64, name: "D" }];
+                desc = "<strong>⚔️ Stage: Call & Response</strong><br>- <b>구조:</b> 로컬 유저가 전반부에 스킬을 들이부으면, 원격 유저가 후반부에 응답합니다.<br>- <b>네트워크:</b> 예측 보정(Predictive) 시 전반부 그룹의 첫타만 지연되고 나머지는 즉연되는 것을 확인하세요.";
+                for (let i = 0; i < 64; i += 8) setS("SysD", i, "Kick");
+                for (let i = 4; i < 64; i += 8) setS("SysD", i, "Snare");
+                for (let i = 0; i < 64; i += 16) setS("SysB", i, getBakedNote("SysB", i));
+                [0, 2, 4, 6, 32, 34, 36, 38].forEach(s => setS("LocB", s, getBakedNote("LocB", s)));
+                [16, 18, 20, 22, 48, 50, 52, 54].forEach(s => setS("RemX", s, getBakedNote("RemX", s)));
+            }
+            else if (type === "elite") {
+                prog = "Em (1 bar) 👉 C (1 bar) 👉 D (1 bar) 👉 <span style='color:#e24a4a'>B7 Secondary Dom (1 bar)</span>";
+                chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "D" }, { start: 48, end: 64, name: "B7" }];
+                desc = "<strong>🔥 Elite: Secondary Dominant Tension</strong><br>- 'Illusion'에서 이 B7 화성이 네트워크를 타는 플레이어 사이에서 핑과 무관하게 절대 틀어지지 않고 유지됨을 증명합니다.";
+                for (let i = 0; i < 64; i += 4) setS("SysD", i, "Kick");
+                [0, 16, 32, 48].forEach(s => setS("SysB", s, getBakedNote("SysB", s)));
+                for (let i = 0; i < 64; i += 8) setS("LocB", i, getBakedNote("LocB", i));
+                for (let i = 4; i < 64; i += 8) setS("RemY", i, getBakedNote("RemY", i));
+                for (let i = 2; i < 64; i += 4) setS("RemX", i, getBakedNote("RemX", i));
+            }
+            else if (type === "raid1") {
+                prog = "E Drone (Minimal Phase 1)";
+                chordTimeline = [{ start: 0, end: 64, name: "Em(Raid)" }];
+                desc = "<strong>👁️ Raid Ph1: Awakening</strong><br>- 보스의 압박감을 표현하기 위해 E음을 깔아두고 눈치싸움을 합니다.";
+                for (let i = 0; i < 64; i += 16) { setS("SysD", i, "Kick"); setS("SysD", i + 3, "Kick"); }
+                setS("SysB", 0, "E1");
+                [0, 32].forEach(s => setS("LocA", s, "E2"));
+                setS("RemX", 48, "E5");
+            }
+            else if (type === "raid2") {
+                prog = "Em (2 bar) 👉 <span style='color:#e24a4a'>Bb Tritone (2 bar)</span>";
+                chordTimeline = [{ start: 0, end: 32, name: "Em(Raid)" }, { start: 32, end: 64, name: "Bb" }];
+                desc = "<strong>💥 Raid Ph2: Tritone Clash</strong><br>- 완전한 악랄 불협화음의 공간. 폴리리듬 겹침.";
+                for (let i = 0; i < 64; i += 8) { setS("SysD", i, "Kick"); setS("SysD", i + 4, "Snare"); }
+                setS("SysB", 0, "E1"); setS("SysB", 32, "Bb1");
+                for (let i = 0; i < 64; i += 4) setS("LocA", i, getBakedNote("LocA", i));
+                for (let i = 0; i < 64; i += 3) setS("LocB", i, getBakedNote("LocB", i));
+                for (let i = 0; i < 64; i += 3) setS("RemX", i, getBakedNote("RemX", i));
+                for (let i = 0; i < 64; i += 4) setS("RemY", i, getBakedNote("RemY", i));
+            }
+            else if (type === "raid3") {
+                prog = "Em (1 bar) 👉 C (1 bar) 👉 Am (1 bar) 👉 <span style='color:#e24a4a'>B7 Drop (1 bar)</span>";
+                chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "Am" }, { start: 48, end: 64, name: "B7" }];
+                desc = "<strong>💀 Raid Ph3: Final Phase (Epic Harmony & Weapon Patterns)</strong><br>- <b>예측 보정 (Predictive)의 핵심:</b> 검사(Melee)나 궁수(Ranged)의 매우 촘촘한 다단히트 스킬이 원격으로 들어올 때, 오직 첫 타격만 지연되어 Illusion 처리를 받고 연속 히트들은 0ms 동기화(예측 완료)되어 완벽하게 플레이되는 것을 확인하세요.";
+                for (let i = 0; i < 64; i += 2) setS("SysD", i, "Kick");
+                for (let i = 4; i < 64; i += 8) setS("SysD", i, "Snare");
+                [0, 16, 32, 48].forEach(s => setS("SysB", s, getBakedNote("SysB", s)));
+                for (let i = 0; i < 64; i += 4) setS("LocA", i, getBakedNote("LocA", i));
+
+                // Melee (LocB/Rem): Furious slicing/slashing (Dense pattern)
+                let meleePattern = [2, 3, 6, 7, 10, 11, 14, 15];
+                for (let b = 0; b < 64; b += 16) {
+                    meleePattern.forEach(p => setS("LocB", b + p, getBakedNote("LocB", b + p)));
+                }
+
+                // Ranged (RemX): 3/16 Poly-rhythmic burst shots
+                let rangedPattern = [0, 1, 2, 6, 7, 8, 12, 13, 14];
+                for (let b = 0; b < 64; b += 16) {
+                    rangedPattern.forEach(p => setS("RemX", b + p, getBakedNote("RemX", b + p)));
+                }
+
+                // Support (RemY): Slow sustained heals spreading across the grid
+                let suppPattern = [0, 4, 10, 14];
+                for (let b = 0; b < 64; b += 16) {
+                    suppPattern.forEach(p => setS("RemY", b + p, getBakedNote("RemY", b + p)));
+                }
+            }
+
+            document.getElementById("chordProg").innerHTML = prog;
+            document.getElementById("descBox").innerHTML = desc;
+        }
+
+        // ==== SCHEDULING (LATENCY MAGIC) ====
+        function scheduleNote(stepNum, exactTime) {
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.step.current').forEach(el => el.classList.remove('current'));
+                document.querySelectorAll(`.step[data-col='${stepNum}']`).forEach(el => el.classList.add('current'));
+                let chordObj = getCurrentChordName(stepNum);
+                document.getElementById("chordProg").innerHTML = `Current Receiver-Side Master Chord: <b>${chordObj}</b>`;
+            });
+
+            let currentBPM = parseInt(document.getElementById('bpmInput').value) || 110;
+            let secPerStep = (60.0 / currentBPM) / DIV;
+            let activeCells = document.querySelectorAll(`.step[data-col='${stepNum}']`);
+
+            activeCells.forEach(cell => {
+                if (cell.classList.contains("active")) {
+                    let inst = cell.dataset.inst;
+                    let type = cell.dataset.type;
+                    let noteStr = cell.dataset.note;
+
+                    let playTime = exactTime;
+                    let isSmearHit = false;
+
+                    // LATENCY ENGINE LOGIC
+                    if (type === "rem") {
+                        if (currentNetMode === 'raw') {
+                            playTime += pingDelayMs;
+                        }
+                        else if (currentNetMode === 'ill') {
+                            isSmearHit = true;
+                            let arrivalTime = exactTime + pingDelayMs;
+                            let targetStep = Math.round((arrivalTime - exactTime) / secPerStep) + stepNum;
+                            if (targetStep % 2 !== 0) targetStep += 1;
+                            playTime = exactTime + (targetStep - stepNum) * secPerStep;
+                            if (playTime < exactTime) playTime = arrivalTime;
+                            noteStr = getBakedNote(inst, targetStep % 64);
+                        }
+                        else if (currentNetMode === 'pred') {
+                            // Predictive Logic: Check if within a skill sequence (Max gap <= 2 steps for combo)
+                            let isFirstHit = true;
+                            for (let back = 1; back <= 3; back++) {
+                                let prevIdx = stepNum - back;
+                                if (prevIdx < 0) prevIdx += 64; // Wrap around for looping logic
+                                let prevStep = document.querySelector(`.step[data-inst='${inst}'][data-col='${prevIdx}']`);
+                                if (prevStep && prevStep.classList.contains("active")) {
+                                    isFirstHit = false; // It's a continuous skill/combo hit
+                                    break;
+                                }
+                            }
+
+                            if (isFirstHit) {
+                                // First hit applies Illusion logic (unpredicted arrival)
+                                isSmearHit = true;
+                                let arrivalTime = exactTime + pingDelayMs;
+                                let targetStep = Math.round((arrivalTime - exactTime) / secPerStep) + stepNum;
+                                if (targetStep % 2 !== 0) targetStep += 1;
+                                playTime = exactTime + (targetStep - stepNum) * secPerStep;
+                                if (playTime < exactTime) playTime = arrivalTime;
+                                noteStr = getBakedNote(inst, targetStep % 64);
+                            } else {
+                                // Predicted! We already knew this input was coming in the sequence.
+                                // Play it perfectly synced (0ms latency, sharp attack)
+                                isSmearHit = false;
+                                playTime = exactTime; // No ping delay added!
+                            }
+                        }
+                    }
+
+                    if (inst === "SysD") playDrum(noteStr, playTime);
+                    else playNote(noteToFreq(noteStr), playTime, type === "sys" ? "sysbass" : "synth", isSmearHit);
+                }
+            });
+        }
+
+        function nextNote() {
+            let currentBPM = parseInt(document.getElementById('bpmInput').value) || 110;
+            let secPerStep = (60.0 / currentBPM) / DIV;
+            nextNoteTime += secPerStep;
+            currentStep++;
+            if (currentStep >= totalSteps) currentStep = 0;
+        }
+
+        function scheduler() {
+            while (nextNoteTime < ac.currentTime + 0.1) {
+                scheduleNote(currentStep, nextNoteTime);
+                nextNote();
+            }
+            timerID = setTimeout(scheduler, 25.0);
+        }
+
+        function play() {
+            if (isPlaying) return;
+            initAudio();
+            isPlaying = true;
+            currentStep = 0;
+            nextNoteTime = ac.currentTime + 0.05;
+            scheduler();
+        }
+
+        function stop() {
+            isPlaying = false;
+            clearTimeout(timerID);
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.step.current').forEach(el => el.classList.remove('current'));
+            });
+        }
+
+        window.onload = function () {
+            buildGrid();
+            loadScenario('town');
+            setNetMode('0ms'); // init text
+        };
+    </script>
+</body>
+
+</html>

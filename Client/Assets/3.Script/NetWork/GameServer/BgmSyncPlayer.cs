@@ -40,7 +40,7 @@ public sealed class BgmSyncPlayer : MonoBehaviour
     [SerializeField] private float _nearEndEpsilonSec = 0.05f;
 
     [Header("Beat Align (Audio Only)")]
-    [SerializeField] private bool _alignToBeatCenter = false; // [Change] Default false for Nearest input
+    [SerializeField] private bool _alignToBeatCenter = false;
 
     [Tooltip("장치(스피커/이어폰) 고정 지연 보정용(작게). +면 음악이 빨리 들림")]
     [SerializeField] private int _deviceOffsetMs = 0;
@@ -100,11 +100,21 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         SetAutoAlignOffsetMs(PlayerPrefs.GetInt(PREF_AUTOALIGN_OFFSET, defaultAutoAlignMs), save: false);
     }
 
+    private bool _forceHardSeekNextTick = false;
+
+    public void ForceHardSeekNextTick()
+    {
+        _forceHardSeekNextTick = true;
+    }
+
     public event Action OnSongStarted;
     public event Action OnSongEnded;
 
     private double _nextSyncAt;
     private bool _startedEventRaised;
+    private bool _prevAlignMode;
+    private int _prevDeviceOffset;
+    private int _prevAutoAlignOffset;
 
     void Reset()
     {
@@ -176,6 +186,15 @@ public sealed class BgmSyncPlayer : MonoBehaviour
 
     void Update()
     {
+        // 실시간 인스펙터 변경 감지 및 즉시 반영 (Hard Seek)
+        if (_prevAlignMode != _alignToBeatCenter || _prevDeviceOffset != _deviceOffsetMs || _prevAutoAlignOffset != _autoAlignOffsetMs)
+        {
+            _prevAlignMode = _alignToBeatCenter;
+            _prevDeviceOffset = _deviceOffsetMs;
+            _prevAutoAlignOffset = _autoAlignOffsetMs;
+            ForceHardSeekNextTick();
+        }
+
         if (State == SyncState.Idle || State == SyncState.Ended || State == SyncState.Error)
             return;
 
@@ -217,7 +236,16 @@ public sealed class BgmSyncPlayer : MonoBehaviour
 
         if (elapsedSec < 0)
         {
-            if (State != SyncState.Starting) State = SyncState.Starting;
+            if (State != SyncState.Starting) 
+            {
+                State = SyncState.Starting;
+
+                // [Extreme Optimization] 서버 시간이 아직 곡 시작 시간 이전일 경우,
+                // Update 루프를 기다려서 Play()를 누르지 않고, 사운드 카드의 DSP 시간에 맞춰 완벽한 타이밍에 재생되도록 예약합니다.
+                double dspStart = AudioSettings.dspTime + (-elapsedSec);
+                _audioSource.PlayScheduled(dspStart);
+                Debug.Log($"[BgmSyncPlayer] Scheduled BGM Start perfectly in {-elapsedSec:F3}s (DSP Time: {dspStart:F3})");
+            }
             return;
         }
 
@@ -231,8 +259,21 @@ public sealed class BgmSyncPlayer : MonoBehaviour
 
         if (!_audioSource.isPlaying)
         {
-            SeekTo((float)elapsedSec);
-            _audioSource.Play();
+            // 만약 Scheduled Play가 이미 걸려있어서 곧 재생될 운명이라면 건너뜁니다.
+            // (PlayScheduled를 호출해도 isPlaying은 해당 dspTime이 되기 전까지 false를 리턴할 수 있기 때문)
+            if (State == SyncState.Starting && elapsedSec < 0.1f)
+            {
+                // 예약 재생이 방금 시작되어 아직 isPlaying이 false로 뜨는 찰나의 순간
+                // 여기서 SeekTo를 해버리면 애써 잡아놓은 완벽한 예약이 망가집니다.
+            }
+            else
+            {
+                // 중간 난입 혹은 엄청난 렉으로 예약 시간을 놓친 경우
+                Debug.LogWarning($"[BgmSyncPlayer] Late start or Sync lost. Forcing Play() at {elapsedSec:F3}s");
+                SeekTo((float)elapsedSec);
+                _audioSource.Play();
+            }
+
             State = SyncState.Playing;
 
             if (!_startedEventRaised)
@@ -249,18 +290,24 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         float actualSec = _audioSource.time;
         float expectedSec = (float)elapsedSec;
 
-        // drift = Audio시간 - 서버목표시간. 
-        // 양수면 오디오가 서버보다 앞서감(빠름) -> 느리게 (Pitch < 1)
-        // 음수면 오디오가 서버보다 뒤쳐짐(느림) -> 빠르게 (Pitch > 1)
         float drift = actualSec - expectedSec;
         float abs = Mathf.Abs(drift);
 
-        if (abs >= _hardSeekThresholdSec)
+        // 초반 3초 이내에는 작은 오차(30ms 이상)만 나도 즉시 강제로 Snap 해버림 (초기 웜업 요동 방지)
+        bool isEarlyStartup = actualSec < 3.0f;
+        float dynamicHardSeekSec = isEarlyStartup ? 0.03f : _hardSeekThresholdSec;
+
+        if (_forceHardSeekNextTick || abs >= dynamicHardSeekSec)
         {
-            Debug.LogWarning($"[BgmSyncPlayer] Hard Seek triggered! Drift: {drift * 1000f:F1}ms");
+            if (_forceHardSeekNextTick)
+                Debug.LogWarning($"[BgmSyncPlayer] Forced Hard Seek by Parameter Change/Calibration. Drift: {drift * 1000f:F1}ms");
+            else
+                Debug.LogWarning($"[BgmSyncPlayer] Hard Seek triggered! (Early={isEarlyStartup}) Drift: {drift * 1000f:F1}ms");
+
             SeekTo(expectedSec);
             _audioSource.pitch = 1.0f;
             _isCatchingUp = false;
+            _forceHardSeekNextTick = false;
             return;
         }
         

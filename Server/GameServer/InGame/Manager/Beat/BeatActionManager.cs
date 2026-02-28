@@ -71,7 +71,7 @@ namespace GameServer.InGame.Manager.Beat
                     out var judge))
             {
                 // TryComputeJudge 안에서 song not started / out of range 등을 판단
-                Console.WriteLine($"[BeatActionManager] [Reject] TryComputeJudge failed for Actor={actorId}. nowMs={now}");
+                //Console.WriteLine($"[BeatActionManager] [Reject] TryComputeJudge failed for Actor={actorId}. nowMs={now}");
                 return;
             }
 
@@ -80,7 +80,7 @@ namespace GameServer.InGame.Manager.Beat
 
             if (!judge.IsAccepted)
             {   //Debug
-                Console.WriteLine($"[BeatActionManager] [Reject] Out of window. Actor={actorId} diff={judge.DiffMs}ms (±{_actionWindowMs}ms)");
+                //Console.WriteLine($"[BeatActionManager] [Reject] Out of window. Actor={actorId} diff={judge.DiffMs}ms (±{_actionWindowMs}ms)");
                 return;
             }
 

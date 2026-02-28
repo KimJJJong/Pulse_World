@@ -50,9 +50,11 @@ public static class TimeSync
         LastLocalRecv = 0;
     }
 
-    /// <summary>클라 로컬 단조시간(ms)</summary>
+    /// <summary>클라 로컬 단조시간(ms) - Thread Safe</summary>
     public static long LocalNowMs()
-        => (long)(Time.realtimeSinceStartupAsDouble * 1000.0);
+    {
+        return (long)(System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
+    }
 
     /// <summary>현재 서버 시간 추정(ms)</summary>
     public static long ServerNowMs()

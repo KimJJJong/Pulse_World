@@ -222,6 +222,6 @@ public sealed class GameSceneContext : MonoBehaviour
     }
 
     static long NowLocalMs()
-        => (long)(Time.realtimeSinceStartupAsDouble * 1000.0);
+        => TimeSync.LocalNowMs();
 }
 

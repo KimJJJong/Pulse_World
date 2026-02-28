@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse World: Rhythm-Driven Adaptive Music Spec v1.0 Simulator</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            background: #1a1a24;
+            color: #ddd;
+            padding: 15px;
+            user-select: none;
+            margin: 0;
+        }
+
+        h1 {
+            color: #f2a900;
+            margin-top: 0;
+            font-size: 20px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 5px;
+        }
+
+        .panel {
+            background: #2b2b36;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+            border: 1px solid #444;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: none;
+            background: #4a90e2;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 13px;
+            margin-right: 5px;
+        }
+
+        .btn:hover {
+            background: #357abd;
+        }
+
+        .btn-stop {
+            background: #e24a4a;
+        }
+
+        .btn-stop:hover {
+            background: #bd3535;
+        }
+
+        .btn-mode {
+            background: #e67e22;
+            border: 1px solid #d35400;
+            padding: 8px 12px;
+            font-size: 13px;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .btn-mode:hover {
+            background: #d35400;
+        }
+
+        .btn-mode.active {
+            background: #fff;
+            color: #d35400;
+            border: 2px solid #f2a900;
+            font-weight: bold;
+        }
+
+        .spec-container {
+            display: flex;
+            gap: 12px;
+        }
+
+        .spec-sidebar {
+            flex: 1;
+            min-width: 250px;
+            max-width: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .spec-main {
+            flex: 3;
+            overflow: hidden;
+        }
+
+        .desc-box {
+            background: #111;
+            padding: 12px;
+            border-left: 4px solid #f2a900;
+            font-size: 12px;
+            color: #bbb;
+            line-height: 1.5;
+            height: 100px;
+            overflow-y: auto;
+        }
+
+        .chord-prog-box {
+            margin-top: 5px;
+            background: #222;
+            padding: 8px;
+            font-weight: bold;
+            color: #81c784;
+            text-align: center;
+            border: 1px dashed #555;
+        }
+
+        .grid-container {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 10px;
+            margin-top: 10px;
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .track {
+            display: flex;
+            align-items: stretch;
+            margin-bottom: 3px;
+        }
+
+        .track-label {
+            width: 130px;
+            min-width: 130px;
+            padding-left: 8px;
+            font-weight: bold;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            background: #333;
+            border-top-left-radius: 4px;
+            border-bottom-left-radius: 4px;
+            border-right: 2px solid #111;
+            color: #aaa;
+        }
+
+        .steps {
+            display: flex;
+        }
+
+        .step {
+            width: 28px;
+            height: 28px;
+            background: #3c3c4a;
+            border: 1px solid #222;
+            border-right: 1px solid #111;
+            box-sizing: border-box;
+            font-size: 9px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            color: #fff;
+        }
+
+        .step:hover {
+            background: #5a5a6e;
+        }
+
+        .step.active {
+            background: #4caf50;
+            font-weight: bold;
+            border-color: #81c784;
+        }
+
+        .step.active:hover {
+            background: #66bb6a;
+        }
+
+        .step.current {
+            background: #ffeb3b !important;
+            color: #000;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .step.beat-start {
+            border-left: 2px solid #888;
+        }
+
+        .step.bar-start {
+            border-left: 3px solid #f2a900;
+        }
+
+        .step.first-beat {
+            background: #2a2a35;
+        }
+
+        .status-txt {
+            float: right;
+            font-weight: bold;
+            color: #aaa;
+            margin-top: 3px;
+            font-size: 13px;
+        }
+
+        .status-on {
+            color: #81c784;
+        }
+
+        strong {
+            color: #fff;
+        }
+
+        select.palette-drop {
+            width: 100%;
+            padding: 5px;
+            background: #444;
+            color: #fff;
+            border: 1px solid #777;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🎯 Pulse World: Rhythm-Driven System Spec v1.0 Simulator</h1>
+
+    <div class="spec-container">
+        <div class="spec-sidebar">
+
+            <div class="panel">
+                <strong style="color: #4CAF50; font-size:14px;">🛠️ Instrument Palette</strong>
+                <p style="font-size:11px; margin:4px 0 8px 0; color:#888;">음색군을 변경해 Town/Boss 분위기를 반전</p>
+                <select id="paletteSelect" class="palette-drop" onchange="updatePalette()">
+                    <option value="modern">1. Modern Synth (기본 코어)</option>
+                    <option value="orch">2. Orchestral (장엄한 클래식)</option>
+                    <option value="retro">3. 8-Bit Retro (레트로 아케이드)</option>
+                </select>
+                <div style="font-size:10px; color:#aaa; margin-top:5px;" id="paletteDesc">현대적이고 단단한 신스 기반 사운드</div>
+            </div>
+
+            <div class="panel" style="flex:1;">
+                <strong style="color: #f2a900; font-size:14px;">▶ Global / Town Escalation</strong>
+                <button class="btn-mode active" id="btn_town" onclick="loadScenario('town')" style="margin-top:5px;">🏙️
+                    Town (E Minor 루프)</button>
+                <button class="btn-mode" id="btn_stage" onclick="loadScenario('stage')">⚔️ Stage (High Density)</button>
+                <button class="btn-mode" id="btn_elite" onclick="loadScenario('elite')">🔥 Elite (Sec.
+                    Dominant)</button>
+            </div>
+
+            <div class="panel" style="flex:1; border: 1px solid #bd3535;">
+                <strong style="color: #e24a4a; font-size:14px;">▶ Boss Raid Phase (E Pedal)</strong>
+                <button class="btn-mode" id="btn_raid_p1" onclick="loadScenario('raid_p1')" style="margin-top:5px;">👁️
+                    Phase 1 (Awakening)</button>
+                <button class="btn-mode" id="btn_raid_p2" onclick="loadScenario('raid_p2')">💥 Phase 2 (Tritone
+                    Clash)</button>
+                <button class="btn-mode" id="btn_raid_p3" onclick="loadScenario('raid_p3')">💀 Phase 3
+                    (Desperation)</button>
+            </div>
+
+            <div class="panel">
+                <strong>Town BPM: <input type="number" id="bpmInput" value="110"
+                        style="width:50px; background:#444; color:#fff; border:1px solid #777; padding:2px; font-weight:bold;"></strong>
+                <div style="font-size:10px; color:#666; margin-top:3px;">단일 보스전 내에서 템포는 고정됩니다.</div>
+            </div>
+        </div>
+
+        <div class="spec-main">
+            <div class="panel">
+                <button class="btn" onclick="play()">▶ PLAY (재생)</button>
+                <button class="btn btn-stop" onclick="stop()">■ STOP (정지)</button>
+                <span class="status-txt" id="statusStr">상태: 대기 중</span>
+
+                <div class="chord-prog-box" id="chordProg">
+                    Em 👉 C 👉 G 👉 D (Natural Minor)
+                </div>
+
+                <div class="desc-box" id="descBox">
+                    <strong>Town: Identity & Baseline</strong><br>
+                    - <b>화성:</b> Em - C - G - D (E Natural Minor). 4마디 루프.<br>
+                </div>
+
+                <div class="grid-container" id="gridContainer">
+                    <!-- Grid Gen -->
+                </div>
+                <div style="font-size:11px; color:#aaa; text-align:right; margin-top:5px;">🖱️ 그리드의 <strong>빈 칸을
+                        클릭</strong>하면 해당 위치/마디의 <strong>화성에 맞는 올바른 음이 자동 활성화</strong> 됩니다!</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==== Synth Engine / Web Audio ==== //
+        let ac = null;
+        let masterGain = null;
+        let isPlaying = false;
+        let currentStep = 0;
+        let nextNoteTime = 0.0;
+        let timerID;
+        let DIV = 4; // 16th notes
+        let BARS = 4;
+        let totalSteps = BARS * 4 * DIV;
+        let curPalette = "modern";
+
+        const tracks = [
+            { id: "Drm", name: "Drums (Kick/Snr/Hat)", color: "#aaa" },
+            { id: "Bas", name: "Bass", color: "#f1c40f" },
+            { id: "Pad", name: "Texture/Pad", color: "#e67e22" },
+            { id: "Tnk", name: "🛡️ Tank (Root 1/4)", color: "#8e44ad" },
+            { id: "Mel", name: "🗡️ Melee (Arp 1/8)", color: "#c0392b" },
+            { id: "Rng", name: "🏹 Ranged (Syncopate)", color: "#2980b9" },
+            { id: "Sup", name: "🪄 Supp (Resolution)", color: "#27ae60" }
+        ];
+
+        function initAudio() {
+            if (!ac) {
+                ac = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = ac.createGain();
+                masterGain.gain.value = 0.8;
+                masterGain.connect(ac.destination);
+            }
+            if (ac.state === 'suspended') ac.resume();
+        }
+
+        function updatePalette() {
+            curPalette = document.getElementById("paletteSelect").value;
+            let desc = document.getElementById("paletteDesc");
+            if (curPalette === "modern") desc.innerText = "단단하고 세련된 일렉트로닉 팝/신스 사운드. (기본)";
+            else if (curPalette === "orch") desc.innerText = "현악기 앙상블, 팀파니, 브라스가 만드는 장엄한 시네마틱. (엘리트/레이드 추천)";
+            else desc.innerText = "톱니파(Saw)와 구형파(Square)로 구현된 8비트 아케이드. (도트 감성)";
+        }
+
+        function noteToFreq(noteStr) {
+            if (!noteStr) return 0;
+            const notes = { "C": -9, "C#": -8, "Db": -8, "D": -7, "D#": -6, "Eb": -6, "E": -5, "F": -4, "F#": -3, "Gb": -3, "G": -2, "G#": -1, "Ab": -1, "A": 0, "A#": 1, "Bb": 1, "B": 2 };
+            let match = noteStr.match(/([A-Ga-g]#?b?)(\d)/);
+            if (match) {
+                let n = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                let oct = parseInt(match[2]);
+                if (notes[n] !== undefined) return 440 * Math.pow(2, (notes[n] + (oct - 4) * 12) / 12);
+            }
+            return 0;
+        }
+
+        function P(freq, time, type, filterCutoff, envDecay, gainVol) {
+            const osc = ac.createOscillator(); osc.type = type; osc.frequency.value = freq;
+            const filt = ac.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.setValueAtTime(filterCutoff, time); filt.frequency.exponentialRampToValueAtTime(100, time + envDecay);
+            const g = ac.createGain(); osc.connect(filt); filt.connect(g); g.connect(masterGain);
+            g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(gainVol, time + 0.02); g.gain.exponentialRampToValueAtTime(0.01, time + envDecay);
+            osc.start(time); osc.stop(time + envDecay + 0.1);
+        }
+
+        function playLong(freq, time, dur, type, filterCutoff, gainVol) {
+            let dLen = Math.max(0.1, dur);
+            const osc = ac.createOscillator(); osc.type = type; osc.frequency.value = freq;
+            const filt = ac.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = filterCutoff;
+            const g = ac.createGain(); osc.connect(filt); filt.connect(g); g.connect(masterGain);
+            g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(gainVol, time + 0.2); g.gain.setValueAtTime(gainVol, time + dLen); g.gain.linearRampToValueAtTime(0.01, time + dLen + 0.5);
+            osc.start(time); osc.stop(time + dLen + 0.6);
+        }
+
+        function playDrum(note, time, pal) {
+            let n = note.toLowerCase();
+            const g = ac.createGain(); g.connect(masterGain);
+            let isKick = n.includes("kick");
+            let isSnr = n.includes("snare") || n.includes("snrgst");
+            let isHat = n.includes("hat");
+            let vol = n.includes("gst") ? 0.3 : 1.0;
+
+            if (pal === "modern") {
+                if (isKick) {
+                    const osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(120, time); osc.frequency.exponentialRampToValueAtTime(20, time + 0.4);
+                    g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.9, time + 0.05); g.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
+                    osc.connect(g); osc.start(time); osc.stop(time + 0.5);
+                } else if (isSnr) {
+                    const osc = ac.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(200, time);
+                    g.gain.setValueAtTime(0.8 * vol, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+                    osc.connect(g); osc.start(time); osc.stop(time + 0.3);
+                    const buf = ac.createBuffer(1, ac.sampleRate * 0.2, ac.sampleRate);
+                    for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                    const src = ac.createBufferSource(); src.buffer = buf;
+                    const filt = ac.createBiquadFilter(); filt.type = 'highpass'; filt.frequency.value = 1500;
+                    src.connect(filt); filt.connect(g); src.start(time);
+                } else if (isHat) {
+                    const buf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
+                    for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                    const src = ac.createBufferSource(); src.buffer = buf;
+                    const filt = ac.createBiquadFilter(); filt.type = 'highpass'; filt.frequency.value = 8000;
+                    src.connect(filt); filt.connect(g);
+                    g.gain.setValueAtTime(0.3, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+                    src.start(time);
+                }
+            }
+            else if (pal === "orch") { // Timpani / Orchestral Snare / Cymbals
+                if (isKick) {
+                    const osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(60, time); osc.frequency.exponentialRampToValueAtTime(45, time + 0.8);
+                    g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.9, time + 0.1); g.gain.exponentialRampToValueAtTime(0.01, time + 0.8);
+                    osc.connect(g); osc.start(time); osc.stop(time + 0.9);
+                } else if (isSnr) {
+                    const buf = ac.createBuffer(1, ac.sampleRate * 0.4, ac.sampleRate);
+                    for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                    const src = ac.createBufferSource(); src.buffer = buf;
+                    const filt = ac.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 3000;
+                    src.connect(filt); filt.connect(g);
+                    g.gain.setValueAtTime(0.9 * vol, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
+                    src.start(time);
+                } else if (isHat) { // Small crash/ride
+                    const buf = ac.createBuffer(1, ac.sampleRate * 0.2, ac.sampleRate);
+                    for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                    const src = ac.createBufferSource(); src.buffer = buf;
+                    const filt = ac.createBiquadFilter(); filt.type = 'highpass'; filt.frequency.value = 5000;
+                    src.connect(filt); filt.connect(g);
+                    g.gain.setValueAtTime(0.4, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+                    src.start(time);
+                }
+            }
+            else if (pal === "retro") { // 8-Bit Noise
+                if (isKick) P(150, time, 'square', 1000, 0.2, 0.8);
+                else if (isSnr) {
+                    const buf = ac.createBuffer(1, ac.sampleRate * 0.2, ac.sampleRate);
+                    for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = (Math.random() > 0.5 ? 1 : -1); // bitcrush noise
+                    const src = ac.createBufferSource(); src.buffer = buf; src.connect(g);
+                    g.gain.setValueAtTime(0.6 * vol, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.15); src.start(time);
+                } else if (isHat) {
+                    const buf = ac.createBuffer(1, ac.sampleRate * 0.05, ac.sampleRate);
+                    for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = (Math.random() > 0.5 ? 1 : -1);
+                    const src = ac.createBufferSource(); src.buffer = buf; src.connect(g);
+                    g.gain.setValueAtTime(0.2, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.05); src.start(time);
+                }
+            }
+        }
+
+        function playSound(trackId, note, time, durSteps) {
+            if (!note) return;
+            let currentBPM = parseInt(document.getElementById('bpmInput').value) || 110;
+            let dur = durSteps * (60.0 / currentBPM / DIV);
+
+            if (trackId === "Drm") return playDrum(note, time, curPalette);
+
+            let freq = noteToFreq(note);
+            if (!freq) return;
+
+            if (curPalette === "modern") {
+                if (trackId === "Bas") playLong(freq, time, dur, 'square', 800, 0.5);
+                else if (trackId === "Pad") playLong(freq, time, dur, 'sawtooth', 1000, 0.15);
+                else if (trackId === "Tnk") playLong(freq, time, dur, 'triangle', 400, 0.6);
+                else if (trackId === "Mel") P(freq, time, 'sine', 3000, 0.3, 0.5);
+                else if (trackId === "Rng") P(freq, time, 'square', 2500, 0.2, 0.3);
+                else if (trackId === "Sup") playLong(freq, time, dur, 'sine', 2000, 0.3);
+            }
+            else if (curPalette === "orch") {
+                // Orchestral Strings/Brass/Harp
+                if (trackId === "Bas") playLong(freq, time, dur, 'sawtooth', 300, 0.6); // Contrabass
+                else if (trackId === "Pad") playLong(freq, time, dur, 'sawtooth', 1500, 0.2); // String Section
+                else if (trackId === "Tnk") playLong(freq, time, dur, 'sawtooth', 600, 0.7); // Low Brass Tuba
+                else if (trackId === "Mel") P(freq, time, 'triangle', 2000, 0.5, 0.6); // Harp/Marimba
+                else if (trackId === "Rng") P(freq, time, 'sawtooth', 4000, 0.3, 0.4); // Pizzicato violin
+                else if (trackId === "Sup") playLong(freq, time, dur, 'triangle', 1800, 0.3); // Woodwinds
+            }
+            else if (curPalette === "retro") { // 8-Bit
+                if (trackId === "Bas") playLong(freq, time, dur, 'square', 3000, 0.4);
+                else if (trackId === "Pad") playLong(freq, time, dur, 'square', 3000, 0.1);
+                else if (trackId === "Tnk") playLong(freq, time, dur, 'square', 3000, 0.5);
+                else if (trackId === "Mel") P(freq, time, 'square', 3000, 0.2, 0.4);
+                else if (trackId === "Rng") P(freq, time, 'square', 3000, 0.1, 0.4);
+                else if (trackId === "Sup") playLong(freq, time, dur, 'triangle', 3000, 0.3);
+            }
+        }
+
+        // ==== Pre-baked Chord Engine ==== //
+        let currentChordProgression = [];
+        // Example: [{startStep: 0, endStep: 16, chord: "Em"}, ...]
+
+        function getBakedNote(trackId, stepIdx) {
+            if (trackId === "Drm") {
+                let beatIdx = stepIdx % DIV;
+                if (beatIdx === 0) return (Math.floor(stepIdx / DIV) % 2 === 0) ? "Kick" : "Snare";
+                return "Hat";
+            }
+
+            // Find active chord for this step
+            let activeChord = currentChordProgression.find(c => stepIdx >= c.start && stepIdx < c.end);
+            let chordName = activeChord ? activeChord.name : "Em";
+
+            // Simple mapping based on chord name for demonstration
+            // "Em", "C", "G", "D", "B7", "Bb", "C/E", "B7/E", "Bb/E"
+            let notes = ["E4"];
+            if (chordName.includes("Em")) notes = { Bas: "E2", Pad: "G3", Tnk: "E2", Mel: "B4", Rng: "E5", Sup: "E5" };
+            else if (chordName.includes("C/E")) notes = { Bas: "E2", Pad: "C4", Tnk: "C3", Mel: "C5", Rng: "G5", Sup: "E6" };
+            else if (chordName.includes("C")) notes = { Bas: "C2", Pad: "C4", Tnk: "C2", Mel: "G4", Rng: "C5", Sup: "C5" };
+            else if (chordName.includes("G")) notes = { Bas: "G2", Pad: "B3", Tnk: "G2", Mel: "D5", Rng: "G5", Sup: "B5" };
+            else if (chordName.includes("D")) notes = { Bas: "D2", Pad: "A3", Tnk: "D2", Mel: "F#4", Rng: "D5", Sup: "A5" };
+            else if (chordName.includes("B7/E") || chordName === "B7") notes = { Bas: "E2", Pad: "D#4", Tnk: "B1", Mel: "F#5", Rng: "D#5", Sup: "D#6" };
+            else if (chordName.includes("Bb")) notes = { Bas: "E2", Pad: "Bb3", Tnk: "Bb2", Mel: "F5", Rng: "Bb5", Sup: "F5" }; // Tritone madness
+
+            if (trackId === "Bas" && chordName === "B7") return "B1"; // specific override for Elite B7 Base
+
+            return notes[trackId] || "E4";
+        }
+
+        // ==== UI & Logic ==== //
+
+        function buildGrid() {
+            const container = document.getElementById("gridContainer");
+            container.innerHTML = '';
+            tracks.forEach(trk => {
+                let trackDiv = document.createElement("div");
+                trackDiv.className = "track";
+                let labelStr = `<div class="track-label" style="border-left-color:${trk.color}">${trk.name}</div>`;
+                let stepsStr = `<div class="steps">`;
+                for (let i = 0; i < totalSteps; i++) {
+                    let extraClass = '';
+                    if (i % 16 === 0) extraClass += ' bar-start';
+                    else if (i % 4 === 0) extraClass += ' beat-start';
+                    if (Math.floor(i / 4) % 4 === 0) extraClass += ' first-beat';
+                    stepsStr += `<div class="step ${extraClass}" data-inst="${trk.id}" data-col="${i}" onclick="toggleStep(this)"></div>`;
+                }
+                stepsStr += `</div>`;
+                trackDiv.innerHTML = labelStr + stepsStr;
+                container.appendChild(trackDiv);
+            });
+        }
+
+        function toggleStep(element) {
+            if (element.classList.contains('active')) {
+                // Turn off
+                element.classList.remove('active');
+                element.dataset.note = "";
+                element.dataset.dur = "";
+                element.innerHTML = "";
+            } else {
+                // Turn on with pre-baked target note
+                let inst = element.dataset.inst;
+                let stepIdx = parseInt(element.dataset.col);
+                let bakedNote = getBakedNote(inst, stepIdx);
+
+                element.classList.add('active');
+                element.dataset.note = bakedNote;
+                element.dataset.dur = 1;
+                element.innerHTML = bakedNote.replace("Hat", "H").replace("Snare", "S").replace("Kick", "K");
+            }
+        }
+
+        function clearGrid() {
+            document.querySelectorAll('.step.active').forEach(el => {
+                el.classList.remove('active'); el.dataset.note = ""; el.dataset.dur = ""; el.innerHTML = "";
+            });
+        }
+
+        function setS(inst, stepIdx, note, durSteps = 1) {
+            let el = document.querySelector(`.step[data-inst='${inst}'][data-col='${stepIdx}']`);
+            if (el) {
+                el.classList.add('active');
+                el.dataset.note = note;
+                el.dataset.dur = durSteps;
+                el.innerHTML = note;
+            }
+        }
+
+        // THE SPEC IMPLEMENTATION!
+        function loadScenario(type) {
+            document.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('active'));
+            let activeBtn = document.getElementById('btn_' + type);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            let oldPlay = isPlaying;
+            stop(); clearGrid();
+
+            let desc = ""; let prog = "";
+
+            if (type === "town") {
+                prog = "Em (1 bar) 👉 C (1 bar) 👉 G (1 bar) 👉 D (1 bar)";
+                currentChordProgression = [
+                    { start: 0, end: 16, name: "Em" },
+                    { start: 16, end: 32, name: "C" },
+                    { start: 32, end: 48, name: "G" },
+                    { start: 48, end: 64, name: "D" }
+                ];
+                desc = "<strong>Town: Identity & Baseline</strong><br> - <b>음악:</b> Town의 뼈대 세계관(Em 루프 4마디).<br> - <b>Drum:</b> 가장 기본적인 4비트 킥과 담백한 하이햇.<br> - <b>유저:</b> 탱커(Root 위주 묵직), 밀리(1/8 아르페지오)만 잔잔하게.";
+                [0, 8, 16, 24, 32, 40, 48, 56].forEach(s => setS("Drm", s, "Kick", 1));
+                [4, 12, 20, 28, 36, 44, 52, 60].forEach(s => setS("Drm", s, s % 8 === 4 ? "Snare" : "Hat", 1));
+                [2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54, 58, 62].forEach(s => setS("Drm", s, "Hat", 1));
+
+                setS("Bas", 0, "E2", 8); setS("Pad", 0, "B3", 16); setS("Pad", 0, "G3", 16);
+                setS("Bas", 16, "C2", 8); setS("Pad", 16, "C4", 16); setS("Pad", 16, "G3", 16);
+                setS("Bas", 32, "G2", 8); setS("Pad", 32, "G3", 16); setS("Pad", 32, "B3", 16);
+                setS("Bas", 48, "D2", 8); setS("Pad", 48, "A3", 16); setS("Pad", 48, "D4", 16);
+
+                setS("Tnk", 0, "E2", 8); setS("Tnk", 16, "C2", 8); setS("Tnk", 32, "G2", 8); setS("Tnk", 48, "D2", 8);
+                [0, 2, 4, 6].forEach(n => { setS("Mel", n, "E4", 1); setS("Mel", 16 + n, "C5", 1); setS("Mel", 32 + n, "D5", 1); setS("Mel", 48 + n, "A4", 1); });
+                setS("Rng", 8, "G4", 2); setS("Rng", 24, "E5", 2); setS("Rng", 40, "B4", 2); setS("Rng", 56, "F#5", 2);
+                setS("Sup", 0, "E5", 32); setS("Sup", 32, "D5", 32);
+            }
+            else if (type === "stage") {
+                prog = "Em (1 bar) 👉 C (1 bar) 👉 G (1 bar) 👉 D (1 bar)";
+                currentChordProgression = [
+                    { start: 0, end: 16, name: "Em" },
+                    { start: 16, end: 32, name: "C" },
+                    { start: 32, end: 48, name: "G" },
+                    { start: 48, end: 64, name: "D" }
+                ];
+                desc = "<strong>Stage: High Density (리듬 극대화)</strong><br>- <b>화성:</b> 세계관(Em-C-G-D) 유지 (BPM 불변).<br>- <b>Drum:</b> 16비트 햇과 Snare 고스트 연타로 텐션 대폭 상승.<br>- <b>유저:</b> 밀리 16비트 극딜, 원딜 엇박자 폭우. (Density Budget 꽉 참)";
+                [0, 8, 16, 24, 32, 40, 48, 56].forEach(s => setS("Drm", s, "Kick", 1));
+                [4, 12, 20, 28, 36, 44, 52, 60].forEach(s => setS("Drm", s, "Snare", 1));
+                [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63].forEach(s => setS("Drm", s, "SnrGst", 1));
+                for (let i = 0; i < 64; i += 2) setS("Drm", i, "Hat", 1);
+
+                setS("Bas", 0, "E2", 4); setS("Pad", 0, "G3", 16);
+                setS("Bas", 16, "C2", 4); setS("Pad", 16, "G3", 16);
+                setS("Bas", 32, "G2", 4); setS("Pad", 32, "B3", 16);
+                setS("Bas", 48, "D2", 4); setS("Pad", 48, "A3", 16);
+
+                setS("Tnk", 0, "E2", 4); setS("Tnk", 16, "C2", 4); setS("Tnk", 32, "G2", 4); setS("Tnk", 48, "D2", 4);
+                for (let i = 0; i < 16; i += 2) setS("Mel", i, "E4", 1);
+                for (let i = 16; i < 32; i += 2) setS("Mel", i, "C5", 1);
+                for (let i = 32; i < 48; i += 2) setS("Mel", i, "D5", 1);
+                for (let i = 48; i < 64; i += 2) setS("Mel", i, "A4", 1);
+
+                [3, 6, 9, 14].forEach(n => setS("Rng", n, "G5", 1));[19, 22, 25, 30].forEach(n => setS("Rng", n, "E5", 1));
+                [35, 38, 41, 46].forEach(n => setS("Rng", n, "B5", 1));[51, 54, 57, 62].forEach(n => setS("Rng", n, "F#5", 1));
+                setS("Sup", 0, "B4", 16); setS("Sup", 16, "C5", 16); setS("Sup", 32, "D5", 32);
+            }
+            else if (type === "elite") {
+                prog = "Em (1 bar) 👉 C (1 bar) 👉 D (1 bar) 👉 <span style='color:#e24a4a'>B7 (1 bar)</span>";
+                currentChordProgression = [
+                    { start: 0, end: 16, name: "Em" },
+                    { start: 16, end: 32, name: "C" },
+                    { start: 32, end: 48, name: "D" },
+                    { start: 48, end: 64, name: "B7" } // Dominant
+                ];
+                desc = "<strong>Elite Boss (Dominant 삽입)</strong><br>- <b>화성:</b> 4번째 마디에 Secondary Dominant(B7) 난입. D# 불협화음 출현.<br>- <b>Drum:</b> 묵직한 4-on-the-Floor (킥 4연타).<br>- <b>유저:</b> 서포터가 마지막 마디에 강하게 D# Resolution 코드를 때려 넣습니다.";
+                for (let i = 0; i < 64; i += 4) setS("Drm", i, "Kick", 1);
+                for (let i = 4; i < 64; i += 8) setS("Drm", i, "Snare", 1);
+                for (let i = 2; i < 64; i += 4) setS("Drm", i, "Hat", 1);
+
+                for (let i = 0; i < 16; i += 4) { setS("Bas", i, "E2", 2); setS("Bas", i + 2, "E3", 1); }
+                for (let i = 16; i < 32; i += 4) { setS("Bas", i, "C2", 2); setS("Bas", i + 2, "C3", 1); }
+                for (let i = 32; i < 48; i += 4) { setS("Bas", i, "D2", 2); setS("Bas", i + 2, "D3", 1); }
+                for (let i = 48; i < 64; i += 4) { setS("Bas", i, "B1", 2); setS("Bas", i + 2, "B2", 1); } // B7!
+
+                setS("Pad", 0, "B3", 16); setS("Pad", 16, "C4", 16); setS("Pad", 32, "D4", 16); setS("Pad", 48, "D#4", 16);
+
+                setS("Tnk", 0, "E2", 4); setS("Tnk", 16, "C2", 4); setS("Tnk", 32, "D2", 4); setS("Tnk", 48, "B1", 8);
+                [0, 4, 8, 12].forEach(n => setS("Mel", n, "G4", 2));[16, 20, 24, 28].forEach(n => setS("Mel", n, "E5", 2));[32, 36, 40, 44].forEach(n => setS("Mel", n, "F#5", 2));[48, 50, 52, 54, 56, 58, 60, 62].forEach(n => setS("Mel", n, "A4", 1));
+                [2, 6].forEach(n => setS("Rng", n, "B4", 1));[18, 22].forEach(n => setS("Rng", n, "C5", 1));[34, 38].forEach(n => setS("Rng", n, "D5", 1));[50, 54].forEach(n => setS("Rng", n, "F#5", 1));
+                setS("Sup", 0, "E5", 16); setS("Sup", 16, "G5", 16); setS("Sup", 32, "A5", 16); setS("Sup", 48, "D#5", 16);
+            }
+            // ---- RAID BOSS PHASES ----
+            else if (type === "raid_p1") {
+                prog = "Em (Phase 1: Awakening / 탐색전)";
+                currentChordProgression = [
+                    { start: 0, end: 64, name: "Em" } // Pedal
+                ];
+                desc = "<strong>Raid Phase 1 (Awakening)</strong><br>- <b>상황:</b> 보스가 처음 깨어나 천천히 유저를 압박함.<br>- <b>음악:</b> BPM은 그대로! 음산한 Em 코드 장기 홀딩 (Root 중심). 킥비트만 뛰는 심장소리.<br>- <b>유저:</b> 탱커만 조심히 포지션(Root 박기). 딜러 침묵.";
+
+                // Heartbeat Kick
+                for (let i = 0; i < 64; i += 16) { setS("Drm", i, "Kick", 1); setS("Drm", i + 3, "Kick", 1); }
+                setS("Bas", 0, "E1", 64);
+                setS("Pad", 0, "E3", 64); setS("Pad", 0, "G3", 64);
+                setS("Tnk", 0, "E2", 4); setS("Tnk", 16, "E2", 4); setS("Tnk", 32, "E2", 4); setS("Tnk", 48, "E2", 4);
+                setS("Sup", 0, "B4", 64);
+            }
+            else if (type === "raid_p2") {
+                prog = "Em (1 bar) 👉 <span style='color:#e24a4a'>Bb /E (Tritone Clash)</span>";
+                currentChordProgression = [
+                    { start: 0, end: 32, name: "Em" },
+                    { start: 32, end: 64, name: "Bb/E" } // Clash
+                ];
+                desc = "<strong>Raid Phase 2 (Clash & Tritone)</strong><br>- <b>상황:</b> 본격 난타전 진입 (밀도와 데미지 교환 상승).<br>- <b>음악:</b> 극단적 혐오 화음인 <b>Bb (Tritone)</b> 난입! 베이스는 계속 E 고정(Pedal).<br>- <b>유저:</b> 밀리가 미친듯이 진입(Arp). 지원가는 날카로운 F를 찌르며 혼란 증폭.";
+
+                for (let i = 0; i < 64; i += 4) setS("Drm", i, "Kick", 1);
+                for (let i = 4; i < 64; i += 8) setS("Drm", i, "Snare", 1);
+                for (let i = 2; i < 64; i += 4) setS("Drm", i, "Hat", 1);
+
+                for (let i = 0; i < 64; i += 4) { setS("Bas", i, "E1", 2); setS("Bas", i + 2, "E2", 1); } // E Pedal!
+
+                // Em(2bars) -> Bb/E (2bars)
+                setS("Pad", 0, "G3", 32); setS("Pad", 0, "B3", 32);
+                setS("Pad", 32, "F3", 32); setS("Pad", 32, "Bb3", 32);
+
+                setS("Tnk", 0, "E2", 8); setS("Tnk", 32, "E2", 8); // Hold Root
+                for (let i = 0; i < 32; i += 2) setS("Mel", i, "E5", 1);
+                for (let i = 32; i < 64; i += 2) { setS("Mel", i, "F5", 1); setS("Mel", i + 2, "Bb5", 1); } // Clash Arp
+
+                [4, 12, 20, 28].forEach(n => setS("Rng", n, "G5", 1));
+                [36, 44, 52, 60].forEach(n => setS("Rng", n, "F5", 1)); // Offbeat tension
+                setS("Sup", 0, "B5", 32); setS("Sup", 32, "F5", 32); // High screeching string
+            }
+            else if (type === "raid_p3") {
+                prog = "C /E 👉 <span style='color:#e24a4a'>B7 /E (Harmonic Minor Desperation)</span>";
+                currentChordProgression = [
+                    { start: 0, end: 32, name: "C/E" },
+                    { start: 32, end: 64, name: "B7/E" } // Harmonic Minor
+                ];
+                desc = "<strong>Raid Phase 3 (Desperation & Harmonic Minor)</strong><br>- <b>상황:</b> 보스 5% 전멸기 시전! 최후의 극딜.<br>- <b>음악:</b> C -> B7 릴스루. <b>D#</b> 이란 Harmonic Minor가 공간을 지배함 (Tension 최고점, 템포 유지!).<br>- <b>유저:</b> 모두 쏟아 붓는 엇박과 속주 시너지 폭발. 지원가의 최후의 Resolution(D#)이 핵심.";
+
+                [0, 8, 16, 24, 32, 40, 48, 56].forEach(s => setS("Drm", s, "Kick", 1));
+                [4, 12, 20, 28, 36, 44, 52, 60].forEach(s => setS("Drm", s, "Snare", 1));
+                for (let i = 0; i < 64; i += 2) setS("Drm", i, "Hat", 1); // 16th rolling
+                [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63].forEach(s => setS("Drm", s, "SnrGst", 1)); // Max density
+
+                for (let i = 0; i < 64; i += 2) { setS("Bas", i, "E1", 1); } // 8th E Pedal 
+
+                // C/E (2 bars) -> B7/E (2 bars)
+                setS("Pad", 0, "G3", 32); setS("Pad", 0, "C4", 32); setS("Pad", 0, "E4", 32);
+                setS("Pad", 32, "A3", 32); setS("Pad", 32, "D#4", 32); setS("Pad", 32, "F#4", 32);
+
+                setS("Tnk", 0, "C3", 4); setS("Tnk", 16, "C3", 4); setS("Tnk", 32, "B2", 4); setS("Tnk", 48, "B2", 4);
+
+                [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30].forEach(n => setS("Mel", n, "C6", 1)); // C over E
+                [32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62].forEach(n => setS("Mel", n, n % 4 == 0 ? "D#5" : "F#5", 1)); // Arp Mad
+
+                [1, 5, 9, 13, 17, 21, 25, 29].forEach(n => setS("Rng", n, "G5", 1)); // Pure off 16ths
+                [33, 37, 41, 45, 49, 53, 57, 61].forEach(n => setS("Rng", n, "D#6", 1)); // Pierce
+
+                setS("Sup", 0, "E6", 32); setS("Sup", 32, "D#6", 32); // Max Tension resolve
+            }
+
+            document.getElementById("chordProg").innerHTML = prog;
+            document.getElementById("descBox").innerHTML = desc;
+
+            if (oldPlay) play();
+        }
+
+        // ==== Play / Schedule ==== //
+        function nextNote() {
+            let currentBPM = parseInt(document.getElementById('bpmInput').value) || 110;
+            let secPerStep = (60.0 / currentBPM) / DIV;
+            nextNoteTime += secPerStep;
+            currentStep++;
+            if (currentStep >= totalSteps) currentStep = 0;
+        }
+
+        function scheduleNote(stepNum, time) {
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.step.current').forEach(el => el.classList.remove('current'));
+                document.querySelectorAll(`.step[data-col='${stepNum}']`).forEach(el => el.classList.add('current'));
+            });
+
+            let activeCells = document.querySelectorAll(`.step.active[data-col='${stepNum}']`);
+            activeCells.forEach(cell => {
+                let inst = cell.dataset.inst;
+                let noteStr = cell.dataset.note;
+                let durSteps = parseInt(cell.dataset.dur) || 1;
+                playSound(inst, noteStr, time, durSteps);
+            });
+        }
+
+        function scheduler() {
+            while (nextNoteTime < ac.currentTime + 0.1) {
+                scheduleNote(currentStep, nextNoteTime);
+                nextNote();
+            }
+            timerID = setTimeout(scheduler, 25.0);
+        }
+
+        function play() {
+            if (isPlaying) return;
+            initAudio();
+            isPlaying = true;
+            let st = document.getElementById("statusStr");
+            st.innerText = "상태: 🟢 재생 중"; st.className = "status-txt status-on";
+
+            currentStep = 0;
+            nextNoteTime = ac.currentTime + 0.05;
+            scheduler();
+        }
+
+        function stop() {
+            isPlaying = false;
+            clearTimeout(timerID);
+            let st = document.getElementById("statusStr");
+            st.innerText = "상태: ■ 정지 됨"; st.className = "status-txt";
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.step.current').forEach(el => el.classList.remove('current'));
+            });
+        }
+
+        window.onload = function () {
+            buildGrid();
+            updatePalette();
+            loadScenario('town');
+        };
+    </script>
+</body>
+
+</html>

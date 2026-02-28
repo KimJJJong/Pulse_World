@@ -1,1 +1,5 @@
 ﻿{"Timestamp":"2026-02-23T08:46:32.1701464Z","Level":0,"Source":"Listener","Message":"Accepted connection from 127.0.0.1:58578"}
+{"Timestamp":"2026-02-23T08:50:11.0306028Z","Level":0,"Source":"Listener","Message":"Accepted connection from 127.0.0.1:49923"}
+{"Timestamp":"2026-02-23T08:57:00.170259Z","Level":0,"Source":"Listener","Message":"Accepted connection from 127.0.0.1:56990"}
+{"Timestamp":"2026-02-23T08:58:51.3408479Z","Level":0,"Source":"Listener","Message":"Accepted connection from 127.0.0.1:53912"}
+{"Timestamp":"2026-02-23T09:04:41.469348Z","Level":0,"Source":"Listener","Message":"Accepted connection from 127.0.0.1:50290"}

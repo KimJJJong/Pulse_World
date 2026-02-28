@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse World: V3 Fantasy Grid UI Prototype</title>
+    <!-- Include Three.js via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap');
+
+        :root {
+            /* Fantasy Color Palette */
+            --bg-color: #1a1515;
+            --fantasy-gold: #e6b955;
+            --fantasy-gold-glow: rgba(230, 185, 85, 0.4);
+            --fantasy-green: #4ade80;
+            --fantasy-red: #f87171;
+            --fantasy-blue: #60a5fa;
+            --magic-cyan: #22d3ee;
+
+            --parchment-bg: rgba(40, 35, 30, 0.85);
+            --parchment-border: #6a5a4a;
+
+            --text-main: #fcf8e3;
+            --text-muted: #b8b0a0;
+
+            --bpm: 120;
+            --beat-duration: calc(60s / var(--bpm));
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Lora', serif;
+            /* Fantasy readable font */
+            user-select: none;
+        }
+
+        h1,
+        h2,
+        h3,
+        .fantasy-heading {
+            font-family: 'Cinzel', serif;
+            /* Classic Fantasy Display Font */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 3D Canvas Background */
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            /* Below UI */
+        }
+
+        /* UI Layer Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            /* Let clicks pass through empty space */
+        }
+
+        /* Enable pointer events on interactive elements */
+        .fantasy-panel,
+        .skill-slot,
+        .ui-element {
+            pointer-events: auto;
+        }
+
+        /* Fantasy Panel Base */
+        .fantasy-panel {
+            background: var(--parchment-bg);
+            border: 2px solid var(--parchment-border);
+            border-radius: 6px;
+            box-shadow:
+                0 10px 25px rgba(0, 0, 0, 0.7),
+                inset 0 0 15px rgba(0, 0, 0, 0.5),
+                inset 0 0 5px var(--fantasy-gold-glow);
+            position: relative;
+        }
+
+        /* Ornate Corners */
+        .fantasy-panel::before,
+        .fantasy-panel::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border: 1px solid var(--fantasy-gold);
+            pointer-events: none;
+        }
+
+        .fantasy-panel::before {
+            top: 2px;
+            left: 2px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .fantasy-panel::after {
+            bottom: 2px;
+            right: 2px;
+            border-left: none;
+            border-top: none;
+        }
+
+
+        /* Top Left: Party UI */
+        .party-ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .party-member {
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 250px;
+            transform: scale(0.9);
+            transform-origin: left top;
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+
+        .party-member:hover {
+            opacity: 1;
+        }
+
+        .portrait {
+            width: 44px;
+            height: 44px;
+            border-radius: 4px;
+            border: 2px solid var(--fantasy-gold);
+            background: #2a2222;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+            position: relative;
+        }
+
+        .portrait::after {
+            content: '♚';
+            /* Placeholder icon */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: var(--fantasy-gold);
+        }
+
+        .stats-container {
+            flex-grow: 1;
+        }
+
+        .name-level {
+            display: flex;
+            justify-content: space-between;
+            font-size: 15px;
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+            color: var(--fantasy-gold);
+            margin-bottom: 5px;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .bars {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .bar-bg {
+            height: 8px;
+            background: #111;
+            border: 1px solid #443;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .hp-fill {
+            background: linear-gradient(90deg, #166534, var(--fantasy-green));
+            width: 100%;
+        }
+
+        .party-member .hp-fill.low {
+            background: linear-gradient(90deg, #7f1d1d, var(--fantasy-red));
+        }
+
+        /* Top Center: Objective & BPM */
+        .top-center-ui {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .objective-panel {
+            padding: 12px 30px;
+            text-align: center;
+            background: rgba(30, 25, 20, 0.9);
+            border-color: var(--fantasy-gold);
+        }
+
+        .objective-title {
+            color: var(--fantasy-gold);
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 4px;
+            text-shadow: 0 0 8px rgba(230, 185, 85, 0.5);
+            letter-spacing: 2px;
+        }
+
+        .bpm-display {
+            padding: 6px 20px;
+            font-size: 14px;
+            font-family: 'Cinzel', serif;
+            color: var(--magic-cyan);
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 20px;
+            border-color: var(--magic-cyan);
+            background: rgba(0, 20, 30, 0.6);
+        }
+
+        .bpm-pulse-ring {
+            width: 8px;
+            height: 8px;
+            background: var(--magic-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--magic-cyan);
+            animation: magicHeartbeat var(--beat-duration) infinite ease-out;
+        }
+
+        /* Bottom Center: Player HP/MP & Skill Deck */
+        .bottom-center-ui {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 480px;
+        }
+
+        /* Player HP/MP Overlay */
+        .player-status-hub {
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 15px 25px;
+            border-bottom: none;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            background: linear-gradient(180deg, rgba(40, 35, 30, 0.9) 0%, rgba(20, 15, 10, 0.95) 100%);
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .player-name-plate {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(230, 185, 85, 0.3);
+        }
+
+        .player-hp-text {
+            font-size: 18px;
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .player-hp-bar-bg {
+            height: 20px;
+            background: #0a0a0a;
+            border: 2px solid #332;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 8px #000;
+        }
+
+        .player-hp-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #15803d, #22c55e);
+            transition: width 0.2s;
+            position: relative;
+        }
+
+        /* BPM Pulse on HP Bar */
+        .player-hp-pulse-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            opacity: 0;
+        }
+
+        .pulse-active .player-hp-pulse-overlay {
+            animation: hpBarPulse var(--beat-duration) ease-out;
+        }
+
+        @keyframes hpBarPulse {
+            0% {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+
+            30% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .player-mp-bar-bg {
+            height: 8px;
+            background: #0a0a0a;
+            border: 1px solid #334;
+            border-radius: 2px;
+            overflow: hidden;
+            width: 80%;
+            margin: 0 auto;
+        }
+
+        .player-mp-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+        }
+
+        /* Skill Deck */
+        .skill-deck {
+            display: flex;
+            gap: 20px;
+            padding: 20px 30px;
+            border-top: 1px solid var(--parchment-border);
+            width: 100%;
+            justify-content: center;
+            background: rgba(20, 15, 10, 0.95);
+        }
+
+        .skill-slot-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .skill-label {
+            font-size: 12px;
+            color: var(--fantasy-gold);
+            font-family: 'Cinzel', serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .skill-slot {
+            width: 68px;
+            height: 68px;
+            background: #111;
+            border: 2px solid var(--parchment-border);
+            border-radius: 8px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9), 0 5px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        .skill-slot:hover {
+            transform: translateY(-5px) scale(1.05);
+            border-color: var(--fantasy-gold);
+            box-shadow: 0 0 20px rgba(230, 185, 85, 0.3), inset 0 0 10px rgba(230, 185, 85, 0.1);
+        }
+
+        .skill-slot:active {
+            transform: scale(0.95);
+        }
+
+        .skill-icon {
+            font-size: 32px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            z-index: 2;
+        }
+
+        .skill-key {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #222;
+            border: 2px solid var(--fantasy-gold);
+            color: var(--fantasy-gold);
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            box-shadow: 0 0 5px #000;
+            z-index: 3;
+        }
+
+        /* Cooldown overlay */
+        .cooldown-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 22px;
+            font-family: 'Cinzel', serif;
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+            transition: clip-path 0.1s linear;
+        }
+
+        .cooldown-text {
+            color: #ccc;
+            text-shadow: 2px 2px 4px black;
+        }
+
+        /* Hit Text & Combo */
+        .combat-feedback {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .hit-text {
+            font-size: 52px;
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.1s;
+        }
+
+        .hit-text.perfect {
+            color: #fff;
+            text-shadow: 0 0 15px var(--fantasy-gold), 0 0 30px #fff, 0 5px 10px rgba(0, 0, 0, 0.8);
+            /* Magical aura text */
+            animation: popTextFantasy 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .hit-text.good {
+            color: var(--magic-cyan);
+            text-shadow: 0 0 10px var(--magic-cyan), 0 5px 10px rgba(0, 0, 0, 0.8);
+            animation: popTextFantasy 0.5s ease-out forwards;
+        }
+
+        .hit-text.miss {
+            color: var(--fantasy-red);
+            text-shadow: 0 0 15px var(--fantasy-red), 0 5px 10px rgba(0, 0, 0, 0.8);
+            animation: popMissText 0.5s ease-out forwards;
+        }
+
+        .combo-counter {
+            font-size: 28px;
+            color: var(--text-muted);
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+            text-shadow: 0 0 8px #000;
+            opacity: 0;
+            margin-top: 10px;
+            animation: slideUpFade 0.3s forwards;
+        }
+
+        .combo-counter span {
+            font-size: 60px;
+            color: var(--fantasy-gold);
+            text-shadow: 0 0 20px var(--fantasy-gold-glow);
+        }
+
+        /* Animations */
+        @keyframes popTextFantasy {
+            0% {
+                transform: scale(0.5) translateY(30px);
+                opacity: 0;
+                filter: brightness(2);
+            }
+
+            40% {
+                transform: scale(1.3) translateY(-15px);
+                opacity: 1;
+                filter: brightness(1.5);
+            }
+
+            70% {
+                transform: scale(0.95) translateY(0);
+                opacity: 1;
+                filter: brightness(1);
+            }
+
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 0;
+                filter: brightness(1);
+            }
+        }
+
+        @keyframes popMissText {
+            0% {
+                transform: scale(0.5) translateX(-20px) rotate(-5deg);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.1) translateX(20px) rotate(5deg);
+                opacity: 1;
+            }
+
+            80% {
+                transform: scale(0.9) translateX(-10px) rotate(-2deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1) translateX(0) rotate(0deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes slideUpFade {
+            0% {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes magicHeartbeat {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 10px var(--magic-cyan);
+                opacity: 0.8;
+            }
+
+            15% {
+                transform: scale(1.6);
+                box-shadow: 0 0 25px var(--magic-cyan);
+                opacity: 1;
+            }
+
+            35% {
+                transform: scale(1);
+                box-shadow: 0 0 10px var(--magic-cyan);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 10px var(--magic-cyan);
+                opacity: 0.8;
+            }
+        }
+
+        /* Pulse Animation on Skill on Beat */
+        .skill-pulse-active {
+            animation: skillPulseFantasy var(--beat-duration) ease-out;
+        }
+
+        @keyframes skillPulseFantasy {
+            0% {
+                box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9), 0 0 0 0 rgba(230, 185, 85, 0.6);
+                border-color: var(--fantasy-gold);
+            }
+
+            40% {
+                box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9), 0 0 0 10px rgba(230, 185, 85, 0);
+                border-color: var(--parchment-border);
+            }
+
+            100% {
+                box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9), 0 0 0 0 rgba(230, 185, 85, 0);
+                border-color: var(--parchment-border);
+            }
+        }
+
+        /* Screen Beat Highlight - Softer for Fantasy */
+        .screen-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 0px var(--fantasy-gold);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .screen-flash.flash {
+            animation: screenBeatFantasy 0.6s ease-out;
+        }
+
+        @keyframes screenBeatFantasy {
+            0% {
+                box-shadow: inset 0 0 60px rgba(230, 185, 85, 0.15);
+            }
+
+            100% {
+                box-shadow: inset 0 0 0px rgba(230, 185, 85, 0);
+            }
+        }
+
+        .damage-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 40%, rgba(127, 29, 29, 0.6) 100%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 6;
+            transition: opacity 0.1s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 3D Canvas -->
+    <canvas id="three-canvas"></canvas>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-layer">
+
+        <div class="screen-flash" id="screenFlash"></div>
+        <div class="damage-flash" id="damageFlash"></div>
+
+        <!-- Top Left: Party Info -->
+        <div class="party-ui">
+            <!-- Party members only, Player moved to bottom -->
+            <div class="fantasy-panel party-member ui-element">
+                <div class="portrait"></div>
+                <div class="stats-container">
+                    <div class="name-level">
+                        <span>Sir Bastian</span>
+                        <span>Lv. 41</span>
+                    </div>
+                    <div class="bars">
+                        <div class="bar-bg">
+                            <div class="bar-fill hp-fill" style="width: 60%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fantasy-panel party-member ui-element">
+                <div class="portrait" style="border-color: var(--fantasy-red)"></div>
+                <div class="stats-container">
+                    <div class="name-level">
+                        <span>Mage Caelum</span>
+                        <span style="color: var(--fantasy-red)">Lv. 43</span>
+                    </div>
+                    <div class="bars">
+                        <div class="bar-bg">
+                            <div class="bar-fill hp-fill low" style="width: 25%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Center: Objective & Map Info -->
+        <div class="top-center-ui">
+            <div class="fantasy-panel objective-panel ui-element">
+                <div class="objective-title">The Grand Citadel</div>
+                <div style="color: var(--text-main); font-size: 14px; font-style: italic;">Defeat the Corrupted Sentinel
+                </div>
+                <div
+                    style="color: var(--fantasy-red); margin-top: 6px; font-weight: bold; font-size: 13px; font-family: 'Cinzel', serif;">
+                    ⚠️ BEWARE: TILE SHATTER PATTERN</div>
+            </div>
+
+            <div class="fantasy-panel bpm-display ui-element" id="bpmDisplay">
+                <div class="bpm-pulse-ring"></div>
+                RHYTHM: 120 BPM
+                <div class="bpm-pulse-ring"></div>
+            </div>
+        </div>
+
+        <!-- Combat Feedback Overlay -->
+        <div class="combat-feedback" id="combatFeedback">
+            <!-- Rendered via JS -->
+        </div>
+
+        <!-- Bottom Center: Player HP & Skill Deck -->
+        <div class="bottom-center-ui" id="playerHub">
+
+            <!-- Player Status directly above skills -->
+            <div class="fantasy-panel player-status-hub ui-element">
+                <div class="player-name-plate">
+                    <span class="player-hp-text" style="color: var(--fantasy-gold);">Paladin Astra</span>
+                    <span class="player-hp-text" style="color: #4ade80;" id="hpText">8,450 / 8,450</span>
+                </div>
+                <!-- HP Bar -->
+                <div class="player-hp-bar-bg">
+                    <div class="player-hp-fill" id="playerHpBar">
+                        <!-- Pulse overlay for HP bar -->
+                        <div class="player-hp-pulse-overlay"></div>
+                    </div>
+                </div>
+                <!-- MP/Energy Bar -->
+                <div class="player-mp-bar-bg">
+                    <div class="player-mp-fill"></div>
+                </div>
+            </div>
+
+            <!-- Skill Deck -->
+            <div class="fantasy-panel skill-deck ui-element">
+                <!-- Weapon -->
+                <div class="skill-slot-container">
+                    <div class="skill-slot" onclick="useSkill(0, this, 'Cleave')" data-key="Q">
+                        <div class="skill-icon">🗡️</div>
+                        <div class="skill-key">Q</div>
+                        <div class="cooldown-overlay" style="display: none;">
+                            <span class="cooldown-text"></span>
+                        </div>
+                    </div>
+                    <div class="skill-label">Weapon</div>
+                </div>
+
+                <!-- Shoes -->
+                <div class="skill-slot-container">
+                    <div class="skill-slot" onclick="useSkill(1, this, 'Roll')" data-key="W">
+                        <div class="skill-icon">👢</div>
+                        <div class="skill-key">W</div>
+                        <div class="cooldown-overlay" style="display: none;">
+                            <span class="cooldown-text"></span>
+                        </div>
+                    </div>
+                    <div class="skill-label">Shoes</div>
+                </div>
+
+                <!-- Accessory -->
+                <div class="skill-slot-container">
+                    <div class="skill-slot" onclick="useSkill(2, this, 'Aura')" data-key="E">
+                        <div class="skill-icon">💍</div>
+                        <div class="skill-key">E</div>
+                        <div class="cooldown-overlay" style="display: none;">
+                            <span class="cooldown-text"></span>
+                        </div>
+                    </div>
+                    <div class="skill-label">Accessory</div>
+                </div>
+
+                <!-- Hat -->
+                <div class="skill-slot-container">
+                    <div class="skill-slot" onclick="useSkill(3, this, 'Prayer')" data-key="R">
+                        <div class="skill-icon">👑</div>
+                        <div class="skill-key">R</div>
+                        <div class="cooldown-overlay" style="display: none;">
+                            <span class="cooldown-text"></span>
+                        </div>
+                    </div>
+                    <div class="skill-label">Helm</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MAIN SCRIPT: Logic and 3D Setup -->
+    <script>
+        // --- 1. GAME DATA & RHYTHM VARIABLES ---
+        const BPM = 120;
+        const beatInterval = (60 / BPM) * 1000;
+        let lastBeatTime = performance.now();
+        let comboCount = 0;
+        let comboTimeout;
+
+        let playerHp = 8450;
+        const maxHp = 8450;
+
+        // Skill Cooldowns (in ms)
+        const cooldowns = [2000, 3000, 8000, 15000];
+        const lastUsed = [0, 0, 0, 0];
+
+        // --- RIGID GRID SYSTEM ---
+        const GRID_CELL_SIZE = 3;
+        const GRID_ROWS = 6;
+        const GRID_COLS = 6;
+
+        // Positions are 0-indexed integers on the grid
+        let playerPos = { x: 2, z: 4 }; // Start near bottom center 
+
+        // 3D Objects references
+        let scene, camera, renderer;
+        let playerMesh, enemyMesh, accessoryGroup, patternMesh;
+        let tiles = []; // Array to hold the grid floor tiles
+
+        // Convert grid coordinate to 3D world space coordinate
+        function gridToWorld(gX, gZ) {
+            // Center the grid around origin (0,0)
+            const offsetX = (GRID_COLS * GRID_CELL_SIZE) / 2 - (GRID_CELL_SIZE / 2);
+            const offsetZ = (GRID_ROWS * GRID_CELL_SIZE) / 2 - (GRID_CELL_SIZE / 2);
+            return {
+                x: (gX * GRID_CELL_SIZE) - offsetX,
+                z: (gZ * GRID_CELL_SIZE) - offsetZ
+            };
+        }
+
+        // --- 2. THREE.JS INITIALIZATION (FANTASY THEME) ---
+        function init3D() {
+            const canvas = document.getElementById('three-canvas');
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            // Shadow
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            scene = new THREE.Scene();
+            // Fantasy warm/misty fog
+            scene.background = new THREE.Color(0x1a1515);
+            scene.fog = new THREE.FogExp2(0x1a1515, 0.02);
+
+            // Angled top-down camera suited for grid
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 20, 25);
+            camera.lookAt(0, 0, -2);
+
+            // --- FANTASY LIGHTING ---
+            const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.3); // Warm ambient
+            scene.add(ambientLight);
+
+            const moonLight = new THREE.DirectionalLight(0x9bd4e3, 0.6); // Cool moonlight
+            moonLight.position.set(-15, 20, -10);
+            scene.add(moonLight);
+
+            const torchLight = new THREE.PointLight(0xffaa00, 1.2, 40); // Warm torchlight
+            torchLight.position.set(10, 15, 10);
+            torchLight.castShadow = true;
+            scene.add(torchLight);
+
+            // --- 1. RIGID GRID TILES (FLOOR) ---
+            const tileGeo = new THREE.BoxGeometry(GRID_CELL_SIZE - 0.1, 1, GRID_CELL_SIZE - 0.1);
+            // Stone texture materials
+            const darkStone = new THREE.MeshStandardMaterial({ color: 0x3a3530, roughness: 0.9 });
+            const lightStone = new THREE.MeshStandardMaterial({ color: 0x4a4540, roughness: 0.9 });
+
+            for (let r = 0; r < GRID_ROWS; r++) {
+                tiles[r] = [];
+                for (let c = 0; c < GRID_COLS; c++) {
+                    const mat = ((r + c) % 2 === 0) ? darkStone : lightStone;
+                    const tile = new THREE.Mesh(tileGeo, mat.clone()); // Clone so we can color them individually later
+                    tile.receiveShadow = true;
+
+                    const worldPos = gridToWorld(c, r);
+                    tile.position.set(worldPos.x, -0.5, worldPos.z);
+                    scene.add(tile);
+                    tiles[r][c] = tile;
+                }
+            }
+
+            // Outer decorative borders
+            const borderGeo = new THREE.BoxGeometry((GRID_COLS * GRID_CELL_SIZE) + 1, 1.2, (GRID_ROWS * GRID_CELL_SIZE) + 1);
+            const borderMat = new THREE.MeshStandardMaterial({ color: 0x221c17 });
+            const borderMesh = new THREE.Mesh(borderGeo, borderMat);
+            borderMesh.position.set(0, -0.7, 0);
+            scene.add(borderMesh);
+
+            // --- 2. PLAYER (Fantasy Knight) ---
+            // Sized to fit exactly inside one grid cell (radius 1.2 fits in size 3)
+            const playerGeo = new THREE.CylinderGeometry(1.2, 1.2, 3, 16);
+            playerGeo.translate(0, 1.5, 0);
+            const playerMat = new THREE.MeshStandardMaterial({
+                color: 0xc0c0c0, // Silver armor
+                roughness: 0.3,
+                metalness: 0.7
+            });
+            playerMesh = new THREE.Mesh(playerGeo, playerMat);
+            playerMesh.castShadow = true;
+
+            // Set initial position
+            const pWorld = gridToWorld(playerPos.x, playerPos.z);
+            playerMesh.position.set(pWorld.x, 0, pWorld.z);
+            scene.add(playerMesh);
+
+            // --- 3. ACCESSORY (Glowing Magic Orb / Beat Guide) ---
+            accessoryGroup = new THREE.Group();
+            playerMesh.add(accessoryGroup);
+            // Fixed position hovering near player shoulder
+            accessoryGroup.position.set(2.0, 3.0, 0);
+
+            const accGeo = new THREE.SphereGeometry(0.5, 16, 16);
+            const accMat = new THREE.MeshStandardMaterial({
+                color: 0x22d3ee, // Magic cyan
+                emissive: 0x22d3ee,
+                emissiveIntensity: 0.8
+            });
+            const accMesh = new THREE.Mesh(accGeo, accMat);
+
+            const accLight = new THREE.PointLight(0x22d3ee, 1.5, 8);
+            accMesh.add(accLight);
+            accessoryGroup.add(accMesh);
+
+            // Add Shrinking Ring for Beat Guide effect
+            const ringGeo = new THREE.RingGeometry(0.6, 0.7, 32);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x22d3ee,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+            window.beatRingMesh = new THREE.Mesh(ringGeo, ringMat);
+            // Angle it to face the camera roughly
+            window.beatRingMesh.rotation.x = Math.PI / 4;
+            window.beatRingMesh.rotation.y = -Math.PI / 8;
+            accessoryGroup.add(window.beatRingMesh);
+
+            // --- 4. BOSS ENEMY (Large Golem/Demon) ---
+            // Occupies a 2x2 grid space at the top center
+            const bossWidth = GRID_CELL_SIZE * 2 - 0.2;
+            const enemyGeo = new THREE.BoxGeometry(bossWidth, 5, bossWidth);
+            enemyGeo.translate(0, 2.5, 0);
+            const enemyMat = new THREE.MeshStandardMaterial({
+                color: 0x301111, // Dark crimson/obsidian
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            enemyMesh = new THREE.Mesh(enemyGeo, enemyMat);
+            enemyMesh.castShadow = true;
+
+            // Center between cols 2 and 3, row 0 and 1
+            const bWorld1 = gridToWorld(2.5, 0.5);
+            enemyMesh.position.set(bWorld1.x, 0, bWorld1.z);
+            scene.add(enemyMesh);
+
+            // Boss Core (Glowing gold/amber)
+            const coreGeo = new THREE.BoxGeometry(bossWidth * 0.8, bossWidth * 0.8, 1);
+            const coreMat = new THREE.MeshStandardMaterial({
+                color: 0xffaa00,
+                emissive: 0xffaa00,
+                emissiveIntensity: 0.5
+            });
+            const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+            coreMesh.position.set(0, 2.5, bossWidth / 2);
+            enemyMesh.add(coreMesh);
+
+            // --- 5. INITIAL BOSS PATTERN (Snap to grid) ---
+            // Let's highlight a 3x3 area of flat tiles as a warning pattern
+            // We do this by changing the emissive color of specific floor tiles
+            highlightPattern(1, 1, 3, 3, 0xaa2222);
+        }
+
+        // Helper to highlight grid tiles for Boss Patterns
+        function highlightPattern(startX, startZ, width, depth, hexColor) {
+            // Reset all tiles first
+            for (let r = 0; r < GRID_ROWS; r++) {
+                for (let c = 0; c < GRID_COLS; c++) {
+                    tiles[r][c].material.emissive.setHex(0x000000);
+                }
+            }
+
+            // Highlight specified area
+            const color = new THREE.Color(hexColor);
+            for (let r = startZ; r < startZ + depth; r++) {
+                for (let c = startX; c < startX + width; c++) {
+                    if (r >= 0 && r < GRID_ROWS && c >= 0 && c < GRID_COLS) {
+                        tiles[r][c].material.emissive = color;
+                        // Store a base intensity to pulse later
+                        tiles[r][c].userData.isPattern = true;
+                    }
+                }
+            }
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+
+        // --- 3. GAME LOOP ---
+        function animate(time) {
+            requestAnimationFrame(animate);
+
+            // Fixed Accessory Bobbing & Beat Guide Shrinking Ring
+            if (accessoryGroup) {
+                // Gentle bobbing without orbiting
+                accessoryGroup.position.y = 2.8 + Math.sin(time * 0.004) * 0.3;
+
+                // Beat Guide logic: Shrink ring from outward in
+                if (window.beatRingMesh) {
+                    let timeSince = time - lastBeatTime;
+                    let progress = timeSince / beatInterval;
+                    if (progress > 1) progress = 1;
+
+                    // Scale from 3.0 down to exactly 1.0 over the beat interval
+                    let ringScale = 3.0 - (2.0 * progress);
+                    window.beatRingMesh.scale.set(ringScale, ringScale, ringScale);
+
+                    // Fade out the ring just after the beat hits, then fade in
+                    window.beatRingMesh.material.opacity = (progress < 0.1) ? (progress * 10) : 0.8;
+                }
+            }
+
+            // Pulse Pattern Tiles (Warning effect)
+            const pulseIntensity = 0.2 + (Math.sin(time * 0.008) * 0.5 + 0.5) * 0.6;
+            for (let r = 0; r < GRID_ROWS; r++) {
+                for (let c = 0; c < GRID_COLS; c++) {
+                    if (tiles[r][c].userData.isPattern) {
+                        tiles[r][c].material.emissiveIntensity = pulseIntensity;
+                    }
+                }
+            }
+
+            // Rhythm Check
+            if (time - lastBeatTime >= beatInterval) {
+                triggerBeat();
+                lastBeatTime = time;
+            }
+
+            updateCooldowns(time);
+
+            // Render 3D Scene
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        // --- 4. RHYTHM AND UI LOGIC ---
+        function triggerBeat() {
+            // Screen edge pulse UI (Fantasy Gold)
+            const flash = document.getElementById('screenFlash');
+            flash.classList.remove('flash');
+            void flash.offsetWidth;
+            flash.classList.add('flash');
+
+            // Pulse skill slots
+            const slots = document.querySelectorAll('.skill-slot');
+            slots.forEach(slot => {
+                slot.classList.remove('skill-pulse-active');
+                void slot.offsetWidth;
+                slot.classList.add('skill-pulse-active');
+            });
+
+            // Trigger internal pulse on HP Bar
+            const hpHub = document.getElementById('playerHub');
+            hpHub.classList.remove('pulse-active');
+            void hpHub.offsetWidth;
+            hpHub.classList.add('pulse-active');
+
+            // Strong 3D Pulse on Accessory (Beat Trigger)
+            if (accessoryGroup) {
+                const orb = accessoryGroup.children[0];
+                const accMat = orb.material;
+
+                accMat.emissiveIntensity = 5; // Very bright flash
+                orb.scale.set(1.4, 1.4, 1.4); // Pop size
+
+                setTimeout(() => {
+                    accMat.emissiveIntensity = 0.8;
+                    orb.scale.set(1, 1, 1);
+                }, 150);
+            }
+
+            // Boss Core Pulse
+            if (enemyMesh) {
+                const core = enemyMesh.children[0];
+                core.scale.set(1.1, 1.1, 1.1);
+                core.material.emissiveIntensity = 1.0;
+                setTimeout(() => {
+                    core.scale.set(1, 1, 1);
+                    core.material.emissiveIntensity = 0.5;
+                }, 150);
+            }
+        }
+
+        function useSkill(index, element, name) {
+            const time = performance.now();
+
+            // Check cooldown
+            if (time - lastUsed[index] < cooldowns[index]) {
+                // Shake effect on error UI
+                element.style.transform = "translateY(-5px) scale(1.05) translateX(5px)";
+                setTimeout(() => element.style.transform = "", 50);
+                setTimeout(() => element.style.transform = "translateY(-5px) scale(1.05) translateX(-5px)", 100);
+                setTimeout(() => element.style.transform = "", 150);
+                return;
+            }
+
+            // Execute Skill
+            lastUsed[index] = time;
+            element.querySelector('.cooldown-overlay').style.display = 'flex';
+
+            // Judgment Check (Distance to closest beat)
+            let timeSinceBeat = time - lastBeatTime;
+            let timeToNextBeat = beatInterval - timeSinceBeat;
+            let minDiff = Math.min(timeSinceBeat, timeToNextBeat);
+
+            // Tolerance window
+            let rawScore = "";
+            let moveSteps = 0;
+
+            if (minDiff < 100) {
+                rawScore = "Perfect";
+                comboCount++;
+                moveSteps = 2; // Perfect dash moves 2 tiles
+
+                // Heal player slightly on perfect
+                if (playerHp < maxHp) playerHp = Math.min(maxHp, playerHp + 50);
+
+            } else if (minDiff < 250) {
+                rawScore = "Good";
+                comboCount++;
+                moveSteps = 1; // Good dash moves 1 tile
+            } else {
+                rawScore = "Miss";
+                comboCount = 0;
+                moveSteps = 0; // Miss = fail to move
+
+                // Penalty damage on miss
+                playerHp -= 300;
+                flashDamage();
+            }
+
+            updateHpBar();
+            showHitText(rawScore, name);
+
+            // --- Rigid Grid 3D Actions based on skill ---
+            if (playerMesh && rawScore !== "Miss") {
+                if (index === 0) { // Attack (Cleave)
+                    // Visual Jump in place (doesn't leave grid cell)
+                    const startY = playerMesh.position.y;
+                    playerMesh.position.y = startY + 2;
+                    setTimeout(() => playerMesh.position.y = startY, 200);
+
+                    // Golden slash effect on boss
+                    if (enemyMesh) {
+                        enemyMesh.material.emissive.setHex(0xe6b955);
+                        setTimeout(() => enemyMesh.material.emissive.setHex(0x000000), 100);
+                    }
+                }
+                else if (index === 1) { // Dash (Roll)
+                    // Move right by 'moveSteps' tiles, clamping to grid
+                    playerPos.x = Math.min(GRID_COLS - 1, playerPos.x + moveSteps);
+
+                    // Simple snap to new position (no lerp for prototype simplicity)
+                    const pWorld = gridToWorld(playerPos.x, playerPos.z);
+                    playerMesh.position.set(pWorld.x, 0, pWorld.z);
+
+                    // Pattern Shift: Boss changes pattern when dashed successfully
+                    highlightPattern(Math.max(0, playerPos.x - 1), 3, 3, 2, 0xaa2222);
+                }
+                else if (index === 2) { // Utility (Aura)
+                    // Emissive glow burst green
+                    playerMesh.material.emissive.setHex(0x4ade80);
+                    setTimeout(() => playerMesh.material.emissive.setHex(0x000000), 500);
+                }
+                else if (index === 3) { // Buff (Helm/Prayer)
+                    // Emissive glow burst gold
+                    playerMesh.material.emissive.setHex(0xe6b955);
+                    setTimeout(() => playerMesh.material.emissive.setHex(0x000000), 800);
+                }
+            }
+        }
+
+        function flashDamage() {
+            const df = document.getElementById('damageFlash');
+            df.style.opacity = '1';
+            setTimeout(() => df.style.opacity = '0', 200);
+        }
+
+        function updateHpBar() {
+            if (playerHp <= 0) playerHp = 0;
+            const hpText = document.getElementById('hpText');
+            const hpBar = document.getElementById('playerHpBar');
+
+            hpText.innerText = `${Math.floor(playerHp).toLocaleString()} / ${maxHp.toLocaleString()}`;
+
+            const pct = (playerHp / maxHp) * 100;
+            hpBar.style.width = pct + "%";
+
+            if (pct < 30) {
+                hpBar.style.background = "linear-gradient(90deg, #7f1d1d, #f87171)";
+                hpText.style.color = "var(--fantasy-red)";
+            } else {
+                hpBar.style.background = "linear-gradient(90deg, #15803d, #22c55e)";
+                hpText.style.color = "var(--fantasy-green)";
+            }
+        }
+
+        function showHitText(judgment, skillName) {
+            const container = document.getElementById('combatFeedback');
+            container.innerHTML = ''; // clear previous
+
+            clearTimeout(comboTimeout);
+
+            const textDiv = document.createElement('div');
+            textDiv.className = `hit-text ${judgment.toLowerCase()}`;
+            textDiv.innerHTML = `${judgment}!`;
+
+            container.appendChild(textDiv);
+
+            if (comboCount > 1) {
+                const comboDiv = document.createElement('div');
+                comboDiv.className = 'combo-counter';
+                comboDiv.innerHTML = `<span>${comboCount}</span> COMBO`;
+
+                // clone and append to trigger animation
+                container.appendChild(comboDiv);
+            }
+
+            // Remove after animation
+            comboTimeout = setTimeout(() => {
+                container.innerHTML = '';
+            }, 1000);
+        }
+
+        function updateCooldowns(time) {
+            const slots = document.querySelectorAll('.skill-slot');
+            slots.forEach((slot, index) => {
+                const overlay = slot.querySelector('.cooldown-overlay');
+                const text = slot.querySelector('.cooldown-text');
+
+                if (lastUsed[index] === 0) return; // Never used
+
+                const elapsed = time - lastUsed[index];
+                const cd = cooldowns[index];
+
+                if (elapsed < cd) {
+                    const remaining = ((cd - elapsed) / 1000).toFixed(1);
+                    const percent = 100 - (elapsed / cd * 100);
+                    text.innerText = remaining;
+
+                    // Radial wipe effect via clip-path
+                    overlay.style.clipPath = `polygon(0 ${100 - percent}%, 100% ${100 - percent}%, 100% 100%, 0 100%)`;
+                } else {
+                    overlay.style.display = 'none';
+                }
+            });
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            const keyMap = { 'q': 0, 'w': 1, 'e': 2, 'r': 3 };
+            const index = keyMap[e.key.toLowerCase()];
+            if (index !== undefined) {
+                const slot = document.querySelectorAll('.skill-slot')[index];
+                slot.click();
+            }
+        });
+
+        // Initialize and Start
+        init3D();
+        requestAnimationFrame(animate);
+
+    </script>
+</body>
+
+</html>

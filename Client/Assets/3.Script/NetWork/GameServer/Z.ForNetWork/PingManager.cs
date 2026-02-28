@@ -94,13 +94,23 @@ public sealed class PingManager : MonoBehaviour
         while (!ct.IsCancellationRequested)
         {
             var s = Interlocked.Increment(ref seq);
-            var now = NowMs();               // ✅ monotonic local time
+            var now = NowMs();               //  monotonic local time
             lastSentAtMs = now;
             sentCount++;
 
             NetworkManager.Instance.Send(new CS_Ping { seq = s, clientSendMs = now }.Write());
 
-            // timeout 대기
+            // [Extreme Optimization] 초기 웜업 단계 (초기 8번)
+            // 핑 응답(Pong)을 기다리지 않고 무자비하게 16ms(1프레임) 간격으로 핑을 쏴서
+            // TimeSync의 WarmupCount를 순식간에 채운다.
+            if (sentCount <= TimeSync.WarmupCount)
+            {
+                try { await Task.Delay(16, ct); }
+                catch (TaskCanceledException) { break; }
+                continue;
+            }
+
+            // timeout 대기 (웜업이 끝난 후 정규 핑)
             var deadline = now + timeoutMs;
             while (!ct.IsCancellationRequested && NowMs() < deadline &&
                    Interlocked.Read(ref lastPongAtMs) < now)
@@ -131,10 +141,7 @@ public sealed class PingManager : MonoBehaviour
                 status = "OK";
             }
 
-            // [추가] 빠른 TimeSync 웜업을 위해 최초 10번은 100ms 간격으로 Fast Ping 난사
-            int sleepMs = (sentCount <= 10) ? 100 : intervalMs;
-
-            try { await Task.Delay(sleepMs, ct); }
+            try { await Task.Delay(intervalMs, ct); }
             catch (TaskCanceledException) { break; }
         }
     }
@@ -181,8 +188,11 @@ public sealed class PingManager : MonoBehaviour
         packetLossPercent = Mathf.Clamp01((float)lost / sentCount) * 100f;
     }
 
-    // ✅ 반드시 monotonic(단조시간)로 통일!
-    static long NowMs() => (long)(Time.realtimeSinceStartupAsDouble * 1000.0);
+    //  반드시 monotonic(단조시간)로 통일! (Thread-Safe)
+    static long NowMs() 
+    {
+        return (long)(System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
+    }
 
     public void Configure(int? interval = null, int? timeout = null, int? maxMiss = null)
     {

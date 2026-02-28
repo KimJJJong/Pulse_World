@@ -112,6 +112,7 @@ public sealed class AudioOffsetAutoCalibrator : MonoBehaviour
         LastAppliedDeltaMs = delta;
 
         _bgm.AddAutoAlignOffsetMs(delta, save: true);
+        _bgm.ForceHardSeekNextTick(); // [Instant Calibration] Apply immediately by jumping
 
         _samples.Clear();
 

@@ -38,8 +38,18 @@ namespace Client
 
         public override void OnRecvPacket(ArraySegment<byte> buffer)
         {
-            //Debug.Log("RecvPack");
-            PacketManager.Instance.OnRecvPacket(this, buffer, (s,p)=> PacketQueue.Instance.Push(p));
+            PacketManager.Instance.OnRecvPacket(this, buffer, (s,p) => 
+            {
+                // [Optimization] Ping/Pong은 유니티 프레임(Update) 딜레이를 피해 소켓 수신 스레드에서 즉각 처리하여 Jitter를 0으로 만듭니다.
+                if (p is SC_Pong)
+                {
+                    PacketManager.Instance.HandlePacket(s, p);
+                }
+                else
+                {
+                    PacketQueue.Instance.Push(p);
+                }
+            });
         }
 
         public override void OnSend(int numOfBytes)

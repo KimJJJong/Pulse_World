@@ -158,7 +158,8 @@ public class ClientHandlers : MonoBehaviour
     {
         if (BV == null) return;
         
-        // 내 캐릭터(로컬)를 포함한 모든 액터의 즉각적인 공격/스킬 연출을 서버 브로드캐스트에 의존하여 처리합니다.
+        // 클라이언트 사이드 예측: 내 캐릭터는 서버 브로드캐스트를 기다리지 않고 로컬에서 즉시 실행하므로 서버 패킷은 무시합니다.
+        if (p.ActorId == GS.MyActorId) return;
         
         // 1Beat 시간(초) * 비율
         double beatMs = Rhythm.GetBeatDurationMs();
