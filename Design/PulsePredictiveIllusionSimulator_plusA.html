@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pulse World: Predictive Latency Simulator</title>
+    <title>Pulse World: Predictive Latency & Illusion Simulator</title>
     <style>
         body {
             font-family: 'Consolas', 'Courier New', Courier, monospace;
@@ -145,8 +145,8 @@
 
         .spec-sidebar {
             flex: 1;
-            min-width: 280px;
-            max-width: 320px;
+            min-width: 360px;
+            max-width: 420px;
             display: flex;
             flex-direction: column;
         }
@@ -314,7 +314,7 @@
 
 <body>
 
-    <h1>🌐 Pulse World: Predictive Latency Simulator</h1>
+    <h1>🌐 Pulse World: Predictive Latency & Illusion Simulator</h1>
 
     <div class="spec-container">
         <div class="spec-sidebar">
@@ -327,7 +327,7 @@
                         (오프라인)</div>
                     <div class="toggle-btn t-raw" id="btn_net_raw" onclick="setNetMode('raw')">2. 원본 물리 지연 (Broken)
                     </div>
-                    <div class="toggle-btn t-ill" id="btn_net_ill" onclick="setNetMode('ill')">3. 환상 보정 (전체 Smearing)
+                    <div class="toggle-btn t-ill" id="btn_net_ill" onclick="setNetMode('ill')">3. 환상 보정 (전체 Smearing + Reverb)
                     </div>
                     <div class="toggle-btn t-pred" id="btn_net_pred" onclick="setNetMode('pred')">4. 예측 보정 (첫타 지연 + 후속타
                         0ms)</div>
@@ -343,21 +343,36 @@
                         <button class="btn-genre" id="btn_g_orch" onclick="setGenre('orch')">Acoustral/Orch</button>
                         <button class="btn-genre" id="btn_g_8bit" onclick="setGenre('8bit')">8-Bit Retro</button>
                     </div>
-                </div>
-                <div style="flex:1;">
-                    <strong style="color: #fff; font-size:12px;">⏱ BPM / 🌐 Ping</strong>
+                    <strong style="color: #fff; font-size:12px; display:block; margin-top:10px;">⏱ BPM / 🎛️ Reverb Amount</strong>
                     <div style="display:flex; justify-content:space-between; margin-top:5px; align-items:center;">
-                        <span style="font-size:11px; color:#aaa; width:40px;">BPM:</span>
                         <input type="number" id="bpmInput" value="110"
                             style="flex:1; background:#444; color:#fff; border:1px solid #777; padding:4px; font-weight:bold;">
                     </div>
                     <div style="display:flex; justify-content:space-between; margin-top:5px; align-items:center;">
-                        <span style="font-size:11px; color:#aaa; width:40px;">Ping:</span>
-                        <div style="display:flex; flex:1; align-items:center;">
-                            <input type="number" id="pingInput" value="100" onchange="updatePing()"
-                                style="flex:1; background:#444; color:#ffeb3b; border:1px solid #777; padding:4px; font-weight:bold;">
-                            <span style="font-size:11px; color:#aaa; margin-left:3px;">ms</span>
-                        </div>
+                        <span style="font-size:11px; color:#aaa; width:40px;">Rev:</span>
+                        <input type="range" id="revScaleInput" min="0" max="2" step="0.1" value="1.0" onchange="updateRevScale()"
+                            style="flex:1; cursor:pointer;">
+                        <span id="revScaleVal" style="font-size:11px; color:#ffeb3b; width:20px; text-align:right;">1.0</span>
+                    </div>
+                </div>
+                <div style="flex:1;">
+                    <strong style="color: #fff; font-size:12px;">🌐 User Ping (ms)</strong>
+                    <p style="font-size:9px; color:#aaa; margin:2px 0 5px 0;">Ping 크기에 비례해 Reverb 세기가 동적 조절됩니다.</p>
+                    <div style="display:flex; justify-content:space-between; margin-top:2px; align-items:center;">
+                        <span style="font-size:11px; color:#aaa; width:40px;">🛡️ Tnk:</span>
+                        <input type="number" id="ping_LocA" value="50" onchange="updatePings()" style="flex:1; background:#444; color:#ffeb3b; border:1px solid #777; padding:2px; font-weight:bold;">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top:5px; align-items:center;">
+                        <span style="font-size:11px; color:#aaa; width:40px;">🗡️ Mel:</span>
+                        <input type="number" id="ping_LocB" value="100" onchange="updatePings()" style="flex:1; background:#444; color:#ffeb3b; border:1px solid #777; padding:2px; font-weight:bold;">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top:5px; align-items:center;">
+                        <span style="font-size:11px; color:#aaa; width:40px;">🏹 Rng:</span>
+                        <input type="number" id="ping_RemX" value="150" onchange="updatePings()" style="flex:1; background:#444; color:#ffeb3b; border:1px solid #777; padding:2px; font-weight:bold;">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top:5px; align-items:center;">
+                        <span style="font-size:11px; color:#aaa; width:40px;">🪄 Sup:</span>
+                        <input type="number" id="ping_RemY" value="200" onchange="updatePings()" style="flex:1; background:#444; color:#ffeb3b; border:1px solid #777; padding:2px; font-weight:bold;">
                     </div>
                 </div>
             </div>
@@ -376,8 +391,7 @@
                     (Awakening)</button>
                 <button class="btn-mode" id="btn_s_raid2" onclick="loadScenario('raid2')">💥 Raid Ph2 (Tritone
                     Clash)</button>
-                <button class="btn-mode" id="btn_s_raid3" onclick="loadScenario('raid3')">💀 Raid Ph3 (Epic Density
-                    100%)</button>
+                <button class="btn-mode" id="btn_s_raid3" onclick="loadScenario('raid3')">💀 Raid Ph3 (Predictive Epic Test)</button>
             </div>
         </div>
 
@@ -400,8 +414,7 @@
                             <option value="RemY">🪄 Supp (Pad)</option>
                         </select>
                     </div>
-                    <div id="statusText" style="font-weight:bold; color:#27ae60; font-size:14px;">[Mode: 0ms Perfect
-                        Sync]</div>
+                    <div id="statusText" style="font-weight:bold; color:#27ae60; font-size:14px;">[Mode: 0ms Perfect Sync]</div>
                 </div>
 
                 <div class="chord-prog-box" id="chordProg">Em 👉 C 👉 G 👉 D (Natural Minor)</div>
@@ -421,6 +434,7 @@
         // ==== AUDIO ENGINE & LATENCY CORE ====
         let ac = null;
         let masterGain = null;
+        let convolver = null; 
         let isPlaying = false;
         let currentStep = 0;
         let nextNoteTime = 0.0;
@@ -432,8 +446,9 @@
 
         let currentNetMode = '0ms'; // '0ms', 'raw', 'ill', 'pred'
         let currentGenre = 'synth'; // 'synth', 'orch', '8bit'
-        let pingDelayMs = 0.100; // 100ms physical ping delay
         let localPlayerId = "LocA"; // Default local player
+        let pingDelays = { LocA: 0.05, LocB: 0.1, RemX: 0.15, RemY: 0.2 }; // Dynamic user latency
+        let masterRevScale = 1.0; // Global multiplier for reverb amount
 
         let tracks = [
             { id: "SysD", name: "Drums (Kick/Hat)<br><span class='track-sub'>System (0ms)</span>", color: "#f39c12", type: "sys" },
@@ -451,6 +466,18 @@
             if (!ac) {
                 ac = new (window.AudioContext || window.webkitAudioContext)();
                 masterGain = ac.createGain(); masterGain.gain.value = 0.8; masterGain.connect(ac.destination);
+                
+                // Initialize Reverb Impulse Response
+                convolver = ac.createConvolver();
+                let length = ac.sampleRate * 1.5; // 1.5s tail
+                let impulse = ac.createBuffer(2, length, ac.sampleRate);
+                for (let i = 0; i < length; i++) {
+                    let decay = Math.exp(-i / (ac.sampleRate * 0.3)); // Natural fast decay room
+                    impulse.getChannelData(0)[i] = (Math.random() * 2 - 1) * decay;
+                    impulse.getChannelData(1)[i] = (Math.random() * 2 - 1) * decay;
+                }
+                convolver.buffer = impulse;
+                convolver.connect(masterGain);
             }
             if (ac.state === 'suspended') ac.resume();
         }
@@ -468,82 +495,103 @@
         }
 
         // ==== LATENCY AWARE SYNTHESIS ====
-        function playNote(freq, time, typeStr, isRemote = false) {
+        // Added revAmt mapping
+        function playNote(freq, time, typeStr, revAmt = 0) {
             if (freq === 0) return;
 
-            // Genre specific waveforms
             let baseWave = 'sawtooth'; let durLen = 0.2; let filtCut = 2000;
             if (currentGenre === 'orch') { baseWave = 'sine'; filtCut = 1000; durLen = 0.4; }
             if (currentGenre === '8bit') { baseWave = 'square'; filtCut = 4000; }
 
             if (typeStr === 'sysbass') {
-                if (currentGenre === 'orch') baseWave = 'sawtooth'; // contrabass
+                if (currentGenre === 'orch') baseWave = 'sawtooth'; 
                 filtCut = 600; durLen = 0.4;
             }
             else if (typeStr === 'pad') { baseWave = 'sine'; filtCut = 1200; durLen = 0.8; }
 
-            const g = ac.createGain(); g.connect(masterGain);
+            const g = ac.createGain(); // Dry gain
+            const revGain = ac.createGain(); // Wet gain
+            
             const osc = ac.createOscillator(); osc.type = baseWave; osc.frequency.value = freq;
             const flt = ac.createBiquadFilter(); flt.type = 'lowpass';
 
-            // APPLY AUDIO SMEARING ON REMOTE IF ILLUSION MODE
-            if (isRemote && (currentNetMode === 'ill' || currentNetMode === 'pred')) {
-                // Smear: slow attack, long release, lower cutoff to blend
-                flt.frequency.setValueAtTime(filtCut * 0.6, time);
+            // APPLY AUDIO SMEARING ON REMOTE IF ILLUSION / PRED MODE (and revAmt > 0)
+            if (revAmt > 0) {
+                // Smear: retain sharp transients (attack) and filter character, but extend release (tail) to hide lag
+                flt.frequency.setValueAtTime(filtCut, time);
+                flt.frequency.exponentialRampToValueAtTime(400, time + durLen + 0.3); // Extends sweep slightly
+                
                 g.gain.setValueAtTime(0.01, time);
-                g.gain.linearRampToValueAtTime(0.3, time + 0.05); // slow attack
+                g.gain.linearRampToValueAtTime(0.4, time + 0.02); // Slightly softer attack max gain, similar speed
                 g.gain.exponentialRampToValueAtTime(0.01, time + 0.6); // Smear tail (hide lag)
                 durLen = 0.7;
+
+                // Send to Reverb dynamically proportional to Ping & Scale!
+                revGain.gain.setValueAtTime(revAmt * masterRevScale, time);
             } else {
-                // Raw / 0ms / Predictive(Predicted hits): Sharp attack
+                // Raw / 0ms / Predictive(Predicted consecutive hits): Sharp attack
                 flt.frequency.setValueAtTime(filtCut, time); flt.frequency.exponentialRampToValueAtTime(400, time + durLen);
                 g.gain.setValueAtTime(0.01, time);
-                g.gain.linearRampToValueAtTime(0.5, time + 0.01); // Sharp attack shows 100ms error immediately
+                g.gain.linearRampToValueAtTime(0.5, time + 0.01); // Sharp attack shows raw error immediately, or satisfying 0ms sync
                 g.gain.exponentialRampToValueAtTime(0.01, time + durLen);
+                
+                revGain.gain.setValueAtTime(0, time);
             }
 
-            osc.connect(flt); flt.connect(g);
+            osc.connect(flt); 
+            flt.connect(g);
+            flt.connect(revGain);
+
+            g.connect(masterGain);
+            revGain.connect(convolver);
+
             osc.start(time); osc.stop(time + durLen + 0.1);
         }
 
-        function playDrum(note, time) {
+        function playDrum(note, time, revAmt = 0) {
             let n = note.toLowerCase();
-            const g = ac.createGain(); g.connect(masterGain);
+            const g = ac.createGain(); 
+            const revGain = ac.createGain(); revGain.gain.setValueAtTime((revAmt * masterRevScale) * 0.5, time); // drums slightly less reverb
+
+            g.connect(masterGain);
+            revGain.connect(convolver);
+
             let isKick = n.includes("kick"); let isSnr = n.includes("snare"); let isHat = n.includes("hat");
 
             if (currentGenre === "8bit") {
                 if (isKick) {
                     const osc = ac.createOscillator(); osc.type = 'square'; osc.frequency.setValueAtTime(150, time);
                     const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(1000, time); f.frequency.exponentialRampToValueAtTime(100, time + 0.2);
-                    osc.connect(f); f.connect(g);
+                    osc.connect(f); f.connect(g); f.connect(revGain);
                     g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.8, time + 0.01); g.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
                     osc.start(time); osc.stop(time + 0.3);
-                } else { // noise
+                } else { 
                     const buf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
                     for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = (Math.random() > 0.5 ? 1 : -1);
-                    const src = ac.createBufferSource(); src.buffer = buf; src.connect(g);
+                    const src = ac.createBufferSource(); src.buffer = buf; 
+                    src.connect(g); src.connect(revGain);
                     g.gain.setValueAtTime(0.5, time); g.gain.exponentialRampToValueAtTime(0.01, time + (isSnr ? 0.15 : 0.05)); src.start(time);
                 }
-            } else { // Modern/Orch
+            } else { 
                 if (isKick) {
                     const osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(120, time); osc.frequency.exponentialRampToValueAtTime(20, time + 0.4);
                     g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.9, time + 0.05); g.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
-                    osc.connect(g); osc.start(time); osc.stop(time + 0.5);
+                    osc.connect(g); osc.connect(revGain); osc.start(time); osc.stop(time + 0.5);
                 } else if (isSnr) {
                     const osc = ac.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(200, time);
                     g.gain.setValueAtTime(0.5, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
-                    osc.connect(g); osc.start(time); osc.stop(time + 0.3);
+                    osc.connect(g); osc.connect(revGain); osc.start(time); osc.stop(time + 0.3);
                     const buf = ac.createBuffer(1, ac.sampleRate * 0.2, ac.sampleRate);
                     for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
                     const src = ac.createBufferSource(); src.buffer = buf;
                     const filt = ac.createBiquadFilter(); filt.type = 'highpass'; filt.frequency.value = 1500;
-                    src.connect(filt); filt.connect(g); src.start(time);
+                    src.connect(filt); filt.connect(g); filt.connect(revGain); src.start(time);
                 } else if (isHat) {
                     const buf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
                     for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
                     const src = ac.createBufferSource(); src.buffer = buf;
                     const filt = ac.createBiquadFilter(); filt.type = 'highpass'; filt.frequency.value = 8000;
-                    src.connect(filt); filt.connect(g);
+                    src.connect(filt); filt.connect(g); filt.connect(revGain);
                     g.gain.setValueAtTime(0.3, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
                     src.start(time);
                 }
@@ -551,8 +599,36 @@
         }
 
         // ==== UI & LOGIC ====
+        function updatePings() {
+            pingDelays.LocA = (parseInt(document.getElementById("ping_LocA").value) || 0) / 1000.0;
+            pingDelays.LocB = (parseInt(document.getElementById("ping_LocB").value) || 0) / 1000.0;
+            pingDelays.RemX = (parseInt(document.getElementById("ping_RemX").value) || 0) / 1000.0;
+            pingDelays.RemY = (parseInt(document.getElementById("ping_RemY").value) || 0) / 1000.0;
+            
+            pingDelays[localPlayerId] = 0; // Local is always 0ms latency
+        }
+
+        function updateRevScale() {
+            masterRevScale = parseFloat(document.getElementById("revScaleInput").value) || 1.0;
+            document.getElementById("revScaleVal").innerText = masterRevScale.toFixed(1);
+        }
+
         function updateTrackRoles() {
             localPlayerId = document.getElementById("localPlayerSelect").value;
+            
+            // Handle ping inputs visual state
+            ["LocA", "LocB", "RemX", "RemY"].forEach(id => {
+                let el = document.getElementById("ping_" + id);
+                if (id === localPlayerId) {
+                    el.disabled = true;
+                    el.style.opacity = 0.5;
+                } else {
+                    el.disabled = false;
+                    el.style.opacity = 1;
+                }
+            });
+            updatePings();
+
             tracks.forEach(trk => {
                 if (trk.id !== "SysD" && trk.id !== "SysB") {
                     if (trk.id === localPlayerId) {
@@ -583,24 +659,16 @@
             });
         }
 
-        function updatePing() {
-            let val = parseInt(document.getElementById("pingInput").value);
-            if (isNaN(val) || val < 0) val = 0;
-            pingDelayMs = val / 1000.0;
-            setNetMode(currentNetMode);
-        }
-
         function setNetMode(mode) {
             currentNetMode = mode;
             document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('btn_net_' + mode).classList.add('active');
 
-            let pingVal = document.getElementById("pingInput").value;
             let t = document.getElementById("statusText");
             if (mode === '0ms') { t.innerText = "[Mode: 0ms Perfect Sync]"; t.style.color = "#27ae60"; }
-            if (mode === 'raw') { t.innerText = `[Mode: ${pingVal}ms Ping / Broken Sync]`; t.style.color = "#c0392b"; }
-            if (mode === 'ill') { t.innerText = `[Mode: ${pingVal}ms Ping / Full Illusion (All Smear)]`; t.style.color = "#00bcd4"; }
-            if (mode === 'pred') { t.innerText = `[Mode: ${pingVal}ms Ping / Predictive (1st hit Smear, rest Predict 0ms)]`; t.style.color = "#9b59b6"; }
+            if (mode === 'raw') { t.innerText = `[Mode: Multi-Ping Raw / Broken Sync]`; t.style.color = "#c0392b"; }
+            if (mode === 'ill') { t.innerText = `[Mode: Multi-Ping / Full Illusion (Smear & Dynamic Reverb)]`; t.style.color = "#00bcd4"; }
+            if (mode === 'pred') { t.innerText = `[Mode: Multi-Ping / Predictive (1st hit Smear, rest Predict 0ms)]`; t.style.color = "#9b59b6"; }
         }
 
         function setGenre(g) {
@@ -700,7 +768,7 @@
             if (type === "town") {
                 prog = "Em (1 bar) 👉 C (1 bar) 👉 G (1 bar) 👉 D (1 bar)";
                 chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "G" }, { start: 48, end: 64, name: "D" }];
-                desc = "<strong>🏙️ Town: Sparse Sync</strong><br>- <b>화성:</b> Town의 뼈대 세계관 (Em-C-G-D).<br>- 'Raw' 모드에서 얼마나 리듬이 부서지는지 먼저 확인하세요.";
+                desc = "<strong>🏙️ Town: Sparse Sync</strong><br>- <b>화성:</b> Town의 뼈대 세계관 (Em-C-G-D).<br>- Ping 차이에 따라 Reverb의 세기가 달라지며, 먼 거리일수록 공간감에 묻힘을 확인하세요.";
                 [0, 8, 16, 24, 32, 40, 48, 56].forEach(s => setS("SysD", s, "Kick"));
                 [4, 12, 20, 28, 36, 44, 52, 60].forEach(s => setS("SysD", s, "Hat"));
                 [0, 16, 32, 48].forEach(s => setS("SysB", s, getBakedNote("SysB", s)));
@@ -710,7 +778,7 @@
             else if (type === "stage") {
                 prog = "Em (1 bar) 👉 C (1 bar) 👉 G (1 bar) 👉 D (1 bar)";
                 chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "G" }, { start: 48, end: 64, name: "D" }];
-                desc = "<strong>⚔️ Stage: Call & Response</strong><br>- <b>구조:</b> 로컬 유저가 전반부에 스킬을 들이부으면, 원격 유저가 후반부에 응답합니다.<br>- <b>네트워크:</b> 예측 보정(Predictive) 시 전반부 그룹의 첫타만 지연되고 나머지는 즉연되는 것을 확인하세요.";
+                desc = "<strong>⚔️ Stage: Call & Response</strong><br>- <b>구조:</b> 로컬 유저가 전반부에 스킬을 들이부으면, 원격 유저가 후반부에 응답합니다.<br>- <b>네트워크:</b> 예측 보정(Predictive) 시 전반부 그룹의 첫타만 지연/Reverb처리 되고 나머지는 즉연(0ms/Dry)되는 것을 확인하세요.";
                 for (let i = 0; i < 64; i += 8) setS("SysD", i, "Kick");
                 for (let i = 4; i < 64; i += 8) setS("SysD", i, "Snare");
                 for (let i = 0; i < 64; i += 16) setS("SysB", i, getBakedNote("SysB", i));
@@ -720,7 +788,7 @@
             else if (type === "elite") {
                 prog = "Em (1 bar) 👉 C (1 bar) 👉 D (1 bar) 👉 <span style='color:#e24a4a'>B7 Secondary Dom (1 bar)</span>";
                 chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "D" }, { start: 48, end: 64, name: "B7" }];
-                desc = "<strong>🔥 Elite: Secondary Dominant Tension</strong><br>- 'Illusion'에서 이 B7 화성이 네트워크를 타는 플레이어 사이에서 핑과 무관하게 절대 틀어지지 않고 유지됨을 증명합니다.";
+                desc = "<strong>🔥 Elite: Secondary Dominant Tension</strong><br>- 각기 다른 핑(ex 50ms, 150ms, 200ms)에 비례해서 개별 악기의 Reverb 양이 다르게 인가되어 서로 섞이는 것을 증명합니다.";
                 for (let i = 0; i < 64; i += 4) setS("SysD", i, "Kick");
                 [0, 16, 32, 48].forEach(s => setS("SysB", s, getBakedNote("SysB", s)));
                 for (let i = 0; i < 64; i += 8) setS("LocB", i, getBakedNote("LocB", i));
@@ -730,7 +798,7 @@
             else if (type === "raid1") {
                 prog = "E Drone (Minimal Phase 1)";
                 chordTimeline = [{ start: 0, end: 64, name: "Em(Raid)" }];
-                desc = "<strong>👁️ Raid Ph1: Awakening</strong><br>- 보스의 압박감을 표현하기 위해 E음을 깔아두고 눈치싸움을 합니다.";
+                desc = "<strong>👁️ Raid Ph1: Awakening</strong><br>- E음을 깔아두고 눈치싸움을 합니다.";
                 for (let i = 0; i < 64; i += 16) { setS("SysD", i, "Kick"); setS("SysD", i + 3, "Kick"); }
                 setS("SysB", 0, "E1");
                 [0, 32].forEach(s => setS("LocA", s, "E2"));
@@ -739,7 +807,7 @@
             else if (type === "raid2") {
                 prog = "Em (2 bar) 👉 <span style='color:#e24a4a'>Bb Tritone (2 bar)</span>";
                 chordTimeline = [{ start: 0, end: 32, name: "Em(Raid)" }, { start: 32, end: 64, name: "Bb" }];
-                desc = "<strong>💥 Raid Ph2: Tritone Clash</strong><br>- 완전한 악랄 불협화음의 공간. 폴리리듬 겹침.";
+                desc = "<strong>💥 Raid Ph2: Tritone Clash</strong><br>- 핑이 클수록 더욱 긴 Reverb 꼬리를 남기며 Smearing 되어 소음을 막습니다.";
                 for (let i = 0; i < 64; i += 8) { setS("SysD", i, "Kick"); setS("SysD", i + 4, "Snare"); }
                 setS("SysB", 0, "E1"); setS("SysB", 32, "Bb1");
                 for (let i = 0; i < 64; i += 4) setS("LocA", i, getBakedNote("LocA", i));
@@ -750,7 +818,7 @@
             else if (type === "raid3") {
                 prog = "Em (1 bar) 👉 C (1 bar) 👉 Am (1 bar) 👉 <span style='color:#e24a4a'>B7 Drop (1 bar)</span>";
                 chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "Am" }, { start: 48, end: 64, name: "B7" }];
-                desc = "<strong>💀 Raid Ph3: Final Phase (Epic Harmony & Weapon Patterns)</strong><br>- <b>예측 보정 (Predictive)의 핵심:</b> 검사(Melee)나 궁수(Ranged)의 매우 촘촘한 다단히트 스킬이 원격으로 들어올 때, 오직 첫 타격만 지연되어 Illusion 처리를 받고 연속 히트들은 0ms 동기화(예측 완료)되어 완벽하게 플레이되는 것을 확인하세요.";
+                desc = "<strong>💀 Raid Ph3: Predictive Epic Test</strong><br>- <b>예측 보정 (Predictive)의 핵심:</b> 검사나 궁수의 연속 다단히트 스킬 세트가 들어갈 때, 오직 첫 타격만 지연되어 Illusion 처리(Reverb)를 받고, 이어지는 연속 히트들은 0ms로 예측 동기화되어 Reverb 없이 매우 선명한 칼날소리(Dry)가 나는 완벽한 솔루션을 확인하세요.";
                 for (let i = 0; i < 64; i += 2) setS("SysD", i, "Kick");
                 for (let i = 4; i < 64; i += 8) setS("SysD", i, "Snare");
                 [0, 16, 32, 48].forEach(s => setS("SysB", s, getBakedNote("SysB", s)));
@@ -799,21 +867,26 @@
                     let noteStr = cell.dataset.note;
 
                     let playTime = exactTime;
-                    let isSmearHit = false;
+                    let revAmt = 0;
 
                     // LATENCY ENGINE LOGIC
                     if (type === "rem") {
+                        let pMs = pingDelays[inst] || 0.1;
+
                         if (currentNetMode === 'raw') {
-                            playTime += pingDelayMs;
+                            playTime += pMs;
                         }
                         else if (currentNetMode === 'ill') {
-                            isSmearHit = true;
-                            let arrivalTime = exactTime + pingDelayMs;
+                            // Dynamic Reverb scaling mapping! [0 ~ 0.2s ping -> 0.0 ~ 0.8 reverb AMT]
+                            revAmt = Math.min(pMs * 4.0, 1.0); // e.g. 150ms -> 0.6 Reverb
+                            
+                            let arrivalTime = exactTime + pMs;
                             let targetStep = Math.round((arrivalTime - exactTime) / secPerStep) + stepNum;
                             if (targetStep % 2 !== 0) targetStep += 1;
                             playTime = exactTime + (targetStep - stepNum) * secPerStep;
                             if (playTime < exactTime) playTime = arrivalTime;
                             noteStr = getBakedNote(inst, targetStep % 64);
+
                         }
                         else if (currentNetMode === 'pred') {
                             // Predictive Logic: Check if within a skill sequence (Max gap <= 2 steps for combo)
@@ -829,9 +902,10 @@
                             }
 
                             if (isFirstHit) {
-                                // First hit applies Illusion logic (unpredicted arrival)
-                                isSmearHit = true;
-                                let arrivalTime = exactTime + pingDelayMs;
+                                // First hit applies Illusion logic (Unpredicted arrival) -> strong dynamic reverb! 
+                                revAmt = Math.min(pMs * 4.0, 1.0);
+
+                                let arrivalTime = exactTime + pMs;
                                 let targetStep = Math.round((arrivalTime - exactTime) / secPerStep) + stepNum;
                                 if (targetStep % 2 !== 0) targetStep += 1;
                                 playTime = exactTime + (targetStep - stepNum) * secPerStep;
@@ -839,15 +913,15 @@
                                 noteStr = getBakedNote(inst, targetStep % 64);
                             } else {
                                 // Predicted! We already knew this input was coming in the sequence.
-                                // Play it perfectly synced (0ms latency, sharp attack)
-                                isSmearHit = false;
-                                playTime = exactTime; // No ping delay added!
+                                // Play it perfectly synced (0ms latency, sharp attack, no reverb compensation!)
+                                revAmt = 0.0; 
+                                playTime = exactTime; 
                             }
                         }
                     }
 
-                    if (inst === "SysD") playDrum(noteStr, playTime);
-                    else playNote(noteToFreq(noteStr), playTime, type === "sys" ? "sysbass" : "synth", isSmearHit);
+                    if (inst === "SysD") playDrum(noteStr, playTime, revAmt);
+                    else playNote(noteToFreq(noteStr), playTime, type === "sys" ? "sysbass" : "synth", revAmt);
                 }
             });
         }
@@ -887,6 +961,7 @@
 
         window.onload = function () {
             buildGrid();
+            updateTrackRoles();
             loadScenario('town');
             setNetMode('0ms'); // init text
         };

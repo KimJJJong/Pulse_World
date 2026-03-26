@@ -2,7 +2,7 @@
 
 ## 1. 개요 (Overview)
 본 문서는 Pulse World 서버가 유저의 정보와 게임 상태를 영속적으로 보존하고, 실시간 매치메이킹 및 세션 상태를 빠르게 읽고 쓰기 위한 데이터베이스 아키텍처를 정의합니다.
-성능과 데이터 무결성을 모두 확보하기 위해 **RDBMS(관계형 DB)**와 **In-Memory NoSQL(Redis)**을 혼합한 하이브리드 데이터베이스 구조를 사용합니다.
+성능과 데이터 무결성을 모두 확보하기 위해 **RDBMS(PostgreSQL)**와 **In-Memory NoSQL(Redis)**을 혼합한 하이브리드 데이터베이스 구조를 사용합니다.
 
 ---
 
@@ -30,7 +30,28 @@
 
 ## 3. 핵심 스키마 설계 (Entity Schema)
 
-EF Core 기반 RDBMS에 들어갈 대표적인 플레이어 데이터 구조입니다. 
+EF Core 기반 PostgreSQL에 들어갈 대표적인 플레이어 데이터 구조입니다. 주요 엔티티(Entity) 간의 관계를 시각적으로 파악하기 위한 다이어그램을 제공합니다.
+
+```mermaid
+erDiagram
+    PLAYER ||--o{ INVENTORY : "소유 (Owns)"
+    PLAYER {
+        varchar(36) Uid PK "유저 고유 식별자"
+        varchar(20) Nickname "인게임 닉네임"
+        int ResonanceLevel "공명 레벨"
+        bigint Gold "보유 골드"
+        int PulseDust "맥류 가루"
+        datetime LastLogin "최근 접속일"
+    }
+
+    INVENTORY {
+        bigint ItemUid PK "고유 아이템 일련번호"
+        varchar(36) OwnerUid FK "소유자 Uid"
+        int TemplateId "기본 아이템 ID"
+        int EnhanceLevel "현재 레어도/강화 수치"
+        bit IsBlueprint "도면 여부"
+    }
+```
 
 ### 3-1. 유저 베이스 (PlayerEntity)
 | 필드 (Column) | 타입 (Type) | 설명 (Description) |

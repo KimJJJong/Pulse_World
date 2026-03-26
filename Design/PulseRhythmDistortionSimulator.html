@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse World - 리듬 변조(Rhythm Distortion) 시뮬레이터</title>
+    <style>
+        :root {
+            --bg-color: #0A0A10;
+            --panel-bg: rgba(20, 20, 30, 0.8);
+            --border-color: #2D2D44;
+            --text-main: #E0E0FF;
+            --text-muted: #8080A0;
+            
+            --master-color: #00FFCC; /* Neon Cyan */
+            --player-color: #0088FF; /* Neon Blue */
+            --player-smash: #00DDFF;
+            --boss-color:   #FF0055; /* Neon Red/Pink */
+            --boss-warn:    #FF8800; /* Neon Orange */
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Pretendard', 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+            margin-bottom: 30px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* 컨트롤 패널 */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: var(--panel-bg);
+            padding: 15px 25px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            align-items: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        button, select, input[type="range"] {
+            background: rgba(40, 40, 60, 0.8);
+            border: 1px solid var(--master-color);
+            color: var(--text-main);
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        button:hover, select:hover {
+            background: rgba(0, 255, 204, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+        }
+        
+        #btn-stop { border-color: var(--boss-color); }
+        #btn-stop:hover { background: rgba(255, 0, 85, 0.2); box-shadow: 0 0 10px rgba(255, 0, 85, 0.4); }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+            font-weight: bold;
+        }
+
+        /* 설명 패널 */
+        .explanation {
+            background: var(--panel-bg);
+            border-left: 4px solid var(--master-color);
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 0 12px 12px 0;
+            line-height: 1.6;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: border-color 0.3s;
+        }
+        
+        .explanation h2 {
+            margin-top: 0;
+            color: var(--master-color);
+            font-size: 20px;
+            margin-bottom: 10px;
+            transition: color 0.3s;
+        }
+
+        /* 시퀀서 트랙 */
+        .sequencer {
+            position: relative;
+            background: rgba(10, 10, 15, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            height: 300px;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        /* 판정선 (Playhead) */
+        .playhead {
+            position: absolute;
+            left: 200px; /* 고정 위치 */
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #FFF;
+            box-shadow: 0 0 15px #FFF, 0 0 30px var(--master-color);
+            z-index: 50;
+        }
+        
+        /* 1비트당 픽셀 간격 */
+        .track-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .track-row {
+            height: 100px;
+            position: relative;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+        }
+
+        .track-row:last-child {
+            border-bottom: none;
+        }
+
+        .track-label {
+            position: absolute;
+            left: 0;
+            width: 150px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding-left: 20px;
+            background: linear-gradient(90deg, rgba(20,20,30,1) 0%, rgba(20,20,30,0) 100%);
+            font-weight: bold;
+            font-size: 18px;
+            z-index: 40;
+            letter-spacing: 1px;
+        }
+        
+        .label-master { color: var(--text-muted); }
+        .label-boss { color: var(--boss-color); text-shadow: 0 0 5px rgba(255,0,85,0.5); }
+        .label-player { color: var(--player-color); text-shadow: 0 0 5px rgba(0,136,255,0.5); }
+
+        /* 노트 렌더링 */
+        .note {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 50px;
+            width: 100px; /* BEAT_WIDTH에 의존 */
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            transition: opacity 0.1s;
+            opacity: 0.8;
+        }
+
+        .note.fired {
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        /* 마스터 비트 마커 */
+        .note-master {
+            width: 2px !important;
+            height: 100% !important;
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.3);
+            align-items: flex-start;
+            padding-top: 10px;
+            padding-left: 5px;
+            font-size: 20px;
+        }
+        
+        .note-master.beat-1 {
+            background: rgba(0, 255, 204, 0.4);
+            color: var(--master-color);
+            width: 4px !important;
+        }
+
+        /* 보스 노트 */
+        .note-boss-attack {
+            background: rgba(255, 0, 85, 0.2);
+            border: 2px solid var(--boss-color);
+            color: #FFF;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
+        }
+        
+        .note-boss-warn {
+            height: 30px;
+            background: rgba(255, 136, 0, 0.1);
+            border: 2px dashed var(--boss-warn);
+            color: var(--boss-warn);
+        }
+
+        /* 플레이어 노트 */
+        .note-player-charge {
+            background: rgba(0, 136, 255, 0.15);
+            border: 2px solid var(--player-color);
+            color: #FFF;
+        }
+        
+        .note-player-smash {
+            background: rgba(0, 221, 255, 0.3);
+            border: 2px solid var(--player-smash);
+            color: #FFF;
+            box-shadow: 0 0 15px rgba(0, 221, 255, 0.6);
+            font-size: 16px;
+        }
+
+        /* 액션 오버레이 (충돌/성공) */
+        #action-overlay {
+            position: absolute;
+            top: 50%;
+            left: 200px;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            font-weight: 900;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            text-shadow: 0 0 20px #000;
+        }
+
+        @keyframes popOut {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        .pop-clash { animation: popOut 0.5s ease-out; color: #FF0055; text-shadow: 0 0 30px #FF0055, 0 0 10px #000 !important; }
+        .pop-hit   { animation: popOut 0.5s ease-out; color: #00FFCC; text-shadow: 0 0 30px #00FFCC, 0 0 10px #000 !important; }
+
+        /* 상태 플래시 효과 */
+        #screen-flash {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 999;
+            transition: opacity 0.1s;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⚔️ Pulse World - 리듬 변조 & 카오스 시뮬레이터</h1>
+    
+    <div class="controls">
+        <button id="btn-play">▶ 재생 (Audio 활성화)</button>
+        <button id="btn-stop">■ 정지</button>
+        <select id="mode-select">
+            <option value="normal">1. 정상 상태 (4/4 박자 안정화)</option>
+            <option value="distortion">2. 박자 변조 직격 (3/4박자 마디 축소)</option>
+            <option value="polyrhythm">3. 폴리리듬 카오스 (4/4 vs 3/4)</option>
+            <option value="syncopation">4. 강제 엇박 패턴 (Syncopation)</option>
+        </select>
+        
+        <div class="slider-container">
+            <label for="bpm-slider">BPM: <span id="bpm-display" style="color: var(--master-color);">120</span></label>
+            <input type="range" id="bpm-slider" min="60" max="200" value="120" step="5">
+        </div>
+    </div>
+
+    <div id="explanation" class="explanation">
+        <!-- JS에서 내용 동적 교체 -->
+    </div>
+
+    <div class="sequencer" id="sequencer-box">
+        <div class="playhead"></div>
+        <div id="action-overlay"></div>
+        <div class="track-row" id="row-master">
+            <div class="track-label label-master">🌐 마스터 BPM</div>
+            <div class="track-container" id="track-master"></div>
+        </div>
+        <div class="track-row" id="row-boss" style="background: rgba(255,0,85,0.05);">
+            <div class="track-label label-boss">👿 보스 패턴</div>
+            <div class="track-container" id="track-boss"></div>
+        </div>
+        <div class="track-row" id="row-player" style="background: rgba(0,136,255,0.05);">
+            <div class="track-label label-player">🛡️ 대검 (4비트)</div>
+            <div class="track-container" id="track-player"></div>
+        </div>
+    </div>
+</div>
+
+<div id="screen-flash"></div>
+
+<script>
+    /** --- Data Definitions --- */
+    const UI_DATA = {
+        normal: {
+            title: "1. 정상 상태 (4/4 박자 동기화)",
+            desc: "세계의 맥동(마스터 BPM)이 4/4박자입니다. <br>플레이어의 4비트 대검 스킬(\"차징-차징-차징-강타\") 시작점과 보스의 4박 공격 패턴 주기가 정확히 맞물립니다. (플레이어가 4비트째에 타격함과 동시에 보스의 공격을 쳐내거나 피할 수 있는 직관적인 상태입니다.)",
+            color: "#00FFCC"
+        },
+        distortion: {
+            title: "2. 박자 변조 직격 (마디 축소, 강제 3/4 박자)",
+            desc: "보스가 세계의 법칙을 비틀어 마스터 BPM을 <b>3/4박자</b>로 찌그러뜨렸습니다. <br>결과: 플레이어가 웅장한 4비트 스킬을 차징하는 도중(3비트째) 강제로 마디가 끝나고 보스의 일격이 날아옵니다.<br><strong style='color:#FF0055'>[파티 기믹 요구]</strong> 콤보가 강제로 끊기므로, 장신구를 활용한 <b>파티원 공명 합공(Resonance)</b> QTE로 위기를 벗어나 마디를 되찾아야 합니다.",
+            color: "#FF0055"
+        },
+        polyrhythm: {
+            title: "3. 폴리리듬 카오스 (4/4 vs 3/4 혼재)",
+            desc: "세계는 4/4박자를 유지하여 유저는 4비트 리듬을 타지만, <b>보스 혼자서 3/4박자 주기로 엇갈리게 공격해옵니다.</b><br>결과: 보스의 타격 타이밍이 매번 유저의 체감 리듬과 틀어집니다. 첫 공격은 3비트째, 다음 공격은 2비트째, 그다음은 1비트째에 꽂힙니다. 이중 박자로 뇌 정지를 유발하는 하이엔드 액션 기믹입니다.",
+            color: "#FF8800"
+        },
+        syncopation: {
+            title: "4. 강제 엇박 패턴 (Syncopation)",
+            desc: "보스가 정박자(1, 2, 3, 4)가 아닌, 비트와 비트 사이의 <b>엇박(1.5, 3.5 비트)</b>에 공격을 꽂아 넣습니다.<br>결과: 기존 액션 게임처럼 정박자 리듬감에만 의존해 대시(Dash)를 연타하면 공격을 고스란히 맞게 되는 서늘한 텐션을 제공합니다.",
+            color: "#CC00FF"
+        }
+    };
+
+    /** --- Engine Config --- */
+    let BPM = 120;
+    const BEAT_WIDTH = 250; // 1비트당 화면 픽셀 스크롤 이동량
+    const PLAYHEAD_X = 200; // 판정선 X좌표
+    const SEQ_LENGTH = 32;  // 생성할 총 비트(마디) 수 -> 반복
+    
+    let isPlaying = false;
+    let audioCtx = null;
+    let startTime = 0;
+    let currentMode = 'normal';
+    let animationId = null;
+    let notesData = []; // { beatTime, type, track, text, el, fired }
+
+    const PRE_SPAWN_BEATS = 4; // 시작 전 미리 보여줄 비트 공백
+
+    // DOM Elements
+    const btnPlay = document.getElementById('btn-play');
+    const btnStop = document.getElementById('btn-stop');
+    const modeSelect = document.getElementById('mode-select');
+    const bpmSlider = document.getElementById('bpm-slider');
+    const bpmDisplay = document.getElementById('bpm-display');
+    const explanationDiv = document.getElementById('explanation');
+    const trackMaster = document.getElementById('track-master');
+    const trackBoss = document.getElementById('track-boss');
+    const trackPlayer = document.getElementById('track-player');
+    const overlay = document.getElementById('action-overlay');
+    const screenFlash = document.getElementById('screen-flash');
+
+    /** --- Event Listeners --- */
+    modeSelect.addEventListener('change', (e) => {
+        currentMode = e.target.value;
+        updateUI();
+        if(isPlaying) rebuildSequence();
+        else previewSequence();
+    });
+
+    bpmSlider.addEventListener('input', (e) => {
+        BPM = parseInt(e.target.value);
+        bpmDisplay.innerText = BPM;
+    });
+
+    btnPlay.addEventListener('click', () => {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        
+        if(!isPlaying) {
+            isPlaying = true;
+            btnPlay.style.background = 'rgba(0, 255, 204, 0.4)';
+            btnPlay.innerText = '▶ 재생중...';
+            startTime = audioCtx.currentTime;
+            rebuildSequence();
+            animationId = requestAnimationFrame(renderLoop);
+        }
+    });
+
+    btnStop.addEventListener('click', () => {
+        isPlaying = false;
+        btnPlay.style.background = '';
+        btnPlay.innerText = '▶ 재생 (Audio 활성화)';
+        cancelAnimationFrame(animationId);
+        // Reset X pos
+        notesData.forEach(n => {
+            if(n.el) {
+                let x = PLAYHEAD_X + ((n.beatTime + PRE_SPAWN_BEATS) * BEAT_WIDTH);
+                n.el.style.transform = `translateX(${x}px)`;
+                n.el.classList.remove('fired');
+            }
+        });
+    });
+
+    /** --- Sequence Generator --- */
+    function updateUI() {
+        let data = UI_DATA[currentMode];
+        explanationDiv.innerHTML = `<h2>${data.title}</h2><p>${data.desc}</p>`;
+        explanationDiv.style.borderColor = data.color;
+        
+        // 보스 트랙 색상 테마 변경
+        document.getElementById('row-boss').style.background = currentMode === 'normal' ? 'rgba(0,255,204,0.05)' : 'rgba(255,0,85,0.05)';
+        document.querySelector('.label-boss').style.color = data.color;
+        document.querySelector('.label-boss').style.textShadow = `0 0 5px ${data.color}`;
+    }
+
+    function createNoteElement(n) {
+        const el = document.createElement('div');
+        el.className = `note note-${n.type}`;
+        el.innerHTML = n.text;
+        
+        if (n.type.startsWith('master')) {
+            el.classList.add(`beat-${n.text}`);
+        }
+        
+        if(n.track === 'master') trackMaster.appendChild(el);
+        else if(n.track === 'boss') trackBoss.appendChild(el);
+        else if(n.track === 'player') trackPlayer.appendChild(el);
+        
+        // 폭 설정 (디자인)
+        if (n.type === 'boss-attack' || n.type === 'player-smash') el.style.width = '80px';
+        else if (n.type === 'boss-warn' || n.type === 'player-charge') el.style.width = '120px'; // 좀 더 길게
+        
+        n.el = el;
+    }
+
+    function rebuildSequence() {
+        trackMaster.innerHTML = ''; trackBoss.innerHTML = ''; trackPlayer.innerHTML = '';
+        notesData = [];
+        startTime = audioCtx ? audioCtx.currentTime : 0;
+        
+        // 플레이어 기본은 4박(4비트) 스킬 사이클 (대검)
+        // 보스 기본은 4박, 변조 시 3박. 혹은 엇박.
+        
+        for (let b = 0; b < SEQ_LENGTH; b++) {
+            
+            // 1. 마스터 비트 설정
+            let measureLen = (currentMode === 'distortion') ? 3 : 4; 
+            let beatNum = (b % measureLen) + 1;
+            notesData.push({ beatTime: b, type: 'master', track: 'master', text: beatNum });
+
+            // 2. 플레이어 패턴 (항상 4비트 사이클 시도)
+            if (b % 4 === 3) {
+                notesData.push({ beatTime: b, type: 'player-smash', track: 'player', text: '강타 💥' });
+            } else {
+                notesData.push({ beatTime: b, type: 'player-charge', track: 'player', text: `차징 [${b%4 + 1}]` });
+            }
+
+            // 3. 보스 패턴
+            if (currentMode === 'normal') {
+                if (b % 4 === 3) notesData.push({ beatTime: b, type: 'boss-attack', track: 'boss', text: '공격!!' });
+                else if (b % 4 === 2) notesData.push({ beatTime: b, type: 'boss-warn', track: 'boss', text: '전조' });
+            } 
+            else if (currentMode === 'distortion' || currentMode === 'polyrhythm') {
+                // 보스가 3박자 단위로 행동함
+                if (b % 3 === 2) notesData.push({ beatTime: b, type: 'boss-attack', track: 'boss', text: '공격!!' });
+                else if (b % 3 === 1) notesData.push({ beatTime: b, type: 'boss-warn', track: 'boss', text: '전조' });
+            }
+            else if (currentMode === 'syncopation') {
+                // 엇박자에 공격 (엇박 1.5, 3.5)
+                if (b % 4 === 1 || b % 4 === 3) {
+                    notesData.push({ beatTime: b + 0.5, type: 'boss-attack', track: 'boss', text: '엇박 찌르기!' });
+                    notesData.push({ beatTime: b + 0.25, type: 'boss-warn', track: 'boss', text: '경고' }); // 짧은 경고
+                }
+            }
+        }
+
+        // DOM Element 일괄 생성
+        notesData.forEach(n => {
+            n.fired = false;
+            createNoteElement(n);
+        });
+    }
+
+    function previewSequence() {
+        rebuildSequence();
+        // 초기 위치만 잡아줌
+        notesData.forEach(n => {
+            if(n.el) {
+                let x = PLAYHEAD_X + ((n.beatTime + PRE_SPAWN_BEATS) * BEAT_WIDTH);
+                n.el.style.transform = `translateX(${x}px)`;
+            }
+        });
+    }
+
+    /** --- Render & Audio Engine --- */
+    function renderLoop() {
+        if (!isPlaying) return;
+
+        let currentTime = audioCtx.currentTime - startTime;
+        let currentBeat = currentTime * (BPM / 60);
+
+        // 루프 처리 (24비트 쯤 지나면 다시 0비트로 자연스럽게 롤백)
+        if (currentBeat > (SEQ_LENGTH - 4)) {
+            startTime = audioCtx.currentTime;
+            currentBeat = 0;
+            notesData.forEach(n => { n.fired = false; n.el.classList.remove('fired'); });
+        }
+
+        notesData.forEach(n => {
+            // 현재 비트 기준으로 화면 공간 X 좌표 계산
+            // PRE_SPAWN_BEATS를 더해 시작할 때 노트가 오른쪽에서 날아오도록 유예시간 부여
+            let x = PLAYHEAD_X + (n.beatTime - (currentBeat - PRE_SPAWN_BEATS)) * BEAT_WIDTH;
+            
+            if(n.el) {
+                n.el.style.transform = `translateX(${x}px)`;
+                
+                // Culling (성능)
+                if (x < -200 || x > window.innerWidth) n.el.style.display = 'none';
+                else n.el.style.display = 'flex';
+            }
+
+            // 판정선 도달 이벤트 (Audio & Hit Effect)
+            if (x <= PLAYHEAD_X && !n.fired) {
+                n.fired = true;
+                if(n.el) n.el.classList.add('fired');
+                playAudioForNote(n);
+                checkClashLogic(n, currentBeat - PRE_SPAWN_BEATS);
+            }
+        });
+
+        animationId = requestAnimationFrame(renderLoop);
+    }
+
+    /** --- Audio Synthesizer --- */
+    function playAudioForNote(n) {
+        if (!audioCtx) return;
+        const time = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (n.type === 'master') {
+            // 메트로놈 틱
+            osc.frequency.setValueAtTime(n.text === 1 ? 880 : 440, time);
+            gain.gain.setValueAtTime(0.3, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+            osc.start(time); osc.stop(time + 0.05);
+        } 
+        else if (n.type === 'player-charge') {
+            // 차징중인 신스 소리
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(220 + (n.beatTime % 4)*50, time); // 점점 높아짐
+            gain.gain.setValueAtTime(0.2, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+            osc.start(time); osc.stop(time + 0.2);
+        }
+        else if (n.type === 'player-smash') {
+            // 강타
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(100, time);
+            osc.frequency.exponentialRampToValueAtTime(10, time + 0.3);
+            gain.gain.setValueAtTime(0.6, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+            osc.start(time); osc.stop(time + 0.3);
+            
+            showActionOverlay("PERFECT HIT!", "pop-hit");
+        }
+        else if (n.type === 'boss-attack') {
+            // 적 타격음 (하드한 노이즈 킥)
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(80, time);
+            osc.frequency.exponentialRampToValueAtTime(1, time + 0.2);
+            gain.gain.setValueAtTime(0.8, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+            osc.start(time); osc.stop(time + 0.2);
+        }
+    }
+
+    /** --- Clash Logic (게임성 시각화) --- */
+    function checkClashLogic(n, currentBeat) {
+        // 보스가 공격할 때, 플레이어가 무엇을 하고 있는지 체크
+        if (n.type === 'boss-attack') {
+            let clash = false;
+            
+            // 현재 비트 위치에서 플레이어 노트 검색 (오차 0.2 비트 이내)
+            let overlappingPlayerNotes = notesData.filter(pn => 
+                pn.track === 'player' && Math.abs(pn.beatTime - n.beatTime) < 0.2
+            );
+
+            if (overlappingPlayerNotes.length > 0) {
+                let pNote = overlappingPlayerNotes[0];
+                if (pNote.type === 'player-charge') {
+                    // 차징중에 맞음! (카오스 발생)
+                    clash = true;
+                } else if (pNote.type === 'player-smash') {
+                    // 강타끼리 부딪힘 (정상적인 딜교환/패리)
+                    // (오버레이는 player-smash에서 재생됨)
+                }
+            } else {
+                // 플레이어가 아무것도 안하는데 보스가 때림 (엇박자)
+                clash = true;
+            }
+
+            if (clash) {
+                showActionOverlay("카오스! (피격)", "pop-clash");
+                flashScreenColor('rgba(255, 0, 85, 0.4)');
+            }
+        }
+    }
+
+    function showActionOverlay(text, className) {
+        overlay.innerText = text;
+        overlay.className = className;
+        
+        // 애니메이션 재시작 트릭
+        overlay.style.animation = 'none';
+        void overlay.offsetWidth; 
+        overlay.style.animation = '';
+    }
+
+    function flashScreenColor(color) {
+        screenFlash.style.background = color;
+        screenFlash.style.opacity = '1';
+        setTimeout(() => { screenFlash.style.opacity = '0'; }, 100);
+    }
+
+    // Init Initialize UI
+    updateUI();
+    previewSequence();
+
+</script>
+</body>
+</html>

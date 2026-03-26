@@ -1,22 +1,22 @@
 # 08. 네트워크 및 서버 아키텍처 설계 (Network & Server Architecture)
 
 ## 1. 개요 (Overview)
-본 문서는 Pulse World의 전체 백엔드 서버 구조와 클라이언트의 접속 흐름, 그리고 핵심 게임플레이를 관통하는 **'실시간 멀티플레이 리듬 동기화(Time Sync)'**를 정의합니다.
+본 문서는 Pulse World의 전체 백엔드, 서버 구조와 클라이언트의 접속 흐름, 그리고 핵심 게임플레이를 관통하는 **실시간 멀티플레이 리듬 동기화(Time Sync)**를 정의합니다.
 안정적인 매치메이킹과 분산 처리를 위해 MSA(Microservices Architecture) 형태의 다중 서버 구조를 채택하고 있습니다.
 
 ---
 
 ## 2. 전체 서버 아키텍처 (Backend Architecture)
 
-Pulse World의 백엔드는 크게 3가지 독립적인 서버 군과 Redis 저장소로 구성됩니다.
+Pulse World의 서버는 크게 3가지 독립적인 서버 군과 Redis 저장소로 구성됩니다.
 
 ### 2-1. 서버 컴포넌트 역할
 1.  **API Server (HTTP/REST & WebSocket):**
-    *   **역할:** 유저 인증(JWT Token 로그인), 로비 UI 정보 제공, 상점 및 웹 기반 요청 처리.
-    *   **특징:** 대기방(Waiting Room) 시스템을 위해 WebSockets(`/hub/room`)을 운용하며, 게임 진입을 위한 티켓(GameTicket) 발급을 담당합니다.
+    *   **역할:** 유저 인증, 로비 UI 정보 제공, 상점 및 웹 기반 요청 처리.
+    *   **특징:** 대기방(Waiting Room) 시스템을 위해 WebSockets(`/hub/room`)을 운용하며, 게임 진입을 위한 티켓(Ticket) 발급을 담당합니다.
 2.  **Control Plane Server (gRPC):**
     *   **역할:** 서버 클러스터의 두뇌 역할(Orchestrator). 
-    *   **특징:** 각 GameServer의 헬스체크 및 상태를 리스트업(Registry)하고, 유저의 매치메이킹 할당(Allocation) 및 로컬리티(어느 룸에 접속 중인지)를 추적(Presence)합니다. Redis와 직접 통신합니다.
+    *   **특징:** 각 GameServer(Town, InGame)의 헬스체크 및 상태를 리스트업(Registry)하고, 유저의 매치메이킹 할당(Allocation) 및 로컬리티(어느 룸에 접속 중인지)를 추적(Presence)합니다. Redis와 직접 통신합니다.
 3.  **Game Server (TCP - Custom ServerCore):**
     *   **역할:** 마을(Town)이나 주요 경쟁 콘텐츠 안에서 캐릭터의 이동, 스킬 판정, 몬스터 AI가 동작하는 실시간 데디케이티드 서버(Dedicated Server)입니다.
     *   **특징:** 가장 빠르고 상태를 보존(Stateful)해야 하는 네트워크 연결을 담당합니다.
@@ -100,7 +100,6 @@ sequenceDiagram
 *   **스무딩 (Smoothing) 및 클램핑:** 패킷 지터(Jitter)로 인해 시간이 요동치는 것을 막기 위해 최대 200ms 이상의 튐을 방지(`MaxJumpMs=200`)하고, 최근 오프셋을 부드럽게 보간(`Lerp(0.2f)`)합니다.
 
 ---
-
 ## 5. 오디오 정밀 동기화 (BgmSyncPlayer)
 
 네트워크 시간을 맞추는 것을 넘어, Unity AudioSource 장치의 하드웨어 아날로그 출력 딜레이를 극복하는 모듈입니다.

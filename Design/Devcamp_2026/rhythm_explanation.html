@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>정박(On-beat)과 엇박(Off-beat)의 이해</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --text-color: #c9d1d9;
+            --primary: #58a6ff;
+            --accent: #bc8cff;
+            --danger: #f85149;
+            --success: #3fb950;
+            --beat-color: #30363d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background-color: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            border: 1px solid #30363d;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-top: 0;
+            border-bottom: 2px solid var(--beat-color);
+            padding-bottom: 1rem;
+        }
+
+        p {
+            line-height: 1.6;
+        }
+
+        .concept-box {
+            background-color: rgba(88, 166, 255, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        button {
+            background-color: var(--beat-color);
+            color: var(--text-color);
+            border: 1px solid #484f58;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: #484f58;
+            border-color: #8b949e;
+        }
+
+        button.active {
+            background-color: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        button.stop {
+            background-color: transparent;
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        button.stop:hover {
+            background-color: rgba(248, 81, 73, 0.1);
+        }
+
+        /* Visualizer */
+        .track {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+            background: #0d1117;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--beat-color);
+        }
+
+        .track-label {
+            width: 100px;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .beats-container {
+            display: flex;
+            flex-grow: 1;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        /* The moving playhead */
+        .playhead {
+            position: absolute;
+            top: -10px;
+            bottom: -10px;
+            width: 4px;
+            background-color: var(--success);
+            left: 0;
+            transition: left 0.1s linear;
+            z-index: 10;
+            box-shadow: 0 0 10px var(--success);
+            display: none;
+        }
+
+        .beat-marker {
+            width: 40px;
+            height: 40px;
+            background-color: var(--beat-color);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #8b949e;
+            transition: all 0.1s;
+            position: relative;
+        }
+
+        .beat-marker.on-beat {
+            border: 2px solid var(--primary);
+        }
+
+        /* Offbeats positioned between onbeats */
+        .beat-marker.off-beat {
+            border: 2px dashed var(--accent);
+            width: 30px;
+            height: 30px;
+            position: absolute;
+            transform: translateX(-50%);
+        }
+
+        .beat-marker.active {
+            box-shadow: 0 0 15px currentColor;
+            transform: scale(1.1);
+        }
+        
+        .on-beat.active { background-color: var(--primary); color: white; }
+        .off-beat.active { background-color: var(--accent); color: white; }
+
+        .slider-group {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        input[type=range] {
+            width: 80%;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>음악에서의 정박(On-beat)과 엇박(Off-beat)</h1>
+    
+    <div class="concept-box">
+        <p><strong>우리가 흔히 말하는 "엇박자"란 무엇일까요?</strong></p>
+        <p>기획서에서 언급한 <strong>'엇박'</strong>은 유저가 박자를 실수로 틀렸다는 뜻이 아닙니다. 음악 이론 관점에서 <strong>'의도적으로 정박(메인 비트) 사이에 리듬을 넣는 테크닉(Syncopation)'</strong>을 의미합니다.</p>
+    </div>
+
+    <p>4/4박자 음악을 예로 들어보겠습니다. "하나, 둘, 셋, 넷" 하고 발로 구르는 큼직한 박자가 바로 <strong>정박(On-beat)</strong>입니다. 주로 드럼의 킥(Kick)이나 스네어(Snare)가 이 자리를 차지하며 곡의 뼈대를 만듭니다.</p>
+
+    <p>반면, "하나 <strong>'와'</strong> 둘 <strong>'과'</strong> 셋 <strong>'그리고'</strong> 넷" 처럼, 정박과 정박 <strong>그 사이(Off-beat)</strong>에 들어가는 박자가 있습니다. 이를 엇박, 혹은 업비트(Up-beat)라고 부릅니다. 하이햇(Hi-hat)이나 베이스 기타의 당김음이 주로 여기 들어가 곡에 '그루브(속도감과 리듬감)'를 부여합니다.</p>
+
+    <div class="controls">
+        <button id="btn-kick" onclick="toggleTrack('kick')">정박 (킥 드럼) 재생</button>
+        <button id="btn-hihat" onclick="toggleTrack('hihat')">엇박 (하이햇) 추가</button>
+        <button class="stop" onclick="stopAll()">■ 정지</button>
+    </div>
+
+    <div class="slider-group">
+        <label for="bpm-slider">BPM (템포): <span id="bpm-val">100</span></label><br>
+        <input type="range" id="bpm-slider" min="60" max="180" value="100" oninput="updateBPM(this.value)">
+    </div>
+
+    <!-- Visualizer -->
+    <div class="track">
+        <div class="track-label">시각화</div>
+        <div class="beats-container" id="visualizer-container">
+            <div class="playhead" id="playhead"></div>
+            <!-- 정박 (1, 2, 3, 4) -->
+            <div class="beat-marker on-beat" id="beat-0">1</div>
+            
+            <!-- 엇박 (1.5) -->
+            <div class="beat-marker off-beat" id="beat-0-5" style="left: 12.5%">+</div>
+            
+            <div class="beat-marker on-beat" id="beat-1">2</div>
+            
+            <!-- 엇박 (2.5) -->
+            <div class="beat-marker off-beat" id="beat-1-5" style="left: 37.5%">+</div>
+            
+            <div class="beat-marker on-beat" id="beat-2">3</div>
+            
+            <!-- 엇박 (3.5) -->
+            <div class="beat-marker off-beat" id="beat-2-5" style="left: 62.5%">+</div>
+            
+            <div class="beat-marker on-beat" id="beat-3">4</div>
+            
+            <!-- 엇박 (4.5) -->
+            <div class="beat-marker off-beat" id="beat-3-5" style="left: 87.5%">+</div>
+        </div>
+    </div>
+
+    <div class="concept-box" style="border-left-color: var(--accent); background-color: rgba(188, 140, 255, 0.1);">
+        <p><strong>Pulse World 에서의 적용 (기획서 맥락):</strong></p>
+        <p>대검 같은 중량 무기는 <strong>파란색 정박(1, 2, 3, 4)</strong>에 공격 버튼을 눌러야 묵직한 데미지가 들어갑니다. 하지만 쌍검(하이햇 역할)이나 특정 신발(섀도우 부츠)은 사이사이에 있는 <strong>보라색 엇박(+)</strong> 타이밍에 커맨드를 입력하면 회피 스텝이나 빠른 추가 연타가 발동되는 컨셉입니다.</p>
+        <p>즉, '엇박을 사용한다'는 말은 '리듬을 놓쳤다'가 아니라, <strong>'8분음표 타이밍(정박의 절반 위치)을 공격 구간으로 활용하는 날렵한 클래스/장비'</strong>라는 설정이었습니다.</p>
+    </div>
+
+</div>
+
+<script>
+    // Web Audio API Setup
+    let audioContext;
+    
+    let isPlaying = false;
+    let bpm = 100;
+    let current16thNote = 0;
+    let nextNoteTime = 0.0;
+    let timerID;
+    let lookahead = 25.0; // milliseconds
+    let scheduleAheadTime = 0.1; // seconds
+
+    // State
+    let state = {
+        kick: false,
+        hihat: false
+    };
+
+    // Synth for Kick (On-beat)
+    function playKick(time) {
+        if (!audioContext) return;
+        const osc = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        osc.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        osc.frequency.setValueAtTime(150, time);
+        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+
+        gainNode.gain.setValueAtTime(1, time);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+
+        osc.start(time);
+        osc.stop(time + 0.5);
+    }
+
+    // Synth for Hi-hat (Off-beat)
+    function playHihat(time) {
+        if (!audioContext) return;
+        const filter = audioContext.createBiquadFilter();
+        const gainNode = audioContext.createGain();
+        
+        // Use a buffer of white noise for the hi-hat
+        const bufferSize = audioContext.sampleRate * 0.1; // 0.1 seconds
+        const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioContext.createBufferSource();
+        noise.buffer = buffer;
+
+        filter.type = 'highpass';
+        filter.frequency.value = 7000;
+
+        noise.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        gainNode.gain.setValueAtTime(0.3, time);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+
+        noise.start(time);
+    }
+
+    // Scheduler
+    function nextNote() {
+        const secondsPerBeat = 60.0 / bpm;
+        nextNoteTime += 0.25 * secondsPerBeat; // 16th notes
+        current16thNote++;
+        if (current16thNote === 16) {
+            current16thNote = 0;
+        }
+    }
+
+    let lastDrawTime = -1;
+
+    function scheduleNote(beatNumber, time) {
+        // Visualizer synchronization
+        requestAnimationFrame(() => updateVisuals(beatNumber));
+
+        // Note scheduling (16 step sequencer)
+        // beatNumber: 0,1,2,3 (Beat 1) | 4,5,6,7 (Beat 2) | 8,9,10,11 (Beat 3) | 12,13,14,15 (Beat 4)
+        
+        // On-beats: 0, 4, 8, 12 (1, 2, 3, 4)
+        if (beatNumber % 4 === 0) {
+            if (state.kick) playKick(time);
+        }
+
+        // Off-beats (the "+" between the numbers i.e. 8th notes): 2, 6, 10, 14
+        if (beatNumber % 4 === 2) {
+            if (state.hihat) playHihat(time);
+        }
+    }
+
+    function scheduler() {
+        while (nextNoteTime < audioContext.currentTime + scheduleAheadTime) {
+            scheduleNote(current16thNote, nextNoteTime);
+            nextNote();
+        }
+        timerID = setTimeout(scheduler, lookahead);
+    }
+
+    // UI Updates
+    function updateVisuals(beatNumber) {
+        // Only update on 8th notes (0, 2, 4, 6, 8, 10, 12, 14)
+        if (beatNumber % 2 !== 0) return;
+
+        // Reset all active classes
+        document.querySelectorAll('.beat-marker').forEach(el => el.classList.remove('active'));
+
+        // Determine which marker to light up
+        let markerId = '';
+        if (beatNumber === 0) markerId = 'beat-0';
+        else if (beatNumber === 2) markerId = 'beat-0-5'; // Offbeat
+        else if (beatNumber === 4) markerId = 'beat-1';
+        else if (beatNumber === 6) markerId = 'beat-1-5'; // Offbeat
+        else if (beatNumber === 8) markerId = 'beat-2';
+        else if (beatNumber === 10) markerId = 'beat-2-5'; // Offbeat
+        else if (beatNumber === 12) markerId = 'beat-3';
+        else if (beatNumber === 14) markerId = 'beat-3-5'; // Offbeat
+
+        const marker = document.getElementById(markerId);
+        if (marker) {
+            // Only light up if the respective track is playing
+            if ((beatNumber % 4 === 0 && state.kick) || (beatNumber % 4 === 2 && state.hihat) || (!state.kick && !state.hihat)) {
+                 marker.classList.add('active');
+            }
+        }
+
+        // Move Playhead smoothly
+        const playhead = document.getElementById('playhead');
+        playhead.style.display = 'block';
+        
+        // Calculate percentage (0 to 15 mapped to 0% to ~93%)
+        const percentage = (beatNumber / 16) * 100;
+        playhead.style.left = percentage + '%';
+    }
+
+    function initAudio() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+    }
+
+    function toggleTrack(type) {
+        initAudio(); // Required due to browser auto-play policies
+        
+        state[type] = !state[type];
+        
+        const btnId = type === 'kick' ? 'btn-kick' : 'btn-hihat';
+        document.getElementById(btnId).classList.toggle('active', state[type]);
+
+        if (!isPlaying && (state.kick || state.hihat)) {
+            startSequencer();
+        } else if (isPlaying && !state.kick && !state.hihat) {
+            stopSequencer();
+        }
+    }
+
+    function startSequencer() {
+        initAudio();
+        isPlaying = true;
+        current16thNote = 0;
+        nextNoteTime = audioContext.currentTime + 0.1;
+        scheduler();
+    }
+
+    function stopSequencer() {
+        isPlaying = false;
+        clearTimeout(timerID);
+        document.getElementById('playhead').style.display = 'none';
+        document.querySelectorAll('.beat-marker').forEach(el => el.classList.remove('active'));
+    }
+
+    function stopAll() {
+        state.kick = false;
+        state.hihat = false;
+        document.getElementById('btn-kick').classList.remove('active');
+        document.getElementById('btn-hihat').classList.remove('active');
+        stopSequencer();
+    }
+
+    function updateBPM(val) {
+        bpm = val;
+        document.getElementById('bpm-val').innerText = val;
+    }
+</script>
+
+</body>
+</html>

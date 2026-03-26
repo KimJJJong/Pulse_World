@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>Pulse World - 2026 인디게임 데브캠프 기획안</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&display=swap');
+        
+        :root {
+            --primary-cyan: #00E5FF;
+            --primary-magenta: #FF007F;
+            --dark-bg: #121212;
+            --light-bg: #F8F9FA;
+            --text-main: #333333;
+            --text-light: #555555;
+            --border-color: #E0E0E0;
+        }
+
+        @page { size: A4 portrait; margin: 15mm; }
+
+        body { 
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; 
+            line-height: 1.6; 
+            color: var(--text-main); 
+            background-color: var(--light-bg);
+            max-width: 900px; 
+            margin: auto; 
+            padding: 20px; 
+        }
+
+        .cover-page {
+            text-align: center;
+            padding: 100px 20px;
+            page-break-after: always;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .cover-page h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--primary-cyan);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+            border: none;
+        }
+
+        .cover-page h2 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: #ccc;
+            border: none;
+            margin-bottom: 40px;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: rgba(0, 229, 255, 0.2);
+            color: var(--primary-cyan);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            border: 1px solid var(--primary-cyan);
+            margin: 5px;
+        }
+
+        h1, h2, h3, h4 { 
+            color: #111; 
+            page-break-after: avoid; 
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: var(--dark-bg);
+            border-bottom: 3px solid var(--primary-magenta);
+            padding-bottom: 8px;
+            margin-top: 40px;
+            position: relative;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: #222;
+            border-left: 4px solid var(--primary-cyan);
+            padding-left: 10px;
+            margin-top: 30px;
+        }
+
+        p { font-size: 15px; color: var(--text-light); }
+        
+        strong { color: #000; font-weight: 700; }
+
+        .highlight { color: var(--primary-magenta); font-weight: bold; }
+        .highlight-cyan { color: #0088AA; font-weight: bold; }
+
+        .image-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            margin: 25px 0;
+            page-break-inside: avoid;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 1px solid var(--border-color);
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .img-single {
+            display: block;
+            margin: 30px auto;
+            max-width: 75%;
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+
+        table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin: 20px 0; 
+            page-break-inside: avoid; 
+            font-size: 14px; 
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            table-layout: fixed;
+        }
+        
+        th, td { 
+            border: 1px solid #eee; 
+            padding: 12px 15px; 
+            text-align: left; 
+            vertical-align: top; 
+            word-wrap: break-word;
+        }
+        
+        th { 
+            background-color: var(--dark-bg); 
+            color: white; 
+            font-weight: 700;
+        }
+
+        .blockquote { 
+            border-left: 5px solid var(--primary-cyan); 
+            background: #F0F9FF; 
+            padding: 15px 20px; 
+            margin: 20px 0; 
+            border-radius: 0 8px 8px 0;
+            color: #005577;
+            font-style: italic;
+            font-weight: 700;
+            page-break-inside: avoid;
+        }
+
+        .dark-box {
+            background: var(--dark-bg);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        .dark-box p { color: #ddd; }
+        .dark-box h2 { border-bottom: 3px solid var(--primary-magenta); color: #fff; }
+        .dark-box h3 { border-left-color: var(--primary-magenta); color: white; }
+
+        ul, ol { padding-left: 20px; color: var(--text-light); }
+        li { margin-bottom: 8px; }
+
+        .page-break { page-break-after: always; }
+        
+        .skill-box {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .skill-title { font-weight: bold; color: #111; font-size: 1.1rem; border-bottom: 1px dashed #eee; padding-bottom: 5px; margin-bottom: 5px;}
+    </style>
+</head>
+<body>
+
+    <!-- Cover Page -->
+    <div class="cover-page">
+        <h1>PULSE WORLD</h1>
+        <h2>기세 세계 : 액션의 맥박을 깨우고, 협동의 선율을 완성하다</h2>
+        <div style="margin-top: 30px;">
+            <span class="badge">장르: 쿼터뷰 멀티플레이 리듬 액션 RPG</span>
+            <span class="badge">플랫폼: PC (Steam)</span>
+        </div>
+        <!-- 텍스트 삭제 요청 반영 -->
+    </div>
+
+    <!-- 1. 프로젝트 개요 -->
+    <h2>1. 프로젝트 개요 및 비전 (Overview)</h2>
+    
+    <div class="blockquote">
+        "흐름(Flow)을 잃어가는 세계에서 오염을 정화하며, 음악의 템포에 몸을 맡긴 채 다양한 무기를 휘두르는 리듬 기반 액션 파밍 RPG"
+    </div>
+
+    <h3>🎯 시장의 한계점과 타겟 유저</h3>
+    <p>기존 리듬 게임은 고도의 반사신경, 극악의 난이도 및 암기 의존으로 인해 대중적 진입 장벽이 높습니다. 반면 일반 액션 RPG는 성장에만 몰두해 조작의 몰입감이 무뎌지기 쉽습니다. <br>
+    <strong>[Pulse World]</strong>는 넉넉한 판정(엇박자 통용)을 제공해 피지컬 압박을 완전히 덜어내는 대신, 폭발적인 타격 피드백과 거대한 군무(협동) 시스템을 도입하여 <strong>"음악에 맞춰 몸을 흔드는 인간의 본원적 쾌감"</strong>을 온전히 누릴 수 있는 캐주얼 액션 게이머 및 RPG 코어 유저를 동시에 타겟팅합니다.</p>
+
+    <div class="image-container">
+        <img src="image-2.png" alt="전투 이미지 1">
+        <img src="image-3.png" alt="전투 이미지 2">
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- 2. 세계관 -->
+    <h2>2. 서사적 기조: 기세 세계의 진실 (Lore & Worldbuilding)</h2>
+    <p>Pulse World의 모든 시스템(BPM, 판정, 자원)은 맹목적인 기계적 설정이 아니라, 뚜렷한 <strong>다크 판타지적 개연성</strong>을 지닙니다.</p>
+
+    <h3>🌐 대지의 심장 (The Great Heart)과 흐름 (The Flow)</h3>
+    <p>세계 최심부에 잠든 거대한 심장이 이 세계의 모든 생명 에너지인 <strong>'맥류(Pulse Flow)'</strong>를 펌프질합니다. 인류는 에너지가 응축된 <strong>'맥석(Pulse Stone)'</strong>을 채굴해 문명을 꽃피웠지만, 무분별한 채굴로 인해 세계 곳곳의 템포가 뒤틀리며 생태계가 파괴된 '오염(Pollution)' 구역이 속출했습니다.</p>
+
+    <div class="image-container">
+        <img src="image-1.png" alt="세계관 아트웍" style="max-width: 70%">
+    </div>
+
+    <h3>🤺 맥류사 (Pulse Dancer) 와 리듬 전투의 당위성</h3>
+    <p>플레이어는 대지의 진동(BPM)을 감지하는 이능력자 <strong>'맥류사'</strong>입니다. 무기를 휘둘러 거대한 대지의 파동을 끌어내기 위해서는, 무조건 심장이 요동치는 <strong>맥동의 정점(On-Beat 정박자)</strong>에 맞춰 행동해야만 100%의 힘을 발휘할 수 있습니다. 이것이 유저가 음악에 맞춰 싸워야 하는 설정적 당위성입니다.</p>
+
+    <h3>👁️‍🗨️ 오염된 변이체 생태계와 자정 작용 (The Hidden Truth)</h3>
+    <p>인간의 눈에는 흉폭한 몬스터로 보이지만, 실상 이들은 무분별한 채굴로 불안정해진 흐름을 복구하기 위해 세계가 급조한 <strong>'대지의 면역 세포(자정 작용)'</strong>입니다. 플레이어가 보스를 죽이는 행위는 거시적으로 세계의 리듬을 더 박살 내는 모순적 서사를 품고 있습니다.</p>
+
+    <table>
+        <tr>
+            <th width="20%">생태계 등급</th>
+            <th width="25%">세계관 명칭</th>
+            <th>전투 패턴 및 행동 특징</th>
+        </tr>
+        <tr>
+            <td><strong>일반 (Normal)</strong></td>
+            <td><strong>맥류 잔향 (Pulse Echo)</strong></td>
+            <td>본능적인 정벌 패턴만 구사하며 단순한 정박자 공격(1~2가지 패턴)을 가합니다.</td>
+        </tr>
+        <tr>
+            <td><strong>정예 (Elite)</strong></td>
+            <td><strong>맥류 결정체 (Pulse Crystalline)</strong></td>
+            <td>고밀도 오염 에너지 집합체. 플레이어의 콤보를 끊는 치명적인 엇박자와 복합 돌진 장판을 전개합니다.</td>
+        </tr>
+        <tr>
+            <td><strong>보스 (Raid)</strong></td>
+            <td><strong>맥류 심핵 (Pulse Core)</strong></td>
+            <td>오염의 근원. 파티의 4/4박 브금을 강제로 일그러뜨려(3/4박, 5/4박 변조) 광역계를 가하는 변조자 기믹.</td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <!-- 3. 핵심 시스템: 전투 -->
+    <h2>3. 공감각 동기화 게임플레이 (Synesthetic Play)</h2>
+
+    <div class="blockquote">
+        시각(눈), 청각(귀), 촉각(손)이 서버의 마스터 BPM 축에 완벽하게 스냅(Snapping)되어 도파민을 분출합니다.
+    </div>
+    
+    <img class="img-single" src="image-14.png" alt="액션 인디케이터 타임라인">
+
+    <h3>⏱️ 3-Tier 리듬 판정 생태계</h3>
+    <p>모든 액션은 <code>[입력(Input)] ➔ [전조(Warning)] ➔ [타격(Damage)] ➔ [경직(InputLock)]</code> 타임라인을 가집니다.</p>
+    <ul>
+        <li><span class="highlight">Perfect (완전 공명):</span> 정박 타격 성공. 120% 특화 데미지와 함께 화면에 <strong>0.05초의 히트 스탑(Hit Stop)</strong>, 줌 펀치, 굵은 베이스 음이 터져 나옵니다.</li>
+        <li><strong>Good (부분 공명):</strong> 엇박 언저리의 안전한 입력. 콤보는 끊기지 않으나 둔탁한 기본 데미지를 입힙니다.</li>
+        <li><strong>Miss (공허):</strong> 엇박 실패 타격. 허공을 치는 마찰음과 체력 UI에 회색빛 글리치(Glitch) 패널티가 주어집니다.</li>
+    </ul>
+
+    <!-- 4. 장비 시스템과 스킬 덱 세팅 -->
+    <h2>4. 클래스를 정의하는 "6슬롯 장비 스킬 덱" (Skill Bindings)</h2>
+    <p>본 게임에는 고정 직업이 없으며, 플레이어가 착용한 **6개의 장비 부위**가 곧 직업(클래스)이자 전투 스킬을 대변합니다. 특히, 4개의 핵심 부위는 착용하는 즉시 키보드의 <strong>[Q, W, E, R] 퀵슬롯 스킬</strong>로 바인딩되어 나만의 전투 덱(Skill Deck)을 완성하게 됩니다.</p>
+
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+        <div style="flex: 1; min-width: 48%;" class="skill-box">
+            <div class="skill-title">⚔️ 1. 무기 (Weapon) : [Q - 기본/주력기]</div>
+            <p style="margin:5px 0 0 0;">전투의 기본 템포와 사거리, 타수가 결정되는 슬롯입니다. <br>대검 장착 시 넓고 무거운 1박자 광역베기가, 쌍검 시 16비트의 빠른 연속 찌르기가 Q 슬롯에 배정됩니다.</p>
+        </div>
+        <div style="flex: 1; min-width: 48%;" class="skill-box">
+            <div class="skill-title">👟 2. 신발 (Shoes) : [W - 이동/생존기]</div>
+            <p style="margin:5px 0 0 0;">보스의 장판을 피하기 위한 포지셔닝 스킬입니다. <br>군화를 신으면 정박 1칸, 섀도우 부츠는 대지를 슬라이드하며 2칸을 횡단, 페도라는 즉발 점프로 장애물을 회피합니다.</p>
+        </div>
+        <div style="flex: 1; min-width: 48%;" class="skill-box">
+            <div class="skill-title">💍 3. 장신구 1 (Accessory 1) : [E - 유틸/디버프]</div>
+            <p style="margin:5px 0 0 0;">적 방어력 감소, 지속 데미지 도트(DoT) 장판 생성, 혹은 전방에 방어막을 쳐주는 등의 전투 어시스트형 액티브 스킬 슬롯입니다.</p>
+        </div>
+        <div style="flex: 1; min-width: 48%;" class="skill-box">
+            <div class="skill-title">👑 4. 장신구 2 (Accessory 2) : [R - 비트 가이드 & 궁극기]</div>
+            <p style="margin:5px 0 0 0;">평상시엔 캐릭터 주위를 돌며 <strong>현재 BPM을 시각화(Beat Indicator)</strong>합니다. 에너지가 차면 <strong>"공명 QTE"</strong>를 유발하는 강력한 궁극기를 사용할 수 있습니다.</p>
+        </div>
+        <div style="flex: 1; min-width: 100%;" class="skill-box">
+            <div class="skill-title">🛡️ 5. 투구/갑옷 (Head & Armor) : [패시브 오라]</div>
+            <p style="margin:5px 0 0 0;">"Perfect 3회 성공 시 다음 공격 시너지 발산" 같은 리듬 기반 트리거형 패시브와 파티 안정성 역할을 돕는 고정 스탯 오라 기능 부위입니다.</p>
+        </div>
+    </div>
+
+    <!-- 5. Weapon Ensemble -->
+    <h2>5. 리듬 역할의 앙상블 시스템 (Weapon Ensemble)</h2>
+
+    <table>
+        <tr>
+            <th width="20%">무기군 (역할)</th>
+            <th width="25%">리듬 포지션 (Beat)</th>
+            <th>오디오 주파수 배치 (Audio Frequency)</th>
+        </tr>
+        <tr>
+            <td><strong>초중량 대검 (탱커)</strong></td>
+            <td>메인 비트 (Downbeat)</td>
+            <td><strong>저음역대 (20~80Hz) 킥 드럼:</strong> 묵직한 "쿵쾅-" 파티의 뼈대와 보스 홀딩.</td>
+        </tr>
+        <tr>
+            <td><strong>암살 쌍검 (딜러)</strong></td>
+            <td>오프 비트 (Syncopation)</td>
+            <td><strong>고음역대 (4k~10kHz) 하이햇:</strong> 날카롭고 숨 막히는 16비트 극딜.</td>
+        </tr>
+        <tr>
+            <td><strong>장궁/총기 (원거리)</strong></td>
+            <td>아르페지오 (Arpeggio)</td>
+            <td><strong>중고음역 플럭 신스:</strong> 통통 튀며 화성적 변주의 빈 곳을 채움.</td>
+        </tr>
+        <tr>
+            <td><strong>지팡이 (서포터)</strong></td>
+            <td>코드 패드 (Synth Pad)</td>
+            <td><strong>중역대 공간음 (500~2kHz):</strong> 웅장한 버프 오라와 회복 제공.</td>
+        </tr>
+    </table>
+
+    <div class="image-container">
+        <img src="image-18.png" style="max-width:48%">
+        <img src="image-19.png" style="max-width:48%">
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- 6. 레벨 및 보스 기믹 -->
+    <h2>6. 박자와의 뼈아픈 사투: 레이드 및 레벨 디자인</h2>
+
+    <p>파밍의 피로도를 낮추기 위해 Town 내 던전 시퀀스는 필드 돌파(Wave 기반) 후 보스전으로 자연스럽게 귀결됩니다.</p>
+    
+    <table style="text-align: center; table-layout: fixed;">
+        <tr>
+            <th>Section 1 (탐색/예열)</th>
+            <th>Section 2 (위기/텐션 상승)</th>
+            <th>Section 3 (클라이맥스/결전)</th>
+        </tr>
+        <tr>
+            <td style="padding: 10px; border-bottom: none;">
+                <img src="forest_1-1_sec1.svg" style="max-width: 90%; height: auto; display: inline-block;">
+            </td>
+            <td style="padding: 10px; border-bottom: none;">
+                <img src="forest_1-1_sec2.svg" style="max-width: 90%; height: auto; display: inline-block;">
+            </td>
+            <td style="padding: 10px; border-bottom: none;">
+                <img src="forest_1-1_sec3.svg" style="max-width: 90%; height: auto; display: inline-block;">
+            </td>
+        </tr>
+        <tr>
+            <td style="border-top: none;">단순한 정박 위주 일반몹 섬멸</td>
+            <td style="border-top: none;">엘리트 난입과 엇박자 전조 등장</td>
+            <td style="border-top: none;">거대 보스전 및 전리품 획득</td>
+        </tr>
+    </table>
+
+    <h3>🎼 레이드 보스(맥류 심핵)의 3단계 리듬 파괴 기믹</h3>
+    <div class="image-container">
+        <img src="image-15.png" alt="페이즈1" style="max-width: 32%;">
+        <img src="image-16.png" alt="페이즈2" style="max-width: 32%;">
+        <img src="image-17.png" alt="페이즈3" style="max-width: 32%;">
+    </div>
+    
+    <ul>
+        <li><strong>Phase 1 (정상 궤도 - Awakening):</strong> BGM이 안정적인 4/4박의 화성 전개로 흐르며 규칙적인 회피 장판이 전개됩니다.</li>
+        <li><span class="highlight">Phase 2 (과부하 변조 - Distortion):</span> 보스 체력이 50%를 뚫으면 대지의 리듬이 발작합니다. 화면에 심한 <strong>색수차 글리치</strong>가 끼며, 브금 코드가 <strong>증4도(Tritone) 불협화음</strong>으로 비틀립니다. 4/4박이 3/4박자나 5/4박자로 찌그러져 유저의 회피 리듬을 완전히 망가뜨리는 진성 레이드가 시작됩니다.</li>
+        <li><strong>Phase 3 (에픽 해결 - Resolution):</strong> 혹독한 엇박 패턴을 견뎌내면 브금이 웅장한 코드로 폭발하며 쿨타임이 가속되어 4명의 플레이어가 궁극기를 쏟아붓습니다.</li>
+    </ul>
+
+    <!-- 7. Economy & Pulse Crystal -->
+    <h2>7. 도면과 소켓으로 확장되는 무한 성장 경제 (Crafting & Build)</h2>
+    <p>게임의 경제는 P2W 요소가 배제된 <strong>'계정 귀속(Account Bound)' 및 '인스턴스 루팅'</strong> 파밍입니다. 던전에서 떨어지는 **장비 설계 도면(Blueprint)**과 재료를 마을의 공방에서 제작합니다. 여러 장의 동일 도면을 융합시켜 <code>Magic ➔ Rare ➔ Epic</code> 등급으로 <strong>대성공(진화/Mutation)</strong>시키는 것이 파밍의 엔드 콘텐츠입니다.</p>
+
+    <div style="display: flex; gap: 20px; align-items: start; margin: 30px 0;">
+        <img src="weapon_socket_inventory_ui.png" alt="인벤토리" style="width: 45%; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+        <div style="width: 55%;">
+            <h3>💎 무한 시너지 빌드: '맥석(Crystal)' 소켓 룬</h3>
+            <p>장비를 <code>Epic</code> 등급으로 강화하면 더 많은 소켓이 뚫리며, 거기에 <strong>맥석(Pulse Crystal)</strong>을 박아 스킬의 기믹을 완전히 바꿉니다.</p>
+            <ul style="margin:0; padding-left: 15px;">
+                <li style="margin-bottom: 20px;">
+                    <img src="overcharge_pulse_stone.png" style="width:50px; float:left; margin-right: 15px;">
+                    <strong>과충전 (Overcharge)</strong><br>
+                    정박 타격 3회 달성 시 4타에 강력한 뇌전(낙뢰 충격파) 발생. (대검에 박으면 광역 스턴 탱커 탄생)
+                </li>
+                <li>
+                    <img src="glass_echo_pulse_stone.png" style="width:50px; float:left; margin-right: 15px;">
+                    <strong>유리 메아리 (Glass Echo)</strong><br>
+                    타격 시 남는 잔향 스택을 모았다가 액티브 스킬 사용 시 밀린 잔상을 엇박에 동시 융단폭격.
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 8. Tech UI UX -->
+    <!-- 다크 박스 스타일링 제거 요청 반영 -->
+    <div style="margin: 20px 0;">
+        <h2>8. UI/UX 화면 구성의 인체공학적 고찰</h2>
+        <p>복잡한 쿼터뷰 전투 중 마우스와 눈의 피로도를 최소화하는 직관적 화면 설계 지침입니다.</p>
+        <ul>
+            <li><strong>Town (마을 커뮤니티):</strong> 타 유저 및 맵 뷰 확보를 위해 UI를 테두리 구석(`Top-Left/Right`)으로 밀어냅니다. NPC 대화 상호작용은 홀로그램 팝업으로 처리.</li>
+            <li><strong>In-Game 전투 (HUD):</strong> <strong>시선이 모이는 화면 하단 중앙(Bottom-Center) 한 곳에만 HP, MP, 쿨타임(Q,W,E,R) 슬롯을 압축 배치.</strong> 나락으로 치닫는 긴박한 보스전 중에도 시선 분산을 완벽히 막았으며, 쿨링 아이콘 링 자체가 매 비트마다 박동하여 전투 템포를 시각화합니다.</li>
+        </ul>
+    </div>
+
+    <!-- 9. Tech -->
+    <h2>9. 기술적 극한 돌파: 100ms 지연 환경의 동기화 서버 아키텍처</h2>
+
+    <p style="color:red; font-weight:bold;">"4인 코옵 멀티플레이어 리듬 게임? 네트워크 핑 딜레이 때문에 절대 불가능하지 않나요?"</p>
+    <p>리듬 장르 멀티플레이의 가장 큰 한계인 **통신 지연 불협화음** 현상을 기획자, 사운드 디자이너, 서버 개발자가 유착한 <strong>기만 엔지니어링(Illusion Engineering)</strong>으로 원천 차단했습니다.</p>
+
+    <div class="image-container">
+        <img src="MagnetQuantizeGraph.svg" style="max-width: 45%;">
+        <img src="atmosphere_flow.png" style="max-width: 45%;">
+    </div>
+
+    <h3>🛡️ 클라이언트 단의 3중 네트워크 보완책</h3>
+    <ol>
+        <li><strong>Magnet Quantize (자석 양자화):</strong> 패킷이 지연 도착(100ms)해도 즉시 재생해 불협화음을 내지 않고, 미래의 정박자(16분음표 마디)에 <strong>자석처럼 스냅(Snap)</strong>시켜 칼박자로 재생 예약시킵니다.</li>
+        <li><strong>Audio Smearing & Ducking:</strong> 핑 딜레이가 심한 유저의 어긋난 타격음은 Low-Pass 필터와 거대 Reverb(잔향)를 먹여 <strong>"웅장하고 부드러운 패드(Pad) 신스 화음"</strong>처럼 귀를 기만하여 BGM에 완전 스며들게 보정합니다. (Audio Ducking 혼용)</li>
+        <li><strong>수신자 중심 화음(Receiver-Centric Harmony)과 자체 예측:</strong> 상대방이 8연참 난도질을 치면, 내 PC는 첫 타격 수신 직후 네트워크 불량과 관계없이 <strong>나머지 2~8연타의 효과음을 로컬 기준 0ms 강제 예측(Predictive) 타이밍으로 자체 연주</strong>하여 화음 파괴를 미연에 방지합니다.</li>
+    </ol>
+
+    <h3>🖥️ 실시간 Hybrid MSA 서버 및 데이터베이스 구조</h3>
+    <p>네트워크 래깅 방어 및 데이터 무결성 훼손을 방지합니다.</p>
+    <ul>
+        <li><strong>Database (PostgreSQL + EF Core):</strong> 무결성이 생명인 유저 6슬롯 인벤토리 및 장비 도면 데이터, 화폐 잔고 증감 트랜잭션을 영속 보존합니다.</li>
+        <li><strong>Cache & Registry (Redis):</strong> 매치메이킹 대기열(Waiting Room Queue) 및 파티 룸 로컬리티 관리는 극강의 IOPS를 자랑하는 In-Memory 환경인 Redis Control Plane으로 병목을 해결합니다.</li>
+        <li><strong>Game Server (TCP Dedicated):</strong> 인게임 스테이지는 UDP가 아닌 자체 개발된 TCP 고속 서버 코어를 활용합니다. 서버의 절대 시간(ServerNowMs)과 클라이언트의 핑 지터(Jitter)를 추적 및 스무딩하여 리듬 판결의 기준점(TimeSync Offset)을 엄격히 통제합니다.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <!-- 10. 향후 맵 컨셉 및 작업 방향 (새로 추가 요청된 파트) -->
+    <h2>10. 향후 기획 전개: 맥류 숲(Forest 1-1)의 고도화와 레벨 디자인 방향성</h2>
+    
+    <div class="blockquote">
+        모든 스테이지는 '생태계의 타이드(조류)'와 '고유의 BPM 코어'를 가집니다. 첫 버티컬 슬라이스인 Forest 1-1을 기반으로 프로젝트 전반의 작업 방향을 확립합니다.
+    </div>
+
+    <h3>🌳 Forest 1-1 레벨 컨셉: 고대 유적과 변이된 자연</h3>
+    <p>기본 필드 환경은 무너진 신전과 인공물 위로 깊은 숲이 침식한 다크 판타지입니다. 주요 광석인 맥석(Pulse Stone)들이 식물의 뿌리와 결합해 주변을 청록색과 마젠타(Magenta) 네온 빛으로 물들입니다. 인간의 발길이 끊긴 이 공간은, 플레이어가 최초로 '리듬 전투'와 '공간 텔레그래핑'을 학습하는 인큐베이터 역할을 수행합니다.</p>
+
+    <h3>👾 몬스터 생태계 연출 및 패턴 조형</h3>
+    <p>본 게임은 기계적인 패턴 조립이나 스킨 씌우기를 배제하며, 각 몬스터가 맵 환경에 완전히 일체화된 생태계적 당위성을 갖게 하는 방향으로 개발합니다.</p>
+    <ul>
+        <li><strong>[거목의 파수꾼] 트리가드 (TreeGuard - 일반몹):</strong> 묵직한 목재를 든 숲의 정령. BGM의 무거운 베이스 킥(Downbeat)에 맞춰 1비트의 느리고 정직한 스윙 패턴을 구사합니다. 유저는 이를 통해 기본적인 '정박 타격'과 '패리(Parry)'를 학습하게 됩니다.</li>
+        <li><strong>[맥류 오염체] 포자 폭탄병 (SporeBomber - 정예몹):</strong> 맥류 포자를 발사하는 식물형 적. 유저의 허를 찌르는 '엇박자(Syncopation)' 구간에 바닥 폭발 장판(Telegraph)을 전개합니다. 이를 쳐내기 위해선 정확한 리듬 리딩이 필수적입니다.</li>
+    </ul>
+
+    <h3>🛠️ 향후 레벨 스케일링 방안 (Development Direction)</h3>
+    <p>Forest 1-1의 <strong>'구역별 기승전결(3-Sections)' 파이프라인</strong>을 완벽히 구축한 후, 다음과 같은 방식으로 다음 지역을 스케일링 전개합니다:</p>
+    <ul>
+        <li><strong>음향적 레벨 다변화:</strong> 숲(Forest) 테마는 어쿠스틱과 앰비언트 기타(Lo-Fi 비트)를 주로 다루고, 다음 지역인 '버려진 지하철(Urban Slums)'은 강렬한 인더스트리얼 테크노와 브레이크비트로 테마를 차별화합니다. 맵이 바뀔 때마다 <strong>박자의 질감 자체가 바뀌는 공감각적 다변화</strong>를 시도합니다.</li>
+        <li><strong>보스 시퀀스의 블록화:</strong> '체력 페이지(Phase)'에 따라 단순히 체력만 깎이는 것을 넘어, '색수차 글리치' 셰이더나 '포스트 프로세싱 톤매핑' 데이터 등을 독립된 테이블로 분리합니다. 이를 조립하여 각 보스별 테마 스크립트를 대량 생산하는 데이터 기반(Data-Driven) 툴라이닝을 확립하는 것이 최우선 개발 목표입니다.</li>
+    </ul>
+
+    <!-- 11. 로드맵 -->
+    <h2>11. 사업화 방향성과 글로벌 마일스톤 (Roadmap)</h2>
+
+    <p>리듬 게임 특유의 록인 유저(Steam)와 쿼터뷰 협동 템포 RPG 유저층을 동시에 흡수해 캐시카우를 폭넓게 가져갑니다. (Buy-to-Play 기본 패키지 + 아바타 코스메틱/시즌 레이드 확장팩 판매 모델)</p>
+
+    <table>
+        <tr>
+            <th width="22%">추진 일정</th>
+            <th>핵심 산출물 및 개발 단계 (Devcampe Milestone)</th>
+        </tr>
+        <tr>
+            <td><strong>26년 4~5월</strong></td>
+            <td><strong>[코어 메커니즘 구축]</strong><br>
+            • C# Game Server / API / PostgreSQL 아키텍처 연동<br>
+            • 클라이언트 Quantize 스냅핑 0ms 엔진 싱크 적용<br>
+            • Dark&Neon <strong>[Forest 1-1]</strong> 환경 구축 및 <strong>TreeGuard</strong> 메커니즘 연동</td>
+        </tr>
+        <tr>
+            <td><strong>26년 6~7월</strong></td>
+            <td><strong>[무기 6-Slot 앙상블 완성]</strong><br>
+            • Q/W/E/R 인벤토리 덱 조합 UI 및 맥석 장착 로직 도입<br>
+            • 대검/쌍검 등 무기별 오디오 주파수 믹싱 모듈 반영</td>
+        </tr>
+        <tr>
+            <td><strong>26년 8~9월</strong></td>
+            <td><strong>[보스 레이드 및 공명(QTE) 시스템 테스트]</strong><br>
+            • 보스의 증4도 불협화음 왜곡 디버프 및 엇박자 전조 시스템 탑재<br>
+            • 파티 동기화 Co-op 방어 로직 완비</td>
+        </tr>
+        <tr>
+            <td><strong>26년 10~11월</strong></td>
+            <td><strong>[FGT 게임 폴리싱 및 버티컬 슬라이스 최종 제출]</strong><br>
+            • <strong>Forest 1-1</strong>의 3개 섹션 시퀀스 및 보람찬 루팅 사이클 완수<br>
+            • FGT를 반영한 데미지 밸런스와 판정 유예(Tolerance) 완화<br>
+            • BIC 및 스팀 퍼블리셔 제안용 Pitch Deck 자료 마무리</td>
+        </tr>
+    </table>
+
+    <div style="margin-top: 50px; text-align: center; color: var(--primary-magenta); font-weight: 900; font-size: 1.2rem;">
+        PULSE WORLD : 이 세계의 모든 것은 오직 하나의 리듬으로 박동합니다.
+    </div>
+    
+</body>
+</html>

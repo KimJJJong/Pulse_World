@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Pulse Stones Synergy</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #222; color: #fff; font-family: 'Segoe UI', Tahoma, Verdana, sans-serif; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #ui-layer { position: absolute; top: 5%; left: 50%; transform: translateX(-50%); text-align: center; z-index: 100; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
+        #title { font-size: 2.5rem; font-weight: bold; margin-bottom: 5px; color: #eee; }
+        #subtitle { font-size: 1.5rem; color: #0ff; transition: color 0.3s; }
+        #weapon-icon { font-size: 2rem; margin-top: 10px; color: #ffd700; }
+        .scene { perspective: 1200px; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .grid-container { position: relative; transform: rotateX(60deg) translateZ(-50px); transform-style: preserve-3d; background: #333; padding: 5px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        .grid { display: grid; grid-template-columns: repeat(5, 120px); grid-template-rows: repeat(5, 120px); gap: 4px; }
+        .tile { background-color: #555; border: 1px solid #444; transition: all 0.2s ease-out; position: relative; transform-style: preserve-3d; }
+        
+        /* Players and indicators */
+        .player { position: absolute; width: 40px; height: 40px; background: #fff; border-radius: 50%; box-shadow: 0 10px 20px rgba(255,255,255,0.5); transform: translate(-50%, -50%) translateZ(40px); transition: all 0.15s ease-out; z-index: 20; }
+        
+        #pulse-ring { position: absolute; width: 100px; height: 100px; border: 4px solid cyan; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); opacity: 0; pointer-events: none; z-index: 50; }
+        .pulse-active { animation: pulseAnim 0.4s ease-out forwards; }
+        @keyframes pulseAnim { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(2); opacity: 0; } }
+
+        /* General styles */
+        .slash-mark { background-color: rgba(255,50,50,0.4) !important; box-shadow: 0 0 20px rgba(255,50,50,0.5); }
+        .charge-1 { box-shadow: inset 0 0 20px rgba(255, 200, 0, 0.5); }
+        .charge-2 { box-shadow: inset 0 0 40px rgba(255, 100, 0, 0.7); }
+        .charge-3 { box-shadow: inset 0 0 60px rgba(255, 0, 0, 0.9); }
+        .lightning-pillar { background-color: #0ff !important; box-shadow: 0 0 60px #0ff, inset 0 0 30px #fff; transform: translateZ(30px); z-index: 10; }
+        .shield-barrier { background-color: rgba(0, 150, 255, 0.3) !important; border: 2px solid cyan !important; box-shadow: inset 0 0 30px cyan, 0 0 20px cyan; transform: translateZ(10px); }
+        
+        /* Glass echo effects */
+        .echo-shard { position: absolute; top: 50%; left: 50%; width: 25px; height: 25px; background: rgba(100, 255, 255, 0.9); border: 2px solid white; box-shadow: 0 0 20px cyan; border-radius: 4px; transform: translate(-50%, -50%) rotate(45deg) translateZ(15px); transition: all 0.1s ease-out; z-index: 30; }
+        .shatter { background-color: white !important; box-shadow: 0 0 60px cyan, inset 0 0 30px cyan; transform: scale(1.1) translateZ(20px); transition: all 0.05s; }
+    </style>
+</head>
+<body>
+
+<div id="ui-layer">
+    <div id="title">무기 ✕ 맥석 시너지 시연</div>
+    <div id="subtitle">준비 중...</div>
+    <div id="weapon-icon"></div>
+</div>
+
+<div class="scene">
+    <div class="grid-container grid" id="grid">
+        <div id="pulse-ring"></div>
+        <div class="player" id="player"></div>
+    </div>
+</div>
+
+<script>
+    const gridContainer = document.getElementById('grid');
+    const tiles = [];
+    for (let i = 0; i < 25; i++) {
+        const t = document.createElement('div');
+        t.className = 'tile';
+        gridContainer.appendChild(t);
+        tiles.push(t);
+    }
+    const player = document.getElementById('player');
+    const subtitle = document.getElementById('subtitle');
+    const weaponIcon = document.getElementById('weapon-icon');
+    const pulseRing = document.getElementById('pulse-ring');
+
+    function getPos(index) {
+        const x = index % 5;
+        const y = Math.floor(index / 5);
+        return { left: (x * 124 + 60) + 'px', top: (y * 124 + 60) + 'px' };
+    }
+
+    function movePlayer(index) {
+        const pos = getPos(index);
+        player.style.left = pos.left;
+        player.style.top = pos.top;
+    }
+
+    function popPulse(index) {
+        const pos = getPos(index);
+        pulseRing.style.left = pos.left;
+        pulseRing.style.top = pos.top;
+        pulseRing.classList.remove('pulse-active');
+        void pulseRing.offsetWidth; 
+        pulseRing.classList.add('pulse-active');
+    }
+
+    function clearBoard() {
+        tiles.forEach(t => t.className = 'tile');
+        document.querySelectorAll('.echo-shard').forEach(s => s.remove());
+    }
+
+    const beatMs = 600;
+    async function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    async function runDemo() {
+        while (true) {
+            // ==========================================
+            // PHASE 1: 대검 + 과충전 [뇌전의 등대]
+            // ==========================================
+            clearBoard();
+            movePlayer(22);
+            weaponIcon.innerText = "⚔️ 양손 대검 ✕ ⚡ 과충전 맥석";
+            subtitle.innerText = "[뇌전의 등대] 선형 궤적 번개 점화";
+            subtitle.style.color = "#FF9900";
+            await wait(1000);
+
+            const gsLine = [17, 12, 7]; // Target line in front of player
+            
+            for(let i=1; i<=3; i++) {
+                popPulse(12);
+                gsLine.forEach(idx => tiles[idx].classList.add(`charge-${i}`));
+                if(i>1) gsLine.forEach(idx => tiles[idx].classList.remove(`charge-${i-1}`));
+                subtitle.innerText = `선형 궤적 묵직한 타격 - ${i}타 축적`;
+                await wait(beatMs);
+            }
+
+            // Explosion
+            subtitle.innerText = "[뇌전의 등대 발동!] 궤적 전체 뇌격 방출 (Interrupt)";
+            subtitle.style.color = "#00FFFF";
+            player.style.transform = "translate(-50%, -50%) translateZ(80px) scale(1.5)";
+            
+            gsLine.forEach(idx => {
+                tiles[idx].classList.remove('charge-3');
+                tiles[idx].classList.add('lightning-pillar');
+            });
+            await wait(200);
+            gsLine.forEach(idx => tiles[idx].classList.remove('lightning-pillar'));
+            await wait(100);
+            gsLine.forEach(idx => tiles[idx].classList.add('lightning-pillar'));
+            await wait(400);
+
+            gsLine.forEach(idx => tiles[idx].classList.remove('lightning-pillar'));
+            player.style.transform = "translate(-50%, -50%) translateZ(40px)";
+            await wait(1500);
+
+            // ==========================================
+            // PHASE 2: 대검 + 유리 메아리 [잔향의 장막]
+            // ==========================================
+            clearBoard();
+            movePlayer(22);
+            weaponIcon.innerText = "⚔️ 양손 대검 ✕ 🧊 유리 메아리 맥석";
+            subtitle.innerText = "[잔향의 장막] 공격 궤적에 남는 파편";
+            subtitle.style.color = "#00FFFF";
+            await wait(1000);
+
+            const gsShards = [];
+            for(let i=0; i<3; i++) {
+                const targetIdx = gsLine[i];
+                popPulse(targetIdx);
+                
+                // Create shard ON the path
+                const shard = document.createElement('div');
+                shard.className = 'echo-shard';
+                const tPos = getPos(targetIdx);
+                shard.style.left = tPos.left;
+                shard.style.top = tPos.top;
+                gridContainer.appendChild(shard);
+                gsShards.push(shard);
+                
+                subtitle.innerText = `선형 궤적 묵직한 타격 - 잔상 마커 누적 ${i+1}/3`;
+                await wait(beatMs);
+            }
+
+            // Skill
+            subtitle.innerText = "[잔향의 장막 발동!] 궤적 위 잔상 일제 쏟아붓기 폭발";
+            subtitle.style.color = "#FFFFFF";
+            player.style.transform = "translate(-50%, -50%) translateZ(60px) scale(1.2)";
+            await wait(beatMs / 2);
+
+            for(let i=0; i<3; i++) {
+                const targetIdx = gsLine[i];
+                tiles[targetIdx].classList.add('shatter');
+                gsShards[i].style.background = 'white';
+                gsShards[i].style.transform = 'translate(-50%, -50%) scale(2) translateZ(40px)';
+                gsShards[i].style.opacity = '0';
+                popPulse(targetIdx);
+                await wait(150);
+                tiles[targetIdx].classList.remove('shatter');
+                await wait(150);
+            }
+            player.style.transform = "translate(-50%, -50%) translateZ(40px)";
+            await wait(1500);
+
+            // ==========================================
+            // PHASE 3: 방패 + 과충전 [뇌진의 지휘관]
+            // ==========================================
+            clearBoard();
+            movePlayer(12); // Center
+            weaponIcon.innerText = "🛡️ 둔기/방패 ✕ ⚡ 과충전 맥석";
+            subtitle.innerText = "[뇌진의 지휘관] 보호 구역 충전기";
+            subtitle.style.color = "#FF9900";
+            await wait(1000);
+
+            const ringTiles = [6,7,8, 11,13, 16,17,18]; 
+            
+            for(let i=1; i<=3; i++) {
+                popPulse(12);
+                ringTiles.forEach(idx => {
+                    tiles[idx].classList.add(`charge-${i}`);
+                    if(i>1) tiles[idx].classList.remove(`charge-${i-1}`);
+                });
+                subtitle.innerText = `자체 방벽 전개 타격 - ${i}타 축적`;
+                await wait(beatMs);
+            }
+
+            subtitle.innerText = "[뇌진의 지휘관 발동!] 방벽 테두리 번개 장벽 융기";
+            subtitle.style.color = "#00FFFF";
+            player.style.transform = "translate(-50%, -50%) translateZ(80px) scale(1.5)";
+            
+            ringTiles.forEach(idx => {
+                tiles[idx].classList.remove('charge-3');
+                tiles[idx].classList.add('lightning-pillar');
+            });
+            await wait(200);
+            ringTiles.forEach(idx => tiles[idx].classList.remove('lightning-pillar'));
+            await wait(100);
+            ringTiles.forEach(idx => tiles[idx].classList.add('lightning-pillar'));
+            await wait(600);
+
+            ringTiles.forEach(idx => tiles[idx].classList.remove('lightning-pillar'));
+            player.style.transform = "translate(-50%, -50%) translateZ(40px)";
+            await wait(1500);
+
+            // ==========================================
+            // PHASE 4: 방패 + 유리 메아리 [공명하는 성역]
+            // ==========================================
+            clearBoard();
+            movePlayer(12);
+            weaponIcon.innerText = "🛡️ 둔기/방패 ✕ 🧊 유리 메아리 맥석";
+            subtitle.innerText = "[공명하는 성역] 방벽 주변 공전 파편 누적";
+            subtitle.style.color = "#00FFFF";
+            await wait(1000);
+
+            // Keep the shield barrier active visually
+            ringTiles.forEach(idx => tiles[idx].classList.add('shield-barrier'));
+            
+            const orbitingShards = [];
+            for(let i=0; i<4; i++) {
+                popPulse(12);
+                
+                const shard = document.createElement('div');
+                shard.className = 'echo-shard';
+                // Orbit around tile 12
+                const angle = i * 90;
+                const xOffset = Math.cos(angle * Math.PI / 180) * 120; // radius
+                const yOffset = Math.sin(angle * Math.PI / 180) * 120;
+                
+                const cPos = getPos(12);
+                shard.style.left = cPos.left;
+                shard.style.top = cPos.top;
+                shard.style.transform = `translate(calc(-50% + ${xOffset}px), calc(-50% + ${yOffset}px)) translateZ(30px) rotate(45deg)`;
+                
+                gridContainer.appendChild(shard);
+                orbitingShards.push(shard);
+                
+                subtitle.innerText = `내부 타격 - 공전 파편 누적 ${i+1}/4`;
+                await wait(beatMs);
+            }
+
+            subtitle.innerText = "[공명하는 성역 발동!] 방벽 척력(전방위) 폭발!";
+            subtitle.style.color = "#FFFFFF";
+            player.style.transform = "translate(-50%, -50%) translateZ(60px) scale(1.4)";
+            await wait(beatMs / 2);
+
+            // Shatter shards outwards
+            const burstTargets = [2, 10, 14, 22]; // Outer ring roughly where the 4 shards fly
+            for(let i=0; i<4; i++) {
+                const targetIdx = burstTargets[i];
+                ringTiles.forEach(idx => tiles[idx].classList.remove('shield-barrier')); // drop barrier
+                
+                const s = orbitingShards[i];
+                s.style.left = getPos(targetIdx).left;
+                s.style.top = getPos(targetIdx).top;
+                
+                setTimeout(() => {
+                    tiles[targetIdx].classList.add('shatter');
+                    s.style.background = 'white';
+                    s.style.transform = 'translate(-50%, -50%) scale(3) translateZ(40px)';
+                    s.style.opacity = '0';
+                    popPulse(targetIdx);
+                    setTimeout(() => tiles[targetIdx].classList.remove('shatter'), 150);
+                }, 100);
+            }
+
+            await wait(500);
+            player.style.transform = "translate(-50%, -50%) translateZ(40px)";
+            await wait(2000);
+        }
+    }
+
+    window.onload = () => setTimeout(runDemo, 500);
+</script>
+</body>
+</html>
