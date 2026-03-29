@@ -1,4 +1,4 @@
-﻿using GameServer.Content.Map;
+using GameServer.Content.Map;
 using GameServer.InGame.Manager.Entity;
 using GameServer.InGame.System.Rhythm;
 using Interface;
@@ -9,7 +9,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Util;
-using GameServer.InGame.Director.Data; // Added
+using GameServer.InGame.Director.Data;
+using Shared.Data; // Added
 
 public sealed class GameRoom : RoomBase
 {
@@ -279,6 +280,22 @@ public sealed class GameRoom : RoomBase
 
         // NEW: Load Data from ContentStore (Real)
         var stageData = StageDataManager.Get(MapId);
+        
+        // NEW: Load Rhythm from ContentStore (Sound/Json)
+        RhythmStageData rhythmData = null;
+        if (ContentStore.Rhythms != null && ContentStore.Rhythms.TryGetValue(MapId, out var parsedRhythm))
+        {
+            rhythmData = parsedRhythm;
+            Console.WriteLine($"[GameRoom] ✅ Found Rhythm Data for {MapId}: {rhythmData.Blocks?.Count ?? 0} Blocks loaded.");
+        }
+        else
+        {
+            Console.WriteLine($"[GameRoom] 🚨 Rhythm Data Not Found for {MapId}. Creating empty dummy rhythm. (Check if Json StageId matches MapId)");
+            rhythmData = new RhythmStageData { StageId = MapId, TicksPerBeat = 480, TimeSignatureNum = 4 };
+            rhythmData.Blocks.Add(new RhythmBlock { BlockId = "DummyPhase1", LengthMeasures = 8, DefaultNextBlock = "DummyPhase1" });
+        }
+        
+        var rhythmManager = new DynamicRhythmManager(rhythmData);
         if (stageData == null)
         {
             _logger.LogError("Stage Data Not Found: {MapId}. Falling back to default Config.", MapId);
@@ -311,6 +328,7 @@ public sealed class GameRoom : RoomBase
             broadcaster: this,
             rhythm: _rhythm,
             rhythmConfig: _rhythmConfig,
+            rhythmManager: rhythmManager,
             map: _map
         );
 
@@ -443,7 +461,7 @@ public sealed class GameRoom : RoomBase
 
     private void CheckDetachedPlayers()
     {
-        // 1초에 한 번 정도만 체크해도 충분 (최적화)
+        // n초에 한 번 정도만 체크해도 충분 (최적화)
         if (Environment.TickCount64 % 1000 < 50) 
         {
             var now = Environment.TickCount64;

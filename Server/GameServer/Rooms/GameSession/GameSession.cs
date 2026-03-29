@@ -1,4 +1,4 @@
-﻿// ===============================
+// ===============================
 // GameSession.cs  
 // ===============================
 using GameServer.Content.Map;
@@ -23,6 +23,7 @@ public sealed class GameSession : SessionBase
 
     private readonly RhythmSystem _rhythm;
     private readonly RhythmConfig _rhythmConfig;
+    private readonly DynamicRhythmManager _rhythmManager;
 
     // 전투용 엔티티
     private readonly List<MapEntity> _monsters = new();
@@ -38,11 +39,13 @@ public sealed class GameSession : SessionBase
         IGameBroadcaster broadcaster,
         RhythmSystem rhythm,
         RhythmConfig rhythmConfig,
+        DynamicRhythmManager rhythmManager,
         Map2D map)
         : base(sessionId, time, broadcaster, map)
     {
         _rhythm = rhythm;
         _rhythmConfig = rhythmConfig;
+        _rhythmManager = rhythmManager;
 
         // Load Entity Data
         EntityDataManager.Instance.Load();
@@ -364,6 +367,8 @@ public sealed class GameSession : SessionBase
     // =====================================================
     public void OnBeat(long beatIndex)
     {
+        _rhythmManager?.UpdateMusicState(beatIndex);
+
         _monsterAI.UpdateAI(beatIndex, _monsters, _players);
         _telegraph.OnBeat(beatIndex);
         BeatActions.OnBeat(beatIndex);

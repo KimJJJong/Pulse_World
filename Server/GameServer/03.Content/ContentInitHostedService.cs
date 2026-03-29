@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Server.Bootstrap;
@@ -52,16 +52,16 @@ public sealed class ContentInitHostedService : IHostedService
         string? patterns = rc.LoadPatterns ? Path.Combine(baseDir, rc.PatternsRelDir) : null;
         string? maps = rc.LoadMaps ? Path.Combine(baseDir, rc.MapsRelDir) : null;
         string? stages = rc.LoadStages ? Path.Combine(baseDir, rc.StagesRelDir) : null; // [NEW]
+        string? sounds = rc.LoadSounds ? Path.Combine(baseDir, rc.SoundsRelDir) : null; // [NEW]
 
         // 존재 검사
         EnsureDir(role.Name, "skills", skills);
         EnsureDir(role.Name, "patterns", patterns);
         EnsureDir(role.Name, "maps", maps);
         EnsureDir(role.Name, "stages", stages); 
+        EnsureDir(role.Name, "sounds", sounds);
 
-
-
-        ContentStore.Init(skills, patterns, maps, stages);
+        ContentStore.Init(skills, patterns, maps, stages, sounds);
 
         _itemTemplateManager.Load(); // [NEW] Items
 

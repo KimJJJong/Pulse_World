@@ -1,0 +1,41 @@
+info: GameServer.Content.Item.ItemTemplateManager[0]
+      Loading Item Data from D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\Content\Data\Json
+info: GameServer.Content.Item.ItemTemplateManager[0]
+      Loaded 12 Items, 5 Equipments
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]
+      Hosting failed to start
+      Grpc.Core.RpcException: Status(StatusCode="Unavailable", Detail="Error connecting to subchannel.", DebugException="System.Net.Sockets.SocketException: ???而댄벂?곗뿉???곌껐??嫄곕??덉쑝誘濡??곌껐?섏? 紐삵뻽?듬땲??")
+       ---> System.Net.Sockets.SocketException (10061): ???而댄벂?곗뿉???곌껐??嫄곕??덉쑝誘濡??곌껐?섏? 紐삵뻽?듬땲??
+         at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+         at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+         at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+         at Grpc.Net.Client.Balancer.Internal.SocketConnectivitySubchannelTransport.TryConnectAsync(ConnectContext context, Int32 attempt)
+         --- End of inner exception stack trace ---
+         at Grpc.Net.Client.Balancer.Internal.ConnectionManager.PickAsync(PickContext context, Boolean waitForReady, CancellationToken cancellationToken)
+         at Grpc.Net.Client.Balancer.Internal.BalancerHttpHandler.SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+         at Grpc.Net.Client.Internal.GrpcCall`2.RunCall(HttpRequestMessage request, Nullable`1 timeout)
+         at Grpc.Net.Client.Internal.Retry.RetryCallBase`2.GetResponseCoreAsync()
+         at ControlPlaneRegistrar.RegisterOnceAsync(CancellationToken ct) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\01.ControlPlane\ControlPlaneRegistrar.cs:line 62
+         at ControlPlaneHeartbeatService.StartAsync(CancellationToken cancellationToken) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\01.ControlPlane\ControlPlaneHeartbeatService.cs:line 33
+         at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+Unhandled exception. Grpc.Core.RpcException: Status(StatusCode="Unavailable", Detail="Error connecting to subchannel.", DebugException="System.Net.Sockets.SocketException: ???而댄벂?곗뿉???곌껐??嫄곕??덉쑝誘濡??곌껐?섏? 紐삵뻽?듬땲??")
+ ---> System.Net.Sockets.SocketException (10061): ???而댄벂?곗뿉???곌껐??嫄곕??덉쑝誘濡??곌껐?섏? 紐삵뻽?듬땲??
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at Grpc.Net.Client.Balancer.Internal.SocketConnectivitySubchannelTransport.TryConnectAsync(ConnectContext context, Int32 attempt)
+   --- End of inner exception stack trace ---
+   at Grpc.Net.Client.Balancer.Internal.ConnectionManager.PickAsync(PickContext context, Boolean waitForReady, CancellationToken cancellationToken)
+   at Grpc.Net.Client.Balancer.Internal.BalancerHttpHandler.SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+   at Grpc.Net.Client.Internal.GrpcCall`2.RunCall(HttpRequestMessage request, Nullable`1 timeout)
+   at Grpc.Net.Client.Internal.Retry.RetryCallBase`2.GetResponseCoreAsync()
+   at ControlPlaneRegistrar.RegisterOnceAsync(CancellationToken ct) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\01.ControlPlane\ControlPlaneRegistrar.cs:line 62
+   at ControlPlaneHeartbeatService.StartAsync(CancellationToken cancellationToken) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\01.ControlPlane\ControlPlaneHeartbeatService.cs:line 33
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Server.Program.Main(String[] args) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\Program.cs:line 14
+   at Server.Program.<Main>(String[] args)

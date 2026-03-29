@@ -1,4 +1,4 @@
-﻿using GameServer.InGame.Director.Data;
+using GameServer.InGame.Director.Data;
 using GameServer.Content.Skill;
 using GameShared.Data; // [NEW] Added for NewSkillDef
 using System;
@@ -14,6 +14,9 @@ public static class ContentStore
     public static MonsterPatternSet? Patterns { get; private set; }
     public static Dictionary<string, MapContent>? Maps { get; private set; }
     public static Dictionary<string, GameServer.InGame.Director.Data.StageScenario>? Stages { get; private set; }
+    
+    // [NEW] 동적 오디오 악보 데이터
+    public static Dictionary<string, Shared.Data.RhythmStageData>? Rhythms { get; private set; }
 
     /// <summary>
     /// ContentStore는 프로세스 당 1회만 초기화된다.
@@ -27,7 +30,8 @@ public static class ContentStore
         string? skillsDir,
         string? patternsDir,
         string? mapsDir,
-        string? stagesDir)
+        string? stagesDir,
+        string? soundsDir = null)
     {
         if (_initialized)
             throw new InvalidOperationException("ContentStore already initialized.");
@@ -109,6 +113,14 @@ public static class ContentStore
                 throw new Exception("Map content invalid");
 
             MapDatabase.LoadFrom(Maps);
+        }
+
+        // ---------- Sounds (Rhythm Data) ----------
+        if (!string.IsNullOrWhiteSpace(soundsDir))
+        {
+            EnsureDirExists(soundsDir, "Sounds");
+            Rhythms = GameServer.Content.RhythmLoader.LoadFromDirectory(soundsDir);
+            Console.WriteLine($"[ContentStore] Total {Rhythms?.Count ?? 0} Rhythm Data loaded from: {soundsDir}");
         }
 
         // ---------- Stages ----------
