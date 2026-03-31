@@ -1,5 +1,0 @@
-﻿{"Timestamp":"2026-02-03T09:25:36.6945484Z","Level":0,"Source":"Listener","Message":"Accepted connection from 127.0.0.1:59118"}
-{"Timestamp":"2026-02-03T09:34:32.5008742Z","Level":0,"Source":"Listener","Message":"Accepted connection from 127.0.0.1:50435"}
-{"Timestamp":"2026-02-03T09:38:29.1482697Z","Level":0,"Source":"Listener","Message":"Accepted connection from 127.0.0.1:50521"}
-{"Timestamp":"2026-02-03T09:41:13.9492408Z","Level":0,"Source":"Listener","Message":"Accepted connection from 127.0.0.1:61007"}
-{"Timestamp":"2026-02-03T10:08:18.8529919Z","Level":1,"Source":"[Ping/Pong Issue]","Message":"Idle kick: u_b6f6dcecfc3040448d8d80782f2f3a2d/044c18ea"}
