@@ -45,35 +45,35 @@ namespace GameServer.Content.Skill
             if (!_isRunning || _currentSkill == null) return;
 
             int beatOffset = currentBeat - _startBeat;
-            //Console.WriteLine($"[SkillRunner] Update: current={currentBeat}, start={_startBeat}, offset={beatOffset}");
+            int tickOffset = beatOffset * 480; // TODO: 480을 TicksPerBeat 전역 상수로 교체 필요
 
             if (beatOffset < 0) return;
-            if (beatOffset > _currentSkill.TotalDurationBeats)
+            if (tickOffset > _currentSkill.TotalDurationTicks)
             {
                 Finish();
                 return;
             }
 
-            ProcessEvents(currentBeat, beatOffset);
+            ProcessEvents(currentBeat, tickOffset);
         }
 
-        private void ProcessEvents(int currentBeat, int beatOffset)
+        private void ProcessEvents(int currentBeat, int tickOffset)
         {
             foreach (var track in _currentSkill.Tracks)
             {
                 foreach (var evt in track.Events)
                 {
                     // [Debug] checking event trigger
-                    if (evt.TriggerBeat == beatOffset)
+                    if (evt.TriggerTick == tickOffset)
                     {
                         //Console.WriteLine($"[SkillRunner] Event Triggered! Type={evt.Action?.GetSkillActionType()} at offset {beatOffset}");
-                        ExecuteAction(evt.Action, currentBeat);
+                        ExecuteAction(evt.Action, currentBeat, evt.DurationTicks);
                     }
                 }
             }
         }
 
-        private void ExecuteAction(BaseAction action, int currentBeat)
+        private void ExecuteAction(BaseAction action, int currentBeat, int durationTicks)
         {
             if (action == null) return;
             //Console.WriteLine($"[SkillRunner] ExecuteAction: {action.GetSkillActionType()} at Beat {currentBeat}");
@@ -81,7 +81,7 @@ namespace GameServer.Content.Skill
             switch (action.GetSkillActionType())
             {
                 case SkillActionType.Warning:
-                    ProcessWarning((WarningAction)action, currentBeat);
+                    ProcessWarning((WarningAction)action, currentBeat, durationTicks);
                     break;
                 case SkillActionType.Damage:
                     ProcessDamage((DamageAction)action, currentBeat);
@@ -106,7 +106,7 @@ namespace GameServer.Content.Skill
         // Action Processors
         // --------------------------------------------------------------------
 
-        private void ProcessWarning(WarningAction action, int currentBeat)
+        private void ProcessWarning(WarningAction action, int currentBeat, int durationTicks)
         {
             if (!_map.TryGetActorPosition(_casterId, out GridPos casterPos))
                 return;
@@ -126,7 +126,7 @@ namespace GameServer.Content.Skill
             {
                 CasterId = _casterId,
                 StyleId = 1, // Default Style (or add style to WarningAction)
-                DurationBeats = 1, // Warning duration (needs checking action duration if available)
+                DurationTicks = durationTicks,
                 Shape = (byte)TelegraphShape.Cells,
                 OriginType = (byte)TelegraphOriginType.Point,
                 OriginX = 0,

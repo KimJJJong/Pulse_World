@@ -241,7 +241,7 @@ public class ClientHandlers : MonoBehaviour
             // ===== 적용 범위 계산 =====
             // Shape가 0이 아니더라도 서버가 Cells를 계산해서 보내준다면 사용 가능하도록 수정
             // Log for debugging
-            //Debug.Log($"[Telegraph] Shape={t.Shape} Duration={t.DurationBeats} Cells={t.cellss?.Count ?? 0}");
+            //Debug.Log($"[Telegraph] Shape={t.Shape} Duration={t.DurationTicks} Cells={t.cellss?.Count ?? 0}");
 
             if (t.cellss == null || t.cellss.Count == 0)
                 continue;
@@ -249,7 +249,7 @@ public class ClientHandlers : MonoBehaviour
             // 이 텔레그래프는 몇 beat까지 유지?
             // - 예: beat=10, duration=2면 10~11 표시, 12부터 원복시키고 싶다
             // - 그러면 expireBeat = 10 + duration
-            long expireBeat = p.BeatIndex + t.DurationBeats;
+            long expireBeat = p.BeatIndex + (t.DurationTicks / 480);
 
             for (int c = 0; c < t.cellss.Count; c++)
             {

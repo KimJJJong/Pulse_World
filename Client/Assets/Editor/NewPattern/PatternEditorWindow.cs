@@ -356,7 +356,7 @@ public class PatternEditorWindow : EditorWindow
                     action.SkillRef = (NewSkillSO)EditorGUILayout.ObjectField("Skill Asset", action.SkillRef, typeof(NewSkillSO), false);
                     if (action.SkillRef != null)
                     {
-                         EditorGUILayout.HelpBox($"Duration: {action.SkillRef.Data.TotalDurationBeats} Beats", MessageType.Info);
+                         EditorGUILayout.HelpBox($"Duration: {action.SkillRef.Data.TotalDurationTicks / 480} Beats (Total {action.SkillRef.Data.TotalDurationTicks} Ticks)", MessageType.Info);
                          action.SkillId = action.SkillRef.Data.SkillId; // Auto-sync ID
                     }
                     else
@@ -558,7 +558,7 @@ public class PatternEditorWindow : EditorWindow
     {
         float x = evt.AtBeatOffset * _beatWidth;
         int durationVisual = 1; 
-        if (evt.Type == ActionType.CastSkill && evt.SkillRef != null) durationVisual = Mathf.Max(1, evt.SkillRef.Data.TotalDurationBeats);
+        if (evt.Type == ActionType.CastSkill && evt.SkillRef != null) durationVisual = Mathf.Max(1, evt.SkillRef.Data.TotalDurationTicks / 480);
 
         float w = durationVisual * _beatWidth;
         Rect evtRect = new Rect(x, trackRect.y + 2, w - 2, trackRect.height - 4);

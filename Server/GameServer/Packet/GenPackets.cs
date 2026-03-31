@@ -1718,7 +1718,7 @@ public class SC_BeatTelegraphs : IPacket
 	{
 		public int CasterId;
 		public int StyleId;
-		public int DurationBeats;
+		public int DurationTicks;
 		public int Shape;
 		public int OriginType;
 		public int OriginX;
@@ -1758,7 +1758,7 @@ public class SC_BeatTelegraphs : IPacket
 			count += sizeof(int);
 			this.StyleId = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 			count += sizeof(int);
-			this.DurationBeats = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+			this.DurationTicks = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 			count += sizeof(int);
 			this.Shape = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 			count += sizeof(int);
@@ -1792,7 +1792,7 @@ public class SC_BeatTelegraphs : IPacket
 			count += sizeof(int);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.StyleId);
 			count += sizeof(int);
-			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.DurationBeats);
+			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.DurationTicks);
 			count += sizeof(int);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Shape);
 			count += sizeof(int);

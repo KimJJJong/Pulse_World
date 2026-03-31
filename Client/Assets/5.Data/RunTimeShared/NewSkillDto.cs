@@ -14,7 +14,7 @@ namespace GameShared.Data
     public class NewSkillDef
     {
         public string SkillId = "";
-        public int TotalDurationBeats;  // 전체 스킬 길이 (Input Lock 등에 사용)
+        public int TotalDurationTicks;  // 전체 스킬 길이 (Tick 단위, Input Lock 등에 사용)
         public List<SkillTrack> Tracks = new List<SkillTrack>();
     }
 
@@ -28,8 +28,8 @@ namespace GameShared.Data
     [Serializable]
     public class SkillEvent
     {
-        public int TriggerBeat;   // 시작 비트 (0부터 시작)
-        public int DurationBeats; // 지속 시간
+        public int TriggerTick;   // 시작 틱 (0부터 시작)
+        public int DurationTicks; // 지속 틱
         
         // 다형성 처리를 위해 JSON 변환 시 TypeNameHandling 필요 (또는 별도 Type 필드 사용)
         // 여기서는 구조체 대신 클래스 기반의 상속 구조 사용
@@ -77,7 +77,7 @@ namespace GameShared.Data
     [Serializable]
     public class WarningColorStep
     {
-        public int DurationBeats;
+        public int DurationTicks;
         public string ColorHex = "#FF0000"; // 또는 Enum
     }
 

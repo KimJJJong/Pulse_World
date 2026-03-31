@@ -1,4 +1,4 @@
-﻿using GameServer.Content.Map;
+using GameServer.Content.Map;
 using GameServer.Content.Map.Interface;
 using GameServer.InGame.Manager.Beat;
 using GameServer.InGame.Manager.Entity;
@@ -322,7 +322,7 @@ public sealed class PatternRunner
     private SC_BeatTelegraphs.Telegraphs BuildTelegraphEntry(
         int casterId,
         byte styleId,
-        int durationBeats,
+        int durationTicks,
         List<GridPos> frozenCells)
     {
         // 패킷에 TargetId가 없으니 OriginType은 Point로 확정해서 보내는 걸 추천
@@ -330,7 +330,7 @@ public sealed class PatternRunner
         {
             CasterId = casterId,
             StyleId = styleId,
-            DurationBeats = durationBeats,
+            DurationTicks = durationTicks,
 
             Shape = (byte)TelegraphShape.Cells,
             // 텔레그래프 패킷에 TargetId(OriginEntityId)가 없기 때문에
@@ -539,7 +539,8 @@ public sealed class PatternRunner
             rt.ActiveSkills.Add(runner);
         }
 
-        long endBeat = executeBeat + skillDef.TotalDurationBeats;
+        // TODO: PatternRunner 전체 로직을 Tick 단위로 승급 필요
+        long endBeat = executeBeat + (skillDef.TotalDurationTicks / 480);
         last = Math.Max(last, endBeat);
     }
 

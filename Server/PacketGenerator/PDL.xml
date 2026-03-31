@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <PDL>
 
 	<packet name ="CS_Handshake">
@@ -241,7 +241,7 @@
 		<list name="Telegraphs">
 			<int name="CasterId"/>
 			<int name="StyleId"/>
-			<int name="DurationBeats"/>
+			<int name="DurationTicks"/>
 			<int name="Shape"/>			<!-- 0:Cells, 1:Diamond, 2:Rect, 3:Line ... -->
 			<int name="OriginType"/>	<!-- 0:Self,1:Target,2:Point -->
 			<int name="OriginX"/>		<!-- OriginType==Point일 때 -->

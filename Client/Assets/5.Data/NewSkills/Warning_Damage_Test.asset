@@ -14,18 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
   Data:
     SkillId: Warning_Damage_Test
-    TotalDurationBeats: 2
+    TotalDurationTicks: 960
     Tracks:
     - TrackName: Track 0
       Events:
-      - TriggerBeat: 0
-        DurationBeats: 1
+      - TriggerTick: 0
+        DurationTicks: 480
         Action:
           rid: 2423871327434178826
     - TrackName: Track 1
       Events:
-      - TriggerBeat: 1
-        DurationBeats: 1
+      - TriggerTick: 480
+        DurationTicks: 480
         Action:
           rid: 2423871327434178827
   references:

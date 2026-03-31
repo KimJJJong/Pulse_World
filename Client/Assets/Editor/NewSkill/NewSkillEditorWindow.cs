@@ -65,7 +65,7 @@ public class NewSkillEditorWindow : EditorWindow
         {
             EditorGUI.BeginChangeCheck();
             _currentAsset.Data.SkillId = EditorGUILayout.TextField("Skill ID", _currentAsset.Data.SkillId);
-            _currentAsset.Data.TotalDurationBeats = EditorGUILayout.IntField("Total Duration", _currentAsset.Data.TotalDurationBeats);
+            _currentAsset.Data.TotalDurationTicks = EditorGUILayout.IntField("Total Duration (Ticks)", _currentAsset.Data.TotalDurationTicks);
             if (EditorGUI.EndChangeCheck()) EditorUtility.SetDirty(_currentAsset);
         }
 
@@ -179,13 +179,14 @@ public class NewSkillEditorWindow : EditorWindow
         Rect viewRect = new Rect(containerRect.x + HEADER_WIDTH, containerRect.y, containerRect.width - HEADER_WIDTH, containerRect.height);
         
         // Scroll View for Timeline
-        float contentWidth = Mathf.Max(viewRect.width, data.TotalDurationBeats * _beatWidth + 100);
+        int totalBeatsVisual = Mathf.CeilToInt(_currentAsset.Data.TotalDurationTicks / 480f);
+        float contentWidth = Mathf.Max(viewRect.width, totalBeatsVisual * _beatWidth + 100);
         float contentHeight = Mathf.Max(viewRect.height, data.Tracks.Count * TRACK_HEIGHT + 50);
         
         _timelineScrollPos = GUI.BeginScrollView(viewRect, _timelineScrollPos, new Rect(0, 0, contentWidth, contentHeight));
         {
             // Draw Grid
-            DrawGrid(contentWidth, contentHeight, data.TotalDurationBeats);
+            DrawGrid(contentWidth, contentHeight, totalBeatsVisual);
 
             // Draw Events
             float trackY = 0;
@@ -245,8 +246,8 @@ public class NewSkillEditorWindow : EditorWindow
         {
             SkillEvent evt = track.Events[i];
             
-            float x = evt.TriggerBeat * _beatWidth;
-            float w = Mathf.Max(evt.DurationBeats, 1) * _beatWidth; // Min 1 beat width visually
+            float x = (evt.TriggerTick / 480f) * _beatWidth;
+            float w = Mathf.Max((evt.DurationTicks / 480f), 0.25f) * _beatWidth; // Min 1/4 beat width visually
             
             Rect evtRect = new Rect(x, trackRect.y + 2, w - 2, trackRect.height - 4);
 
@@ -277,7 +278,7 @@ public class NewSkillEditorWindow : EditorWindow
             menu.AddItem(new GUIContent("Add Event"), false, () => 
             {
                 int beat = Mathf.FloorToInt(mouseX / _beatWidth);
-                track.Events.Add(new SkillEvent { TriggerBeat = beat, DurationBeats = 1, Action = new WarningAction { Shape = new DiamondShape{Radius=1}} });
+                track.Events.Add(new SkillEvent { TriggerTick = beat * 480, DurationTicks = 480, Action = new WarningAction { Shape = new DiamondShape{Radius=1}} });
             });
             menu.ShowAsContext();
             Event.current.Use();
@@ -300,7 +301,7 @@ public class NewSkillEditorWindow : EditorWindow
                 _selectedEvent = evt;
                 _selectedTrack = track;
                 _dragStartMouseX = e.mousePosition.x;
-                _dragStartDuration = evt.DurationBeats;
+                _dragStartDuration = evt.DurationTicks;
                 e.Use();
             }
             else if (evtRect.Contains(e.mousePosition))
@@ -310,7 +311,7 @@ public class NewSkillEditorWindow : EditorWindow
                 _selectedEvent = evt;
                 _selectedTrack = track;
                 _dragStartMouseX = e.mousePosition.x;
-                _dragStartBeat = evt.TriggerBeat;
+                _dragStartBeat = evt.TriggerTick;
                 e.Use();
             }
         }
@@ -321,13 +322,13 @@ public class NewSkillEditorWindow : EditorWindow
 
             if (_isResizing)
             {
-                int newDur = _dragStartDuration + beatDelta;
-                evt.DurationBeats = Mathf.Max(1, newDur);
+                int newDur = _dragStartDuration + (beatDelta * 480);
+                evt.DurationTicks = Mathf.Max(120, newDur); // Min 0.25 Beat
             }
             else
             {
-                int newStart = _dragStartBeat + beatDelta;
-                evt.TriggerBeat = Mathf.Max(0, newStart);
+                int newStart = _dragStartBeat + (beatDelta * 480);
+                evt.TriggerTick = Mathf.Max(0, newStart);
             }
             
             e.Use();
@@ -369,8 +370,8 @@ public class NewSkillEditorWindow : EditorWindow
             EditorGUI.BeginChangeCheck();
 
             EditorGUILayout.BeginHorizontal();
-            _selectedEvent.TriggerBeat = EditorGUILayout.IntField("Trigger Beat", _selectedEvent.TriggerBeat);
-            _selectedEvent.DurationBeats = EditorGUILayout.IntField("Duration", _selectedEvent.DurationBeats);
+            _selectedEvent.TriggerTick = EditorGUILayout.IntField("Trigger Tick", _selectedEvent.TriggerTick);
+            _selectedEvent.DurationTicks = EditorGUILayout.IntField("Duration Ticks", _selectedEvent.DurationTicks);
             EditorGUILayout.EndHorizontal();
 
             // Type Switching
