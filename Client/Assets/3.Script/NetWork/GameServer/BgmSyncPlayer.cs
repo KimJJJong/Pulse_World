@@ -115,6 +115,8 @@ public sealed class BgmSyncPlayer : MonoBehaviour
     private bool _prevAlignMode;
     private int _prevDeviceOffset;
     private int _prevAutoAlignOffset;
+    
+    private int _failedPlayCount = 0; // FMOD 등에 의해 유니티 오디오가 꺼졌을 때 스팸 방지용
 
     void Reset()
     {
@@ -172,6 +174,7 @@ public sealed class BgmSyncPlayer : MonoBehaviour
         _audioSource.time = 0f;
         _audioSource.loop = false;
         _audioSource.playOnAwake = false;
+        _failedPlayCount = 0;
     }
 
     public void StopSync()
@@ -269,7 +272,15 @@ public sealed class BgmSyncPlayer : MonoBehaviour
             else
             {
                 // 중간 난입 혹은 엄청난 렉으로 예약 시간을 놓친 경우
-                Debug.LogWarning($"[BgmSyncPlayer] Late start or Sync lost. Forcing Play() at {elapsedSec:F3}s");
+                _failedPlayCount++;
+                if (_failedPlayCount < 3)
+                {
+                    Debug.LogWarning($"[BgmSyncPlayer] Late start or Sync lost. Forcing Play() at {elapsedSec:F3}s");
+                }
+                else if (_failedPlayCount == 3)
+                {
+                    Debug.LogWarning("[BgmSyncPlayer] AudioSource is refusing to play repeatedly. Did FMOD mute Unity Audio? Suppressing further logs.");
+                }
                 SeekTo((float)elapsedSec);
                 _audioSource.Play();
             }

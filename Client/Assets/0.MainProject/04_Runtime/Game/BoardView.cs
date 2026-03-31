@@ -447,10 +447,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (action.ActionKind == (int)ActionKind.Attack) 
         {
             visual.PlayAttack(duration, isMine);
+            FMODActionSoundPlayer.Instance?.PlayAttackSound(isMine);
         }
         else if (action.ActionKind == (int)ActionKind.Skill)
         {
             visual.PlaySkill(duration, isMine);
+            // 나중에 스킬 전용 함수 연결 가능
         }
     }
 
@@ -466,9 +468,14 @@ public class BoardView : MonoBehaviour, IClientWorldView
         bool isMine = (ClientGameState.Instance != null && actorId == ClientGameState.Instance.MyActorId);
 
         if (kind == ActionKind.Attack)
+        {
             visual.PlayAttack(duration, isMine);
+            FMODActionSoundPlayer.Instance?.PlayAttackSound(isMine);
+        }
         else if (kind == ActionKind.Skill)
+        {
             visual.PlaySkill(duration, isMine);
+        }
 
         // 시간 기록 (이중 재생 방지)
         _recentInstantActions[actorId] = Time.time;

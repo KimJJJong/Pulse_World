@@ -14,33 +14,130 @@
                 {
                     "MeasureIndex": 0,
                     "Tick": 0,
+                    "RootNote": "E",
+                    "ChordType": "Minor",
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
                     "RootNote": "C",
                     "ChordType": "Major",
                     "PitchOffset": 0
                 },
                 {
-                    "MeasureIndex": 1,
-                    "Tick": 0,
-                    "RootNote": "G",
-                    "ChordType": "Major",
-                    "PitchOffset": 7
-                },
-                {
                     "MeasureIndex": 2,
                     "Tick": 0,
-                    "RootNote": "A",
+                    "RootNote": "G",
                     "ChordType": "Minor",
-                    "PitchOffset": 9
+                    "PitchOffset": 7
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 0,
-                    "RootNote": "F",
+                    "RootNote": "D",
                     "ChordType": "Major",
-                    "PitchOffset": 5
+                    "PitchOffset": 2
                 }
             ],
-            "BassPattern": []
+            "BassPattern": [
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Kick",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 480,
+                    "SoundKey": "HiHat",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 960,
+                    "SoundKey": "Kick",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "HiHat",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "SoundKey": "Kick",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
+                    "SoundKey": "HiHat",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 960,
+                    "SoundKey": "Kick",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1440,
+                    "SoundKey": "HiHat",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Kick",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 480,
+                    "SoundKey": "HiHat",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Kick",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1440,
+                    "SoundKey": "HiHat",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "SoundKey": "Kick",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 480,
+                    "SoundKey": "HiHat",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 960,
+                    "SoundKey": "Kick",
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1440,
+                    "SoundKey": "HiHat",
+                    "VolumeMultiplier": 1.0
+                }
+            ]
         }
     ]
 }
