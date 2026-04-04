@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 public sealed class FrozenAttackRegistry
 {
@@ -7,6 +7,8 @@ public sealed class FrozenAttackRegistry
         public string SkillId = "";
         public List<GridPos> Cells = new();
         public int? CustomDamage = null; // NewSkill 시스템용 직접 데미지
+        public int StunDurationTicks = 0;
+        public int KnockbackDistance = 0;
     }
 
     // (actorId, beat) -> frozen
@@ -21,13 +23,15 @@ public sealed class FrozenAttackRegistry
         };
     }
 
-    public void PutRaw(int actorId, long beat, int damage, List<GridPos> cells)
+    public void PutRaw(int actorId, long beat, int damage, List<GridPos> cells, int stunTicks = 0, int knockback = 0)
     {
         _map[(actorId, beat)] = new FrozenAttack
         {
             SkillId = string.Empty, // SkillId 없음
             Cells = cells,
-            CustomDamage = damage
+            CustomDamage = damage,
+            StunDurationTicks = stunTicks,
+            KnockbackDistance = knockback
         };
     }
 

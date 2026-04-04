@@ -157,15 +157,32 @@ public class ClientHandlers : MonoBehaviour
     public void Handle_SC_ActionInstantBroadcast(SC_ActionInstantBroadcast p)
     {
         if (BV == null) return;
-        
-        // 클라이언트 사이드 예측: 내 캐릭터는 서버 브로드캐스트를 기다리지 않고 로컬에서 즉시 실행하므로 서버 패킷은 무시합니다.
-        if (p.ActorId == GS.MyActorId) return;
-        
-        // 1Beat 시간(초) * 비율
-        double beatMs = Rhythm.GetBeatDurationMs();
-        float duration = (float)(beatMs / 1000.0) * BV.actionDurationRatio;
 
-        BV.PlayInstantActionBroadcast(p.ActorId, (ActionKind)p.ActionKind, duration);
+        // 클라이언트 사이드 예측: 내 캐릭터는 서버 브로드캐스트를 기다리지 않고 로컬에서 즉시 실행하므로 서버 패킷은 무시합니다.
+        // 단, 서버에서 강제로 SkillId를 매핑했거나 정보 동기화가 필요한 경우 여기서 수행 가능
+        if (p.ActorId == GS.MyActorId && string.IsNullOrEmpty(p.SkillId)) return;
+
+        // [NewSkill System] 데이터 기반 스킬 실행
+        if (!string.IsNullOrEmpty(p.SkillId) && p.SkillId != "DefaultAttack" && p.SkillId != "Attack" && p.SkillId != "Skill")
+        {
+            BV.PlaySkillInstant(p.ActorId, p.SkillId, p.StartTick);
+        }
+        else
+        {
+            // 폴백: 레거시 애니메이션 시스템
+            double beatMs = Rhythm.GetBeatDurationMs();
+            float duration = (float)(beatMs / 1000.0) * BV.actionDurationRatio;
+            BV.PlayInstantActionBroadcast(p.ActorId, (ActionKind)p.ActionKind, duration);
+        }
+    }
+
+    /// <summary>
+    /// CC에 의한 스킬/액션 취소 브로드캐스트 처리 
+    /// </summary>
+    public void Handle_SC_CancelAction(SC_CancelAction p)
+    {
+        if (BV == null) return;
+        //BV.CancelSkill(p.ActorId);
     }
 
     /// <summary>
@@ -223,8 +240,13 @@ public class ClientHandlers : MonoBehaviour
 
     public void Handle_SC_BeatTelegraphs(SC_BeatTelegraphs p)
     {
+        // [NewSkill System] 체크 
+        // 해당 액터가 현재 데이터 기반 스킬(ClientSkillRunner)을 실행 중이라면 
+        // 텔레그래프 렌더링을 중복으로 하지 않음 (깜빡임 방지)
+        // Note: 여러 액션 중 하나라도 데이터 기반이라면 전체 스킵하거나 액터별 필터링 필요
+        
         //Debug.Log($"[SC_BeatTelegraphs] beat={p.BeatIndex} count={p.telegraphss.Count}"); 
-
+        
         // BoardView가 없으면(씬 미배치) 일단 로그만
         if (BV == null)
         {
@@ -235,6 +257,10 @@ public class ClientHandlers : MonoBehaviour
         for (int i = 0; i < p.telegraphss.Count; i++)
         {
             var t = p.telegraphss[i];
+
+            // [핵심] 해당 액터가 새 시스템을 사용 중이면 이 패킷 무시
+            if (BV.IsActorRunningNewSkill(t.CasterId))
+                continue;
 
 
 

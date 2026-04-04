@@ -1,4 +1,4 @@
-﻿public static partial class ActionRequestTranslator
+public static partial class ActionRequestTranslator
 {
     public static bool TryBuildCmd(
         int actorId,
@@ -76,6 +76,7 @@
         cmd = new PlayerActionCmd
         {
             ActorId = actorId,
+            SkillId = "Skill",
             Kind = ActionKind.Attack,
             TargetCell = new GridPos(req.TargetX, req.TargetY),
             //TargetOid = req.TargetOid,

@@ -54,4 +54,34 @@ public class FMODActionSoundPlayer : MonoBehaviour
         string logStr = isMine ? "My Attack" : "Other Attack";
         // Debug.Log($"[FMODAction] Played {logStr} with PitchOffset: {currentPitchOffset}");
     }
+
+    /// <summary>
+    /// SoundAction에서 호출: FMOD Event Path로 범용 사운드를 재생합니다.
+    /// path 예: "event:/SFX/Attack/Sword"
+    /// </summary>
+    public void PlayByEventPath(string fmodEventPath, float volume = 1.0f)
+    {
+        if (string.IsNullOrEmpty(fmodEventPath)) return;
+
+        FMOD.Studio.EventInstance instance;
+        try
+        {
+            instance = RuntimeManager.CreateInstance(fmodEventPath);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[FMODAction] Sound create failed for '{fmodEventPath}': {e.Message}");
+            return;
+        }
+
+        // PitchOffset(음악 맥락) 적용
+        int currentPitchOffset = 0;
+        if (FMODDrumSequencer.Instance != null)
+            currentPitchOffset = FMODDrumSequencer.Instance.GetCurrentPitchOffset();
+
+        instance.setParameterByName("PitchOffset", currentPitchOffset);
+        instance.setVolume(volume);
+        instance.start();
+        instance.release();
+    }
 }

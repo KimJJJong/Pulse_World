@@ -10,8 +10,9 @@ namespace GameServer.Content.Skill
     public class SkillRunner
     {
         private NewSkillDef _currentSkill;
-        private int _startBeat;
+        private long _startTick;
         private bool _isRunning;
+        private HashSet<object> _executedEvents = new HashSet<object>();
         
         // [Fix] Snapshot for Ground Targeting consistency
         private List<GridPos> _cachedWarningCells;
@@ -33,41 +34,50 @@ namespace GameServer.Content.Skill
             _telegraph = telegraph;
         }
 
-        public void StartSkill(NewSkillDef skill, int currentBeat)
+        public void StartSkillTick(NewSkillDef skill, long currentTick)
         {
             _currentSkill = skill;
-            _startBeat = currentBeat;
+            _startTick = currentTick;
             _isRunning = true;
+            _executedEvents.Clear();
+            _cachedWarningCells = null;
+
+            // Immediately broadcast to clients so they can start visual simulation precisely at currentTick
+            _beatActionManager.BroadcastActionInstant(_casterId, ActionKind.Skill, skill.SkillId, currentTick);
         }
 
-        public void Update(int currentBeat)
+        public void UpdateTick(long currentTick)
         {
             if (!_isRunning || _currentSkill == null) return;
 
-            int beatOffset = currentBeat - _startBeat;
-            int tickOffset = beatOffset * 480; // TODO: 480을 TicksPerBeat 전역 상수로 교체 필요
+            long elapsedTick = currentTick - _startTick;
 
-            if (beatOffset < 0) return;
-            if (tickOffset > _currentSkill.TotalDurationTicks)
+            if (elapsedTick < 0) return;
+            if (elapsedTick > _currentSkill.TotalDurationTicks)
             {
                 Finish();
                 return;
             }
 
-            ProcessEvents(currentBeat, tickOffset);
+            ProcessEventsTick(currentTick, elapsedTick);
         }
 
-        private void ProcessEvents(int currentBeat, int tickOffset)
+        private void ProcessEventsTick(long currentTick, long elapsedTick)
         {
             foreach (var track in _currentSkill.Tracks)
             {
                 foreach (var evt in track.Events)
                 {
-                    // [Debug] checking event trigger
-                    if (evt.TriggerTick == tickOffset)
+                    if (evt.TriggerTick <= elapsedTick)
                     {
-                        //Console.WriteLine($"[SkillRunner] Event Triggered! Type={evt.Action?.GetSkillActionType()} at offset {beatOffset}");
-                        ExecuteAction(evt.Action, currentBeat, evt.DurationTicks);
+                        if (!_executedEvents.Contains(evt))
+                        {
+                            _executedEvents.Add(evt);
+                            // Schedule events in BeatActionManager using nearest Beat
+                            // For true Sub-Beat execution, BeatActionManager needs ExecuteTick
+                            long currentBeat = currentTick / 480; 
+                            ExecuteAction(evt.Action, (int)currentBeat, evt.DurationTicks);
+                        }
                     }
                 }
             }
@@ -91,6 +101,9 @@ namespace GameServer.Content.Skill
                     break;
                 case SkillActionType.InputLock:
                     ProcessInputLock((InputLockAction)action);
+                    break;
+                case SkillActionType.Sound:
+                    // 사운드는 클라이언트 전용. 서버에서는 아무것도 하지 않습니다.
                     break;
             }
         }
@@ -170,14 +183,14 @@ namespace GameServer.Content.Skill
                 //Console.WriteLine($"[SkillRunner] Damage CustomCells: {targetCells.Count} cells generated from Shape.");
 
             // 1. FrozenRegistry에 커스텀 데미지와 범위 등록
-            _frozen.PutRaw(_casterId, currentBeat, action.Amount, targetCells);
+            _frozen.PutRaw(_casterId, currentBeat, action.Amount, targetCells, action.StunDurationTicks, action.KnockbackDistance);
 
             // 2. 예약 (BeatActionManager가 해당 비트에 실행)
             var cmd = new PlayerActionCmd
             {
                 ActorId = _casterId,
                 Kind = ActionKind.Skill,
-                SkillId = "NewSkill", // Dummy ID (FrozenRegistry has the real data)
+                SkillId = _currentSkill.SkillId, // Use actual SkillId for ClientSkillRunner
                 TargetCell = casterPos, // Origin
                 ExecuteBeat = currentBeat,
                 ClientSendTimeMs = 0,

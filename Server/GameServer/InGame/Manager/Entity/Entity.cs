@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace GameServer.InGame.Manager.Entity;
 
@@ -22,6 +22,10 @@ public  class MapEntity
     public EntityType Type { get; }
     public GridPos Position { get; internal set; }
     public bool IsAlive { get; internal set; } = true;
+    
+    // Status Effects
+    public long StunEndTick { get; set; } = 0;
+    public bool IsStunned(long currentTick) => currentTick < StunEndTick;
 
     // 상태: "HP", "Stun", ~~
     private readonly Dictionary<string, object> _states = new();

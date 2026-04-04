@@ -1,4 +1,4 @@
-﻿using GameServer.InGame.Manager.Beat;
+using GameServer.InGame.Manager.Beat;
 using System;
 
 namespace GameServer.InGame.System.Rhythm;
@@ -45,6 +45,14 @@ public sealed class RhythmSystem : IBeatClock
         var elapsed = nowMs - _songStartServerTimeMs;
         if (elapsed < 0) return -1;
         return (long)(elapsed / _baseBeatMs);
+    }
+
+    public long GetCurrentTick(long nowMs)
+    {
+        var elapsed = nowMs - _songStartServerTimeMs;
+        if (elapsed < 0) return 0;
+        // 1 BaseBeatDivision 틱은 480 틱 (Tick)
+        return (long)(elapsed * 480.0 / _baseBeatMs);
     }
 
     public long GetNearestBeatIndex(long nowMs)

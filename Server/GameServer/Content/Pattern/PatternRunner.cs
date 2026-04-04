@@ -60,7 +60,11 @@ public sealed class PatternRunner
         
         if (beatIndex >= st.LockedUntilBeat)
         {
-            MonsterPatternDef def = _patterns.GetMonster(monsterType);
+            // Check CC before scheduling new patterns
+            bool isStunned = monster.IsStunned(beatIndex * 480);
+            if (!isStunned)
+            {
+                MonsterPatternDef def = _patterns.GetMonster(monsterType);
             if (def == null) 
                  def = _patterns.GetMonster("Default");
 
@@ -91,6 +95,7 @@ public sealed class PatternRunner
                     }
                 }
             }
+            }
         }
 
         // 2. Active Skills Update (매 비트 실행)
@@ -98,10 +103,48 @@ public sealed class PatternRunner
         for (int i = st.ActiveSkills.Count - 1; i >= 0; i--)
         {
             var skill = st.ActiveSkills[i];
-            skill.Update((int)beatIndex);
+            long currentTick = beatIndex * 480; 
+            skill.UpdateTick(currentTick);
             if (!skill.IsRunning)
             {
                 st.ActiveSkills.RemoveAt(i);
+            }
+        }
+    }
+
+    public void UpdateTick(long currentTick)
+    {
+        foreach (var kvp in _rt)
+        {
+            var st = kvp.Value;
+            var monsterId = kvp.Key;
+
+            // Check Hard CC (Stun)
+            bool isStunned = _world.TryGetEntity(monsterId, out var entity) && entity.IsStunned(currentTick);
+            
+            if (isStunned)
+            {
+                if (st.ActiveSkills.Count > 0)
+                {
+                    Console.WriteLine($"[PatternRunner] Monster {monsterId} Stunned! Canceling {st.ActiveSkills.Count} active skills.");
+                    st.ActiveSkills.Clear();
+                    _actions.BroadcastCancelAction(monsterId);
+                    
+                    // Also clear scheduled telegraphs/attacks for this actor
+                    _telegraph.RemoveByCaster(monsterId);
+                    _frozen.RemoveByActor(monsterId);
+                }
+                continue; // Skip updating skills or AI
+            }
+
+            for (int i = st.ActiveSkills.Count - 1; i >= 0; i--)
+            {
+                var skill = st.ActiveSkills[i];
+                skill.UpdateTick(currentTick);
+                if (!skill.IsRunning)
+                {
+                    st.ActiveSkills.RemoveAt(i);
+                }
             }
         }
     }
@@ -532,7 +575,7 @@ public sealed class PatternRunner
         }
 
         var runner = new GameServer.Content.Skill.SkillRunner(m.Id, _world, _actions, _frozen, _telegraph);
-        runner.StartSkill(skillDef, (int)executeBeat);
+        runner.StartSkillTick(skillDef, executeBeat * 480);
 
         if (_rt.TryGetValue(m.Id, out var rt))
         {

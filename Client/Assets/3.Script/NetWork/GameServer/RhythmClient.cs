@@ -116,8 +116,14 @@ public class RhythmClient : MonoBehaviour
         return GetCurrentServerTimeMs() - currBeatMs;
     }
 
-
-}
+    public long GetCurrentServerTick()
+    {
+        double diffMs = GetCurrentServerTimeMs() - ServerSongStartMs;
+        if (diffMs < 0) return 0;
+        
+        double beatRatio = diffMs / GetBeatDurationMs();
+        return (long)(beatRatio * 480);
+    }}
 
 public struct BeatSyncInfo
 {

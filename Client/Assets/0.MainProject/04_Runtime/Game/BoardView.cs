@@ -36,6 +36,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
     // 서버 응답(SC_BeatActions)에서 중복 애니메이션 재생을 방지
     private Dictionary<int, float> _recentInstantActions = new();
 
+    // Actor 별로 현재 실행 중인 데이터 기반 스킬 시뮬레이터(ClientSkillRunner) 추적
+    private Dictionary<int, ClientSkillRunner> _activeSkillRunners = new();
+
     #region Debug
     private const bool DBG_POS = false;
     private int _dbgOnlyActorId = -1; // -1이면 전부, 특정 ID만 보고 싶으면 그 값으로
@@ -479,6 +482,60 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         // 시간 기록 (이중 재생 방지)
         _recentInstantActions[actorId] = Time.time;
+    }
+
+    /// <summary>
+    /// [NewSkill System] 데이터 기반 스킬 실행 (동적으로 ClientSkillRunner 생성)
+    /// </summary>
+    public void PlaySkillInstant(int actorId, string skillId, long startTick)
+    {
+        if (!_entityViews.TryGetValue(actorId, out var visual) || visual == null)
+            return;
+
+        bool isMine = (ClientGameState.Instance != null && actorId == ClientGameState.Instance.MyActorId);
+
+        // 이전 스킬 러너가 있다면 정리 (중복 재생 방지 및 캔슬 대응)
+        if (_activeSkillRunners.TryGetValue(actorId, out var prevRunner))
+        {
+            if (prevRunner != null) Destroy(prevRunner.gameObject);
+            _activeSkillRunners.Remove(actorId);
+        }
+
+        // 새 스킬 러너 생성
+        GameObject go = new GameObject($"SkillRunner_{actorId}_{skillId}");
+        go.transform.SetParent(visual.transform); // 비주얼에 붙여서 같이 이동하거나 추적 용의하게 함
+        
+        var runner = go.AddComponent<ClientSkillRunner>();
+        runner.Initialize(this, actorId, visual, skillId, startTick, isMine);
+        
+        _activeSkillRunners[actorId] = runner;
+    }
+
+    /// <summary>
+    /// [NewSkill System] 스킬 트리거에 따른 텔레그래프(경고) 출력
+    /// </summary>
+    public void ShowSkillTelegraph(int actorId, int styleId, long startTick, int totalDurationTicks, int shape, int originType, int originX, int originY, int paramA, int paramB, List<Vector2Int> cells)
+    {
+        // NewSkill 시스템은 틱 기반이므로, duration을 비트로 환산하지 않고 직접 계산하거나 고정 할당
+        // 여기서는 기존 SetTelegraphOverlay를 활용함
+        if (cells == null || cells.Count == 0) return;
+
+        foreach (var cell in cells)
+        {
+            SetTelegraphOverlay(cell.x, cell.y, on: true);
+        }
+    }
+
+    /// <summary>
+    /// 해당 액터가 현재 데이터 기반 스킬을 실행 중인지 확인 (레거시 텔레그래프와의 충돌 방지용)
+    /// </summary>
+    public bool IsActorRunningNewSkill(int actorId)
+    {
+        if (_activeSkillRunners.TryGetValue(actorId, out var runner))
+        {
+            return runner != null;
+        }
+        return false;
     }
 
     public void OnInitGameCompleted()

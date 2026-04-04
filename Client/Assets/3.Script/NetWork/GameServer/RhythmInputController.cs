@@ -108,6 +108,11 @@ public class RhythmInputController : MonoBehaviour
         if (holdAutoInput) return;
         HandleInputEvent(ctx, ActionKind.Move);
     }
+    void OnSkillPerformed(InputAction.CallbackContext ctx)
+    {
+        if (holdAutoInput) return;
+        HandleInputEvent(ctx, ActionKind.Skill);
+    }
 
     void OnAttackPerformed(InputAction.CallbackContext ctx)
     {
@@ -161,6 +166,7 @@ public class RhythmInputController : MonoBehaviour
         var rdir = RotateDirByTarget(dir);
         int tx = me.X + rdir.x;
         int ty = me.Y + rdir.y;
+
         
         Debug.Log($"[RhythmInput] Firing {kind} to ({tx}, {ty}) with 0-frame delay.");
 
@@ -397,7 +403,7 @@ public class RhythmInputController : MonoBehaviour
                 break;
 
             case InputChannel.Game:
-                SendGameAction(kind, targetX, targetY, serverNowMs);
+                SendGameAction(kind, targetX, targetY, serverNowMs, skillId: "");
                 break;
         }
     }
@@ -416,12 +422,13 @@ public class RhythmInputController : MonoBehaviour
         NetworkManager.Instance.Send(pkt.Write());
     }
 
-    void SendGameAction(ActionKind kind, int targetX, int targetY, long serverNowMs)
+    void SendGameAction(ActionKind kind, int targetX, int targetY, long serverNowMs, string skillId = "")
     {
         CS_ActionRequest pkt = new CS_ActionRequest
         {
             ActorId = GS.MyActorId,
             ActionKind = (int)kind,
+            SkillId = skillId ?? "", // [Fix] Ensure SkillId is not null to avoid crash in Write()
             TargetX = targetX,
             TargetY = targetY,
             ClientSendTimeMs = serverNowMs,

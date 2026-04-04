@@ -84,24 +84,20 @@ public class EntityVisual : MonoBehaviour
     {
         if (_animator != null)
         {
-            // 공격 애니메이션도 박자에 맞춰 Speed 조절
-            _animator.speed = 1.0f / duration; 
+            // 박자 계산 무시하고 항상 기본 속도(1.0f)로 고정 재생
+            _animator.speed = 2f;
             _animator.SetTrigger("Attack");
         }
-
         PlaySoundWithTimingLog(_attackSound, "Attack", isMine);
     }
-
     public void PlaySkill(float duration, bool isMine = false)
     {
         if (_animator != null)
         {
-            _animator.speed = 1.0f / duration;
-            // 스킬 애니메이션이 따로 있다면 "Skill", 없다면 "Attack" 재사용
-            // 현재는 "Attack" 재사용
-            _animator.SetTrigger("Attack");
+            // 스킬 역시 박자 계산 무시하고 1배속으로 고정
+            _animator.speed = 2f;
+            _animator.SetTrigger("Attack"); // (스킬용 Trigger가 따로 없다면)
         }
-
         PlaySoundWithTimingLog(_skillSound, "Skill", isMine);
     }
 

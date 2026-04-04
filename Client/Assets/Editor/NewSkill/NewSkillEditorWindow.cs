@@ -404,6 +404,7 @@ public class NewSkillEditorWindow : EditorWindow
             case SkillActionType.Damage: return new Color(1f, 0.2f, 0.2f, 0.8f);
             case SkillActionType.Move: return new Color(0.2f, 0.6f, 1f, 0.8f);
             case SkillActionType.InputLock: return new Color(0.5f, 0.5f, 0.5f, 0.8f);
+            case SkillActionType.Sound: return new Color(0.4f, 1f, 0.8f, 0.8f); // Teal/Cyan
             default: return Color.green;
         }
     }
@@ -416,6 +417,7 @@ public class NewSkillEditorWindow : EditorWindow
             case SkillActionType.Damage: return new DamageAction { Shape = new DiamondShape { Radius = 1 }, Amount = 10 };
             case SkillActionType.Move: return new MoveAction { Distance = 1, MoveType = MoveType.Dash };
             case SkillActionType.InputLock: return new InputLockAction();
+            case SkillActionType.Sound: return new SoundAction { FmodEventPath = "", Volume = 1.0f, UseOwnerPerspective = true };
             default: return new WaitActionStub();
         }
     }
@@ -442,6 +444,16 @@ public class NewSkillEditorWindow : EditorWindow
                 break;
             case InputLockAction i:
                 EditorGUILayout.HelpBox("Locks Input.", MessageType.None);
+                break;
+            case SoundAction s:
+                EditorGUILayout.HelpBox(
+                    "FMOD Event Path를 입력하세요.\n" +
+                    "맨약 비워두면 기본 공격 사운드(fallback)로 재생됩니다.\n" +
+                    "예: event:/SFX/Attack/Sword",
+                    MessageType.Info);
+                s.FmodEventPath = EditorGUILayout.TextField("FMOD Event Path", s.FmodEventPath);
+                s.Volume = EditorGUILayout.Slider("Volume", s.Volume, 0f, 1f);
+                s.UseOwnerPerspective = EditorGUILayout.Toggle("Owner Perspective", s.UseOwnerPerspective);
                 break;
         }
     }

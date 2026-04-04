@@ -163,6 +163,8 @@ class PacketHandler
         => ClientHandlers.Instance.HandleSC_TownBeatActions((SC_TownBeatActions)packet);
 
 
+
+
     /// <summary>
     /// rhytm
     /// </summary>
@@ -186,6 +188,9 @@ class PacketHandler
 
     public static void SC_EntityDespawnHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_EntityDespawn((SC_EntityDespawn)packet);
+
+    public static void SC_CancelActionHandler(PacketSession session, IPacket packet)
+        => ClientHandlers.Instance.Handle_SC_CancelAction((SC_CancelAction)packet);
 
     public static void SC_EntitySpawnHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_EntitySpawnHandler((SC_EntitySpawn)packet);

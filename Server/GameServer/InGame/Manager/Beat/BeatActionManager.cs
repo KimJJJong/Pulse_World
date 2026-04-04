@@ -1,5 +1,6 @@
-﻿using GameServer.Content.Map;
+using GameServer.Content.Map;
 using GameServer.Content.Map.Interface;
+using GameServer.Content.Skill;
 using GameServer.InGame.System.Rhythm;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,7 @@ namespace GameServer.InGame.Manager.Beat
         private readonly BeatScheduler _scheduler = new();
         private readonly BeatScheduler _delayedScheduler = new(); // Attack/Skill용 지연 큐
         private readonly FrozenAttackRegistry _frozen;
+        private readonly TelegraphScheduler _telegraph;
 
         //private readonly int _leadBeat;
         private readonly double _actionWindowMs;
@@ -36,6 +38,7 @@ namespace GameServer.InGame.Manager.Beat
             IBeatClock clock,
             IGameWorld world,
             FrozenAttackRegistry frozenAttackRegistry,
+            TelegraphScheduler telegraphScheduler,
             double actionWindowMs,
             int maxBeatLookAhead
             )
@@ -46,6 +49,7 @@ namespace GameServer.InGame.Manager.Beat
             _world = world;
 
             _frozen = frozenAttackRegistry;
+            _telegraph = telegraphScheduler;
 
             _actionWindowMs = actionWindowMs;
             _maxBeatLookAhead = maxBeatLookAhead;
@@ -55,6 +59,12 @@ namespace GameServer.InGame.Manager.Beat
             {
                 rhythmSys.OnJudgeWindowEnd += OnJudgeWindowEnd;
             }
+        }
+
+        /// <summary>
+        public void BroadcastCancelAction(int actorId)
+        {
+            _broadcaster.Broadcast(new SC_CancelAction { ActorId = actorId });
         }
 
         /// <summary>
@@ -110,14 +120,18 @@ namespace GameServer.InGame.Manager.Beat
             else
             {
                 _delayedScheduler.Enqueue(cmd);
-                
+                Console.WriteLine($"[BeatActionManager] Kind = {cmd.Kind} || Skill iD  : {cmd.SkillId}");
+
+
                 //  즉각적인 공격 액션 브로드캐스트 전송
                 if (cmd.Kind == ActionKind.Attack || cmd.Kind == ActionKind.Skill)
                 {
                     _broadcaster.Broadcast(new SC_ActionInstantBroadcast
                     {
                         ActorId = cmd.ActorId,
-                        ActionKind = (int)cmd.Kind
+                        ActionKind = (int)cmd.Kind,
+                        SkillId = cmd.SkillId ?? "DefaultAttack",
+                        StartTick = judge.ExecuteBeat * 480
                     });
                 }
             }
@@ -207,7 +221,9 @@ namespace GameServer.InGame.Manager.Beat
                     _broadcaster.Broadcast(new SC_ActionInstantBroadcast
                     {
                         ActorId = cmd.ActorId,
-                        ActionKind = (int)cmd.Kind
+                        ActionKind = (int)cmd.Kind,
+                        SkillId = cmd.SkillId ?? "DefaultAttack",
+                        StartTick = judge.ExecuteBeat * 480
                     });
                 }
             }
@@ -294,6 +310,17 @@ namespace GameServer.InGame.Manager.Beat
             }
         }
 
+        public void BroadcastActionInstant(int actorId, ActionKind kind, string skillId, long startTick)
+        {
+            _broadcaster.Broadcast(new SC_ActionInstantBroadcast
+            {
+                ActorId = actorId,
+                ActionKind = (int)kind,
+                SkillId = skillId ?? "DefaultAttack",
+                StartTick = startTick
+            });
+        }
+
 
         /// <summary>
         /// RhythmSystem에서 Beat가 도래할 때마다 호출.
@@ -301,6 +328,8 @@ namespace GameServer.InGame.Manager.Beat
         /// </summary>
         public void OnBeat(long beatIndex)
         {
+            _telegraph.OnBeat(beatIndex);
+
             _scheduler.PopActions(beatIndex, _cmdBuffer);
             if (_cmdBuffer.Count > 0)
             {
@@ -364,7 +393,20 @@ namespace GameServer.InGame.Manager.Beat
                         break;
                     case ActionKind.Attack:
                         {
-                            accepted = _world.TryUseAttack(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
+                            if (!string.IsNullOrEmpty(cmd.SkillId) && NewSkillDatabase.TryGet(cmd.SkillId, out var attackSkillDef))
+                            {
+                                // SkillRunner를 사용하여 데이터 기반 공격 로직 실행
+                                var runner = new SkillRunner(cmd.ActorId, _world, this, _frozen, _telegraph);
+                                runner.StartSkillTick(attackSkillDef, beatIndex * 480);
+                                runner.UpdateTick(beatIndex * 480); // 즉시 1틱 실행 (애니메이션/사운드 격발)
+                                accepted = true;
+                            }
+                            else
+                            {
+                                // 폴백: 기존 공격 로직
+                                accepted = _world.TryUseAttack(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
+                            }
+                            toPos = fromPos;
                             break;
                         }
 
@@ -375,7 +417,8 @@ namespace GameServer.InGame.Manager.Beat
                                 // Logic Extension for NewSkill System
                                 if (frozen.CustomDamage.HasValue)
                                 {
-                                    accepted = _world.TryUseCustomSkill(cmd.ActorId, frozen.CustomDamage.Value, frozen.Cells, hpUpdates);
+                                    long currentTick = beatIndex * 480;
+                                    accepted = _world.TryUseCustomSkill(cmd.ActorId, currentTick, frozen, hpUpdates);
                                 }
                                 else
                                 {

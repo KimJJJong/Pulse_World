@@ -216,6 +216,12 @@
 	<packet name ="SC_ActionInstantBroadcast">
 		<int name ="ActorId"/>
 		<int name ="ActionKind"/>
+		<string name="SkillId"/>
+		<long name="StartTick"/>
+	</packet>
+
+	<packet name ="SC_CancelAction">
+		<int name ="ActorId"/>
 	</packet>
 
 	<packet name ="SC_BeatActions">

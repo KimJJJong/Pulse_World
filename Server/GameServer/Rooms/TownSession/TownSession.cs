@@ -1,4 +1,4 @@
-﻿using GameServer.Content.Map;
+using GameServer.Content.Map;
 using GameServer.InGame.Manager.Beat;
 using GameServer.InGame.Manager.Entity;
 using GameServer.InGame.System.Rhythm;
@@ -30,12 +30,14 @@ public sealed class TownSession : SessionBase
         _rhythm = rhythm;
         _rhythmConfig = rhythmConfig;
 
+        var telegraph = new TelegraphScheduler(broadcaster);
         BeatActions = new BeatActionManager(
             time,
             broadcaster,
             rhythm,
             World,
             null,
+            telegraph,
             _rhythmConfig.ActionWindowMs,       //Town은 Game과 차이를 둔다
             _rhythmConfig.MaxBeatLookAhead      //필요없을거 같은데 지금은
             );

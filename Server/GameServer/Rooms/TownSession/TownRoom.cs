@@ -1,4 +1,4 @@
-﻿using GameServer.Content.Map;
+using GameServer.Content.Map;
 using GameServer.InGame.Manager.Entity;
 using GameServer.InGame.System.Rhythm;
 using Microsoft.Extensions.Logging;

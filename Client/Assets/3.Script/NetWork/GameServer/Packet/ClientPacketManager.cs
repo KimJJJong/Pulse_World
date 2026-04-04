@@ -51,6 +51,8 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_BeatSync, PacketHandler.SC_BeatSyncHandler);
 		_makeFunc.Add((ushort)PacketID.SC_ActionInstantBroadcast, MakePacket<SC_ActionInstantBroadcast>);
 		_handler.Add((ushort)PacketID.SC_ActionInstantBroadcast, PacketHandler.SC_ActionInstantBroadcastHandler);
+		_makeFunc.Add((ushort)PacketID.SC_CancelAction, MakePacket<SC_CancelAction>);
+		_handler.Add((ushort)PacketID.SC_CancelAction, PacketHandler.SC_CancelActionHandler);
 		_makeFunc.Add((ushort)PacketID.SC_BeatActions, MakePacket<SC_BeatActions>);
 		_handler.Add((ushort)PacketID.SC_BeatActions, PacketHandler.SC_BeatActionsHandler);
 		_makeFunc.Add((ushort)PacketID.SC_BeatTelegraphs, MakePacket<SC_BeatTelegraphs>);

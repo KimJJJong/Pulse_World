@@ -50,17 +50,18 @@ public sealed class GameSession : SessionBase
         // Load Entity Data
         EntityDataManager.Instance.Load();
 
+        _telegraph = new TelegraphScheduler(broadcaster);
+
         BeatActions = new BeatActionManager(
             time,
             broadcaster,
             rhythm,
             World,
             frozenAttackRegistry: _frozen,
+            telegraphScheduler: _telegraph,
             actionWindowMs: _rhythmConfig.ActionWindowMs,
             maxBeatLookAhead: _rhythmConfig.MaxBeatLookAhead
         );
-
-        _telegraph = new TelegraphScheduler(broadcaster);
         _patternRunner = new PatternRunner(World, BeatActions, _telegraph, ContentStore.Patterns, _frozen, map);
         _monsterAI = new MonsterAIController(_patternRunner);
 
@@ -402,8 +403,12 @@ public sealed class GameSession : SessionBase
 
     public override void Update()
     {
-        // 필요하면 Tick 기반 처리
-
+        // 서브 비트(Tick) 기반 정밀 스킬 검증 로직 연결
+        if (_rhythm != null && _patternRunner != null)
+        {
+            long currentTick = _rhythm.GetCurrentTick(AppRef.ServerTimeMs());
+            _patternRunner.UpdateTick(currentTick);
+        }
     }
 
     public void BroadcastReturnToTown()

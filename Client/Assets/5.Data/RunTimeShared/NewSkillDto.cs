@@ -58,7 +58,8 @@ namespace GameShared.Data
         Damage, 
         Move, 
         InputLock,
-        Wait
+        Wait,
+        Sound   // 특정 Tick에 FMOD 사운드 이벤트 재생
     }
 
     // 1. Warning (전조)
@@ -95,6 +96,10 @@ namespace GameShared.Data
         public bool HitPlayers = true;
         public bool HitMonsters = false;
         
+        // Status Effects (CC)
+        public int StunDurationTicks = 0;
+        public int KnockbackDistance = 0;
+        
         // 타격 시점의 타겟팅 (Snapshot vs Realtime)
         public bool RecalculateTargets = false; 
     }
@@ -119,6 +124,22 @@ namespace GameShared.Data
     public class InputLockAction : BaseAction
     {
         public override SkillActionType GetSkillActionType() => SkillActionType.InputLock;
+    }
+
+    // 5. Sound (FMOD 사운드 이벤트 재생 - 클라이언트 저용이고 서버는 Skip)
+    [Serializable]
+    public class SoundAction : BaseAction
+    {
+        public override SkillActionType GetSkillActionType() => SkillActionType.Sound;
+
+        /// <summary>FMOD Studio의 Event Path. 예: "event:/SFX/Attack/Sword"</summary>
+        public string FmodEventPath = "";
+
+        /// <summary>0.0 ~ 1.0 볼륨. 기본값 1.0.</summary>
+        public float Volume = 1.0f;
+
+        /// <summary>true면 내 캐릭터 기준 사운드, false면 상대방 기준.</summary>
+        public bool UseOwnerPerspective = true;
     }
 
 

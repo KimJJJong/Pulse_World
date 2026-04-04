@@ -1,4 +1,4 @@
-﻿namespace GameServer.Content.Map;
+namespace GameServer.Content.Map;
 
 using System;
 using System.Collections.Generic;
@@ -344,14 +344,15 @@ public sealed class MapWorld2D : IGameWorld
     }
 
     // Helper to apply raw damage (NewSkill System)
-    public bool TryUseCustomSkill(int actorId, int damage, List<GridPos> cells, List<HpUpdate> hpUpdates)
+    // Helper to apply raw damage (NewSkill System)
+    public bool TryUseCustomSkill(int actorId, long currentTick, FrozenAttackRegistry.FrozenAttack frozen, List<HpUpdate> hpUpdates)
     {
         if (!TryGetEntity(actorId, out var attacker) || !attacker.IsAlive)
             return false;
 
         bool anyHit = false;
 
-        foreach (var c in cells)
+        foreach (var c in frozen.Cells)
         {
             if (!IsInside(c.X, c.Y)) continue;
             // if (IsBlocked(c.X, c.Y)) continue; // Custom skill might ignore walls or have its own flags
@@ -363,7 +364,15 @@ public sealed class MapWorld2D : IGameWorld
 
                 // TODO: Friendly Fire Check (if needed)
 
+                // Apply Stun First
+                if (frozen.StunDurationTicks > 0)
+                {
+                    target.StunEndTick = currentTick + frozen.StunDurationTicks;
+                    Console.WriteLine($"[CustomSkill] Target:{target.Id} Stunned until {target.StunEndTick}");
+                }
+
                 // Apply Damage
+                int damage = frozen.CustomDamage ?? 0;
                 int before = target.GetState<int>("HP");
                 int after = Math.Max(0, before - damage);
                 
@@ -440,42 +449,7 @@ public sealed class MapWorld2D : IGameWorld
         return anyHit;
     }
 
-    public bool TryUseCustomSkill(int actorId, int damage, IReadOnlyList<GridPos> cells, List<HpUpdate> hpUpdates)
-    {
-        if (!_entities.TryGetValue(actorId, out var attacker)) return false; 
-        // Or if actorId is invalid, we might still process? usually need attacker info for hit check?
-        // Pattern damage usually hits Players. 
-        // If attacker is null (e.g. environment), we might skip alliance check?
-        // Let's assume attacker exists.
-
-        bool anyHit = false;
-        HashSet<int> hitTargets = new();
-
-        foreach (var c in cells)
-        {
-            if (!IsInside(c.X, c.Y)) continue;
-
-            foreach (var target in GetEntitiesAt(new GridPos(c.X, c.Y)))
-            {
-                if (!target.IsAlive) continue;
-                if (target.Id == actorId) continue; // Self-hit check
-                
-                // Alliance Check? 
-                // CustomSkill is usually Monster -> Player.
-                if (attacker != null)
-                {
-                    // Simple check: Monster shouldn't hit Monster, Player shouldn't hit Player
-                    if (attacker.Type == target.Type) continue; 
-                }
-
-                if (!hitTargets.Add(target.Id)) continue;
-
-                ApplyCustomDamage(attacker, target, damage, hpUpdates);
-                anyHit = true;
-            }
-        }
-        return anyHit;
-    }
+    // Duplicate TryUseCustomSkill removed
 
     // ==== 내부 유틸 ====
     private bool IsInside(int x, int y) => _map.InBounds(x, y);
