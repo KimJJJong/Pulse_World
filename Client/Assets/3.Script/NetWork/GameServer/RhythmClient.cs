@@ -123,7 +123,13 @@ public class RhythmClient : MonoBehaviour
         
         double beatRatio = diffMs / GetBeatDurationMs();
         return (long)(beatRatio * 480);
-    }}
+    }
+
+    public long GetBeatTick(long beatIndex)
+    {
+        return beatIndex * 480;
+    }
+}
 
 public struct BeatSyncInfo
 {

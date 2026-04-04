@@ -494,6 +494,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         bool isMine = (ClientGameState.Instance != null && actorId == ClientGameState.Instance.MyActorId);
 
+        // [Prediction/Instant] 시간 기록 (OnBeatAction에서 중복 재생 방지용)
+        _recentInstantActions[actorId] = Time.time;
+
         // 이전 스킬 러너가 있다면 정리 (중복 재생 방지 및 캔슬 대응)
         if (_activeSkillRunners.TryGetValue(actorId, out var prevRunner))
         {

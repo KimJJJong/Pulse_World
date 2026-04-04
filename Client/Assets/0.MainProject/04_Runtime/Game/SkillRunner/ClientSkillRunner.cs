@@ -57,10 +57,6 @@ public class ClientSkillRunner : MonoBehaviour
                 _visual.PlaySkill(totalDurationSec, _isMine); 
             }
 
-            if (skillId.Contains("Attack"))
-            {
-                FMODActionSoundPlayer.Instance?.PlayAttackSound(_isMine);
-            }
         }
     }
 

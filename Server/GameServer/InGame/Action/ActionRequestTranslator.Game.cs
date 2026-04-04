@@ -76,7 +76,7 @@ public static partial class ActionRequestTranslator
         cmd = new PlayerActionCmd
         {
             ActorId = actorId,
-            SkillId = "Skill",
+            SkillId = "Attack",
             Kind = ActionKind.Attack,
             TargetCell = new GridPos(req.TargetX, req.TargetY),
             //TargetOid = req.TargetOid,
@@ -106,7 +106,7 @@ public static partial class ActionRequestTranslator
         {
             ActorId = actorId,
             Kind = ActionKind.Skill,
-            //SkillId = req.SkillId,
+            SkillId = req.SkillId,
             TargetCell = new GridPos(req.TargetX, req.TargetY),
             //TargetOid = (req.TargetOid > 0) ? req.TargetOid : null,
             //Param0 = req.Param0,

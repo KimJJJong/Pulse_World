@@ -62,136 +62,197 @@ public class RhythmInputController : MonoBehaviour
     // 본인의 최근 공격 입력 시간을 기록 (로그용)
     public static long LastAttackInputServerTimeMs { get; private set; }
 
+    [Header("Skill Slots")]
+    [SerializeField] private string _normalAttackSkillId = "Attack";
+    [SerializeField] private string[] _skillSlotIds = new string[4] { "Skill0", "Skill1", "Skill2", "Skill3" };
+
+    public void SetSkillSlot(int slotIndex, string skillId)
+    {
+        if (slotIndex < 0 || slotIndex >= _skillSlotIds.Length) return;
+        _skillSlotIds[slotIndex] = skillId;
+        Debug.Log($"[RhythmInput] SkillSlot[{slotIndex}] set to {skillId}");
+    }
+
+    public void SetNormalAttackSkill(string skillId)
+    {
+        _normalAttackSkillId = skillId;
+        Debug.Log($"[RhythmInput] NormalAttack set to {skillId}");
+    }
+
+    // --- Prediction Tracking ---
+    long _lastSkillPredictionBeat = long.MinValue;
+
     InputAction _moveAction;
     InputAction _attackAction;
+    InputAction _skillHAction;
+    InputAction _skillJAction;
+    InputAction _skillKAction;
+    InputAction _skillLAction;
+
+    InputAction _rotateLeftAction;
+    InputAction _rotateRightAction;
+    InputAction _toggleAction;
 
     void OnEnable()
     {
         if (_moveAction == null)
         {
-            _moveAction = new InputAction("Move", type: InputActionType.Value, binding: "2DVector");
+            _moveAction = new InputAction("Move", type: InputActionType.Value);
             _moveAction.AddCompositeBinding("2DVector")
                 .With("Up", "<Keyboard>/w")
                 .With("Down", "<Keyboard>/s")
                 .With("Left", "<Keyboard>/a")
                 .With("Right", "<Keyboard>/d");
 
-            _attackAction = new InputAction("Attack", type: InputActionType.Value, binding: "2DVector");
-            _attackAction.AddCompositeBinding("2DVector")
-                .With("Up", "<Keyboard>/upArrow")
-                .With("Down", "<Keyboard>/downArrow")
-                .With("Left", "<Keyboard>/leftArrow")
-                .With("Right", "<Keyboard>/rightArrow");
+            // [Change] Attack is now bound to Space and handles as a Skill
+            _attackAction = new InputAction("Attack", type: InputActionType.Button, binding: "<Keyboard>/space");
 
-            // discrete movement/attack usually feels more responsive on 'started' than 'performed' or 'canceled'
+            // [New] Skill keys HJKL
+            _skillHAction = new InputAction("SkillH", type: InputActionType.Button, binding: "<Keyboard>/h");
+            _skillJAction = new InputAction("SkillJ", type: InputActionType.Button, binding: "<Keyboard>/j");
+            _skillKAction = new InputAction("SkillK", type: InputActionType.Button, binding: "<Keyboard>/k");
+            _skillLAction = new InputAction("SkillL", type: InputActionType.Button, binding: "<Keyboard>/l");
+
+            // [New] Utility keys
+            _rotateLeftAction = new InputAction("RotateLeft", type: InputActionType.Button, binding: "<Keyboard>/q");
+            _rotateRightAction = new InputAction("RotateRight", type: InputActionType.Button, binding: "<Keyboard>/e");
+            _toggleAction = new InputAction("Toggle", type: InputActionType.Button, binding: "<Keyboard>/f1");
+
             _moveAction.started += OnMovePerformed;
             _attackAction.started += OnAttackPerformed;
+            
+            _skillHAction.started += (ctx) => OnSkillSlotPerformed(0);
+            _skillJAction.started += (ctx) => OnSkillSlotPerformed(1);
+            _skillKAction.started += (ctx) => OnSkillSlotPerformed(2);
+            _skillLAction.started += (ctx) => OnSkillSlotPerformed(3);
+
+            _rotateLeftAction.started += (ctx) => Rotate(-rotateAngle);
+            _rotateRightAction.started += (ctx) => Rotate(+rotateAngle);
+            _toggleAction.started += (ctx) => {
+                if (allowRuntimeToggle) {
+                    channel = (channel == InputChannel.Town) ? InputChannel.Game : InputChannel.Town;
+                    Debug.Log($"[RhythmInput] Channel switched => {channel}");
+                }
+            };
         }
         _moveAction.Enable();
         _attackAction.Enable();
+        _skillHAction.Enable();
+        _skillJAction.Enable();
+        _skillKAction.Enable();
+        _skillLAction.Enable();
+        _rotateLeftAction.Enable();
+        _rotateRightAction.Enable();
+        _toggleAction.Enable();
     }
 
     void OnDisable()
     {
         _moveAction?.Disable();
         _attackAction?.Disable();
+        _skillHAction?.Disable();
+        _skillJAction?.Disable();
+        _skillKAction?.Disable();
+        _skillLAction?.Disable();
+        _rotateLeftAction?.Disable();
+        _rotateRightAction?.Disable();
+        _toggleAction?.Disable();
     }
 
     void OnDestroy()
     {
         _moveAction?.Dispose();
         _attackAction?.Dispose();
+        _skillHAction?.Dispose();
+        _skillJAction?.Dispose();
+        _skillKAction?.Dispose();
+        _skillLAction?.Dispose();
+        _rotateLeftAction?.Dispose();
+        _rotateRightAction?.Dispose();
+        _toggleAction?.Dispose();
     }
 
     void OnMovePerformed(InputAction.CallbackContext ctx)
     {
         if (holdAutoInput) return;
-        HandleInputEvent(ctx, ActionKind.Move);
-    }
-    void OnSkillPerformed(InputAction.CallbackContext ctx)
-    {
-        if (holdAutoInput) return;
-        HandleInputEvent(ctx, ActionKind.Skill);
+        HandleMoveInputEvent(ctx);
     }
 
     void OnAttackPerformed(InputAction.CallbackContext ctx)
     {
         if (holdAutoInput) return;
-        HandleInputEvent(ctx, ActionKind.Attack);
+        // Space doesn't have direction, use look direction
+        HandleSkillInputEvent(_normalAttackSkillId);
     }
 
-    void HandleInputEvent(InputAction.CallbackContext ctx, ActionKind kind)
+    void OnSkillSlotPerformed(int slotIndex)
     {
-        if (!IsReady() || IsInputBlocked) 
-        {
-            Debug.Log($"[RhythmInput] Ignored. Ready: {IsReady()}, Blocked: {IsInputBlocked}");
-            return;
-        }
+        if (holdAutoInput) return;
+        if (slotIndex < 0 || slotIndex >= _skillSlotIds.Length) return;
+        HandleSkillInputEvent(_skillSlotIds[slotIndex]);
+    }
+
+    void HandleMoveInputEvent(InputAction.CallbackContext ctx)
+    {
+        if (!IsReady() || IsInputBlocked) return;
         
         Vector2 val = ctx.ReadValue<Vector2>();
-        
-        // Strict orthogonal casting
         Vector2Int dir = Vector2Int.zero;
-        if (Mathf.Abs(val.x) > Mathf.Abs(val.y))
-        {
-            dir.x = val.x > 0 ? 1 : (val.x < 0 ? -1 : 0);
-        }
-        else
-        {
-            dir.y = val.y > 0 ? 1 : (val.y < 0 ? -1 : 0);
-        }
+        if (Mathf.Abs(val.x) > Mathf.Abs(val.y)) dir.x = val.x > 0 ? 1 : (val.x < 0 ? -1 : 0);
+        else dir.y = val.y > 0 ? 1 : (val.y < 0 ? -1 : 0);
 
-        Debug.Log($"[RhythmInput] Raw Vector2: {val} => Dir: {dir}");
         if (dir == Vector2Int.zero) return;
 
-        // [Extreme Optimization] OS 레벨 하드웨어 인터럽트 시간(ctx.time)을 
-        // Stopwatch 단조 시간 체계로 변환하여 0 Frame 지연 타임스탬프를 획득.
         double unityTimeNow = Time.realtimeSinceStartupAsDouble;
         double ageSec = unityTimeNow - ctx.time;
-        long currentStopwatchMs = LocalNowMs();
-        long trueLocalNowMs = currentStopwatchMs - (long)(ageSec * 1000.0);
+        long trueLocalNowMs = LocalNowMs() - (long)(ageSec * 1000.0);
 
-        if (!PassCooldown(trueLocalNowMs)) 
-        {
-            Debug.Log($"[RhythmInput] Blocked by Cooldown.");
-            return;
-        }
-
-        if (!GS.TryGetMyEntity(out var me)) 
-        {
-            Debug.Log($"[RhythmInput] Cannot find MyEntity.");
-            return;
-        }
+        if (!PassCooldown(trueLocalNowMs)) return;
+        if (!GS.TryGetMyEntity(out var me)) return;
 
         var rdir = RotateDirByTarget(dir);
         int tx = me.X + rdir.x;
         int ty = me.Y + rdir.y;
 
-        
-        Debug.Log($"[RhythmInput] Firing {kind} to ({tx}, {ty}) with 0-frame delay.");
+        long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
+        BeatDebugUI_TMP.Instance?.MarkHitNow();
+
+        SendActionRouted(ActionKind.Move, tx, ty, serverNow);
+        _lastSendLocalMs = trueLocalNowMs;
+    }
+
+    void HandleSkillInputEvent(string skillId)
+    {
+        if (!IsReady() || IsInputBlocked) return;
+        if (string.IsNullOrEmpty(skillId)) return;
+
+        if (!GS.TryGetMyEntity(out var me)) return;
+
+        // Use Current Looking Direction (Forward)
+        Vector2Int dir = Vector2Int.up; 
+        var rdir = RotateDirByTarget(dir);
+        int tx = me.X + rdir.x;
+        int ty = me.Y + rdir.y;
+
+        long trueLocalNowMs = LocalNowMs(); 
+        if (!PassCooldown(trueLocalNowMs)) return;
 
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
         BeatDebugUI_TMP.Instance?.MarkHitNow();
 
-        if (kind == ActionKind.Attack || kind == ActionKind.Skill)
+        // [Prediction] 로컬 즉시 재생 (판정 범위 내에 있을 때만)
+        if (BoardView.Instance != null && Rhythm != null)
         {
-            LastAttackInputServerTimeMs = serverNow;
+            long nearestBeat = Rhythm.GetNearestBeatIndex(serverNow);
+            long judgeTime = Rhythm.GetBeatTimeMs(nearestBeat);
+            long diff = System.Math.Abs(serverNow - judgeTime);
 
-            // [Client-Side Prediction] 로컬에서 즉시 0ms 딜레이로 애니메이션/SFX 재생
-            if (BoardView.Instance != null && Rhythm != null)
+            if (diff <= Rhythm.judgeWindowMs && _lastSkillPredictionBeat != nearestBeat)
             {
-                long nearestBeat = Rhythm.GetNearestBeatIndex(serverNow);
-                if (_lastAttackPredictionBeat != nearestBeat)
-                {
-                    _lastAttackPredictionBeat = nearestBeat;
-                    double beatMs = Rhythm.GetBeatDurationMs();
-                    float duration = (float)(beatMs / 1000.0) * BoardView.Instance.actionDurationRatio;
-                    BoardView.Instance.PlayInstantActionBroadcast(me.EntityId, kind, duration);
-                }
-                else
-                {
-                    Debug.Log($"[RhythmInput] Attack Prediction ignored. Already predicted for Beat: {nearestBeat}");
-                }
+                _lastSkillPredictionBeat = nearestBeat;
+                // SkillRunner는 틱 기반이므로 서버 동기화된 StartTick 필요
+                long startTick = Rhythm.GetBeatTick(nearestBeat);
+                BoardView.Instance.PlaySkillInstant(me.EntityId, skillId, startTick);
             }
         }
 
@@ -201,31 +262,14 @@ public class RhythmInputController : MonoBehaviour
             return;
         }
 
-        SendActionRouted(kind, tx, ty, serverNow);
+        SendActionRouted(ActionKind.Skill, tx, ty, serverNow, skillId);
         _lastSendLocalMs = trueLocalNowMs;
     }
 
     void Update()
     {
-        if (!IsReady())
+        if (!IsReady() || IsInputBlocked)
             return;
-
-        if (IsInputBlocked)
-            return;
-
-        if (allowRuntimeToggle && Input.GetKeyDown(toggleKey))
-        {
-            channel = (channel == InputChannel.Town) ? InputChannel.Game : InputChannel.Town;
-            Debug.Log($"[RhythmInput] Channel switched => {channel}");
-        }
-
-        long nowLocalMs = LocalNowMs();
-
-        if (Input.GetKeyDown(KeyCode.Q))
-            Rotate(-rotateAngle);
-
-        if (Input.GetKeyDown(KeyCode.E))
-            Rotate(+rotateAngle);
 
         // 자동 입력 모드 (holdAutoInput)
         if (holdAutoInput)
@@ -253,10 +297,7 @@ public class RhythmInputController : MonoBehaviour
 
             // midpoint에서 1회 발사
             TryFireAtBeatMidpoint(_holdKind, targetX, targetY, serverNowMs);
-            return;
         }
-
-        // 수동 입력(단발 탭)은 Update 대신 InputAction의 Event Callback(HandleInputEvent)에서 즉시 처리됩니다.
     }
 
     bool IsReady()
@@ -310,37 +351,19 @@ public class RhythmInputController : MonoBehaviour
         return new Vector2Int(rx, ry);
     }
 
-    bool TryGetInput(out Vector2Int dir, out ActionKind kind)
-    {
-        dir = Vector2Int.zero;
-        kind = ActionKind.Move;
-
-        if (Input.GetKeyDown(KeyCode.W)) { dir = Vector2Int.up; kind = ActionKind.Move; return true; }
-        if (Input.GetKeyDown(KeyCode.S)) { dir = Vector2Int.down; kind = ActionKind.Move; return true; }
-        if (Input.GetKeyDown(KeyCode.A)) { dir = Vector2Int.left; kind = ActionKind.Move; return true; }
-        if (Input.GetKeyDown(KeyCode.D)) { dir = Vector2Int.right; kind = ActionKind.Move; return true; }
-
-        if (Input.GetKeyDown(KeyCode.UpArrow)) { dir = Vector2Int.up; kind = ActionKind.Attack; return true; }
-        if (Input.GetKeyDown(KeyCode.DownArrow)) { dir = Vector2Int.down; kind = ActionKind.Attack; return true; }
-        if (Input.GetKeyDown(KeyCode.LeftArrow)) { dir = Vector2Int.left; kind = ActionKind.Attack; return true; }
-        if (Input.GetKeyDown(KeyCode.RightArrow)) { dir = Vector2Int.right; kind = ActionKind.Attack; return true; }
-
-        return false;
-    }
-
     bool TryUpdateHoldState(out Vector2Int dir, out ActionKind kind)
     {
         dir = Vector2Int.zero;
         kind = ActionKind.Move;
 
-        if (Input.GetKey(KeyCode.W)) { dir = Vector2Int.up; kind = ActionKind.Move; return true; }
-        if (Input.GetKey(KeyCode.S)) { dir = Vector2Int.down; kind = ActionKind.Move; return true; }
-        if (Input.GetKey(KeyCode.A)) { dir = Vector2Int.left; kind = ActionKind.Move; return true; }
-        if (Input.GetKey(KeyCode.D)) { dir = Vector2Int.right; kind = ActionKind.Move; return true; }
+        if (_moveAction == null) return false;
+        Vector2 val = _moveAction.ReadValue<Vector2>();
+        if (val == Vector2.zero) return false;
 
+        if (Mathf.Abs(val.x) > Mathf.Abs(val.y)) dir.x = val.x > 0 ? 1 : (val.x < 0 ? -1 : 0);
+        else dir.y = val.y > 0 ? 1 : (val.y < 0 ? -1 : 0);
 
-
-        return false;
+        return dir != Vector2Int.zero;
     }
 
     void TryFireAtBeatMidpoint(ActionKind kind, int targetX, int targetY, long serverNowMs)
@@ -386,15 +409,13 @@ public class RhythmInputController : MonoBehaviour
     // ---------------------------
     // 핵심: Town/Game 라우팅 분리
     // ---------------------------
-    void SendActionRouted(ActionKind kind, int targetX, int targetY, long serverNowMs)
+    void SendActionRouted(ActionKind kind, int targetX, int targetY, long serverNowMs, string skillId = "")
     {
         if (NetworkManager.Instance == null)
         {
             Debug.LogError("NetworkManager.Instance NULL");
             return;
         }
-
-        Debug.Log($"[RhythmInput] SendActionRouted: Channel={channel}, ActorId={GS.MyActorId}, Kind={kind}, Target=({targetX},{targetY})");
 
         switch (channel)
         {
@@ -403,7 +424,7 @@ public class RhythmInputController : MonoBehaviour
                 break;
 
             case InputChannel.Game:
-                SendGameAction(kind, targetX, targetY, serverNowMs, skillId: "");
+                SendGameAction(kind, targetX, targetY, serverNowMs, skillId);
                 break;
         }
     }
