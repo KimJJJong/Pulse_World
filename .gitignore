@@ -118,3 +118,7 @@ packages/
 # OS
 .DS_Store
 Thumbs.db
+
+# Allow Server .csproj and .sln files
+!Server/**/*.csproj
+!Server/**/*.sln
