@@ -19,3 +19,6 @@
 .dockerignore
 docker-compose.yml
 .env
+
+# Ignore postgres data volume
+data/
