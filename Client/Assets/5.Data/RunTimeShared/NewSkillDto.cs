@@ -62,6 +62,13 @@ namespace GameShared.Data
         Sound   // 특정 Tick에 FMOD 사운드 이벤트 재생
     }
 
+    // 0. Wait (대기)
+    [Serializable]
+    public class WaitAction : BaseAction
+    {
+        public override SkillActionType GetSkillActionType() => SkillActionType.Wait;
+    }
+
     // 1. Warning (전조)
     [Serializable]
     public class WarningAction : BaseAction
