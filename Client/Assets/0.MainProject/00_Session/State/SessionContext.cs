@@ -57,5 +57,6 @@
             MapId = "";
             MapVersion = "";
             MyActorId = 0;
+            LastInitMap = null;
         }
     }

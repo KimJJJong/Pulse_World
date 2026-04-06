@@ -50,6 +50,13 @@ public class ClientHandlers : MonoBehaviour
             return;
         }
 
+        if (p.MapWidth > 0 && p.MapHeight > 0 &&
+            (mapAsset.Width != p.MapWidth || mapAsset.Height != p.MapHeight))
+        {
+            Debug.LogWarning(
+                $"[InitMap] Map size mismatch for {mapName}. Packet=({p.MapWidth}x{p.MapHeight}) Asset=({mapAsset.Width}x{mapAsset.Height})");
+        }
+
         // Rhythm 동기화 (Town에서도 BGM 싱크 등을 위해 사용 가능)
         if (RhythmClient.Instance != null)
         {

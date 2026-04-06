@@ -1,85 +1,44 @@
-using UnityEngine;
 using System.Threading.Tasks;
-using NetClient.Room.UI; // for ApiClientProvider, etc. if needed
+using UnityEngine;
 
-public sealed class GameSceneContext : MonoBehaviour
+public sealed class GameSceneContext : BaseSceneContext
 {
-    [Header("Optional scene refs (비워도 자동 탐색)")]
-    [SerializeField] private ClientGameState _gs;
-    [SerializeField] private ClientHandlers _handlers;
-    [SerializeField] private MapRegistry _mapRegistry;
-    [SerializeField] private BoardView _boardView;
-
-    [Header("Input/Camera (비워도 자동 탐색)")]
-    [SerializeField] private RhythmInputControllerBinder _inputBinder;
-    [SerializeField] private RhythmInputController _inputController; // Binder가 못 찾을 때 대비
-    [SerializeField] private CameraBinder _cameraBinder;            // 네가 준 CameraBinder
-    [SerializeField] private CameraFollow _cameraFollow;            // Camera.main의 CameraFollow
-
-    [Header("Rhythm/BGM (비워도 자동 탐색)")]
-    [SerializeField] private RhythmClient _rhythm;
-    [SerializeField] private BgmDirector _bgmDirector;
-    [SerializeField] private AudioOffsetAutoCalibrator _autoCalib;
-   
-    [Header("HUD/Debug (비워도 자동 탐색)")]
-    [SerializeField] private HudPresenter _hud;
-    [SerializeField] private BeatDebugUI_TMP _beatDebug;
-
-    [Header("RoomListPanel (비워도 자동 탐색)")]
-    [SerializeField] private ApiClientProvider _apiClientProvider;
-
-    [Header("Runtime loops")]
-    [SerializeField] private bool _ensurePingManager = true;
-    [SerializeField] private int _pingIntervalMs = 2000;
-    [SerializeField] private int _pingTimeoutMs = 6000;
-    [SerializeField] private int _pingMaxMiss = 3;
-
     [Header("Net enter")]
     [SerializeField] private bool _autoEnter = true;
-    [SerializeField] private string _mapId = ""; // 임시 기본값
-    
-    bool _entered;
-    bool _initMapApplied;
+    [SerializeField] private string _mapId = "";
 
+    private int _maxPlayers = 2;
 
-    void Awake()
+    protected override void Awake()
     {
-        // 씬에 1개만 존재 전제
-        ResolveSceneRefs();
-        ValidateCriticalRefs();
-        EnsureCoreBindings();
-        EnsureRuntimeLoops();
+        base.Awake();
     }
 
     private async void Start()
     {
-        // 씬 로드 직후 잠시 대기
         await Task.Yield();
-
-        if (_autoEnter)
-            await EnterGameAsync();
+        if (_autoEnter) await EnterGameAsync();
     }
 
-    public void OnInitMap(SC_InitMap p)
-    {
-        // 패킷이 먼저 와서 여기로 들어온 케이스
-        ApplyInitMapOnce(p);
-    }
-
-    public void SetMapId(string mapId)
-    {
-        _mapId = mapId;
-    }
-
-    int _maxPlayers = 2;
+    public void SetMapId(string mapId) => _mapId = mapId;
     public void SetMaxPlayers(int max) => _maxPlayers = max;
+
+    /// <summary>
+    /// SC_InitMap 패킷이 씬 로드 전에 먼저 도착했을 때 호출 (패킷 핸들러 경로)
+    /// </summary>
+    public void OnInitMap(SC_InitMap p) => ApplyInitMapOnce(p);
 
     public async Task EnterGameAsync()
     {
         if (_entered) return;
         _entered = true;
 
-        TryApplyInitMapIfAlreadyReceived();
+        // ※ 캐시된 InitMap을 여기서 처리하지 않는다.
+        // CS_MapEnter를 보내면 서버가 SC_InitMap을 응답하므로
+        // OnInitMap() 경로로 정상 처리된다.
+        // 씬 로드 전 패킷이 먼저 도착한 경우는 SessionContext.LastInitMap에 저장되어 있고,
+        // 서버 재전송 없이 처리해야 한다면 OnInitMap 호출 시점을
+        // 씬 오브젝트 초기화 완료 후로 늦춰야 한다. → 아래 WaitForSceneReady 참고.
 
         if (NetworkManager.Instance == null)
         {
@@ -87,9 +46,12 @@ public sealed class GameSceneContext : MonoBehaviour
             return;
         }
 
-        // GameServer 접속 시점에는 이미 Handshake로 MatchId(Key)가 바인딩되어 있음.
-        // 따라서 CS_MapEnter만 보내면 됨.
-        // MapId는 클라가 로드한 맵 이름을 보냄 (검증용)
+        // 씬 오브젝트(BoardView, 타일 등)의 Awake/Start 완료를 보장하기 위해 대기
+        await WaitForSceneReady();
+
+        // 캐시된 InitMap이 있으면 여기서 처리 (씬 오브젝트 준비 완료 후)
+        TryApplyInitMapIfAlreadyReceived();
+
         var req = new CS_MapEnter
         {
             ClientTimeMs = NowLocalMs(),
@@ -103,125 +65,38 @@ public sealed class GameSceneContext : MonoBehaviour
         NetworkManager.Instance.Send(req.Write());
     }
 
-    // -----------------------------
-    // Setup helpers
-    // -----------------------------
-
-    void ResolveSceneRefs()
+    /// <summary>
+    /// BoardView와 씬 타일 오브젝트들의 Awake/Start 완료를 보장하는 대기.
+    /// Unity는 씬 로드 후 같은 프레임에 Awake, 다음 프레임에 Start가 실행되므로
+    /// 최소 2프레임 대기가 필요하다.
+    /// </summary>
+    private async Task WaitForSceneReady()
     {
-        if (_gs == null) _gs = FindFirstObjectByType<ClientGameState>();
-        if (_handlers == null) _handlers = FindFirstObjectByType<ClientHandlers>();
-        if (_mapRegistry == null) _mapRegistry = FindFirstObjectByType<MapRegistry>();
-        if (_boardView == null) _boardView = FindFirstObjectByType<BoardView>();
-
-        if (_inputBinder == null) _inputBinder = FindFirstObjectByType<RhythmInputControllerBinder>();
-        if (_inputController == null) _inputController = FindFirstObjectByType<RhythmInputController>();
-
-        if (_cameraBinder == null) _cameraBinder = FindFirstObjectByType<CameraBinder>();
-        if (_cameraFollow == null)
-        {
-            var cam = Camera.main;
-            if (cam != null) _cameraFollow = cam.GetComponent<CameraFollow>();
-        }
-
-        if (_rhythm == null) _rhythm = FindFirstObjectByType<RhythmClient>();
-        if (_bgmDirector == null) _bgmDirector = FindFirstObjectByType<BgmDirector>();
-        if (_autoCalib == null) _autoCalib = FindFirstObjectByType<AudioOffsetAutoCalibrator>();
-
-        if (_hud == null) _hud = FindFirstObjectByType<HudPresenter>();
-        if (_beatDebug == null) _beatDebug = FindFirstObjectByType<BeatDebugUI_TMP>();
-
-        if (_apiClientProvider == null) _apiClientProvider = FindFirstObjectByType<ApiClientProvider>();
+        // 프레임 1: Awake 완료 보장
+        await Task.Yield();
+        // 프레임 2: Start 완료 보장 (타일 오브젝트 포함)
+        await Task.Yield();
+        // 프레임 3: 안전 마진 (대형 씬에서 자식 오브젝트 수가 많은 경우)
+        await Task.Yield();
     }
 
-    void ValidateCriticalRefs()
+    private void TryApplyInitMapIfAlreadyReceived()
     {
-        // “없으면 그냥 게임이 못 돈다” 급만 에러 처리
-        if (_gs == null) Debug.LogError("[TownSceneContext] ClientGameState not found");
-        if (_handlers == null) Debug.LogError("[TownSceneContext] ClientHandlers not found");
-        if (_mapRegistry == null) Debug.LogError("[TownSceneContext] MapRegistry not found");
-        if (_boardView == null) Debug.LogError("[TownSceneContext] BoardView not found");
-
-        // 입력/카메라/BGM/HUD는 없어도 진행 가능(디버그 로그만)
-        if (_cameraBinder == null) Debug.LogWarning("[TownSceneContext] CameraBinder not found (camera follow bind skip)");
-        if (_cameraFollow == null) Debug.LogWarning("[TownSceneContext] CameraFollow not found on Camera.main");
-        if (_inputBinder == null) Debug.LogWarning("[TownSceneContext] RhythmInputControllerBinder not found");
-        if (_inputController == null) Debug.LogWarning("[TownSceneContext] RhythmInputController not found");
-        if (_apiClientProvider == null) Debug.LogWarning("[TownSceneContext] ApiClientProvider not found");
-    }
-
-    void EnsureCoreBindings()
-    {
-        //  정석: BoardView가 GS.WorldView를 잡는 구조라면,
-        // 보통 BoardView.Start()에서 해도 되지만, 씬 진입 순서 꼬이면 여기서 보강해두면 안전.
-        if (_gs != null && _boardView != null)
+        var cached = SessionContext.Instance.LastInitMap;
+        if (cached is null)
         {
-            if (_gs.WorldView == null)
-                _gs.WorldView = _boardView;
-        }
-
-        //  CameraBinder는 네 코드처럼 Awake에서 Camera.main의 CameraFollow를 자동 주입하므로
-        // 여기서는 “존재만 보장”하면 충분.
-        // 실제 타겟 바인딩은 BoardView.OnSpawnOrUpdateEntity에서 MyActorId 스폰 시 Bind.
-    }
-
-    void EnsureRuntimeLoops()
-    {
-        if (!_ensurePingManager)
-            return;
-
-        // PingManager는 네가 SC_InitMap에서 만들고 있는데,
-        // "씬 컨텍스트가 보장"하는 쪽이 더 정리된 구조라서 여기서도 한 번 보장해줌.
-        if (PingManager.Instance == null)
-        {
-            Debug.Log("[TownSceneContext] Create PingManager");
-            new GameObject("PingManager").AddComponent<PingManager>();
-        }
-
-        PingManager.Instance.Configure(
-            interval: _pingIntervalMs,
-            timeout: _pingTimeoutMs,
-            maxMiss: _pingMaxMiss);
-
-        // StartLoop를 중복 호출하면 문제될 수 있으니 PingManager 구현이 안전해야 함.
-        // (StartLoop 내부에서 running 플래그로 중복 방지 권장)
-        PingManager.Instance.StartLoop();
-    }
-
-
-    void TryApplyInitMapIfAlreadyReceived()
-    {
-        if (SessionContext.Instance.LastInitMap is null)
-        {
-            Debug.LogWarning("InitMap chach가 없습니다");
+            // 캐시 없음 = 정상 케이스 (CS_MapEnter 응답으로 SC_InitMap이 올 것)
             return;
         }
-        //ApplyInitMapOnce(SessionContext.Instance.LastInitMap);
-    }
 
-    void ApplyInitMapOnce(SC_InitMap p)
-    {
-        if (_initMapApplied) return;
-        _initMapApplied = true;
-
-        //  여기서 "기존 OnInitMap 처리"를 실행하면 됨
-        // 1) (선택) 핑/루프/매니저 시작도 여기서 (네가 정한 정책대로)
-        // 2) 실제 맵 생성/엔티티 스폰/리듬 세팅은 ClientHandlers 재사용
-
-        var h = ClientHandlers.Instance;
-        if (h == null)
+        if (!string.IsNullOrEmpty(_mapId) &&
+            !string.Equals(cached.MapId, _mapId, System.StringComparison.OrdinalIgnoreCase))
         {
-            Debug.LogError("[GameSceneContext] ClientHandlers missing in scene");
+            Debug.Log($"[GameSceneContext] Ignoring cached InitMap. Cached={cached.MapId}, Expected={_mapId}");
             return;
         }
-        //p.MapId = "Map";    //TODO : fix
-        h.HandleSC_InitMap(p);
 
-        // (추가로 Context가 해야 하는 것들 있으면 여기서)
-        // 예: UI 초기화, 특정 연출 트리거 등
+        Debug.Log($"[GameSceneContext] Applying cached InitMap after scene ready. MapId={cached.MapId}");
+        ApplyInitMapOnce(cached);
     }
-
-    static long NowLocalMs()
-        => TimeSync.LocalNowMs();
 }
-

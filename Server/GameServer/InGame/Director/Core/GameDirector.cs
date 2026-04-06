@@ -143,7 +143,7 @@ namespace GameServer.InGame.Director.Core
             // Validate with Map
             var map = _session.Map; // Access Map via Session
             int mapX = data.X;
-            int mapY = data.Z; // [Unified] Use Z as Map Y
+            int mapY = ResolveMapY(data.Y, data.Z);
 
             if (map != null)
             {
@@ -161,7 +161,7 @@ namespace GameServer.InGame.Director.Core
         {
              var map = _session.Map;
              int mapX = data.X;
-             int mapY = data.Z; // [Unified] Use Z as Map Y
+             int mapY = ResolveMapY(data.Y, data.Z);
 
              if (map != null && !map.IsWalkable(mapX, mapY))
              {
@@ -237,6 +237,15 @@ namespace GameServer.InGame.Director.Core
             public EventData Data;
             public List<EventCondition> Conditions = new();
             public List<EventAction> Actions = new();
+        }
+
+        private static int ResolveMapY(int legacyY, int unityZ)
+        {
+            // Exporter now writes Unity Z as map Y, but older/stale data may only have Y populated.
+            if (unityZ != 0)
+                return unityZ;
+
+            return legacyY;
         }
 
         /*

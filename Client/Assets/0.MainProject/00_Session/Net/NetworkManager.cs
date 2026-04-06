@@ -89,7 +89,7 @@ public sealed class NetworkManager : MonoBehaviour
 
         Debug.Log($"[NetworkManager] Disconnect: {reason}");
 
-        try { _session?.Disconnect(); } catch { }
+        try { _session?.Disconnect(); } catch (System.Exception ex) { Debug.LogWarning($"[NetworkManager] Disconnect 중 예외: {ex.Message}"); }
         //NewSession();
 
         if (!string.IsNullOrEmpty(reason))
@@ -190,12 +190,12 @@ public sealed class NetworkManager : MonoBehaviour
         _handshakeSent = true;
         Debug.Log($"[TrySendHandshakeOnce] Sending CS_Handshake... Ticket={_pending.TicketId}");
 
+        // Key는 Game 서버 연결 시에만 사용. Town 연결은 null → 빈 문자열로 처리.
         var p = new CS_Handshake
         {
             ClientNonce = _pending.ClientNonce,
             TicketId = _pending.TicketId,
-            // key 필드가 있다면 주석 해제
-             Key = _pending.Key ?? "TestKey"
+            Key = _pending.Key ?? string.Empty
         };
 
         _session.Send(p.Write());

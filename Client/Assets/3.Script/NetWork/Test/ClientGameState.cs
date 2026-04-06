@@ -53,11 +53,19 @@ public class ClientGameState : MonoBehaviour
             yield break;
         }
 
-        asset.EnsureSize(); 
+        asset.EnsureSize();
 
-        // 1) 맵 초기화
+        // 씬 타일 오브젝트(BoardView 자식들)의 Awake/Start 완료를 보장하기 위해 대기.
+        // Unity 씬 로드 후: 같은 프레임에 Awake, 다음 프레임에 Start가 실행된다.
+        // TryBindTilesFromScene은 씬 자식 오브젝트를 이름으로 탐색하므로
+        // 최소 2프레임(+안전마진 1) 대기 후 호출해야 한다.
+        yield return null; // 프레임 1: Awake 완료
+        yield return null; // 프레임 2: Start 완료
+        yield return null; // 프레임 3: 안전 마진
+
+        // 1) 맵 초기화 (내부에서 TryBindTilesFromScene 호출)
         CreateMap(asset.Width, asset.Height);
-        yield return null; // 한 프레임 대기
+        yield return null; // 바인딩 후 한 프레임 양보
 
         // 2) 타일 채우기 (비동기 분산)
         int totalTiles = asset.Width * asset.Height;

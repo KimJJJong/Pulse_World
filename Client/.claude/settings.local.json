@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "unity-synaptic": {
+      "command": "node",
+      "args": [
+        "D:/Git/Server/RhythmRPG/RhythmRPG/Client/Assets/Synaptic AI Pro/MCPServer/index-supersave.js"
+      ],
+      "env": {}
+    }
+  },
+  "permissions": {
+    "allow": [
+      "mcp__unity-synaptic"
+    ],
+    "deny": []
+  }
+}

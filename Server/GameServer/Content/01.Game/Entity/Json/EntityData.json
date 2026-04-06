@@ -1,15 +1,15 @@
 {
     "Entities": [
         {
-            "EntityId": 0,
-            "Name": "",
+            "EntityId": 10,
+            "Name": "Player_Barbarian",
             "EntityType": 0,
             "MaxHp": 10,
             "ResourcePath": "Data/Entity_10_Player_Barbarian"
         },
         {
-            "EntityId": 0,
-            "Name": "",
+            "EntityId": 11,
+            "Name": "Player_Rogue",
             "EntityType": 0,
             "MaxHp": 10,
             "ResourcePath": "Data/Entity_11_Player_Rogu"

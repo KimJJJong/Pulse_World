@@ -1,9 +1,9 @@
 // Assets/0_App/Flow/ClientFlow.cs
 using System;
-using System.Threading.Tasks;
 using System.Net;
+using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public sealed class ClientFlow : MonoBehaviour
 {
@@ -12,6 +12,9 @@ public sealed class ClientFlow : MonoBehaviour
     enum Target { None, TownMap, Game }
     Target _target = Target.None;
     bool _entering;
+
+    string _mapId = "";
+    int _maxPlayers = 2;
 
     void Awake()
     {
@@ -24,45 +27,20 @@ public sealed class ClientFlow : MonoBehaviour
         NetworkManager.Instance.Disconnected += OnNetDisconnected;
     }
 
+    // ──────────────────────────────────────────
+    // Public: 외부(TownScreen, GameLobby 등)에서 호출
+    // ──────────────────────────────────────────
+
     public async Task ConnectTown(SessionDtos.IssueTownTicketResponse ticket, string clientNonce)
     {
         _target = Target.TownMap;
 
-        // HOSTNAME -> IP RESOLUTION
-        IPAddress ipAddr;
-        if (!IPAddress.TryParse(ticket.Endpoint.Host, out ipAddr))
-        {
-            try
-            {
-                var ips = await Dns.GetHostAddressesAsync(ticket.Endpoint.Host);
-                if (ips.Length > 0)
-                {
-                    ipAddr = ips[0];
-                    Debug.Log($"[ClientFlow] Resolved town host '{ticket.Endpoint.Host}' to {ipAddr}");
-                }
-                else
-                {
-                    Debug.LogError($"[ClientFlow] Failed to resolve host: {ticket.Endpoint.Host}");
-                    return;
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"[ClientFlow] DNS Error: {ex.Message}");
-                return;
-            }
-        }
+        var ep = await ResolveEndpointAsync(ticket.Endpoint.Host, ticket.Endpoint.Port);
+        if (ep == null) return;
 
-        var ep = new IPEndPoint(ipAddr, ticket.Endpoint.Port);
-        Debug.Log($"[HandshakeArgs]endpoint :{ep} || Ticket :{ticket.TicketId} || Nonce: {clientNonce}  || target : {_target}");
-
+        Debug.Log($"[ClientFlow] ConnectTown → {ep} Ticket={ticket.TicketId}");
         NetworkManager.Instance.ConnectAndHandshake(ep, ticket.TicketId, clientNonce);
     }
-
-
-
-    string _mapId = "";
-    int _maxPlayers = 2; // Default
 
     public async Task ConnectGame(SessionDtos.IssueGameTicketResponse ticket, string clientNonce)
     {
@@ -70,102 +48,63 @@ public sealed class ClientFlow : MonoBehaviour
         _mapId = ticket.MapId;
         _maxPlayers = ticket.MaxPlayers;
 
-        IPAddress ipAddr;
-        if (!IPAddress.TryParse(ticket.Endpoint.Host, out ipAddr))
+        if (string.IsNullOrEmpty(ticket.Key))
         {
-            try
-            {
-                var ips = await Dns.GetHostAddressesAsync(ticket.Endpoint.Host);
-                if (ips.Length > 0)
-                {
-                    ipAddr = ips[0];
-                    Debug.Log($"[ClientFlow] Resolved game host '{ticket.Endpoint.Host}' to {ipAddr}");
-                }
-                else
-                {
-                    Debug.LogError($"[ClientFlow] Failed to resolve host: {ticket.Endpoint.Host}");
-                    return;
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"[ClientFlow] DNS Error: {ex.Message}");
-                return;
-            }
+            Debug.LogError("[ClientFlow] ConnectGame: ticket.Key가 비어 있습니다. 서버에서 Key를 제대로 내려줍니까?");
+            return;
         }
 
-        var ep = new IPEndPoint(ipAddr, ticket.Endpoint.Port);
-        Debug.Log($"[HandshakeArgs]endpoint :{ep} || Ticket :{ticket.TicketId} || Nonce: {clientNonce} || key :{ticket.Key} || target : {_target} || Map : {_mapId}");
+        var ep = await ResolveEndpointAsync(ticket.Endpoint.Host, ticket.Endpoint.Port);
+        if (ep == null) return;
+
+        Debug.Log($"[ClientFlow] ConnectGame → {ep} Ticket={ticket.TicketId} Map={_mapId}");
         NetworkManager.Instance.ConnectAndHandshake(ep, ticket.TicketId, clientNonce, ticket.Key);
     }
 
+    public void ReturnToTown()
+    {
+        Debug.Log("[ClientFlow] ReturnToTown");
+        NetworkManager.Instance.Disconnect("ReturnToTown");
+        _ = ReturnToTownAsync();
+    }
+
+    // ──────────────────────────────────────────
+    // Network events
+    // ──────────────────────────────────────────
+
     async void OnNetReady()
     {
-        Debug.Log("OnNetReady");
-
+        Debug.Log("[ClientFlow] OnNetReady");
         if (_entering) return;
         _entering = true;
         try
         {
-            if (_target == Target.TownMap)
+            switch (_target)
             {
-                Debug.Log($"[ClientFlow] Scene Load Start: {SceneNames.TownMap}");
-                
-                // [LoadingScene] 적용
-                LoadingSceneController.TargetSceneName = SceneNames.TownMap;
-                UnityEngine.SceneManagement.SceneManager.LoadScene("LoadingScene");
+                case Target.TownMap:
+                    await EnterSceneAsync(SceneNames.TownMap, async () =>
+                    {
+                        var ctx = UnityEngine.Object.FindFirstObjectByType<TownSceneContext>();
+                        if (ctx == null) { Debug.LogError("[ClientFlow] TownSceneContext not found"); return; }
+                        await ctx.EnterTownAsync();
+                    });
+                    break;
 
-                // Target Scene이 로드될 때까지 대기 (LoadingSceneController가 Additive로 로드함)
-                while (UnityEngine.SceneManagement.SceneManager.GetSceneByName(SceneNames.TownMap).isLoaded == false)
-                {
-                    await Task.Yield();
-                }
+                case Target.Game:
+                    string scene = !string.IsNullOrEmpty(_mapId) ? _mapId : SceneNames.Game;
+                    await EnterSceneAsync(scene, async () =>
+                    {
+                        var ctx = UnityEngine.Object.FindFirstObjectByType<GameSceneContext>();
+                        if (ctx == null) { Debug.LogWarning("[ClientFlow] GameSceneContext not found"); return; }
+                        ctx.SetMapId(_mapId);
+                        ctx.SetMaxPlayers(_maxPlayers);
+                        await ctx.EnterGameAsync();
+                    });
+                    break;
 
-                Debug.Log($"[ClientFlow] Scene Load Complete: {SceneNames.TownMap}");
-
-                var ctx = UnityEngine.Object.FindFirstObjectByType<TownSceneContext>();
-                if (ctx == null)
-                {
-                    Debug.LogError("[ClientFlow] TownSceneContext not found in TownMap scene");
-                    return;
-                }
-
-                await ctx.EnterTownAsync();
-            }
-            else if (_target == Target.Game)
-            {
-                string sceneToLoad = !string.IsNullOrEmpty(_mapId) ? _mapId : SceneNames.Game;
-
-                Debug.Log($"[ClientFlow] Scene Load Start: {sceneToLoad} || MapId:{sceneToLoad}");
-                
-                // [LoadingScene] 적용
-                LoadingSceneController.TargetSceneName = sceneToLoad;
-                UnityEngine.SceneManagement.SceneManager.LoadScene("LoadingScene");
-
-                // Target Scene이 로드될 때까지 대기
-                while (UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneToLoad).isLoaded == false)
-                {
-                    await Task.Yield();
-                }
-
-                Debug.Log($"[ClientFlow] Scene Load Complete: {sceneToLoad}");
-                
-                // GameSceneContext 찾아서 진입 요청
-                var ctx = UnityEngine.Object.FindFirstObjectByType<GameSceneContext>();
-                if (ctx != null)
-                {
-                    ctx.SetMapId(_mapId);
-                    ctx.SetMaxPlayers(_maxPlayers);
-                    await ctx.EnterGameAsync();
-                }
-                else
-                {
-                    Debug.LogWarning("[ClientFlow] GameSceneContext not found in Game scene");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("[ClientFlow] Ready but target is None");
+                default:
+                    Debug.LogWarning("[ClientFlow] OnNetReady: target is None");
+                    break;
             }
         }
         finally
@@ -178,50 +117,74 @@ public sealed class ClientFlow : MonoBehaviour
     {
         Debug.LogWarning($"[ClientFlow] Net failed: {reason}");
         SessionContext.Instance.ResetForReconnect();
-        Debug.Log($"[ClientFlow] Scene Load Start: {SceneNames.Login}");
-        _ = SceneRouter.LoadAsync(SceneNames.Login).ContinueWith(t => Debug.Log($"[ClientFlow] Scene Load Complete: {SceneNames.Login}"));
+        _ = SceneRouter.LoadAsync(SceneNames.Login);
     }
 
     void OnNetDisconnected()
     {
-        // 여기서 정책 결정: TownMap에서 끊기면 재접속 UI? Login 복귀?
-        Debug.LogWarning("[ClientFlow] Disconnected");
+        // TODO: 정책 결정 — 재접속 UI 표시 or 로그인 화면 복귀
+        Debug.LogWarning("[ClientFlow] Disconnected — 재접속 정책 미구현");
     }
 
-    public void ReturnToTown()
+    // ──────────────────────────────────────────
+    // Private helpers
+    // ──────────────────────────────────────────
+
+    /// <summary>
+    /// hostname을 IPEndPoint로 변환. IP 문자열이면 즉시 반환, 도메인이면 DNS 조회.
+    /// 실패 시 null 반환.
+    /// </summary>
+    static async Task<IPEndPoint?> ResolveEndpointAsync(string host, int port)
     {
-        Debug.Log("[ClientFlow] ReturnToTown: Disconnecting and loading Town Scene.");
-        NetworkManager.Instance.Disconnect("ReturnToTown");
-        _ = ReturnToTownAsync();
+        if (IPAddress.TryParse(host, out var directIp))
+            return new IPEndPoint(directIp, port);
+
+        try
+        {
+            var ips = await Dns.GetHostAddressesAsync(host);
+            if (ips.Length > 0)
+            {
+                Debug.Log($"[ClientFlow] DNS resolved '{host}' → {ips[0]}");
+                return new IPEndPoint(ips[0], port);
+            }
+            Debug.LogError($"[ClientFlow] DNS: no addresses for '{host}'");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[ClientFlow] DNS error for '{host}': {ex.Message}");
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// LoadingScene을 통해 targetScene을 로드한 뒤 onLoaded 콜백을 실행.
+    /// </summary>
+    static async Task EnterSceneAsync(string targetScene, Func<Task> onLoaded)
+    {
+        Debug.Log($"[ClientFlow] Loading scene: {targetScene}");
+        LoadingSceneController.TargetSceneName = targetScene;
+        SceneManager.LoadScene("LoadingScene");
+
+        while (!SceneManager.GetSceneByName(targetScene).isLoaded)
+            await Task.Yield();
+
+        Debug.Log($"[ClientFlow] Scene loaded: {targetScene}");
+        await onLoaded();
     }
 
     async Task ReturnToTownAsync()
     {
-        // 1. Scene Load (UI 등 표시는 ConnectTown 내부가 아니라 여기서 선처리하거나, ConnectTown이 함)
-        // 일단 연결을 끊고 API 호출
-        // * TownScreen 로직 참고: IssueTownTicketAsync -> ConnectTown
-
-        var root = AppBootstrap.Instance.Root; // AppBootstrap이 접근 가능해야 함
-        
-        // TODO: Preferred Region 저장 정책? 일단 local or empty
-        string region = ""; 
-
-        Debug.Log("[ClientFlow] Issuing Town Ticket...");
-        var r = await root.SessionApi.IssueTownTicketAsync(region);
+        var root = AppBootstrap.Instance.Root;
+        var r = await root.SessionApi.IssueTownTicketAsync("");
 
         if (!r.Ok)
         {
             Debug.LogError($"[ClientFlow] Failed to issue town ticket: {r.Error}");
-            // 로그인 화면으로? or 재시도?
             OnNetFailed(r.Error);
             return;
         }
 
-        Debug.Log($"[ClientFlow] Town Ticket Issued: {r.Data.TicketId}");
-        
-        var clientNonce = "town-ret-" + System.Guid.NewGuid().ToString("N");
-        
-        // 2. Connect
-        await ConnectTown(r.Data, clientNonce);
+        var nonce = "town-ret-" + Guid.NewGuid().ToString("N");
+        await ConnectTown(r.Data, nonce);
     }
 }

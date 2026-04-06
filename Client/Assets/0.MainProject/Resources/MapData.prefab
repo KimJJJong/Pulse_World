@@ -46,3 +46,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapRegistry
   Maps:
   - {fileID: 11400000, guid: 8f683cee5952c4c44b5dd9ac0b83bc64, type: 2}
+  - {fileID: 11400000, guid: 36f2903db2d3a0442b5123744bea8de8, type: 2}
+  - {fileID: 11400000, guid: 9f3f413aa24999745a7396a7bfb6cd77, type: 2}
+  - {fileID: 11400000, guid: 48a24ba176d9afd448bdd4285abe5d30, type: 2}

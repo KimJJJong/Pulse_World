@@ -39,7 +39,13 @@ namespace GameServer.Content.Game.Entity
                 var root = JsonConvert.DeserializeObject<EntityDataRoot>(json);
                 if (root != null && root.Entities != null)
                 {
-                    _entities = root.Entities.ToDictionary(x => x.EntityId);
+                    _entities = new Dictionary<int, EntityData>();
+                    foreach (var e in root.Entities)
+                    {
+                        if (_entities.TryAdd(e.EntityId, e))
+                            continue;
+                        Console.WriteLine($"[EntityDataManager] ⚠ 중복 EntityId={e.EntityId} (Name={e.Name}) — 첫 번째 항목이 유지됩니다. JSON을 확인하세요.");
+                    }
                     Console.WriteLine($"[EntityDataManager] Loaded {_entities.Count} entities from {path}");
                 }
             }
