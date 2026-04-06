@@ -8,8 +8,10 @@ using static SC_BeatTelegraphs;
 
 public sealed class TownSession : SessionBase
 {
-    // snapshot 전송(선택)
-    private readonly long _snapshotIntervalMs = 100; // 10Hz 권장
+    // [RTT Fix] 100ms -> 33ms: Town 통 틱 주기와 동일하게 맞춤
+    // 스냅샷은 여전히 10Hz(100ms)로도 충분하지만, 답변 지연 크기를 맞춰 연산
+    private readonly long _snapshotIntervalMs = 100; // 실제 broadcast는 100ms 유지 (bandwidth 절약)
+    private readonly long _tickIntervalMs = 33;      // 클라 패킷 큐 처리는 33ms
     private long _nextSnapshotMs;
 
     public BeatActionManager BeatActions { get; }

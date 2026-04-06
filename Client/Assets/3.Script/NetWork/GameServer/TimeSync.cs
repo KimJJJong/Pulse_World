@@ -8,65 +8,58 @@ public static class TimeSync
     /// <summary>최근 RTT 추정치(ms)</summary>
     public static double EstimatedRttMs { get; private set; }
 
-    // ---- 안정화 파라미터 ----
-    [Header("Warmup (Initial Snap)")]
-    /// <summary>
-    /// 초기 샘플 N번은 "스냅"으로 즉시 맞춘다.
-    /// 서버 업타임과 클라 업타임 차이가 큰 환경에서 필수.
-    /// </summary>
+    /// <summary>초기 샘플 N번은 "스냅"으로 즉시 맞춘다.</summary>
     public static int WarmupCount = 8;
 
-    /// <summary>Warmup 이후 오프셋 스무딩(0~1). 0.1~0.3 추천</summary>
-    public static float Smoothing = 0.2f;
-
-    [Header("Clamp (After Warmup)")]
-    /// <summary>
-    /// Warmup 이후에만 적용되는 최대 점프 제한(ms).
-    /// 지터/이상치로 offset이 갑자기 튀는 걸 방지.
-    /// </summary>
+    /// <summary>Warmup 이후 최대 점프 제한(ms). 지터/이상치 방지.</summary>
     public static float MaxJumpMs = 200f;
 
-    [Header("Outlier Rejection (Optional)")]
-    /// <summary>
-    /// Warmup 이후, diff가 이 값보다 너무 크면(예: 수초 단위) 샘플을 무시.
-    /// (패킷 파싱 꼬임/서버 시계 섞임/일시적인 대형 이상치 방어)
-    /// </summary>
+    /// <summary>이 값보다 큰 diff는 이상치로 무시.</summary>
     public static float RejectIfDiffAbsMs = 5000f;
 
-    // 디버그
+    // 디버그 / 모니터링
     public static string LastSetBy { get; private set; } = "none";
-    public static long LastServerNowArg { get; private set; } = 0;
-    public static long LastLocalRecv { get; private set; } = 0;
+    public static long   LastServerNowArg { get; private set; } = 0;
+    public static long   LastLocalRecv    { get; private set; } = 0;
+    public static int    SampleCount      => _samples;
 
-    static int _samples = 0;
+    /// <summary>
+    /// [RTT Fix] offset 변화량 EMA (jitter 지표).
+    /// PingManager.OnGUI 등에서 OffsetJitterMs 를 표시하면
+    /// 동기화 품질을 실시간으로 확인할 수 있습니다.
+    /// </summary>
+    public static double OffsetJitterMs { get; private set; } = 0;
+
+    static int    _samples    = 0;
+    static double _prevOffset = 0;
 
     public static void Reset()
     {
-        OffsetMs = 0;
-        EstimatedRttMs = 0;
-        _samples = 0;
-        LastSetBy = "reset";
+        OffsetMs        = 0;
+        EstimatedRttMs  = 0;
+        OffsetJitterMs  = 0;
+        _prevOffset     = 0;
+        _samples        = 0;
+        LastSetBy       = "reset";
         LastServerNowArg = 0;
-        LastLocalRecv = 0;
+        LastLocalRecv    = 0;
     }
 
     /// <summary>클라 로컬 단조시간(ms) - Thread Safe</summary>
     public static long LocalNowMs()
-    {
-        return (long)(System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
-    }
+        => (long)(System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
 
     /// <summary>현재 서버 시간 추정(ms)</summary>
     public static long ServerNowMs()
         => (long)(LocalNowMs() + OffsetMs);
 
-    /// <summary>serverTargetMs까지 남은 ms(음수면 지남)</summary>
+    /// <summary>serverTargetMs까지 남은 ms (음수면 지남)</summary>
     public static long MillisUntil(long serverTargetMs)
         => serverTargetMs - ServerNowMs();
 
-    // -----------------------------
-    // Welcome 등 RTT 없는 초기 동기화(대충 1회용)
-    // -----------------------------
+    // -------------------------------------------------------
+    // RTT 없는 초기 동기화 (Handshake 직후 1회용)
+    // -------------------------------------------------------
     public static void SetOffsetFromServerNow(long serverNowMs)
     {
         long localRecvMs = LocalNowMs();
@@ -74,25 +67,18 @@ public static class TimeSync
 
         double targetOffset = serverNowMs - localRecvMs;
 
-        // RTT 없는 값은 너무 신뢰하지 말고,
-        // Warmup 이전에만 스냅, 이후엔 약하게 섞어줌.
         if (_samples < WarmupCount)
-        {
-            OffsetMs = targetOffset; // 초기 스냅
-        }
+            OffsetMs = targetOffset;                              // 초기 스냅
         else
-        {
-            // warmup 이후엔 부드럽게 섞기
-            OffsetMs = Mathf.Lerp((float)OffsetMs, (float)targetOffset, 0.05f);
-        }
+            OffsetMs = DoubleLerp(OffsetMs, targetOffset, 0.05f);// 약하게만 반영
 
         _samples++;
     }
 
-    // -----------------------------
+    // -------------------------------------------------------
     // Ping/Pong 기반 정밀 동기화
-    // serverNowAtRecvMs = serverSendMs + RTT/2 (권장)
-    // -----------------------------
+    // serverNowAtRecvMs = serverSendMs + RTT/2
+    // -------------------------------------------------------
     public static void SetOffsetFromServerNow(long serverNowAtRecvMs, long rttMs)
     {
         long localRecvMs = LocalNowMs();
@@ -100,40 +86,65 @@ public static class TimeSync
 
         double targetOffset = serverNowAtRecvMs - localRecvMs;
 
-        // 1) Warmup: 큰 offset 차이는 정상 -> 즉시 스냅
+        // 1) Warmup: 즉시 스냅
         if (_samples < WarmupCount)
         {
-            OffsetMs = targetOffset;
-            EstimatedRttMs = rttMs;
+            _prevOffset     = targetOffset;
+            OffsetMs        = targetOffset;
+            EstimatedRttMs  = rttMs;
             _samples++;
             return;
         }
 
-        // 2) outlier reject (선택): 말도 안 되는 샘플 방어
+        // 2) outlier reject: 비정상적으로 큰 diff 무시
         double diffRaw = targetOffset - OffsetMs;
         if (RejectIfDiffAbsMs > 0 && Mathf.Abs((float)diffRaw) > RejectIfDiffAbsMs)
         {
-            // 샘플 무시 (RTT만 갱신)
             EstimatedRttMs = rttMs;
             _samples++;
             return;
         }
 
-        // 3) clamp: 튐 방지
+        // 3) clamp: 갑작스러운 튐 방지
         if (Mathf.Abs((float)diffRaw) > MaxJumpMs)
             targetOffset = OffsetMs + Mathf.Sign((float)diffRaw) * MaxJumpMs;
 
-        // 4) smoothing: 미세 흔들림 완화
-        OffsetMs = Mathf.Lerp((float)OffsetMs, (float)targetOffset, Smoothing);
+        // 4) [RTT Fix] 동적 smoothing - 샘플 수에 따라 수렴 속도 자동 조절
+        //    핑 간격 500ms 기준:
+        //      8~20 샘플 (4~10초)  : alpha=0.5 -> 빠른 수렴
+        //     20~50 샘플 (10~25초) : alpha=0.3 -> 점진적 안정
+        //       50+ 샘플 (25초+)   : alpha=0.1 -> 노이즈 억제
+        float   alpha      = GetDynamicSmoothing(_samples);
+        double  prevOffset = OffsetMs;
+        OffsetMs = DoubleLerp(OffsetMs, targetOffset, alpha);
+
+        // 5) jitter 모니터링 (offset 변화량 EMA)
+        double delta = System.Math.Abs(OffsetMs - prevOffset);
+        OffsetJitterMs = DoubleLerp(OffsetJitterMs, delta, 0.2f);
 
         EstimatedRttMs = rttMs;
         _samples++;
     }
 
+    // -------------------------------------------------------
+    // 헬퍼
+    // -------------------------------------------------------
+
+    /// <summary>[RTT Fix] 샘플 수 기반 동적 smoothing alpha</summary>
+    static float GetDynamicSmoothing(int samples)
+    {
+        if (samples < 20) return 0.5f;
+        if (samples < 50) return 0.3f;
+        return 0.1f;
+    }
+
+    static double DoubleLerp(double a, double b, float t)
+        => a + (b - a) * Mathf.Clamp01(t);
+
     static void Mark(string by, long serverNowArg, long localRecv)
     {
-        LastSetBy = by;
+        LastSetBy        = by;
         LastServerNowArg = serverNowArg;
-        LastLocalRecv = localRecv;
+        LastLocalRecv    = localRecv;
     }
 }
