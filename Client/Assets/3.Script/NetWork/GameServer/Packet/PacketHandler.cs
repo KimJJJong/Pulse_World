@@ -26,9 +26,7 @@ class PacketHandler
             UnityEngine.Debug.Log("PingManager Summon");
             new GameObject("PingManager").AddComponent<PingManager>();
         }
-        // [RTT Fix] 인게임 중 핑 간격 2000ms -> 500ms
-        // TimeSync.OffsetMs 갱신 주기를 높여 BeatSync 정확도 향상
-        PingManager.Instance.Configure(interval: 500, timeout: 3000, maxMiss: 3);
+        PingManager.Instance.Configure(interval: 2000, timeout: 6000, maxMiss: 3);
         PingManager.Instance.StartLoop();
         // 끝날땐 PingManager.Instance?.StopLoop(); Destroy(PingManager.Instance.gameObject);
     }

@@ -89,19 +89,21 @@ namespace ServerCore
             RegisterRecv();
         }
 
-        public void Send(List<ArraySegment<byte>> sendBufferList)
+        public void Send(List<ArraySegment<byte>> snedBufferList)
         {
-            if (sendBufferList.Count == 0) return;
+            if (snedBufferList.Count == 0) return;
 
             lock (_lock)
             {
-                // [RTT Fix] 루프 전 idle 여부를 한 번만 체크 -> RegisterSend 중복 호출 방지
-                bool wasIdle = _pendingList.Count == 0 && _sendQueue.Count == 0;
-                foreach (ArraySegment<byte> sendBuffer in sendBufferList)
+                foreach (ArraySegment<byte> sendBuffer in snedBufferList)
+                {
                     _sendQueue.Enqueue(sendBuffer);
-                if (wasIdle)
-                    RegisterSend();
+
+                    if (_pendingList.Count == 0)
+                        RegisterSend();
+                }
             }
+
         }
 
         public void Send(ArraySegment<byte> sendBuff)
@@ -189,13 +191,7 @@ namespace ServerCore
         {
             if (_disconnected == 1) return;
 
-            // [RTT Fix] 매 recv마다 Clean() -> 미있는 코드로 유리할 때만 memcpy 실행
-            // FreeSize < DataSize 일 때(=약 절반 채워졌을 때)만 정리해도 충분
-            if (_recvBuffer.FreeSize < _recvBuffer.DataSize)
-                _recvBuffer.Clean();
-            else if (_recvBuffer.FreeSize < 1024) // 여유 공간이 최소 1KB 미만일 때도 정리
-                _recvBuffer.Clean();
-
+            _recvBuffer.Clean();
             ArraySegment<byte> segment = _recvBuffer.WriteSegment;
             _recvArgs.SetBuffer(segment.Array, segment.Offset, segment.Count);
 

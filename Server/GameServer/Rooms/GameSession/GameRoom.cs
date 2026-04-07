@@ -459,39 +459,37 @@ public sealed class GameRoom : RoomBase
         _rhythm?.Update();
     }
 
-    private long _lastDetachCheckMs = 0; // [RTT Fix] tick overrun 방지: 5초마다 1회로 제한
-
     private void CheckDetachedPlayers()
     {
-        // [RTT Fix] TickCount64 % 1000 < 50 는 15ms 틱에서 초당 3~4회 실행됨
-        // -> 명시적 타임스탬프로 5초마다 정확히 1회 실행
-        var now = Environment.TickCount64;
-        if (now - _lastDetachCheckMs < 5000) return;
-        _lastDetachCheckMs = now;
-
-        List<(string, long)> toRemove = null;
-
-        lock (_lock)
+        // n초에 한 번 정도만 체크해도 충분 (최적화)
+        if (Environment.TickCount64 % 1000 < 50) 
         {
-            foreach (var p in _players.Values)
+            var now = Environment.TickCount64;
+            List<(string, long)> toRemove = null;
+
+            lock (_lock)
             {
-                if (p.Conn == null && p.LastDetachedTime > 0)
+                foreach (var p in _players.Values)
                 {
-                    if (now - p.LastDetachedTime > 10_000)
+                    if (p.Conn == null && p.LastDetachedTime > 0)
                     {
-                        if (toRemove == null) toRemove = new List<(string, long)>();
-                        toRemove.Add((p.Uid, p.Epoch));
+                        // 30초 이상 연결 끊김 상태면 강제 퇴장
+                        if (now - p.LastDetachedTime > 10_000)
+                        {
+                            if (toRemove == null) toRemove = new List<(string, long)>();
+                            toRemove.Add((p.Uid, p.Epoch));
+                        }
                     }
                 }
             }
-        }
 
-        if (toRemove != null)
-        {
-            foreach (var (uid, epoch) in toRemove)
+            if (toRemove != null)
             {
-                Console.WriteLine($"[GameRoom] Force Removing Detached Player: {uid}");
-                RemovePlayer(uid, epoch);
+                foreach (var (uid, epoch) in toRemove)
+                {
+                    Console.WriteLine($"[GameRoom] Force Removing Detached Player: {uid}");
+                    RemovePlayer(uid, epoch);
+                }
             }
         }
     }

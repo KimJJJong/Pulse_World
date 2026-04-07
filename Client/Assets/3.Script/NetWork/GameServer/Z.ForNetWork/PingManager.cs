@@ -25,27 +25,25 @@ public sealed class PingManager : MonoBehaviour
     public UnityEvent onTimeout;
     public UnityEvent onRecovered;
 
+    // --- 런타임 상태 (인스펙터 표시용, 스크립트에서 set만)
     [Header("Runtime (Read Only)")]
-    [SerializeField, ReadOnly] bool   running;
-    [SerializeField, ReadOnly] int    seq;
-    [SerializeField, ReadOnly] int    missCount;
-    [SerializeField, ReadOnly] long   lastPongAtMs;
-    [SerializeField, ReadOnly] long   lastRttMs;
-    [SerializeField, ReadOnly] long   avgRttMs;
-    [SerializeField, ReadOnly] long   maxRttMs;
-    [SerializeField, ReadOnly] long   minRttMs = long.MaxValue;
-    [SerializeField, ReadOnly] float  packetLossPercent;
+    [SerializeField, ReadOnly] bool running;
+    [SerializeField, ReadOnly] int seq;
+    [SerializeField, ReadOnly] int missCount;
+    [SerializeField, ReadOnly] long lastPongAtMs;
+    [SerializeField, ReadOnly] long lastRttMs;
+    [SerializeField, ReadOnly] long avgRttMs;
+    [SerializeField, ReadOnly] long maxRttMs;
+    [SerializeField, ReadOnly] long minRttMs = long.MaxValue;
+    [SerializeField, ReadOnly] float packetLossPercent;
     [SerializeField, ReadOnly] string status = "Idle";
 
     // 내부
     CancellationTokenSource cts;
-    long  lastSentAtMs;
-    long  receivedCount;
-    long  sentCount;
-    const float EMA_ALPHA = 0.2f;
-
-    // [RTT Fix] Busy-wait(Task.Yield 루프) 제거 -> TCS 기반 즉시 Pong 수신 신호로 교체
-    TaskCompletionSource<bool> _pongTcs;
+    long lastSentAtMs;
+    long receivedCount;
+    long sentCount;
+    const float EMA_ALPHA = 0.2f; // RTT 지수이동평균
 
     void Awake()
     {
@@ -61,9 +59,9 @@ public sealed class PingManager : MonoBehaviour
     {
         if (running) return;
         ResetRuntime();
-        cts     = new CancellationTokenSource();
+        cts = new CancellationTokenSource();
         running = true;
-        status  = "Running";
+        status = "Running";
         _ = LoopAsync(cts.Token);
     }
 
@@ -73,43 +71,38 @@ public sealed class PingManager : MonoBehaviour
         if (!running) return;
         cts?.Cancel(); cts = null;
         running = false;
-        status  = "Stopped";
+        status = "Stopped";
     }
 
     void ResetRuntime()
     {
-        missCount         = 0;
-        lastPongAtMs      = 0;
-        lastRttMs         = 0;
-        avgRttMs          = 0;
-        maxRttMs          = 0;
-        minRttMs          = long.MaxValue;
+        missCount = 0;
+        lastPongAtMs = 0;
+        lastRttMs = 0;
+        avgRttMs = 0;
+        maxRttMs = 0;
+        minRttMs = long.MaxValue;
         packetLossPercent = 0;
-        sentCount         = 0;
-        receivedCount     = 0;
-        seq               = 0;
-        status            = "Idle";
+        sentCount = 0;
+        receivedCount = 0;
+        seq = 0;
+        status = "Idle";
     }
 
-    // -------------------------------------------------------
-    // [RTT Fix] Task.Yield busy-wait 제거 -> TCS + Task.WhenAny
-    // -------------------------------------------------------
     async Task LoopAsync(CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
         {
-            // 매 핑마다 새 TCS — 이전 Pong 신호가 다음 핑에 영향 안 주도록
-            _pongTcs = new TaskCompletionSource<bool>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-
-            var s   = Interlocked.Increment(ref seq);
-            var now = NowMs();
+            var s = Interlocked.Increment(ref seq);
+            var now = NowMs();               //  monotonic local time
             lastSentAtMs = now;
             sentCount++;
 
             NetworkManager.Instance.Send(new CS_Ping { seq = s, clientSendMs = now }.Write());
 
-            // 웜업: 16ms 간격으로 WarmupCount 빠르게 채우기
+            // [Extreme Optimization] 초기 웜업 단계 (초기 8번)
+            // 핑 응답(Pong)을 기다리지 않고 무자비하게 16ms(1프레임) 간격으로 핑을 쏴서
+            // TimeSync의 WarmupCount를 순식간에 채운다.
             if (sentCount <= TimeSync.WarmupCount)
             {
                 try { await Task.Delay(16, ct); }
@@ -117,24 +110,16 @@ public sealed class PingManager : MonoBehaviour
                 continue;
             }
 
-            // Pong 대기 — CPU 점유 없이 OS 이벤트로만 깨어남
-            bool pongReceived;
-            try
+            // timeout 대기 (웜업이 끝난 후 정규 핑)
+            var deadline = now + timeoutMs;
+            while (!ct.IsCancellationRequested && NowMs() < deadline &&
+                   Interlocked.Read(ref lastPongAtMs) < now)
             {
-                var completed = await Task.WhenAny(_pongTcs.Task, Task.Delay(timeoutMs, ct));
-                pongReceived  = completed == _pongTcs.Task;
+                await Task.Yield();
             }
-            catch (TaskCanceledException) { break; }
-
             if (ct.IsCancellationRequested) break;
 
-            if (pongReceived)
-            {
-                missCount = 0;
-                status    = "OK";
-                RecomputeLoss();
-            }
-            else
+            if (Interlocked.Read(ref lastPongAtMs) < now)
             {
                 missCount++;
                 RecomputeLoss();
@@ -145,7 +130,15 @@ public sealed class PingManager : MonoBehaviour
                     StopLoop();
                     break;
                 }
-                status = $"Miss {missCount}/{maxConsecMiss}";
+                else
+                {
+                    status = $"Miss {missCount}/{maxConsecMiss}";
+                }
+            }
+            else
+            {
+                missCount = 0;
+                status = "OK";
             }
 
             try { await Task.Delay(intervalMs, ct); }
@@ -153,101 +146,98 @@ public sealed class PingManager : MonoBehaviour
         }
     }
 
-    // -------------------------------------------------------
-    // Pong 수신 (소켓 수신 스레드에서 호출)
-    // -------------------------------------------------------
     public void OnPong(SC_Pong p)
     {
-        var localRecvMs = NowMs();
+        var localRecvMs = NowMs(); //  수신 순간 local time (monotonic)
         Interlocked.Exchange(ref lastPongAtMs, localRecvMs);
         receivedCount++;
         RecomputeLoss();
 
-        // TCS 신호 -> LoopAsync busy-wait 제거의 핵심
-        _pongTcs?.TrySetResult(true);
-
+        // 서버 처리시간(선택): serverSend - serverRecv
         var proc = Math.Max(0, p.serverSendMs - p.serverRecvMs);
-        var rtt  = Math.Max(0, (localRecvMs - p.clientSendMs) - proc);
+
+        // RTT 추정: (recv - clientSend) - proc
+        var rtt = Math.Max(0, (localRecvMs - p.clientSendMs) - proc);
 
         lastRttMs = rtt;
-        avgRttMs  = avgRttMs == 0 ? rtt : (long)(EMA_ALPHA * rtt + (1 - EMA_ALPHA) * avgRttMs);
-        maxRttMs  = Math.Max(maxRttMs, rtt);
-        minRttMs  = Math.Min(minRttMs, rtt);
+        if (avgRttMs == 0) avgRttMs = rtt;
+        else avgRttMs = (long)(EMA_ALPHA * rtt + (1 - EMA_ALPHA) * avgRttMs);
 
-        // 시간 동기화: serverNowAtRecv ≈ serverSend + RTT/2
-        TimeSync.SetOffsetFromServerNow(p.serverSendMs + rtt / 2, rtt);
+        maxRttMs = Math.Max(maxRttMs, rtt);
+        minRttMs = Math.Min(minRttMs, rtt);
+
+        //  시간 동기화(오프셋) 갱신: serverNowAtRecv ≈ serverSend + RTT/2
+        var oneWay = rtt / 2;
+        TimeSync.SetOffsetFromServerNow(p.serverSendMs + oneWay, rtt);
+
+        //Debug.Log($"[PONG] rtt={rtt} offset={TimeSync.OffsetMs:0} serverNow={TimeSync.ServerNowMs()}");
+
 
         if (!running)
         {
             running = true;
-            status  = "Recovered";
+            status = "Recovered";
             onRecovered?.Invoke();
         }
     }
 
-    // -------------------------------------------------------
     void RecomputeLoss()
     {
         if (sentCount == 0) { packetLossPercent = 0; return; }
-        packetLossPercent =
-            Mathf.Clamp01((float)(sentCount - receivedCount) / sentCount) * 100f;
+        var lost = sentCount - receivedCount;
+        packetLossPercent = Mathf.Clamp01((float)lost / sentCount) * 100f;
     }
 
-    static long NowMs()
-        => (long)(System.Diagnostics.Stopwatch.GetTimestamp()
-                  * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
+    //  반드시 monotonic(단조시간)로 통일! (Thread-Safe)
+    static long NowMs() 
+    {
+        return (long)(System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
+    }
 
     public void Configure(int? interval = null, int? timeout = null, int? maxMiss = null)
     {
-        if (interval.HasValue) intervalMs    = Math.Max(100, interval.Value);
-        if (timeout.HasValue)  timeoutMs     = Math.Max(500, timeout.Value);
-        if (maxMiss.HasValue)  maxConsecMiss = Math.Max(1,   maxMiss.Value);
+        if (interval.HasValue) intervalMs = Math.Max(100, interval.Value);
+        if (timeout.HasValue) timeoutMs = Math.Max(500, timeout.Value);
+        if (maxMiss.HasValue) maxConsecMiss = Math.Max(1, maxMiss.Value);
     }
 
-    // -------------------------------------------------------
-    // [RTT Fix] 확장 HUD - RTT min/max/avg, Offset Jitter, Loss%, SampleCount
-    // -------------------------------------------------------
     void OnGUI()
     {
         if (!running) return;
 
-        int  width = 360, height = 130;
-        Rect rect  = new Rect(Screen.width - width - 10, 10, width, height);
+        // 화면 우측 상단 배치
+        int width = 300;
+        int height = 100;
+        Rect rect = new Rect(Screen.width - width - 10, 10, width, height);
+
+        // 반투명 배경 박스
         GUI.Box(rect, "");
 
-        var style = new GUIStyle(GUI.skin.label)
-        {
-            fontSize  = 17,
-            alignment = TextAnchor.UpperLeft,
-            richText  = true
-        };
+        // 글꼴 색상 및 정렬 설정
+        GUIStyle style = new GUIStyle(GUI.skin.label);
+        style.fontSize = 20;
+        style.alignment = TextAnchor.UpperLeft;
+        
+        // 텍스트 내용 조립
+        string text = $"[Network Sync]\n" +
+                      $"<color=#00FF00>RTT(Avg):</color> {avgRttMs}ms (Max:{maxRttMs})\n" +
+                      $"<color=#FFFF00>Offset:</color> {TimeSync.OffsetMs:F1}ms\n" +
+                      $"<color=#00FFFF>Status:</color> {(sentCount <= 10 ? "Warming Up" : status)}";
 
-        bool   warming   = sentCount <= TimeSync.WarmupCount;
-        float  loss      = packetLossPercent;
-        string lossColor = loss < 1f ? "#00FF00" : loss < 5f ? "#FFFF00" : "#FF4444";
-        long   minDisp   = minRttMs == long.MaxValue ? 0 : minRttMs;
-
-        string text =
-            "<color=#FFFFFF>[Network Sync]</color>\n" +
-            $"<color=#00FF00>RTT:</color> avg={avgRttMs}ms  min={minDisp}  max={maxRttMs}\n" +
-            $"<color=#FFFF00>Offset:</color> {TimeSync.OffsetMs:F1}ms  " +
-            $"<color=#AAAAFF>Jitter:</color> {TimeSync.OffsetJitterMs:F2}ms\n" +
-            $"<color=#00FFFF>Samples:</color> {TimeSync.SampleCount}  " +
-            $"<color={lossColor}>Loss:</color> {loss:F1}%  " +
-            $"<color=#CCCCCC>Status:</color> {(warming ? "Warming Up" : status)}";
-
-        // 그림자
+        // 약간의 그림자 효과를 위해 검은색 텍스트 먼저 찍기
         style.normal.textColor = Color.black;
-        GUI.Label(new Rect(rect.x + 6, rect.y + 6, rect.width, rect.height), text, style);
+        Rect shadowRect = new Rect(rect.x + 6, rect.y + 6, rect.width, rect.height);
+        GUI.Label(shadowRect, text, style);
 
-        // 본문
+        // 그 위에 하얀색 텍스트 (RichText 허용)
+        style.richText = true;
         style.normal.textColor = Color.white;
-        GUI.Label(new Rect(rect.x + 5, rect.y + 5, rect.width, rect.height), text, style);
+        Rect textRect = new Rect(rect.x + 5, rect.y + 5, rect.width, rect.height);
+        GUI.Label(textRect, text, style);
     }
 }
 
-[AttributeUsage(AttributeTargets.Field)]
-public class ReadOnlyAttribute : PropertyAttribute { }
+[AttributeUsage(AttributeTargets.Field)] public class ReadOnlyAttribute : PropertyAttribute { }
 
 #if UNITY_EDITOR
 [CustomPropertyDrawer(typeof(ReadOnlyAttribute))]
