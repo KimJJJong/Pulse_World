@@ -31,6 +31,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
     // Client-Side Prediction & Instant Broadcast: 이미 모션을 재생한 Attack/Skill을 추적
     // 서버 응답(SC_BeatActions)에서 중복 애니메이션 재생을 방지
     private Dictionary<int, float> _recentInstantActions = new();
+    
+    // [Client-Side Prediction] Move 예측 처리
+    private Dictionary<int, Vector2Int> _recentPredictedMoves = new();
 
     // Actor 별로 현재 실행 중인 데이터 기반 스킬 시뮬레이터(ClientSkillRunner) 추적
     private Dictionary<int, ClientSkillRunner> _activeSkillRunners = new();
@@ -408,8 +411,25 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         if (action.ActionKind == (int)ActionKind.Move)
         {
-            // [Refactor] EntityVisual에게 위임
-            visual.StartMove(fromW, toW, duration);
+            bool skipAnimation = false;
+            // [Client-Side Prediction Validation]
+            if (action.ActorId == ClientGameState.Instance.MyActorId && _recentPredictedMoves.TryGetValue(action.ActorId, out var predPos))
+            {
+                if (action.Accepted && action.ToX == predPos.x && action.ToY == predPos.y)
+                {
+                    // 예측이 서버판정과 일치! 애니메이션 중복 스킵
+                    skipAnimation = true;
+                }
+                
+                // 패킷이 도달해 판정이 증명되었으므로 삭제
+                _recentPredictedMoves.Remove(action.ActorId);
+            }
+
+            if (!skipAnimation)
+            {
+                // [Refactor] EntityVisual에게 위임
+                visual.StartMove(fromW, toW, duration);
+            }
         }
 
         // ── Client-Side Prediction & Instant Broadcast 체크 ──
@@ -473,6 +493,23 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         // 시간 기록 (이중 재생 방지)
         _recentInstantActions[actorId] = Time.time;
+    }
+
+    /// <summary>
+    /// [Client-Side Prediction] 즉시 타일 이동 렌더링 시뮬레이션
+    /// </summary>
+    public void PlayMovePrediction(int actorId, int toX, int toY, float durationRatio)
+    {
+        if (!_entityViews.TryGetValue(actorId, out var visual) || visual == null) return;
+        
+        Vector3 curW = visual.transform.position;
+        Vector3 toW = GridToWorldPublic(toX, toY);
+
+        double beatMs = RhythmClient.Instance.GetBeatDurationMs();
+        float duration = (float)(beatMs / 1000.0) * durationRatio;
+
+        visual.StartMove(curW, toW, duration);
+        _recentPredictedMoves[actorId] = new Vector2Int(toX, toY);
     }
 
     /// <summary>

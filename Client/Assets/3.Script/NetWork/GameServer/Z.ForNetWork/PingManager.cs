@@ -37,6 +37,12 @@ public sealed class PingManager : MonoBehaviour
     [SerializeField, ReadOnly] long minRttMs = long.MaxValue;
     [SerializeField, ReadOnly] float packetLossPercent;
     [SerializeField, ReadOnly] string status = "Idle";
+    
+    [Header("Detailed Debug")]
+    [SerializeField, ReadOnly] long lastRawRTT;
+    [SerializeField, ReadOnly] long lastServerProc;
+    [SerializeField, ReadOnly] long lastLocalSend;
+    [SerializeField, ReadOnly] long lastLocalRecv;
 
     // 내부
     CancellationTokenSource cts;
@@ -153,11 +159,18 @@ public sealed class PingManager : MonoBehaviour
         receivedCount++;
         RecomputeLoss();
 
+        lastLocalSend = p.clientSendMs;
+        lastLocalRecv = localRecvMs;
+
         // 서버 처리시간(선택): serverSend - serverRecv
         var proc = Math.Max(0, p.serverSendMs - p.serverRecvMs);
+        lastServerProc = proc;
+
+        var rawRtt = Math.Max(0, localRecvMs - p.clientSendMs);
+        lastRawRTT = rawRtt;
 
         // RTT 추정: (recv - clientSend) - proc
-        var rtt = Math.Max(0, (localRecvMs - p.clientSendMs) - proc);
+        var rtt = Math.Max(0, rawRtt - proc);
 
         lastRttMs = rtt;
         if (avgRttMs == 0) avgRttMs = rtt;
@@ -191,7 +204,8 @@ public sealed class PingManager : MonoBehaviour
     //  반드시 monotonic(단조시간)로 통일! (Thread-Safe)
     static long NowMs() 
     {
-        return (long)(System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
+        // [Fix] double 변환 없이 정수형 롱스케일로 연산하여 업타임 긴 기기에서의 정밀도 손실 예방
+        return (System.Diagnostics.Stopwatch.GetTimestamp() * 1000L) / System.Diagnostics.Stopwatch.Frequency;
     }
 
     public void Configure(int? interval = null, int? timeout = null, int? maxMiss = null)
@@ -206,8 +220,8 @@ public sealed class PingManager : MonoBehaviour
         if (!running) return;
 
         // 화면 우측 상단 배치
-        int width = 300;
-        int height = 100;
+        int width = 340;
+        int height = 180;
         Rect rect = new Rect(Screen.width - width - 10, 10, width, height);
 
         // 반투명 배경 박스
@@ -221,7 +235,10 @@ public sealed class PingManager : MonoBehaviour
         // 텍스트 내용 조립
         string text = $"[Network Sync]\n" +
                       $"<color=#00FF00>RTT(Avg):</color> {avgRttMs}ms (Max:{maxRttMs})\n" +
+                      $"<color=#00e5ee>RawRTT:</color> {lastRawRTT}ms | <color=#ff69b4>S.Proc:</color> {lastServerProc}ms\n" +
                       $"<color=#FFFF00>Offset:</color> {TimeSync.OffsetMs:F1}ms\n" +
+                      $"<color=#aaaaaa>L.Send:</color> {lastLocalSend}\n" +
+                      $"<color=#aaaaaa>L.Recv:</color> {lastLocalRecv}\n" +
                       $"<color=#00FFFF>Status:</color> {(sentCount <= 10 ? "Warming Up" : status)}";
 
         // 약간의 그림자 효과를 위해 검은색 텍스트 먼저 찍기

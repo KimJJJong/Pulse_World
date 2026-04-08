@@ -217,6 +217,19 @@ public class RhythmInputController : MonoBehaviour
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
         BeatDebugUI_TMP.Instance?.MarkHitNow();
 
+        // --- Client-Side Prediction for Move ---
+        if (BoardView.Instance != null && Rhythm != null)
+        {
+            long nearestBeat = Rhythm.GetNearestBeatIndex(serverNow);
+            long judgeTime = Rhythm.GetBeatTimeMs(nearestBeat);
+            long diff = System.Math.Abs(serverNow - judgeTime);
+
+            if (diff <= Rhythm.judgeWindowMs)
+            {
+                BoardView.Instance.PlayMovePrediction(me.EntityId, tx, ty, BoardView.Instance.actionDurationRatio);
+            }
+        }
+
         SendActionRouted(ActionKind.Move, tx, ty, serverNow);
         _lastSendLocalMs = trueLocalNowMs;
     }

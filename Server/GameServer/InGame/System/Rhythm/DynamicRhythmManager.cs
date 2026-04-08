@@ -81,7 +81,7 @@ namespace GameServer.InGame.System.Rhythm
                 _blockStartBeatIndex = currentBeatIndex - (beatInBlock % totalBeatsInBlock); 
                 _lastLoggedChordEvent = null; // 새 루프/블록이므로 추적 초기화
                 
-                Console.WriteLine($"[Rhythm Tracker] 🎵 Block Triggered: {CurrentBlock.BlockId} | Starting Measure Loop.");
+                //Console.WriteLine($"[Rhythm Tracker] 🎵 Block Triggered: {CurrentBlock.BlockId} | Starting Measure Loop.");
             }
         }
 
@@ -97,7 +97,7 @@ namespace GameServer.InGame.System.Rhythm
             if (beatInMeasure == 0 && measureIndex != _lastLoggedHeartbeatMeasure)
             {
                 _lastLoggedHeartbeatMeasure = measureIndex;
-                Console.WriteLine($"[Rhythm Tracker] ⏳ Heartbeat ... Measure: {measureIndex + 1} / Block: {CurrentBlock.BlockId}");
+                //Console.WriteLine($"[Rhythm Tracker] ⏳ Heartbeat ... Measure: {measureIndex + 1} / Block: {CurrentBlock.BlockId}");
             }
             
             var activeChord = CurrentBlock.ChordEvents
@@ -109,7 +109,7 @@ namespace GameServer.InGame.System.Rhythm
             if (activeChord != null && activeChord != _lastLoggedChordEvent)
             {
                 _lastLoggedChordEvent = activeChord;
-                Console.WriteLine($"[Rhythm Tracker] 🎹 Measure {measureIndex+1}, Beat {beatInMeasure+1} -> Chord changes to: {activeChord.RootNote} {activeChord.ChordType} (Pitch={activeChord.PitchOffset})");
+                //Console.WriteLine($"[Rhythm Tracker] 🎹 Measure {measureIndex+1}, Beat {beatInMeasure+1} -> Chord changes to: {activeChord.RootNote} {activeChord.ChordType} (Pitch={activeChord.PitchOffset})");
             }
         }
 

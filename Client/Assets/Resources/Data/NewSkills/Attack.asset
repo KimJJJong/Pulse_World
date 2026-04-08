@@ -28,6 +28,12 @@ MonoBehaviour:
         DurationTicks: 480
         Action:
           rid: 8211689478396838121
+    - TrackName: Track 2
+      Events:
+      - TriggerTick: 240
+        DurationTicks: 480
+        Action:
+          rid: 8211689540354048642
   references:
     version: 2
     RefIds:
@@ -47,6 +53,12 @@ MonoBehaviour:
       data:
         Radius: 2
     - rid: 8211689478396838121
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: event:/TestSmith
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 8211689540354048642
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: event:/TestSmith

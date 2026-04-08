@@ -38,6 +38,21 @@
           }
         }
       ]
+    },
+    {
+      "TrackName": "Track 2",
+      "Events": [
+        {
+          "TriggerTick": 240,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "event:/TestSmith",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
     }
   ]
 }
