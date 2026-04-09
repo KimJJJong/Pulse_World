@@ -31,9 +31,11 @@ public class BoardView : MonoBehaviour, IClientWorldView
     // Client-Side Prediction & Instant Broadcast: 이미 모션을 재생한 Attack/Skill을 추적
     // 서버 응답(SC_BeatActions)에서 중복 애니메이션 재생을 방지
     private Dictionary<int, float> _recentInstantActions = new();
-    
+
     // [Client-Side Prediction] Move 예측 처리
-    private Dictionary<int, Vector2Int> _recentPredictedMoves = new();
+    // value: (예측한 목표 타일 좌표, 예측 시점 출발 월드 포지션)
+    // 출발 위치를 저장해 예측 실패 시 PlayBumpBack의 복귀 기준점으로 활용한다.
+    private Dictionary<int, (Vector2Int predictedTile, Vector3 fromWorld)> _recentPredictedMoves = new();
 
     // Actor 별로 현재 실행 중인 데이터 기반 스킬 시뮬레이터(ClientSkillRunner) 추적
     private Dictionary<int, ClientSkillRunner> _activeSkillRunners = new();
@@ -41,20 +43,15 @@ public class BoardView : MonoBehaviour, IClientWorldView
     #region Debug
     private const bool DBG_POS = false;
     private int _dbgOnlyActorId = -1; // -1이면 전부, 특정 ID만 보고 싶으면 그 값으로
-
-
     #endregion
 
     void Awake()
     {
-
         Instance = this;
-
     }
 
     void Start()
     {
-        // Load Entity Path Map
         LoadEntityMapping();
         ClientGameState.Instance.WorldView = this;
     }
@@ -64,17 +61,17 @@ public class BoardView : MonoBehaviour, IClientWorldView
         var textAsset = Resources.Load<TextAsset>("Data/EntityData");
         if (textAsset != null)
         {
-            try 
+            try
             {
                 var root = JsonUtility.FromJson<EntityDataRoot>(textAsset.text);
-                foreach(var e in root.Entities)
+                foreach (var e in root.Entities)
                 {
                     if (!string.IsNullOrEmpty(e.ResourcePath))
                         _entityPathMap[e.EntityId] = e.ResourcePath;
                 }
                 Debug.Log($"[BoardView] Loaded {_entityPathMap.Count} entity paths from JSON.");
             }
-            catch(System.Exception ex)
+            catch (System.Exception ex)
             {
                 Debug.LogError($"[BoardView] Failed to parse EntityData.json: {ex.Message}");
             }
@@ -85,21 +82,19 @@ public class BoardView : MonoBehaviour, IClientWorldView
     class EntityDataRoot { public List<EntityDataDTO> Entities; }
     [System.Serializable]
     class EntityDataDTO { public int EntityId; public string ResourcePath; }
+
     #region IClientWorldView
 
     public void OnCreateMap(int width, int height)
     {
-        // 1) 씬에 이미 베이크된 타일이 있는지 확인하고 바인딩 시도
         if (TryBindTilesFromScene(width, height))
         {
             Debug.Log($"[BoardView] OnCreateMap: Baked tiles bound. ({width}x{height})");
             return;
         }
 
-        // 2) 베이크된 타일이 없거나 부족하면 기존 방식(런타임 생성)으로 폴백
         Debug.LogWarning($"[BoardView] OnCreateMap: No baked tiles found. Fallback to Instantiate. ({width}x{height})");
-        
-        ClearTiles(destroyGameObjects: true); // 기존 것 싹 날리고 새로 만듬
+        ClearTiles(destroyGameObjects: true);
 
         if (tilePrefab == null)
         {
@@ -117,10 +112,6 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 var tile = Instantiate(tilePrefab, transform);
                 tile.name = $"Tile_{x}_{y}";
                 tile.transform.position = GridToWorld(x, y) + new Vector3(0, -2, 0);
-                
-                // 더 이상 TileIndex 컴포넌트 붙이지 않음.
-                // 이름(Tile_x_y)만 잘 지켜지면 문제 없음.
-
                 _tiles[x, y] = tile;
                 _baseTileColors[x, y] = Color.gray;
             }
@@ -157,62 +148,44 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (rend != null)
         {
             Color baseColor = GetTileColor(tileKind);
-
-            // [추가] "정상 상태 기본색"을 저장해둔다 (텔레그래프 해제 시 원복용)
             if (_baseTileColors != null)
                 _baseTileColors[x, y] = baseColor;
-
             rend.material.color = baseColor;
         }
     }
 
     /// <summary>
     /// 해당 좌표 타일을 "텔레그래프 빨강"으로 덮는다.
-    /// - base color는 건드리지 않는다. (원복은 RestoreTileColor에서)
     /// </summary>
     public void SetTelegraphOverlay(int x, int y, bool on)
     {
-        if (_tiles == null) 
+        if (_tiles == null)
         {
             Debug.LogWarning("[BoardView] SetTelegraphOverlay: _tiles is null");
             return;
         }
-        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1))
-        {
-            //Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Out of bounds ({x},{y}) MapSize={_tiles.GetLength(0)}x{_tiles.GetLength(1)}");
-            return;
-        }
+        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1)) return;
 
         var tile = _tiles[x, y];
         if (tile == null)
         {
-             Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Tile null at ({x},{y})");
-             return;
+            Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Tile null at ({x},{y})");
+            return;
         }
 
         var rend = GetTileRenderer(tile);
         if (rend == null)
         {
-             Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Renderer missing at ({x},{y}) Obj={tile.name}");
+            Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Renderer missing at ({x},{y}) Obj={tile.name}");
             return;
         }
 
-         //Debug.Log($"[BoardView] SetTelegraphOverlay({x},{y}) - Rend={rend.name}, Mat={rend.material.name}, On={on}");
-
         if (on)
-        {
             rend.material.color = TELEGRAPH_COLOR;
-        }
         else
-        {
             RestoreTileColor(x, y);
-        }
     }
 
-    /// <summary>
-    /// tileKind 기반 기본색으로 원복한다.
-    /// - SetTile에서 저장해둔 base color 사용
-    /// </summary>
     public void RestoreTileColor(int x, int y)
     {
         if (_tiles == null) return;
@@ -224,28 +197,19 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         var rend = GetTileRenderer(tile);
         if (rend != null)
-        {
             rend.material.color = _baseTileColors[x, y];
-        }
     }
-    
+
     public bool TryBindTilesFromScene(int width, int height)
     {
-        // 최적화: TileIndex 컴포넌트에 의존하지 않고, 자식 오브젝트의 이름(Tile_x_y)을 파싱하여 바인딩
-        // O(ChildCount) 1회 순회로 끝냄.
-
         var map = new Dictionary<(int x, int y), GameObject>();
-        
+
         foreach (Transform child in transform)
         {
-            // 이름 파싱: "Tile_x_y"
             if (ParseTileName(child.name, out int x, out int y))
-            {
                 map[(x, y)] = child.gameObject;
-            }
         }
 
-        // 전체 범위가 다 있는지 확인
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
@@ -253,14 +217,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 if (!map.ContainsKey((x, y)))
                 {
                     Debug.LogWarning($"[BoardView] Bind Fail: Missing tile at ({x},{y})");
-                    // 실패 시 즉시 리턴하거나, 일부만 바인딩할지 결정. 안전을 위해 false 리턴.
                     return false;
                 }
             }
         }
 
-        // 성공 -> 실제 배열에 할당
-        ClearTiles(destroyGameObjects: false); 
+        ClearTiles(destroyGameObjects: false);
         _tiles = new GameObject[width, height];
         _baseTileColors = new Color[width, height];
 
@@ -269,16 +231,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
             for (int x = 0; x < width; x++)
             {
                 _tiles[x, y] = map[(x, y)];
-                
-                // [Fix] 베이크된 타일의 실제 색상을 초기값으로 저장 (Telegraph 복구용)
-                // Use GetTileRenderer here
                 var rend = GetTileRenderer(_tiles[x, y]);
                 if (rend != null)
-                {
-                    // material 접근 시 인스턴스 생성됨. (Telegraph에서도 어차피 생성하므로 무방)
-                    // [Fix] Editor Warning 방지를 위해 읽을 때는 sharedMaterial 사용
                     _baseTileColors[x, y] = rend.sharedMaterial != null ? rend.sharedMaterial.color : Color.gray;
-                }
                 else
                 {
                     Debug.LogWarning($"[BoardView] Bound tile at ({x},{y}) has no renderer!");
@@ -315,41 +270,24 @@ public class BoardView : MonoBehaviour, IClientWorldView
             GameObject go = Instantiate(prefab, transform);
             go.name = $"Entity_{info.EntityId}";
 
-            // EntityVisual 컴포넌트 확인/추가
             if (!go.TryGetComponent<EntityVisual>(out visual))
-            {
                 visual = go.AddComponent<EntityVisual>();
-            }
-            
+
             _entityViews[info.EntityId] = visual;
 
-            // [New] Character Visual Controller Setup
             if (visual.TryGetComponent<RhythmRPG.Visual.CharacterVisualController>(out var visualCtrl))
             {
-                // Game Scene Context
                 visualCtrl.SetContext(RhythmRPG.Visual.CharacterContext.Game);
 
-                // If it's my player, load equipment from InventoryManager
                 if (info.EntityId == ClientGameState.Instance.MyActorId)
                 {
-                    // Convert Long InstanceID to TemplateID(int) list for visual loading
-                    // Note: This needs to be robust. Ideally BoardView receives this info.
-                    // For now, if it is MY player, I can read from local InventoryManager.
-                    // For OTHER players, we need network data (EntityInfo should contain appearance data).
-                    
                     var myEquips = InventoryManager.Instance.Equipments;
                     List<int> equippedTemplateIds = new List<int>();
-                    foreach(var e in myEquips)
+                    foreach (var e in myEquips)
                     {
                         if (e.IsEquipped) equippedTemplateIds.Add(e.TemplateId);
                     }
                     visualCtrl.UpdateEquipments(equippedTemplateIds);
-                }
-                else
-                {
-                   // For other players/monsters, we need appearance info in ClientEntityInfo.
-                   // Currently ClientEntityInfo only has 'AppearanceId' (ModelId).
-                   // TODO: Extend protocol to sync equipment for other players.
                 }
             }
         }
@@ -362,14 +300,13 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         visual.transform.position = GridToWorld(info.X, info.Y);
     }
+
     public void OnDespawnEntity(int entityId)
     {
         if (_entityViews.TryGetValue(entityId, out var visual) && visual != null)
             Destroy(visual.gameObject);
-
         _entityViews.Remove(entityId);
     }
-
 
     [Header("Sync")]
     [Range(0.1f, 2.0f)]
@@ -378,87 +315,93 @@ public class BoardView : MonoBehaviour, IClientWorldView
     public void OnBeatAction(ClientBeatAction action, ClientEntityInfo entity)
     {
         if (!_entityViews.TryGetValue(action.ActorId, out var visual) || visual == null)
+            return;
+
+        double beatMs   = RhythmClient.Instance.GetBeatDurationMs();
+        float  duration = (float)(beatMs / 1000.0) * actionDurationRatio;
+
+        // ── Move 처리 ──────────────────────────────────────────────────────────
+        if (action.ActionKind == (int)ActionKind.Move)
         {
+            Vector3 serverFromW = GridToWorld(action.FromX, action.FromY);
+            Vector3 serverToW   = GridToWorld(action.ToX,   action.ToY);
+
+            // 내 플레이어: Client-Side Prediction 검증
+            if (action.ActorId == ClientGameState.Instance.MyActorId
+                && _recentPredictedMoves.TryGetValue(action.ActorId, out var pred))
+            {
+                _recentPredictedMoves.Remove(action.ActorId);
+
+                bool predictionHit = action.Accepted
+                                  && action.ToX == pred.predictedTile.x
+                                  && action.ToY == pred.predictedTile.y;
+
+                if (predictionHit)
+                {
+                    // ✅ 예측 성공 + 서버 수락 → 이미 이동 완료, 아무것도 안 함
+                    return;
+                }
+                else if (!action.Accepted)
+                {
+                    // ❌ 서버 거부 → 예측 위치에서 원래 위치로 BumpBack
+                    Vector3 predictedW = GridToWorldPublic(pred.predictedTile.x, pred.predictedTile.y);
+                    visual.PlayBumpBack(predictedW, pred.fromWorld);
+                    Debug.Log($"[Prediction] Rejected → BumpBack ({pred.predictedTile.x},{pred.predictedTile.y}) → ({action.FromX},{action.FromY})");
+                    return;
+                }
+                else
+                {
+                    // ❌ 수락됐지만 다른 타일 확정 → 현재 위치에서 서버 확정 위치로 이동
+                    visual.StartMove(visual.transform.position, serverToW, duration);
+                    Debug.Log($"[Prediction] Mismatch → Correcting to server ({action.ToX},{action.ToY})");
+                    return;
+                }
+            }
+
+            // 다른 Entity (몬스터 / 다른 플레이어)
+            if (!action.Accepted)
+            {
+                // 서버 이동 거부 → 시도 방향으로 살짝 갔다가 복귀 (BumpBack)
+                // serverFromW 기준으로 복귀해야 현재 렌더 위치가 어디든 정확히 원래 칸으로 돌아옴
+                visual.PlayBumpBack(serverToW, serverFromW);
+                return;
+            }
+
+            // ✅ 이동 수락: serverFromW(서버 출발 위치)부터 serverToW(서버 도착 위치)로 이동.
+            // visual.transform.position 대신 serverFromW를 사용해야
+            // 플레이어가 AI 예정 칸에 있어도 올바른 위치에서 시작한다.
+            // 단, 현재 렌더 위치와 serverFromW 차이가 크면 스냅 방지를 위해 현재 위치 사용.
+            {
+                float snapThreshold = 0.5f; // 이 거리 이내면 현재 위치, 초과면 serverFromW 스냅
+                float distFromServer = Vector3.Distance(visual.transform.position, serverFromW);
+                Vector3 moveStart = distFromServer <= snapThreshold
+                    ? visual.transform.position   // 가까우면 현재 렌더 위치(부드러운 보간)
+                    : serverFromW;                 // 멀면 serverFromW로 스냅 후 이동
+                visual.StartMove(moveStart, serverToW, duration);
+            }
             return;
         }
 
-        if (!action.Accepted)
-        {
-             return;
-        }
+        // ── Attack / Skill ────────────────────────────────────────────────────
+        if (!action.Accepted) return;
 
-        Vector3 fromW = GridToWorld(action.FromX, action.FromY);
-        Vector3 toW = GridToWorld(action.ToX, action.ToY);
-
-        // 현재 트랜스폼
-        Vector3 curW = visual.transform.position;
-
-        // "현재 트랜스폼이 원래 from 위치와 얼마나 다른가" (드리프트/누적오차 체크)
-        float driftFrom = Vector3.Distance(curW, fromW);
-
-        // 이동 거리 (월드 기준)
-        float moveDist = Vector3.Distance(fromW, toW);
-
-        // 튐(텔레포트) 감지
-        bool teleportLike = moveDist > 2.0f;
-        bool desynced = driftFrom > 0.5f;
-
-        // [Sync] BPM 기반 이동 시간 계산
-        double beatMs = RhythmClient.Instance.GetBeatDurationMs();
-        
-        // 1Beat 시간(초) * 비율 (예: 0.5초 * 0.5 = 0.25초 만에 행동 끝냄)
-        float duration = (float)(beatMs / 1000.0) * actionDurationRatio;
-
-        if (action.ActionKind == (int)ActionKind.Move)
-        {
-            bool skipAnimation = false;
-            // [Client-Side Prediction Validation]
-            if (action.ActorId == ClientGameState.Instance.MyActorId && _recentPredictedMoves.TryGetValue(action.ActorId, out var predPos))
-            {
-                if (action.Accepted && action.ToX == predPos.x && action.ToY == predPos.y)
-                {
-                    // 예측이 서버판정과 일치! 애니메이션 중복 스킵
-                    skipAnimation = true;
-                }
-                
-                // 패킷이 도달해 판정이 증명되었으므로 삭제
-                _recentPredictedMoves.Remove(action.ActorId);
-            }
-
-            if (!skipAnimation)
-            {
-                // [Refactor] EntityVisual에게 위임
-                visual.StartMove(fromW, toW, duration);
-            }
-        }
-
-        // ── Client-Side Prediction & Instant Broadcast 체크 ──
-        // 내 Actor 뿐만 아니라, 서버의 SC_ActionInstantBroadcast로 먼저 재생된 애니메이션을 추적
-        bool isAttackOrSkill = action.ActionKind == (int)ActionKind.Attack 
+        bool isAttackOrSkill = action.ActionKind == (int)ActionKind.Attack
                             || action.ActionKind == (int)ActionKind.Skill;
-
         if (isAttackOrSkill)
         {
-            if (_recentInstantActions.TryGetValue(action.ActorId, out float lastActionTime))
+            if (_recentInstantActions.TryGetValue(action.ActorId, out float lastTime)
+                && Time.time - lastTime < 1.5f)
             {
-                // 최근 1.5초(충분히 넉넉한 윈도우) 내에 트리거된 액션이면 이미 재생된 것으로 간주
-                if (Time.time - lastActionTime < 1.5f)
-                {
-                    // 판정 완료, 리셋 (연속 판정을 위해)
-                    _recentInstantActions.Remove(action.ActorId);
-                    return; // 모션 재생 스킵 (HP 업데이트는 ClientHandlers에서 별도 처리)
-                }
-                else 
-                {
-                    _recentInstantActions.Remove(action.ActorId);
-                }
+                _recentInstantActions.Remove(action.ActorId);
+                return;
             }
+            _recentInstantActions.Remove(action.ActorId);
         }
 
-        // [Sync] 공격 애니메이션 연결 (다른 플레이어/몬스터 or Prediction 안 된 경우)
-        bool isMine = (ClientGameState.Instance != null && action.ActorId == ClientGameState.Instance.MyActorId);
-        
-        if (action.ActionKind == (int)ActionKind.Attack) 
+        bool isMine = ClientGameState.Instance != null
+                   && action.ActorId == ClientGameState.Instance.MyActorId;
+
+        if (action.ActionKind == (int)ActionKind.Attack)
         {
             visual.PlayAttack(duration, isMine);
             FMODActionSoundPlayer.Instance?.PlayAttackSound(isMine);
@@ -466,13 +409,11 @@ public class BoardView : MonoBehaviour, IClientWorldView
         else if (action.ActionKind == (int)ActionKind.Skill)
         {
             visual.PlaySkill(duration, isMine);
-            // 나중에 스킬 전용 함수 연결 가능
         }
     }
 
-
     /// <summary>
-    /// SC_ActionInstantBroadcast 처리: 즉각적인 공격/스킬 브로드캐스트 재생 
+    /// SC_ActionInstantBroadcast 처리: 즉각적인 공격/스킬 브로드캐스트 재생
     /// </summary>
     public void PlayInstantActionBroadcast(int actorId, ActionKind kind, float duration)
     {
@@ -491,25 +432,28 @@ public class BoardView : MonoBehaviour, IClientWorldView
             visual.PlaySkill(duration, isMine);
         }
 
-        // 시간 기록 (이중 재생 방지)
         _recentInstantActions[actorId] = Time.time;
     }
 
     /// <summary>
-    /// [Client-Side Prediction] 즉시 타일 이동 렌더링 시뮬레이션
+    /// [Client-Side Prediction] 즉시 타일 이동 렌더링 시뮬레이션.
+    /// 서버 응답 전에 먼저 이동 연출을 재생하고, 출발 위치(curW)를 함께 저장해
+    /// 예측 실패 시 PlayBumpBack의 복귀 기준점으로 사용한다.
     /// </summary>
     public void PlayMovePrediction(int actorId, int toX, int toY, float durationRatio)
     {
         if (!_entityViews.TryGetValue(actorId, out var visual) || visual == null) return;
-        
-        Vector3 curW = visual.transform.position;
-        Vector3 toW = GridToWorldPublic(toX, toY);
 
-        double beatMs = RhythmClient.Instance.GetBeatDurationMs();
-        float duration = (float)(beatMs / 1000.0) * durationRatio;
+        Vector3 curW = visual.transform.position;
+        Vector3 toW  = GridToWorldPublic(toX, toY);
+
+        double beatMs  = RhythmClient.Instance.GetBeatDurationMs();
+        float  duration = (float)(beatMs / 1000.0) * durationRatio;
 
         visual.StartMove(curW, toW, duration);
-        _recentPredictedMoves[actorId] = new Vector2Int(toX, toY);
+
+        // 출발 위치(curW)도 함께 저장 → 예측 실패 시 BumpBack 복귀 기준점
+        _recentPredictedMoves[actorId] = (new Vector2Int(toX, toY), curW);
     }
 
     /// <summary>
@@ -522,23 +466,20 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         bool isMine = (ClientGameState.Instance != null && actorId == ClientGameState.Instance.MyActorId);
 
-        // [Prediction/Instant] 시간 기록 (OnBeatAction에서 중복 재생 방지용)
         _recentInstantActions[actorId] = Time.time;
 
-        // 이전 스킬 러너가 있다면 정리 (중복 재생 방지 및 캔슬 대응)
         if (_activeSkillRunners.TryGetValue(actorId, out var prevRunner))
         {
             if (prevRunner != null) Destroy(prevRunner.gameObject);
             _activeSkillRunners.Remove(actorId);
         }
 
-        // 새 스킬 러너 생성
         GameObject go = new GameObject($"SkillRunner_{actorId}_{skillId}");
-        go.transform.SetParent(visual.transform); // 비주얼에 붙여서 같이 이동하거나 추적 용의하게 함
-        
+        go.transform.SetParent(visual.transform);
+
         var runner = go.AddComponent<ClientSkillRunner>();
         runner.Initialize(this, actorId, visual, skillId, startTick, isMine);
-        
+
         _activeSkillRunners[actorId] = runner;
     }
 
@@ -547,25 +488,15 @@ public class BoardView : MonoBehaviour, IClientWorldView
     /// </summary>
     public void ShowSkillTelegraph(int actorId, int styleId, long startTick, int totalDurationTicks, int shape, int originType, int originX, int originY, int paramA, int paramB, List<Vector2Int> cells)
     {
-        // NewSkill 시스템은 틱 기반이므로, duration을 비트로 환산하지 않고 직접 계산하거나 고정 할당
-        // 여기서는 기존 SetTelegraphOverlay를 활용함
         if (cells == null || cells.Count == 0) return;
-
         foreach (var cell in cells)
-        {
             SetTelegraphOverlay(cell.x, cell.y, on: true);
-        }
     }
 
-    /// <summary>
-    /// 해당 액터가 현재 데이터 기반 스킬을 실행 중인지 확인 (레거시 텔레그래프와의 충돌 방지용)
-    /// </summary>
     public bool IsActorRunningNewSkill(int actorId)
     {
         if (_activeSkillRunners.TryGetValue(actorId, out var runner))
-        {
             return runner != null;
-        }
         return false;
     }
 
@@ -577,20 +508,19 @@ public class BoardView : MonoBehaviour, IClientWorldView
     #endregion
 
     #region Map Binding & Baking
-    
-    // 에디터 툴(BoardViewMapBakerWindow)에서 호출하기 위해 public으로 변경
+
     public Vector3 GridToWorldPublic(int x, int y)
     {
         return GridToWorld(x, y);
     }
-    
+
     private bool ParseTileName(string name, out int x, out int y)
     {
-        x = -1; 
+        x = -1;
         y = -1;
         if (!name.StartsWith("Tile_")) return false;
 
-        var parts = name.Split('_'); // Tile, x, y
+        var parts = name.Split('_');
         if (parts.Length < 3) return false;
 
         if (int.TryParse(parts[1], out x) && int.TryParse(parts[2], out y))
@@ -603,28 +533,21 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     #region Helper
 
-    private Dictionary<int, string> _entityPathMap = new Dictionary<int, string>(); // [ID -> ResourcePath]
+    private Dictionary<int, string> _entityPathMap = new Dictionary<int, string>();
 
     private GameObject ChoosePrefab(int entityType, int modelId)
     {
-        // 1. Check Runtime Cache
         if (_entityPrefabCache.TryGetValue(modelId, out var prefab))
             return prefab;
 
-        // 2. Load via Path Map
         string loadPath = "";
         if (_entityPathMap.TryGetValue(modelId, out var mappedPath))
-        {
             loadPath = mappedPath;
-        }
         else
-        {
-            // Fallback: Legacy Naming
             loadPath = $"Entities/Entity_{modelId}";
-        }
 
         var def = Resources.Load<RhythmRPG.Editor.StageBuilder.EntityDefinitionSO>(loadPath);
-        
+
         if (def != null && def.Prefab != null)
         {
             _entityPrefabCache[modelId] = def.Prefab;
@@ -637,17 +560,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 Debug.LogWarning($"[BoardView] Failed to load Entity {modelId}. Path='{loadPath}'");
         }
 
-        // 3. Fallback based on type (Legacy)
         switch (entityType)
         {
-            case (int)EntityType.Player: // 1
-                return playerPrefab;
-            case (int)EntityType.Monster: // 2
-                return monsterPrefab;
-            case (int)EntityType.Object: // 3
-                return monsterPrefab; // 임시: 오브젝트도 없을 땐 몬스터? 아니면 null
-            default:
-                return monsterPrefab;
+            case (int)EntityType.Player:  return playerPrefab;
+            case (int)EntityType.Monster: return monsterPrefab;
+            case (int)EntityType.Object:  return monsterPrefab;
+            default:                      return monsterPrefab;
         }
     }
 
@@ -655,32 +573,23 @@ public class BoardView : MonoBehaviour, IClientWorldView
     {
         float targetX = x * cellSize;
         float targetZ = y * cellSize;
-        float height = GetGroundHeight(targetX, targetZ);
-        
+        float height  = GetGroundHeight(targetX, targetZ);
         return new Vector3(targetX, height, targetZ);
     }
 
     private float GetGroundHeight(float x, float z)
     {
-        // 높이 10에서 아래로 레이캐스트
         Ray ray = new Ray(new Vector3(x, 20f, z), Vector3.down);
-        // Debug.DrawRay(ray.origin, ray.direction * 50f, Color.red, 2.0f); // Editor Debug
-
         if (Physics.Raycast(ray, out RaycastHit hit, 50f))
-        {
-            //Debug.Log($"[GetGroundHeight] Hit! ({x}, {z}) -> Y={hit.point.y} Collider={hit.collider.name}");
             return hit.point.y;
-        }
-        
-        Debug.LogWarning($"[GetGroundHeight] Miss! ({x}, {z}) -> Defaulting to 0");
-        return 0f; // 바닥 없으면 0
-    }
 
+        Debug.LogWarning($"[GetGroundHeight] Miss! ({x}, {z}) -> Defaulting to 0");
+        return 0f;
+    }
 
     private void ClearTiles(bool destroyGameObjects = true)
     {
-        if (_tiles == null)
-            return;
+        if (_tiles == null) return;
 
         int w = _tiles.GetLength(0);
         int h = _tiles.GetLength(1);

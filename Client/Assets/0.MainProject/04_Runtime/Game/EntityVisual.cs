@@ -11,7 +11,6 @@ public class EntityVisual : MonoBehaviour
     [SerializeField] private AudioClip _attackSound;
     [SerializeField] private AudioClip _skillSound;
 
-    // Optional: If you want to auto-find components on Awake
     private void Awake()
     {
         if (_animator == null) _animator = GetComponent<Animator>();
@@ -23,32 +22,25 @@ public class EntityVisual : MonoBehaviour
         _animator = animator;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  이동
+    // ─────────────────────────────────────────────────────────────────────────
+
     /// <summary>
-    /// Moves the entity from start to end over duration.
-    /// Handles animation state and rotation.
+    /// start → end 로 duration 초 동안 이동.
+    /// start 파라미터를 실제 출발점으로 사용한다.
+    /// 플레이어 예측 이동은 현재 위치(transform.position)를 start로 넘기므로 스냅 없음.
+    /// AI 이동은 serverFromW를 넘겨 정확한 출발 타일에서 시작한다.
     /// </summary>
     public void StartMove(Vector3 start, Vector3 end, float duration)
     {
-        // Cancel existing move if necessary? For now, we assume sequential actions or overwrite.
         StopAllCoroutines();
-        
-        // Animation
+
         if (_animator != null)
         {
-            _animator.speed = 1.0f / duration;
+            _animator.speed = 1.0f / Mathf.Max(duration, 0.05f);
             _animator.SetBool("IsMoving", true);
-            //Debug.Log($"[EntityVisual] StartMove: Duration={duration:F2}s, Speed={_animator.speed:F2}");
         }
-
-        // Rotation (LookAt)
-        // [User Request] A/D/S 입력 시 화면이 돌아가는 현상(Entity 회전 -> 카메라 회전)을 막기 위해 회전 로직 제거
-        /*
-        Vector3 dir = (end - start).normalized;
-        if (dir != Vector3.zero)
-        {
-            transform.LookAt(end); 
-        }
-        */
 
         StartCoroutine(CoMove(start, end, duration));
     }
@@ -56,47 +48,102 @@ public class EntityVisual : MonoBehaviour
     private IEnumerator CoMove(Vector3 start, Vector3 end, float duration)
     {
         float t = 0f;
-        transform.position = start;
+
+        // ★ 핵심 수정: 현재 렌더 위치에서 부드럽게 보정.
+        //   transform.position = start 를 제거해 순간이동 제거.
+        //   start와 현재 위치 차이가 있어도 end로 부드럽게 수렴.
+        Vector3 actualStart = transform.position;
 
         while (t < duration)
         {
             t += Time.deltaTime;
             float alpha = Mathf.Clamp01(t / duration);
-            
-            // [Fix] 매 프레임 Raycast는 떨림 유발 -> Start/End 높이를 믿고 보간만 수행
-            transform.position = Vector3.Lerp(start, end, alpha);
-            
+            // actualStart(현재 위치) → end 로 보간
+            transform.position = Vector3.Lerp(actualStart, end, alpha);
             yield return null;
         }
 
         transform.position = end;
 
-        // 도착 후 한 번만 보정하고 싶다면 여기서 수행 (옵션)
-        // AdjustHeightToGround();
+        if (_animator != null)
+            _animator.SetBool("IsMoving", false);
+    }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  충돌 피드백: 살짝 갔다가 퉁 튕기는 연출
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 이동이 거부된 방향으로 살짝 파고들었다가 원래 위치로 탄성 복귀.
+    /// </summary>
+    /// <param name="attemptedPos">이동하려 했던 방향(목표 월드 포지션)</param>
+    /// <param name="returnPos">최종적으로 돌아가야 할 월드 포지션</param>
+    /// <param name="bumpRatio">얼마나 파고들지 (0~1, 기본 0.35)</param>
+    public void PlayBumpBack(Vector3 attemptedPos, Vector3 returnPos, float bumpRatio = 0.35f)
+    {
+        StopAllCoroutines();
+        StartCoroutine(CoBumpBack(attemptedPos, returnPos, bumpRatio));
+    }
+
+    private IEnumerator CoBumpBack(Vector3 attemptedPos, Vector3 returnPos, float bumpRatio)
+    {
         if (_animator != null)
         {
-            _animator.SetBool("IsMoving", false);
+            _animator.speed = 1f;
+            _animator.SetBool("IsMoving", true);
         }
+
+        // Phase 1: 목표 방향으로 bumpRatio 만큼 파고들기 (0.07초)
+        const float bumpInDuration  = 0.07f;
+        const float bumpOutDuration = 0.13f;
+
+        Vector3 startPos   = transform.position;
+        Vector3 bumpTarget = Vector3.Lerp(returnPos, attemptedPos, bumpRatio);
+
+        float t = 0f;
+        while (t < bumpInDuration)
+        {
+            t += Time.deltaTime;
+            transform.position = Vector3.Lerp(startPos, bumpTarget, Mathf.Clamp01(t / bumpInDuration));
+            yield return null;
+        }
+        transform.position = bumpTarget;
+
+        // Phase 2: 원래 위치로 SmoothStep 탄성 복귀 (0.13초)
+        t = 0f;
+        while (t < bumpOutDuration)
+        {
+            t += Time.deltaTime;
+            float smooth = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / bumpOutDuration));
+            transform.position = Vector3.Lerp(bumpTarget, returnPos, smooth);
+            yield return null;
+        }
+        transform.position = returnPos;
+
+        if (_animator != null)
+            _animator.SetBool("IsMoving", false);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  전투
+    // ─────────────────────────────────────────────────────────────────────────
 
     public void PlayAttack(float duration, bool isMine = false)
     {
         if (_animator != null)
         {
-            // 박자 계산 무시하고 항상 기본 속도(1.0f)로 고정 재생
             _animator.speed = 2f;
             _animator.SetTrigger("Attack");
         }
         PlaySoundWithTimingLog(_attackSound, "Attack", isMine);
     }
+
     public void PlaySkill(float duration, bool isMine = false)
     {
         if (_animator != null)
         {
-            // 스킬 역시 박자 계산 무시하고 1배속으로 고정
             _animator.speed = 2f;
-            _animator.SetTrigger("Attack"); // (스킬용 Trigger가 따로 없다면)
+            _animator.SetTrigger("Attack");
         }
         PlaySoundWithTimingLog(_skillSound, "Skill", isMine);
     }
@@ -104,31 +151,22 @@ public class EntityVisual : MonoBehaviour
     private void PlaySoundWithTimingLog(AudioClip clip, string actionName, bool isMine)
     {
         if (_audioSource != null && clip != null)
-        {
             _audioSource.PlayOneShot(clip);
-        }
 
-        // [User Request] Sound 실행 시점을 Peek와의 +-를 WarnignLogin로 클라에 출력
         if (RhythmClient.Instance != null)
         {
-            long serverNowMs = RhythmClient.Instance.GetCurrentServerTimeMs();
-            long nearestBeat = RhythmClient.Instance.GetNearestBeatIndex(serverNowMs);
-            long beatTimeMs = RhythmClient.Instance.GetBeatTimeMs(nearestBeat);
-            
-            long diff = serverNowMs - beatTimeMs;
-            
-            // Peak(비트)보다 일찍 쳤으면 음수, 늦게 쳤으면 양수
-            Debug.LogWarning($"[SFX Timing] {actionName} sound played. Diff to Peak: {diff}ms (Nearest Beat: {nearestBeat})");
+            long serverNowMs  = RhythmClient.Instance.GetCurrentServerTimeMs();
+            long nearestBeat  = RhythmClient.Instance.GetNearestBeatIndex(serverNowMs);
+            long beatTimeMs   = RhythmClient.Instance.GetBeatTimeMs(nearestBeat);
+            long diff         = serverNowMs - beatTimeMs;
 
-            // [User Request] 플레이어의 Input 과 Sound play 의 Diff도 디버깅 추가
+            Debug.LogWarning($"[SFX Timing] {actionName} Diff to Peak: {diff}ms (Beat:{nearestBeat})");
+
             if (isMine && RhythmInputController.Instance != null)
             {
                 long inputMs = RhythmInputController.LastAttackInputServerTimeMs;
                 if (inputMs > 0)
-                {
-                    long diffToInput = serverNowMs - inputMs;
-                    Debug.LogWarning($"[SFX Timing] {actionName} sound played. Diff to Input: {diffToInput}ms");
-                }
+                    Debug.LogWarning($"[SFX Timing] {actionName} Diff to Input: {serverNowMs - inputMs}ms");
             }
         }
     }

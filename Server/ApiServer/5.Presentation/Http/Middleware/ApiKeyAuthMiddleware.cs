@@ -1,6 +1,7 @@
 using ApiServer.Infrastructure.Options;
 using ApiServer.Shared.Errors;
 using Microsoft.Extensions.Options;
+using ApiServer.Presentation.Http;
 
 namespace ApiServer.Presentation.Http.Middleware;
 
@@ -34,7 +35,8 @@ public sealed class ApiKeyAuthMiddleware
         // 2. Validate Key
         if (!string.Equals(receivedKey, _apiKey))
         {
-            _logger.LogWarning("Invalid Server Secret Key from {Ip}", ctx.Connection.RemoteIpAddress);
+            var ip = ctx.GetRemoteIpAddress();
+            _logger.LogWarning("Auth Failed: Invalid Server Secret. IP={ip}", ip);
             throw new ApiException(401, ErrorCodes.Unauthorized, "Invalid Server Secret.");
         }
 

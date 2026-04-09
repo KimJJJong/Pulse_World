@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 public enum TargetType : byte
 {
@@ -25,7 +25,6 @@ public enum PhaseTransitionType : byte
     TimeSinceSpawnBeatsGE = 1
 }
 
-
 public enum TelegraphShape : byte
 {
     Cells = 0,
@@ -39,6 +38,24 @@ public enum TelegraphOriginType : byte
     Self = 0,
     Target = 1,
     Point = 2
+}
+
+// ─────────────────────────────────────────────────────────────
+//  [방향 기반 이동] MoveDirection
+//  절대 위치 예약 대신 "현재 위치 기준 방향 + N칸" 으로 AI 이동을 정의.
+//  ActionDef.MoveDirection != None 이면 MoveStrategy 대신 이 값이 우선 적용되며,
+//  서버는 매 Beat 마다 1칸씩 MoveDistance번 독립 판정하므로
+//  순간이동 · 대각선이동 · 2칸 점프가 발생하지 않는다.
+// ─────────────────────────────────────────────────────────────
+public enum MoveDirection
+{
+    None = 0,
+    Up = 1,             // +Y
+    Down = 2,           // -Y
+    Left = 3,           // -X
+    Right = 4,          // +X
+    TowardTarget = 5,   // 매 Beat 타겟 방향으로 1칸 (Manhattan 우선, X거리 >= Y거리 이면 X축)
+    AwayFromTarget = 6, // 매 Beat 타겟 반대 방향으로 1칸
 }
 
 public sealed class MonsterPatternSet
@@ -64,14 +81,15 @@ public sealed class PhaseDef
     public string Id = "P1";
     public List<SelectorDef> Selectors = new();
 }
+
 public sealed class PhaseTransitionDef
 {
     public string FromPhaseId = "P1";
     public string ToPhaseId = "P2";
-
     public PhaseTransitionType Type;
-    public int Value; // HpPercentLE: 30, TimeSinceSpawnBeatsGE: 64 등
+    public int Value;
 }
+
 public sealed class SelectorDef
 {
     public string Id = "";
@@ -98,16 +116,13 @@ public enum ConditionType
     DistanceToClosestPlayerGT
 }
 
-
-
 public sealed class ActionDef
 {
     public int AtBeatOffset;
     public ActionType Type;
 
-    //  Runner에서 act.Target 쓰니까 반드시 필요
     public TargetDef Target = new TargetDef();
-    public string SkillId = ""; // Type==Attack일 때 사용
+    public string SkillId = "";
 
     public int TelegraphBeats;
     public byte TelegraphStyleId;
@@ -117,6 +132,12 @@ public sealed class ActionDef
     // -- Extended for New Pattern System --
     public int MoveDistance = 1;
     public MoveStrategy MoveStrategy = MoveStrategy.Random;
+
+    /// <summary>
+    /// 방향 기반 이동: None이 아니면 MoveStrategy 대신 이 방향으로 1칸씩 MoveDistance번 이동.
+    /// 각 Beat마다 독립 판정하므로 순간이동/대각선/2칸 점프 없음.
+    /// </summary>
+    public MoveDirection MoveDirection = MoveDirection.None;
 }
 
 public enum ActionType
@@ -128,20 +149,18 @@ public enum ActionType
     Move
 }
 
-public enum MoveStrategy 
-{ 
-    Random, 
-    Flee, 
-    Forward, 
-    Backward 
+public enum MoveStrategy
+{
+    Random,
+    Flee,
+    Forward,
+    Backward
 }
 
 public sealed class TargetDef
 {
     public TargetType Type = TargetType.ClosestPlayer;
-
-    // 옵션 파라미터 (필요한 것만 사용)
-    public int MaxRange = 999;   // 타겟 탐색 제한(거리)
+    public int MaxRange = 999;
     public bool RequireAlive = true;
 }
 
@@ -153,17 +172,11 @@ public sealed class AreaDef
     public int OriginX;
     public int OriginY;
 
-    // Shape 파라미터(명세 고정)
-    // Diamond: ParamA=radius
-    // Rect:    ParamA=width, ParamB=height
-    // Line:    ParamA=length, ParamB=thickness(옵션)
     public int ParamA;
     public int ParamB;
 
-    // v1.1 추가: 방향
     public AreaDirectionType DirType = AreaDirectionType.None;
-    public FixedDir FixedDir = FixedDir.Up; // DirType==Fixed일 때만
+    public FixedDir FixedDir = FixedDir.Up;
 
     public List<GridPos> Cells = new();
 }
-

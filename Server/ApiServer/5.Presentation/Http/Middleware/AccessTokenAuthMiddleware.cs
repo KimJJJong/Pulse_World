@@ -1,6 +1,7 @@
-﻿using ApiServer.Infrastructure.Auth;
+using ApiServer.Infrastructure.Auth;
 using ApiServer.Shared.Errors;
 using Microsoft.IdentityModel.Tokens;
+using ApiServer.Presentation.Http;
 
 namespace ApiServer.Presentation.Http.Middleware;
 
@@ -48,7 +49,8 @@ public sealed class AccessTokenAuthMiddleware
 
         if (string.IsNullOrWhiteSpace(token))
         {
-            _logger.LogWarning("Auth Failed: Missing Token. Path={path}", path);
+            var ip = ctx.GetRemoteIpAddress();
+            _logger.LogWarning("Auth Failed: Missing Token. IP={ip}, Path={path}", ip, path);
             throw new ApiException(401, ErrorCodes.Unauthorized, "Missing Authorization Bearer token.");
         }
 
@@ -59,7 +61,8 @@ public sealed class AccessTokenAuthMiddleware
 
             if (string.IsNullOrWhiteSpace(uid))
             {
-                 _logger.LogWarning("Auth Failed: Token missing uid. Path={path}", path);
+                 var ip = ctx.GetRemoteIpAddress();
+                 _logger.LogWarning("Auth Failed: Token missing uid. IP={ip}, Path={path}", ip, path);
                  throw new ApiException(401, ErrorCodes.Unauthorized, "Token missing uid(sub).");
             }
             
@@ -72,12 +75,14 @@ public sealed class AccessTokenAuthMiddleware
         }
         catch (SecurityTokenExpiredException)
         {
-            _logger.LogWarning("Auth Failed: Token Expired. Path={path}", path);
+            var ip = ctx.GetRemoteIpAddress();
+            _logger.LogWarning("Auth Failed: Token Expired. IP={ip}, Path={path}", ip, path);
             throw new ApiException(401, ErrorCodes.Unauthorized, "Access token expired.");
         }
         catch (SecurityTokenException ex)
         {
-            _logger.LogWarning(ex, "Auth Failed: Invalid Token. Path={path}", path);
+            var ip = ctx.GetRemoteIpAddress();
+            _logger.LogWarning(ex, "Auth Failed: Invalid Token. IP={ip}, Path={path}", ip, path);
             throw new ApiException(401, ErrorCodes.Unauthorized, "Invalid access token.");
         }
     }

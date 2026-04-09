@@ -43,6 +43,7 @@ MonoBehaviour:
             Cells: []
           MoveDistance: 1
           MoveStrategy: 0
+          MoveDirection: 0
           SkillRef: {fileID: 11400000, guid: 3d328d8af76cca24bb1671a47cdfd0c3, type: 2}
         - AtBeatOffset: 2
           Type: 0
@@ -63,6 +64,7 @@ MonoBehaviour:
             Cells: []
           MoveDistance: 1
           MoveStrategy: 0
+          MoveDirection: 0
           SkillRef: {fileID: 0}
       - Id: 222211
         Weight: 1
@@ -89,6 +91,7 @@ MonoBehaviour:
             Cells: []
           MoveDistance: 1
           MoveStrategy: 0
+          MoveDirection: 0
           SkillRef: {fileID: 0}
         - AtBeatOffset: 2
           Type: 4
@@ -109,6 +112,7 @@ MonoBehaviour:
             Cells: []
           MoveDistance: 1
           MoveStrategy: 0
+          MoveDirection: 0
           SkillRef: {fileID: 0}
         - AtBeatOffset: 1
           Type: 0
@@ -129,6 +133,7 @@ MonoBehaviour:
             Cells: []
           MoveDistance: 1
           MoveStrategy: 0
+          MoveDirection: 0
           SkillRef: {fileID: 0}
         - AtBeatOffset: 3
           Type: 0
@@ -149,6 +154,7 @@ MonoBehaviour:
             Cells: []
           MoveDistance: 1
           MoveStrategy: 0
+          MoveDirection: 0
           SkillRef: {fileID: 0}
         - AtBeatOffset: 4
           Type: 4
@@ -169,5 +175,6 @@ MonoBehaviour:
             Cells: []
           MoveDistance: 1
           MoveStrategy: 0
+          MoveDirection: 0
           SkillRef: {fileID: 0}
     Transitions: []
