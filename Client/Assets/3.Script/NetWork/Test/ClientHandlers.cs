@@ -213,10 +213,12 @@ public class ClientHandlers : MonoBehaviour
             // 1) 이동/행동 반영
             GS.OnBeatAction(action);
 
-            // 2)  HP 변경 반영 (피격자들)
             if (a.hpUpdates != null && a.hpUpdates.Count > 0)
             {
-                Debug.Log($"[Handle_SC_BeatActions] hpUpdates count={a.hpUpdates.Count}");
+                long clientBeat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : -1;
+                // [Action_Sync] 패킷 비트와 클라이언트 현재 비트를 출력하여 오차 확인
+                Debug.Log($"[Action_Sync] PacketBeat:{p.BeatIndex} ClientBeat:{clientBeat} HPUpdates={a.hpUpdates.Count}");
+
                 foreach (var u in a.hpUpdates)
                 {
                     // u.EntityId, u.NewHp 가 있다고 가정
@@ -250,16 +252,14 @@ public class ClientHandlers : MonoBehaviour
         // [NewSkill System] 체크 
         // 해당 액터가 현재 데이터 기반 스킬(ClientSkillRunner)을 실행 중이라면 
         // 텔레그래프 렌더링을 중복으로 하지 않음 (깜빡임 방지)
-        // Note: 여러 액션 중 하나라도 데이터 기반이라면 전체 스킵하거나 액터별 필터링 필요
-        
-        //Debug.Log($"[SC_BeatTelegraphs] beat={p.BeatIndex} count={p.telegraphss.Count}"); 
-        
-        // BoardView가 없으면(씬 미배치) 일단 로그만
         if (BV == null)
         {
-            Debug.LogWarning("[SC_BeatTelegraphs] BoardView.Instance is null. telegraph render skip.");
+            Debug.LogWarning($"[SC_BeatTelegraphs] BoardView.Instance is null. telegraph render skip. Beat={p.BeatIndex}");
             return;
         }
+
+        long clientBeat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : -1;
+        // Debug.Log($"[SC_BeatTelegraphs] Received: PacketBeat={p.BeatIndex}, CurrentBeat={clientBeat}, Count={p.telegraphss.Count}");
 
         for (int i = 0; i < p.telegraphss.Count; i++)
         {
@@ -283,13 +283,20 @@ public class ClientHandlers : MonoBehaviour
                 continue;
 
             // 이 텔레그래프는 몇 beat까지 유지?
-            long expireBeat = p.BeatIndex + (t.DurationTicks / 480);
+            // (DurationTicks + 479) / 480: 정수 나눗셈에서 올림 처리를 하여 최소 1비트 수명을 보장합니다.
+            long expireBeat = p.BeatIndex + (t.DurationTicks + 479) / 480;
 
             for (int c = 0; c < t.cellss.Count; c++)
             {
                 var cell = t.cellss[c];
                 // [Change] 중앙 집중식 관리 시스템 사용 (만료 시간 전달)
                 BV.SetTelegraphWithExpire(cell.X, cell.Y, expireBeat);
+                
+                // [Telegraph_Sync] 패킷 비트, 만료 비트, 클라이언트 현재 비트를 출력하여 오차 확인
+                if (c == 0) // 오버헤드 방지를 위해 첫 번째 셀만 로깅
+                {
+                    Debug.Log($"[Telegraph_Sync] Caster:{t.CasterId} Cell:({cell.X},{cell.Y}) PacketBeat:{p.BeatIndex} ExpireBeat:{expireBeat} ClientBeat:{clientBeat}");
+                }
             }
         }
     }

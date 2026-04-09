@@ -124,8 +124,8 @@ public class ClientSkillRunner : MonoBehaviour
 
                         if (remainingTicks > 0)
                         {
-                            // [Change] 만료 비트를 계산하여 중앙 집중식 시스템에 위임
-                            long expireBeat = (RhythmClient.Instance.GetCurrentServerTick() + remainingTicks) / 480;
+                            // [Change] 만료 비트를 계산하여 중앙 집중식 시스템에 위임 (올림 처리 적용)
+                            long expireBeat = (RhythmClient.Instance.GetCurrentServerTick() + remainingTicks + 479) / 480;
                             ShowWarningCells(warning.Shape, expireBeat);
                         }
                     }
@@ -201,16 +201,11 @@ public class ClientSkillRunner : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Gracefully clean up any active telegraphs when destroyed (e.g. CC cancellation)
-        if (_boardView != null)
+        // [Change] 강제 삭제 루프 제거.
+        // 이제 BoardView가 만료 시간을 관리하므로, 스킬러너가 일찍 파괴되어도 경고 상태가 유지됩니다.
+        if (_activeTelegraphs != null)
         {
-            foreach (var pos in _activeTelegraphs)
-            {
-                _boardView.SetTelegraphOverlay(pos.x, pos.y, false);
-            }
             _activeTelegraphs.Clear();
         }
-        
-        // Could also add Logic here to interrupt _visual.PlayAttack if we had an animation reference
     }
 }

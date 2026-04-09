@@ -378,7 +378,10 @@ public sealed class MapWorld2D : IGameWorld
                 {
                     target.SetState("HP", after);
                     hpUpdates.Add(new HpUpdate(target.Id, after));
-                    Console.WriteLine($"[TryUseCustomSkill] Attacker:{attacker.Id} Hit:{target.Id} DMG:{damage} HP:{before}->{after}");
+                    
+                    // [Sync_Log] 서버 시점의 데미지 발생 타이밍 (틱 및 환산 비트)
+                    long serverBeat = currentTick / 480;
+                    Console.WriteLine($"[Damage_Sync] Tick:{currentTick} (approx Beat:{serverBeat}) Attacker:{attacker.Id} Hit:{target.Id} DMG:{damage} HP:{before}->{after}");
 
                     if (after <= 0)
                     {

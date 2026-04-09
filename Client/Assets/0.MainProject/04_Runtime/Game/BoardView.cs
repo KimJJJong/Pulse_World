@@ -61,7 +61,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     void Update()
     {
-        if (RhythmClient.Instance != null && _telegraphExpiration.Count > 0)
+        if (RhythmClient.Instance != null && RhythmClient.Instance.ServerSongStartMs > 0 && _telegraphExpiration.Count > 0)
         {
             long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
             List<Vector2Int> toRemove = null;
@@ -192,10 +192,14 @@ public class BoardView : MonoBehaviour, IClientWorldView
     {
         if (_tiles == null)
         {
-            Debug.LogWarning("[BoardView] SetTelegraphOverlay: _tiles is null");
+            // Debug.LogWarning($"[BoardView] SetTelegraphOverlay: _tiles is null at ({x},{y}). MapGenerationComplete={ClientGameState.Instance?.IsMapGenerationComplete}");
             return;
         }
-        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1)) return;
+        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1))
+        {
+            Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Out of bounds ({x},{y}). MapSize=({_tiles.GetLength(0)}x{_tiles.GetLength(1)})");
+            return;
+        }
 
         var tile = _tiles[x, y];
         if (tile == null)
@@ -226,6 +230,20 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (_telegraphExpiration.TryGetValue(pos, out long currentExpire))
         {
             if (expireBeat <= currentExpire) return; // 더 늦게 끝나는 경고가 이미 있으면 무시
+        }
+
+        // [Debug] 현재 비트보다 과거인 경고가 들어오는지 체크
+        if (RhythmClient.Instance != null)
+        {
+            long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
+            if (expireBeat < currentBeat)
+            {
+                Debug.LogWarning($"[TelegraphSync_Error] Past expireBeat! Current={currentBeat}, Expire={expireBeat} at ({x},{y})");
+            }
+            else
+            {
+                // Debug.Log($"[TelegraphSync_OK] Pos=({x},{y}) Current={currentBeat}, Expire={expireBeat}");
+            }
         }
 
         _telegraphExpiration[pos] = expireBeat;
