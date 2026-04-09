@@ -60,6 +60,8 @@ public class ClientSkillRunner : MonoBehaviour
         }
     }
 
+    private bool _firstUpdate = true;
+
     void Update()
     {
         if (_skillDef == null || _skillDef.Data == null) return;
@@ -71,12 +73,14 @@ public class ClientSkillRunner : MonoBehaviour
         // 2. Relative tick since skill started
         long relativeTick = currentTick - _startTick;
 
-        // If skill is over
-        if (relativeTick > _skillDef.Data.TotalDurationTicks)
+        // [Fix] 패킷 지연 시에도 최소 1회는 이벤트를 처리하도록 보장
+        // 스킬이 이미 끝났더라도, Warning 기간이 남아있다면 출력해야 함
+        if (relativeTick > _skillDef.Data.TotalDurationTicks && !_firstUpdate)
         {
             Destroy(gameObject);
             return;
         }
+        _firstUpdate = false;
 
         // 3. Process Events
         for (int t = 0; t < _skillDef.Data.Tracks.Count; t++)
@@ -93,13 +97,13 @@ public class ClientSkillRunner : MonoBehaviour
                 if (relativeTick >= ev.TriggerTick)
                 {
                     _triggeredEvents.Add(eventHash);
-                    ProcessEvent(ev);
+                    ProcessEvent(ev, relativeTick);
                 }
             }
         }
     }
 
-    private void ProcessEvent(SkillEvent ev)
+    private void ProcessEvent(SkillEvent ev, long relativeTick)
     {
         if (ev.Action == null) return;
 
@@ -114,8 +118,16 @@ public class ClientSkillRunner : MonoBehaviour
                 {
                     if (RhythmClient.Instance != null)
                     {
-                        float warningDurationSec = (ev.DurationTicks / 480f) * (float)RhythmClient.Instance.GetBeatDurationMs() / 1000f;
-                        ShowWarningCells(warning.Shape, warningDurationSec);
+                        // [Fix] 지연된 시간만큼 Duration에서 차감하여 정확한 종료 시점에 사라지도록 함
+                        long elapsedSinceTrigger = relativeTick - ev.TriggerTick;
+                        long remainingTicks = ev.DurationTicks - elapsedSinceTrigger;
+
+                        if (remainingTicks > 0)
+                        {
+                            // [Change] 만료 비트를 계산하여 중앙 집중식 시스템에 위임
+                            long expireBeat = (RhythmClient.Instance.GetCurrentServerTick() + remainingTicks) / 480;
+                            ShowWarningCells(warning.Shape, expireBeat);
+                        }
                     }
                 }
                 break;
@@ -139,53 +151,36 @@ public class ClientSkillRunner : MonoBehaviour
         }
     }
 
-    private void ShowWarningCells(IShapeDef shape, float durationSec)
+    private void ShowWarningCells(IShapeDef shape, long expireBeat)
     {
         if (_visual == null || _boardView == null || shape == null) return;
 
         int sx = 0;
         int sy = 0;
 
-        // Fetch grid pos from entity info
         if (ClientGameState.Instance != null && ClientGameState.Instance.TryGetEntity(_actorId, out var info))
         {
             sx = info.X;
             sy = info.Y;
         }
-        else
-        {
-            // fallback world to grid mapping or ignore
-            return;
-        }
+        else return;
 
-        int dir = 0; // Default look direction up
-
-        // Collect offsets
+        int dir = 0; // TODO: Look Direction support
         List<GridPoint> offsets = new List<GridPoint>();
 
-        if (shape is CustomCellsShape customShape)
-        {
-            offsets = customShape.Cells;
-        }
+        if (shape is CustomCellsShape customShape) offsets = customShape.Cells;
         else if (shape is RectShape rect)
         {
-            // Simple logic for rect directly in front
             for (int x = -rect.Width/2; x <= rect.Width/2; x++)
-            {
                 for (int y = 1; y <= rect.Height; y++)
-                {
                     offsets.Add(new GridPoint(x, y));
-                }
-            }
         }
-        // ... (can add Diamond logic here)
 
         foreach (var p in offsets)
         {
             int rx = p.X;
             int ry = p.Y;
 
-            // Rotate based on dir (0:Up, 1:Right, 2:Down, 3:Left) default looking up.
             if (dir == 1)      { rx = p.Y; ry = -p.X; }
             else if (dir == 2) { rx = -p.X; ry = -p.Y; }
             else if (dir == 3) { rx = -p.Y; ry = p.X; }
@@ -193,23 +188,16 @@ public class ClientSkillRunner : MonoBehaviour
             int tx = sx + rx;
             int ty = sy + ry;
 
-            // Track for early cancellation
+            // [Change] 중앙 집중식 관리 시스템 사용 (만료 시간 전달)
+            _boardView.SetTelegraphWithExpire(tx, ty, expireBeat);
             _activeTelegraphs.Add(new Vector2Int(tx, ty));
-
-            _boardView.SetTelegraphOverlay(tx, ty, true);
-            StartCoroutine(ClearTelegraphOverlay(tx, ty, durationSec));
         }
     }
 
-    private System.Collections.IEnumerator ClearTelegraphOverlay(int x, int y, float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        if (_boardView != null)
-        {
-            _activeTelegraphs.Remove(new Vector2Int(x, y));
-            _boardView.SetTelegraphOverlay(x, y, false);
-        }
-    }
+    // [REMOVED] Coroutine clearing is now handled by BoardView.Update loop
+    /*
+    private System.Collections.IEnumerator ClearTelegraphOverlay(int x, int y, float delay) ...
+    */
 
     private void OnDestroy()
     {

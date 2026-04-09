@@ -40,6 +40,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
     // Actor 별로 현재 실행 중인 데이터 기반 스킬 시뮬레이터(ClientSkillRunner) 추적
     private Dictionary<int, ClientSkillRunner> _activeSkillRunners = new();
 
+    // [New] (x,y) -> Expire Beat
+    private Dictionary<Vector2Int, long> _telegraphExpiration = new Dictionary<Vector2Int, long>();
+
     #region Debug
     private const bool DBG_POS = false;
     private int _dbgOnlyActorId = -1; // -1이면 전부, 특정 ID만 보고 싶으면 그 값으로
@@ -54,6 +57,34 @@ public class BoardView : MonoBehaviour, IClientWorldView
     {
         LoadEntityMapping();
         ClientGameState.Instance.WorldView = this;
+    }
+
+    void Update()
+    {
+        if (RhythmClient.Instance != null && _telegraphExpiration.Count > 0)
+        {
+            long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
+            List<Vector2Int> toRemove = null;
+
+            foreach (var kv in _telegraphExpiration)
+            {
+                // 현재 비트가 만료 비트와 같거나 크면 제거 (만료 비트는 해당 비트가 시작될 때 사라짐을 의미)
+                if (currentBeat >= kv.Value)
+                {
+                    if (toRemove == null) toRemove = new List<Vector2Int>();
+                    toRemove.Add(kv.Key);
+                }
+            }
+
+            if (toRemove != null)
+            {
+                foreach (var pos in toRemove)
+                {
+                    _telegraphExpiration.Remove(pos);
+                    SetTelegraphOverlay(pos.x, pos.y, false);
+                }
+            }
+        }
     }
 
     private void LoadEntityMapping()
@@ -184,6 +215,21 @@ public class BoardView : MonoBehaviour, IClientWorldView
             rend.material.color = TELEGRAPH_COLOR;
         else
             RestoreTileColor(x, y);
+    }
+
+    /// <summary>
+    /// [New] 만료 비트를 지정하여 경고를 출력합니다. 중앙 집중식 관리용.
+    /// </summary>
+    public void SetTelegraphWithExpire(int x, int y, long expireBeat)
+    {
+        var pos = new Vector2Int(x, y);
+        if (_telegraphExpiration.TryGetValue(pos, out long currentExpire))
+        {
+            if (expireBeat <= currentExpire) return; // 더 늦게 끝나는 경고가 이미 있으면 무시
+        }
+
+        _telegraphExpiration[pos] = expireBeat;
+        SetTelegraphOverlay(x, y, true);
     }
 
     public void RestoreTileColor(int x, int y)

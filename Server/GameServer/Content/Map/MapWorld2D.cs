@@ -305,8 +305,7 @@ public sealed class MapWorld2D : IGameWorld
         // 타겟 위치에 있는 적들 식별
         foreach(var target in GetEntitiesAt(center))
         {
-            if (!target.IsAlive) continue;
-            if (target.Id == actorId) continue;
+            if (!CanHit(caster, target)) continue;
 
             // Apply Damage 10
             ApplyCustomDamage(caster, target, 10, hpUpdates);
@@ -359,10 +358,9 @@ public sealed class MapWorld2D : IGameWorld
 
             foreach (var target in GetEntitiesAt(new GridPos(c.X, c.Y)))
             {
-                if (!target.IsAlive) continue;
-                if (target.Id == actorId) continue;
+                if (!CanHit(attacker, target)) continue;
 
-                // TODO: Friendly Fire Check (if needed)
+                // Apply Stun First
 
                 // Apply Stun First
                 if (frozen.StunDurationTicks > 0)
@@ -435,8 +433,7 @@ public sealed class MapWorld2D : IGameWorld
 
             foreach (var target in GetEntitiesAt(new GridPos(c.X, c.Y)))
             {
-                if (!target.IsAlive) continue;
-                if (target.Id == actorId) continue;
+                if (!CanHit(attacker, target)) continue;
 
                 if (!hitTargets.Add(target.Id))
                     continue;
@@ -452,6 +449,35 @@ public sealed class MapWorld2D : IGameWorld
     // Duplicate TryUseCustomSkill removed
 
     // ==== 내부 유틸 ====
+    private bool CanHit(MapEntity attacker, MapEntity target)
+    {
+        if (attacker == null || target == null || !target.IsAlive) return false;
+        if (attacker.Id == target.Id) return false;
+
+        // [Diagnostic Log]
+        // Console.WriteLine($"[CanHit] Attacker:{attacker.Id}({attacker.Type}) Target:{target.Id}({target.Type})");
+
+        // Faction Logic: 
+        // 1. Players (ID < 100) hit Monsters (ID 100~999) and Objects (ID 3000~3999).
+        // 2. Monsters (ID 100~999) hit Players (ID < 100).
+        
+        bool isAttackerPlayer = attacker.Type == EntityType.Player || attacker.Id < 100;
+        bool isTargetPlayer = target.Type == EntityType.Player || target.Id < 100;
+        bool isTargetMonster = target.Type == EntityType.Monster || (target.Id >= 100 && target.Id < 1000);
+        bool isTargetObject = target.Type == EntityType.Object || (target.Id >= 3000 && target.Id < 4000);
+
+        if (isAttackerPlayer)
+        {
+            // 플레이어는 몬스터와 오브젝트만 공격 가능 (PvP 방지)
+            return isTargetMonster || isTargetObject;
+        }
+        else
+        {
+            // 몬스터/오브젝트는 플레이어만 공격 가능 (팀킬 방지)
+            return isTargetPlayer;
+        }
+    }
+
     private bool IsInside(int x, int y) => _map.InBounds(x, y);
 
     // 프로토 기준: walkable 아니면 "벽/장애물"로 간주

@@ -16,9 +16,9 @@ public class ClientHandlers : MonoBehaviour
     public static event System.Action OnBeatSyncReady;
 
 
-    private readonly System.Collections.Generic.Dictionary<(int x, int y), long> _telegraphExpireBeat
-        = new System.Collections.Generic.Dictionary<(int x, int y), long>();
-
+    // [REMOVED] Local tracking is now centralized in BoardView
+    // private readonly System.Collections.Generic.Dictionary<(int x, int y), long> _telegraphExpireBeat ...
+    
     private long _lastTelegraphCleanupBeat = long.MinValue;
 
     private BoardView BV => BoardView.Instance;
@@ -240,7 +240,8 @@ public class ClientHandlers : MonoBehaviour
             }
 
             // 기존 로직
-            CleanupExpiredTelegraphs(p.BeatIndex);
+            // [REMOVED] Cleanup is now handled by BoardView's Update loop
+            // CleanupExpiredTelegraphs(p.BeatIndex);
         }
     }
 
@@ -264,9 +265,12 @@ public class ClientHandlers : MonoBehaviour
         {
             var t = p.telegraphss[i];
 
-            // [핵심] 해당 액터가 새 시스템을 사용 중이면 이 패킷 무시
+            // [핵심] 해당 액터가 새 시스템을 사용 중이더라도 레거시 패킷을 허용하여 
+            // 지연 상황에서 안전 장치(Fallback)로 작동하게 합니다. (SetTelegraphOverlay는 Idempotent함)
+            /*
             if (BV.IsActorRunningNewSkill(t.CasterId))
                 continue;
+            */
 
 
 
@@ -279,31 +283,13 @@ public class ClientHandlers : MonoBehaviour
                 continue;
 
             // 이 텔레그래프는 몇 beat까지 유지?
-            // - 예: beat=10, duration=2면 10~11 표시, 12부터 원복시키고 싶다
-            // - 그러면 expireBeat = 10 + duration
             long expireBeat = p.BeatIndex + (t.DurationTicks / 480);
 
             for (int c = 0; c < t.cellss.Count; c++)
             {
                 var cell = t.cellss[c];
-                int x = cell.X;
-                int y = cell.Y;
-
-                // 빨강 덮기
-                BV.SetTelegraphOverlay(x, y, on: true);
-
-                // 동일 셀에 텔레그래프가 겹칠 수 있으니, 더 "늦게 끝나는" expire를 유지
-                var key = (x, y);
-                if (_telegraphExpireBeat.TryGetValue(key, out var prevExpire))
-                {
-                    if (expireBeat > prevExpire)
-                        _telegraphExpireBeat[key] = expireBeat;
-                }
-                else
-                {
-                    _telegraphExpireBeat[key] = expireBeat;
-                }
-
+                // [Change] 중앙 집중식 관리 시스템 사용 (만료 시간 전달)
+                BV.SetTelegraphWithExpire(cell.X, cell.Y, expireBeat);
             }
         }
     }
@@ -315,34 +301,9 @@ public class ClientHandlers : MonoBehaviour
         // TODO: HUD 팝업 등 필요하면 여기서 처리
     }
     // [추가] 현재 beat 기준으로 만료된 셀들을 원복한다.
-    private void CleanupExpiredTelegraphs(long currentBeat)
-    {
-        if (currentBeat == _lastTelegraphCleanupBeat)
-            return;
-        _lastTelegraphCleanupBeat = currentBeat;
-
-        if (_telegraphExpireBeat.Count == 0)
-            return;
-        if (BV == null)
-            return;
-
-        var toRemove = new System.Collections.Generic.List<(int x, int y)>();
-
-        foreach (var kv in _telegraphExpireBeat)
-        {
-            var cell = kv.Key;
-            long expireBeat = kv.Value;
-
-            if (expireBeat <= currentBeat)
-            {
-                BV.SetTelegraphOverlay(cell.x, cell.y, on: false);
-                toRemove.Add(cell);
-            }
-        }
-
-        for (int i = 0; i < toRemove.Count; i++)
-            _telegraphExpireBeat.Remove(toRemove[i]);
-    }
+    /* [REMOVED] Centralized in BoardView
+    private void CleanupExpiredTelegraphs(long currentBeat) ...
+    */
 
 
     public void Handle_SC_EntityDespawn(SC_EntityDespawn p)
