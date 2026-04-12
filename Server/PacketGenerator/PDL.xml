@@ -95,6 +95,7 @@
 		<int name ="ActionKind"/>
 		<int name ="TargetX"/>
 		<int name ="TargetY"/>
+		<float name ="Rotation"/>
 		<long name ="ClientSendTimeMs"/>
 	</packet>
 
@@ -107,6 +108,7 @@
 			<int name="FromY"/>
 			<int name="ToX"/>
 			<int name="ToY"/>
+			<float name="Rotation"/>
 			<bool name="Accepted"/>
 
 		</list>
@@ -208,8 +210,10 @@
 	<packet name ="CS_ActionRequest">
 		<int name ="ActorId"/>
 		<int name ="ActionKind"/>	 <!--/ Skill / Wait 등-->
+		<int name ="SlotIndex"/>
 		<int name ="TargetX"/>	
 		<int name ="TargetY"/>
+		<float name ="Rotation"/>
 		<long name ="ClientSendTimeMs"/>
 	</packet>
 
@@ -217,6 +221,7 @@
 		<int name ="ActorId"/>
 		<int name ="ActionKind"/>
 		<string name="SkillId"/>
+		<float name="Rotation"/>
 		<long name="StartTick"/>
 	</packet>
 
@@ -233,6 +238,7 @@
 			<int name="FromY"/>
 			<int name="ToX"/>
 			<int name="ToY"/>
+			<float name="Rotation"/>
 			<bool name="Accepted"/>
 				
 			<list name ="HpUpdate">

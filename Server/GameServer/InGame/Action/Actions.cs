@@ -1,4 +1,4 @@
-﻿/// <summary>
+/// <summary>
 /// 서버가 내부적으로 관리하는 "입력 요청" 단위
 /// </summary>
 public sealed class PendingAction
@@ -19,13 +19,14 @@ public sealed class PendingAction
 /// </summary>
 public sealed class PlayerActionCmd
 {
-
-
     /// <summary>행동의 주체가 되는 Actor ID (플레이어, 몬스터 등)</summary>
     public int ActorId { get; init; }
 
-    /// <summary>행동 종류 (이동, 스킬, 대기 등)</summary>
-    public ActionKind Kind { get; init; }
+    /// <summary>
+    /// 행동 종류 (이동, 스킬, 대기 등).
+    /// set 허용 - ResolveSkillId 등에서 Kind 재분류가 필요한 경우 사용.
+    /// </summary>
+    public ActionKind Kind { get; set; }
 
     /// <summary>
     /// Move/Skill 등의 타겟 위치 (그리드 좌표).
@@ -33,14 +34,14 @@ public sealed class PlayerActionCmd
     /// </summary>
     public GridPos TargetCell { get; init; }
 
-    public string SkillId { get; init; }
-
+    public string SkillId { get; set; }
+    public int SlotIndex { get; init; }
 
     public long ExecuteBeat { get; set; }
 
     public long ClientSendTimeMs { get; init; }
 
- 
+    public float Rotation { get; init; }
     public long ServerReceiveTimeMs { get; set; }
 
     public override string ToString()

@@ -171,6 +171,9 @@ namespace GameShared.Data
     {
         public abstract ShapeType GetShapeType();
         public ShapeType ShapeType => GetShapeType();
+
+        public int CasterSize = 1;         // 시전자 크기 (1x1, 3x3 등)
+        public bool RotateWithCaster = true; // 시전자 방향에 맞춰 회전 여부
     }
 
     public enum ShapeType
@@ -187,7 +190,6 @@ namespace GameShared.Data
         public override ShapeType GetShapeType() => ShapeType.Rect;
         public int Width;
         public int Height;
-        public bool RotateWithSource = true;
     }
 
     [Serializable]

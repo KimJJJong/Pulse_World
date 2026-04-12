@@ -21,13 +21,12 @@ namespace GameServer.InGame.Manager.Beat
         private readonly FrozenAttackRegistry _frozen;
         private readonly TelegraphScheduler _telegraph;
 
-        //private readonly int _leadBeat;
         private readonly double _actionWindowMs;
         private readonly int _maxBeatLookAhead;
 
         // Move Frequency Limiter
-        private readonly Dictionary<int, long> _lastMoveBeat = new();
-        private readonly Dictionary<int, int> _moveCountInBeat = new();
+        private readonly Dictionary<int, long> _lastActionBeat = new();
+        private readonly Dictionary<int, int> _actionCountInBeat = new();
 
         // Optimized Buffer
         private readonly List<PlayerActionCmd> _cmdBuffer = new(64);
@@ -47,21 +46,17 @@ namespace GameServer.InGame.Manager.Beat
             _broadcaster = broadcaster;
             _clock = clock;
             _world = world;
-
             _frozen = frozenAttackRegistry;
             _telegraph = telegraphScheduler;
-
             _actionWindowMs = actionWindowMs;
             _maxBeatLookAhead = maxBeatLookAhead;
 
-            // RhythmSystem 이벤트 구독 (만약 clock이 RhythmSystem이라면)
             if (_clock is RhythmSystem rhythmSys)
             {
                 rhythmSys.OnJudgeWindowEnd += OnJudgeWindowEnd;
             }
         }
 
-        /// <summary>
         public void BroadcastCancelAction(int actorId)
         {
             _broadcaster.Broadcast(new SC_CancelAction { ActorId = actorId });
@@ -79,60 +74,86 @@ namespace GameServer.InGame.Manager.Beat
                     nowMs: now,
                     actionWindowMs: _actionWindowMs,
                     out var judge))
-            {
-                // TryComputeJudge 안에서 song not started / out of range 등을 판단
-                //Console.WriteLine($"[BeatActionManager] [Reject] TryComputeJudge failed for Actor={actorId}. nowMs={now}");
                 return;
-            }
-
-            // 디버그 바 //Debug
-            //PrintJudgeBar(judge, now);
 
             if (!judge.IsAccepted)
-            {   //Debug
-                //Console.WriteLine($"[BeatActionManager] [Reject] Out of window. Actor={actorId} diff={judge.DiffMs}ms (±{_actionWindowMs}ms)");
                 return;
-            }
 
-            // Request -> Cmd 변환 (액션별 파싱/검증)
             if (!ActionRequestTranslator.TryBuildCmd(actorId, req, judge.ExecuteBeat, judge.DiffMs, now, out var cmd, out var reason))
             {
                 Console.WriteLine($"[BeatActionManager] [Reject] Invalid action payload. reason={reason}");
                 return;
             }
-            //Debug
-            //Console.WriteLine($"[Accept] kind={cmd.Kind} currBeat={judge.CurrBeat} executeBeat={cmd.ExecuteBeat} diff={judge.DiffMs}ms");
+
+            // Entity의 바라보는 방향 업데이트
+            if (_world.TryGetEntity(actorId, out var actor))
+            {
+                if (Math.Abs(actor.Rotation - cmd.Rotation) > 0.1f)
+                {
+                    Console.WriteLine($"[BeatActionManager] Actor {actorId} Rotation: {actor.Rotation} -> {cmd.Rotation}");
+                    actor.Rotation = cmd.Rotation;
+                }
+            }
 
             // --- Move: 즉시 실행 ---
+            // --- Action Limit: 1 action per beat ---
+            if (!TryConsumeActionLimit(actorId, judge.ExecuteBeat))
+            {
+                Console.WriteLine($"[BeatActionManager] [Reject] Action limit exceeded for Actor {actorId} at Beat {judge.ExecuteBeat}");
+                return; 
+            }
+
             if (cmd.Kind == ActionKind.Move)
             {
-                // [Fix] Prevent double move in single beat
-                if (!TryConsumeMoveLimit(actorId, judge.ExecuteBeat))
-                {
-                    // Optional: Log rejection
-                    Console.WriteLine($"[BeatActionManager] [Reject] Move limit exceeded for Actor {actorId} at Beat {judge.ExecuteBeat}");
-                    return; 
-                }
-
                 ProcessImmediateMove(cmd, judge.ExecuteBeat);
             }
             // --- Attack/Skill: 지연 실행 (OnJudgeWindowEnd) ---
             else
             {
+                // [Fix] SlotIndex -1 (일반공격 Space키) 포함 SkillId 결정
+                ResolveSkillId(cmd);
+
                 _delayedScheduler.Enqueue(cmd);
-                Console.WriteLine($"[BeatActionManager] Kind = {cmd.Kind} || Skill iD  : {cmd.SkillId}");
+                Console.WriteLine($"[BeatActionManager] [Resolve] Kind={cmd.Kind} Slot={cmd.SlotIndex} -> SkillId={cmd.SkillId}");
 
-
-                //  즉각적인 공격 액션 브로드캐스트 전송
+                // 즉각적인 공격 액션 브로드캐스트 (클라이언트 선행 애니메이션용)
                 if (cmd.Kind == ActionKind.Attack || cmd.Kind == ActionKind.Skill)
                 {
                     _broadcaster.Broadcast(new SC_ActionInstantBroadcast
                     {
                         ActorId = cmd.ActorId,
                         ActionKind = (int)cmd.Kind,
-                        SkillId = cmd.SkillId ?? "DefaultAttack",
+                        SkillId = cmd.SkillId ?? "Attack",
+                        Rotation = cmd.Rotation,
                         StartTick = judge.ExecuteBeat * 480
                     });
+                }
+            }
+        }
+
+        /// <summary>
+        /// [Fix] SlotIndex 기반 SkillId 결정.
+        /// - Attack kind : "Attack" (무기별 공격은 추후 actor 상태에서 읽을 것)
+        /// - Skill kind, SlotIndex == -1 : 일반공격이므로 "Attack"으로 처리
+        /// - Skill kind, SlotIndex >= 0  : "Skill0", "Skill1", ...
+        /// </summary>
+        private void ResolveSkillId(PlayerActionCmd cmd)
+        {
+            if (cmd.Kind == ActionKind.Attack)
+            {
+                cmd.SkillId = "Attack";
+            }
+            else if (cmd.Kind == ActionKind.Skill)
+            {
+                if (cmd.SlotIndex < 0)
+                {
+                    // SlotIndex -1 = 일반 공격 (Space키) → Attack.json 사용
+                    cmd.SkillId = "Attack";
+                    cmd.Kind = ActionKind.Attack; // 처리 경로도 Attack으로 통일
+                }
+                else
+                {
+                    cmd.SkillId = $"Skill{cmd.SlotIndex}";
                 }
             }
         }
@@ -145,37 +166,32 @@ namespace GameServer.InGame.Manager.Beat
             bool accepted = _world.TryMove(cmd.ActorId, toPos);
             
             if (!accepted)
-            {
                 toPos = fromPos;
-            }
 
-            // 즉시 브로드캐스트
-            var result = new SC_BeatActions.BeatActionResult
+            _broadcaster.Broadcast(new SC_BeatActions
             {
-                ActorId = cmd.ActorId,
-                ActionKind = (int)cmd.Kind,
-                FromX = fromPos.X,
-                FromY = fromPos.Y,
-                ToX = toPos.X,
-                ToY = toPos.Y,
-                Accepted = accepted,
-                hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>()
-            };
-
-            // Move는 단건으로 바로 보냄 (혹은 BeatActions에 담아서 보냄 -> 구조상 배칭이 나을 수도 있으나 '즉시' 요구사항 따름)
-            // 여기서는 BeatActions 패킷 포맷을 재활용
-             _broadcaster.Broadcast(new SC_BeatActions
-            {
-                BeatIndex = beatIndex, // 이 비트에 대한 움직임임
-                beatActionResults = new List<SC_BeatActions.BeatActionResult> { result }
+                BeatIndex = beatIndex,
+                beatActionResults = new List<SC_BeatActions.BeatActionResult>
+                {
+                    new SC_BeatActions.BeatActionResult
+                    {
+                        ActorId = cmd.ActorId,
+                        ActionKind = (int)cmd.Kind,
+                        FromX = fromPos.X,
+                        FromY = fromPos.Y,
+                        ToX = toPos.X,
+                        ToY = toPos.Y,
+                        Rotation = cmd.Rotation,
+                        Accepted = accepted,
+                        hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>()
+                    }
+                }
             });
         }
 
         /// <summary>
-        /// Town
+        /// Town 채널 클라이언트 입력 처리
         /// </summary>
-        /// <param name="actorId"></param>
-        /// <param name="req"></param>
         public void OnTownClientActionRequest(int actorId, CS_TownActionRequest req)
         {
             long now = req.ClientSendTimeMs;
@@ -184,29 +200,22 @@ namespace GameServer.InGame.Manager.Beat
                     nowMs: now,
                     actionWindowMs: _actionWindowMs,
                     out var judge))
-            {
-                // TryComputeJudge 안에서 song not started / out of range 등을 판단
                 return;
-            }
 
-            // 디버그 바 (항상 출력)
             PrintJudgeBar(judge, now);
 
             if (!judge.IsAccepted)
             {
-                // [Debug] Log Server Action Reject
                 Console.WriteLine($"[ServerAction] REJECT | ClientTime={now} ServerRecv={_time.NowMs} Diff={judge.DiffMs}ms (Window=±{_actionWindowMs})");
                 return;
             }
 
-            // Request -> Cmd 변환 (액션별 파싱/검증)
             if (!ActionRequestTranslator.TryBuildCmd(actorId, req, judge.ExecuteBeat, judge.DiffMs, now, out var cmd, out var reason))
             {
                 Console.WriteLine($"[Reject] invalid action payload. reason={reason}");
                 return;
             }
 
-            // Town에서도 Move 즉시? -> 보통 Town은 전투가 없으므로 비슷하게 처리하거나, 그냥 기존 scheduler 써도 무방하나 일관성 위해 즉시 처리
             if (cmd.Kind == ActionKind.Move)
             {
                 ProcessImmediateMove(cmd, judge.ExecuteBeat);
@@ -215,36 +224,29 @@ namespace GameServer.InGame.Manager.Beat
             {
                 _delayedScheduler.Enqueue(cmd);
                 
-                // [NEW] 즉각적인 공격 액션 브로드캐스트 전송
                 if (cmd.Kind == ActionKind.Attack || cmd.Kind == ActionKind.Skill)
                 {
                     _broadcaster.Broadcast(new SC_ActionInstantBroadcast
                     {
                         ActorId = cmd.ActorId,
                         ActionKind = (int)cmd.Kind,
-                        SkillId = cmd.SkillId ?? "DefaultAttack",
+                        SkillId = cmd.SkillId ?? "Attack",
+                        Rotation = cmd.Rotation,
                         StartTick = judge.ExecuteBeat * 480
                     });
                 }
             }
 
-            // [Debug] Log Server Action Accept
             Console.WriteLine($"[ServerAction] ACCEPT | ClientTime={now} ServerRecv={_time.NowMs} Diff={judge.DiffMs}ms Kind={cmd.Kind}");
         }
 
-
-
-
         /// <summary>
-        /// sync Setting
+        /// 캘리브레이션 요청 처리
         /// </summary>
-        /// <param name="actorId"></param>
-        /// <param name="req"></param>
         public void OnClientCalibRequest(int actorId, CS_CalibHit req)
         {
-            var now = req.ClientSendTimeMs;//_time.NowMs;
+            var now = req.ClientSendTimeMs;
 
-            // ---- Beat 계산 ----
             var currBeat = _clock.GetCurrentBeatIndex(now);
             if (currBeat < 0)
             {
@@ -252,24 +254,18 @@ namespace GameServer.InGame.Manager.Beat
                 return;
             }
 
-            // [변경] Nearest Beat 기준
             var nearestBeat = _clock.GetNearestBeatIndex(now);
-            var judgeTimeMs = _clock.GetBeatTimeMs(nearestBeat); // 이것이 Target Time
-
-            // [Debug] Verify logic
-            // Console.WriteLine($"[Calib] Now={now} NearestBeat={nearestBeat} TargetTime={judgeTimeMs}");
+            var judgeTimeMs = _clock.GetBeatTimeMs(nearestBeat);
 
             int diff = (int)(now - judgeTimeMs);
-
             int halfSpanMs = (int)Math.Round(_clock.GetBeatDurationMs() * 0.5); 
             
-            // DebugBar: currBeat ~ currBeat+1 사이에서의 위치를 보여주되, Target은 nearestBeat임을 인지
             Console.WriteLine(
                 RhythmSystem.FormatJudgeBar(
                     currBeat: currBeat,
                     nextBeat: currBeat + 1,
                     nowMs: now,
-                    judgeCenterMs: judgeTimeMs, // Center가 이제 BeatTime
+                    judgeCenterMs: judgeTimeMs,
                     windowMs: (int)_actionWindowMs,
                     halfSpanMs: halfSpanMs,
                     width: 36,
@@ -277,37 +273,27 @@ namespace GameServer.InGame.Manager.Beat
                 )
             );
             
-            var send = new SC_CalibResult();
-
-            send.DiffMs = diff;
-            send.ServerNowMs = now;
-            send.BeatIndex = nearestBeat; // 판정 대상 Beat
-
-            _broadcaster.Broadcast(/*actorId, */send);
-
+            _broadcaster.Broadcast(new SC_CalibResult
+            {
+                DiffMs = diff,
+                ServerNowMs = now,
+                BeatIndex = nearestBeat
+            });
         }
 
-
-
-
-
-        // 서버에서 직접 예약하고 싶은 명령 (몬스터 AI 등)
-        // Move → _scheduler (OnBeat: Beat 시작점에 위치 갱신)
-        // Attack/Skill → _delayedScheduler (OnJudgeWindowEnd: 입력 윈도우 종료 후 데미지 적용)
-        //   → 플레이어가 Warning을 보고 회피 입력할 시간을 보장
+        /// <summary>
+        /// 서버에서 직접 예약 (몬스터 AI 등).
+        /// Move/Wait → _scheduler (OnBeat)
+        /// Attack/Skill → _delayedScheduler (OnJudgeWindowEnd)
+        /// </summary>
         public void ScheduleServerCommand(long beatIndex, PlayerActionCmd cmd)
         {
             cmd.ExecuteBeat = beatIndex;
 
             if (cmd.Kind == ActionKind.Move || cmd.Kind == ActionKind.Wait)
-            {
                 _scheduler.Enqueue(cmd);
-            }
             else
-            {
-                // Attack/Skill: 입력 윈도우가 닫힌 후 실행 (OnJudgeWindowEnd)
                 _delayedScheduler.Enqueue(cmd);
-            }
         }
 
         public void BroadcastActionInstant(int actorId, ActionKind kind, string skillId, long startTick)
@@ -316,15 +302,14 @@ namespace GameServer.InGame.Manager.Beat
             {
                 ActorId = actorId,
                 ActionKind = (int)kind,
-                SkillId = skillId ?? "DefaultAttack",
+                SkillId = skillId ?? "Attack",
+                Rotation = 0,
                 StartTick = startTick
             });
         }
 
-
         /// <summary>
-        /// RhythmSystem에서 Beat가 도래할 때마다 호출.
-        /// AI 이동 등 스케줄된 액션 처리. (플레이어 Move는 이미 처리됨)
+        /// Beat 시작마다 호출 (AI Move 등 처리)
         /// </summary>
         public void OnBeat(long beatIndex)
         {
@@ -334,42 +319,35 @@ namespace GameServer.InGame.Manager.Beat
             if (_cmdBuffer.Count > 0)
             {
                 ProcessBatchActions(beatIndex, _cmdBuffer);
-                
-                // Original logic: DropBefore only if processed? 
-                // Actually, original code had `if (cmds.Count == 0) return;` before DropBefore.
-                // So yes, only if actions existed.
                 _scheduler.DropBefore(beatIndex - 4);
                 _frozen?.DropBefore(beatIndex - 16);
             }
         }
 
+        /// <summary>
+        /// Beat 판정 윈도우 종료마다 호출 (플레이어 Attack/Skill 실제 데미지 적용)
+        /// </summary>
         public void OnJudgeWindowEnd(long beatIndex)
         {
-             _delayedScheduler.PopActions(beatIndex, _cmdBuffer);
-             if (_cmdBuffer.Count > 0)
-             {
-                 ProcessBatchActions(beatIndex, _cmdBuffer);
-             }
+            _delayedScheduler.PopActions(beatIndex, _cmdBuffer);
+            if (_cmdBuffer.Count > 0)
+                ProcessBatchActions(beatIndex, _cmdBuffer);
         }
 
         private void ProcessBatchActions(long beatIndex, List<PlayerActionCmd> cmds)
         {
-             var results = new List<SC_BeatActions.BeatActionResult>(cmds.Count);
+            var results = new List<SC_BeatActions.BeatActionResult>(cmds.Count);
 
             foreach (var cmd in cmds)
             {
                 if (!_world.TryGetActorPosition(cmd.ActorId, out var fromPos))
                 {
                     Console.WriteLine($"[BeatAction] unknown actorId={cmd.ActorId} kind={cmd.Kind}");
-
                     results.Add(new SC_BeatActions.BeatActionResult
                     {
                         ActorId = cmd.ActorId,
                         ActionKind = (int)cmd.Kind,
-                        FromX = 0,
-                        FromY = 0,
-                        ToX = 0,
-                        ToY = 0,
+                        FromX = 0, FromY = 0, ToX = 0, ToY = 0,
                         Accepted = false
                     });
                     continue;
@@ -377,61 +355,68 @@ namespace GameServer.InGame.Manager.Beat
 
                 var toPos = fromPos;
                 bool accepted;
-
                 var hpUpdates = new List<HpUpdate>(4);
 
                 switch (cmd.Kind)
                 {
                     case ActionKind.Move:
-                        // 스케줄러에 들어있던 Move라면 여기서 처리 (AI 등)
                         toPos = cmd.TargetCell;
                         accepted = _world.TryMove(cmd.ActorId, toPos);
-                        if (!accepted)
-                        {
-                            toPos = fromPos;
-                        }
+                        if (!accepted) toPos = fromPos;
                         break;
+
                     case ActionKind.Attack:
+                    {
+                        // [Fix] FrozenPop을 최우선으로 체크 (몬스터 AI 패턴이 미리 등록한 FrozenAttack 처리)
+                        if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
                         {
-                            if (!string.IsNullOrEmpty(cmd.SkillId) && NewSkillDatabase.TryGet(cmd.SkillId, out var attackSkillDef))
-                            {
-                                // SkillRunner를 사용하여 데이터 기반 공격 로직 실행
-                                var runner = new SkillRunner(cmd.ActorId, _world, this, _frozen, _telegraph);
-                                runner.StartSkillTick(attackSkillDef, beatIndex * 480);
-                                runner.UpdateTick(beatIndex * 480); // 즉시 1틱 실행 (애니메이션/사운드 격발)
-                                accepted = true;
-                            }
+                            if (frozen.CustomDamage.HasValue)
+                                accepted = _world.TryUseCustomSkill(cmd.ActorId, beatIndex * 480, frozen, hpUpdates);
                             else
-                            {
-                                // 폴백: 기존 공격 로직
-                                accepted = _world.TryUseAttack(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
-                            }
-                            toPos = fromPos;
-                            break;
+                                accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells, hpUpdates, frozen.HitPlayers, frozen.HitMonsters);
                         }
+                        else if (!string.IsNullOrEmpty(cmd.SkillId)
+                            && NewSkillDatabase.TryGet(cmd.SkillId, out var attackSkillDef))
+                        {
+                            var runner = new SkillRunner(cmd.ActorId, _world, this, _frozen, _telegraph);
+                            runner.ExecuteInstant(attackSkillDef, beatIndex * 480, cmd.Rotation, hpUpdates);
+                            Console.WriteLine($"[BeatAction] Attack ExecuteInstant: actor={cmd.ActorId} skill={cmd.SkillId} rot={cmd.Rotation} hpUpdates={hpUpdates.Count}");
+                            accepted = true;
+                        }
+                        else
+                        {
+                            // 폴백: 기존 근접 공격
+                            accepted = _world.TryUseAttack(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
+                        }
+                        toPos = fromPos;
+                        break;
+                    }
 
                     case ActionKind.Skill:
+                    {
+                        // [Fix] FrozenPop을 최우선으로 체크 (몬스터 AI 패턴Runner가 사전에 PutRaw 해둔 경우)
+                        if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
                         {
-                            if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
-                            {
-                                // Logic Extension for NewSkill System
-                                if (frozen.CustomDamage.HasValue)
-                                {
-                                    long currentTick = beatIndex * 480;
-                                    accepted = _world.TryUseCustomSkill(cmd.ActorId, currentTick, frozen, hpUpdates);
-                                }
-                                else
-                                {
-                                    accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells, hpUpdates);
-                                }
-                            }
+                            if (frozen.CustomDamage.HasValue)
+                                accepted = _world.TryUseCustomSkill(cmd.ActorId, beatIndex * 480, frozen, hpUpdates);
                             else
-                            {
-                                accepted = _world.TryUseSkill(cmd.ActorId, cmd.SkillId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
-                            }
-                            toPos = fromPos;
-                            break;
+                                accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells, hpUpdates, frozen.HitPlayers, frozen.HitMonsters);
                         }
+                        else if (!string.IsNullOrEmpty(cmd.SkillId)
+                            && NewSkillDatabase.TryGet(cmd.SkillId, out var skillDef))
+                        {
+                            var runner = new SkillRunner(cmd.ActorId, _world, this, _frozen, _telegraph);
+                            runner.ExecuteInstant(skillDef, beatIndex * 480, cmd.Rotation, hpUpdates);
+                            Console.WriteLine($"[BeatAction] Skill ExecuteInstant: actor={cmd.ActorId} skill={cmd.SkillId} rot={cmd.Rotation} hpUpdates={hpUpdates.Count}");
+                            accepted = true;
+                        }
+                        else
+                        {
+                            accepted = _world.TryUseSkill(cmd.ActorId, cmd.SkillId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
+                        }
+                        toPos = fromPos;
+                        break;
+                    }
 
                     case ActionKind.Wait:
                     default:
@@ -461,8 +446,8 @@ namespace GameServer.InGame.Manager.Beat
                     FromY = fromPos.Y,
                     ToX = toPos.X,
                     ToY = toPos.Y,
+                    Rotation = cmd.Rotation,
                     Accepted = accepted,
-                    
                     hpUpdates = pktHpUpdates
                 });
             }
@@ -480,13 +465,11 @@ namespace GameServer.InGame.Manager.Beat
         {
             _scheduler.RemoveByActor(actorId);
         }
-   
 
-    ///============== Util ====================
-       private void PrintJudgeBar(JudgeResult judge, long nowMs)
+        // ============== Util ====================
+        private void PrintJudgeBar(JudgeResult judge, long nowMs)
         {
             int halfSpanMs = (int)Math.Round(_clock.GetBeatDurationMs() * 0.5);
-
             Console.WriteLine(
                 RhythmSystem.FormatJudgeBar(
                     currBeat: judge.CurrBeat,
@@ -502,49 +485,25 @@ namespace GameServer.InGame.Manager.Beat
         }
 
         // --------------------------------------------------------------------
-        // Move Frequency Limiter Logic
+        // Move Frequency Limiter
         // --------------------------------------------------------------------
-
-        private bool TryConsumeMoveLimit(int actorId, long beatIndex)
+        private bool TryConsumeActionLimit(int actorId, long beatIndex)
         {
-            if (!_lastMoveBeat.TryGetValue(actorId, out long lastBeat))
-            {
+            if (!_lastActionBeat.TryGetValue(actorId, out long lastBeat))
                 lastBeat = -1;
-            }
 
-            int count = 0;
-            if (lastBeat == beatIndex)
-            {
-                _moveCountInBeat.TryGetValue(actorId, out count);
-            }
-            else
-            {
-                // New beat, reset
-                count = 0;
-            }
+            int count = (lastBeat == beatIndex && _actionCountInBeat.TryGetValue(actorId, out int c)) ? c : 0;
 
-            int max = GetMaxMoveCount(actorId);
-
-            if (count >= max)
-            {
+            if (count >= GetMaxActionCount(actorId))
                 return false;
-            }
 
-            // Update State
-            _lastMoveBeat[actorId] = beatIndex;
-            _moveCountInBeat[actorId] = count + 1;
-
+            _lastActionBeat[actorId] = beatIndex;
+            _actionCountInBeat[actorId] = count + 1;
             return true;
         }
 
-        private int GetMaxMoveCount(int actorId)
-        {
-            // TODO: Retrieve from Skill/Buff/Stat if needed
-            // Currently fixed to 1 per beat
-            return 1;
-        }
+        private int GetMaxActionCount(int actorId) => 1;
     }
-
 }
 
 
@@ -566,6 +525,5 @@ public readonly struct JudgeResult
         DiffMs = diffMs;
         IsAccepted = accepted;
         ExecuteBeat = executeBeat;
-
     }
 }

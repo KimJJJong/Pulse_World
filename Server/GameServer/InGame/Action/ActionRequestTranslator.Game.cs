@@ -53,6 +53,7 @@ public static partial class ActionRequestTranslator
             Kind = ActionKind.Move,
             TargetCell = new GridPos(req.TargetX, req.TargetY),
             ExecuteBeat = executeBeat,
+            Rotation = req.Rotation,
             //JudgeDiffMs = judgeDiffMs,
             ClientSendTimeMs = req.ClientSendTimeMs,
             ServerReceiveTimeMs = serverReceiveMs,
@@ -76,11 +77,12 @@ public static partial class ActionRequestTranslator
         cmd = new PlayerActionCmd
         {
             ActorId = actorId,
-            SkillId = "Attack",
             Kind = ActionKind.Attack,
+            SlotIndex = -1, // -1 means default weapon attack
             TargetCell = new GridPos(req.TargetX, req.TargetY),
             //TargetOid = req.TargetOid,
             ExecuteBeat = executeBeat,
+            Rotation = req.Rotation,
             //JudgeDiffMs = judgeDiffMs,
             ClientSendTimeMs = req.ClientSendTimeMs,
             ServerReceiveTimeMs = serverReceiveMs,
@@ -106,13 +108,14 @@ public static partial class ActionRequestTranslator
         {
             ActorId = actorId,
             Kind = ActionKind.Skill,
-            SkillId = req.SkillId,
+            SlotIndex = req.SlotIndex,
             TargetCell = new GridPos(req.TargetX, req.TargetY),
             //TargetOid = (req.TargetOid > 0) ? req.TargetOid : null,
             //Param0 = req.Param0,
             //Param1 = req.Param1,
 
             ExecuteBeat = executeBeat,
+            Rotation = req.Rotation,
             //JudgeDiffMs = judgeDiffMs,
             ClientSendTimeMs = req.ClientSendTimeMs,
             ServerReceiveTimeMs = serverReceiveMs,

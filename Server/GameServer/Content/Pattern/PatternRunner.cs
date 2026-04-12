@@ -168,11 +168,13 @@ public sealed class PatternRunner
                             ActorId = m.Id,
                             Kind = ActionKind.Move,
                             TargetCell = nextPos,
+                            Rotation = CalculateRotation(plannedPos, nextPos, m.Rotation),
                             ClientSendTimeMs = 0,
                             ServerReceiveTimeMs = 0
                         };
                         _actions.ScheduleServerCommand(executeBeat, cmd);
                         plannedPos = nextPos;
+                        m.Rotation = cmd.Rotation; // Immediate update for next actions in timeline
                         break;
                     }
 
@@ -208,11 +210,13 @@ public sealed class PatternRunner
                             ActorId = m.Id,
                             Kind = ActionKind.Move,
                             TargetCell = targetPos,
+                            Rotation = CalculateRotation(plannedPos, targetPos, m.Rotation),
                             ClientSendTimeMs = 0,
                             ServerReceiveTimeMs = 0
                         };
                         _actions.ScheduleServerCommand(executeBeat, cmd);
                         plannedPos = targetPos;
+                        m.Rotation = cmd.Rotation;
                         break;
                     }
             }
@@ -537,14 +541,34 @@ public sealed class PatternRunner
         if (!GameServer.Content.Skill.NewSkillDatabase.TryGet(act.SkillId, out var skillDef))
             return;
 
+        // 스킬 시전 시 타겟이 있다면 해당 방향으로 회전 업데이트 (옵션)
+        // 여기서는 일단 현재 몬스터의 Rotation을 그대로 사용하거나, 
+        // 필요 시 타겟 방향으로 미리 돌려주는 로직을 넣을 수 있음.
+        
         var runner = new GameServer.Content.Skill.SkillRunner(m.Id, _world, _actions, _frozen, _telegraph);
-        runner.StartSkillTick(skillDef, executeBeat * 480);
+        runner.StartSkillTick(skillDef, executeBeat * 480, m.Rotation);
 
         if (_rt.TryGetValue(m.Id, out var rt))
             rt.ActiveSkills.Add(runner);
 
         long endBeat = executeBeat + (skillDef.TotalDurationTicks / 480);
         last = Math.Max(last, endBeat);
+    }
+
+    private float CalculateRotation(GridPos from, GridPos to, float current)
+    {
+        int dx = to.X - from.X;
+        int dy = to.Y - from.Y;
+
+        if (dx == 0 && dy == 0) return current;
+
+        // 0:북(Y+), 90:동(X+), 180:남(Y-), 270:서(X-)
+        if (dy > 0) return 0f;   // Up
+        if (dy < 0) return 180f; // Down
+        if (dx > 0) return 90f;  // Right
+        if (dx < 0) return 270f; // Left
+
+        return current;
     }
 
     private sealed class RuntimeState

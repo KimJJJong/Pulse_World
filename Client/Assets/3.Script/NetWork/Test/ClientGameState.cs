@@ -236,6 +236,7 @@ public class ClientGameState : MonoBehaviour
         // 서버가 FromX/Y, ToX/Y를 줬으니 그대로 신뢰
         entity.X = action.ToX;
         entity.Y = action.ToY;
+        entity.Rotation = action.Rotation;
 
         if (action.HasHpUpdate)
             entity.Hp = action.NewHp;
@@ -294,6 +295,7 @@ public struct ClientEntityInfo
     public int AppearanceId; // Renamed from ModelId
     public int X;
     public int Y;
+    public float Rotation;
     public int Hp;
 }
 
@@ -306,6 +308,7 @@ public struct ClientBeatAction
     public int FromY;
     public int ToX;
     public int ToY;
+    public float Rotation;
     public bool Accepted;
 
     public bool HasHpUpdate;

@@ -9,21 +9,26 @@ public sealed class FrozenAttackRegistry
         public int? CustomDamage = null; // NewSkill 시스템용 직접 데미지
         public int StunDurationTicks = 0;
         public int KnockbackDistance = 0;
+
+        public bool HitPlayers = true;
+        public bool HitMonsters = false;
     }
 
     // (actorId, beat) -> frozen
     private readonly Dictionary<(int actorId, long beat), FrozenAttack> _map = new();
 
-    public void Put(int actorId, long beat, string skillId, List<GridPos> cells)
+    public void Put(int actorId, long beat, string skillId, List<GridPos> cells, bool hitPlayers = true, bool hitMonsters = false)
     {
         _map[(actorId, beat)] = new FrozenAttack
         {
             SkillId = skillId,
-            Cells = cells
+            Cells = cells,
+            HitPlayers = hitPlayers,
+            HitMonsters = hitMonsters
         };
     }
 
-    public void PutRaw(int actorId, long beat, int damage, List<GridPos> cells, int stunTicks = 0, int knockback = 0)
+    public void PutRaw(int actorId, long beat, int damage, List<GridPos> cells, int stunTicks = 0, int knockback = 0, bool hitPlayers = true, bool hitMonsters = false)
     {
         _map[(actorId, beat)] = new FrozenAttack
         {
@@ -31,7 +36,9 @@ public sealed class FrozenAttackRegistry
             Cells = cells,
             CustomDamage = damage,
             StunDurationTicks = stunTicks,
-            KnockbackDistance = knockback
+            KnockbackDistance = knockback,
+            HitPlayers = hitPlayers,
+            HitMonsters = hitMonsters
         };
     }
 

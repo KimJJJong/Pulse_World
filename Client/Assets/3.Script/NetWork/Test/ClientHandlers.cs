@@ -127,6 +127,7 @@ public class ClientHandlers : MonoBehaviour
                 FromY = a.FromY,
                 ToX = a.ToX,
                 ToY = a.ToY,
+                Rotation = a.Rotation,
                 Accepted = a.Accepted
             };
 
@@ -171,14 +172,14 @@ public class ClientHandlers : MonoBehaviour
         // [NewSkill System] 데이터 기반 스킬 실행
         if (!string.IsNullOrEmpty(p.SkillId))
         {
-            BV.PlaySkillInstant(p.ActorId, p.SkillId, p.StartTick);
+            BV.PlaySkillInstant(p.ActorId, p.SkillId, p.Rotation, p.StartTick);
         }
         else
         {
             // 폴백: 레거시 애니메이션 시스템 (SkillId가 없는 경우만)
             double beatMs = Rhythm.GetBeatDurationMs();
             float duration = (float)(beatMs / 1000.0) * BV.actionDurationRatio;
-            BV.PlayInstantActionBroadcast(p.ActorId, (ActionKind)p.ActionKind, duration);
+            BV.PlayInstantActionBroadcast(p.ActorId, (ActionKind)p.ActionKind, p.Rotation, duration);
         }
     }
 
@@ -207,6 +208,7 @@ public class ClientHandlers : MonoBehaviour
                 FromY = a.FromY,
                 ToX = a.ToX,
                 ToY = a.ToY,
+                Rotation = a.Rotation,
                 Accepted = a.Accepted
             };
 

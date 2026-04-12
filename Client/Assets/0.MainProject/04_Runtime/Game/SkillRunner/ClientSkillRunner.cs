@@ -12,18 +12,23 @@ public class ClientSkillRunner : MonoBehaviour
     private EntityVisual _visual;
     private BoardView _boardView;
 
+    // 스킬 시전 시점의 시전자 방향 (서버 / 로컬 공통)
+    // BoardView.PlaySkillInstant 에서 rotation 파라미터로 전달된다.
+    private float _casterRotation;
+
     private HashSet<int> _triggeredEvents = new HashSet<int>();
     
     // For early CC cancellation cleanup
     private List<Vector2Int> _activeTelegraphs = new List<Vector2Int>();
 
-    public void Initialize(BoardView boardView, int actorId, EntityVisual visual, string skillId, long startTick, bool isMine)
+    public void Initialize(BoardView boardView, int actorId, EntityVisual visual, string skillId, long startTick, bool isMine, float casterRotation = 0f)
     {
         _boardView = boardView;
         _actorId = actorId;
         _visual = visual;
         _startTick = startTick;
         _isMine = isMine;
+        _casterRotation = casterRotation;
 
         // Load Skill Data
         _skillDef = Resources.Load<NewSkillSO>($"Data/NewSkills/{skillId}");
@@ -45,7 +50,7 @@ public class ClientSkillRunner : MonoBehaviour
             return;
         }
 
-        Debug.Log($"[ClientSkillRunner] Started {skillId} for Actor {actorId} at Tick {startTick}");
+        Debug.Log($"[ClientSkillRunner] Started {skillId} for Actor {actorId} at Tick {startTick} Rotation={casterRotation}");
 
         // Base Animation & Sound (Temporary until AnimationAction is added to NewSkillDto)
         if (RhythmClient.Instance != null)
@@ -56,7 +61,6 @@ public class ClientSkillRunner : MonoBehaviour
             {
                 _visual.PlaySkill(totalDurationSec, _isMine); 
             }
-
         }
     }
 
@@ -74,7 +78,6 @@ public class ClientSkillRunner : MonoBehaviour
         long relativeTick = currentTick - _startTick;
 
         // [Fix] 패킷 지연 시에도 최소 1회는 이벤트를 처리하도록 보장
-        // 스킬이 이미 끝났더라도, Warning 기간이 남아있다면 출력해야 함
         if (relativeTick > _skillDef.Data.TotalDurationTicks && !_firstUpdate)
         {
             Destroy(gameObject);
@@ -89,7 +92,6 @@ public class ClientSkillRunner : MonoBehaviour
             for (int e = 0; e < track.Events.Count; e++)
             {
                 var ev = track.Events[e];
-                // Unique ID for event per track & event index
                 int eventHash = (t << 16) | e;
                 
                 if (_triggeredEvents.Contains(eventHash)) continue;
@@ -110,7 +112,17 @@ public class ClientSkillRunner : MonoBehaviour
         switch (ev.Action.Type)
         {
             case SkillActionType.Damage:
-                // Damage is Server authoritative via BeatActions, client logic ignored here or used for prediction VFX.
+                // 실제 데미지 계산은 서버 권위 (SC_BeatActions hpUpdates).
+                // 클라이언트는 히트 범위 표시 + 시각/사운드 피드백만 담당.
+                if (ev.Action is DamageAction damage && damage.HitMonsters)
+                {
+                    // 히트 범위 타일을 잠깐 하이라이트 (선택적 피드백)
+                    ShowDamageCells(damage.Shape);
+                    // 공격 사운드가 별도 Sound 이벤트로 없는 경우 폴백
+                    if (_isMine)
+                        FMODActionSoundPlayer.Instance?.PlayAttackSound(true);
+                    Debug.Log($"[ClientSkillRunner] DamageAction fired for actor {_actorId} (HitMonsters=true)");
+                }
                 break;
 
             case SkillActionType.Warning:
@@ -118,13 +130,11 @@ public class ClientSkillRunner : MonoBehaviour
                 {
                     if (RhythmClient.Instance != null)
                     {
-                        // [Fix] 지연된 시간만큼 Duration에서 차감하여 정확한 종료 시점에 사라지도록 함
                         long elapsedSinceTrigger = relativeTick - ev.TriggerTick;
                         long remainingTicks = ev.DurationTicks - elapsedSinceTrigger;
 
                         if (remainingTicks > 0)
                         {
-                            // [Change] 만료 비트를 계산하여 중앙 집중식 시스템에 위임 (올림 처리 적용)
                             long expireBeat = (RhythmClient.Instance.GetCurrentServerTick() + remainingTicks + 479) / 480;
                             ShowWarningCells(warning.Shape, expireBeat);
                         }
@@ -137,75 +147,107 @@ public class ClientSkillRunner : MonoBehaviour
                 {
                     bool isMine = _isMine && sound.UseOwnerPerspective;
                     if (!string.IsNullOrEmpty(sound.FmodEventPath))
-                    {
-                        // FmodEventPath가 있으면 범용 재생
                         FMODActionSoundPlayer.Instance?.PlayByEventPath(sound.FmodEventPath, sound.Volume);
-                    }
                     else
-                    {
-                        // Path 미지정 시 기존 공격 사운드로 폴백
                         FMODActionSoundPlayer.Instance?.PlayAttackSound(isMine);
-                    }
                 }
                 break;
         }
     }
 
-    private void ShowWarningCells(IShapeDef shape, long expireBeat)
-    {
-        if (_visual == null || _boardView == null || shape == null) return;
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Shape → World Cells 변환 공통 헬퍼
+    // ─────────────────────────────────────────────────────────────────────────
 
-        int sx = 0;
-        int sy = 0;
+    /// <summary>
+    /// 시전자의 현재 위치 + casterRotation 기준으로 Shape를 월드 셀 목록으로 변환한다.
+    /// casterRotation은 Initialize 시 전달된 값(= 입력 시점의 targetObject.eulerAngles.y)을 우선 사용하고,
+    /// 그것이 0이면 ClientGameState의 Rotation으로 폴백.
+    /// </summary>
+    private List<Vector2Int> ShapeToWorldCells(IShapeDef shape)
+    {
+        var result = new List<Vector2Int>();
+        if (shape == null) return result;
+
+        int sx = 0, sy = 0;
+        float rotation = _casterRotation;
 
         if (ClientGameState.Instance != null && ClientGameState.Instance.TryGetEntity(_actorId, out var info))
         {
             sx = info.X;
             sy = info.Y;
+            // 0도는 정북(Up) 방향으로 유효한 값이므로 덮어쓰지 않는다.
+            // sentinel(-1)로 표시된 경우에만 entity 값으로 폴백한다.
+            if (_casterRotation < 0f)
+                rotation = info.Rotation;
         }
-        else return;
+        else return result;
 
-        int dir = 0; // TODO: Look Direction support
         List<GridPoint> offsets = new List<GridPoint>();
 
         if (shape is CustomCellsShape customShape) offsets = customShape.Cells;
         else if (shape is RectShape rect)
         {
-            for (int x = -rect.Width/2; x <= rect.Width/2; x++)
-                for (int y = 1; y <= rect.Height; y++)
+            int halfW = rect.Width / 2;
+            int halfH = rect.Height / 2;
+            for (int x = -halfW; x <= halfW; x++)
+                for (int y = -halfH; y <= halfH; y++)
                     offsets.Add(new GridPoint(x, y));
+        }
+        else if (shape is DiamondShape diamond)
+        {
+            int r = diamond.Radius;
+            for (int x = -r; x <= r; x++)
+                for (int y = -r; y <= r; y++)
+                    if (System.Math.Abs(x) + System.Math.Abs(y) <= r)
+                        offsets.Add(new GridPoint(x, y));
         }
 
         foreach (var p in offsets)
         {
-            int rx = p.X;
-            int ry = p.Y;
+            var pt = RotateGridPoint(p.X, p.Y, shape.RotateWithCaster ? rotation : 0);
+            result.Add(new Vector2Int(sx + pt.X, sy + pt.Y));
+        }
+        return result;
+    }
 
-            if (dir == 1)      { rx = p.Y; ry = -p.X; }
-            else if (dir == 2) { rx = -p.X; ry = -p.Y; }
-            else if (dir == 3) { rx = -p.Y; ry = p.X; }
-
-            int tx = sx + rx;
-            int ty = sy + ry;
-
-            // [Change] 중앙 집중식 관리 시스템 사용 (만료 시간 전달)
-            _boardView.SetTelegraphWithExpire(tx, ty, expireBeat);
-            _activeTelegraphs.Add(new Vector2Int(tx, ty));
+    private void ShowWarningCells(IShapeDef shape, long expireBeat)
+    {
+        if (_boardView == null || shape == null) return;
+        var cells = ShapeToWorldCells(shape);
+        foreach (var cell in cells)
+        {
+            _boardView.SetTelegraphWithExpire(cell.x, cell.y, expireBeat);
+            _activeTelegraphs.Add(cell);
         }
     }
 
-    // [REMOVED] Coroutine clearing is now handled by BoardView.Update loop
-    /*
-    private System.Collections.IEnumerator ClearTelegraphOverlay(int x, int y, float delay) ...
-    */
+    private void ShowDamageCells(IShapeDef shape)
+    {
+        // DamageAction 발동 시 잠깐 타일을 하이라이트 (선택적, 원하지 않으면 비워도 됨)
+        // 현재는 별도 색상 없이 로그만 남김.
+        if (shape == null) return;
+        var cells = ShapeToWorldCells(shape);
+        Debug.Log($"[ClientSkillRunner] DamageCells count={cells.Count} rotation={_casterRotation}");
+        // TODO: 히트 VFX나 짧은 플래시 효과를 원하면 여기서 추가
+    }
+
+    private GridPoint RotateGridPoint(int x, int y, float rotation)
+    {
+        // [Rollback] Restoring legacy +180 offset and original formulas
+        float corrected = rotation + 180f;
+        int deg = (int)((corrected + 45) / 90) * 90;
+        deg = (deg % 360 + 360) % 360;
+
+        if (deg == 90)  return new GridPoint( y, -x); // Right (Now mapping East)
+        if (deg == 180) return new GridPoint(-x, -y); // Down
+        if (deg == 270) return new GridPoint(-y,  x); // Left
+        return new GridPoint(x, y);                   // Up (0)
+    }
 
     private void OnDestroy()
     {
-        // [Change] 강제 삭제 루프 제거.
-        // 이제 BoardView가 만료 시간을 관리하므로, 스킬러너가 일찍 파괴되어도 경고 상태가 유지됩니다.
         if (_activeTelegraphs != null)
-        {
             _activeTelegraphs.Clear();
-        }
     }
 }

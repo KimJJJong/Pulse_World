@@ -239,8 +239,11 @@ public sealed class GameRoom : RoomBase
         });
     }
 
-    public void BroadcastGameStart(long startAtMs)
+    public void BroadcastGameStart(long plannedStartAtMs)
     {
+        // 1) Load data & Setup Rhythm anchor (Music start = plannedStartAtMs + StartDelayMs)
+        SetupGameplay(plannedStartAtMs);
+
         var loadedPkt = new SC_AllPlayersLoaded { matchId = MatchId };
         lock (_lock)
         {
@@ -256,16 +259,19 @@ public sealed class GameRoom : RoomBase
         }
         Broadcast(loadedPkt);
 
-        SetupGameplay(startAtMs); // [New] 미리 세팅하고 정보를 쏜다
-
-        ScheduleStart(startAtMs);
+        // 2) Actual sync anchor for client: The moment music starts
+        long finalStartMs = _rhythm != null ? _rhythm.SongStartServerTimeMs : plannedStartAtMs;
+        
+        ScheduleStart(finalStartMs);
 
         Broadcast(new SC_GameBegin
         {
             matchId = MatchId,
-            startAtMs = startAtMs,
+            startAtMs = finalStartMs,
             startTick = 0
         });
+
+        _logger.LogInformation("[GameRoom] BroadcastGameStart: anchor={Anchor} delay={Delay}", plannedStartAtMs, finalStartMs - plannedStartAtMs);
     }
 
     private void SetupGameplay(long startAtMs)

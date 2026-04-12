@@ -33,7 +33,7 @@ public class RhythmInputController : MonoBehaviour
     }
 
     [Header("Route")]
-    [SerializeField] InputChannel channel = InputChannel.Town; // 인스펙터에서 기본값
+    [SerializeField] InputChannel channel = InputChannel.Town;
     [SerializeField] bool allowRuntimeToggle = true;
     [SerializeField] KeyCode toggleKey = KeyCode.F1;
 
@@ -43,24 +43,19 @@ public class RhythmInputController : MonoBehaviour
     [SerializeField] float rotateAngle = 90f;
     [SerializeField] public GameObject targetObject = null;
 
-    // UI blocking flag
     public bool IsInputBlocked { get; set; } = false;
 
     long _lastSendLocalMs = 0;
 
-    // --- Hold Auto 상태 ---
     bool _holdActive = false;
     Vector2Int _holdDir = Vector2Int.zero;
     ActionKind _holdKind = ActionKind.Move;
 
-    // "이번 beatIndex에서 이미 발사했는가" 체크용
     long _lastFiredBeatIndex = long.MinValue;
-
-    // Client-Side Prediction: 공격/스킬 비트당 1회 제한
     long _lastAttackPredictionBeat = long.MinValue;
 
-    // 본인의 최근 공격 입력 시간을 기록 (로그용)
     public static long LastAttackInputServerTimeMs { get; private set; }
+    private long _lastActionBeatIndex = -1;
 
     [Header("Skill Slots")]
     [SerializeField] private string _normalAttackSkillId = "Attack";
@@ -79,8 +74,7 @@ public class RhythmInputController : MonoBehaviour
         Debug.Log($"[RhythmInput] NormalAttack set to {skillId}");
     }
 
-    // --- Prediction Tracking ---
-    long _lastSkillPredictionBeat = long.MinValue;
+
 
     InputAction _moveAction;
     InputAction _attackAction;
@@ -104,29 +98,26 @@ public class RhythmInputController : MonoBehaviour
                 .With("Left", "<Keyboard>/a")
                 .With("Right", "<Keyboard>/d");
 
-            // [Change] Attack is now bound to Space and handles as a Skill
             _attackAction = new InputAction("Attack", type: InputActionType.Button, binding: "<Keyboard>/space");
 
-            // [New] Skill keys HJKL
             _skillHAction = new InputAction("SkillH", type: InputActionType.Button, binding: "<Keyboard>/h");
             _skillJAction = new InputAction("SkillJ", type: InputActionType.Button, binding: "<Keyboard>/j");
             _skillKAction = new InputAction("SkillK", type: InputActionType.Button, binding: "<Keyboard>/k");
             _skillLAction = new InputAction("SkillL", type: InputActionType.Button, binding: "<Keyboard>/l");
 
-            // [New] Utility keys
-            _rotateLeftAction = new InputAction("RotateLeft", type: InputActionType.Button, binding: "<Keyboard>/q");
+            _rotateLeftAction  = new InputAction("RotateLeft",  type: InputActionType.Button, binding: "<Keyboard>/q");
             _rotateRightAction = new InputAction("RotateRight", type: InputActionType.Button, binding: "<Keyboard>/e");
-            _toggleAction = new InputAction("Toggle", type: InputActionType.Button, binding: "<Keyboard>/f1");
+            _toggleAction      = new InputAction("Toggle",      type: InputActionType.Button, binding: "<Keyboard>/f1");
 
-            _moveAction.started += OnMovePerformed;
-            _attackAction.started += OnAttackPerformed;
-            
+            _moveAction.started    += OnMovePerformed;
+            _attackAction.started  += OnAttackPerformed;
+
             _skillHAction.started += (ctx) => OnSkillSlotPerformed(0);
             _skillJAction.started += (ctx) => OnSkillSlotPerformed(1);
             _skillKAction.started += (ctx) => OnSkillSlotPerformed(2);
             _skillLAction.started += (ctx) => OnSkillSlotPerformed(3);
 
-            _rotateLeftAction.started += (ctx) => Rotate(-rotateAngle);
+            _rotateLeftAction.started  += (ctx) => Rotate(-rotateAngle);
             _rotateRightAction.started += (ctx) => Rotate(+rotateAngle);
             _toggleAction.started += (ctx) => {
                 if (allowRuntimeToggle) {
@@ -181,21 +172,25 @@ public class RhythmInputController : MonoBehaviour
     void OnAttackPerformed(InputAction.CallbackContext ctx)
     {
         if (holdAutoInput) return;
-        // Space doesn't have direction, use look direction
-        HandleSkillInputEvent(_normalAttackSkillId);
+        // Space = 일반공격. ActionKind.Attack으로 명시 전송 (SlotIndex -1 오해석 방지)
+        HandleAttackInputEvent(_normalAttackSkillId);
     }
 
     void OnSkillSlotPerformed(int slotIndex)
     {
         if (holdAutoInput) return;
         if (slotIndex < 0 || slotIndex >= _skillSlotIds.Length) return;
-        HandleSkillInputEvent(_skillSlotIds[slotIndex]);
+        HandleSkillInputEvent(_skillSlotIds[slotIndex], slotIndex);
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Input Handlers
+    // ──────────────────────────────────────────────────────────────────────────
 
     void HandleMoveInputEvent(InputAction.CallbackContext ctx)
     {
         if (!IsReady() || IsInputBlocked) return;
-        
+
         Vector2 val = ctx.ReadValue<Vector2>();
         Vector2Int dir = Vector2Int.zero;
         if (Mathf.Abs(val.x) > Mathf.Abs(val.y)) dir.x = val.x > 0 ? 1 : (val.x < 0 ? -1 : 0);
@@ -217,74 +212,132 @@ public class RhythmInputController : MonoBehaviour
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
         BeatDebugUI_TMP.Instance?.MarkHitNow();
 
-        // --- Client-Side Prediction for Move ---
         if (BoardView.Instance != null && Rhythm != null)
         {
             long nearestBeat = Rhythm.GetNearestBeatIndex(serverNow);
-            long judgeTime = Rhythm.GetBeatTimeMs(nearestBeat);
-            long diff = System.Math.Abs(serverNow - judgeTime);
+            long judgeTime   = Rhythm.GetBeatTimeMs(nearestBeat);
+            long diff        = System.Math.Abs(serverNow - judgeTime);
 
             if (diff <= Rhythm.judgeWindowMs)
             {
+                if (_lastActionBeatIndex == nearestBeat)
+                {
+                    Debug.Log($"[RhythmInput] Action duplicate (Move) at Beat {nearestBeat} BLOCKED.");
+                    return; 
+                }
+
+                _lastActionBeatIndex = nearestBeat;
                 BoardView.Instance.PlayMovePrediction(me.EntityId, tx, ty, BoardView.Instance.actionDurationRatio);
             }
         }
 
-        SendActionRouted(ActionKind.Move, tx, ty, serverNow);
+        SendActionRouted(ActionKind.Move, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;
     }
 
-    void HandleSkillInputEvent(string skillId)
+    /// <summary>
+    /// 일반 공격 (Space키) - ActionKind.Attack으로 서버 전송.
+    /// HandleSkillInputEvent(slotIndex=-1) 대신 이 메서드를 사용해
+    /// 서버의 ResolveSkillId에서 "Skill-1" 오해석이 발생하지 않도록 한다.
+    /// </summary>
+    void HandleAttackInputEvent(string skillId)
     {
         if (!IsReady() || IsInputBlocked) return;
         if (string.IsNullOrEmpty(skillId)) return;
-
         if (!GS.TryGetMyEntity(out var me)) return;
 
-        // Use Current Looking Direction (Forward)
-        Vector2Int dir = Vector2Int.up; 
-        var rdir = RotateDirByTarget(dir);
+        // 바라보는 방향 앞 칸을 타겟으로
+        var rdir = RotateDirByTarget(Vector2Int.up);
         int tx = me.X + rdir.x;
         int ty = me.Y + rdir.y;
 
-        long trueLocalNowMs = LocalNowMs(); 
+        long trueLocalNowMs = LocalNowMs();
         if (!PassCooldown(trueLocalNowMs)) return;
 
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
         BeatDebugUI_TMP.Instance?.MarkHitNow();
 
-        // [Prediction] 로컬 즉시 재생 (판정 범위 내에 있을 때만)
+        // 클라이언트 선행 애니메이션 (Prediction)
         if (BoardView.Instance != null && Rhythm != null)
         {
             long nearestBeat = Rhythm.GetNearestBeatIndex(serverNow);
-            long judgeTime = Rhythm.GetBeatTimeMs(nearestBeat);
-            long diff = System.Math.Abs(serverNow - judgeTime);
+            long judgeTime   = Rhythm.GetBeatTimeMs(nearestBeat);
+            long diff        = System.Math.Abs(serverNow - judgeTime);
 
-            if (diff <= Rhythm.judgeWindowMs && _lastSkillPredictionBeat != nearestBeat)
+            if (diff <= Rhythm.judgeWindowMs)
             {
-                _lastSkillPredictionBeat = nearestBeat;
-                // SkillRunner는 틱 기반이므로 서버 동기화된 StartTick 필요
+                if (_lastActionBeatIndex == nearestBeat)
+                {
+                    Debug.Log($"[RhythmInput] Action duplicate (Attack) at Beat {nearestBeat} BLOCKED.");
+                    return; 
+                }
+
+                _lastActionBeatIndex = nearestBeat;
                 long startTick = Rhythm.GetBeatTick(nearestBeat);
-                BoardView.Instance.PlaySkillInstant(me.EntityId, skillId, startTick);
+                float rotation = targetObject != null ? targetObject.transform.eulerAngles.y : 0f;
+                BoardView.Instance.PlaySkillInstant(me.EntityId, skillId, rotation, startTick);
             }
         }
 
-        if (TrySendCalib(serverNow))
-        {
-            _lastSendLocalMs = trueLocalNowMs;
-            return;
-        }
+        if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
 
-        SendActionRouted(ActionKind.Skill, tx, ty, serverNow, skillId);
+        // ActionKind.Attack으로 전송 (서버 ResolveSkillId → "Attack" 고정)
+        SendActionRouted(ActionKind.Attack, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;
     }
+
+    void HandleSkillInputEvent(string skillId, int slotIndex)
+    {
+        if (!IsReady() || IsInputBlocked) return;
+        if (string.IsNullOrEmpty(skillId)) return;
+        if (!GS.TryGetMyEntity(out var me)) return;
+
+        var rdir = RotateDirByTarget(Vector2Int.up);
+        int tx = me.X + rdir.x;
+        int ty = me.Y + rdir.y;
+
+        long trueLocalNowMs = LocalNowMs();
+        if (!PassCooldown(trueLocalNowMs)) return;
+
+        long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
+        BeatDebugUI_TMP.Instance?.MarkHitNow();
+
+        if (BoardView.Instance != null && Rhythm != null)
+        {
+            long nearestBeat = Rhythm.GetNearestBeatIndex(serverNow);
+            long judgeTime   = Rhythm.GetBeatTimeMs(nearestBeat);
+            long diff        = System.Math.Abs(serverNow - judgeTime);
+
+            if (diff <= Rhythm.judgeWindowMs)
+            {
+                if (_lastActionBeatIndex == nearestBeat)
+                {
+                    Debug.Log($"[RhythmInput] Action duplicate (Skill) at Beat {nearestBeat} BLOCKED.");
+                    return; 
+                }
+
+                _lastActionBeatIndex = nearestBeat;
+                long startTick = Rhythm.GetBeatTick(nearestBeat);
+                float rotation = targetObject != null ? targetObject.transform.eulerAngles.y : 0f;
+                BoardView.Instance.PlaySkillInstant(me.EntityId, skillId, rotation, startTick);
+            }
+        }
+
+        if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
+
+        SendActionRouted(ActionKind.Skill, tx, ty, serverNow, slotIndex);
+        _lastSendLocalMs = trueLocalNowMs;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Update (Hold Auto Input)
+    // ──────────────────────────────────────────────────────────────────────────
 
     void Update()
     {
         if (!IsReady() || IsInputBlocked)
             return;
 
-        // 자동 입력 모드 (holdAutoInput)
         if (holdAutoInput)
         {
             if (!TryUpdateHoldState(out _holdDir, out _holdKind))
@@ -304,14 +357,16 @@ public class RhythmInputController : MonoBehaviour
 
             long serverNowMs = Rhythm.GetCurrentServerTimeMs();
 
-            // 캘리브 모드면 기존과 동일하게 캘리브 우선
             if (TrySendCalib(serverNowMs))
                 return;
 
-            // midpoint에서 1회 발사
             TryFireAtBeatMidpoint(_holdKind, targetX, targetY, serverNowMs);
         }
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Utilities
+    // ──────────────────────────────────────────────────────────────────────────
 
     bool IsReady()
     {
@@ -345,13 +400,9 @@ public class RhythmInputController : MonoBehaviour
         if (targetObject == null)
             return dir;
 
-        // grid(x,y) -> world(x,z)
-        Vector3 w = new Vector3(dir.x, 0f, dir.y);
-
-        // 타겟 회전 적용
+        Vector3 w  = new Vector3(dir.x, 0f, dir.y);
         Vector3 rw = targetObject.transform.rotation * w;
 
-        // world(x,z) -> grid(x,y)
         int rx = Mathf.RoundToInt(rw.x);
         int ry = Mathf.RoundToInt(rw.z);
 
@@ -366,7 +417,7 @@ public class RhythmInputController : MonoBehaviour
 
     bool TryUpdateHoldState(out Vector2Int dir, out ActionKind kind)
     {
-        dir = Vector2Int.zero;
+        dir  = Vector2Int.zero;
         kind = ActionKind.Move;
 
         if (_moveAction == null) return false;
@@ -381,22 +432,15 @@ public class RhythmInputController : MonoBehaviour
 
     void TryFireAtBeatMidpoint(ActionKind kind, int targetX, int targetY, long serverNowMs)
     {
-        if (!_holdActive)
-            return;
+        if (!_holdActive) return;
 
         long beat = Rhythm.GetCurrentBeatIndex();
-
-        if (_lastFiredBeatIndex == beat)
-            return;
+        if (_lastFiredBeatIndex == beat) return;
 
         long t0 = Rhythm.GetBeatTimeMs(beat);
-        //long t1 = Rhythm.GetBeatTimeMs(beat + 1);
-        //long mid = (t0 + t1) / 2;
-
         if (serverNowMs >= t0)
         {
             BeatDebugUI_TMP.Instance?.MarkHitNow();
-
             SendActionRouted(kind, targetX, targetY, serverNowMs);
             _lastFiredBeatIndex = beat;
         }
@@ -419,10 +463,11 @@ public class RhythmInputController : MonoBehaviour
         return true;
     }
 
-    // ---------------------------
-    // 핵심: Town/Game 라우팅 분리
-    // ---------------------------
-    void SendActionRouted(ActionKind kind, int targetX, int targetY, long serverNowMs, string skillId = "")
+    // ──────────────────────────────────────────────────────────────────────────
+    // Network Send (Town / Game 라우팅)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    void SendActionRouted(ActionKind kind, int targetX, int targetY, long serverNowMs, int slotIndex = -1)
     {
         if (NetworkManager.Instance == null)
         {
@@ -435,9 +480,8 @@ public class RhythmInputController : MonoBehaviour
             case InputChannel.Town:
                 SendTownAction(kind, targetX, targetY, serverNowMs);
                 break;
-
             case InputChannel.Game:
-                SendGameAction(kind, targetX, targetY, serverNowMs, skillId);
+                SendGameAction(kind, targetX, targetY, serverNowMs, slotIndex);
                 break;
         }
     }
@@ -446,34 +490,31 @@ public class RhythmInputController : MonoBehaviour
     {
         CS_TownActionRequest pkt = new CS_TownActionRequest
         {
-            ActorId = GS.MyActorId,
-            ActionKind = (int)kind,
-            TargetX = targetX,
-            TargetY = targetY,
+            ActorId          = GS.MyActorId,
+            ActionKind       = (int)kind,
+            TargetX          = targetX,
+            TargetY          = targetY,
+            Rotation         = targetObject != null ? targetObject.transform.eulerAngles.y : 0f,
             ClientSendTimeMs = serverNowMs,
         };
-
         NetworkManager.Instance.Send(pkt.Write());
     }
 
-    void SendGameAction(ActionKind kind, int targetX, int targetY, long serverNowMs, string skillId = "")
+    void SendGameAction(ActionKind kind, int targetX, int targetY, long serverNowMs, int slotIndex = -1)
     {
         CS_ActionRequest pkt = new CS_ActionRequest
         {
-            ActorId = GS.MyActorId,
-            ActionKind = (int)kind,
-            SkillId = skillId ?? "", // [Fix] Ensure SkillId is not null to avoid crash in Write()
-            TargetX = targetX,
-            TargetY = targetY,
+            ActorId          = GS.MyActorId,
+            ActionKind       = (int)kind,
+            SlotIndex        = slotIndex,
+            TargetX          = targetX,
+            TargetY          = targetY,
+            Rotation         = targetObject != null ? targetObject.transform.eulerAngles.y : 0f,
             ClientSendTimeMs = serverNowMs,
         };
-
         NetworkManager.Instance.Send(pkt.Write());
 
-        // [User Request] 본인 공격/스킬의 100% 서버 동기화를 위해 클라 자체 선입력 재생(Prediction) 제외
         if (kind == ActionKind.Attack || kind == ActionKind.Skill)
-        {
             LastAttackInputServerTimeMs = serverNowMs;
-        }
     }
 }

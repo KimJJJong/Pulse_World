@@ -655,6 +655,7 @@ public class CS_TownActionRequest : IPacket
 	public int ActionKind;
 	public int TargetX;
 	public int TargetY;
+	public float Rotation;
 	public long ClientSendTimeMs;
 
 	public ushort Protocol { get { return (ushort)PacketID.CS_TownActionRequest; } }
@@ -674,6 +675,8 @@ public class CS_TownActionRequest : IPacket
 		count += sizeof(int);
 		this.TargetY = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
+		this.Rotation = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+		count += sizeof(float);
 		this.ClientSendTimeMs = BitConverter.ToInt64(s.Slice(count, s.Length - count));
 		count += sizeof(long);
 	}
@@ -697,6 +700,8 @@ public class CS_TownActionRequest : IPacket
 		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.TargetY);
 		count += sizeof(int);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Rotation);
+		count += sizeof(float);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ClientSendTimeMs);
 		count += sizeof(long);
 		success &= BitConverter.TryWriteBytes(s, count);
@@ -717,6 +722,7 @@ public class SC_TownBeatActions : IPacket
 		public int FromY;
 		public int ToX;
 		public int ToY;
+		public float Rotation;
 		public bool Accepted;
 	
 		public void Read(ReadOnlySpan<byte> s, ref ushort count)
@@ -733,6 +739,8 @@ public class SC_TownBeatActions : IPacket
 			count += sizeof(int);
 			this.ToY = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 			count += sizeof(int);
+			this.Rotation = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+			count += sizeof(float);
 			this.Accepted = BitConverter.ToBoolean(s.Slice(count, s.Length - count));
 			count += sizeof(bool);
 		}
@@ -754,6 +762,8 @@ public class SC_TownBeatActions : IPacket
 			count += sizeof(int);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ToY);
 			count += sizeof(int);
+			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Rotation);
+			count += sizeof(float);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Accepted);
 			count += sizeof(bool);
 			return success;
@@ -1477,9 +1487,10 @@ public class CS_ActionRequest : IPacket
 {
 	public int ActorId;
 	public int ActionKind;
-	public string SkillId;
+	public int SlotIndex;
 	public int TargetX;
 	public int TargetY;
+	public float Rotation;
 	public long ClientSendTimeMs;
 
 	public ushort Protocol { get { return (ushort)PacketID.CS_ActionRequest; } }
@@ -1495,14 +1506,14 @@ public class CS_ActionRequest : IPacket
 		count += sizeof(int);
 		this.ActionKind = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
-		ushort SkillIdLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
-		count += sizeof(ushort);
-		this.SkillId = Encoding.Unicode.GetString(s.Slice(count, SkillIdLen));
-		count += SkillIdLen;
+		this.SlotIndex = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+		count += sizeof(int);
 		this.TargetX = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
 		this.TargetY = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
+		this.Rotation = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+		count += sizeof(float);
 		this.ClientSendTimeMs = BitConverter.ToInt64(s.Slice(count, s.Length - count));
 		count += sizeof(long);
 	}
@@ -1522,14 +1533,14 @@ public class CS_ActionRequest : IPacket
 		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ActionKind);
 		count += sizeof(int);
-		ushort SkillIdLen = (ushort)Encoding.Unicode.GetBytes(this.SkillId, 0, this.SkillId.Length, segment.Array, segment.Offset + count + sizeof(ushort));
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), SkillIdLen);
-		count += sizeof(ushort);
-		count += SkillIdLen;
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.SlotIndex);
+		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.TargetX);
 		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.TargetY);
 		count += sizeof(int);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Rotation);
+		count += sizeof(float);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ClientSendTimeMs);
 		count += sizeof(long);
 		success &= BitConverter.TryWriteBytes(s, count);
@@ -1544,8 +1555,8 @@ public class SC_ActionInstantBroadcast : IPacket
 	public int ActorId;
 	public int ActionKind;
 	public string SkillId;
+	public float Rotation;
 	public long StartTick;
-	public int Dir;
 
 	public ushort Protocol { get { return (ushort)PacketID.SC_ActionInstantBroadcast; } }
 
@@ -1564,10 +1575,10 @@ public class SC_ActionInstantBroadcast : IPacket
 		count += sizeof(ushort);
 		this.SkillId = Encoding.Unicode.GetString(s.Slice(count, SkillIdLen));
 		count += SkillIdLen;
+		this.Rotation = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+		count += sizeof(float);
 		this.StartTick = BitConverter.ToInt64(s.Slice(count, s.Length - count));
 		count += sizeof(long);
-		this.Dir = BitConverter.ToInt32(s.Slice(count, s.Length - count));
-		count += sizeof(int);
 	}
 
 	public ArraySegment<byte> Write()
@@ -1589,10 +1600,10 @@ public class SC_ActionInstantBroadcast : IPacket
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), SkillIdLen);
 		count += sizeof(ushort);
 		count += SkillIdLen;
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Rotation);
+		count += sizeof(float);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.StartTick);
 		count += sizeof(long);
-		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Dir);
-		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s, count);
 		if (success == false)
 			return null;
@@ -1648,6 +1659,7 @@ public class SC_BeatActions : IPacket
 		public int FromY;
 		public int ToX;
 		public int ToY;
+		public float Rotation;
 		public bool Accepted;
 		public class HpUpdate
 		{
@@ -1690,6 +1702,8 @@ public class SC_BeatActions : IPacket
 			count += sizeof(int);
 			this.ToY = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 			count += sizeof(int);
+			this.Rotation = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+			count += sizeof(float);
 			this.Accepted = BitConverter.ToBoolean(s.Slice(count, s.Length - count));
 			count += sizeof(bool);
 			this.hpUpdates.Clear();
@@ -1720,6 +1734,8 @@ public class SC_BeatActions : IPacket
 			count += sizeof(int);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.ToY);
 			count += sizeof(int);
+			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Rotation);
+			count += sizeof(float);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Accepted);
 			count += sizeof(bool);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)this.hpUpdates.Count);

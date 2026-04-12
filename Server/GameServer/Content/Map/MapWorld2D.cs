@@ -358,7 +358,15 @@ public sealed class MapWorld2D : IGameWorld
 
             foreach (var target in GetEntitiesAt(new GridPos(c.X, c.Y)))
             {
-                if (!CanHit(attacker, target)) continue;
+                if (target == null || !target.IsAlive) continue;
+                if (attacker.Id == target.Id) continue;
+
+                // Faction Logic: DamageAction의 HitPlayers/HitMonsters 플래그 적용
+                bool isTargetPlayer = target.Type == EntityType.Player || target.Id < 100;
+                bool isTargetMonster = target.Type == EntityType.Monster || (target.Id >= 100 && target.Id < 1000);
+
+                if (isTargetPlayer && !frozen.HitPlayers) continue;
+                if (isTargetMonster && !frozen.HitMonsters) continue;
 
                 // Apply Stun First
 
@@ -395,7 +403,7 @@ public sealed class MapWorld2D : IGameWorld
         return anyHit;
     }
 
-    public bool TryUseSkillArea(int actorId, string skillId, IReadOnlyList<GridPos> cells, List<HpUpdate> hpUpdates)
+    public bool TryUseSkillArea(int actorId, string skillId, IReadOnlyList<GridPos> cells, List<HpUpdate> hpUpdates, bool? hitPlayers = null, bool? hitMonsters = null)
     {
         if (!TryGetEntity(actorId, out var attacker) || !attacker.IsAlive)
             return false;
@@ -407,11 +415,27 @@ public sealed class MapWorld2D : IGameWorld
              return false;
         }
 
-        // NewSkillDef doesn't have simple "Damage" field in root.
-        // It has Actions -> DamageAction.
-        // We need to find the damage amount if we want to apply it here.
-        // Logic: Iterate tracks, find first DamageAction?
-        
+        // Flags Fallback from Skill Definition
+        bool targetPlayers = hitPlayers ?? true;
+        bool targetMonsters = hitMonsters ?? false;
+
+        if (hitPlayers == null || hitMonsters == null)
+        {
+            foreach (var t in skill.Tracks)
+            {
+                foreach (var e in t.Events)
+                {
+                    if (e.Action is DamageAction da)
+                    {
+                        if (hitPlayers == null) targetPlayers = da.HitPlayers;
+                        if (hitMonsters == null) targetMonsters = da.HitMonsters;
+                        break;
+                    }
+                }
+                if (hitPlayers != null && hitMonsters != null) break;
+            }
+        }
+
         int damage = 0;
         foreach(var t in skill.Tracks) {
             foreach(var e in t.Events) {
@@ -431,21 +455,25 @@ public sealed class MapWorld2D : IGameWorld
             if (!IsInside(c.X, c.Y))
                 continue;
 
-            // BlockedByWall is not directly on NewSkillDef. 
-            // Assume false or check generic flags if added.
-
             foreach (var target in GetEntitiesAt(new GridPos(c.X, c.Y)))
             {
-                if (!CanHit(attacker, target)) continue;
+                if (target == null || !target.IsAlive) continue;
+                if (attacker.Id == target.Id) continue;
 
                 if (!hitTargets.Add(target.Id))
                     continue;
+
+                // Faction Logic
+                bool isTargetPlayer = target.Type == EntityType.Player || target.Id < 100;
+                bool isTargetMonster = target.Type == EntityType.Monster || (target.Id >= 100 && target.Id < 1000);
+
+                if (isTargetPlayer && !targetPlayers) continue;
+                if (isTargetMonster && !targetMonsters) continue;
 
                 ApplyCustomDamage(attacker, target, damage, hpUpdates);
                 anyHit = true;
             }
         }
-
         return anyHit;
     }
 

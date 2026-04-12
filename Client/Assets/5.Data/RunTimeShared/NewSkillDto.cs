@@ -100,8 +100,10 @@ namespace GameShared.Data
 #endif
         public IShapeDef Shape;
         public int Amount;
-        public bool HitPlayers = true;
-        public bool HitMonsters = false;
+        /// <summary>플레이어를 타격할지. 기본 false (플레이어 공격 스킬은 몬스터 대상).</summary>
+        public bool HitPlayers = false;
+        /// <summary>몬스터를 타격할지. 기본 true (플레이어 공격 스킬은 몬스터를 맞춤).</summary>
+        public bool HitMonsters = true;
         
         // Status Effects (CC)
         public int StunDurationTicks = 0;
@@ -159,6 +161,9 @@ namespace GameShared.Data
     {
         public abstract ShapeType GetShapeType();
         public ShapeType ShapeType => GetShapeType();
+
+        public int CasterSize = 1;         // 시전자 크기 (1x1, 3x3 등)
+        public bool RotateWithCaster = true; // 시전자 방향에 맞춰 회전 여부
     }
 
     public enum ShapeType
@@ -175,7 +180,6 @@ namespace GameShared.Data
         public override ShapeType GetShapeType() => ShapeType.Rect;
         public int Width;
         public int Height;
-        public bool RotateWithSource = true;
     }
 
     [Serializable]

@@ -22,6 +22,7 @@ public  class MapEntity
     public EntityType Type { get; }
     public GridPos Position { get; internal set; }
     public bool IsAlive { get; internal set; } = true;
+    public float Rotation { get; set; } = 0.0f; // 시전자 바라보는 방향 (0:북, 90:동, 180:남, 270:서)
     
     // Status Effects
     public long StunEndTick { get; set; } = 0;

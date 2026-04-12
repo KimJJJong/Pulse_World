@@ -443,6 +443,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
                     : serverFromW;                 // 멀면 serverFromW로 스냅 후 이동
                 visual.StartMove(moveStart, serverToW, duration);
             }
+            visual.SetRotation(action.Rotation);
             return;
         }
 
@@ -474,12 +475,14 @@ public class BoardView : MonoBehaviour, IClientWorldView
         {
             visual.PlaySkill(duration, isMine);
         }
+
+        visual.SetRotation(action.Rotation);
     }
 
     /// <summary>
     /// SC_ActionInstantBroadcast 처리: 즉각적인 공격/스킬 브로드캐스트 재생
     /// </summary>
-    public void PlayInstantActionBroadcast(int actorId, ActionKind kind, float duration)
+    public void PlayInstantActionBroadcast(int actorId, ActionKind kind, float rotation, float duration)
     {
         if (!_entityViews.TryGetValue(actorId, out var visual) || visual == null)
             return;
@@ -495,6 +498,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
         {
             visual.PlaySkill(duration, isMine);
         }
+
+        visual.SetRotation(rotation);
 
         _recentInstantActions[actorId] = Time.time;
     }
@@ -523,7 +528,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
     /// <summary>
     /// [NewSkill System] 데이터 기반 스킬 실행 (동적으로 ClientSkillRunner 생성)
     /// </summary>
-    public void PlaySkillInstant(int actorId, string skillId, long startTick)
+    public void PlaySkillInstant(int actorId, string skillId, float rotation, long startTick)
     {
         if (!_entityViews.TryGetValue(actorId, out var visual) || visual == null)
             return;
@@ -542,7 +547,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
         go.transform.SetParent(visual.transform);
 
         var runner = go.AddComponent<ClientSkillRunner>();
-        runner.Initialize(this, actorId, visual, skillId, startTick, isMine);
+        runner.Initialize(this, actorId, visual, skillId, startTick, isMine, rotation);
+
+        visual.SetRotation(rotation);
 
         _activeSkillRunners[actorId] = runner;
     }
@@ -553,8 +560,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
     public void ShowSkillTelegraph(int actorId, int styleId, long startTick, int totalDurationTicks, int shape, int originType, int originX, int originY, int paramA, int paramB, List<Vector2Int> cells)
     {
         if (cells == null || cells.Count == 0) return;
+        
+        // [Fix] 정수 나눗셈 올림 처리를 통해 최소 1비트 유지 보장
+        long expireBeat = (startTick + totalDurationTicks + 479) / 480;
+        
         foreach (var cell in cells)
-            SetTelegraphOverlay(cell.x, cell.y, on: true);
+            SetTelegraphWithExpire(cell.x, cell.y, expireBeat);
     }
 
     public bool IsActorRunningNewSkill(int actorId)

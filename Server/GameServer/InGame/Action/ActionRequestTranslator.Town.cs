@@ -1,4 +1,4 @@
-﻿public static partial class ActionRequestTranslator
+public static partial class ActionRequestTranslator
 {
     public static bool TryBuildCmd(
         int actorId,
@@ -55,6 +55,7 @@
             Kind = ActionKind.Move,
             TargetCell = new GridPos(req.TargetX, req.TargetY),
             ExecuteBeat = executeBeat,
+            Rotation = req.Rotation,
             //JudgeDiffMs = judgeDiffMs,
             ClientSendTimeMs = req.ClientSendTimeMs,
             ServerReceiveTimeMs = serverReceiveMs,
@@ -75,7 +76,8 @@
             Kind = ActionKind.Interact,
             TargetCell = new GridPos(req.TargetX, req.TargetY),
             ExecuteBeat = executeBeat,
-                ClientSendTimeMs = req.ClientSendTimeMs,
+            Rotation = req.Rotation,
+            ClientSendTimeMs = req.ClientSendTimeMs,
             ServerReceiveTimeMs = serverReceiveMs,
         };
         return true;

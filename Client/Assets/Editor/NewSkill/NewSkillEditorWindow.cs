@@ -458,9 +458,7 @@ public class NewSkillEditorWindow : EditorWindow
         }
     }
 
-    // State for Visual Grid
     private int _gridRange = 6;
-    private int _casterSize = 1; // 1x1, 3x3, etc.
 
     private void DrawShapeEditor(ref IShapeDef shape)
     {
@@ -474,6 +472,10 @@ public class NewSkillEditorWindow : EditorWindow
             if (GUILayout.Button("Custom", EditorStyles.miniButtonRight)) shape = new CustomCellsShape();
         }
 
+        // Common Properties for all Shapes
+        shape.CasterSize = EditorGUILayout.IntSlider("Caster Size", shape.CasterSize, 1, 5);
+        shape.RotateWithCaster = EditorGUILayout.Toggle("Rotate With Caster", shape.RotateWithCaster);
+
         if (shape is DiamondShape d) d.Radius = EditorGUILayout.IntField("Radius", d.Radius);
         else if (shape is RectShape r)
         {
@@ -484,13 +486,16 @@ public class NewSkillEditorWindow : EditorWindow
         {
             // Grid Settings used only for visualization in Editor
             EditorGUILayout.BeginHorizontal();
-            _gridRange = EditorGUILayout.IntSlider("Grid Size", _gridRange, 4, 12);
-            _casterSize = EditorGUILayout.IntSlider("Caster Size (Visual)", _casterSize, 1, 5);
+            _gridRange = EditorGUILayout.IntSlider("Grid UI Range", _gridRange, 4, 12);
+            _previewRotation = (PreviewRotation)EditorGUILayout.EnumPopup("Preview Rotation", _previewRotation);
             EditorGUILayout.EndHorizontal();
             
             DrawVisualGrid(c);
         }
     }
+
+    private enum PreviewRotation { Up = 0, Right = 90, Down = 180, Left = 270 }
+    private PreviewRotation _previewRotation = PreviewRotation.Up;
 
     private void DrawVisualGrid(CustomCellsShape shape)
     {
@@ -507,46 +512,93 @@ public class NewSkillEditorWindow : EditorWindow
         
         Vector2 center = r.center;
 
-        // Draw Caster visual footprint (Yellow Box)
-        float casterPixelSize = _casterSize * size;
-        Rect casterRect = new Rect(center.x - casterPixelSize/2f, center.y - casterPixelSize/2f, casterPixelSize, casterPixelSize);
-        EditorGUI.DrawRect(casterRect, new Color(1f, 1f, 0f, 0.2f)); // Translucent Yellow
-        Handles.color = Color.yellow;
-        Handles.DrawWireDisc(center, Vector3.forward, 2f); // Exact Center
+        // 1. Draw Forward Indicator (Arrow)
+        DrawForwardArrow(center, (int)PreviewRotation.Up, size * 2, Color.gray); // Base Forward
+        if (_previewRotation != PreviewRotation.Up)
+            DrawForwardArrow(center, (int)_previewRotation, size * 2, Color.cyan);
 
-        // Draw Cells
+        // 2. Draw Grid Boxes
         for (int y = -range; y <= range; y++)
         {
             for (int x = -range; x <= range; x++)
             {
-                // Coordinates: +X is Right, +Y is Up (Logic)
-                // Drawing: +Y is Down
                 float dx = center.x + x * size - size/2;
                 float dy = center.y - y * size - size/2;
-                Rect cell = new Rect(dx, dy, size, size);
+                Rect cellRect = new Rect(dx, dy, size, size);
 
+                // --- Resolution logic (Local vs Rotated) ---
+                bool isCaster = IsInsideCaster(x, y, shape.CasterSize);
+                
+                // For 'on' check, we use the raw data (Up version)
                 bool on = shape.Cells.Any(p => p.X == x && p.Y == y);
                 
+                // For 'preview' check, we rotate the coordinates back to find if it matches data
+                GridPoint previewPt = RotatePoint(x, y, -(int)_previewRotation);
+                bool previewOn = shape.Cells.Any(p => p.X == previewPt.X && p.Y == previewPt.Y);
+
                 // Coloring
-                if (on) 
-                    EditorGUI.DrawRect(cell, new Color(0.2f, 1f, 0.2f, 0.7f)); // Green Active
-                
+                if (isCaster)
+                    EditorGUI.DrawRect(cellRect, new Color(1f, 1f, 0f, 0.4f)); // Caster (Yellow)
+
+                if (previewOn)
+                    EditorGUI.DrawRect(cellRect, new Color(0.2f, 1f, 0.2f, 0.6f)); // Active (Green)
+
                 // Borders
                 Handles.color = new Color(0.5f, 0.5f, 0.5f, 0.3f);
-                Handles.DrawWireCube(cell.center, cell.size);
+                Handles.DrawWireCube(cellRect.center, cellRect.size);
 
-                // Mouse Interaction
-                if (Event.current.type == EventType.MouseDown && cell.Contains(Event.current.mousePosition))
+                // Interaction (Always Edit the 'Up' version for consistency)
+                if (_previewRotation == PreviewRotation.Up)
                 {
-                    if (on) shape.Cells.RemoveAll(p => p.X == x && p.Y == y);
-                    else shape.Cells.Add(new GridPoint(x, y));
-                    Event.current.Use();
-                    GUI.changed = true;
+                    if (Event.current.type == EventType.MouseDown && cellRect.Contains(Event.current.mousePosition))
+                    {
+                        if (on) shape.Cells.RemoveAll(p => p.X == x && p.Y == y);
+                        else shape.Cells.Add(new GridPoint(x, y));
+                        Event.current.Use();
+                        GUI.changed = true;
+                    }
                 }
             }
         }
         
-        EditorGUILayout.HelpBox($"Drawing on relative coordinates. Center(0,0) is the Caster's pivot.\nYellow Area = Visual reference for a {_casterSize}x{_casterSize} caster.", MessageType.Info);
+        if (_previewRotation != PreviewRotation.Up)
+            EditorGUILayout.HelpBox("Viewing rotated pattern. Toggle to 'Up' to edit cells.", MessageType.Warning);
+        else
+            EditorGUILayout.HelpBox($"Editing Base Pattern (Forward=Up).\nCaster Size: {shape.CasterSize}x{shape.CasterSize}.", MessageType.Info);
+    }
+
+    private void DrawForwardArrow(Vector2 center, int rotationDeg, float length, Color color)
+    {
+        Handles.color = color;
+        Vector3 dir = Quaternion.Euler(0, 0, -rotationDeg) * Vector3.up; 
+        Vector3 start = center;
+        Vector3 end = (Vector3)center + dir * length;
+        
+        Handles.DrawLine(start, end);
+        // Arrow head (simple)
+        Vector3 sideA = Quaternion.Euler(0, 0, 150) * dir * (length * 0.3f);
+        Vector3 sideB = Quaternion.Euler(0, 0, -150) * dir * (length * 0.3f);
+        Handles.DrawLine(end, end + sideA);
+        Handles.DrawLine(end, end + sideB);
+    }
+
+    private bool IsInsideCaster(int x, int y, int size)
+    {
+        int half = size / 2;
+        if (size % 2 == 1) // 1x1, 3x3
+            return (x >= -half && x <= half && y >= -half && y <= half);
+        else // 2x2, 4x4 (pivot is center-offset)
+            return (x >= -half && x < half && y >= -half && y < half);
+    }
+
+    private GridPoint RotatePoint(int x, int y, int deg)
+    {
+        // [Rollback] Reverting to previous working CCW mapping
+        int d = (deg % 360 + 360) % 360;
+        if (d == 90)  return new GridPoint(-y,  x); // Right
+        if (d == 180) return new GridPoint(-x, -y); // Down
+        if (d == 270) return new GridPoint( y, -x); // Left
+        return new GridPoint(x, y);                 // Up (0)
     }
 }
 #endif

@@ -22,6 +22,13 @@ public class EntityVisual : MonoBehaviour
         _animator = animator;
     }
 
+    public void SetRotation(float yAngle)
+    {
+        var e = transform.eulerAngles;
+        e.y = yAngle;
+        transform.eulerAngles = e;
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     //  이동
     // ─────────────────────────────────────────────────────────────────────────

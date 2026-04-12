@@ -11,8 +11,15 @@
           "Action": {
             "Type": 2,
             "Shape": {
-              "ShapeType": 2,
-              "Radius": 2
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
             },
             "Amount": 10,
             "HitPlayers": false,
@@ -50,6 +57,30 @@
             "FmodEventPath": "event:/TestSmith",
             "Volume": 1.0,
             "UseOwnerPerspective": true
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 3",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
           }
         }
       ]
