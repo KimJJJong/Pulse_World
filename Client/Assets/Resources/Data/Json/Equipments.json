@@ -12,7 +12,9 @@
     "max_enhance": 5,
     "sell_price": 50,
     "model_path": "Prefabs/Weapon/Sword001",
-    "icon_path": "Icons/W_Sword001"
+    "icon_path": "Icons/W_Sword001",
+    "normal_attack_skill_id": "",
+    "skill_id": "NoviceSword"
   },
   {
     "id": 100002,
@@ -27,7 +29,9 @@
     "max_enhance": 10,
     "sell_price": 200,
     "model_path": "Prefabs/Weapon/Sword002",
-    "icon_path": "Icons/W_Sword002"
+    "icon_path": "Icons/W_Sword002",
+    "normal_attack_skill_id": "",
+    "skill_id": ""
   },
   {
     "id": 200001,
@@ -42,7 +46,9 @@
     "max_enhance": 5,
     "sell_price": 30,
     "model_path": "Prefabs/Armor/Helm001",
-    "icon_path": "Icons/A_Helm001"
+    "icon_path": "Icons/A_Helm001",
+    "normal_attack_skill_id": "",
+    "skill_id": ""
   },
   {
     "id": 210001,
@@ -57,7 +63,9 @@
     "max_enhance": 5,
     "sell_price": 40,
     "model_path": "Prefabs/Armor/Body001",
-    "icon_path": "Icons/A_Body001"
+    "icon_path": "Icons/A_Body001",
+    "normal_attack_skill_id": "",
+    "skill_id": ""
   },
   {
     "id": 240001,
@@ -72,6 +80,8 @@
     "max_enhance": 10,
     "sell_price": 500,
     "model_path": "Prefabs/Armor/Boots002",
-    "icon_path": "Icons/A_Boots002"
+    "icon_path": "Icons/A_Boots002",
+    "normal_attack_skill_id": "",
+    "skill_id": ""
   }
 ]
