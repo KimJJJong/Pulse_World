@@ -88,6 +88,13 @@ namespace GameServer.InGame.Manager.Beat
             // Entity의 바라보는 방향 업데이트
             if (_world.TryGetEntity(actorId, out var actor))
             {
+                // InputLock 체크: 스킬 시전 중에는 Move를 포함한 모든 입력 차단
+                if (actor.IsInputLocked(judge.ExecuteBeat))
+                {
+                    Console.WriteLine($"[BeatActionManager] [Reject] InputLocked Actor={actorId} Beat={judge.ExecuteBeat} LockEndBeat={actor.InputLockEndBeat}");
+                    return;
+                }
+
                 if (Math.Abs(actor.Rotation - cmd.Rotation) > 0.1f)
                 {
                     Console.WriteLine($"[BeatActionManager] Actor {actorId} Rotation: {actor.Rotation} -> {cmd.Rotation}");
@@ -117,7 +124,8 @@ namespace GameServer.InGame.Manager.Beat
                 Console.WriteLine($"[BeatActionManager] [Resolve] Kind={cmd.Kind} Slot={cmd.SlotIndex} -> SkillId={cmd.SkillId}");
 
                 // 즉각적인 공격 액션 브로드캐스트 (클라이언트 선행 애니메이션용)
-                if (cmd.Kind == ActionKind.Attack || cmd.Kind == ActionKind.Skill)
+                // [Fix] Attack→Skill 통일 후 Skill만 체크
+                if (cmd.Kind == ActionKind.Skill)
                 {
                     _broadcaster.Broadcast(new SC_ActionInstantBroadcast
                     {
@@ -131,29 +139,48 @@ namespace GameServer.InGame.Manager.Beat
             }
         }
 
+        private readonly Dictionary<int, string[]> _activeSkillSlots = new();
+        private readonly Dictionary<int, string> _normalAttackSkillId = new();
+
+        public void InjectSkillSlots(int actorId, string[] activeSkills, string normalAttackSkillId)
+        {
+            _activeSkillSlots[actorId] = activeSkills;
+            _normalAttackSkillId[actorId] = normalAttackSkillId;
+        }
+
         /// <summary>
         /// [Fix] SlotIndex 기반 SkillId 결정.
         /// - Attack kind : "Attack" (무기별 공격은 추후 actor 상태에서 읽을 것)
         /// - Skill kind, SlotIndex == -1 : 일반공격이므로 "Attack"으로 처리
-        /// - Skill kind, SlotIndex >= 0  : "Skill0", "Skill1", ...
+        /// - Skill kind, SlotIndex >= 0  : "_activeSkillSlots" 참조
         /// </summary>
         private void ResolveSkillId(PlayerActionCmd cmd)
         {
+            string normalAttack = _normalAttackSkillId.TryGetValue(cmd.ActorId, out var natk) && !string.IsNullOrEmpty(natk) ? natk : "Attack";
+
             if (cmd.Kind == ActionKind.Attack)
             {
-                cmd.SkillId = "Attack";
+                cmd.SkillId = normalAttack;
+                cmd.Kind = ActionKind.Skill; // [Fix] Attack→Skill 통일
             }
             else if (cmd.Kind == ActionKind.Skill)
             {
                 if (cmd.SlotIndex < 0)
                 {
-                    // SlotIndex -1 = 일반 공격 (Space키) → Attack.json 사용
-                    cmd.SkillId = "Attack";
-                    cmd.Kind = ActionKind.Attack; // 처리 경로도 Attack으로 통일
+                    // SlotIndex -1 = 일반 공격 (Space키)
+                    cmd.SkillId = normalAttack;
+                    cmd.Kind = ActionKind.Skill; // [Fix] Attack case 제거, 모든 공격은 Skill로 통일
                 }
                 else
                 {
-                    cmd.SkillId = $"Skill{cmd.SlotIndex}";
+                    if (_activeSkillSlots.TryGetValue(cmd.ActorId, out var slots) && cmd.SlotIndex >= 0 && cmd.SlotIndex < slots.Length)
+                    {
+                        cmd.SkillId = string.IsNullOrEmpty(slots[cmd.SlotIndex]) ? normalAttack : slots[cmd.SlotIndex];
+                    }
+                    else
+                    {
+                        cmd.SkillId = $"Skill{cmd.SlotIndex}"; // Fallback
+                    }
                 }
             }
         }
@@ -309,6 +336,31 @@ namespace GameServer.InGame.Manager.Beat
         }
 
         /// <summary>
+        /// Dash/Blink 등 스킬 이동 결과를 SC_BeatActions(Move kind)로 클라이언트에 전달.
+        /// 클라이언트 OnBeatAction의 Move 처리경로(StartMove)가 타서 애니메이션이 실행됨.
+        /// </summary>
+        public void BroadcastMoveResult(int actorId, long beatIndex, int fromX, int fromY, int toX, int toY, float rotation, bool accepted)
+        {
+            _broadcaster.Broadcast(new SC_BeatActions
+            {
+                BeatIndex = beatIndex,
+                beatActionResults = new List<SC_BeatActions.BeatActionResult>
+                {
+                    new SC_BeatActions.BeatActionResult
+                    {
+                        ActorId   = actorId,
+                        ActionKind = (int)ActionKind.Move,
+                        FromX = fromX, FromY = fromY,
+                        ToX   = toX,   ToY   = toY,
+                        Rotation  = rotation,
+                        Accepted  = accepted,
+                        hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>()
+                    }
+                }
+            });
+        }
+
+        /// <summary>
         /// Beat 시작마다 호출 (AI Move 등 처리)
         /// </summary>
         public void OnBeat(long beatIndex)
@@ -365,32 +417,32 @@ namespace GameServer.InGame.Manager.Beat
                         if (!accepted) toPos = fromPos;
                         break;
 
-                    case ActionKind.Attack:
-                    {
-                        // [Fix] FrozenPop을 최우선으로 체크 (몬스터 AI 패턴이 미리 등록한 FrozenAttack 처리)
-                        if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
-                        {
-                            if (frozen.CustomDamage.HasValue)
-                                accepted = _world.TryUseCustomSkill(cmd.ActorId, beatIndex * 480, frozen, hpUpdates);
-                            else
-                                accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells, hpUpdates, frozen.HitPlayers, frozen.HitMonsters);
-                        }
-                        else if (!string.IsNullOrEmpty(cmd.SkillId)
-                            && NewSkillDatabase.TryGet(cmd.SkillId, out var attackSkillDef))
-                        {
-                            var runner = new SkillRunner(cmd.ActorId, _world, this, _frozen, _telegraph);
-                            runner.ExecuteInstant(attackSkillDef, beatIndex * 480, cmd.Rotation, hpUpdates);
-                            Console.WriteLine($"[BeatAction] Attack ExecuteInstant: actor={cmd.ActorId} skill={cmd.SkillId} rot={cmd.Rotation} hpUpdates={hpUpdates.Count}");
-                            accepted = true;
-                        }
-                        else
-                        {
-                            // 폴백: 기존 근접 공격
-                            accepted = _world.TryUseAttack(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
-                        }
-                        toPos = fromPos;
-                        break;
-                    }
+                    //case ActionKind.Attack:
+                    //{
+                    //    // [Fix] FrozenPop을 최우선으로 체크 (몬스터 AI 패턴이 미리 등록한 FrozenAttack 처리)
+                    //    if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
+                    //    {
+                    //        if (frozen.CustomDamage.HasValue)
+                    //            accepted = _world.TryUseCustomSkill(cmd.ActorId, beatIndex * 480, frozen, hpUpdates);
+                    //        else
+                    //            accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells, hpUpdates, frozen.HitPlayers, frozen.HitMonsters);
+                    //    }
+                    //    else if (!string.IsNullOrEmpty(cmd.SkillId)
+                    //        && NewSkillDatabase.TryGet(cmd.SkillId, out var attackSkillDef))
+                    //    {
+                    //        var runner = new SkillRunner(cmd.ActorId, _world, this, _frozen, _telegraph);
+                    //        runner.ExecuteInstant(attackSkillDef, beatIndex * 480, cmd.Rotation, hpUpdates);
+                    //        Console.WriteLine($"[BeatAction] Attack ExecuteInstant: actor={cmd.ActorId} skill={cmd.SkillId} rot={cmd.Rotation} hpUpdates={hpUpdates.Count}");
+                    //        accepted = true;
+                    //    }
+                    //    else
+                    //    {
+                    //        // 폴백: 기존 근접 공격
+                    //        accepted = _world.TryUseAttack(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
+                    //    }
+                    //    toPos = fromPos;
+                    //    break;
+                    //}
 
                     case ActionKind.Skill:
                     {

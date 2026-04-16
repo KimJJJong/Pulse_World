@@ -5,16 +5,11 @@ public class EntityVisual : MonoBehaviour
 {
     [Header("Components")]
     [SerializeField] private Animator _animator;
-    [SerializeField] private AudioSource _audioSource;
-
-    [Header("SFX")]
-    [SerializeField] private AudioClip _attackSound;
-    [SerializeField] private AudioClip _skillSound;
+    // [Fix] AudioSource/AudioClip 하드코딩 사운드 제거 — 사운드는 ClientSkillRunner의 SoundAction이 담당
 
     private void Awake()
     {
         if (_animator == null) _animator = GetComponent<Animator>();
-        if (_audioSource == null) _audioSource = GetComponent<AudioSource>();
     }
 
     public void Bind(Animator animator)
@@ -29,13 +24,12 @@ public class EntityVisual : MonoBehaviour
         transform.eulerAngles = e;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     //  이동
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     /// <summary>
     /// start → end 로 duration 초 동안 이동.
-    /// start 파라미터를 실제 출발점으로 사용한다.
     /// 플레이어 예측 이동은 현재 위치(transform.position)를 start로 넘기므로 스냅 없음.
     /// AI 이동은 serverFromW를 넘겨 정확한 출발 타일에서 시작한다.
     /// </summary>
@@ -55,17 +49,12 @@ public class EntityVisual : MonoBehaviour
     private IEnumerator CoMove(Vector3 start, Vector3 end, float duration)
     {
         float t = 0f;
-
-        // ★ 핵심 수정: 현재 렌더 위치에서 부드럽게 보정.
-        //   transform.position = start 를 제거해 순간이동 제거.
-        //   start와 현재 위치 차이가 있어도 end로 부드럽게 수렴.
         Vector3 actualStart = transform.position;
 
         while (t < duration)
         {
             t += Time.deltaTime;
             float alpha = Mathf.Clamp01(t / duration);
-            // actualStart(현재 위치) → end 로 보간
             transform.position = Vector3.Lerp(actualStart, end, alpha);
             yield return null;
         }
@@ -76,9 +65,9 @@ public class EntityVisual : MonoBehaviour
             _animator.SetBool("IsMoving", false);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     //  충돌 피드백: 살짝 갔다가 퉁 튕기는 연출
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     /// <summary>
     /// 이동이 거부된 방향으로 살짝 파고들었다가 원래 위치로 탄성 복귀.
@@ -100,7 +89,6 @@ public class EntityVisual : MonoBehaviour
             _animator.SetBool("IsMoving", true);
         }
 
-        // Phase 1: 목표 방향으로 bumpRatio 만큼 파고들기 (0.07초)
         const float bumpInDuration  = 0.07f;
         const float bumpOutDuration = 0.13f;
 
@@ -116,7 +104,6 @@ public class EntityVisual : MonoBehaviour
         }
         transform.position = bumpTarget;
 
-        // Phase 2: 원래 위치로 SmoothStep 탄성 복귀 (0.13초)
         t = 0f;
         while (t < bumpOutDuration)
         {
@@ -131,20 +118,16 @@ public class EntityVisual : MonoBehaviour
             _animator.SetBool("IsMoving", false);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     //  전투
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
-    public void PlayAttack(float duration, bool isMine = false)
-    {
-        if (_animator != null)
-        {
-            _animator.speed = 2f;
-            _animator.SetTrigger("Attack");
-        }
-        PlaySoundWithTimingLog(_attackSound, "Attack", isMine);
-    }
+    // [Fix] PlayAttack 제거 — Attack/Skill 모두 PlaySkill로 통일.
+    // BoardView, ClientSkillRunner 등 호출부는 PlaySkill()만 사용하세요.
 
+    /// <summary>
+    /// 공격/스킬 애니메이션 재생. 사운드는 ClientSkillRunner의 SoundAction이 담당.
+    /// </summary>
     public void PlaySkill(float duration, bool isMine = false)
     {
         if (_animator != null)
@@ -152,29 +135,24 @@ public class EntityVisual : MonoBehaviour
             _animator.speed = 2f;
             _animator.SetTrigger("Attack");
         }
-        PlaySoundWithTimingLog(_skillSound, "Skill", isMine);
+        // [Fix] 하드코딩 AudioClip 재생 제거 — FMOD SoundAction에서 전담 처리
+        LogTimingIfMine("Skill", isMine);
     }
 
-    private void PlaySoundWithTimingLog(AudioClip clip, string actionName, bool isMine)
+    private void LogTimingIfMine(string actionName, bool isMine)
     {
-        if (_audioSource != null && clip != null)
-            _audioSource.PlayOneShot(clip);
+        if (RhythmClient.Instance == null) return;
+        long serverNowMs = RhythmClient.Instance.GetCurrentServerTimeMs();
+        long nearestBeat = RhythmClient.Instance.GetNearestBeatIndex(serverNowMs);
+        long beatTimeMs  = RhythmClient.Instance.GetBeatTimeMs(nearestBeat);
+        long diff        = serverNowMs - beatTimeMs;
+        Debug.LogWarning($"[SFX Timing] {actionName} Diff to Peak: {diff}ms (Beat:{nearestBeat})");
 
-        if (RhythmClient.Instance != null)
+        if (isMine && RhythmInputController.Instance != null)
         {
-            long serverNowMs  = RhythmClient.Instance.GetCurrentServerTimeMs();
-            long nearestBeat  = RhythmClient.Instance.GetNearestBeatIndex(serverNowMs);
-            long beatTimeMs   = RhythmClient.Instance.GetBeatTimeMs(nearestBeat);
-            long diff         = serverNowMs - beatTimeMs;
-
-            Debug.LogWarning($"[SFX Timing] {actionName} Diff to Peak: {diff}ms (Beat:{nearestBeat})");
-
-            if (isMine && RhythmInputController.Instance != null)
-            {
-                long inputMs = RhythmInputController.LastAttackInputServerTimeMs;
-                if (inputMs > 0)
-                    Debug.LogWarning($"[SFX Timing] {actionName} Diff to Input: {serverNowMs - inputMs}ms");
-            }
+            long inputMs = RhythmInputController.LastAttackInputServerTimeMs;
+            if (inputMs > 0)
+                Debug.LogWarning($"[SFX Timing] {actionName} Diff to Input: {serverNowMs - inputMs}ms");
         }
     }
 

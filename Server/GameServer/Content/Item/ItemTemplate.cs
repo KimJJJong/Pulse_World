@@ -95,4 +95,13 @@ public class EquipmentTemplate : ItemTemplate
 
     [JsonProperty("crit_dmg")]
     public float CritDmg { get; set; }
+
+    [JsonProperty("normal_attack_skill_id")]
+    public string NormalAttackSkillId { get; set; } = string.Empty;
+
+    [JsonProperty("skill_id")]
+    public string SkillId { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public bool HasActiveSkill => !string.IsNullOrEmpty(SkillId);
 }

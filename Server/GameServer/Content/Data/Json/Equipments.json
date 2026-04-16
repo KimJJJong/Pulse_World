@@ -13,7 +13,7 @@
     "sell_price": 50,
     "model_path": "Prefabs/Weapon/Sword001",
     "icon_path": "Icons/W_Sword001",
-    "normal_attack_skill_id": "",
+    "normal_attack_skill_id": "Attack",
     "skill_id": "NoviceSword"
   },
   {
@@ -48,7 +48,7 @@
     "model_path": "Prefabs/Armor/Helm001",
     "icon_path": "Icons/A_Helm001",
     "normal_attack_skill_id": "",
-    "skill_id": ""
+    "skill_id": "HelmetSkill"
   },
   {
     "id": 210001,
@@ -65,7 +65,7 @@
     "model_path": "Prefabs/Armor/Body001",
     "icon_path": "Icons/A_Body001",
     "normal_attack_skill_id": "",
-    "skill_id": ""
+    "skill_id": "ArmorSkill"
   },
   {
     "id": 240001,
@@ -82,6 +82,6 @@
     "model_path": "Prefabs/Armor/Boots002",
     "icon_path": "Icons/A_Boots002",
     "normal_attack_skill_id": "",
-    "skill_id": ""
+    "skill_id": "MoveSkill"
   }
 ]

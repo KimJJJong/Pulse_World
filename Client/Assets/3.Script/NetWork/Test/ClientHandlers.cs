@@ -407,6 +407,23 @@ public class ClientHandlers : MonoBehaviour
         if (InventoryManager.Instance != null)
             InventoryManager.Instance.OnEquipResult(p);
     }
+
+    public void Handle_SC_UpdateSkillSlots(SC_UpdateSkillSlots p)
+    {
+        string tmpItemName = "[";
+        foreach (var item in p.activeSkillSlotss) tmpItemName += (item.SkillId + " | ");
+
+        Debug.Log($"[ClientHandlers] SC_UpdateSkillSlots: NormalAttack={p.NormalAttackSkillId}, Skills={p.activeSkillSlotss.Count} | {tmpItemName} ]");
+        
+        if (RhythmInputController.Instance != null)
+        {
+            RhythmInputController.Instance.SetNormalAttackSkill(p.NormalAttackSkillId);
+            for (int i = 0; i < p.activeSkillSlotss.Count; i++)
+            {
+                RhythmInputController.Instance.SetSkillSlot(i, p.activeSkillSlotss[i].SkillId);
+            }
+        }
+    }
 }
 
 

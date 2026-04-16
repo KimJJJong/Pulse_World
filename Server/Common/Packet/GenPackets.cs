@@ -18,28 +18,29 @@ public enum PacketID
 	SC_TownBeatActions = 10,
 	SC_AllPlayersLoaded = 11,
 	SC_GameBegin = 12,
-	SC_Error = 13,
-	SC_Warn = 14,
-	CS_Ping = 15,
-	SC_Pong = 16,
-	SC_ReturnToTown = 17,
-	SC_InitGame = 18,
-	SC_CalibResult = 19,
-	CS_CalibHit = 20,
-	SC_BeatSync = 21,
-	CS_ActionRequest = 22,
-	SC_ActionInstantBroadcast = 23,
-	SC_CancelAction = 24,
-	SC_BeatActions = 25,
-	SC_BeatTelegraphs = 26,
-	SC_EntityDespawn = 27,
-	SC_EntitySpawn = 28,
-	CS_GetInventory = 29,
-	SC_Inventory = 30,
-	CS_EquipItem = 31,
-	SC_EquipResult = 32,
-	CS_Cheat = 33,
-	CS_DestroyItem = 34,
+	SC_UpdateSkillSlots = 13,
+	SC_Error = 14,
+	SC_Warn = 15,
+	CS_Ping = 16,
+	SC_Pong = 17,
+	SC_ReturnToTown = 18,
+	SC_InitGame = 19,
+	SC_CalibResult = 20,
+	CS_CalibHit = 21,
+	SC_BeatSync = 22,
+	CS_ActionRequest = 23,
+	SC_ActionInstantBroadcast = 24,
+	SC_CancelAction = 25,
+	SC_BeatActions = 26,
+	SC_BeatTelegraphs = 27,
+	SC_EntityDespawn = 28,
+	SC_EntitySpawn = 29,
+	CS_GetInventory = 30,
+	SC_Inventory = 31,
+	CS_EquipItem = 32,
+	SC_EquipResult = 33,
+	CS_Cheat = 34,
+	CS_DestroyItem = 35,
 	
 }
 
@@ -950,6 +951,85 @@ public class SC_GameBegin : IPacket
 		count += sizeof(long);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.startTick);
 		count += sizeof(int);
+		success &= BitConverter.TryWriteBytes(s, count);
+		if (success == false)
+			return null;
+		return SendBufferHelper.Close(count);
+	}
+}
+
+public class SC_UpdateSkillSlots : IPacket
+{
+	public string NormalAttackSkillId;
+	public class ActiveSkillSlots
+	{
+		public string SkillId;
+	
+		public void Read(ReadOnlySpan<byte> s, ref ushort count)
+		{
+			ushort SkillIdLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+			count += sizeof(ushort);
+			this.SkillId = Encoding.Unicode.GetString(s.Slice(count, SkillIdLen));
+			count += SkillIdLen;
+		}
+	
+		public bool Write(Span<byte> s, ref ushort count)
+		{
+			ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+	
+			bool success = true;
+			ushort SkillIdLen = (ushort)Encoding.Unicode.GetBytes(this.SkillId, 0, this.SkillId.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), SkillIdLen);
+			count += sizeof(ushort);
+			count += SkillIdLen;
+			return success;
+		}	
+	}
+	public List<ActiveSkillSlots> activeSkillSlotss = new List<ActiveSkillSlots>();
+
+	public ushort Protocol { get { return (ushort)PacketID.SC_UpdateSkillSlots; } }
+
+	public void Read(ArraySegment<byte> segment)
+	{
+		ushort count = 0;
+
+		ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+		count += sizeof(ushort);
+		count += sizeof(ushort);
+		ushort NormalAttackSkillIdLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+		count += sizeof(ushort);
+		this.NormalAttackSkillId = Encoding.Unicode.GetString(s.Slice(count, NormalAttackSkillIdLen));
+		count += NormalAttackSkillIdLen;
+		this.activeSkillSlotss.Clear();
+		ushort activeSkillSlotsLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+		count += sizeof(ushort);
+		for (int i = 0; i < activeSkillSlotsLen; i++)
+		{
+			ActiveSkillSlots activeSkillSlots = new ActiveSkillSlots();
+			activeSkillSlots.Read(s, ref count);
+			activeSkillSlotss.Add(activeSkillSlots);
+		}
+	}
+
+	public ArraySegment<byte> Write()
+	{
+		ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+		ushort count = 0;
+		bool success = true;
+
+		Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+		count += sizeof(ushort);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.SC_UpdateSkillSlots);
+		count += sizeof(ushort);
+		ushort NormalAttackSkillIdLen = (ushort)Encoding.Unicode.GetBytes(this.NormalAttackSkillId, 0, this.NormalAttackSkillId.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), NormalAttackSkillIdLen);
+		count += sizeof(ushort);
+		count += NormalAttackSkillIdLen;
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)this.activeSkillSlotss.Count);
+		count += sizeof(ushort);
+		foreach (ActiveSkillSlots activeSkillSlots in this.activeSkillSlotss)
+			success &= activeSkillSlots.Write(s, ref count);
 		success &= BitConverter.TryWriteBytes(s, count);
 		if (success == false)
 			return null;

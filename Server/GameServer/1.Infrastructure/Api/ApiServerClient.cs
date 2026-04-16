@@ -20,6 +20,7 @@ public interface IApiServerClient
     Task<T?> GetAsync<T>(string endpoint);
     Task<bool> PostAsync<T>(string endpoint, T payload);
     Task<bool> DeleteAsync(string endpoint);
+    Task<GameServer.Infrastructure.Api.Dto.PlayerStateResponse?> GetPlayerStateAsync(string uid);
 }
 
 public class ApiServerClient : IApiServerClient
@@ -100,5 +101,10 @@ public class ApiServerClient : IApiServerClient
             _logger.LogError(ex, "Failed to DELETE {Endpoint}", endpoint);
             return false;
         }
+    }
+
+    public async Task<GameServer.Infrastructure.Api.Dto.PlayerStateResponse?> GetPlayerStateAsync(string uid)
+    {
+        return await GetAsync<GameServer.Infrastructure.Api.Dto.PlayerStateResponse>($"/api/game/player-state/{uid}");
     }
 }

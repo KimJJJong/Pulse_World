@@ -189,12 +189,75 @@ public sealed class MapWorld2D : IGameWorld
     // ==== 이동 처리 ====
 
     private const bool DBG_MOVE_FAIL = true;
-    private const bool DBG_MOVE_OK = false; // 필요할 때만 true
+    private const bool DBG_MOVE_OK = false;
 
     private void MoveLog(string msg)
     {
         if (!DBG_MOVE_FAIL && !DBG_MOVE_OK) return;
         Console.WriteLine(msg);
+    }
+
+    /// <summary>
+    /// Dash: dirX/dirY 방향으로 distance 칸 이동.
+    /// 도중에 벽/맵내 수없으면 바로 앞 칸(Walkable이었던 마지막 지점)까지만 이동.
+    /// </summary>
+    public bool TryDash(int actorId, int dirX, int dirY, int distance, out GridPos landedPos)
+    {
+        landedPos = default;
+        if (!_entities.TryGetValue(actorId, out var e) || !e.IsAlive) return false;
+
+        GridPos from = e.Position;
+        GridPos best = from; // 이동 가능한 마지막 칸
+
+        for (int step = 1; step <= distance; step++)
+        {
+            int nx = from.X + dirX * step;
+            int ny = from.Y + dirY * step;
+
+            if (!_map.InBounds(nx, ny) || !_map.IsWalkable(nx, ny))
+                break; // 이 칸부터 막힘 — best까지만
+
+            // 점유 코리주얰: 통과 (Dash는 업엀 담까다 지나감)
+            best = new GridPos(nx, ny);
+        }
+
+        if (best.X == from.X && best.Y == from.Y)
+        {
+            Console.WriteLine($"[Dash] Failed: Actor={actorId} dir=({dirX},{dirY}) dist={distance} — no room");
+            return false;
+        }
+
+        // 목표지점으로 이동 (TryMove 개철 기존 Occupancy 체크 가능)
+        bool moved = TryMove(actorId, best);
+        landedPos = moved ? best : from;
+        Console.WriteLine($"[Dash] Actor={actorId} {from.X},{from.Y}->{landedPos.X},{landedPos.Y} moved={moved}");
+        return moved;
+    }
+
+    /// <summary>
+    /// Blink: dirX/dirY 방향으로 distance 칸 지점이 Walkable이면 순간이동.
+    /// 목표지점이 몉 / 차지 중이면 실패 (StopOnObstacle=false 시).
+    /// </summary>
+    public bool TryBlink(int actorId, int dirX, int dirY, int distance, out GridPos landedPos)
+    {
+        landedPos = default;
+        if (!_entities.TryGetValue(actorId, out var e) || !e.IsAlive) return false;
+
+        GridPos from = e.Position;
+        int tx = from.X + dirX * distance;
+        int ty = from.Y + dirY * distance;
+
+        if (!_map.InBounds(tx, ty) || !_map.IsWalkable(tx, ty))
+        {
+            Console.WriteLine($"[Blink] Failed: Actor={actorId} target=({tx},{ty}) — blocked or OOB");
+            return false;
+        }
+
+        GridPos target = new GridPos(tx, ty);
+        bool moved = TryMove(actorId, target);
+        landedPos = moved ? target : from;
+        Console.WriteLine($"[Blink] Actor={actorId} {from.X},{from.Y}->{landedPos.X},{landedPos.Y} moved={moved}");
+        return moved;
     }
 
     public bool TryMove(int actorId, GridPos target)

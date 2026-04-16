@@ -1,0 +1,87 @@
+{
+  "SkillId": "NoviceSword",
+  "TotalDurationTicks": 960,
+  "Tracks": [
+    {
+      "TrackName": "Track 0",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 1,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 2",
+      "Events": [
+        {
+          "TriggerTick": 480,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 1,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 20,
+            "HitPlayers": false,
+            "HitMonsters": true,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 2",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 960,
+          "Action": {
+            "Type": 4
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -59,7 +59,7 @@ public class RhythmInputController : MonoBehaviour
 
     [Header("Skill Slots")]
     [SerializeField] private string _normalAttackSkillId = "Attack";
-    [SerializeField] private string[] _skillSlotIds = new string[4] { "Skill0", "Skill1", "Skill2", "Skill3" };
+    [SerializeField] private string[] _skillSlotIds = new string[4] { "Attack", "Attack", "Attack", "Attack" }; // [Fix] 기본값: 실제 스킬 ID 세팅 전까지 Attack 폴백
 
     public void SetSkillSlot(int slotIndex, string skillId)
     {
@@ -203,6 +203,9 @@ public class RhythmInputController : MonoBehaviour
         long trueLocalNowMs = LocalNowMs() - (long)(ageSec * 1000.0);
 
         if (!PassCooldown(trueLocalNowMs)) return;
+
+        // [서버 권위] 현재 서버 확정 위치(me.X/Y)로만 목표 계산
+        // Prediction 비주얼 선행 제거 — 이동 결과는 SC_BeatActions(Move) 수신 시 처리
         if (!GS.TryGetMyEntity(out var me)) return;
 
         var rdir = RotateDirByTarget(dir);
@@ -212,7 +215,8 @@ public class RhythmInputController : MonoBehaviour
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
         BeatDebugUI_TMP.Instance?.MarkHitNow();
 
-        if (BoardView.Instance != null && Rhythm != null)
+        // Beat 중복 입력 차단 (Prediction 없이도 중복 방지는 유지)
+        if (Rhythm != null)
         {
             long nearestBeat = Rhythm.GetNearestBeatIndex(serverNow);
             long judgeTime   = Rhythm.GetBeatTimeMs(nearestBeat);
@@ -223,11 +227,9 @@ public class RhythmInputController : MonoBehaviour
                 if (_lastActionBeatIndex == nearestBeat)
                 {
                     Debug.Log($"[RhythmInput] Action duplicate (Move) at Beat {nearestBeat} BLOCKED.");
-                    return; 
+                    return;
                 }
-
                 _lastActionBeatIndex = nearestBeat;
-                BoardView.Instance.PlayMovePrediction(me.EntityId, tx, ty, BoardView.Instance.actionDurationRatio);
             }
         }
 
@@ -281,15 +283,21 @@ public class RhythmInputController : MonoBehaviour
 
         if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
 
-        // ActionKind.Attack으로 전송 (서버 ResolveSkillId → "Attack" 고정)
-        SendActionRouted(ActionKind.Attack, tx, ty, serverNow, -1);
+        // [Fix] ActionKind.Skill + SlotIndex=-1 로 통일 전송 (서버 ResolveSkillId에서 normalAttack으로 처리)
+        SendActionRouted(ActionKind.Skill, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;
     }
 
     void HandleSkillInputEvent(string skillId, int slotIndex)
     {
         if (!IsReady() || IsInputBlocked) return;
-        if (string.IsNullOrEmpty(skillId)) return;
+
+        // [Fix] 스킬이 바인드되지 않은 슬롯 입력 차단 + 사용자 경고
+        if (string.IsNullOrEmpty(skillId))
+        {
+            Debug.LogWarning($"[RhythmInput] Slot {slotIndex}: 스킬이 바인드되지 않았습니다. 장비에 Skill을 연결하세요.");
+            return;
+        }
         if (!GS.TryGetMyEntity(out var me)) return;
 
         var rdir = RotateDirByTarget(Vector2Int.up);

@@ -13,8 +13,7 @@ namespace GameServer.Content.Skill
         private long _startTick;
         private bool _isRunning;
         private HashSet<object> _executedEvents = new HashSet<object>();
-        
-        // [Fix] Snapshot for Ground Targeting consistency
+
         private List<GridPos> _cachedWarningCells;
         private float _casterRotationSnapshot;
 
@@ -43,14 +42,13 @@ namespace GameServer.Content.Skill
             _cachedWarningCells = null;
             _casterRotationSnapshot = rotation;
 
-            // Immediately broadcast to clients so they can start visual simulation precisely at currentTick
             _beatActionManager.BroadcastActionInstant(_casterId, ActionKind.Skill, skill.SkillId, currentTick);
         }
 
         /// <summary>
-        /// [즉시 실행] StartSkillTick 없이 스킬을 즉시 실행하고 데미지 결과를 hpUpdates에 담아 반환.
-        /// BeatActionManager의 Attack/Skill 케이스에서 2단계(PutRaw→ScheduleServerCommand) 대신 직접 호출.
-        /// Warning 이벤트는 텔레그래프 패킷으로 처리, Damage 이벤트는 즉시 _map.TryUseCustomSkill로 적용.
+        /// [즉시 실행] StartSkillTick 없이 스킬을 즉시 실행.
+        /// - TriggerTick == 0 : 즉시 처리 (Damage, Warning, InputLock 등)
+        /// - TriggerTick  > 0 : Beat 단위 예약 (Damage만, InputLock도 처리)
         /// </summary>
         public void ExecuteInstant(NewSkillDef skill, long currentTick, float rotation, List<HpUpdate> hpUpdates)
         {
@@ -63,7 +61,6 @@ namespace GameServer.Content.Skill
 
             long currentBeat = currentTick / 480;
 
-            // 모든 TriggerTick == 0인 이벤트를 즉시 처리 (1-Beat 스킬 기준)
             foreach (var track in skill.Tracks)
             {
                 foreach (var evt in track.Events)
@@ -72,10 +69,64 @@ namespace GameServer.Content.Skill
                     {
                         ExecuteActionInstant(evt.Action, (int)currentBeat, evt.DurationTicks, currentTick, hpUpdates);
                     }
+                    else
+                    {
+                        ExecuteActionDelayed(evt.Action, (int)currentBeat, evt.TriggerTick, evt.DurationTicks);
+                    }
                 }
             }
 
             Finish();
+        }
+
+        /// <summary>
+        /// TriggerTick > 0 인 이벤트를 Beat 단위로 예약.
+        /// Damage → PutRaw + ScheduleServerCommand
+        /// InputLock → 시전자 Entity에 즉시 세팅 (잠금 시작은 스킬 시전 시점)
+        /// </summary>
+        private void ExecuteActionDelayed(BaseAction action, int baseBeat, int triggerTick, int durationTicks)
+        {
+            if (action == null) return;
+
+            var type = action.GetSkillActionType();
+
+            // InputLock: TriggerTick > 0이어도 잠금 시작은 스킬 시전(Beat N) 기준
+            if (type == SkillActionType.InputLock)
+            {
+                ProcessInputLock((InputLockAction)action, durationTicks);
+                return;
+            }
+
+            // Damage만 Beat 예약
+            if (type != SkillActionType.Damage) return;
+            if (action is not DamageAction damageAction) return;
+
+            long targetBeat = baseBeat + (triggerTick / 480);
+
+            if (!_map.TryGetActorPosition(_casterId, out GridPos casterPos)) return;
+
+            List<GridPos> targetCells = (_cachedWarningCells != null && _cachedWarningCells.Count > 0)
+                ? _cachedWarningCells
+                : CalculateShapeCells(damageAction.Shape, casterPos);
+
+            _frozen.PutRaw(_casterId, (int)targetBeat, damageAction.Amount, targetCells,
+                damageAction.StunDurationTicks, damageAction.KnockbackDistance,
+                damageAction.HitPlayers, damageAction.HitMonsters);
+
+            var cmd = new PlayerActionCmd
+            {
+                ActorId = _casterId,
+                Kind = ActionKind.Skill,
+                SkillId = _currentSkill?.SkillId ?? "",
+                TargetCell = casterPos,
+                ExecuteBeat = targetBeat,
+                Rotation = _casterRotationSnapshot,
+                ClientSendTimeMs = 0,
+                ServerReceiveTimeMs = 0
+            };
+
+            _beatActionManager.ScheduleServerCommand(targetBeat, cmd);
+            Console.WriteLine($"[SkillRunner] Delayed Damage scheduled: Caster={_casterId} Skill={_currentSkill?.SkillId} Beat={targetBeat} DMG={damageAction.Amount}");
         }
 
         public void UpdateTick(long currentTick)
@@ -105,7 +156,7 @@ namespace GameServer.Content.Skill
                         if (!_executedEvents.Contains(evt))
                         {
                             _executedEvents.Add(evt);
-                            long currentBeat = currentTick / 480; 
+                            long currentBeat = currentTick / 480;
                             ExecuteAction(evt.Action, (int)currentBeat, evt.DurationTicks);
                         }
                     }
@@ -129,7 +180,7 @@ namespace GameServer.Content.Skill
                     ProcessMove((MoveAction)action, currentBeat);
                     break;
                 case SkillActionType.InputLock:
-                    ProcessInputLock((InputLockAction)action);
+                    ProcessInputLock((InputLockAction)action, durationTicks);
                     break;
                 case SkillActionType.Sound:
                     break;
@@ -138,8 +189,7 @@ namespace GameServer.Content.Skill
 
         /// <summary>
         /// ExecuteInstant 용 즉시 액션 처리.
-        /// Damage → 직접 _map.TryUseCustomSkill 호출 (ScheduleServerCommand 사용 안 함).
-        /// Warning → 텔레그래프만 전송.
+        /// Damage → 직접 TryUseCustomSkill, Warning → 텔레그래프, InputLock → Entity 세팅
         /// </summary>
         private void ExecuteActionInstant(BaseAction action, int currentBeat, int durationTicks, long currentTick, List<HpUpdate> hpUpdates)
         {
@@ -150,19 +200,15 @@ namespace GameServer.Content.Skill
                 case SkillActionType.Warning:
                     ProcessWarning((WarningAction)action, currentBeat, durationTicks);
                     break;
-
                 case SkillActionType.Damage:
                     ProcessDamageInstant((DamageAction)action, currentTick, hpUpdates);
                     break;
-
                 case SkillActionType.Move:
                     ProcessMove((MoveAction)action, currentBeat);
                     break;
-
                 case SkillActionType.InputLock:
-                    ProcessInputLock((InputLockAction)action);
+                    ProcessInputLock((InputLockAction)action, durationTicks);
                     break;
-
                 case SkillActionType.Sound:
                     break;
             }
@@ -207,10 +253,6 @@ namespace GameServer.Content.Skill
             _telegraph.Schedule(currentBeat, tg);
         }
 
-        /// <summary>
-        /// [기존 2단계 방식] PutRaw → ScheduleServerCommand.
-        /// MonsterAI 패턴 스킬 등 비동기 실행이 필요한 경우에 사용.
-        /// </summary>
         private void ProcessDamage(DamageAction action, int currentBeat)
         {
             if (!_map.TryGetActorPosition(_casterId, out GridPos casterPos))
@@ -220,15 +262,8 @@ namespace GameServer.Content.Skill
                 ? _cachedWarningCells
                 : CalculateShapeCells(action.Shape, casterPos);
 
-            if (targetCells.Count > 0)
-            {
-                Console.WriteLine($"[Skill_Sync] [ProcessDamage] Caster={_casterId} Rot={_casterRotationSnapshot} Origin=({casterPos.X},{casterPos.Y}) FirstCell=({targetCells[0].X},{targetCells[0].Y}) Rel=({targetCells[0].X - casterPos.X},{targetCells[0].Y - casterPos.Y})");
-            }
-
-            // 1. FrozenRegistry에 등록
             _frozen.PutRaw(_casterId, currentBeat, action.Amount, targetCells, action.StunDurationTicks, action.KnockbackDistance, action.HitPlayers, action.HitMonsters);
 
-            // 2. 다음 OnJudgeWindowEnd에서 실행될 Skill 커맨드 예약
             var cmd = new PlayerActionCmd
             {
                 ActorId = _casterId,
@@ -243,10 +278,6 @@ namespace GameServer.Content.Skill
             _beatActionManager.ScheduleServerCommand(currentBeat, cmd);
         }
 
-        /// <summary>
-        /// [즉시 실행 방식] 플레이어 공격 OnJudgeWindowEnd 시점에 직접 데미지 적용.
-        /// PutRaw + ScheduleServerCommand의 2단계 구조를 거치지 않아 Beat 오차 없음.
-        /// </summary>
         private void ProcessDamageInstant(DamageAction action, long currentTick, List<HpUpdate> hpUpdates)
         {
             if (!_map.TryGetActorPosition(_casterId, out GridPos casterPos))
@@ -261,7 +292,6 @@ namespace GameServer.Content.Skill
                 Console.WriteLine($"[Skill_Sync] [ProcessInstant] Caster={_casterId} Rot={_casterRotationSnapshot} Origin=({casterPos.X},{casterPos.Y}) FirstCell=({targetCells[0].X},{targetCells[0].Y}) Rel=({targetCells[0].X - casterPos.X},{targetCells[0].Y - casterPos.Y})");
             }
 
-            // FrozenAttack 구조를 재활용해서 _map.TryUseCustomSkill 호출
             var frozen = new FrozenAttackRegistry.FrozenAttack
             {
                 SkillId = _currentSkill?.SkillId ?? "",
@@ -281,29 +311,105 @@ namespace GameServer.Content.Skill
             if (!_map.TryGetActorPosition(_casterId, out GridPos currentPos))
                 return;
 
-            GridPos targetPos = new GridPos(
-                currentPos.X + action.DirectionX * action.Distance,
-                currentPos.Y + action.DirectionY * action.Distance
-            );
+            // Move용 회전: 스킬 JSON Dir은 Forward=+Y 기준, +180 offset 없이 순수 회전
+            var rotated = RotateDirForMove(action.DirectionX, action.DirectionY, _casterRotationSnapshot);
+            int dirX = rotated.X;
+            int dirY = rotated.Y;
 
-            var cmd = new PlayerActionCmd
+            GridPos targetPos;
+            bool success;
+
+            switch (action.MoveType)
             {
-                ActorId = _casterId,
-                Kind = ActionKind.Move,
-                TargetCell = targetPos,
-                ExecuteBeat = currentBeat,
-                ClientSendTimeMs = 0,
-                ServerReceiveTimeMs = 0
-            };
+                case MoveType.Dash:
+                    success = _map.TryDash(_casterId, dirX, dirY, action.Distance, out targetPos);
+                    if (!success) targetPos = currentPos;
+                    break;
 
-            _beatActionManager.ScheduleServerCommand(currentBeat, cmd);
+                case MoveType.Blink:
+                    success = _map.TryBlink(_casterId, dirX, dirY, action.Distance, out targetPos);
+                    if (!success) targetPos = currentPos;
+                    break;
+
+                default: // Walk
+                    targetPos = new GridPos(
+                        currentPos.X + dirX * action.Distance,
+                        currentPos.Y + dirY * action.Distance);
+                    success = true;
+                    break;
+            }
+
+            if (action.MoveType == MoveType.Walk)
+            {
+                // Walk: BeatScheduler를 통해 이동 (TryMove)
+                var cmd = new PlayerActionCmd
+                {
+                    ActorId = _casterId,
+                    Kind = ActionKind.Move,
+                    TargetCell = targetPos,
+                    ExecuteBeat = currentBeat,
+                    Rotation = _casterRotationSnapshot,
+                    ClientSendTimeMs = 0,
+                    ServerReceiveTimeMs = 0
+                };
+                _beatActionManager.ScheduleServerCommand(currentBeat, cmd);
+            }
+            else
+            {
+                // Dash/Blink: 이미 직접 이동 완료 — 클라이언트에 Move 결과 브로드캐스트
+                // 클라이언트 OnBeatAction(Move) 통해 StartMove 호출되어 애니메이션 실행
+                _beatActionManager.BroadcastMoveResult(
+                    _casterId,
+                    currentBeat,
+                    fromX: currentPos.X, fromY: currentPos.Y,
+                    toX: targetPos.X,   toY: targetPos.Y,
+                    rotation: _casterRotationSnapshot,
+                    accepted: success);
+
+                Console.WriteLine($"[SkillRunner] {action.MoveType} Caster={_casterId} ({currentPos.X},{currentPos.Y})->({targetPos.X},{targetPos.Y}) success={success}");
+            }
         }
 
-        private void ProcessInputLock(InputLockAction action)
+        /// <summary>
+        /// Move 전용 회전: +180 offset 없이 순수하게 방향 회전
+        /// 에디터에서 Forward=+Y 기준으로 설정한 Dir을 실제 바라보는 방향으로 변환
+        /// </summary>
+        private GridPoint RotateDirForMove(int x, int y, float rotation)
         {
-            // InputLock 로직 구현
+            int deg = (int)((rotation + 45) / 90) * 90;
+            deg = (deg % 360 + 360) % 360;
+
+            if (deg == 90)  return new GridPoint( y, -x); // East
+            if (deg == 180) return new GridPoint(-x, -y); // South
+            if (deg == 270) return new GridPoint(-y,  x); // West
+            return new GridPoint(x, y);                  // North (0)
         }
-        
+
+        /// <summary>Shape 회전에 사용 (Attack 방향 보정 +180 offset 포함)</summary>
+        private GridPoint RotateDir(int x, int y, float rotation)
+        {
+            return RotateGridPoint(x, y, rotation);
+        }
+
+        /// <summary>
+        /// InputLock: 시전자 Entity에 입력 봉인 Beat 세팅.
+        /// durationTicks 기준으로 lockEndBeat 계산.
+        /// 더 늦게 끝나는 Lock이 이미 세팅된 경우 갱신(최대값 유지).
+        /// </summary>
+        private void ProcessInputLock(InputLockAction action, int durationTicks)
+        {
+            if (!_map.TryGetEntity(_casterId, out var caster)) return;
+
+            // _startTick + durationTicks 까지 잠금 (Beat 올림 변환)
+            long lockEndBeat = (_startTick + durationTicks + 479) / 480;
+
+            if (lockEndBeat > caster.InputLockEndBeat)
+            {
+                caster.InputLockEndBeat = lockEndBeat;
+                Console.WriteLine($"[SkillRunner] InputLock: Caster={_casterId} LockEndBeat={lockEndBeat} (Skill={_currentSkill?.SkillId}, DurationTicks={durationTicks})");
+            }
+        }
+
         // --------------------------------------------------------------------
         // Helpers
         // --------------------------------------------------------------------
@@ -350,15 +456,14 @@ namespace GameServer.Content.Skill
 
         private GridPoint RotateGridPoint(int x, int y, float rotation)
         {
-            // [Sync] Match ClientSkillRunner's logic (including +180 offset for model forward Z-)
             float corrected = rotation + 180f;
             int deg = (int)((corrected + 45) / 90) * 90;
             deg = (deg % 360 + 360) % 360;
 
-            if (deg == 90)  return new GridPoint( y, -x); // Right
-            if (deg == 180) return new GridPoint(-x, -y); // Down
-            if (deg == 270) return new GridPoint(-y,  x); // Left
-            return new GridPoint(x, y);                  // Up (0)
+            if (deg == 90)  return new GridPoint( y, -x);
+            if (deg == 180) return new GridPoint(-x, -y);
+            if (deg == 270) return new GridPoint(-y,  x);
+            return new GridPoint(x, y);
         }
     }
 }

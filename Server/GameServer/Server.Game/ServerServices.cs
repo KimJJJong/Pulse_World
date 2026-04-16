@@ -1,4 +1,4 @@
-﻿using Server.Domain.Auth;
+using Server.Domain.Auth;
 using Server.Domain.Connections;
 using System;
 
@@ -15,6 +15,8 @@ public static class ServerServices
     // Inventory
     public static GameServer.Content.Item.InventoryManager InventoryManager => GetRequired<GameServer.Content.Item.InventoryManager>();
     public static GameServer.Content.Item.ItemTemplateManager ItemTemplates => GetRequired<GameServer.Content.Item.ItemTemplateManager>();
+    
+    public static GameServer.Infrastructure.Api.IApiServerClient ApiClient => GetRequired<GameServer.Infrastructure.Api.IApiServerClient>();
 
     // (필요하면) CP client, options 등도 동일 패턴으로 노출 가능
     // public static GrpcControlPlaneClient Cp => GetRequired<GrpcControlPlaneClient>();

@@ -1,0 +1,2 @@
+2026-04-15 17:25:57.800 +09:00 [WRN] Auth Failed: Token Expired. IP=127.0.0.1, Path=/session/ticket/town
+2026-04-15 20:40:48.245 +09:00 [WRN] Auth Failed: Token Expired. IP=127.0.0.1, Path=/rooms

@@ -1,0 +1,255 @@
+{
+  "SkillId": "HelmetSkill",
+  "TotalDurationTicks": 1440,
+  "Tracks": [
+    {
+      "TrackName": "Track 0",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": -1,
+                  "Y": 0
+                },
+                {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 1,
+                  "Y": -1
+                },
+                {
+                  "X": 1,
+                  "Y": 0
+                },
+                {
+                  "X": 1,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": 1
+                },
+                {
+                  "X": -1,
+                  "Y": 1
+                },
+                {
+                  "X": -2,
+                  "Y": 1
+                },
+                {
+                  "X": -2,
+                  "Y": 0
+                },
+                {
+                  "X": -2,
+                  "Y": -1
+                },
+                {
+                  "X": -2,
+                  "Y": -2
+                },
+                {
+                  "X": -1,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": 1,
+                  "Y": -2
+                },
+                {
+                  "X": 2,
+                  "Y": -2
+                },
+                {
+                  "X": 2,
+                  "Y": -1
+                },
+                {
+                  "X": 2,
+                  "Y": 0
+                },
+                {
+                  "X": 2,
+                  "Y": 1
+                },
+                {
+                  "X": 2,
+                  "Y": 2
+                },
+                {
+                  "X": 1,
+                  "Y": 2
+                },
+                {
+                  "X": 0,
+                  "Y": 2
+                },
+                {
+                  "X": -1,
+                  "Y": 2
+                },
+                {
+                  "X": -2,
+                  "Y": 2
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 1",
+      "Events": [
+        {
+          "TriggerTick": 480,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": -1,
+                  "Y": 0
+                },
+                {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 1,
+                  "Y": -1
+                },
+                {
+                  "X": 1,
+                  "Y": 0
+                },
+                {
+                  "X": 1,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": 1
+                },
+                {
+                  "X": -1,
+                  "Y": 1
+                },
+                {
+                  "X": -2,
+                  "Y": 2
+                },
+                {
+                  "X": -2,
+                  "Y": 1
+                },
+                {
+                  "X": -2,
+                  "Y": 0
+                },
+                {
+                  "X": -2,
+                  "Y": -1
+                },
+                {
+                  "X": -2,
+                  "Y": -2
+                },
+                {
+                  "X": -1,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": 1,
+                  "Y": -2
+                },
+                {
+                  "X": 2,
+                  "Y": -2
+                },
+                {
+                  "X": 2,
+                  "Y": -1
+                },
+                {
+                  "X": 2,
+                  "Y": 0
+                },
+                {
+                  "X": 2,
+                  "Y": 1
+                },
+                {
+                  "X": 2,
+                  "Y": 2
+                },
+                {
+                  "X": 1,
+                  "Y": 2
+                },
+                {
+                  "X": 0,
+                  "Y": 2
+                },
+                {
+                  "X": -1,
+                  "Y": 2
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 50,
+            "HitPlayers": false,
+            "HitMonsters": true,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 2",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 1440,
+          "Action": {
+            "Type": 4
+          }
+        }
+      ]
+    }
+  ]
+}

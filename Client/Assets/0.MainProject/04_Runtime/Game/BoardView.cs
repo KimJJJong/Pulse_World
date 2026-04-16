@@ -387,67 +387,38 @@ public class BoardView : MonoBehaviour, IClientWorldView
         // ── Move 처리 ──────────────────────────────────────────────────────────
         if (action.ActionKind == (int)ActionKind.Move)
         {
+            // [서버 권위] Prediction 검증 완전 제거
+            // 서버에서 확정된 From/To를 무조건 사용해 위치 동기화
+            _recentPredictedMoves.Remove(action.ActorId); // 혹시 남아있는 예측 캐시 정리
+
             Vector3 serverFromW = GridToWorld(action.FromX, action.FromY);
             Vector3 serverToW   = GridToWorld(action.ToX,   action.ToY);
 
-            // 내 플레이어: Client-Side Prediction 검증
-            if (action.ActorId == ClientGameState.Instance.MyActorId
-                && _recentPredictedMoves.TryGetValue(action.ActorId, out var pred))
-            {
-                _recentPredictedMoves.Remove(action.ActorId);
-
-                bool predictionHit = action.Accepted
-                                  && action.ToX == pred.predictedTile.x
-                                  && action.ToY == pred.predictedTile.y;
-
-                if (predictionHit)
-                {
-                    // ✅ 예측 성공 + 서버 수락 → 이미 이동 완료, 아무것도 안 함
-                    return;
-                }
-                else if (!action.Accepted)
-                {
-                    // ❌ 서버 거부 → 예측 위치에서 원래 위치로 BumpBack
-                    Vector3 predictedW = GridToWorldPublic(pred.predictedTile.x, pred.predictedTile.y);
-                    visual.PlayBumpBack(predictedW, pred.fromWorld);
-                    Debug.Log($"[Prediction] Rejected → BumpBack ({pred.predictedTile.x},{pred.predictedTile.y}) → ({action.FromX},{action.FromY})");
-                    return;
-                }
-                else
-                {
-                    // ❌ 수락됐지만 다른 타일 확정 → 현재 위치에서 서버 확정 위치로 이동
-                    visual.StartMove(visual.transform.position, serverToW, duration);
-                    Debug.Log($"[Prediction] Mismatch → Correcting to server ({action.ToX},{action.ToY})");
-                    return;
-                }
-            }
-
-            // 다른 Entity (몬스터 / 다른 플레이어)
             if (!action.Accepted)
             {
-                // 서버 이동 거부 → 시도 방향으로 살짝 갔다가 복귀 (BumpBack)
-                // serverFromW 기준으로 복귀해야 현재 렌더 위치가 어디든 정확히 원래 칸으로 돌아옴
+                // 서버 거부: 시도 방향으로 살짝 BumpBack
                 visual.PlayBumpBack(serverToW, serverFromW);
                 return;
             }
 
-            // ✅ 이동 수락: serverFromW(서버 출발 위치)부터 serverToW(서버 도착 위치)로 이동.
-            // visual.transform.position 대신 serverFromW를 사용해야
-            // 플레이어가 AI 예정 칸에 있어도 올바른 위치에서 시작한다.
-            // 단, 현재 렌더 위치와 serverFromW 차이가 크면 스냅 방지를 위해 현재 위치 사용.
-            {
-                float snapThreshold = 0.5f; // 이 거리 이내면 현재 위치, 초과면 serverFromW 스냅
-                float distFromServer = Vector3.Distance(visual.transform.position, serverFromW);
-                Vector3 moveStart = distFromServer <= snapThreshold
-                    ? visual.transform.position   // 가까우면 현재 렌더 위치(부드러운 보간)
-                    : serverFromW;                 // 멀면 serverFromW로 스냅 후 이동
-                visual.StartMove(moveStart, serverToW, duration);
-            }
+            // 이동 거리 > 1칸이면 Dash/스킬 이동 → 빠른 duration
+            int distanceTiles = Mathf.RoundToInt(Vector3.Distance(serverFromW, serverToW) / cellSize);
+            float moveDuration = distanceTiles > 1 ? duration * 0.4f : duration;
+
+            // 렌더 위치가 서버 From과 가까우면 현재 위치에서, 멀면 서버 From으로 스냅 후 이동
+            float snapThreshold = 0.5f;
+            float distFromServer = Vector3.Distance(visual.transform.position, serverFromW);
+            Vector3 moveStart = distFromServer <= snapThreshold
+                ? visual.transform.position
+                : serverFromW;
+
+            visual.StartMove(moveStart, serverToW, moveDuration);
             visual.SetRotation(action.Rotation);
             return;
         }
 
         // ── Attack / Skill ────────────────────────────────────────────────────
+        // [Fix] Attack→Skill 통일: Attack/Skill 모두 PlaySkillInstant 경로로 처리
         if (!action.Accepted) return;
 
         bool isAttackOrSkill = action.ActionKind == (int)ActionKind.Attack
@@ -458,24 +429,28 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 && Time.time - lastTime < 1.5f)
             {
                 _recentInstantActions.Remove(action.ActorId);
+                // [Fix] 이미 PlaySkillInstant에서 SetRotation 완료한 경우는
+                //       SC_BeatActions의 Rotation으로 덧쓰우지 않는다
                 return;
             }
             _recentInstantActions.Remove(action.ActorId);
+
+            // [Fix] 2Beat 스킬의 두 번째 패킷(Delayed Damage) 처리:
+            // ClientSkillRunner가 아직 실행 중이면 애니메이션 재시작과 SetRotation 쓸는 것을 방지
+            if (_activeSkillRunners.TryGetValue(action.ActorId, out var activeRunner) && activeRunner != null)
+                return;
         }
 
-        bool isMine = ClientGameState.Instance != null
-                   && action.ActorId == ClientGameState.Instance.MyActorId;
-
-        if (action.ActionKind == (int)ActionKind.Attack)
+        // Attack/Skill 모두 PlaySkill로 통일 (Animation + 사운드는 ClientSkillRunner가 처리)
+        if (isAttackOrSkill)
         {
-            visual.PlayAttack(duration, isMine);
-            FMODActionSoundPlayer.Instance?.PlayAttackSound(isMine);
-        }
-        else if (action.ActionKind == (int)ActionKind.Skill)
-        {
+            bool isMine = ClientGameState.Instance != null
+                       && action.ActorId == ClientGameState.Instance.MyActorId;
             visual.PlaySkill(duration, isMine);
         }
 
+        // [Fix] Attack/Skill Rotation: instant 쾐시가 없어서 여기까지 내려온 케이스만
+        //       SetRotation 적용 (타 플레이어 / 모두 줄어듦)
         visual.SetRotation(action.Rotation);
     }
 
@@ -489,12 +464,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         bool isMine = (ClientGameState.Instance != null && actorId == ClientGameState.Instance.MyActorId);
 
-        if (kind == ActionKind.Attack)
-        {
-            visual.PlayAttack(duration, isMine);
-            FMODActionSoundPlayer.Instance?.PlayAttackSound(isMine);
-        }
-        else if (kind == ActionKind.Skill)
+        // [Fix] Attack→Skill 통일: Attack/Skill 모두 PlaySkill 호웈 (사운드는 ClientSkillRunner가 실행)
+        if (kind == ActionKind.Attack || kind == ActionKind.Skill)
         {
             visual.PlaySkill(duration, isMine);
         }

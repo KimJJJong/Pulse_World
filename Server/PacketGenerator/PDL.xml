@@ -135,6 +135,14 @@
 		<int  name="startTick"/><!-- 동시 시작 tick -->
 	</packet>
 
+	<!-- 게임서버 -> 클라: 스킬 슬롯/기본공격 통보 -->
+	<packet name="SC_UpdateSkillSlots">
+		<string name="NormalAttackSkillId"/>
+		<list name="ActiveSkillSlots">
+			<string name="SkillId"/>
+		</list>
+	</packet>
+
 	<!-- 공통 -->
 	<packet name="SC_Error">
 		<int name="code"/>

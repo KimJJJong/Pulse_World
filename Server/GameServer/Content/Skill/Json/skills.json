@@ -1,19 +1,30 @@
 {
-  "Skills": [
+  "SkillId": "Attack",
+  "TotalDurationTicks": 480,
+  "Tracks": [
     {
-      "SkillId": "AoE_3x3_Self",
-      "CooldownBeats": 0,
-      "Damage": 10,
-      "BlockedByWall": false,
-      "Shape": 1,
-      "ParamA": 3,
-      "ParamB": 3,
-      "DirType": 0,
-      "FixedDir": 0,
-      "HitPlayers": true,
-      "HitMonsters": false,
-      "Ticks": 2,
-      "TickIntervalBeats": 1
+      "TrackName": "Base Track",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 0,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 1,
+              "Width": 1,
+              "Height": 2,
+              "RotateWithCaster": true,
+              "CasterSize": 1
+            },
+            "Amount": 10,
+            "HitPlayers": false,
+            "HitMonsters": true,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0
+          }
+        }
+      ]
     }
   ]
 }

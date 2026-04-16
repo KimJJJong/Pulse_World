@@ -28,6 +28,11 @@ public  class MapEntity
     public long StunEndTick { get; set; } = 0;
     public bool IsStunned(long currentTick) => currentTick < StunEndTick;
 
+    // InputLock: 스킬 시전 중 입력 봉인 (해당 Beat까지)
+    // 스킬 JSON의 InputLockAction.DurationTicks 기준으로 세팅
+    public long InputLockEndBeat { get; set; } = 0;
+    public bool IsInputLocked(long currentBeat) => currentBeat < InputLockEndBeat;
+
     // 상태: "HP", "Stun", ~~
     private readonly Dictionary<string, object> _states = new();
 

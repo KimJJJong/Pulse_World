@@ -62,6 +62,9 @@ namespace Client.Content.Item
         public float crit_dmg;
         public string model_path;
 
+        public string normal_attack_skill_id;
+        public string skill_id;
+
         public EquipmentSlot SlotEnum => System.Enum.TryParse(equip_slot, true, out EquipmentSlot res) ? res : EquipmentSlot.None;
     }
 }

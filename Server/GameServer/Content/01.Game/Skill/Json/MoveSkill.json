@@ -1,0 +1,23 @@
+{
+  "SkillId": "MoveSkill",
+  "TotalDurationTicks": 480,
+  "Tracks": [
+    {
+      "TrackName": "Track 0",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 3,
+            "MoveType": 1,
+            "Distance": 2,
+            "DirectionX": 0,
+            "DirectionY": 1,
+            "StopOnObstacle": true
+          }
+        }
+      ]
+    }
+  ]
+}

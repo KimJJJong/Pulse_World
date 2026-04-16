@@ -86,4 +86,7 @@ public class EquipmentTemplateDto : ItemTemplateDto
     [JsonPropertyName("base_hp")] public int Hp { get; set; }
     [JsonPropertyName("base_str")] public int Str { get; set; }
     [JsonPropertyName("base_dex")] public int Dex { get; set; }
+    
+    [JsonPropertyName("normal_attack_skill_id")] public string NormalAttackSkillId { get; set; } = string.Empty;
+    [JsonPropertyName("skill_id")] public string SkillId { get; set; } = string.Empty;
 }

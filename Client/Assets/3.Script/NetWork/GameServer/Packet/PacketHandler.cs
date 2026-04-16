@@ -203,4 +203,7 @@ class PacketHandler
 
     public static void SC_EquipResultHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_EquipResult((SC_EquipResult)packet);
+
+    public static void SC_UpdateSkillSlotsHandler(PacketSession session, IPacket packet)
+        => ClientHandlers.Instance.Handle_SC_UpdateSkillSlots((SC_UpdateSkillSlots)packet);
 }

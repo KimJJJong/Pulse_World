@@ -438,9 +438,31 @@ public class NewSkillEditorWindow : EditorWindow
                 break;
             case MoveAction m:
                 m.MoveType = (MoveType)EditorGUILayout.EnumPopup("Move Type", m.MoveType);
-                m.Distance = EditorGUILayout.IntField("Distance", m.Distance);
-                m.DirectionX = EditorGUILayout.IntField("Dir X", m.DirectionX);
-                m.DirectionY = EditorGUILayout.IntField("Dir Y", m.DirectionY);
+                m.Distance = EditorGUILayout.IntSlider("Distance (Tiles)", m.Distance, 1, 10);
+                m.StopOnObstacle = EditorGUILayout.Toggle("Stop On Obstacle", m.StopOnObstacle);
+
+                // 방향 시각화: 플레이어 기준 앞/뒤/왼/우 버튼
+                EditorGUILayout.Space(4);
+                EditorGUILayout.LabelField("Direction (Player-Relative)", EditorStyles.miniBoldLabel);
+
+                // 현재 방향 표시
+                string curDirLabel = GetDirLabel(m.DirectionX, m.DirectionY);
+                EditorGUILayout.LabelField($"  Current: {curDirLabel}  (X={m.DirectionX}, Y={m.DirectionY})",
+                    EditorStyles.helpBox);
+
+                // 3x3 방향 그리드
+                float btnSize = 36f;
+                EditorGUILayout.Space(2);
+                DrawDirGrid(m, btnSize);
+
+                if (m.MoveType == MoveType.Dash)
+                    EditorGUILayout.HelpBox(
+                        "Dash: 이동 중 벽이 막하면 바로 앞 지점까지만 이동.",
+                        MessageType.None);
+                else if (m.MoveType == MoveType.Blink)
+                    EditorGUILayout.HelpBox(
+                        "Blink: 목표지점이 철스 가능하면 순간이동, 아니면 실패.",
+                        MessageType.None);
                 break;
             case InputLockAction i:
                 EditorGUILayout.HelpBox("Locks Input.", MessageType.None);
@@ -599,6 +621,89 @@ public class NewSkillEditorWindow : EditorWindow
         if (d == 180) return new GridPoint(-x, -y); // Down
         if (d == 270) return new GridPoint( y, -x); // Left
         return new GridPoint(x, y);                 // Up (0)
+    }
+
+    // -----------------------------------------------------------------------
+    // MoveAction Dir Helpers
+    // -----------------------------------------------------------------------
+
+    private static string GetDirLabel(int dx, int dy)
+    {
+        if (dx ==  0 && dy ==  1) return "\u2191 Forward";
+        if (dx ==  0 && dy == -1) return "\u2193 Back";
+        if (dx == -1 && dy ==  0) return "\u2190 Left";
+        if (dx ==  1 && dy ==  0) return "\u2192 Right";
+        if (dx ==  1 && dy ==  1) return "\u2197 Fwd-Right";
+        if (dx == -1 && dy ==  1) return "\u2196 Fwd-Left";
+        if (dx ==  1 && dy == -1) return "\u2198 Back-Right";
+        if (dx == -1 && dy == -1) return "\u2199 Back-Left";
+        if (dx ==  0 && dy ==  0) return "(None)";
+        return $"({dx},{dy})";
+    }
+
+    /// <summary>
+    /// 3x3 막대 마우스 클릭으로 방향 선택.
+    /// 그리드 좌표: Y축 위 = Forward(+Y), 아래 = Back(-Y)
+    /// 중앙(0,0)은 비활성 (None 상태)
+    /// </summary>
+    private void DrawDirGrid(MoveAction m, float btnSize)
+    {
+        // 레이아웃 중앙 정렬
+        GUILayout.BeginHorizontal();
+        GUILayout.FlexibleSpace();
+        GUILayout.BeginVertical();
+
+        // 행 순서: +Y(Forward)를 위로
+        for (int row = 1; row >= -1; row--)
+        {
+            GUILayout.BeginHorizontal();
+            for (int col = -1; col <= 1; col++)
+            {
+                int dx = col;   // X: -1=Left, 0=Center, +1=Right
+                int dy = row;   // Y: -1=Back, 0=Center, +1=Forward
+
+                bool isCenter = (dx == 0 && dy == 0);
+                bool isSelected = (m.DirectionX == dx && m.DirectionY == dy);
+
+                string label = GetGridBtnLabel(dx, dy);
+
+                // 선택 색 vs 일반 색
+                Color normalBg  = isCenter ? new Color(0.25f,0.25f,0.25f) : new Color(0.35f,0.35f,0.35f);
+                Color selectedBg = new Color(0.2f, 0.6f, 1f);
+
+                Color prev = GUI.backgroundColor;
+                GUI.backgroundColor = isSelected ? selectedBg : normalBg;
+
+                EditorGUI.BeginDisabledGroup(isCenter);
+                if (GUILayout.Button(label, GUILayout.Width(btnSize), GUILayout.Height(btnSize)))
+                {
+                    m.DirectionX = dx;
+                    m.DirectionY = dy;
+                    GUI.changed = true;
+                }
+                EditorGUI.EndDisabledGroup();
+
+                GUI.backgroundColor = prev;
+            }
+            GUILayout.EndHorizontal();
+        }
+
+        GUILayout.EndVertical();
+        GUILayout.FlexibleSpace();
+        GUILayout.EndHorizontal();
+    }
+
+    private static string GetGridBtnLabel(int dx, int dy)
+    {
+        if (dx ==  0 && dy ==  1) return "\u2191\nFwd";
+        if (dx ==  0 && dy == -1) return "\u2193\nBck";
+        if (dx == -1 && dy ==  0) return "\u2190\nL";
+        if (dx ==  1 && dy ==  0) return "\u2192\nR";
+        if (dx ==  1 && dy ==  1) return "\u2197";
+        if (dx == -1 && dy ==  1) return "\u2196";
+        if (dx ==  1 && dy == -1) return "\u2198";
+        if (dx == -1 && dy == -1) return "\u2199";
+        return "\u25A0"; // center
     }
 }
 #endif

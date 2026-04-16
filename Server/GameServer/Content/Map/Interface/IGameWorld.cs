@@ -10,6 +10,12 @@ public interface IGameWorld
     bool TryGetEntity(int entityId, out MapEntity entity);
 
     bool TryMove(int actorId, GridPos target);
+
+    /// <summary>Dash: Distance 칸 이동, 도중 벽이면 바로 앞까지만.</summary>
+    bool TryDash(int actorId, int dirX, int dirY, int distance, out GridPos landedPos);
+
+    /// <summary>Blink: 목표지점이 Walkable이면 순간이동, 아니면 실패.</summary>
+    bool TryBlink(int actorId, int dirX, int dirY, int distance, out GridPos landedPos);
     bool TryUseSkill(int actorId, string skillId ,int targetX, int targetY, List<HpUpdate> hpUpdate);
     bool TryUseSkillArea(int actorId, string skillId, IReadOnlyList<GridPos> cells, List<HpUpdate> hpUpdates, bool? hitPlayers = null, bool? hitMonsters = null);
 

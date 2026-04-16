@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 501327079b4e19047b3fb174153b95d8, type: 3}
+  m_Name: ArmorSkill
+  m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
+  Data:
+    SkillId: ArmorSkill
+    TotalDurationTicks: 960
+    Tracks:
+    - TrackName: Track 0
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 480
+        Action:
+          rid: 8211689718436594058
+    - TrackName: Track 1
+      Events:
+      - TriggerTick: 480
+        DurationTicks: 480
+        Action:
+          rid: 8211689718436594060
+  references:
+    version: 2
+    RefIds:
+    - rid: 8211689718436594058
+      type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 8211689718436594062
+        ColorSteps: []
+    - rid: 8211689718436594060
+      type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 8211689718436594063
+        ColorSteps: []
+    - rid: 8211689718436594062
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells:
+        - X: 0
+          Y: -1
+        - X: 0
+          Y: 1
+    - rid: 8211689718436594063
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells:
+        - X: -1
+          Y: 0
+        - X: 1
+          Y: 0

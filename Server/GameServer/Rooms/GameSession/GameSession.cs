@@ -292,53 +292,54 @@ public sealed class GameSession : SessionBase
 
         Console.WriteLine($"[SendInitPacketToPlayer] Sent SC_InitMap myActorId={pkt.MyActorId}");
 
-        // [NEW] Inventory Init
+        // [NEW] API 연동 (Loading Phase)
         Task.Run(async () =>
         {
-            var invItems = await ServerServices.InventoryManager.LoadInventoryAsync(s.SessionID.ToString()); // SessionId used as Uid for test?
-            // Actually SessionBase has string Uid? Let's check. 
-            // In SessionBase: public string Uid { get; set; } = ""; (need to verify)
-            
-            // Assuming s.Uid is set. If not, fallback to SessionId string for now.
-            // ClientSession doesn't have Uid property directly exposed? 
-            // Let's check PacketHandler/ClientSession structure.
-            // For now, use "TestUser_{ActorId}" if Uid missing.
+            string uid = !string.IsNullOrEmpty(s.Uid) ? s.Uid : s.SessionID.ToString();
+            var pState = await ServerServices.ApiClient.GetPlayerStateAsync(uid);
 
-            // Wait, InventoryManager.LoadInventoryAsync returns List<ItemInstance>
-            // We need to convert to SC_Inventory and send.
-            
-            var invPkt = new SC_Inventory();
-            foreach(var item in invItems)
+            if (pState != null)
             {
-                var equipTmpl = ServerServices.ItemTemplates.GetEquipment(item.TemplateId);
-                if (equipTmpl != null)
+                // Update Entity Stats from API Response (Calculated in ApiServer)
+                var myEnt = _players.Find(x => x.Id == myActorId);
+                if (myEnt != null)
                 {
-                    invPkt.equipmentss.Add(new SC_Inventory.Equipments
+                    // [Fix] 테스트 중 HP 보호: API 값이 현재 세팅보다 작으면 기존 값 유지
+                    int currentHp = myEnt.GetState<int>("HP");
+                    int apiHp = pState.TotalHp;
+                    int finalHp = (apiHp > 0 && apiHp >= currentHp) ? apiHp : currentHp;
+                    myEnt.SetState("HP", finalHp);
+                    myEnt.SetState("ATK", pState.TotalAtk);
+                    myEnt.SetState("DEF", pState.TotalDef);
+                    Console.WriteLine($"[GameSession] HP resolved: API={apiHp} Current={currentHp} Final={finalHp}");
+                }
+
+                // Inject auto-assigned skill slots into BeatActions
+                BeatActions.InjectSkillSlots(myActorId, pState.ActiveSkillSlots, pState.NormalAttackSkillId);
+
+                // Send SC_UpdateSkillSlots to Client
+                var updateSkillsPkt = new SC_UpdateSkillSlots
+                {
+                    NormalAttackSkillId = pState.NormalAttackSkillId
+                };
+                foreach (var skill in pState.ActiveSkillSlots)
+                {
+                    updateSkillsPkt.activeSkillSlotss.Add(new SC_UpdateSkillSlots.ActiveSkillSlots
                     {
-                        InstanceId = item.InstanceId,
-                        TemplateId = item.TemplateId,
-                        SlotIndex = item.SlotIndex,
-                        EnhancementLevel = item.EnhancementLevel,
-                        IsEquipped = item.IsEquipped,
-                        BaseStats = Newtonsoft.Json.JsonConvert.SerializeObject(item.BaseStats),
-                        RandomOptions = Newtonsoft.Json.JsonConvert.SerializeObject(item.RandomOptions),
-                        AcquiredAt = item.AcquiredAt.ToString("O")
+                        SkillId = skill ?? ""
                     });
                 }
-                else
-                {
-                    invPkt.itemss.Add(new SC_Inventory.Items
-                    {
-                        InstanceId = item.InstanceId,
-                        TemplateId = item.TemplateId,
-                        Amount = item.Amount,
-                        SlotIndex = item.SlotIndex,
-                        AcquiredAt = item.AcquiredAt.ToString("O")
-                    });
-                }
+                s.Send(updateSkillsPkt.Write());
+
+                Console.WriteLine($"[GameSession] Loaded PlayerState for Actor {myActorId}. HP: {pState.TotalHp}, ATK: {pState.TotalAtk}. SkillSlots injected and sent to Client.");
+
+                // To ensure compatibility with client if it expects SC_Inventory, we construct a mock or fetch it.
+                // For now, we will notify client about game start later, or client just waits for SC_AllPlayersLoaded/SC_GameBegin.
             }
-            s.Send(invPkt.Write());
-            Console.WriteLine($"[GameSession] Sent SC_Inventory to Actor {myActorId} ({invPkt.itemss.Count} Items, {invPkt.equipmentss.Count} Equipments)");
+            else
+            {
+                Console.WriteLine($"[GameSession] Warning: PlayerState could not be loaded for Actor {myActorId}.");
+            }
         });
     }
 
