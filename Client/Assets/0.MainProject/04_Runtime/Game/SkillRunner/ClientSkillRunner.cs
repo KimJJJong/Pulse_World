@@ -52,6 +52,21 @@ public class ClientSkillRunner : MonoBehaviour
             return;
         }
 
+        // [Fix] 스킬이 이미 만료된 상태로 도착했다면 (원격 RTT 지연) 즉시 폐기.
+        // 기존 _firstUpdate 로직을 Initialize로 끌어올려 쓸모없는 SkillRunner 생성 자체를 차단.
+        if (RhythmClient.Instance != null)
+        {
+            long currentTick = RhythmClient.Instance.GetCurrentServerTick();
+            long relativeTick = currentTick - _startTick;
+            if (relativeTick > _skillDef.Data.TotalDurationTicks)
+            {
+                Debug.LogWarning($"[ClientSkillRunner] Skill {skillId} already expired on arrival. " +
+                                 $"RelativeTick={relativeTick} > TotalDuration={_skillDef.Data.TotalDurationTicks}. Discarding.");
+                Destroy(gameObject);
+                return;
+            }
+        }
+
         Debug.Log($"[ClientSkillRunner] Started {skillId} for Actor {actorId} at Tick {startTick} Rotation={casterRotation}");
 
         if (RhythmClient.Instance != null)
@@ -61,8 +76,6 @@ public class ClientSkillRunner : MonoBehaviour
                 _visual.PlaySkill(totalDurationSec, _isMine);
         }
     }
-
-    private bool _firstUpdate = true;
 
     void Update()
     {
@@ -78,12 +91,12 @@ public class ClientSkillRunner : MonoBehaviour
             ReleaseInputLock();
         }
 
-        if (relativeTick > _skillDef.Data.TotalDurationTicks && !_firstUpdate)
+        // [Fix] _firstUpdate 플래그 제거 — Initialize()에서 이미 만료 검증 완료
+        if (relativeTick > _skillDef.Data.TotalDurationTicks)
         {
             Destroy(gameObject);
             return;
         }
-        _firstUpdate = false;
 
         for (int t = 0; t < _skillDef.Data.Tracks.Count; t++)
         {
@@ -98,7 +111,16 @@ public class ClientSkillRunner : MonoBehaviour
                 if (relativeTick >= ev.TriggerTick)
                 {
                     _triggeredEvents.Add(eventHash);
+
+                    // [SkillEvent] 스킬 이벤트 트리거 발동 — 어떤 이벤트가 언제 발동했는지 추적.
+                    // 특히 Warning 이벤트가 제때 트리거되는지, 지연 발동하지는 않는지 확인용.
+                    // track/event 인덱스는 이 스킬의 몇 번째 트랙/이벤트인지 (0,0)=첫 트랙 첫 이벤트.
+                    Debug.Log($"[SkillEvent] actor={_actorId} track={t} event={e} type={ev.Action?.Type} " +
+                              $"triggerTick={ev.TriggerTick} relativeTick={relativeTick} " +
+                              $"(lag={relativeTick - ev.TriggerTick} ticks late)");
+
                     ProcessEvent(ev, relativeTick);
+
                 }
             }
         }
@@ -121,13 +143,28 @@ public class ClientSkillRunner : MonoBehaviour
             case SkillActionType.Warning:
                 if (ev.Action is WarningAction warning && RhythmClient.Instance != null)
                 {
-                    long elapsedSinceTrigger = relativeTick - ev.TriggerTick;
-                    long remainingTicks = ev.DurationTicks - elapsedSinceTrigger;
-                    if (remainingTicks > 0)
+                    // [Fix] Warning 만료 tick을 _startTick 기준 절대값으로 계산.
+                    //
+                    // 기존 코드: GetCurrentServerTick() + remainingTicks
+                    //   → 원격 서버에서 RTT 지연으로 패킷이 늦게 오면 relativeTick이 이미 크게 진행됨
+                    //   → remainingTicks = ev.DurationTicks - elapsedSinceTrigger 가 작아짐
+                    //   → expireBeat가 너무 이른 시점으로 계산되어 Warning이 즉시 또는 짧게만 표시됨
+                    //
+                    // 수정 코드: _startTick + ev.TriggerTick + ev.DurationTicks
+                    //   → 서버가 정의한 절대 만료 tick → RTT와 무관하게 항상 동일한 만료 시점 보장
+                    long absoluteExpireTick = _startTick + ev.TriggerTick + ev.DurationTicks;
+                    long expireBeat = (absoluteExpireTick + 479) / 480;
+
+                    long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
+                    if (expireBeat <= currentBeat)
                     {
-                        long expireBeat = (RhythmClient.Instance.GetCurrentServerTick() + remainingTicks + 479) / 480;
-                        ShowWarningCells(warning.Shape, expireBeat);
+                        // 만료된 Warning은 표시하지 않음 (RTT로 인한 과거 Warning 표시 방지)
+                        Debug.LogWarning($"[ClientSkillRunner] Warning already expired: expireBeat={expireBeat} <= currentBeat={currentBeat} actor={_actorId}. Skipping.");
+                        break;
                     }
+
+                    ShowWarningCells(warning.Shape, expireBeat);
+                    Debug.Log($"[ClientSkillRunner] Warning shown: expireBeat={expireBeat} currentBeat={currentBeat} actor={_actorId}");
                 }
                 break;
 

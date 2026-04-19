@@ -72,7 +72,16 @@ public static class TimeSync
         long localRecvMs = LocalNowMs();
         Mark("Welcome/NoRTT", serverNowMs, localRecvMs);
 
+        // [TimeSync_Warning] RTT 보정 없음 — 원격 환경에서 OffsetMs가 RTT/2만큼 음수로 치우침.
+        // 반드시 Ping/Pong 루프가 돌기 시작한 후에 overloaded 메서드로 재보정 필요.
+        Debug.LogWarning($"[TimeSync_NoRTT] samples={_samples} serverArg={serverNowMs} localRecv={localRecvMs} rawOffset={serverNowMs - localRecvMs}ms — RTT unknown, will drift by ~RTT/2 until Ping runs");
+
         double targetOffset = serverNowMs - localRecvMs;
+
+
+
+
+
 
         // RTT 없는 값은 너무 신뢰하지 말고,
         // Warmup 이전에만 스냅, 이후엔 약하게 섞어줌.
@@ -128,6 +137,10 @@ public static class TimeSync
 
         EstimatedRttMs = rttMs;
         _samples++;
+
+        // [TimeSync_Pong] 정상적인 RTT 보정 적용. 이 로그가 주기적으로 떠야 함.
+        Debug.Log($"[TimeSync_Pong] sample#{_samples} rtt={rttMs}ms oneWay={rttMs / 2}ms offset={OffsetMs:F1}ms serverNow={ServerNowMs()}");
+
     }
 
     static void Mark(string by, long serverNowArg, long localRecv)

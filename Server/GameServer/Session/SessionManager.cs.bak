@@ -27,12 +27,10 @@ using System.Threading;
                 session.SessionID = sessionId;
 
                 _sessions.Add(sessionId, session);
+            Console.WriteLine($"[SessionManager] Connected: {sessionId} ({typeof(T).Name})");
 
-                // [ping-fix] Console.WriteLine → LogManager (비동기 큐, 파일 버퍼링)
-                LogManager.Instance.LogInfo("SessionManager",
-                    $"Connected sessionId={sessionId} type={typeof(T).Name}");
+            return session;
 
-                return session;
             }
         }
 

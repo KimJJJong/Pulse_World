@@ -227,27 +227,31 @@ public class BoardView : MonoBehaviour, IClientWorldView
     public void SetTelegraphWithExpire(int x, int y, long expireBeat)
     {
         var pos = new Vector2Int(x, y);
+        long currentBeat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : -1;
+
         if (_telegraphExpiration.TryGetValue(pos, out long currentExpire))
         {
-            if (expireBeat <= currentExpire) return; // 더 늦게 끝나는 경고가 이미 있으면 무시
+            if (expireBeat <= currentExpire)
+            {
+                // [WarningShow] 기존 것이 더 미래 → 무시 (덮어쓰기로 인한 깜빡임 방지)
+                Debug.Log($"[WarningShow] SKIP-older ({x},{y}) newExpire={expireBeat} <= existing={currentExpire} curBeat={currentBeat}");
+                return;
+            }
         }
 
-        // [Debug] 현재 비트보다 과거인 경고가 들어오는지 체크
-        if (RhythmClient.Instance != null)
+        // [WarningShow_Error] 현재 비트보다 과거인 경고는 즉시 만료될 것 → 표시 안 함
+        if (expireBeat <= currentBeat)
         {
-            long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
-            if (expireBeat < currentBeat)
-            {
-                Debug.LogWarning($"[TelegraphSync_Error] Past expireBeat! Current={currentBeat}, Expire={expireBeat} at ({x},{y})");
-            }
-            else
-            {
-                // Debug.Log($"[TelegraphSync_OK] Pos=({x},{y}) Current={currentBeat}, Expire={expireBeat}");
-            }
+            Debug.LogWarning($"[WarningShow_Error] PAST-expire ({x},{y}) expireBeat={expireBeat} curBeat={currentBeat} rtt={TimeSync.EstimatedRttMs:F0}ms — will flicker; skipping");
+            return;
         }
 
+        long livesBeats = expireBeat - currentBeat;
         _telegraphExpiration[pos] = expireBeat;
         SetTelegraphOverlay(x, y, true);
+
+        // [WarningShow] 정상 표시 — 몇 비트 동안 보일지 로깅
+        Debug.Log($"[WarningShow] ({x},{y}) expireBeat={expireBeat} curBeat={currentBeat} livesBeats={livesBeats}");
     }
 
     public void RestoreTileColor(int x, int y)
@@ -394,6 +398,13 @@ public class BoardView : MonoBehaviour, IClientWorldView
             Vector3 serverFromW = GridToWorld(action.FromX, action.FromY);
             Vector3 serverToW   = GridToWorld(action.ToX,   action.ToY);
 
+            // [MoveRecv] 서버 확정 이동 수신 — packetBeat vs clientBeat의 차이가 곧 네트워크 지연
+            long clientBeat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : -1;
+            long beatGap = clientBeat - action.BeatIndex;
+            Debug.Log($"[MoveRecv] actor={action.ActorId} from=({action.FromX},{action.FromY}) to=({action.ToX},{action.ToY}) " +
+                      $"accepted={action.Accepted} packetBeat={action.BeatIndex} clientBeat={clientBeat} " +
+                      $"beatGap={beatGap} (positive=late) rtt={TimeSync.EstimatedRttMs:F0}ms");
+
             if (!action.Accepted)
             {
                 // 서버 거부: 시도 방향으로 살짝 BumpBack
@@ -502,7 +513,10 @@ public class BoardView : MonoBehaviour, IClientWorldView
     public void PlaySkillInstant(int actorId, string skillId, float rotation, long startTick)
     {
         if (!_entityViews.TryGetValue(actorId, out var visual) || visual == null)
+        {
+            Debug.LogWarning($"[AnimPlay] MISS actor={actorId} skill={skillId} — no visual registered");
             return;
+        }
 
         bool isMine = (ClientGameState.Instance != null && actorId == ClientGameState.Instance.MyActorId);
 
@@ -515,7 +529,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
         }
 
         GameObject go = new GameObject($"SkillRunner_{actorId}_{skillId}");
-        go.transform.SetParent(visual.transform);
+        // [Fix] SkillRunner를 visual의 자식이 아닌 BoardView 자식으로 생성.
+        // visual.transform 자식으로 생성하면 EntityVisual.StopAllCoroutines()가
+        // 이동 코루틴을 중단시킬 때 SkillRunner 코루틴도 함께 중단되어
+        // 이동 스킬 초반 실행이 씹히는 문제가 발생함.
+        // BoardView 하위에 두면 이동 연출과 독립적으로 동작함.
+        go.transform.SetParent(this.transform);
 
         var runner = go.AddComponent<ClientSkillRunner>();
         runner.Initialize(this, actorId, visual, skillId, startTick, isMine, rotation);
@@ -523,6 +542,15 @@ public class BoardView : MonoBehaviour, IClientWorldView
         visual.SetRotation(rotation);
 
         _activeSkillRunners[actorId] = runner;
+
+        // [AnimPlay] 스킬 애니메이션 시작 — startTick 기준이 현재 서버 tick과 얼마나 어긋나있는지 확인.
+        // tickGap 양수=서버 tick이 startTick보다 미래(애니 시작이 '이미 늦음')
+        // tickGap 음수=startTick이 미래(정상, 곧 재생될 예정)
+        // 원격에서 큰 양수(수십~수백)가 지속되면 TimeSync/SongSync가 어긋나 있다는 신호.
+        long curTick = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentServerTick() : 0;
+        long tickGap = curTick - startTick;
+        Debug.Log($"[AnimPlay] actor={actorId} skill={skillId} isMine={isMine} startTick={startTick} " +
+                  $"curTick={curTick} tickGap={tickGap} rot={rotation:F0} rtt={TimeSync.EstimatedRttMs:F0}ms");
     }
 
     /// <summary>

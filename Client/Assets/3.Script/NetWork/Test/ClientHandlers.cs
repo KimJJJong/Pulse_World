@@ -17,22 +17,19 @@ public class ClientHandlers : MonoBehaviour
 
 
     // [REMOVED] Local tracking is now centralized in BoardView
-    // private readonly System.Collections.Generic.Dictionary<(int x, int y), long> _telegraphExpireBeat ...
-    
     private long _lastTelegraphCleanupBeat = long.MinValue;
 
     private BoardView BV => BoardView.Instance;
     void Awake()
     {
-        //if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
-   
 
-    public void HandleSC_InitMap(SC_InitMap p )
+
+    public void HandleSC_InitMap(SC_InitMap p)
     {
         Debug.Log($"[ClientHandlers] HandleSC_InitMap: MapId={p.MapId} MyActorId={p.MyActorId}");
-        
+
         // 1) 맵 생성
         var mapName = p.MapId;
 
@@ -46,7 +43,6 @@ public class ClientHandlers : MonoBehaviour
         if (!reg.TryGet(mapName, out var mapAsset) || mapAsset == null)
         {
             Debug.LogError($"[InitMap] MapAsset not found: {mapName}");
-            // 실패 시에도 계속 진행할지 여부? 일단 Return
             return;
         }
 
@@ -55,6 +51,15 @@ public class ClientHandlers : MonoBehaviour
         {
             Debug.LogWarning(
                 $"[InitMap] Map size mismatch for {mapName}. Packet=({p.MapWidth}x{p.MapHeight}) Asset=({mapAsset.Width}x{mapAsset.Height})");
+        }
+
+        // [InitMap_Warn] Ping/Pong 워밍업이 완료되지 않은 채 OnBeatSync가 호출되면
+        // TimeSync.OffsetMs가 아직 0 또는 초기값이라 ServerSongStartMs와 시간 축이 어긋난다 (Root Cause A).
+        // 원격에서 "Warning이 처음 몇 초 동안만 깜빡이다 안정화"되는 현상의 원인이 이것인지 확인용.
+        if (TimeSync.EstimatedRttMs <= 0)
+        {
+            Debug.LogWarning($"[InitMap_Warn] Ping/Pong warmup not ready! OffsetMs={TimeSync.OffsetMs:F0}, " +
+                             $"EstimatedRttMs={TimeSync.EstimatedRttMs:F0}. SongStart sync may drift by RTT/2 until next Pong.");
         }
 
         // Rhythm 동기화 (Town에서도 BGM 싱크 등을 위해 사용 가능)
@@ -71,15 +76,7 @@ public class ClientHandlers : MonoBehaviour
             Debug.Log($"[InitMap] Rhythm Sync: Bpm={p.Bpm}, SongStart={p.SongStartServerTime}");
         }
 
-        // CreateMapFromAsset -> Co_CreateMapFromAsset (Coroutine)
-        // ClientHandlers는 MonoBehaviour이므로 StartCoroutine 가능
         GS.StartMapGeneration(mapAsset);
-        
-        // 주의: 맵 생성이 비동기로 돌기 때문에, 아래 로직들이 맵 생성 완료 전에 실행될 수 있음.
-        // 하지만 Actor/Entity 세팅은 맵 타일과 독립적인 경우가 많음.
-        // 만약 맵 타일에 의존적인 로직(예: 스폰 위치 유효성 체크 등)이 있다면
-        // GS.IsMapGenerationComplete를 기다리는 코루틴으로 감싸야 함.
-        // 현재 구조상으로는 Entity Spawn이 좌표만 저장하므로 괜찮을 것으로 판단됨.
 
         // 2) 플레이어 Actor 정보
         var actorIds = p.playerss.Select(pa => pa.ActorId).ToArray();
@@ -87,7 +84,7 @@ public class ClientHandlers : MonoBehaviour
         GS.SetMyActorId(p.MyActorId);
         Debug.Log($"[InitMap] MyActorId: {GS.MyActorId}, TotalEntities: {p.entitiess.Count}");
 
-        // 3) 엔티티 스폰 (기존 엔티티 클리어 후 생성)
+        // 3) 엔티티 스폰
         GS.ClearEntities();
         foreach (var e in p.entitiess)
         {
@@ -103,7 +100,6 @@ public class ClientHandlers : MonoBehaviour
             });
         }
 
-        // 4) 초기화 완료 알림 (로딩 화면 끄기 등)
         GS.OnInitGameCompleted();
     }
 
@@ -111,7 +107,6 @@ public class ClientHandlers : MonoBehaviour
     {
         BeatDebugUI_TMP.Instance?.RecordServerDiff(p.DiffMs, p.BeatIndex, RhythmClient.Instance.GetCurrentServerTimeMs());
         AudioOffsetAutoCalibrator.Instance?.OnServerDiff(p.DiffMs);
-
     }
 
     public void HandleSC_TownBeatActions(SC_TownBeatActions p)
@@ -131,9 +126,7 @@ public class ClientHandlers : MonoBehaviour
                 Accepted = a.Accepted
             };
 
-            // 1) 이동/행동 반영
             GS.OnBeatAction(action);
-          
         }
     }
 
@@ -145,7 +138,6 @@ public class ClientHandlers : MonoBehaviour
         Debug.Log("InHandelbeatSync");
         Rhythm.OnBeatSync(new BeatSyncInfo
         {
-            //ServerTimeMs = p.ServerSendTimeMs,
             SongStartServerTimeMs = p.SongStartServerTimeMs,
             Bpm = p.Bpm,
             BaseBeatDivision = p.BaseBeatDivision,
@@ -154,9 +146,7 @@ public class ClientHandlers : MonoBehaviour
 
         OnBeatSyncReady?.Invoke();
 
-
         Debug.Log($"SongStart={Rhythm.ServerSongStartMs} ServerNow={Rhythm.GetCurrentServerTimeMs()} diff={Rhythm.ServerSongStartMs - Rhythm.GetCurrentServerTimeMs()}ms");
-
     }
 
     /// <summary>
@@ -166,17 +156,15 @@ public class ClientHandlers : MonoBehaviour
     {
         if (BV == null) return;
 
-        // 클라이언트 사이드 예측: 내 캐릭터는 서버 브로드캐스트를 기다리지 않고 로컬에서 즉시 실행하므로 서버 패킷은 무시합니다.
+        // 내 캐릭터는 로컬 Prediction으로 이미 재생되므로 서버 브로드캐스트는 무시
         if (p.ActorId == GS.MyActorId) return;
 
-        // [NewSkill System] 데이터 기반 스킬 실행
         if (!string.IsNullOrEmpty(p.SkillId))
         {
             BV.PlaySkillInstant(p.ActorId, p.SkillId, p.Rotation, p.StartTick);
         }
         else
         {
-            // 폴백: 레거시 애니메이션 시스템 (SkillId가 없는 경우만)
             double beatMs = Rhythm.GetBeatDurationMs();
             float duration = (float)(beatMs / 1000.0) * BV.actionDurationRatio;
             BV.PlayInstantActionBroadcast(p.ActorId, (ActionKind)p.ActionKind, p.Rotation, duration);
@@ -184,12 +172,11 @@ public class ClientHandlers : MonoBehaviour
     }
 
     /// <summary>
-    /// CC에 의한 스킬/액션 취소 브로드캐스트 처리 
+    /// CC에 의한 스킬/액션 취소 브로드캐스트 처리
     /// </summary>
     public void Handle_SC_CancelAction(SC_CancelAction p)
     {
         if (BV == null) return;
-        //BV.CancelSkill(p.ActorId);
     }
 
     /// <summary>
@@ -215,89 +202,88 @@ public class ClientHandlers : MonoBehaviour
             // 1) 이동/행동 반영
             GS.OnBeatAction(action);
 
+            // 2) HP 업데이트 반영 및 데미지 타이밍 추적
             if (a.hpUpdates != null && a.hpUpdates.Count > 0)
             {
                 long clientBeat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : -1;
-                // [Action_Sync] 패킷 비트와 클라이언트 현재 비트를 출력하여 오차 확인
-                Debug.Log($"[Action_Sync] PacketBeat:{p.BeatIndex} ClientBeat:{clientBeat} HPUpdates={a.hpUpdates.Count}");
+                long serverNow  = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentServerTimeMs() : 0;
+
+                // [DamageRecv] HP 업데이트 수신 — 애니메이션이 시작된 시점 대비 얼마나 늦게 오는지 확인용.
+                // packetBeat < clientBeat 이면 이미 '지나간' 비트의 판정이 뒤늦게 도착한 것 (RTT 지연).
+                // 원격에서 beatGap이 2 이상이면 데미지가 애니메이션보다 1~2 비트 늦게 반영됨 → 애니/데미지 분리.
+                long beatGap = clientBeat - p.BeatIndex;
+                Debug.Log($"[DamageRecv] actor={a.ActorId} packetBeat={p.BeatIndex} clientBeat={clientBeat} " +
+                          $"beatGap={beatGap} (positive=late) serverNow={serverNow} hpUpdates={a.hpUpdates.Count} " +
+                          $"rtt={TimeSync.EstimatedRttMs:F0}ms");
 
                 foreach (var u in a.hpUpdates)
                 {
-                    // u.EntityId, u.NewHp 가 있다고 가정
                     if (GS.TryGetEntity(u.EntityId, out var info))
                     {
+                        int oldHp = info.Hp;
                         info.Hp = u.NewHp;
-                        Debug.Log($"[HP_Change] acterId : {u.EntityId} || hp : {u.NewHp}");
+                        Debug.Log($"[DamageRecv] HP_Change entity={u.EntityId} {oldHp}→{u.NewHp} (delta={u.NewHp - oldHp})");
 
-                        // 상태 갱신 + HUD 이벤트까지(Spawn 연출이 섞여있으면 별도 UpdateEntityState 추천)
                         GS.UpdateEntityState(info);
                     }
                     else
                     {
-                        Debug.LogWarning($"[HP_Change] Entity not found: {u.EntityId}");
+                        Debug.LogWarning($"[DamageRecv] Entity not found: {u.EntityId}");
                     }
                 }
             }
-            else
-            {
-                 // Debug.Log($"[Handle_SC_BeatActions] No hpUpdates for actor {a.ActorId}");
-            }
-
-            // 기존 로직
-            // [REMOVED] Cleanup is now handled by BoardView's Update loop
-            // CleanupExpiredTelegraphs(p.BeatIndex);
         }
     }
 
     public void Handle_SC_BeatTelegraphs(SC_BeatTelegraphs p)
     {
-        // [NewSkill System] 체크 
-        // 해당 액터가 현재 데이터 기반 스킬(ClientSkillRunner)을 실행 중이라면 
-        // 텔레그래프 렌더링을 중복으로 하지 않음 (깜빡임 방지)
         if (BV == null)
         {
-            Debug.LogWarning($"[SC_BeatTelegraphs] BoardView.Instance is null. telegraph render skip. Beat={p.BeatIndex}");
+            Debug.LogWarning($"[WarningRecv] BoardView.Instance is null. telegraph render skip. Beat={p.BeatIndex}");
             return;
         }
 
         long clientBeat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : -1;
-        // Debug.Log($"[SC_BeatTelegraphs] Received: PacketBeat={p.BeatIndex}, CurrentBeat={clientBeat}, Count={p.telegraphss.Count}");
 
         for (int i = 0; i < p.telegraphss.Count; i++)
         {
             var t = p.telegraphss[i];
 
-            // [핵심] 해당 액터가 새 시스템을 사용 중이더라도 레거시 패킷을 허용하여 
-            // 지연 상황에서 안전 장치(Fallback)로 작동하게 합니다. (SetTelegraphOverlay는 Idempotent함)
-            /*
-            if (BV.IsActorRunningNewSkill(t.CasterId))
+            // [Fix-FlickerDedup] 내가 시전 중인 스킬은 로컬 Prediction에서 이미 Warning이 표시되고 있으므로
+            // 서버 텔레그래프 패킷을 무시한다. 두 경로가 동시에 SetTelegraphWithExpire를 호출하면
+            // 서로 다른 expireBeat 때문에 Warning이 깜빡이는 현상이 발생함 (Root Cause C).
+            // IsActorRunningNewSkill: ClientSkillRunner가 해당 actor에 대해 실행 중이면 true.
+            if (t.CasterId == GS.MyActorId && BV.IsActorRunningNewSkill(t.CasterId))
+            {
+                Debug.Log($"[WarningRecv] SKIP-mine caster={t.CasterId} packetBeat={p.BeatIndex} (local prediction owns this warning)");
                 continue;
-            */
-
-
-
-            // ===== 적용 범위 계산 =====
-            // Shape가 0이 아니더라도 서버가 Cells를 계산해서 보내준다면 사용 가능하도록 수정
-            // Log for debugging
-            //Debug.Log($"[Telegraph] Shape={t.Shape} Duration={t.DurationTicks} Cells={t.cellss?.Count ?? 0}");
+            }
 
             if (t.cellss == null || t.cellss.Count == 0)
                 continue;
 
-            // 이 텔레그래프는 몇 beat까지 유지?
-            // (DurationTicks + 479) / 480: 정수 나눗셈에서 올림 처리를 하여 최소 1비트 수명을 보장합니다.
-            long expireBeat = p.BeatIndex + (t.DurationTicks + 479) / 480;
+            // [Fix] RTT 보정: p.BeatIndex는 서버가 패킷을 발송한 비트이므로,
+            // 원격 환경에서 RTT만큼 늦게 도착하면 이미 과거 비트일 수 있음.
+            // clientBeat 기준으로도 expireBeat를 계산해 두 값 중 더 큰 쪽(더 미래)을 사용.
+            // → Warning이 항상 최소 durationBeats 만큼 보이도록 보장.
+            long durationBeats = (t.DurationTicks + 479) / 480;
+            long packetExpire  = p.BeatIndex + durationBeats;
+            long clientExpire  = clientBeat  + durationBeats;
+            long expireBeat    = System.Math.Max(packetExpire, clientExpire);
 
             for (int c = 0; c < t.cellss.Count; c++)
             {
                 var cell = t.cellss[c];
-                // [Change] 중앙 집중식 관리 시스템 사용 (만료 시간 전달)
                 BV.SetTelegraphWithExpire(cell.X, cell.Y, expireBeat);
-                
-                // [Telegraph_Sync] 패킷 비트, 만료 비트, 클라이언트 현재 비트를 출력하여 오차 확인
-                if (c == 0) // 오버헤드 방지를 위해 첫 번째 셀만 로깅
+
+                // [WarningRecv] 서버 경고 수신 로그 — 첫 셀에 대해서만 기록.
+                // packetBeat와 clientBeat의 차이(RTT/2 정도)가 크면 원격 지연이 큰 것.
+                if (c == 0)
                 {
-                    Debug.Log($"[Telegraph_Sync] Caster:{t.CasterId} Cell:({cell.X},{cell.Y}) PacketBeat:{p.BeatIndex} ExpireBeat:{expireBeat} ClientBeat:{clientBeat}");
+                    long beatGap = clientBeat - p.BeatIndex;
+                    Debug.Log($"[WarningRecv] caster={t.CasterId} cell=({cell.X},{cell.Y}) " +
+                              $"packetBeat={p.BeatIndex} clientBeat={clientBeat} beatGap={beatGap} " +
+                              $"durationBeats={durationBeats} expireBeat={expireBeat} rtt={TimeSync.EstimatedRttMs:F0}ms");
                 }
             }
         }
@@ -307,28 +293,18 @@ public class ClientHandlers : MonoBehaviour
     public void Handle_SC_Warn(SC_Warn p)
     {
         Debug.LogWarning($"[SC_Warn] code={p.code} msg={p.msg}");
-        // TODO: HUD 팝업 등 필요하면 여기서 처리
     }
-    // [추가] 현재 beat 기준으로 만료된 셀들을 원복한다.
-    /* [REMOVED] Centralized in BoardView
-    private void CleanupExpiredTelegraphs(long currentBeat) ...
-    */
-
 
     public void Handle_SC_EntityDespawn(SC_EntityDespawn p)
     {
         int id = p.EntityId;
-
-        // 1) GS에서 논리 제거 + WorldView(=BoardView)에게 despawn 알림까지 전파
         bool removed = GS.RemoveEntity(id);
 
         Debug.Log($"[SC_EntityDespawn] entityId={id} removed={removed}");
 
-        // 2) 내가 조종하던 actor가 사라졌으면(사망/퇴장) UI/입력 처리
         if (id == GS.MyActorId)
         {
             Debug.LogWarning("[SC_EntityDespawn] My actor despawned. Disable input / show UI.");
-            // TODO: 입력 잠금/사망 UI 등
         }
     }
 
@@ -346,7 +322,7 @@ public class ClientHandlers : MonoBehaviour
         {
             EntityId = p.EntityId,
             EntityType = p.EntityType,
-            AppearanceId = p.AppearanceId, // fix: ModelId -> AppearanceId
+            AppearanceId = p.AppearanceId,
             X = p.X,
             Y = p.Y,
             Hp = p.Hp
@@ -371,39 +347,34 @@ public class ClientHandlers : MonoBehaviour
     public void Handle_SC_Inventory(SC_Inventory p)
     {
         Debug.Log($"[ClientHandlers] Received Inventory: {p.itemss.Count} items, {p.equipmentss.Count} equips");
-        
+
         if (InventoryManager.Instance == null)
         {
-             // Lazy init if missing
-             var go = new GameObject("InventoryManager");
-             go.AddComponent<InventoryManager>(); // Awake will set Instance
+            var go = new GameObject("InventoryManager");
+            go.AddComponent<InventoryManager>();
 
-             // Ensure Item Data is loaded
-             if (ItemDataManager.Instance == null)
-             {
-                 var dataGo = new GameObject("ItemDataManager");
-                 dataGo.AddComponent<ItemDataManager>();
-             }
+            if (ItemDataManager.Instance == null)
+            {
+                var dataGo = new GameObject("ItemDataManager");
+                dataGo.AddComponent<ItemDataManager>();
+            }
         }
         else
         {
-            // Ensure UI exists on the existing manager
-
-             // Ensure Item Data is loaded
-             if (ItemDataManager.Instance == null)
-             {
-                 var dataGo = new GameObject("ItemDataManager");
-                 dataGo.AddComponent<ItemDataManager>();
-             }
+            if (ItemDataManager.Instance == null)
+            {
+                var dataGo = new GameObject("ItemDataManager");
+                dataGo.AddComponent<ItemDataManager>();
+            }
         }
-        
+
         InventoryManager.Instance.OnInventoryReceived(p);
     }
 
     public void Handle_SC_EquipResult(SC_EquipResult p)
     {
         Debug.Log($"[ClientHandlers] EquipResult: Success={p.Success}, Item={p.InstanceId}, Equipped={p.Equipped}");
-       
+
         if (InventoryManager.Instance != null)
             InventoryManager.Instance.OnEquipResult(p);
     }
@@ -414,7 +385,7 @@ public class ClientHandlers : MonoBehaviour
         foreach (var item in p.activeSkillSlotss) tmpItemName += (item.SkillId + " | ");
 
         Debug.Log($"[ClientHandlers] SC_UpdateSkillSlots: NormalAttack={p.NormalAttackSkillId}, Skills={p.activeSkillSlotss.Count} | {tmpItemName} ]");
-        
+
         if (RhythmInputController.Instance != null)
         {
             RhythmInputController.Instance.SetNormalAttackSkill(p.NormalAttackSkillId);
@@ -425,6 +396,3 @@ public class ClientHandlers : MonoBehaviour
         }
     }
 }
-
-
-

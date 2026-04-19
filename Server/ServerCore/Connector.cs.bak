@@ -50,17 +50,17 @@ namespace ServerCore
                     session.Start(args.ConnectSocket); // args.UserToken as Socket : 두가지 방법
                     session.OnConnected(args.RemoteEndPoint);
                     LogManager.Instance.LogInfo("Connector", "Connected to server!");
+
                 }
                 else
                 {
-                    // [ping-fix] Console.WriteLine → LogManager (비동기 큐)
-                    LogManager.Instance.LogError("Connector", $"OnConnectCompleted Fail: {args.SocketError}");
+                    Console.WriteLine($"OnConnectCompleted Fail: {args.SocketError}");
                 }
             }
 			catch(Exception e)
 			{
-                // [ping-fix] 동일 이벤트에 대해 로그 한 번만. Console.WriteLine 제거.
-                LogManager.Instance.LogError("Connector", $"Connect failed: {args.SocketError} / {e.Message}");
+                LogManager.Instance.LogError("Connector", $"Connect failed: {args.SocketError}");
+                Console.WriteLine($"Err during Connect :{e.Message}");
 			}
 		}
 	}

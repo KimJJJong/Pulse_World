@@ -4,7 +4,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using Shared;
 
 namespace ServerCore
 {
@@ -44,9 +43,8 @@ namespace ServerCore
                 buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + dataSize, buffer.Count - dataSize);
             }
 
-            // [ping-fix] 매 recv 마다 Console.WriteLine 수행 시 stdout redirect 환경에서
-            // 수신 스레드가 동기 I/O로 블로킹 되어 핑이 튄다. 완전히 제거.
-            // (필요하면 디버그 레벨로만 로깅)
+            if (packetCount > 1)
+                Console.WriteLine($"패킷 모아 보내기 : {packetCount}");
 
             return processLen;
         }
@@ -84,7 +82,7 @@ namespace ServerCore
         public void Start(Socket socket)
         {
             _socket = socket;
-            _socket.NoDelay = true;     // Nagle 비활성. 핑 최적화에 중요.
+            _socket.NoDelay = true;     //TODO : Test delay
             _recvArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnRecvCompleted);
             _sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSendCompleted);
 
@@ -156,8 +154,7 @@ namespace ServerCore
             }
             catch (Exception ex)
             {
-                // [ping-fix] Console.WriteLine → LogManager (비동기, 큐 기반)
-                LogManager.Instance.LogError("Session", $"RegisterSend Failed : {ex.Message}");
+                Console.WriteLine($"RegisterSend Failed : {ex}");
             }
 
         }
@@ -180,8 +177,7 @@ namespace ServerCore
                     }
                     catch (Exception e)
                     {
-                        // [ping-fix] Console.WriteLine → LogManager
-                        LogManager.Instance.LogError("Session", $"OnSendCompleted Failed {e.Message}");
+                        Console.WriteLine($"OnSendCompleted Failed {e}");
                     }
                 }
                 else
@@ -207,8 +203,7 @@ namespace ServerCore
             }
             catch (Exception ex)
             {
-                // [ping-fix] Console.WriteLine → LogManager
-                LogManager.Instance.LogError("Session", $"RegisterRecv Failed : {ex.Message}");
+                Console.WriteLine($"RegisterRecv Failed : {ex}");
             }
         }
 
@@ -245,8 +240,7 @@ namespace ServerCore
                 }
                 catch (Exception e)
                 {
-                    // [ping-fix] Console.WriteLine → LogManager
-                    LogManager.Instance.LogError("Session", $"OnRecvCompleted Failed {e.Message}");
+                    Console.WriteLine($"OnRecvCompleted Failed {e}");
                 }
             }
             else

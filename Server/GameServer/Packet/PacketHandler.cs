@@ -44,7 +44,8 @@ partial class PacketHandler
 
         // 2) 세션에 auth 바인딩
         s.BindAuth(res.Uid, res.Epoch, res.Key);
-        Console.WriteLine($"[HandShake] UID : {res.Uid} || Epoch : {res.Epoch} || Key : {res.Key}");
+        // [ping-fix] Console.WriteLine → LogManager. Handshake 는 드물지만 hot-path 일관성 확보.
+        LogManager.Instance.LogInfo("Handshake", $"uid={res.Uid} epoch={res.Epoch} key={res.Key}");
         // 3) uid -> conn registry 바인딩 (epoch 최신만 유지)
         registry.Bind(res.Uid, res.Epoch, s);
 
@@ -61,7 +62,9 @@ partial class PacketHandler
                 isConnected: () => s.IsConnected,
                 onInvalid: (reason) =>
                 {
-                    Console.WriteLine($"[onInvalid] uid={res.Uid} epoch={res.Epoch} reason={reason}");
+                    // [ping-fix] Console.WriteLine → LogManager
+                    LogManager.Instance.LogWarning("LeaseRenewer",
+                        $"onInvalid uid={res.Uid} epoch={res.Epoch} reason={reason}");
 
                     s.Close("lease_invalid:" + reason);
                     registry.UnbindIfMatch(res.Uid, s.ConnId, res.Epoch);
@@ -71,18 +74,19 @@ partial class PacketHandler
                         // 1) Try Town
                         if (TownManager.TryGet(s.CurrentWorldId, out var town))
                         {
-                            Console.WriteLine($"[LeaseInvalid] Removing from Town: {town.TownId}");
+                            LogManager.Instance.LogInfo("LeaseRenewer", $"Remove from Town: {town.TownId}");
                             town.RemovePlayer(res.Uid, res.Epoch);
                         }
                         // 2) Try Game
                         else if (GameManager.TryGet(s.CurrentWorldId, out var game))
                         {
-                            Console.WriteLine($"[LeaseInvalid] Removing from Game: {game.MatchId}");
+                            LogManager.Instance.LogInfo("LeaseRenewer", $"Remove from Game: {game.MatchId}");
                             game.RemovePlayer(res.Uid, res.Epoch);
                         }
                         else
                         {
-                             Console.WriteLine($"[LeaseInvalid] World not found for: {s.CurrentWorldId}");
+                             LogManager.Instance.LogWarning("LeaseRenewer",
+                                $"World not found for: {s.CurrentWorldId}");
                         }
                     }
                 },
@@ -97,11 +101,12 @@ partial class PacketHandler
     {
         var s = (ClientSession)session;
         var req = (CS_MapEnter)packet;
-        Console.WriteLine($"[IN]CS_MapEnterHandler : MapId: {req.MapId} Key: {s.Key}");
+        // [ping-fix] Console.WriteLine → LogManager (드물지만 정리)
+        LogManager.Instance.LogInfo("MapEnter", $"mapId={req.MapId} key={s.Key}");
 
         if (!s.HasAuth)
         {
-            Console.WriteLine($"[CS_MapEnterHandler] Fail: NoAuth. Uid={s.Uid} Key={s.Key}");
+            LogManager.Instance.LogWarning("MapEnter", $"Fail NoAuth uid={s.Uid} key={s.Key}");
             s.Close("map_enter_without_auth");
             return;
         }
@@ -109,20 +114,15 @@ partial class PacketHandler
         // 1) Game Mode (Key exists -> MatchId)
         if (!string.IsNullOrEmpty(s.Key))
         {
-            // GameRoom 생성 (Lazy)
-            // 주의: CP와 동기화된 Map 정보가 없으므로, 최초 생성 시 req.MapId를 신뢰하거나 기본값 사용
-            // GameRoom 내부에서 MapId를 설정할 수 있는 메소드가 필요할 수 있음 (현재는 Default 0)
             int max = req.MaxPlayers > 0 ? req.MaxPlayers : 2;
             var room = GameManager.GetOrCreate(s.Key, req.MapId, max);
-            
-            Console.WriteLine($"[GameRoom] Entering MatchId: {s.Key} (Count: {room.GetPlayersSnapshot().Count()})");
 
-            // (Optional) Room이 막 생성되었다면 MapId 등을 초기화
-            // if (room.MapId == 0) room.SetMapId(req.MapId); 
+            LogManager.Instance.LogInfo("GameRoom",
+                $"Entering matchId={s.Key} count={room.GetPlayersSnapshot().Count()}");
 
             if (!room.BindOrReattach(s, out var actorId))
             {
-                Console.WriteLine($"[CS_MapEnterHandler] BindFail: {s.Uid} -> {s.Key}");
+                LogManager.Instance.LogWarning("MapEnter", $"Game BindFail uid={s.Uid} key={s.Key}");
                 s.Close("game_bind_fail");
                 return;
             }
@@ -130,8 +130,7 @@ partial class PacketHandler
             // Game은 "로딩 완료" 상태가 되어야 시작하므로 MarkLoaded
             if (room.MarkLoadedAsync(s))
             {
-                Console.WriteLine($"[GameRoom] All Loaded! Scheduling Start...");
-                // 모두 준비 완료되면 게임 시작 등을 처리 (GameRoom 내부)
+                LogManager.Instance.LogInfo("GameRoom", "All Loaded! Scheduling Start...");
                 var startAtMs = AppRef.ServerTimeMs() + 1000; // 1초 뒤 시작
                 room.BroadcastGameStart(startAtMs);
             }
@@ -140,16 +139,16 @@ partial class PacketHandler
         else
         {
             var townId = "Town_01"; // Default Town
-            Console.WriteLine($"[TownRoom] Enter: {townId}");
+            LogManager.Instance.LogInfo("TownRoom", $"Enter townId={townId}");
             var room = TownManager.GetOrCreate(townId);
 
             if (!room.BindOrReattach(s, out var actorId))
             {
-                Console.WriteLine($"[CS_MapEnterHandler] Town BindFail: {s.Uid}");
+                LogManager.Instance.LogWarning("MapEnter", $"Town BindFail uid={s.Uid}");
                 s.Close("town_bind_fail");
                 return;
             }
-            
+
             // Town은 즉시 InitMap 전송 (BindOrReattach 내부에서 처리됨)
         }
     }

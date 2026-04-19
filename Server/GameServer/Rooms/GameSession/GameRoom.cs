@@ -4,6 +4,7 @@ using GameServer.InGame.System.Rhythm;
 using Interface;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Shared;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -57,13 +58,12 @@ public sealed class GameRoom : RoomBase
         bool empty;
         lock (_lock) empty = _players.Count == 0;
 
-        Console.WriteLine($"[MaybeEndIfEmpty] MatchId={MatchId} Count={_players.Count}");
+        // [ping-fix] Console.WriteLine → LogManager (드물지만 정리)
+        LogManager.Instance.LogDebug("GameRoom", $"MaybeEndIfEmpty matchId={MatchId} count={_players.Count}");
 
         if (!empty) return;
 
-        Console.WriteLine($"[RoomEnd] ==============================================");
-        Console.WriteLine($"[RoomEnd] GameRoom {MatchId} DESTROYED. (Empty)");
-        Console.WriteLine($"[RoomEnd] ==============================================");
+        LogManager.Instance.LogInfo("GameRoom", $"Destroyed (empty) matchId={MatchId}");
         lock (_lock) _phase = RoomPhase.Ended;
         GameManager.Remove(MatchId);
     }
@@ -87,7 +87,9 @@ public sealed class GameRoom : RoomBase
             }
             else
             {
-                Console.WriteLine($"[GameRoom] Player Loaded: {s.Uid}. Total Loaded: {_loaded.Count}/{_players.Count}");
+                // [ping-fix] Console.WriteLine → LogManager
+                LogManager.Instance.LogInfo("GameRoom",
+                    $"Player loaded uid={s.Uid} loaded={_loaded.Count}/{_players.Count}");
             }
 
             // 현재 방의 논리 플레이어가 전부 로딩 완료인지 체크
@@ -103,7 +105,8 @@ public sealed class GameRoom : RoomBase
 
             if (allReady && _players.Count >= _maxPlayers)
             {
-                Console.WriteLine($"[GameRoom] All Players ({_players.Count}) Loaded! Count={_players.Count}");
+                LogManager.Instance.LogInfo("GameRoom",
+                    $"All players loaded count={_players.Count}");
                 return true;
             }
 
@@ -194,7 +197,9 @@ public sealed class GameRoom : RoomBase
         // However, RoomBase logic calls OnNewPlayerJoinedQueue only if IsRoomRunning.
         // If running, we assume it's a verify-reconnect or late join.
         // For now, let's assume we just log or try to spawn.
-        Console.WriteLine($"[GameRoom] Late join attempt for {p.Uid} (Actor {p.ActorId})");
+        // [ping-fix] Console.WriteLine → LogManager
+        LogManager.Instance.LogWarning("GameRoom",
+            $"Late join attempt uid={p.Uid} actor={p.ActorId}");
         
         // Manually adding to session players list would require access. 
         // SessionBase._players is protected.
@@ -292,11 +297,14 @@ public sealed class GameRoom : RoomBase
         if (ContentStore.Rhythms != null && ContentStore.Rhythms.TryGetValue(MapId, out var parsedRhythm))
         {
             rhythmData = parsedRhythm;
-            Console.WriteLine($"[GameRoom] ✅ Found Rhythm Data for {MapId}: {rhythmData.Blocks?.Count ?? 0} Blocks loaded.");
+            // [ping-fix] Console.WriteLine → LogManager
+            LogManager.Instance.LogInfo("GameRoom",
+                $"Rhythm data found mapId={MapId} blocks={rhythmData.Blocks?.Count ?? 0}");
         }
         else
         {
-            Console.WriteLine($"[GameRoom] 🚨 Rhythm Data Not Found for {MapId}. Creating empty dummy rhythm. (Check if Json StageId matches MapId)");
+            LogManager.Instance.LogWarning("GameRoom",
+                $"Rhythm data not found mapId={MapId}. Creating dummy.");
             rhythmData = new RhythmStageData { StageId = MapId, TicksPerBeat = 480, TimeSignatureNum = 4 };
             rhythmData.Blocks.Add(new RhythmBlock { BlockId = "DummyPhase1", LengthMeasures = 8, DefaultNextBlock = "DummyPhase1" });
         }
@@ -493,7 +501,8 @@ public sealed class GameRoom : RoomBase
             {
                 foreach (var (uid, epoch) in toRemove)
                 {
-                    Console.WriteLine($"[GameRoom] Force Removing Detached Player: {uid}");
+                    // [ping-fix] Console.WriteLine → LogManager
+                    LogManager.Instance.LogInfo("GameRoom", $"Force removing detached player uid={uid}");
                     RemovePlayer(uid, epoch);
                 }
             }

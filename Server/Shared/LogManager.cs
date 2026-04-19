@@ -30,9 +30,27 @@ namespace Shared
 		private static readonly Lazy<LogManager> _instance = new Lazy<LogManager>(() => new LogManager());
 		public static LogManager Instance => _instance.Value;
 
-		private readonly BlockingCollection<LogEntry> _logQueue = new BlockingCollection<LogEntry>();
+		// [ping-fix] BoundedCapacity 를 두어서 로그 폭주 시에도 hot-path 가 블로킹되지 않게 한다.
+		// 큐가 가득 차면 TryAdd 가 false 를 리턴하고 drop. 게임 서버에서 latency > 로그 신뢰성.
+		private const int LogQueueCapacity = 8192;
+		private readonly BlockingCollection<LogEntry> _logQueue =
+			new BlockingCollection<LogEntry>(new ConcurrentQueue<LogEntry>(), LogQueueCapacity);
+
 		private readonly string _logFilePath;
 		private volatile bool _running = true;
+
+		// [ping-fix] Console 미러링은 환경변수 RHYTHMRPG_LOG_CONSOLE=1 로만 켠다.
+		// 원격 서버에서 stdout redirect 될 때 매 flush 마다 블로킹되면 수신 스레드까지 밀린다.
+		private readonly bool _mirrorToConsole =
+			string.Equals(Environment.GetEnvironmentVariable("RHYTHMRPG_LOG_CONSOLE"), "1", StringComparison.Ordinal);
+
+		// [ping-fix] Flush 주기: 200ms 또는 64건마다. 매 엔트리마다 flush 하지 않는다.
+		private const int FlushIntervalMs = 200;
+		private const int FlushBatchCount = 64;
+
+		// 드롭된 로그 카운터 (디버그용)
+		private long _droppedCount;
+		public long DroppedCount => System.Threading.Interlocked.Read(ref _droppedCount);
 
 		private LogManager()
 		{
@@ -54,7 +72,11 @@ namespace Shared
 				Source = source,
 				Message = message
 			};
-			_logQueue.Add(entry);
+			// [ping-fix] Add → TryAdd. 큐가 가득 차면 드롭하고 계속 진행.
+			if (!_logQueue.TryAdd(entry))
+			{
+				System.Threading.Interlocked.Increment(ref _droppedCount);
+			}
 		}
 
 		public void LogInfo(string source, string message) => Log(LogLevel.Info, source, message);
@@ -64,32 +86,75 @@ namespace Shared
 
 		private void ProcessLogQueue()
 		{
+			var jsonOptions = new JsonSerializerOptions
+			{
+				Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+				WriteIndented = false
+			};
+
 			try
 			{
-				using (var streamWriter = new StreamWriter(_logFilePath, true, Encoding.UTF8))
+				// [ping-fix] BufferedStream 으로 OS 쓰기 호출을 크게 줄인다.
+				using (var fileStream = new FileStream(
+					_logFilePath,
+					FileMode.Append,
+					FileAccess.Write,
+					FileShare.Read,
+					bufferSize: 64 * 1024,
+					useAsync: false))
+				using (var bufferedStream = new BufferedStream(fileStream, 64 * 1024))
+				using (var streamWriter = new StreamWriter(bufferedStream, Encoding.UTF8))
 				{
+					int sinceLastFlushCount = 0;
+					long lastFlushTicks = Environment.TickCount64;
+
 					while (_running || _logQueue.Count > 0)
 					{
 						LogEntry entry;
 						try
 						{
-							entry = _logQueue.Take();
+							// [ping-fix] Take → TryTake(timeout).
+							// 타임아웃으로 깨어나서 주기적으로 flush 할 수 있게 함.
+							if (!_logQueue.TryTake(out entry, FlushIntervalMs))
+							{
+								// 타임아웃 → 현재까지의 버퍼를 flush
+								if (sinceLastFlushCount > 0)
+								{
+									streamWriter.Flush();
+									sinceLastFlushCount = 0;
+									lastFlushTicks = Environment.TickCount64;
+								}
+								continue;
+							}
 						}
 						catch (InvalidOperationException)
 						{
 							break;
 						}
 
-						string json = JsonSerializer.Serialize(entry, new JsonSerializerOptions
-						{
-							Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-							WriteIndented = false
-						});
+						string json = JsonSerializer.Serialize(entry, jsonOptions);
 						streamWriter.WriteLine(json);
-						streamWriter.Flush();
+						sinceLastFlushCount++;
 
-						Console.WriteLine(json); // Optional: 콘솔 출력
+						// [ping-fix] Console 미러링은 옵션으로만. 기본 OFF.
+						if (_mirrorToConsole)
+						{
+							Console.WriteLine(json);
+						}
+
+						// [ping-fix] 배치 크기 or 시간 경과 시에만 flush
+						long nowTicks = Environment.TickCount64;
+						if (sinceLastFlushCount >= FlushBatchCount ||
+							(nowTicks - lastFlushTicks) >= FlushIntervalMs)
+						{
+							streamWriter.Flush();
+							sinceLastFlushCount = 0;
+							lastFlushTicks = nowTicks;
+						}
 					}
+
+					// 종료 시 잔여분 flush
+					streamWriter.Flush();
 				}
 			}
 			catch (Exception ex)

@@ -1,4 +1,5 @@
 using GameServer.Content.Map;
+using Shared;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -74,7 +75,9 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
                 if (_freeSeats.Count == 0 && _players.Count < _maxPlayers)
                 {
                     // Should not happen if logic is correct, but safety
-                    Console.WriteLine("[RoomBase] Logic Error: FreeSeats empty but room not full.");
+                    // [ping-fix] Console.WriteLine → LogManager
+                    LogManager.Instance.LogError("RoomBase",
+                        $"FreeSeats empty but room not full. players={_players.Count} max={_maxPlayers}");
                     return false;
                 }
                 if (_freeSeats.Count == 0) return false;
@@ -133,7 +136,9 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
 
             _broadcastDirty = true;
 
-            Console.WriteLine($"[RoomBase] RemovePlayer SUCCESS: uid={uid} epoch={epoch} Remaining={_players.Count}");
+            // [ping-fix] Console.WriteLine → LogManager
+            LogManager.Instance.LogInfo("RoomBase",
+                $"RemovePlayer uid={uid} epoch={epoch} remaining={_players.Count}");
 
             // Call Session OnPlayerLeft via Queue
             Enqueue(() => GetSession()?.OnPlayerLeft(p.ActorId));
@@ -214,13 +219,21 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
     protected readonly ConcurrentQueue<Action> _q = new();
     protected int _pumping = 0;
 
+    // [ping-fix] PumpQueuedActions 스킵 카운터. 어느 tick 에 contention 으로 건너뛴어졌는지 도중 집계.
+    // 어딘가에서 보고성 선택적으로 조회할 수 있도록 internal 으로 노출.
+    private long _pumpSkipCount;
+    public long PumpSkipCount => Interlocked.Read(ref _pumpSkipCount);
+
     protected void Enqueue(Action a) => _q.Enqueue(a);
 
     public void PumpQueuedActions()
     {
-        if (Interlocked.Exchange(ref _pumping, 1) == 1) 
+        if (Interlocked.Exchange(ref _pumping, 1) == 1)
         {
-            Console.WriteLine($"[RoomBase] Update Tick Skipped! (Lock Contention) RoomId={GetHashCode()}"); 
+            // [ping-fix] Console.WriteLine ❘ hot-path 제거. Lock contention 은 드물지 않아서
+            // 매 tick 마다 찍히면 stdout 동기 I/O 로 핵심 퀴런 자체가 맀린다.
+            // LogManager (비동기 큐) 도 너무 자주 부르면 드롭되므로, 할 일이 스킵된 것에 대한 집계만 남김.
+            Interlocked.Increment(ref _pumpSkipCount);
             return;
         }
         try { while (_q.TryDequeue(out var a)) a(); }

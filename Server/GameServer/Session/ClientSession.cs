@@ -3,6 +3,8 @@ using Server;
 using Server.Presentation.Tcp;               // IAuthedTcpConnection (내가 만든 확장 인터페이스)
 using ServerCore;
 using Shared;
+// [ping-fix] ClientSession 의 모든 Console.WriteLine 을 LogManager 로 대체하여
+// stdout 동기 I/O 로 인한 수신 스레드 블로킹 제거.
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -40,10 +42,8 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
     public override void OnConnected(EndPoint endPoint)
     {
         IsConnected = true;
-        Console.WriteLine($"GameServer와 ClientSession 이 연결되었습니다: {endPoint} connId={ConnId}");
-
-
-
+        // [ping-fix] Console.WriteLine → LogManager
+        LogManager.Instance.LogInfo("ClientSession", $"Connected ep={endPoint} connId={ConnId}");
     }
 
     public override void OnRecvPacket(ArraySegment<byte> buffer)
@@ -55,7 +55,8 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
     {
         IsConnected = false;
         try { _cts.Cancel(); } catch { }
-        Console.WriteLine($"OnDisconnected : {endPoint} connId={ConnId}");
+        // [ping-fix] Console.WriteLine → LogManager
+        LogManager.Instance.LogInfo("ClientSession", $"OnDisconnected ep={endPoint} connId={ConnId}");
 
         // registry정리
         if (HasAuth)
@@ -72,7 +73,8 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
             else if (GameManager.TryGet(CurrentWorldId, out var game))
             {
                  // GameRoom은 재접속을 위해 Detach만 수행
-                 Console.WriteLine($"[OnDisconnected] Detach from GameRoom: {game.MatchId}");
+                 // [ping-fix] Console.WriteLine → LogManager
+                 LogManager.Instance.LogInfo("ClientSession", $"Detach from GameRoom matchId={game.MatchId}");
                  game.DetachIfMatch(Uid, Epoch, ConnId);
             }
         }
@@ -128,7 +130,8 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
     public void Close(string reason)
     {
         // 네 Session 종료 방식에 맞게 정리
-        Console.WriteLine($"[Close] connId={ConnId} reason={reason}");
+        // [ping-fix] Console.WriteLine → LogManager
+        LogManager.Instance.LogInfo("ClientSession", $"Close connId={ConnId} reason={reason}");
         try { _cts.Cancel(); } catch { }
 
         Disconnect();
