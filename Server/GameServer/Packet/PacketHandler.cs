@@ -131,7 +131,7 @@ partial class PacketHandler
             if (room.MarkLoadedAsync(s))
             {
                 LogManager.Instance.LogInfo("GameRoom", "All Loaded! Scheduling Start...");
-                var startAtMs = AppRef.ServerTimeMs() + 1000; // 1초 뒤 시작
+                var startAtMs = AppRef.ServerTimeMs() + GameStartTuning.ReadyLeadMs;
                 room.BroadcastGameStart(startAtMs);
             }
         }

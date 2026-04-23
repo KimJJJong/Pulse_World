@@ -104,6 +104,7 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
         var p = new SC_HandshakeOk
         {
             Uid = uid,
+            ServerTimeMs = Util.AppRef.ServerTimeMs(),
             SessionEpoch = epoch,
             ServerRole = serverRole,
             //key = key ?? ""      //Key -> Room id : TODO

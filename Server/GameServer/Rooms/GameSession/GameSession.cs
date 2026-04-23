@@ -135,20 +135,7 @@ public sealed class GameSession : SessionBase
         Director.LoadScenario(scenario);
         
         Director.NotifyEvent(new GameEventContext { Type = EventType.GameStart, TimeMs = AppRef.ServerTimeMs() });
-
-        // BeatSync (Force Sync at Start)
-        var sync = new SC_BeatSync
-        {
-            ServerSendTimeMs = AppRef.ServerTimeMs(),
-            ClientSendTimeMs = 0, // Server initiated
-            SongStartServerTimeMs = _rhythm.SongStartServerTimeMs,
-            Bpm = _rhythmConfig.Bpm,
-            BaseBeatDivision = _rhythmConfig.BaseBeatDivision,
-            BeatIndex = _rhythm.GetCurrentBeatIndex(AppRef.ServerTimeMs())
-        };
-        _broadcaster.Broadcast(sync);
-
-        Console.WriteLine($"[InitGame] End (Director Loaded). Sent BeatSync (Start:{sync.SongStartServerTimeMs})");
+        Console.WriteLine($"[InitGame] End (Director Loaded). SongStart={_rhythm.SongStartServerTimeMs}");
     }
     
     // Director 전용 엔티티(몬스터/오브젝트) 소환 함수

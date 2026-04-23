@@ -251,7 +251,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         SetTelegraphOverlay(x, y, true);
 
         // [WarningShow] 정상 표시 — 몇 비트 동안 보일지 로깅
-        Debug.Log($"[WarningShow] ({x},{y}) expireBeat={expireBeat} curBeat={currentBeat} livesBeats={livesBeats}");
+        //Debug.Log($"[WarningShow] ({x},{y}) expireBeat={expireBeat} curBeat={currentBeat} livesBeats={livesBeats}");
     }
 
     public void RestoreTileColor(int x, int y)
@@ -349,13 +349,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
                 if (info.EntityId == ClientGameState.Instance.MyActorId)
                 {
-                    var myEquips = InventoryManager.Instance.Equipments;
-                    List<int> equippedTemplateIds = new List<int>();
-                    foreach (var e in myEquips)
-                    {
-                        if (e.IsEquipped) equippedTemplateIds.Add(e.TemplateId);
-                    }
-                    visualCtrl.UpdateEquipments(equippedTemplateIds);
+                    visualCtrl.SetLocalPlayer(true);
                 }
             }
         }
@@ -400,10 +394,10 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
             // [MoveRecv] 서버 확정 이동 수신 — packetBeat vs clientBeat의 차이가 곧 네트워크 지연
             long clientBeat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : -1;
-            long beatGap = clientBeat - action.BeatIndex;
-            Debug.Log($"[MoveRecv] actor={action.ActorId} from=({action.FromX},{action.FromY}) to=({action.ToX},{action.ToY}) " +
-                      $"accepted={action.Accepted} packetBeat={action.BeatIndex} clientBeat={clientBeat} " +
-                      $"beatGap={beatGap} (positive=late) rtt={TimeSync.EstimatedRttMs:F0}ms");
+            //long beatGap = clientBeat - action.BeatIndex;
+            //Debug.Log($"[MoveRecv] actor={action.ActorId} from=({action.FromX},{action.FromY}) to=({action.ToX},{action.ToY}) " +
+            //          $"accepted={action.Accepted} packetBeat={action.BeatIndex} clientBeat={clientBeat} " +
+            //          $"beatGap={beatGap} (positive=late) rtt={TimeSync.EstimatedRttMs:F0}ms");
 
             if (!action.Accepted)
             {

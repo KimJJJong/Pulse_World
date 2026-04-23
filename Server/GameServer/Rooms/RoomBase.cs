@@ -170,7 +170,8 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
                  session.EnsurePlayerSpawned(p.ActorId);
             }
 
-            session.SendInitPacketToPlayer(p.Conn);
+            if (p.Conn != null)
+                session.SendInitPacketToPlayer(p.Conn);
         });
     }
 
@@ -242,8 +243,8 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
 
     public virtual void Update()
     {
-        if (!IsRoomRunning()) return;
         PumpQueuedActions();
-        GetSession()?.Update();
+        if (IsRoomRunning())
+            GetSession()?.Update();
     }
 }

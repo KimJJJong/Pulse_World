@@ -1,0 +1,187 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 501327079b4e19047b3fb174153b95d8, type: 3}
+  m_Name: BowSkill
+  m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
+  Data:
+    SkillId: BowSkill
+    TotalDurationTicks: 1440
+    Tracks:
+    - TrackName: Track 0
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 480
+        Action:
+          rid: 8211689906238652421
+    - TrackName: Track 1
+      Events:
+      - TriggerTick: 480
+        DurationTicks: 480
+        Action:
+          rid: 8211689906238652422
+    - TrackName: Track 2
+      Events:
+      - TriggerTick: 960
+        DurationTicks: 480
+        Action:
+          rid: 8211689906238652423
+    - TrackName: Track 3
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 1440
+        Action:
+          rid: 8211689906238652424
+  references:
+    version: 2
+    RefIds:
+    - rid: 8211689906238652421
+      type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 8211689906238652425
+        ColorSteps: []
+    - rid: 8211689906238652422
+      type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 8211689906238652426
+        ColorSteps: []
+    - rid: 8211689906238652423
+      type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 8211689906238652427
+        Amount: 30
+        HitPlayers: 0
+        HitMonsters: 1
+        StunDurationTicks: 0
+        KnockbackDistance: 0
+        RecalculateTargets: 0
+    - rid: 8211689906238652424
+      type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data: 
+    - rid: 8211689906238652425
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells:
+        - X: 0
+          Y: -1
+        - X: 0
+          Y: -2
+        - X: 0
+          Y: -3
+        - X: 0
+          Y: -4
+        - X: 0
+          Y: -5
+        - X: 0
+          Y: -6
+        - X: 0
+          Y: -7
+    - rid: 8211689906238652426
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells:
+        - X: 0
+          Y: -1
+        - X: 0
+          Y: -2
+        - X: 0
+          Y: -3
+        - X: 0
+          Y: -4
+        - X: 0
+          Y: -5
+        - X: 0
+          Y: -6
+        - X: 0
+          Y: -7
+        - X: -1
+          Y: -1
+        - X: -1
+          Y: -2
+        - X: -1
+          Y: -3
+        - X: -1
+          Y: -4
+        - X: -1
+          Y: -5
+        - X: -1
+          Y: -6
+        - X: -1
+          Y: -7
+        - X: 1
+          Y: -1
+        - X: 1
+          Y: -2
+        - X: 1
+          Y: -3
+        - X: 1
+          Y: -4
+        - X: 1
+          Y: -5
+        - X: 1
+          Y: -6
+        - X: 1
+          Y: -7
+    - rid: 8211689906238652427
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells:
+        - X: 0
+          Y: -1
+        - X: 0
+          Y: -2
+        - X: 0
+          Y: -3
+        - X: 0
+          Y: -4
+        - X: 0
+          Y: -5
+        - X: 0
+          Y: -6
+        - X: 0
+          Y: -7
+        - X: -1
+          Y: -7
+        - X: -1
+          Y: -6
+        - X: -1
+          Y: -5
+        - X: -1
+          Y: -4
+        - X: -1
+          Y: -3
+        - X: -1
+          Y: -2
+        - X: -1
+          Y: -1
+        - X: 1
+          Y: -1
+        - X: 1
+          Y: -2
+        - X: 1
+          Y: -3
+        - X: 1
+          Y: -4
+        - X: 1
+          Y: -5
+        - X: 1
+          Y: -6
+        - X: 1
+          Y: -7

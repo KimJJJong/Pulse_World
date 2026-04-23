@@ -66,14 +66,18 @@ public class ClientHandlers : MonoBehaviour
         if (RhythmClient.Instance != null)
         {
             RhythmClient.Instance.judgeWindowMs = (float)p.ActionWindowMs;
-            RhythmClient.Instance.OnBeatSync(new BeatSyncInfo
+            if (RhythmSyncCoordinator.TryApplyBeatSync(
+                rhythm: RhythmClient.Instance,
+                serverSendTimeMs: 0,
+                songStartServerTimeMs: p.SongStartServerTime,
+                bpm: p.Bpm,
+                baseBeatDivision: p.BaseBeatDivision,
+                beatIndex: 0,
+                sourceTag: "InitMap"))
             {
-                SongStartServerTimeMs = p.SongStartServerTime,
-                Bpm = p.Bpm,
-                BaseBeatDivision = p.BaseBeatDivision,
-            });
-            OnBeatSyncReady?.Invoke();
-            Debug.Log($"[InitMap] Rhythm Sync: Bpm={p.Bpm}, SongStart={p.SongStartServerTime}");
+                OnBeatSyncReady?.Invoke();
+                Debug.Log($"[InitMap] Rhythm Sync: Bpm={p.Bpm}, SongStart={p.SongStartServerTime}");
+            }
         }
 
         GS.StartMapGeneration(mapAsset);
@@ -136,17 +140,18 @@ public class ClientHandlers : MonoBehaviour
     public void Handle_SC_BeatSync(SC_BeatSync p)
     {
         Debug.Log("InHandelbeatSync");
-        Rhythm.OnBeatSync(new BeatSyncInfo
+        if (RhythmSyncCoordinator.TryApplyBeatSync(
+            rhythm: Rhythm,
+            serverSendTimeMs: p.ServerSendTimeMs,
+            songStartServerTimeMs: p.SongStartServerTimeMs,
+            bpm: p.Bpm,
+            baseBeatDivision: p.BaseBeatDivision,
+            beatIndex: p.BeatIndex,
+            sourceTag: "BeatSync"))
         {
-            SongStartServerTimeMs = p.SongStartServerTimeMs,
-            Bpm = p.Bpm,
-            BaseBeatDivision = p.BaseBeatDivision,
-            BeatIndex = p.BeatIndex
-        });
-
-        OnBeatSyncReady?.Invoke();
-
-        Debug.Log($"SongStart={Rhythm.ServerSongStartMs} ServerNow={Rhythm.GetCurrentServerTimeMs()} diff={Rhythm.ServerSongStartMs - Rhythm.GetCurrentServerTimeMs()}ms");
+            OnBeatSyncReady?.Invoke();
+            Debug.Log($"SongStart={Rhythm.ServerSongStartMs} ServerNow={Rhythm.GetCurrentServerTimeMs()} diff={Rhythm.ServerSongStartMs - Rhythm.GetCurrentServerTimeMs()}ms");
+        }
     }
 
     /// <summary>

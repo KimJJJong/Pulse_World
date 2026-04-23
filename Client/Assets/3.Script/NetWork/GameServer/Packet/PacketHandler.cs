@@ -71,6 +71,9 @@ class PacketHandler
 
             );
 
+        // Ping/Pong 워밍업 전에도 핸드셰이크 시각으로 1차 보정해 시작 구간 오차를 줄인다.
+        RhythmSyncCoordinator.ApplyHandshakeClock(p.ServerTimeMs);
+
         // 2) 네트워크 상태 확정 (Ready 이벤트 발행 -> ClientFlow가 씬 전환)
         NetworkManager.Instance.OnHandshakeSucceeded();
 

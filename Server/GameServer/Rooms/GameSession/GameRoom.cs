@@ -1,42 +1,45 @@
 using GameServer.Content.Map;
+using GameServer.InGame.Director.Data;
 using GameServer.InGame.Manager.Entity;
 using GameServer.InGame.System.Rhythm;
 using Interface;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shared;
+using Shared.Data;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Util;
-using GameServer.InGame.Director.Data;
-using Shared.Data; // Added
 
 public sealed class GameRoom : RoomBase
 {
-    // 로딩 완료 체크(UID 기준)
     readonly HashSet<string> _loaded = new();
 
     public string MatchId { get; }
     public string MapId { get; private set; }
-    public int Seed { get; private set; } = 0;
+    public int Seed { get; private set; }
 
-    enum RoomPhase { Waiting, Loading, Countdown, Running, Ended }
+    enum RoomPhase { Waiting, Countdown, Running, Ended }
     RoomPhase _phase = RoomPhase.Waiting;
 
-    private readonly ILogger _logger;
+    readonly ILogger _logger;
 
-    // 리듬 + 인게임 세션
     private GameSession? _session;
     private RhythmSystem? _rhythm;
     private RhythmConfig? _rhythmConfig;
     private Map2D? _map;
 
-    private int _nextMonsterId = 100;
+    CancellationTokenSource? _startCountdownCts;
+    long _plannedStartAtMs = -1;
+    long _songStartAtMs = -1;
+    long _lastDetachedSweepAtMs;
+
+    const int DetachedSweepIntervalMs = 1000;
 
     public GameRoom(string matchId, string mapId, ILogger? logger = null, int maxPlayers = 2)
-        : base(maxPlayers, 1) // Start ActorId = 1
+        : base(maxPlayers, 1)
     {
         MatchId = matchId;
         MapId = mapId;
@@ -58,41 +61,40 @@ public sealed class GameRoom : RoomBase
         bool empty;
         lock (_lock) empty = _players.Count == 0;
 
-        // [ping-fix] Console.WriteLine → LogManager (드물지만 정리)
         LogManager.Instance.LogDebug("GameRoom", $"MaybeEndIfEmpty matchId={MatchId} count={_players.Count}");
 
         if (!empty) return;
 
+        lock (_lock)
+        {
+            _phase = RoomPhase.Ended;
+            _startCountdownCts?.Cancel();
+            _startCountdownCts?.Dispose();
+            _startCountdownCts = null;
+        }
+
         LogManager.Instance.LogInfo("GameRoom", $"Destroyed (empty) matchId={MatchId}");
-        lock (_lock) _phase = RoomPhase.Ended;
         GameManager.Remove(MatchId);
     }
 
-    // =====================================================
-    // Loading gate
-    // =====================================================
     public bool MarkLoadedAsync(ClientSession s)
     {
         lock (_lock)
         {
+            if (_phase == RoomPhase.Ended)
+                return false;
+
             if (s?.Uid == null)
             {
-                Console.WriteLine("[GameRoom] MarkLoadedFail: Session or Uid null");
+                LogManager.Instance.LogWarning("GameRoom", "MarkLoadedFail: Session or Uid null");
                 return false;
             }
 
-            if (!_loaded.Add(s.Uid))
+            if (_loaded.Add(s.Uid))
             {
-                // Already loaded
-            }
-            else
-            {
-                // [ping-fix] Console.WriteLine → LogManager
-                LogManager.Instance.LogInfo("GameRoom",
-                    $"Player loaded uid={s.Uid} loaded={_loaded.Count}/{_players.Count}");
+                LogManager.Instance.LogInfo("GameRoom", $"Player loaded uid={s.Uid} loaded={_loaded.Count}/{_players.Count}");
             }
 
-            // 현재 방의 논리 플레이어가 전부 로딩 완료인지 체크
             bool allReady = true;
             foreach (var p in _players.Values)
             {
@@ -105,8 +107,7 @@ public sealed class GameRoom : RoomBase
 
             if (allReady && _players.Count >= _maxPlayers)
             {
-                LogManager.Instance.LogInfo("GameRoom",
-                    $"All players loaded count={_players.Count}");
+                LogManager.Instance.LogInfo("GameRoom", $"All players loaded count={_players.Count}");
                 return true;
             }
 
@@ -123,30 +124,35 @@ public sealed class GameRoom : RoomBase
         }
     }
 
-    // =====================================================
-    // Logic overrides
-    // =====================================================
     protected override void OnPlayerBound(RoomPlayer p, bool isNew)
     {
-        // 게임이 이미 시작된 경우, 재연결/중도 참여 처리
-        // 주의: ScheduleStart 등에 의해 Countdown 중일 때도 Running으로 취급할지 고민 필요
-        // 여기서는 Running 상태면 진입 허용
         if (_phase == RoomPhase.Running)
         {
-            // Use base logic which enqueues EnsurePlayerSpawned + SendInitPacket
             base.OnPlayerBound(p, isNew);
+            Enqueue(() => SendBeatSyncTo(p.Conn));
+            return;
         }
-        else
-        {
-             // 게임이 아직 시작되지 않음. 대기실 갱신 패킷 전송.
-             // (Waiting 상태에서는 아직 Entity가 없으므로 InitPacket 대신 AllPlayersLoaded나 별도 패킷으로 갱신)
-             // 여기서는 기존 AllPlayersLoaded 패킷 재활용 (loaded=false/true 상태 반영)
 
-             ScheduleBroadcastPlayerList();
+        if (_phase == RoomPhase.Countdown)
+        {
+            Enqueue(() =>
+            {
+                if (_session == null || p.Conn == null)
+                    return;
+
+                _session.EnsurePlayerSpawned(p.ActorId);
+                _session.SendInitPacketToPlayer(p.Conn);
+                SendCountdownStateTo(p.Conn);
+            });
+
+            ScheduleBroadcastPlayerList();
+            return;
         }
+
+        ScheduleBroadcastPlayerList();
     }
 
-    private void ScheduleBroadcastPlayerList()
+    void ScheduleBroadcastPlayerList()
     {
         Enqueue(() =>
         {
@@ -169,9 +175,6 @@ public sealed class GameRoom : RoomBase
 
     protected override void OnNewPlayerJoinedQueue(RoomPlayer p, SessionBase session)
     {
-        // For GameRoom, entities are usually created at StartGameplay.
-        // If "Late Join" is allowed, we create entity here.
-        // Assuming NO late join for now in strict sense, but if it happens:
         if (_map == null) return;
 
         var spawnSet = _map.GetSpawnPointRandom();
@@ -185,69 +188,38 @@ public sealed class GameRoom : RoomBase
         e.SetState("HP", 100);
         e.SetState("Uid", p.Uid);
 
-        // GameSession InitGame takes a list, but we can't re-init.
-        // We should add a specific method to GameSession or just spawn to World.
-        // Using base SessionBase spawn logic inside EnsurePlayerSpawned might be enough if added to _players manually?
-        // SessionBase.InitPlayers clears _players list. Not good for single add.
-        
-        // Let's rely on EnsurePlayerSpawned check. If not in _players, we might be in trouble.
-        // Since GameRoom creates entities at Start, late joiners (newly created RoomPlayer after Start) won't have entities in _session._players.
-        // We need to add them.
-        
-        // However, RoomBase logic calls OnNewPlayerJoinedQueue only if IsRoomRunning.
-        // If running, we assume it's a verify-reconnect or late join.
-        // For now, let's assume we just log or try to spawn.
-        // [ping-fix] Console.WriteLine → LogManager
-        LogManager.Instance.LogWarning("GameRoom",
-            $"Late join attempt uid={p.Uid} actor={p.ActorId}");
-        
-        // Manually adding to session players list would require access. 
-        // SessionBase._players is protected.
-        // We can cast to specific session if needed or just skip for now as prototype focused on Reconnect.
-    }
-
-    // =====================================================
-    // Start Logic
-    // =====================================================
-    public void ScheduleStart(long startAtMs)
-    {
-        lock(_lock)
-        {
-            if (_phase == RoomPhase.Running || _phase == RoomPhase.Countdown || _phase == RoomPhase.Ended)
-            {
-                _logger.LogWarning("[GameRoom] ScheduleStart ignored. Phase is already {Phase}", _phase);
-                return;
-            }
-            _phase = RoomPhase.Countdown;
-        }
-        var delay = Math.Max(0, (int)(startAtMs - AppRef.ServerTimeMs()));
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(delay, AppRef.Cts.Token);
-                lock (_lock)
-                {
-                    if (_phase == RoomPhase.Countdown)
-                    {
-                        _phase = RoomPhase.Running;
-                        _logger.LogInformation("GameRoom {MatchId} started rhythm gameplay at {Time}", MatchId, AppRef.ServerTimeMs());
-                    }
-                }
-            }
-            catch (TaskCanceledException) { }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "ScheduleStart failed match={MatchId}", MatchId);
-            }
-        });
+        LogManager.Instance.LogWarning("GameRoom", $"Late join attempt uid={p.Uid} actor={p.ActorId}");
     }
 
     public void BroadcastGameStart(long plannedStartAtMs)
     {
-        // 1) Load data & Setup Rhythm anchor (Music start = plannedStartAtMs + StartDelayMs)
+        lock (_lock)
+        {
+            if (_phase == RoomPhase.Ended)
+            {
+                _logger.LogWarning("[GameRoom] BroadcastGameStart ignored. Room already ended. match={MatchId}", MatchId);
+                return;
+            }
+
+            if (_phase == RoomPhase.Countdown || _phase == RoomPhase.Running)
+            {
+                _logger.LogInformation(
+                    "[GameRoom] BroadcastGameStart ignored. Already started phase={Phase} planned={Planned} song={Song}",
+                    _phase,
+                    _plannedStartAtMs,
+                    _songStartAtMs);
+                return;
+            }
+
+            _phase = RoomPhase.Countdown;
+            _plannedStartAtMs = plannedStartAtMs;
+        }
+
         SetupGameplay(plannedStartAtMs);
+
+        long finalStartMs = _rhythm != null ? _rhythm.SongStartServerTimeMs : plannedStartAtMs;
+        lock (_lock)
+            _songStartAtMs = finalStartMs;
 
         var loadedPkt = new SC_AllPlayersLoaded { matchId = MatchId };
         lock (_lock)
@@ -264,11 +236,6 @@ public sealed class GameRoom : RoomBase
         }
         Broadcast(loadedPkt);
 
-        // 2) Actual sync anchor for client: The moment music starts
-        long finalStartMs = _rhythm != null ? _rhythm.SongStartServerTimeMs : plannedStartAtMs;
-        
-        ScheduleStart(finalStartMs);
-
         Broadcast(new SC_GameBegin
         {
             matchId = MatchId,
@@ -276,47 +243,49 @@ public sealed class GameRoom : RoomBase
             startTick = 0
         });
 
-        _logger.LogInformation("[GameRoom] BroadcastGameStart: anchor={Anchor} delay={Delay}", plannedStartAtMs, finalStartMs - plannedStartAtMs);
+        Broadcast(BuildBeatSyncPacket());
+        ScheduleStartTransition(finalStartMs);
+
+        _logger.LogInformation(
+            "[GameRoom] BroadcastGameStart planned={Planned} finalSongStart={Final} totalDelay={Delay}",
+            plannedStartAtMs,
+            finalStartMs,
+            finalStartMs - AppRef.ServerTimeMs());
     }
 
-    private void SetupGameplay(long startAtMs)
+    void SetupGameplay(long startAtMs)
     {
         lock (_lock)
         {
-            if (_session != null) // 이미 세팅되었다면 무시
+            if (_session != null)
                 return;
         }
 
         _map = MapDatabase.Get(MapId);
 
-        // NEW: Load Data from ContentStore (Real)
         var stageData = StageDataManager.Get(MapId);
-        
-        // NEW: Load Rhythm from ContentStore (Sound/Json)
-        RhythmStageData rhythmData = null;
+
+        RhythmStageData rhythmData;
         if (ContentStore.Rhythms != null && ContentStore.Rhythms.TryGetValue(MapId, out var parsedRhythm))
         {
             rhythmData = parsedRhythm;
-            // [ping-fix] Console.WriteLine → LogManager
-            LogManager.Instance.LogInfo("GameRoom",
-                $"Rhythm data found mapId={MapId} blocks={rhythmData.Blocks?.Count ?? 0}");
+            LogManager.Instance.LogInfo("GameRoom", $"Rhythm data found mapId={MapId} blocks={rhythmData.Blocks?.Count ?? 0}");
         }
         else
         {
-            LogManager.Instance.LogWarning("GameRoom",
-                $"Rhythm data not found mapId={MapId}. Creating dummy.");
+            LogManager.Instance.LogWarning("GameRoom", $"Rhythm data not found mapId={MapId}. Creating dummy.");
             rhythmData = new RhythmStageData { StageId = MapId, TicksPerBeat = 480, TimeSignatureNum = 4 };
             rhythmData.Blocks.Add(new RhythmBlock { BlockId = "DummyPhase1", LengthMeasures = 8, DefaultNextBlock = "DummyPhase1" });
         }
-        
+
         var rhythmManager = new DynamicRhythmManager(rhythmData);
         if (stageData == null)
         {
             _logger.LogError("Stage Data Not Found: {MapId}. Falling back to default Config.", MapId);
-            stageData = new StageScenario 
-            { 
-                MapId = MapId, 
-                RhythmSettings = new RhythmSettingsData { Bpm=120, ActionWindowMs=100 },
+            stageData = new StageScenario
+            {
+                MapId = MapId,
+                RhythmSettings = new RhythmSettingsData { Bpm = 120, ActionWindowMs = 100 },
                 InitialSpawns = new List<SpawnData>()
             };
         }
@@ -331,7 +300,7 @@ public sealed class GameRoom : RoomBase
             MaxBeatLookAhead = 2,
         };
 
-        long songStart = startAtMs + rSetting.StartDelayMs; // [Change] 현재 시간이 아닌 약속된 미래 시간 사용
+        long songStart = startAtMs + rSetting.StartDelayMs;
 
         var time = new ServerTimeAdapter();
         _rhythm = new RhythmSystem(time, _rhythmConfig, songStart);
@@ -349,30 +318,113 @@ public sealed class GameRoom : RoomBase
         _rhythm.OnBeat += _session.OnBeat;
 
         var players = BuildPlayerEntities();
-        
-        // OLD: Monsters list pass
-        // var monsters = BuildMonsterEntitiesForPrototype();
-        // _session.InitGame(players, monsters);
-
-        // NEW: Pass Scenario
         _session.InitGame(players, stageData);
 
         foreach (var s in GetBroadcastSnapshot())
             _session.SendInitPacketToPlayer(s);
 
-        Broadcast(new SC_BeatSync
-        {
-            ServerSendTimeMs = AppRef.ServerTimeMs(),
-            SongStartServerTimeMs = songStart,
-            Bpm = _rhythmConfig.Bpm,
-            BaseBeatDivision = _rhythmConfig.BaseBeatDivision,
-            BeatIndex = 0, // [Change] 어차피 과거/미래이므로 일단 0을 보내고 클라가 계산하게 함
-        });
-
-        _logger.LogInformation("GameRoom {MatchId} pre-scheduled rhythm gameplay. Start at {startAt}", MatchId, startAtMs);
+        _logger.LogInformation(
+            "GameRoom {MatchId} pre-scheduled rhythm gameplay. startAt={StartAt} songStart={SongStart} stageDelay={StageDelay}",
+            MatchId,
+            startAtMs,
+            songStart,
+            rSetting.StartDelayMs);
     }
 
-    private List<MapEntity> BuildPlayerEntities()
+    SC_BeatSync BuildBeatSyncPacket()
+    {
+        var now = AppRef.ServerTimeMs();
+        var beatIndex = _rhythm != null ? Math.Max(0, _rhythm.GetCurrentBeatIndex(now)) : 0;
+
+        return new SC_BeatSync
+        {
+            ServerSendTimeMs = now,
+            SongStartServerTimeMs = _songStartAtMs > 0 ? _songStartAtMs : now,
+            Bpm = _rhythmConfig?.Bpm ?? 120,
+            BaseBeatDivision = _rhythmConfig?.BaseBeatDivision ?? 1,
+            BeatIndex = beatIndex
+        };
+    }
+
+    void SendCountdownStateTo(ClientSession target)
+    {
+        if (target == null || !target.IsConnected)
+            return;
+
+        if (_songStartAtMs <= 0)
+            return;
+
+        var begin = new SC_GameBegin
+        {
+            matchId = MatchId,
+            startAtMs = _songStartAtMs,
+            startTick = 0
+        };
+
+        target.Send(begin.Write());
+        SendBeatSyncTo(target);
+    }
+
+    void SendBeatSyncTo(ClientSession? target)
+    {
+        if (target == null || !target.IsConnected)
+            return;
+
+        if (_rhythm == null || _rhythmConfig == null || _songStartAtMs <= 0)
+            return;
+
+        target.Send(BuildBeatSyncPacket().Write());
+    }
+
+    void ScheduleStartTransition(long startAtMs)
+    {
+        CancellationToken token;
+        lock (_lock)
+        {
+            if (_phase == RoomPhase.Ended)
+                return;
+
+            _startCountdownCts?.Cancel();
+            _startCountdownCts?.Dispose();
+            _startCountdownCts = CancellationTokenSource.CreateLinkedTokenSource(AppRef.Cts.Token);
+            token = _startCountdownCts.Token;
+        }
+
+        var delay = Math.Max(0, (int)(startAtMs - AppRef.ServerTimeMs()));
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(delay, token);
+
+                bool enteredRunning = false;
+                lock (_lock)
+                {
+                    if (_phase == RoomPhase.Countdown)
+                    {
+                        _phase = RoomPhase.Running;
+                        enteredRunning = true;
+                    }
+                }
+
+                if (!enteredRunning)
+                    return;
+
+                Broadcast(BuildBeatSyncPacket());
+                _logger.LogInformation("GameRoom {MatchId} entered Running at {Now} (songStart={SongStart})", MatchId, AppRef.ServerTimeMs(), _songStartAtMs);
+            }
+            catch (TaskCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "ScheduleStartTransition failed match={MatchId}", MatchId);
+            }
+        }, token);
+    }
+
+    List<MapEntity> BuildPlayerEntities()
     {
         var players = new List<MapEntity>();
         if (_map == null) return players;
@@ -400,15 +452,6 @@ public sealed class GameRoom : RoomBase
         return players;
     }
 
-    // Mock Loader Removed
-    // private StageScenario LoadStageData(string mapId) ...
-
-    // OLD Monster Builder Removed
-    // private List<MapEntity> BuildMonsterEntitiesForPrototype() ...
-
-    // =====================================================
-    // Packet Routing
-    // =====================================================
     public void OnCS_ActionRequest(ClientSession s, CS_ActionRequest p)
         => Enqueue(() =>
         {
@@ -423,10 +466,10 @@ public sealed class GameRoom : RoomBase
             _session?.OnClientCalibPacketByActorId(actorId, p);
         });
 
-    private bool ValidateSessionAction(ClientSession s, out int actorId)
+    bool ValidateSessionAction(ClientSession s, out int actorId)
     {
         actorId = -1;
-        if (_phase != RoomPhase.Running || _session == null || s == null || !s.HasAuth)
+        if (_phase != RoomPhase.Running || _session == null || !s.HasAuth)
         {
             s.Send(new SC_Warn { code = 2001, msg = "ROOM_NOT_RUNNING_OR_NOT_MEMBER" }.Write());
             return false;
@@ -465,51 +508,51 @@ public sealed class GameRoom : RoomBase
 
     public override void Update()
     {
-        if (_phase != RoomPhase.Running) return;
         base.Update();
-        
-        CheckDetachedPlayers();
 
+        if (_phase != RoomPhase.Running)
+            return;
+
+        CheckDetachedPlayers();
         _rhythm?.Update();
     }
 
-    private void CheckDetachedPlayers()
+    void CheckDetachedPlayers()
     {
-        // n초에 한 번 정도만 체크해도 충분 (최적화)
-        if (Environment.TickCount64 % 1000 < 50) 
-        {
-            var now = Environment.TickCount64;
-            List<(string, long)> toRemove = null;
+        var now = Environment.TickCount64;
+        if (now - _lastDetachedSweepAtMs < DetachedSweepIntervalMs)
+            return;
 
-            lock (_lock)
+        _lastDetachedSweepAtMs = now;
+
+        List<(string uid, long epoch)>? toRemove = null;
+
+        lock (_lock)
+        {
+            foreach (var p in _players.Values)
             {
-                foreach (var p in _players.Values)
+                if (p.Conn == null && p.LastDetachedTime > 0)
                 {
-                    if (p.Conn == null && p.LastDetachedTime > 0)
+                    if (now - p.LastDetachedTime > GameStartTuning.DisconnectGraceMs)
                     {
-                        // 30초 이상 연결 끊김 상태면 강제 퇴장
-                        if (now - p.LastDetachedTime > 10_000)
-                        {
-                            if (toRemove == null) toRemove = new List<(string, long)>();
-                            toRemove.Add((p.Uid, p.Epoch));
-                        }
+                        toRemove ??= new List<(string uid, long epoch)>();
+                        toRemove.Add((p.Uid, p.Epoch));
                     }
                 }
             }
+        }
 
-            if (toRemove != null)
-            {
-                foreach (var (uid, epoch) in toRemove)
-                {
-                    // [ping-fix] Console.WriteLine → LogManager
-                    LogManager.Instance.LogInfo("GameRoom", $"Force removing detached player uid={uid}");
-                    RemovePlayer(uid, epoch);
-                }
-            }
+        if (toRemove == null)
+            return;
+
+        foreach (var (uid, epoch) in toRemove)
+        {
+            LogManager.Instance.LogInfo("GameRoom", $"Force removing detached player uid={uid}");
+            RemovePlayer(uid, epoch);
         }
     }
 
-    private sealed class ServerTimeAdapter : IServerTime
+    sealed class ServerTimeAdapter : IServerTime
     {
         public long NowMs => AppRef.ServerTimeMs();
     }

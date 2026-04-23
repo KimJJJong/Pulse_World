@@ -1,6 +1,7 @@
 using UnityEngine;
 using RhythmRPG.Data;
 using System.Collections.Generic;
+using System.IO;
 
 namespace RhythmRPG.Managers
 {
@@ -56,7 +57,11 @@ namespace RhythmRPG.Managers
             // 1. Try Custom Path if exists
             if (!string.IsNullOrEmpty(path))
             {
-                prefab = Resources.Load<GameObject>(path);
+                foreach (var candidate in BuildResourcePathCandidates(path))
+                {
+                    prefab = Resources.Load<GameObject>(candidate);
+                    if (prefab != null) break;
+                }
             }
 
             // 2. Try Standard Conventions if custom path failed or empty
@@ -78,8 +83,35 @@ namespace RhythmRPG.Managers
                 return prefab;
             }
             
-            Debug.LogWarning($"[GameResourceManager] Prefab not found for ID: {id} in {folder}");
+            Debug.LogWarning($"[GameResourceManager] Prefab not found for ID: {id} (model_path='{path}') in {folder}");
             return null;
+        }
+
+        private static IEnumerable<string> BuildResourcePathCandidates(string rawPath)
+        {
+            if (string.IsNullOrWhiteSpace(rawPath))
+                yield break;
+
+            // Resources.Load path must be project-relative under a Resources folder,
+            // without extension and using '/' separators.
+            string normalized = rawPath.Replace('\\', '/').Trim();
+
+            if (normalized.StartsWith("Assets/Resources/"))
+                normalized = normalized.Substring("Assets/Resources/".Length);
+            else if (normalized.StartsWith("Resources/"))
+                normalized = normalized.Substring("Resources/".Length);
+
+            normalized = normalized.TrimStart('/');
+            normalized = Path.ChangeExtension(normalized, null).Replace('\\', '/');
+
+            if (!string.IsNullOrEmpty(normalized))
+                yield return normalized;
+
+            // Backward-compat typo fallback: Armor <-> Armon
+            if (normalized.Contains("/Armor/"))
+                yield return normalized.Replace("/Armor/", "/Armon/");
+            if (normalized.Contains("/Armon/"))
+                yield return normalized.Replace("/Armon/", "/Armor/");
         }
 
         /// <summary>
