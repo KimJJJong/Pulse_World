@@ -41,7 +41,10 @@ MonoBehaviour:
     OverrideGroupId: 10
   InitialObjects: []
   Events:
-  - EventId: 1
+  - Title: New Event
+    Notes: 
+    Enabled: 1
+    EventId: 1
     IsOneShot: 1
     Conditions:
     - Type: 0
@@ -65,7 +68,10 @@ MonoBehaviour:
       Position: {x: 26, y: 0, z: 6}
       StringVal: 
       GroupId: 11
-  - EventId: 2
+  - Title: "\uAC8C\uC784 \uC885\uB8CC Event Triger"
+    Notes: 
+    Enabled: 1
+    EventId: 2
     IsOneShot: 1
     Conditions:
     - Type: 0

@@ -246,11 +246,8 @@ public class RhythmInputController : MonoBehaviour
     /// <summary>
     /// 일반 공격 (Space키) - ActionKind.Skill + SlotIndex=-1 로 서버 전송.
     ///
-    /// [Fix-Prediction-Always] 원격 환경에서 judgeWindow 밖이면 Prediction이 발동 안 되던 문제 해결.
-    /// 이제 Prediction은 "중복 비트가 아닌 한" 무조건 발동한다.
-    /// - 로컬 애니메이션 즉시 재생 → "공격이 밀려서 적용" 현상 근본 차단
-    /// - 서버 판정 실패 시에도 애니메이션은 보이고 그 뒤에 HP 갱신이 안 들어올 뿐
-    ///   (기존에는 애니메이션 자체가 안 떴음)
+    /// judge window 밖 입력은 클라이언트에서 즉시 차단한다.
+    /// - 잘못된 타이밍의 입력은 애니메이션/전송 모두 하지 않음
     /// - 중복 비트 차단은 _lastAttackPredictionBeat 로 별도 관리
     /// </summary>
     void HandleAttackInputEvent(string skillId)
@@ -268,40 +265,37 @@ public class RhythmInputController : MonoBehaviour
         if (!PassCooldown(trueLocalNowMs)) return;
 
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
+        if (!TryGetJudgeWindowInfo(serverNow, out long predictionBeat, out long diff, out bool inJudgeWin))
+        {
+            Debug.Log($"[Input_Attack] OUT_OF_WINDOW skill={skillId} actor={me.EntityId} pos=({me.X},{me.Y}) " +
+                      $"serverNow={serverNow} beat={predictionBeat} diff={diff}ms " +
+                      $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → blocked");
+            return;
+        }
+
         BeatDebugUI_TMP.Instance?.MarkHitNow();
 
-        // 클라이언트 선행 애니메이션 (Prediction) — 항상 발동
-        long predictionBeat = -1;
-        long diff = 0;
-        bool inJudgeWin = false;
-        if (BoardView.Instance != null && Rhythm != null)
+        // 클라이언트 선행 애니메이션 (Prediction) — 유효 window 안에서만 발동
+        if (_lastAttackPredictionBeat == predictionBeat)
         {
-            predictionBeat = Rhythm.GetNearestBeatIndex(serverNow);
-            long judgeTime = Rhythm.GetBeatTimeMs(predictionBeat);
-            diff = System.Math.Abs(serverNow - judgeTime);
-            inJudgeWin = diff <= Rhythm.judgeWindowMs;
-
-            // 중복 비트 차단 (같은 비트에서 Prediction 반복 방지)
-            if (_lastAttackPredictionBeat == predictionBeat)
-            {
-                Debug.Log($"[Input_Attack] DUPLICATE predictionBeat={predictionBeat} BLOCKED");
-                return;
-            }
-            _lastAttackPredictionBeat = predictionBeat;
-
-            if (inJudgeWin) _lastActionBeatIndex = predictionBeat;
-
-            long startTick = Rhythm.GetBeatTick(predictionBeat);
-            float rotation = targetObject != null ? targetObject.transform.eulerAngles.y : 0f;
-
-            // [Input_Attack] 핵심 로그 — Prediction 실행 시점 및 비트 정렬 상태
-            Debug.Log($"[Input_Attack] skill={skillId} actor={me.EntityId} pos=({me.X},{me.Y}) " +
-                      $"target=({tx},{ty}) rot={rotation:F0} serverNow={serverNow} " +
-                      $"beat={predictionBeat} startTick={startTick} diff={diff}ms inWin={inJudgeWin} " +
-                      $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → PlaySkillInstant");
-
-            BoardView.Instance.PlaySkillInstant(me.EntityId, skillId, rotation, startTick);
+            Debug.Log($"[Input_Attack] DUPLICATE predictionBeat={predictionBeat} BLOCKED");
+            return;
         }
+        _lastAttackPredictionBeat = predictionBeat;
+
+        if (inJudgeWin) _lastActionBeatIndex = predictionBeat;
+
+        long startTick = Rhythm.GetBeatTick(predictionBeat);
+        float rotation = targetObject != null ? targetObject.transform.eulerAngles.y : 0f;
+
+        // [Input_Attack] 핵심 로그 — Prediction 실행 시점 및 비트 정렬 상태
+        Debug.Log($"[Input_Attack] skill={skillId} actor={me.EntityId} pos=({me.X},{me.Y}) " +
+                  $"target=({tx},{ty}) rot={rotation:F0} serverNow={serverNow} " +
+                  $"beat={predictionBeat} startTick={startTick} diff={diff}ms inWin={inJudgeWin} " +
+                  $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → PlaySkillInstant");
+
+        if (BoardView.Instance != null)
+            BoardView.Instance.PlaySkillInstant(me.EntityId, skillId, rotation, startTick);
 
         if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
 
@@ -311,8 +305,8 @@ public class RhythmInputController : MonoBehaviour
     }
 
     /// <summary>
-    /// [Fix-Prediction-Always] HandleAttackInputEvent와 동일한 원칙.
-    /// Prediction은 중복 비트가 아닌 한 무조건 발동.
+    /// HandleAttackInputEvent와 동일한 원칙.
+    /// judge window 밖 입력은 클라이언트에서 즉시 차단한다.
     /// </summary>
     void HandleSkillInputEvent(string skillId, int slotIndex)
     {
@@ -334,37 +328,35 @@ public class RhythmInputController : MonoBehaviour
         if (!PassCooldown(trueLocalNowMs)) return;
 
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
+        if (!TryGetJudgeWindowInfo(serverNow, out long predictionBeat, out long diff, out bool inJudgeWin))
+        {
+            Debug.Log($"[Input_Skill] OUT_OF_WINDOW skill={skillId} slot={slotIndex} actor={me.EntityId} " +
+                      $"pos=({me.X},{me.Y}) serverNow={serverNow} beat={predictionBeat} diff={diff}ms " +
+                      $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → blocked");
+            return;
+        }
+
         BeatDebugUI_TMP.Instance?.MarkHitNow();
 
-        long predictionBeat = -1;
-        long diff = 0;
-        bool inJudgeWin = false;
-        if (BoardView.Instance != null && Rhythm != null)
+        if (_lastAttackPredictionBeat == predictionBeat)
         {
-            predictionBeat = Rhythm.GetNearestBeatIndex(serverNow);
-            long judgeTime = Rhythm.GetBeatTimeMs(predictionBeat);
-            diff = System.Math.Abs(serverNow - judgeTime);
-            inJudgeWin = diff <= Rhythm.judgeWindowMs;
-
-            if (_lastAttackPredictionBeat == predictionBeat)
-            {
-                Debug.Log($"[Input_Skill] DUPLICATE predictionBeat={predictionBeat} slot={slotIndex} BLOCKED");
-                return;
-            }
-            _lastAttackPredictionBeat = predictionBeat;
-
-            if (inJudgeWin) _lastActionBeatIndex = predictionBeat;
-
-            long startTick = Rhythm.GetBeatTick(predictionBeat);
-            float rotation = targetObject != null ? targetObject.transform.eulerAngles.y : 0f;
-
-            Debug.Log($"[Input_Skill] skill={skillId} slot={slotIndex} actor={me.EntityId} pos=({me.X},{me.Y}) " +
-                      $"target=({tx},{ty}) rot={rotation:F0} serverNow={serverNow} " +
-                      $"beat={predictionBeat} startTick={startTick} diff={diff}ms inWin={inJudgeWin} " +
-                      $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → PlaySkillInstant");
-
-            BoardView.Instance.PlaySkillInstant(me.EntityId, skillId, rotation, startTick);
+            Debug.Log($"[Input_Skill] DUPLICATE predictionBeat={predictionBeat} slot={slotIndex} BLOCKED");
+            return;
         }
+        _lastAttackPredictionBeat = predictionBeat;
+
+        if (inJudgeWin) _lastActionBeatIndex = predictionBeat;
+
+        long startTick = Rhythm.GetBeatTick(predictionBeat);
+        float rotation = targetObject != null ? targetObject.transform.eulerAngles.y : 0f;
+
+        Debug.Log($"[Input_Skill] skill={skillId} slot={slotIndex} actor={me.EntityId} pos=({me.X},{me.Y}) " +
+                  $"target=({tx},{ty}) rot={rotation:F0} serverNow={serverNow} " +
+                  $"beat={predictionBeat} startTick={startTick} diff={diff}ms inWin={inJudgeWin} " +
+                  $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → PlaySkillInstant");
+
+        if (BoardView.Instance != null)
+            BoardView.Instance.PlaySkillInstant(me.EntityId, skillId, rotation, startTick);
 
         if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
 
@@ -426,6 +418,22 @@ public class RhythmInputController : MonoBehaviour
 
     bool PassCooldown(long nowLocalMs)
         => (nowLocalMs - _lastSendLocalMs) >= inputCooldownMs;
+
+    bool TryGetJudgeWindowInfo(long serverNowMs, out long predictionBeat, out long diffMs, out bool inJudgeWindow)
+    {
+        predictionBeat = -1;
+        diffMs = 0;
+        inJudgeWindow = false;
+
+        if (Rhythm == null)
+            return false;
+
+        predictionBeat = Rhythm.GetNearestBeatIndex(serverNowMs);
+        long judgeTime = Rhythm.GetBeatTimeMs(predictionBeat);
+        diffMs = System.Math.Abs(serverNowMs - judgeTime);
+        inJudgeWindow = diffMs <= Rhythm.judgeWindowMs;
+        return inJudgeWindow;
+    }
 
     void Rotate(float angle)
     {

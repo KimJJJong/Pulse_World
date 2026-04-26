@@ -1,119 +1,337 @@
 #if UNITY_EDITOR
-using UnityEngine;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using UnityEditor;
+using UnityEngine;
 using ET = RhythmRPG.Editor.StageBuilder.EntityType;
 
 /// <summary>
-/// EntityDefinitionSO 에셋을 Resources/Data/ 에 생성/업데이트하고
-/// Resources/Entity/ 의 프리팹을 자동으로 연결합니다.
-/// EntityId = 서버의 AppearanceId(플레이어) 또는 ModelId(몬스터)
+/// EntityData.json을 원본으로 EntityDefinitionSO를 생성/업데이트하는 동기화 도구입니다.
+/// 이 도구의 책임은 "코드에 박힌 목록 생성"이 아니라 "JSON의 ResourcePath를 기준으로 SO를 반영"하는 것입니다.
 /// Menu: RhythmRPG/Editors/Setup/Entity Definitions
 /// </summary>
 public class EntityDefinitionSetup
 {
-    // SO를 생성/업데이트할 Resources/Data 폴더들
-    // (두 곳 모두 관리 — 0.MainProject/Resources/Data 는 신규, Resources/Data 는 기존)
-    static readonly string[] SO_FOLDERS = new[]
-    {
-        "Assets/Resources/Data",
-        "Assets/0.MainProject/Resources/Data",
-    };
+    private const string EntityJsonAssetPath = "Assets/Resources/Data/EntityData.json";
+    private const string ResourcesRootFolder = "Assets/Resources";
+    private const string TargetSoFolder = "Assets/Resources/Data";
+    private const string LegacySoFolder = "Assets/0.MainProject/Resources/Data";
 
     [MenuItem("RhythmRPG/Editors/Setup/Entity Definitions")]
     public static void SetupAll()
     {
-        // 폴더 생성 보장
-        foreach (var folder in SO_FOLDERS)
+        EntityDataRootDto root = LoadEntityData();
+        if (root?.Entities == null || root.Entities.Count == 0)
         {
-            if (!AssetDatabase.IsValidFolder(folder))
-            {
-                var parts = folder.Split('/');
-                var parent = string.Join("/", parts, 0, parts.Length - 1);
-                AssetDatabase.CreateFolder(parent, parts[parts.Length - 1]);
-                Debug.Log($"[EntityDefinitionSetup] Created folder: {folder}");
-            }
+            Debug.LogError($"[EntityDefinitionSetup] No entity entries found in {EntityJsonAssetPath}.");
+            EditorUtility.DisplayDialog(
+                "Entity Definitions",
+                $"JSON이 비어 있거나 읽을 수 없습니다.\n\n경로: {EntityJsonAssetPath}",
+                "OK");
+            return;
         }
 
-        // 엔티티 정의 목록
-        // EntityId  : 서버가 패킷에 보내는 ID (AppearanceId 또는 ModelId)
-        // soName    : SO 파일명 = EntityData.json ResourcePath 의 마지막 세그먼트
-        // prefabName: Resources/Entity/ 의 프리팹 이름
-        var defs = new[]
-        {
-            (id: 10,   soName: "Entity_10_Player_Barbarian",    prefabName: "Barbarian_InGame", prefabAssetPath: "",                                                   type: ET.Player),
-            (id: 11,   soName: "Entity_11_Player_Mage",         prefabName: "Mage",             prefabAssetPath: "",                                                   type: ET.Player),
-            (id: 12,   soName: "Entity_12_Player_Rogu",         prefabName: "",                 prefabAssetPath: "Assets/0.MainProject/Resources/Entity/Rogue.prefab", type: ET.Player),
-            (id: 1000, soName: "Entity_1000_Monster_BlackPawn", prefabName: "",                 prefabAssetPath: "",                                                   type: ET.Monster),
-            (id: 1001, soName: "Entity_1001_Monster_WhitePawn", prefabName: "",                 prefabAssetPath: "",                                                   type: ET.Monster),
-        };
+        int processed = 0;
+        int created = 0;
+        int updated = 0;
+        int migrated = 0;
 
-        int total = 0;
-
-        foreach (var folder in SO_FOLDERS)
+        AssetDatabase.StartAssetEditing();
+        try
         {
-            foreach (var d in defs)
+            foreach (var dto in root.Entities.OrderBy(e => e.EntityId))
             {
-                string soPath = $"{folder}/{d.soName}.asset";
-                var existing = AssetDatabase.LoadAssetAtPath<RhythmRPG.Editor.StageBuilder.EntityDefinitionSO>(soPath);
+                if (dto == null || string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    continue;
+                }
 
-                RhythmRPG.Editor.StageBuilder.EntityDefinitionSO so;
-                if (existing == null)
+                string soPath = GetTargetSoPath(dto);
+                EnsureFolderForAssetPath(soPath);
+
+                var so = AssetDatabase.LoadAssetAtPath<RhythmRPG.Editor.StageBuilder.EntityDefinitionSO>(soPath);
+                if (so == null)
+                {
+                    string legacyPath = FindLegacyAssetPath(dto) ?? GetLegacySoPath(dto);
+                    if (!string.IsNullOrWhiteSpace(legacyPath))
+                    {
+                        string moveResult = AssetDatabase.MoveAsset(legacyPath, soPath);
+                        if (string.IsNullOrEmpty(moveResult))
+                        {
+                            migrated++;
+                            Debug.Log($"[EntityDefinitionSetup] Migrated legacy asset: {legacyPath} -> {soPath}");
+                            so = AssetDatabase.LoadAssetAtPath<RhythmRPG.Editor.StageBuilder.EntityDefinitionSO>(soPath);
+                        }
+                    }
+                }
+
+                if (so == null)
                 {
                     so = ScriptableObject.CreateInstance<RhythmRPG.Editor.StageBuilder.EntityDefinitionSO>();
                     AssetDatabase.CreateAsset(so, soPath);
+                    created++;
                     Debug.Log($"[EntityDefinitionSetup] Created: {soPath}");
                 }
                 else
                 {
-                    so = existing;
+                    updated++;
                 }
 
-                so.EntityId   = d.id;
-                so.EntityName = d.soName;
-                so.Type       = d.type;
-
-                // 프리팹 연결
-                if (!string.IsNullOrEmpty(d.prefabAssetPath))
+                so.EntityId = dto.EntityId;
+                so.EntityName = ResolveEntityName(dto, soPath);
+                so.Type = (ET)dto.EntityType;
+                if (dto.MaxHp > 0)
                 {
-                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(d.prefabAssetPath);
-                    if (prefab != null)
-                    {
-                        so.Prefab = prefab;
-                        Debug.Log($"[EntityDefinitionSetup] ✅ {d.soName} → Prefab '{d.prefabAssetPath}'");
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[EntityDefinitionSetup] Prefab '{d.prefabAssetPath}' not found.");
-                    }
-                }
-                else if (!string.IsNullOrEmpty(d.prefabName))
-                {
-                    var prefab = Resources.Load<GameObject>($"Entity/{d.prefabName}");
-                    if (prefab != null)
-                    {
-                        so.Prefab = prefab;
-                        Debug.Log($"[EntityDefinitionSetup] ✅ {d.soName} → Prefab '{d.prefabName}'");
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[EntityDefinitionSetup] Prefab 'Resources/Entity/{d.prefabName}' not found.");
-                    }
+                    so.MaxHp = dto.MaxHp;
                 }
 
                 EditorUtility.SetDirty(so);
-                total++;
+                processed++;
             }
+
+            CleanupLegacyFolder(root.Entities);
+        }
+        finally
+        {
+            AssetDatabase.StopAssetEditing();
         }
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
-        Debug.Log($"[EntityDefinitionSetup] Done. {total} SO(s) processed.");
+        Debug.Log(
+            $"[EntityDefinitionSetup] Sync complete. Processed={processed}, Created={created}, Updated={updated}, Migrated={migrated}, Target={TargetSoFolder}");
         EditorUtility.DisplayDialog(
             "완료",
-            $"EntityDefinitionSO 셋업 완료! ({total}개 처리)\n\n" +
-            "이제 플레이하면 EntityId 10=Barbarian, 11=Mage, 12=Rogu로 소환됩니다.",
+            $"EntityDefinitionSO 동기화 완료!\n\n" +
+            $"Source: {EntityJsonAssetPath}\n" +
+            $"Target: {TargetSoFolder}\n" +
+            $"Processed: {processed}, Created: {created}, Updated: {updated}, Migrated: {migrated}\n" +
+            $"Prefab는 기존 SO에 있던 값을 유지하고, 새로 생성된 항목은 필요 시 수동 지정합니다.",
             "OK");
+    }
+
+    private static EntityDataRootDto LoadEntityData()
+    {
+        string json = null;
+
+        var textAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(EntityJsonAssetPath);
+        if (textAsset != null)
+        {
+            json = textAsset.text;
+        }
+        else
+        {
+            string fullPath = Path.GetFullPath(Path.Combine(Application.dataPath, "Resources", "Data", "EntityData.json"));
+            if (File.Exists(fullPath))
+            {
+                json = File.ReadAllText(fullPath);
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonUtility.FromJson<EntityDataRootDto>(json);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[EntityDefinitionSetup] Failed to parse EntityData.json: {ex.Message}");
+            return null;
+        }
+    }
+
+    private static void CleanupLegacyFolder(List<EntityDataDto> entities)
+    {
+        if (!AssetDatabase.IsValidFolder(LegacySoFolder))
+        {
+            return;
+        }
+
+        foreach (var dto in entities.Where(e => e != null))
+        {
+            string legacyPath = GetLegacySoPath(dto);
+            string targetPath = GetTargetSoPath(dto);
+
+            bool legacyExists = AssetDatabase.LoadAssetAtPath<RhythmRPG.Editor.StageBuilder.EntityDefinitionSO>(legacyPath) != null;
+            if (!legacyExists)
+            {
+                continue;
+            }
+
+            bool targetExists = AssetDatabase.LoadAssetAtPath<RhythmRPG.Editor.StageBuilder.EntityDefinitionSO>(targetPath) != null;
+            if (targetExists)
+            {
+                if (AssetDatabase.DeleteAsset(legacyPath))
+                {
+                    Debug.Log($"[EntityDefinitionSetup] Removed legacy duplicate: {legacyPath}");
+                }
+                continue;
+            }
+
+            string moveResult = AssetDatabase.MoveAsset(legacyPath, targetPath);
+            if (string.IsNullOrEmpty(moveResult))
+            {
+                Debug.Log($"[EntityDefinitionSetup] Migrated legacy asset: {legacyPath} -> {targetPath}");
+            }
+            else
+            {
+                Debug.LogWarning($"[EntityDefinitionSetup] Failed to migrate {legacyPath}: {moveResult}");
+            }
+        }
+    }
+
+    private static string GetTargetSoPath(EntityDataDto dto)
+    {
+        string resourcePath = NormalizeResourcePath(dto?.ResourcePath);
+        if (!string.IsNullOrWhiteSpace(resourcePath))
+        {
+            return $"{ResourcesRootFolder}/{resourcePath}.asset";
+        }
+
+        string fallbackName = !string.IsNullOrWhiteSpace(dto?.Name)
+            ? dto.Name
+            : $"Entity_{dto?.EntityId}";
+
+        return $"{TargetSoFolder}/{fallbackName}.asset";
+    }
+
+    private static string GetLegacySoPath(EntityDataDto dto)
+    {
+        string resourcePath = NormalizeResourcePath(dto?.ResourcePath);
+        if (!string.IsNullOrWhiteSpace(resourcePath))
+        {
+            return $"Assets/0.MainProject/Resources/{resourcePath}.asset";
+        }
+
+        string fallbackName = !string.IsNullOrWhiteSpace(dto?.Name)
+            ? dto.Name
+            : $"Entity_{dto?.EntityId}";
+
+        return $"{LegacySoFolder}/{fallbackName}.asset";
+    }
+
+    private static string FindLegacyAssetPath(EntityDataDto dto)
+    {
+        if (!AssetDatabase.IsValidFolder(LegacySoFolder))
+        {
+            return null;
+        }
+
+        foreach (var guid in AssetDatabase.FindAssets("t:EntityDefinitionSO", new[] { LegacySoFolder }))
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            var so = AssetDatabase.LoadAssetAtPath<RhythmRPG.Editor.StageBuilder.EntityDefinitionSO>(path);
+            if (so != null && so.EntityId == dto.EntityId)
+            {
+                return path;
+            }
+        }
+
+        return null;
+    }
+
+    private static string NormalizeResourcePath(string resourcePath)
+    {
+        if (string.IsNullOrWhiteSpace(resourcePath))
+        {
+            return string.Empty;
+        }
+
+        string normalized = resourcePath.Replace('\\', '/').Trim();
+        normalized = normalized.TrimStart('/');
+        if (normalized.StartsWith("Assets/Resources/", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized.Substring("Assets/Resources/".Length);
+        }
+
+        if (normalized.EndsWith(".asset", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = Path.ChangeExtension(normalized, null);
+        }
+
+        return normalized;
+    }
+
+    private static string ResolveEntityName(EntityDataDto dto, string soPath)
+    {
+        string pathName = Path.GetFileNameWithoutExtension(soPath);
+        if (string.IsNullOrWhiteSpace(pathName))
+        {
+            return dto?.Name ?? string.Empty;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto?.ResourcePath) &&
+            !string.IsNullOrWhiteSpace(dto.Name) &&
+            !string.Equals(dto.Name, pathName, StringComparison.OrdinalIgnoreCase))
+        {
+            Debug.LogWarning(
+                $"[EntityDefinitionSetup] JSON name mismatch for EntityId={dto.EntityId}. " +
+                $"Name='{dto.Name}', ResourcePath='{dto.ResourcePath}'. Using '{pathName}' from the resource path.");
+        }
+
+        return pathName;
+    }
+
+    private static void EnsureFolderForAssetPath(string assetPath)
+    {
+        string folder = Path.GetDirectoryName(assetPath)?.Replace('\\', '/');
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            return;
+        }
+
+        EnsureFolder(folder);
+    }
+
+    private static void EnsureFolder(string folder)
+    {
+        folder = folder.Replace('\\', '/').TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(folder) || AssetDatabase.IsValidFolder(folder))
+        {
+            return;
+        }
+
+        string parent = Path.GetDirectoryName(folder)?.Replace('\\', '/');
+        string name = Path.GetFileName(folder);
+
+        if (string.IsNullOrWhiteSpace(parent))
+        {
+            parent = "Assets";
+        }
+
+        if (!AssetDatabase.IsValidFolder(parent))
+        {
+            EnsureFolder(parent);
+        }
+
+        if (!AssetDatabase.IsValidFolder(folder))
+        {
+            AssetDatabase.CreateFolder(parent, name);
+            Debug.Log($"[EntityDefinitionSetup] Created folder: {folder}");
+        }
+    }
+
+    [Serializable]
+    public class EntityDataRootDto
+    {
+        public List<EntityDataDto> Entities = new List<EntityDataDto>();
+    }
+
+    [Serializable]
+    public class EntityDataDto
+    {
+        public int EntityId;
+        public string Name;
+        public int EntityType;
+        public int MaxHp;
+        public string ResourcePath;
     }
 }
 #endif

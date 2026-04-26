@@ -16,7 +16,7 @@
         },
         {
             "EntityId": 12,
-            "Name": "Entity_11_Player_Rogu",
+            "Name": "Entity_12_Player_Rogu",
             "EntityType": 1,
             "MaxHp": 10,
             "ResourcePath": "Data/Entity_12_Player_Rogu"

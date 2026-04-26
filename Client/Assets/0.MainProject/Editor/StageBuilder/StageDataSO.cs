@@ -63,6 +63,9 @@ namespace RhythmRPG.Editor.StageBuilder
     [System.Serializable]
     public class EventInfoSO
     {
+        public string Title = "New Event";
+        [TextArea(2, 4)] public string Notes;
+        public bool Enabled = true;
         public int EventId;
         public bool IsOneShot = true;
         public List<ConditionInfoSO> Conditions = new List<ConditionInfoSO>();

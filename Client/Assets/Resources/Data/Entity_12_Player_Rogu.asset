@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Entity_12_Player_Rogu
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Editor.StageBuilder.EntityDefinitionSO
   EntityId: 12
-  EntityName: Entity_11_Player_Rogu
+  EntityName: Entity_12_Player_Rogu
   Type: 1
   Prefab: {fileID: 6209095869838771366, guid: 6c21255934d8e14479e9329aeacd888b, type: 3}
   AnimatorController: {fileID: 0}

@@ -15,7 +15,6 @@ namespace RhythmRPG.Editor.StageBuilder
                 return;
             }
 
-            // Convert SO to DTO
             var dto = new StageScenarioDTO();
             dto.MapId = stage.MapId;
             dto.Description = stage.Description;
@@ -37,19 +36,6 @@ namespace RhythmRPG.Editor.StageBuilder
                     registryMap.Add(reg.Key, reg);
                 }
             }
-
-            // Convert SO to DTO
-            //var dto = new StageScenarioDTO();
-            dto.MapId = stage.MapId;
-            dto.Description = stage.Description;
-            dto.RhythmSettings = new RhythmSettingsDTO 
-            {
-                SongKey = stage.Rhythm.SongKey,
-                Bpm = stage.Rhythm.Bpm,
-                BaseBeatDivision = stage.Rhythm.BaseBeatDivision,
-                ActionWindowMs = stage.Rhythm.ActionWindowMs,
-                StartDelayMs = stage.Rhythm.StartDelayMs
-            };
             
             // 2. Process Initial Spawns (Unified List -> Split by Type)
             // Combine InitialSpawns and InitialObjects (both are SpawnInfoSO now)
@@ -113,6 +99,11 @@ namespace RhythmRPG.Editor.StageBuilder
             // 3. Process Events
             foreach(var e in stage.Events)
             {
+                if (e == null || !e.Enabled)
+                {
+                    continue;
+                }
+
                 var evtDto = new EventDataDTO 
                 {
                     EventId = e.EventId,

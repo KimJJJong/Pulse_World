@@ -8,11 +8,16 @@ namespace RhythmRPG.Editor.StageBuilder
 {
     public static class EntityExporter
     {
+        private static readonly string[] SearchFolders =
+        {
+            "Assets/Resources/Data",
+        };
+
         [MenuItem("RhythmRPG/Editors/Data/Export Entity Data")]
         public static void Export()
         {
             // 1. Find all EntityDefinitionSO assets
-            string[] guids = AssetDatabase.FindAssets("t:EntityDefinitionSO");
+            string[] guids = AssetDatabase.FindAssets("t:EntityDefinitionSO", SearchFolders);
             if (guids == null || guids.Length == 0)
             {
                 Debug.LogError("[EntityExporter] No EntityDefinitionSO found!");
