@@ -28,6 +28,10 @@ public sealed class UserConfig : IEntityTypeConfiguration<User>
             .HasConversion<short>() // enum -> smallint
             .IsRequired();
 
+        b.Property(x => x.AppearanceId)
+            .HasColumnName("appearance_id")
+            .IsRequired();
+
         b.HasMany(x => x.Identities)
             .WithOne(x => x.User)
             .HasForeignKey(x => x.Uid)

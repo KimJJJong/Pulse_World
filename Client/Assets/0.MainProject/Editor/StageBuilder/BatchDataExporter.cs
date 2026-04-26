@@ -8,7 +8,7 @@ using RhythmRPG.Editor.StageBuilder; // For StageExporter
 
 public static class BatchDataExporter
 {
-    [MenuItem("RhythmRPG/Export All Data (Skills, Patterns, Stages)")]
+    [MenuItem("RhythmRPG/Editors/Data/Export All Data")]
     public static void ExportAll()
     {
         Debug.Log("<b>[BatchExporter]</b> Starting Batch Export...");

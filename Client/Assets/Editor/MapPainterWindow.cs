@@ -25,7 +25,7 @@ public sealed class MapPainterWindow : EditorWindow
     private bool _dragPainting;
     private int _lastPaintIndex = -1;
 
-    [MenuItem("RhythmRPG/Game/Map Painter")]
+    [MenuItem("RhythmRPG/Editors/World/Map Painter")]
     public static void Open() => GetWindow<MapPainterWindow>("Map Painter");
 
     private void OnGUI()

@@ -72,4 +72,13 @@ public sealed class UserRepository : IUserRepository
         user.MarkLogin(now);
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task UpdateAppearanceIdAsync(string uid, int appearanceId, CancellationToken ct)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Uid == uid, ct);
+        if (user == null) return;
+
+        user.SetAppearanceId(appearanceId);
+        await _db.SaveChangesAsync(ct);
+    }
 }

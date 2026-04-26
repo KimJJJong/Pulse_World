@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Client.Content.Item;
+using RhythmRPG.Visual;
 
 public class HomeInventoryUI : MonoBehaviour
 {
@@ -20,6 +21,20 @@ public class HomeInventoryUI : MonoBehaviour
         // Initial Refresh
         InventoryManager.Instance?.LoadFromApi();
         Refresh();
+
+        var appearanceSelector = GetComponent<HomeAppearanceSelectorUI>();
+        if (appearanceSelector == null)
+        {
+            appearanceSelector = gameObject.AddComponent<HomeAppearanceSelectorUI>();
+        }
+        else
+        {
+            appearanceSelector.enabled = true;
+        }
+
+        var previewRoot = GameObject.Find("Barbarian");
+        if (previewRoot != null && previewRoot.GetComponent<HomeAppearancePreviewController>() == null)
+            previewRoot.AddComponent<HomeAppearancePreviewController>();
         
         // Listen to updates
         if (InventoryManager.Instance != null)

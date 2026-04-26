@@ -11,6 +11,7 @@ public sealed class User
     public DateTimeOffset? LastLoginAt { get; private set; }
 
     public UserStatus Status { get; private set; } = UserStatus.Active;
+    public int AppearanceId { get; private set; }
 
     // Navigation
     public List<UserIdentity> Identities { get; private set; } = new();
@@ -24,9 +25,12 @@ public sealed class User
         CreatedAt = now;
         LastLoginAt = now;
         Status = UserStatus.Active;
+        AppearanceId = 0;
     }
 
     public void MarkLogin(DateTimeOffset now) => LastLoginAt = now;
 
     public void Ban() => Status = UserStatus.Banned;
+
+    public void SetAppearanceId(int appearanceId) => AppearanceId = appearanceId;
 }

@@ -6,11 +6,11 @@ using UnityEngine;
 
 public static class MapExportUtility
 {
-    [MenuItem("RhythmRPG/Game/Export MapAsset to JSON", true)]
+    [MenuItem("RhythmRPG/Editors/World/Export MapAsset to JSON", true)]
     private static bool Validate()
         => Selection.activeObject is MapAsset;
 
-    [MenuItem("RhythmRPG/Game/Export MapAsset to JSON")]
+    [MenuItem("RhythmRPG/Editors/World/Export MapAsset to JSON")]
     private static void ExportSelected()
     {
         var asset = (MapAsset)Selection.activeObject;

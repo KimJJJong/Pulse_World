@@ -6,6 +6,7 @@ public sealed class AppCompositionRoot
     public ApiClient Api { get; }
     public AuthApi AuthApi { get; }
     public SessionApi SessionApi { get; }
+    public PlayerStateApi PlayerStateApi { get; }
 
     public AppCompositionRoot(AppConfig config)
     {
@@ -18,5 +19,6 @@ public sealed class AppCompositionRoot
 
         AuthApi = new AuthApi(Api, Tokens, Identity);
         SessionApi = new SessionApi(Api);
+        PlayerStateApi = new PlayerStateApi(Api);
     }
 }

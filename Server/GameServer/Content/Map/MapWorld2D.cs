@@ -140,6 +140,43 @@ public sealed class MapWorld2D : IGameWorld
         pos = default;
         return false;
     }
+
+    private bool PreviewDash(GridPos from, int dirX, int dirY, int distance, out GridPos landedPos)
+    {
+        landedPos = from;
+
+        GridPos best = from;
+        for (int step = 1; step <= distance; step++)
+        {
+            int nx = from.X + dirX * step;
+            int ny = from.Y + dirY * step;
+
+            if (!_map.InBounds(nx, ny) || !_map.IsWalkable(nx, ny))
+                break;
+
+            best = new GridPos(nx, ny);
+        }
+
+        if (best.X == from.X && best.Y == from.Y)
+            return false;
+
+        landedPos = best;
+        return true;
+    }
+
+    private bool PreviewBlink(GridPos from, int dirX, int dirY, int distance, out GridPos landedPos)
+    {
+        int tx = from.X + dirX * distance;
+        int ty = from.Y + dirY * distance;
+
+        landedPos = from;
+        if (!_map.InBounds(tx, ty) || !_map.IsWalkable(tx, ty))
+            return false;
+
+        landedPos = new GridPos(tx, ty);
+        return true;
+    }
+
     private bool TryGetEntityAt(int x, int y, out MapEntity entity)
     {
         var key = (x, y);
@@ -207,29 +244,15 @@ public sealed class MapWorld2D : IGameWorld
         if (!_entities.TryGetValue(actorId, out var e) || !e.IsAlive) return false;
 
         GridPos from = e.Position;
-        GridPos best = from; // 이동 가능한 마지막 칸
-
-        for (int step = 1; step <= distance; step++)
-        {
-            int nx = from.X + dirX * step;
-            int ny = from.Y + dirY * step;
-
-            if (!_map.InBounds(nx, ny) || !_map.IsWalkable(nx, ny))
-                break; // 이 칸부터 막힘 — best까지만
-
-            // 점유 코리주얰: 통과 (Dash는 업엀 담까다 지나감)
-            best = new GridPos(nx, ny);
-        }
-
-        if (best.X == from.X && best.Y == from.Y)
+        if (!PreviewDash(from, dirX, dirY, distance, out var preview))
         {
             Console.WriteLine($"[Dash] Failed: Actor={actorId} dir=({dirX},{dirY}) dist={distance} — no room");
             return false;
         }
 
         // 목표지점으로 이동 (TryMove 개철 기존 Occupancy 체크 가능)
-        bool moved = TryMove(actorId, best);
-        landedPos = moved ? best : from;
+        bool moved = TryMove(actorId, preview);
+        landedPos = moved ? preview : from;
         Console.WriteLine($"[Dash] Actor={actorId} {from.X},{from.Y}->{landedPos.X},{landedPos.Y} moved={moved}");
         return moved;
     }
@@ -244,21 +267,23 @@ public sealed class MapWorld2D : IGameWorld
         if (!_entities.TryGetValue(actorId, out var e) || !e.IsAlive) return false;
 
         GridPos from = e.Position;
-        int tx = from.X + dirX * distance;
-        int ty = from.Y + dirY * distance;
-
-        if (!_map.InBounds(tx, ty) || !_map.IsWalkable(tx, ty))
+        if (!PreviewBlink(from, dirX, dirY, distance, out var target))
         {
-            Console.WriteLine($"[Blink] Failed: Actor={actorId} target=({tx},{ty}) — blocked or OOB");
+            Console.WriteLine($"[Blink] Failed: Actor={actorId} target=({from.X + dirX * distance},{from.Y + dirY * distance}) — blocked or OOB");
             return false;
         }
 
-        GridPos target = new GridPos(tx, ty);
         bool moved = TryMove(actorId, target);
         landedPos = moved ? target : from;
         Console.WriteLine($"[Blink] Actor={actorId} {from.X},{from.Y}->{landedPos.X},{landedPos.Y} moved={moved}");
         return moved;
     }
+
+    public bool TryPreviewDash(GridPos from, int dirX, int dirY, int distance, out GridPos landedPos)
+        => PreviewDash(from, dirX, dirY, distance, out landedPos);
+
+    public bool TryPreviewBlink(GridPos from, int dirX, int dirY, int distance, out GridPos landedPos)
+        => PreviewBlink(from, dirX, dirY, distance, out landedPos);
 
     public bool TryMove(int actorId, GridPos target)
     {

@@ -3,7 +3,7 @@
     "unity-synaptic": {
       "command": "node",
       "args": [
-        "D:/Git/Server/RhythmRPG/RhythmRPG/Client/Assets/Synaptic AI Pro/MCPServer/index-supersave.js"
+        "D:/Git/Server/RhythmRPG/RhythmRPG/Client/Assets/Synaptic AI Pro/MCPServer/index.js"
       ],
       "env": {}
     }

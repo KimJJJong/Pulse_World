@@ -156,7 +156,7 @@ public static class TimeSync
         _samples++;
 
         // [TimeSync_Pong] 정상적인 RTT 보정 적용. 이 로그가 주기적으로 떠야 함.
-        Debug.Log($"[TimeSync_Pong] sample#{_samples} rtt={rttMs}ms oneWay={rttMs / 2}ms offset={OffsetMs:F1}ms serverNow={ServerNowMs()}");
+        //Debug.Log($"[TimeSync_Pong] sample#{_samples} rtt={rttMs}ms oneWay={rttMs / 2}ms offset={OffsetMs:F1}ms serverNow={ServerNowMs()}");
 
     }
 

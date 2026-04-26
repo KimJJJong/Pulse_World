@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c05afbcdf4a596b44ad55b7d951602b2, type: 3}
   m_Name: Entity_10_Player_Barbarian
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Editor.StageBuilder.EntityDefinitionSO
-  EntityId: 0
-  EntityName: 
-  Type: 0
-  Prefab: {fileID: 0}
+  EntityId: 10
+  EntityName: Entity_10_Player_Barbarian
+  Type: 1
+  Prefab: {fileID: 919132149155446097, guid: e954fdd93129d4b428fd447d141db38f, type: 3}
   AnimatorController: {fileID: 0}
   MaxHp: 10

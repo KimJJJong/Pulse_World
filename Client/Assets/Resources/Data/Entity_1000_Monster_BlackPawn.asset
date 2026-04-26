@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Entity_1000_Monster_BlackPawn
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Editor.StageBuilder.EntityDefinitionSO
   EntityId: 1000
-  EntityName: Pawn_B
+  EntityName: Entity_1000_Monster_BlackPawn
   Type: 2
   Prefab: {fileID: 138226, guid: edd4f3477fd5a8b4599bf6c0dac39f1d, type: 3}
   AnimatorController: {fileID: 0}

@@ -29,15 +29,15 @@ public class RhythmEditorWindow : EditorWindow
     private readonly string[] chordTypes = { "Major", "Minor", "Diminished", "Augmented" };
     private readonly string[] chordShortcuts = { "M", "m", "dim", "aug" };
 
-    [MenuItem("PulseWorld/Rhythm Audio Data Editor")]
+    [MenuItem("RhythmRPG/Editors/Audio/Rhythm Audio Data Editor")]
     public static void ShowWindow()
     {
-        GetWindow<RhythmEditorWindow>("Rhythm Editor").minSize = new Vector2(550, 650);
+        GetWindow<RhythmEditorWindow>("RhythmRPG Audio Editor").minSize = new Vector2(550, 650);
     }
 
     private void OnGUI()
     {
-        GUILayout.Label("🎵 Pulse World 다이내믹 오디오 에디터", EditorStyles.boldLabel);
+        GUILayout.Label("🎵 RhythmRPG 다이내믹 오디오 에디터", EditorStyles.boldLabel);
         
         scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
         

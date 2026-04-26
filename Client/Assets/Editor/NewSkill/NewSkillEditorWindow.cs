@@ -29,10 +29,10 @@ public class NewSkillEditorWindow : EditorWindow
     private SkillTrack _selectedTrack;
     private SkillEvent _selectedEvent;
 
-    [MenuItem("RhythmRPG/Editors/New Skill Editor")]
+    [MenuItem("RhythmRPG/Editors/Content/Skill Editor")]
     public static void Open()
     {
-        GetWindow<NewSkillEditorWindow>("New Skill Editor");
+        GetWindow<NewSkillEditorWindow>("Skill Editor");
     }
 
     private void OnGUI()

@@ -10,7 +10,7 @@ namespace RhythmRPG.Editor.StageBuilder
         private Vector2 _scrollPos;
         private BoxBoundsHandle _boundsHandle = new BoxBoundsHandle(); // [NEW]
 
-        [MenuItem("RhythmRPG/Stage Editor")]
+        [MenuItem("RhythmRPG/Editors/Content/Stage Editor")]
         public static void ShowWindow()
         {
             GetWindow<StageEditorWindow>("Stage Editor");

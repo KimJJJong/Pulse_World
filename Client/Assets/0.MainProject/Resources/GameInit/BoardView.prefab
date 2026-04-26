@@ -89,6 +89,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!65 &1219781104441755012
 BoxCollider:
@@ -162,6 +163,7 @@ MonoBehaviour:
   tilePrefab: {fileID: 0}
   cellSize: 1
   moveLerpTime: 0.1
+  actionDurationRatio: 0.5
 --- !u!1 &4077661576609285336
 GameObject:
   m_ObjectHideFlags: 0
@@ -272,6 +274,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &8056289253863787647
 GameObject:
@@ -285,6 +288,8 @@ GameObject:
   - component: {fileID: 3458391990226155077}
   - component: {fileID: 1346969102745245720}
   - component: {fileID: 8521707273460494670}
+  - component: {fileID: 7409177723908154422}
+  - component: {fileID: 4873202550360399969}
   m_Layer: 0
   m_Name: PlayerPrefab_Template
   m_TagString: Untagged
@@ -386,4 +391,37 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7409177723908154422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8056289253863787647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ba3a32e5402dd8479817df9a4a762b6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Visual.CharacterEquipSockets
+  RightHandSocket: {fileID: 0}
+  LeftHandSocket: {fileID: 0}
+  BackSocket: {fileID: 0}
+  HeadSocket: {fileID: 0}
+  BodySocket: {fileID: 0}
+  PantsSocket: {fileID: 0}
+  GlovesSocket: {fileID: 0}
+  ShoesSocket: {fileID: 0}
+--- !u!114 &4873202550360399969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8056289253863787647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06fb1ce05d9a8cc43849fc67c139e1bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Visual.CharacterVisualController

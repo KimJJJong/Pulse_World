@@ -30,4 +30,6 @@ public interface IUserRepository
         CancellationToken ct);
 
     Task MarkLoginAsync(string uid, DateTimeOffset now, CancellationToken ct);
+
+    Task UpdateAppearanceIdAsync(string uid, int appearanceId, CancellationToken ct);
 }

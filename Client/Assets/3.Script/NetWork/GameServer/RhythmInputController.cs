@@ -236,8 +236,8 @@ public class RhythmInputController : MonoBehaviour
         }
 
         // [Input_Move] 이동 입력 로그 — 비트 판정, 서버 시간, 타겟 좌표를 한 번에 확인
-        Debug.Log($"[Input_Move] from=({me.X},{me.Y}) to=({tx},{ty}) dir=({rdir.x},{rdir.y}) " +
-                  $"serverNow={serverNow} beat={nearestBeat} diff={diff}ms inWin={diff <= (Rhythm != null ? Rhythm.judgeWindowMs : 0)}");
+        //Debug.Log($"[Input_Move] from=({me.X},{me.Y}) to=({tx},{ty}) dir=({rdir.x},{rdir.y}) " +
+        //          $"serverNow={serverNow} beat={nearestBeat} diff={diff}ms inWin={diff <= (Rhythm != null ? Rhythm.judgeWindowMs : 0)}");
 
         SendActionRouted(ActionKind.Move, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;

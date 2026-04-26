@@ -14,7 +14,8 @@
     "model_path": "Prefabs/Weapon/Sword001",
     "icon_path": "Icons/W_Sword001",
     "normal_attack_skill_id": "Attack",
-    "skill_id": "NoviceSword"
+    "skill_id": "NoviceSword",
+    "appearance_id": 10
   },
   {
     "id": 100002,
@@ -31,7 +32,8 @@
     "model_path": "Prefabs/Weapon/Sword002",
     "icon_path": "Icons/W_Sword002",
     "normal_attack_skill_id": "",
-    "skill_id": ""
+    "skill_id": "",
+    "appearance_id": 10
   },
   {
     "id": 100011,
@@ -48,7 +50,8 @@
     "model_path": "Prefabs/Weapon/Axe001",
     "icon_path": "Icons/W_Axe001",
     "normal_attack_skill_id": "Attack",
-    "skill_id": "NoviceSword"
+    "skill_id": "NoviceSword",
+    "appearance_id": 10
   },
   {
     "id": 100021,
@@ -65,7 +68,8 @@
     "model_path": "Prefabs/Weapon/Bow001",
     "icon_path": "Icons/W_Bow001",
     "normal_attack_skill_id": "BowAttack",
-    "skill_id": "BowSkill"
+    "skill_id": "BowSkill",
+    "appearance_id": 11
   },
   {
     "id": 100031,
@@ -82,7 +86,8 @@
     "model_path": "Prefabs/Weapon/Dagger001",
     "icon_path": "Icons/W_Dagger001",
     "normal_attack_skill_id": "Attack",
-    "skill_id": "NoviceDagger"
+    "skill_id": "NoviceDagger",
+    "appearance_id": 11
   },
   {
     "id": 200001,

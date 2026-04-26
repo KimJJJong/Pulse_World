@@ -73,9 +73,8 @@ public class ItemTemplateDto
 {
     [JsonPropertyName("id")] public int Id { get; set; }
     [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
-    [JsonPropertyName("type")] public string Type { get; set; } = string.Empty; // Enum as string
+    [JsonPropertyName("type")] public string Type { get; set; } = string.Empty;
     [JsonPropertyName("max_stack")] public int MaxStack { get; set; }
-    // Add other fields if needed for validation
 }
 
 public class EquipmentTemplateDto : ItemTemplateDto
@@ -86,7 +85,14 @@ public class EquipmentTemplateDto : ItemTemplateDto
     [JsonPropertyName("base_hp")] public int Hp { get; set; }
     [JsonPropertyName("base_str")] public int Str { get; set; }
     [JsonPropertyName("base_dex")] public int Dex { get; set; }
-    
+
     [JsonPropertyName("normal_attack_skill_id")] public string NormalAttackSkillId { get; set; } = string.Empty;
     [JsonPropertyName("skill_id")] public string SkillId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 이 무기를 장착했을 때 사용할 플레이어 캐릭터 외견 ID.
+    /// Equipments.json의 appearance_id 필드와 매핑.
+    /// 0 = 기본값(폴백)
+    /// </summary>
+    [JsonPropertyName("appearance_id")] public int AppearanceId { get; set; } = 0;
 }

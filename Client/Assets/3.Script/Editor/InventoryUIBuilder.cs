@@ -7,10 +7,10 @@ using Client.Content.Item;
 
 public class InventoryUIBuilder : EditorWindow
 {
-    [MenuItem("Tools/RhythmRPG/Create Inventory UI")]
+    [MenuItem("RhythmRPG/Editors/UI/Create Inventory UI")]
     public static void ShowWindow()
     {
-        GetWindow<InventoryUIBuilder>("Inv UI Builder");
+        GetWindow<InventoryUIBuilder>("Inventory UI Builder");
     }
 
     private void OnGUI()

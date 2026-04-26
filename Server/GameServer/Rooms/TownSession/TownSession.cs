@@ -76,6 +76,7 @@ public sealed class TownSession : SessionBase
             BeatIndex = beat,
             EntityId = player.Id,
             EntityType = (int)player.Type,
+            AppearanceId = player.GetState<int>("AppearanceId"),
             X = player.Position.X,
             Y = player.Position.Y,
             Hp = player.GetState<int>("HP")
@@ -195,7 +196,8 @@ public sealed class TownSession : SessionBase
 
                 X = p.Position.X,
                 Y = p.Position.Y,
-                Hp = p.GetState<int>("HP")
+                Hp = p.GetState<int>("HP"),
+                AppearanceId = p.GetState<int>("AppearanceId")
             });
         }
 

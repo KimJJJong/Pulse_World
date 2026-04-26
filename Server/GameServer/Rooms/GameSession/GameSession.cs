@@ -28,7 +28,7 @@ public sealed class GameSession : SessionBase
     // 전투용 엔티티
     private readonly List<MapEntity> _monsters = new();
     private readonly MonsterAIController _monsterAI;
-    private readonly EntityIdGenerator _idGen = new EntityIdGenerator(); // [NEW] ID Generator
+    private readonly EntityIdGenerator _idGen = new EntityIdGenerator();
     
     // [Director]
     public GameDirector Director { get; private set; }
@@ -47,7 +47,6 @@ public sealed class GameSession : SessionBase
         _rhythmConfig = rhythmConfig;
         _rhythmManager = rhythmManager;
 
-        // Load Entity Data
         EntityDataManager.Instance.Load();
 
         _telegraph = new TelegraphScheduler(broadcaster);
@@ -65,39 +64,21 @@ public sealed class GameSession : SessionBase
         _patternRunner = new PatternRunner(World, BeatActions, _telegraph, ContentStore.Patterns, _frozen, map);
         _monsterAI = new MonsterAIController(_patternRunner);
 
-        // [Director] Hook Death Event
         World2D.OnEntityDead += OnEntityDeadHandler;
 
         Director = new GameDirector(this);
     }
 
-    // =====================================================
-    //  세션별 Cleanup
-    // =====================================================
     protected override void CleanupActor(int actorId)
     {
         BeatActions.CancelActor(actorId);
         _frozen.RemoveByActor(actorId);
         _telegraph.RemoveByCaster(actorId);
-
-        // Event Unsub? 
-        // SessionBase calls CleanupActor often, but OnEntityDead is on MapWorld2D which is per session.
-        // It's safer to unsubscribe on Session Destroy, but currently we don't have explicit SessionDestroy hook in SessionBase except Cleanup.
-        // Since World2D is owned by Session, it's fine.
-
         base.CleanupActor(actorId);
     }
 
     private void OnEntityDeadHandler(int actorId)
     {
-        // MonsterId or GroupId logic needed?
-        // Director expects TargetId to be GroupId for "MonsterAllDead".
-        // BUT NotifyEvent(TargetId) logic in GameDirector was:
-        // "if (!MonsterGroupDeadCounts.ContainsKey(context.TargetId)) ... count++"
-        
-        // Problem: context.TargetId is just unique ActorId here.
-        // Director needs to know the GROUP ID of this actor.
-        
         var monster = _monsters.Find(x => x.Id == actorId);
         if (monster != null)
         {
@@ -107,7 +88,7 @@ public sealed class GameSession : SessionBase
                 Director.NotifyEvent(new GameEventContext 
                 { 
                     Type = EventType.Dead, 
-                    TargetId = groupId, // Pass GroupId as TargetId for counting
+                    TargetId = groupId,
                     SourceActorId = actorId,
                     TimeMs = AppRef.ServerTimeMs() 
                 });
@@ -123,42 +104,31 @@ public sealed class GameSession : SessionBase
     // =====================================================
     //  초기화
     // =====================================================
-    // =====================================================
-    //  초기화 (Changed Signature)
-    // =====================================================
     public void InitGame(IEnumerable<MapEntity> players, StageScenario scenario)
     {
         InitPlayers(players);
-
         _monsters.Clear();
-
         Director.LoadScenario(scenario);
-        
         Director.NotifyEvent(new GameEventContext { Type = EventType.GameStart, TimeMs = AppRef.ServerTimeMs() });
         Console.WriteLine($"[InitGame] End (Director Loaded). SongStart={_rhythm.SongStartServerTimeMs}");
     }
     
-    // Director 전용 엔티티(몬스터/오브젝트) 소환 함수
+    // Director 전용 엔티티(몬스터/오브젝트) 소환
     public void SpawnEntityInternal(int entityId, EntityType type, int x, int y, int groupId, string aiKeyOrPattern)
     {
         int newId = _idGen.Generate(type);
-
         var e = new MapEntity(newId, type, new GridPos(x, y));
-        
-        // entityId param is technically the ModelId (TypeId) from Data
         e.SetState("ModelId", entityId); 
 
-        // [Data Driven Stats]
         int maxHp = 10;
         var entityData = EntityDataManager.Instance.Get(entityId);
         if (entityData != null)
         {
             maxHp = entityData.MaxHp;
-             Console.WriteLine($"[Spawn] Found Data for {entityId}: HP={maxHp}");
+            Console.WriteLine($"[Spawn] Found Data for {entityId}: HP={maxHp}");
         }
         else
         {
-            // Fallback
             if (type == EntityType.Monster) maxHp = 50;
         }
 
@@ -166,24 +136,19 @@ public sealed class GameSession : SessionBase
         e.SetState("GroupId", groupId);
 
         if (type == EntityType.Monster && !string.IsNullOrEmpty(aiKeyOrPattern))
-        {
              _monsterAI.RegisterMonster(e, aiKeyOrPattern);
-        }
-        // Objects might use aiKeyOrPattern for Pattern logic in future
         
         if (World2D.TrySpawn(e, e.Position))
         {
-            _monsters.Add(e); // _monsters 리스트 이름을 _entities로 바꾸는게 좋겠지만 일단 같이 관리 (MapEntity니까)
-            
+            _monsters.Add(e);
             Console.WriteLine($"[GameSession] Spawned Entity {entityId}({type}) at ({x},{y}). Pattern={aiKeyOrPattern}");
 
-            // Broadcast Spawn
             var pkt = new SC_EntitySpawn
             {
                 BeatIndex = 0,
                 EntityId = e.Id,
                 EntityType = (int)e.Type,
-                AppearanceId = e.GetState<int>("ModelId"), // ModelId mapped to AppearanceId 
+                AppearanceId = e.GetState<int>("ModelId"),
                 X = e.Position.X,
                 Y = e.Position.Y,
                 Hp = e.GetState<int>("HP")
@@ -193,30 +158,26 @@ public sealed class GameSession : SessionBase
     }
 
     // ===============================
-    // Init Packet (actorId 통일)
+    // Init Packet 빌드
     // ===============================
     private SC_InitMap BuildInitPacketForPlayer(int myActorId)
     {
         SC_InitMap packet = new SC_InitMap();
-
-        packet.Mode = 2;        // TODO : int value to enum - Game, Town
-
+        packet.Mode = 2;
         packet.ActionWindowMs = _rhythmConfig.ActionWindowMs;
         packet.SongId = "TestSong";
         packet.Bpm = _rhythmConfig.Bpm;
         packet.BaseBeatDivision = _rhythmConfig.BaseBeatDivision;
         packet.SongStartServerTime = _rhythm.SongStartServerTimeMs;
-
         packet.MapWidth = _map.Width;
         packet.MapHeight = _map.Height;
         packet.MapId = _map.MapId;
 
-           packet.playerss.Clear();
+        packet.playerss.Clear();
         foreach (var p in _players)
-            packet.playerss.Add(new SC_InitMap.Players { ActorId = p.Id, Name="Test", Uid="RealNeedit?" });
+            packet.playerss.Add(new SC_InitMap.Players { ActorId = p.Id, Name = "Test", Uid = "RealNeedit?" });
 
         packet.MyActorId = myActorId;
-
         packet.entitiess.Clear();
 
         foreach (var p in _players)
@@ -225,13 +186,11 @@ public sealed class GameSession : SessionBase
             {
                 EntityId = p.Id,
                 EntityType = (int)p.Type,
-
-                //  OwnerSlot 같은 slot 개념 제거  -> 그럼 OwnActor?
-                // OwnerSlot = ... (없애거나 0 고정)
-
                 X = p.Position.X,
                 Y = p.Position.Y,
-                Hp = p.GetState<int>("HP")
+                Hp = p.GetState<int>("HP"),
+                // [AppearanceId] MapEntity에 저장된 값 사용 (SendInitPacketToPlayer에서 API 후 설정됨)
+                AppearanceId = p.GetState<int>("AppearanceId")
             });
         }
 
@@ -245,14 +204,17 @@ public sealed class GameSession : SessionBase
                 X = m.Position.X,
                 Y = m.Position.Y,
                 Hp = m.GetState<int>("HP"),
-                AppearanceId = m.GetState<int>("ModelId") // [NEW] Map to AppearanceId
+                AppearanceId = m.GetState<int>("ModelId")
             });
         }
 
         return packet;
     }
 
-    /// <summary>GameRoom에서 각 유저 Session에게 호출</summary>
+    /// <summary>
+    /// GameRoom에서 각 유저 Session에게 호출.
+    /// API로 PlayerState를 먼저 가져온 후 AppearanceId를 포함한 InitMap 패킷을 전송.
+    /// </summary>
     public override void SendInitPacketToPlayer(ClientSession s)
     {
         int myActorId = s.ActorId;
@@ -264,7 +226,7 @@ public sealed class GameSession : SessionBase
 
         if (!_actorIds.Contains(myActorId))
         {
-            Console.WriteLine($"[SendInitPacketToPlayer] actorId not registered in session. actorId={myActorId}");
+            Console.WriteLine($"[SendInitPacketToPlayer] actorId not registered. actorId={myActorId}");
             return;
         }
 
@@ -274,37 +236,39 @@ public sealed class GameSession : SessionBase
             return;
         }
 
-        var pkt = BuildInitPacketForPlayer(myActorId);
-        s.Send(pkt.Write());
-
-        Console.WriteLine($"[SendInitPacketToPlayer] Sent SC_InitMap myActorId={pkt.MyActorId}");
-
-        // [NEW] API 연동 (Loading Phase)
+        // API에서 PlayerState(AppearanceId 포함) 먼저 조회 후 패킷 전송
         Task.Run(async () =>
         {
             string uid = !string.IsNullOrEmpty(s.Uid) ? s.Uid : s.SessionID.ToString();
             var pState = await ServerServices.ApiClient.GetPlayerStateAsync(uid);
 
+            var myEnt = _players.Find(x => x.Id == myActorId);
+
             if (pState != null)
             {
-                // Update Entity Stats from API Response (Calculated in ApiServer)
-                var myEnt = _players.Find(x => x.Id == myActorId);
                 if (myEnt != null)
                 {
-                    // [Fix] 테스트 중 HP 보호: API 값이 현재 세팅보다 작으면 기존 값 유지
+                    // HP 보호: API 값이 현재 값보다 작으면 기존 유지
                     int currentHp = myEnt.GetState<int>("HP");
                     int apiHp = pState.TotalHp;
                     int finalHp = (apiHp > 0 && apiHp >= currentHp) ? apiHp : currentHp;
                     myEnt.SetState("HP", finalHp);
                     myEnt.SetState("ATK", pState.TotalAtk);
                     myEnt.SetState("DEF", pState.TotalDef);
-                    Console.WriteLine($"[GameSession] HP resolved: API={apiHp} Current={currentHp} Final={finalHp}");
+
+                    // [핵심] AppearanceId를 MapEntity에 저장 → BuildInitPacketForPlayer에서 참조
+                    int appearanceId = pState.AppearanceId;
+                    myEnt.SetState("AppearanceId", appearanceId);
+
+                    Console.WriteLine(
+                        $"[GameSession] PlayerState loaded. Actor={myActorId} " +
+                        $"HP={finalHp} ATK={pState.TotalAtk} AppearanceId={appearanceId}");
                 }
 
-                // Inject auto-assigned skill slots into BeatActions
+                // 스킬 슬롯 주입
                 BeatActions.InjectSkillSlots(myActorId, pState.ActiveSkillSlots, pState.NormalAttackSkillId);
 
-                // Send SC_UpdateSkillSlots to Client
+                // SC_UpdateSkillSlots 전송
                 var updateSkillsPkt = new SC_UpdateSkillSlots
                 {
                     NormalAttackSkillId = pState.NormalAttackSkillId
@@ -317,32 +281,27 @@ public sealed class GameSession : SessionBase
                     });
                 }
                 s.Send(updateSkillsPkt.Write());
-
-                Console.WriteLine($"[GameSession] Loaded PlayerState for Actor {myActorId}. HP: {pState.TotalHp}, ATK: {pState.TotalAtk}. SkillSlots injected and sent to Client.");
-
-                // To ensure compatibility with client if it expects SC_Inventory, we construct a mock or fetch it.
-                // For now, we will notify client about game start later, or client just waits for SC_AllPlayersLoaded/SC_GameBegin.
             }
             else
             {
-                Console.WriteLine($"[GameSession] Warning: PlayerState could not be loaded for Actor {myActorId}.");
+                Console.WriteLine($"[GameSession] Warning: PlayerState load failed for Actor={myActorId}. AppearanceId defaults to 0.");
             }
+
+            // API 결과 반영 후 InitMap 패킷 전송
+            var pkt = BuildInitPacketForPlayer(myActorId);
+            s.Send(pkt.Write());
+
+            Console.WriteLine($"[SendInitPacketToPlayer] SC_InitMap sent. myActorId={myActorId}");
         });
     }
 
     // =====================================================
-    // 클라이언트 입력 처리 (actorId 통일)
+    // 클라이언트 입력 처리
     // =====================================================
     public void OnClientActionPacketByActorId(int actorId, CS_ActionRequest req)
     {
         if (actorId < 0) return;
         BeatActions.OnClientActionRequest(actorId, req);
-
-        // Move Event Hook
-        // (ActionRequest 안에 Move인지 Attack인지 구분 필요. 여기선 일단 생략하거나 ActionManager에서 Callback 받아야 함)
-        // 일단 예시로 Move라고 가정 시:
-        // var p = GetActor(actorId);
-        // Director.NotifyEvent(new GameEventContext { Type = EventType.Move, SourceActorId = actorId, X = p.X, Y = p.Y });
     }
 
     public void OnClientCalibPacketByActorId(int actorId, CS_CalibHit req)
@@ -357,31 +316,25 @@ public sealed class GameSession : SessionBase
     public void OnBeat(long beatIndex)
     {
         _rhythmManager?.UpdateMusicState(beatIndex);
-
         _monsterAI.UpdateAI(beatIndex, _monsters, _players);
         _telegraph.OnBeat(beatIndex);
         BeatActions.OnBeat(beatIndex);
         
         Director.NotifyEvent(new GameEventContext { Type = EventType.Beat, TimeMs = AppRef.ServerTimeMs() });
-
         Director.Update(AppRef.ServerTimeMs());
         CleanupDeadEntities();
     }
 
     private void CleanupDeadEntities()
     {
-        // Remove dead monsters and release IDs
         _monsters.RemoveAll(m => 
         {
             if (!m.IsAlive)
             {
                 _idGen.Release(m.Id);
                 _monsterAI.UnregisterMonster(m.Id);
-                // Also ensure it's removed from World2D if not already?
-                // World2D removal often happens on death, but let's be safe:
                 if (World2D.ContainsEntity(m.Id))
                     World2D.Despawn(m.Id);
-                    
                 Console.WriteLine($"[GameSession] Entity {m.Id} Cleaned Up & ID Released.");
                 return true;
             }
@@ -391,7 +344,6 @@ public sealed class GameSession : SessionBase
 
     public override void Update()
     {
-        // 서브 비트(Tick) 기반 정밀 스킬 검증 로직 연결
         if (_rhythm != null && _patternRunner != null)
         {
             long currentTick = _rhythm.GetCurrentTick(AppRef.ServerTimeMs());

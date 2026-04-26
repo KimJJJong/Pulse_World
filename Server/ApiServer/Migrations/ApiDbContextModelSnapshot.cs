@@ -202,6 +202,10 @@ namespace ApiServer.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_login_at");
 
+                    b.Property<int>("AppearanceId")
+                        .HasColumnType("integer")
+                        .HasColumnName("appearance_id");
+
                     b.Property<short>("Status")
                         .HasColumnType("smallint")
                         .HasColumnName("status");

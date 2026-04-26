@@ -444,12 +444,52 @@ public sealed class GameRoom : RoomBase
 
                 e.SetState("HP", 10000);
                 e.SetState("Uid", p.Uid);
+                ApplyPlayerState(e, p.Uid, 10000);
 
                 players.Add(e);
             }
         }
 
         return players;
+    }
+
+    private static void ApplyPlayerState(MapEntity entity, string uid, int defaultHp)
+    {
+        if (entity == null)
+            return;
+
+        entity.SetState("AppearanceId", 0);
+
+        if (string.IsNullOrWhiteSpace(uid))
+            return;
+
+        try
+        {
+            var pState = ServerServices.ApiClient
+                .GetPlayerStateAsync(uid)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+
+            if (pState == null)
+            {
+                Console.WriteLine($"[GameRoom] PlayerState missing. uid={uid}");
+                return;
+            }
+
+            int hp = pState.TotalHp > 0 ? pState.TotalHp : defaultHp;
+            entity.SetState("HP", hp);
+            entity.SetState("ATK", pState.TotalAtk);
+            entity.SetState("DEF", pState.TotalDef);
+            entity.SetState("AppearanceId", pState.AppearanceId);
+
+            Console.WriteLine(
+                $"[GameRoom] PlayerState loaded. uid={uid} HP={hp} AppearanceId={pState.AppearanceId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[GameRoom] PlayerState load failed. uid={uid} err={ex.Message}");
+        }
     }
 
     public void OnCS_ActionRequest(ClientSession s, CS_ActionRequest p)

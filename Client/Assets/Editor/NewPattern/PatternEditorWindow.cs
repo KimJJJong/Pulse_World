@@ -6,7 +6,7 @@ using Client.Data;
 
 public class PatternEditorWindow : EditorWindow
 {
-    [MenuItem("RhythmRPG/Pattern Editor")]
+    [MenuItem("RhythmRPG/Editors/Content/Pattern Editor")]
     public static void OpenWindow()
     {
         PatternEditorWindow wnd = GetWindow<PatternEditorWindow>();

@@ -9,10 +9,10 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
     private GameObject _tilePrefab;
     private bool _repositionEvenIfExists = true;
 
-    [MenuItem("Tools/RhythmRPG/BoardView Map Baker")]
+    [MenuItem("RhythmRPG/Editors/World/BoardView Map Baker")]
     public static void Open()
     {
-        GetWindow<BoardViewMapBakerWindow>("Map Baker");
+        GetWindow<BoardViewMapBakerWindow>("BoardView Map Baker");
     }
 
     private void OnGUI()

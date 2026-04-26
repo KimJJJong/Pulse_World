@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Entity_1001_Monster_WhitePawn
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Editor.StageBuilder.EntityDefinitionSO
   EntityId: 1001
-  EntityName: Pawn_W
+  EntityName: Entity_1001_Monster_WhitePawn
   Type: 2
   Prefab: {fileID: 104878, guid: 48d5ea4ff810d0e4ea36af7235dd5fd7, type: 3}
   AnimatorController: {fileID: 0}

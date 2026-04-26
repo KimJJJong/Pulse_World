@@ -9,6 +9,20 @@ namespace GameServer.Content.Skill
 {
     public class SkillRunner
     {
+        private readonly struct TimedSkillEvent
+        {
+            public readonly SkillEvent Event;
+            public readonly int TrackIndex;
+            public readonly int EventIndex;
+
+            public TimedSkillEvent(SkillEvent evt, int trackIndex, int eventIndex)
+            {
+                Event = evt;
+                TrackIndex = trackIndex;
+                EventIndex = eventIndex;
+            }
+        }
+
         private NewSkillDef _currentSkill;
         private long _startTick;
         private bool _isRunning;
@@ -61,19 +75,33 @@ namespace GameServer.Content.Skill
 
             long currentBeat = currentTick / 480;
 
-            foreach (var track in skill.Tracks)
+            var sortedEvents = CollectSortedEvents(skill, includeAllEvents: true, elapsedTick: currentTick - _startTick);
+
+            GridPos simulatedOrigin = default;
+            bool hasSimulatedOrigin = _map.TryGetActorPosition(_casterId, out simulatedOrigin);
+
+            foreach (var entry in sortedEvents)
             {
-                foreach (var evt in track.Events)
+                var evt = entry.Event;
+
+                if (evt.TriggerTick == 0)
                 {
-                    if (evt.TriggerTick == 0)
+                    ExecuteActionInstant(evt.Action, (int)currentBeat, evt.DurationTicks, currentTick, hpUpdates);
+
+                    if (evt.Action is MoveAction && _map.TryGetActorPosition(_casterId, out var movedPos))
                     {
-                        ExecuteActionInstant(evt.Action, (int)currentBeat, evt.DurationTicks, currentTick, hpUpdates);
+                        simulatedOrigin = movedPos;
+                        hasSimulatedOrigin = true;
                     }
-                    else
-                    {
-                        ExecuteActionDelayed(evt.Action, (int)currentBeat, evt.TriggerTick, evt.DurationTicks);
-                    }
+
+                    continue;
                 }
+
+                if (!hasSimulatedOrigin && !_map.TryGetActorPosition(_casterId, out simulatedOrigin))
+                    continue;
+
+                ExecuteActionDelayed(evt.Action, (int)currentBeat, evt.TriggerTick, evt.DurationTicks, ref simulatedOrigin);
+                hasSimulatedOrigin = true;
             }
 
             Finish();
@@ -81,14 +109,15 @@ namespace GameServer.Content.Skill
 
         /// <summary>
         /// TriggerTick > 0 인 이벤트를 Beat 단위로 예약.
-        /// Damage → PutRaw + ScheduleServerCommand
+        /// Damage/Move → 해당 비트에 맞춰 예약
         /// InputLock → 시전자 Entity에 즉시 세팅 (잠금 시작은 스킬 시전 시점)
         /// </summary>
-        private void ExecuteActionDelayed(BaseAction action, int baseBeat, int triggerTick, int durationTicks)
+        private void ExecuteActionDelayed(BaseAction action, int baseBeat, int triggerTick, int durationTicks, ref GridPos simulatedOrigin)
         {
             if (action == null) return;
 
             var type = action.GetSkillActionType();
+            long targetBeat = baseBeat + (triggerTick / 480);
 
             // InputLock: TriggerTick > 0이어도 잠금 시작은 스킬 시전(Beat N) 기준
             if (type == SkillActionType.InputLock)
@@ -97,36 +126,59 @@ namespace GameServer.Content.Skill
                 return;
             }
 
+            if (type == SkillActionType.Warning && action is WarningAction warningAction)
+            {
+                ProcessWarningAt(warningAction, (int)targetBeat, durationTicks, simulatedOrigin);
+                return;
+            }
+
+            if (type == SkillActionType.Move && action is MoveAction moveAction)
+            {
+                if (!TryResolveMoveTarget(simulatedOrigin, moveAction, out var targetPos))
+                    targetPos = simulatedOrigin;
+
+                var cmd = new PlayerActionCmd
+                {
+                    ActorId = _casterId,
+                    Kind = ActionKind.Move,
+                    SkillId = _currentSkill?.SkillId ?? "",
+                    TargetCell = targetPos,
+                    ExecuteBeat = targetBeat,
+                    Rotation = _casterRotationSnapshot,
+                    ClientSendTimeMs = 0,
+                    ServerReceiveTimeMs = 0
+                };
+
+                _beatActionManager.ScheduleServerCommand(targetBeat, cmd);
+                simulatedOrigin = targetPos;
+                Console.WriteLine($"[SkillRunner] Delayed Move scheduled: Caster={_casterId} Skill={_currentSkill?.SkillId} Beat={targetBeat} Target={targetPos}");
+                return;
+            }
+
             // Damage만 Beat 예약
             if (type != SkillActionType.Damage) return;
             if (action is not DamageAction damageAction) return;
 
-            long targetBeat = baseBeat + (triggerTick / 480);
-
-            if (!_map.TryGetActorPosition(_casterId, out GridPos casterPos)) return;
-
-            List<GridPos> targetCells = (_cachedWarningCells != null && _cachedWarningCells.Count > 0)
-                ? _cachedWarningCells
-                : CalculateShapeCells(damageAction.Shape, casterPos);
+            List<GridPos> targetCells = CalculateShapeCells(damageAction.Shape, simulatedOrigin);
 
             _frozen.PutRaw(_casterId, (int)targetBeat, damageAction.Amount, targetCells,
                 damageAction.StunDurationTicks, damageAction.KnockbackDistance,
                 damageAction.HitPlayers, damageAction.HitMonsters);
 
-            var cmd = new PlayerActionCmd
+            var damageCmd = new PlayerActionCmd
             {
                 ActorId = _casterId,
                 Kind = ActionKind.Skill,
                 SkillId = _currentSkill?.SkillId ?? "",
-                TargetCell = casterPos,
+                TargetCell = simulatedOrigin,
                 ExecuteBeat = targetBeat,
                 Rotation = _casterRotationSnapshot,
                 ClientSendTimeMs = 0,
                 ServerReceiveTimeMs = 0
             };
 
-            _beatActionManager.ScheduleServerCommand(targetBeat, cmd);
-            Console.WriteLine($"[SkillRunner] Delayed Damage scheduled: Caster={_casterId} Skill={_currentSkill?.SkillId} Beat={targetBeat} DMG={damageAction.Amount}");
+            _beatActionManager.ScheduleServerCommand(targetBeat, damageCmd);
+            Console.WriteLine($"[SkillRunner] Delayed Damage scheduled: Caster={_casterId} Skill={_currentSkill?.SkillId} Beat={targetBeat} DMG={damageAction.Amount} Origin={simulatedOrigin}");
         }
 
         public void UpdateTick(long currentTick)
@@ -147,20 +199,17 @@ namespace GameServer.Content.Skill
 
         private void ProcessEventsTick(long currentTick, long elapsedTick)
         {
-            foreach (var track in _currentSkill.Tracks)
+            var dueEvents = CollectSortedEvents(_currentSkill, includeAllEvents: false, elapsedTick: elapsedTick);
+
+            foreach (var entry in dueEvents)
             {
-                foreach (var evt in track.Events)
-                {
-                    if (evt.TriggerTick <= elapsedTick)
-                    {
-                        if (!_executedEvents.Contains(evt))
-                        {
-                            _executedEvents.Add(evt);
-                            long currentBeat = currentTick / 480;
-                            ExecuteAction(evt.Action, (int)currentBeat, evt.DurationTicks);
-                        }
-                    }
-                }
+                var evt = entry.Event;
+                if (_executedEvents.Contains(evt))
+                    continue;
+
+                _executedEvents.Add(evt);
+                long currentBeat = currentTick / 480;
+                ExecuteAction(evt.Action, (int)currentBeat, evt.DurationTicks);
             }
         }
 
@@ -221,6 +270,75 @@ namespace GameServer.Content.Skill
             _cachedWarningCells = null;
         }
 
+        private List<TimedSkillEvent> CollectSortedEvents(NewSkillDef skill, bool includeAllEvents, long elapsedTick)
+        {
+            var events = new List<TimedSkillEvent>();
+            if (skill == null) return events;
+
+            for (int t = 0; t < skill.Tracks.Count; t++)
+            {
+                var track = skill.Tracks[t];
+                for (int e = 0; e < track.Events.Count; e++)
+                {
+                    var evt = track.Events[e];
+                    if (includeAllEvents || evt.TriggerTick <= elapsedTick)
+                        events.Add(new TimedSkillEvent(evt, t, e));
+                }
+            }
+
+            events.Sort((a, b) =>
+            {
+                int cmp = a.Event.TriggerTick.CompareTo(b.Event.TriggerTick);
+                if (cmp != 0) return cmp;
+
+                cmp = GetActionPriority(a.Event.Action).CompareTo(GetActionPriority(b.Event.Action));
+                if (cmp != 0) return cmp;
+
+                cmp = a.TrackIndex.CompareTo(b.TrackIndex);
+                if (cmp != 0) return cmp;
+
+                return a.EventIndex.CompareTo(b.EventIndex);
+            });
+
+            return events;
+        }
+
+        private static int GetActionPriority(BaseAction action)
+        {
+            if (action == null) return int.MaxValue;
+
+            return action.GetSkillActionType() switch
+            {
+                SkillActionType.Move => 0,
+                SkillActionType.Warning => 1,
+                SkillActionType.InputLock => 2,
+                SkillActionType.Damage => 3,
+                SkillActionType.Sound => 4,
+                SkillActionType.Wait => 5,
+                _ => 6
+            };
+        }
+
+        private bool TryResolveMoveTarget(GridPos fromPos, MoveAction action, out GridPos targetPos)
+        {
+            var rotated = RotateDirForMove(action.DirectionX, action.DirectionY, _casterRotationSnapshot);
+            int dirX = rotated.X;
+            int dirY = rotated.Y;
+
+            switch (action.MoveType)
+            {
+                case MoveType.Dash:
+                    return _map.TryPreviewDash(fromPos, dirX, dirY, action.Distance, out targetPos);
+                case MoveType.Blink:
+                    return _map.TryPreviewBlink(fromPos, dirX, dirY, action.Distance, out targetPos);
+                default:
+                    targetPos = new GridPos(
+                        fromPos.X + dirX * action.Distance,
+                        fromPos.Y + dirY * action.Distance);
+                    return true;
+            }
+        }
+
         // --------------------------------------------------------------------
         // Action Processors
         // --------------------------------------------------------------------
@@ -230,6 +348,11 @@ namespace GameServer.Content.Skill
             if (!_map.TryGetActorPosition(_casterId, out GridPos casterPos))
                 return;
 
+            ProcessWarningAt(action, currentBeat, durationTicks, casterPos);
+        }
+
+        private void ProcessWarningAt(WarningAction action, int currentBeat, int durationTicks, GridPos casterPos)
+        {
             List<GridPos> cells = CalculateShapeCells(action.Shape, casterPos);
             _cachedWarningCells = cells;
 
@@ -258,9 +381,7 @@ namespace GameServer.Content.Skill
             if (!_map.TryGetActorPosition(_casterId, out GridPos casterPos))
                 return;
 
-            List<GridPos> targetCells = (_cachedWarningCells != null && _cachedWarningCells.Count > 0)
-                ? _cachedWarningCells
-                : CalculateShapeCells(action.Shape, casterPos);
+            List<GridPos> targetCells = CalculateShapeCells(action.Shape, casterPos);
 
             _frozen.PutRaw(_casterId, currentBeat, action.Amount, targetCells, action.StunDurationTicks, action.KnockbackDistance, action.HitPlayers, action.HitMonsters);
 
@@ -283,9 +404,7 @@ namespace GameServer.Content.Skill
             if (!_map.TryGetActorPosition(_casterId, out GridPos casterPos))
                 return;
 
-            List<GridPos> targetCells = (_cachedWarningCells != null && _cachedWarningCells.Count > 0)
-                ? _cachedWarningCells
-                : CalculateShapeCells(action.Shape, casterPos);
+            List<GridPos> targetCells = CalculateShapeCells(action.Shape, casterPos);
 
             if (targetCells.Count > 0)
             {
