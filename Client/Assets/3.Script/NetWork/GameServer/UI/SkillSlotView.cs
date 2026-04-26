@@ -11,9 +11,16 @@ public class SkillSlotView : MonoBehaviour
     private float _cooldownEndTime;
     private float _cooldownDuration;
     private bool _running;
+    private string _idleLabel = "";
 
     void Awake()
     {
+        if (cooldownText != null)
+        {
+            _idleLabel = cooldownText.text;
+            cooldownText.gameObject.SetActive(true);
+        }
+
         if (cooldownMask != null)
         {
             cooldownMask.type = Image.Type.Filled;
@@ -23,7 +30,9 @@ public class SkillSlotView : MonoBehaviour
             cooldownMask.fillAmount = 0f;
             cooldownMask.gameObject.SetActive(false);
         }
-        if (cooldownText != null) cooldownText.gameObject.SetActive(false);
+
+        if (cooldownText != null && string.IsNullOrEmpty(_idleLabel))
+            cooldownText.gameObject.SetActive(false);
     }
 
     void Update()
@@ -69,6 +78,17 @@ public class SkillSlotView : MonoBehaviour
     {
         _running = false;
         if (cooldownMask != null) cooldownMask.gameObject.SetActive(false);
-        if (cooldownText != null) cooldownText.gameObject.SetActive(false);
+        if (cooldownText != null)
+        {
+            if (!string.IsNullOrEmpty(_idleLabel))
+            {
+                cooldownText.text = _idleLabel;
+                cooldownText.gameObject.SetActive(true);
+            }
+            else
+            {
+                cooldownText.gameObject.SetActive(false);
+            }
+        }
     }
 }
