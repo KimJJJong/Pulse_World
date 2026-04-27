@@ -10,7 +10,7 @@
         public long SessionEpoch { get; private set; }
         public string Role { get; private set; } = "Unknown";
         public bool HandshakeOk { get; private set; }
-    public string Key { get; private set; } = "";
+        public string Key { get; private set; } = "";
 
         // ---- map ----
         public bool InitMapReceived { get; private set; }
@@ -32,6 +32,11 @@
             HandshakeOk = true;
         }
 
+        public void ApplySessionKey(string key)
+        {
+            Key = key ?? "";
+        }
+
         public void ApplyInitMap(int rev, int tickRate, string mapId, string mapVersion, int myActorId, SC_InitMap map)
         {
             Rev = rev;
@@ -50,6 +55,7 @@
             SessionEpoch = 0;
             Role = "Unknown";
             HandshakeOk = false;
+            Key = "";
 
             InitMapReceived = false;
             Rev = 0;

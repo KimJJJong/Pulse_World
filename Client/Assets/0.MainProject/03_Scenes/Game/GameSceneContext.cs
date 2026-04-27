@@ -49,6 +49,9 @@ public sealed class GameSceneContext : BaseSceneContext
         // 씬 오브젝트(BoardView, 타일 등)의 Awake/Start 완료를 보장하기 위해 대기
         await WaitForSceneReady();
 
+        // 전투 중 스킬/패턴 로딩으로 프레임이 끊기지 않도록 공용 콘텐츠를 미리 워밍업한다.
+        P2PCombatContentCache.WarmUpSkills();
+
         // 캐시된 InitMap이 있으면 여기서 처리 (씬 오브젝트 준비 완료 후)
         TryApplyInitMapIfAlreadyReceived();
 

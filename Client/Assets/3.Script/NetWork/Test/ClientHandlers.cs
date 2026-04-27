@@ -28,7 +28,8 @@ public class ClientHandlers : MonoBehaviour
 
     public void HandleSC_InitMap(SC_InitMap p)
     {
-        Debug.Log($"[ClientHandlers] HandleSC_InitMap: MapId={p.MapId} MyActorId={p.MyActorId}");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log($"[ClientHandlers] HandleSC_InitMap: MapId={p.MapId} MyActorId={p.MyActorId}");
 
         // 1) 맵 생성
         var mapName = p.MapId;
@@ -49,8 +50,11 @@ public class ClientHandlers : MonoBehaviour
         if (p.MapWidth > 0 && p.MapHeight > 0 &&
             (mapAsset.Width != p.MapWidth || mapAsset.Height != p.MapHeight))
         {
-            Debug.LogWarning(
-                $"[InitMap] Map size mismatch for {mapName}. Packet=({p.MapWidth}x{p.MapHeight}) Asset=({mapAsset.Width}x{mapAsset.Height})");
+            if (P2PDebugConfig.TraceCombat)
+            {
+                Debug.LogWarning(
+                    $"[InitMap] Map size mismatch for {mapName}. Packet=({p.MapWidth}x{p.MapHeight}) Asset=({mapAsset.Width}x{mapAsset.Height})");
+            }
         }
 
         // [InitMap_Warn] Ping/Pong 워밍업이 완료되지 않은 채 OnBeatSync가 호출되면
@@ -58,8 +62,11 @@ public class ClientHandlers : MonoBehaviour
         // 원격에서 "Warning이 처음 몇 초 동안만 깜빡이다 안정화"되는 현상의 원인이 이것인지 확인용.
         if (TimeSync.EstimatedRttMs <= 0)
         {
-            Debug.LogWarning($"[InitMap_Warn] Ping/Pong warmup not ready! OffsetMs={TimeSync.OffsetMs:F0}, " +
-                             $"EstimatedRttMs={TimeSync.EstimatedRttMs:F0}. SongStart sync may drift by RTT/2 until next Pong.");
+            if (P2PDebugConfig.TraceCombat)
+            {
+                Debug.LogWarning($"[InitMap_Warn] Ping/Pong warmup not ready! OffsetMs={TimeSync.OffsetMs:F0}, " +
+                                 $"EstimatedRttMs={TimeSync.EstimatedRttMs:F0}. SongStart sync may drift by RTT/2 until next Pong.");
+            }
         }
 
         // Rhythm 동기화 (Town에서도 BGM 싱크 등을 위해 사용 가능)
@@ -76,23 +83,27 @@ public class ClientHandlers : MonoBehaviour
                 sourceTag: "InitMap"))
             {
                 OnBeatSyncReady?.Invoke();
-                Debug.Log($"[InitMap] Rhythm Sync: Bpm={p.Bpm}, SongStart={p.SongStartServerTime}");
+                if (P2PDebugConfig.TraceCombat)
+                    Debug.Log($"[InitMap] Rhythm Sync: Bpm={p.Bpm}, SongStart={p.SongStartServerTime}");
             }
         }
 
         GS.StartMapGeneration(mapAsset);
 
         // 2) 플레이어 Actor 정보
+        GS.SetPlayerRoster(p.playerss.Select(pa => (pa.ActorId, pa.Uid)));
         var actorIds = p.playerss.Select(pa => pa.ActorId).ToArray();
         GS.SetPlayerActorIds(actorIds);
         GS.SetMyActorId(p.MyActorId);
-        Debug.Log($"[InitMap] MyActorId: {GS.MyActorId}, TotalEntities: {p.entitiess.Count}");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log($"[InitMap] MyActorId: {GS.MyActorId}, TotalEntities: {p.entitiess.Count}");
 
         // 3) 엔티티 스폰
         GS.ClearEntities();
         foreach (var e in p.entitiess)
         {
-            Debug.Log($"Spawn Entity: ID={e.EntityId} Type={(EntityType)e.EntityType} Pos=({e.X},{e.Y}) HP={e.Hp}");
+            if (P2PDebugConfig.TraceCombat)
+                Debug.Log($"Spawn Entity: ID={e.EntityId} Type={(EntityType)e.EntityType} Pos=({e.X},{e.Y}) HP={e.Hp}");
             GS.SpawnOrUpdateEntity(new ClientEntityInfo
             {
                 EntityId = e.EntityId,
@@ -105,6 +116,8 @@ public class ClientHandlers : MonoBehaviour
         }
 
         GS.OnInitGameCompleted();
+        P2PRelayClientBridge.Instance?.SyncHostState();
+        P2PContentDirector.Instance?.ConfigureStage(mapName);
     }
 
     public void Handle_SC_CalibResult(SC_CalibResult p)
@@ -139,7 +152,8 @@ public class ClientHandlers : MonoBehaviour
     /// </summary>
     public void Handle_SC_BeatSync(SC_BeatSync p)
     {
-        Debug.Log("InHandelbeatSync");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log("InHandelbeatSync");
         if (RhythmSyncCoordinator.TryApplyBeatSync(
             rhythm: Rhythm,
             serverSendTimeMs: p.ServerSendTimeMs,
@@ -150,7 +164,8 @@ public class ClientHandlers : MonoBehaviour
             sourceTag: "BeatSync"))
         {
             OnBeatSyncReady?.Invoke();
-            Debug.Log($"SongStart={Rhythm.ServerSongStartMs} ServerNow={Rhythm.GetCurrentServerTimeMs()} diff={Rhythm.ServerSongStartMs - Rhythm.GetCurrentServerTimeMs()}ms");
+            if (P2PDebugConfig.TraceCombat)
+                Debug.Log($"SongStart={Rhythm.ServerSongStartMs} ServerNow={Rhythm.GetCurrentServerTimeMs()} diff={Rhythm.ServerSongStartMs - Rhythm.GetCurrentServerTimeMs()}ms");
         }
     }
 
@@ -161,8 +176,11 @@ public class ClientHandlers : MonoBehaviour
     {
         if (BV == null) return;
 
-        // 내 캐릭터는 로컬 Prediction으로 이미 재생되므로 서버 브로드캐스트는 무시
-        if (p.ActorId == GS.MyActorId) return;
+        var bridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
+        bool isLocalEcho = bridge != null && bridge.IsDispatchingLocal;
+
+        // 로컬에서 이미 즉시 재생한 액션은 서버 에코만 무시한다.
+        if (p.ActorId == GS.MyActorId && !isLocalEcho) return;
 
         if (!string.IsNullOrEmpty(p.SkillId))
         {
@@ -213,26 +231,31 @@ public class ClientHandlers : MonoBehaviour
                 long clientBeat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : -1;
                 long serverNow  = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentServerTimeMs() : 0;
 
-                // [DamageRecv] HP 업데이트 수신 — 애니메이션이 시작된 시점 대비 얼마나 늦게 오는지 확인용.
-                // packetBeat < clientBeat 이면 이미 '지나간' 비트의 판정이 뒤늦게 도착한 것 (RTT 지연).
-                // 원격에서 beatGap이 2 이상이면 데미지가 애니메이션보다 1~2 비트 늦게 반영됨 → 애니/데미지 분리.
-                long beatGap = clientBeat - p.BeatIndex;
-                Debug.Log($"[DamageRecv] actor={a.ActorId} packetBeat={p.BeatIndex} clientBeat={clientBeat} " +
-                          $"beatGap={beatGap} (positive=late) serverNow={serverNow} hpUpdates={a.hpUpdates.Count} " +
-                          $"rtt={TimeSync.EstimatedRttMs:F0}ms");
+                if (P2PDebugConfig.TraceCombat)
+                {
+                    // [DamageRecv] HP 업데이트 수신 — 애니메이션이 시작된 시점 대비 얼마나 늦게 오는지 확인용.
+                    long beatGap = clientBeat - p.BeatIndex;
+                    Debug.Log($"[DamageRecv] actor={a.ActorId} packetBeat={p.BeatIndex} clientBeat={clientBeat} " +
+                              $"beatGap={beatGap} (positive=late) serverNow={serverNow} hpUpdates={a.hpUpdates.Count} " +
+                              $"rtt={TimeSync.EstimatedRttMs:F0}ms");
+                }
 
                 foreach (var u in a.hpUpdates)
                 {
-                    if (GS.TryGetEntity(u.EntityId, out var info))
-                    {
-                        int oldHp = info.Hp;
-                        info.Hp = u.NewHp;
+                if (GS.TryGetEntity(u.EntityId, out var info))
+                {
+                    int oldHp = info.Hp;
+                    info.Hp = u.NewHp;
+                    if (P2PDebugConfig.TraceCombat)
                         Debug.Log($"[DamageRecv] HP_Change entity={u.EntityId} {oldHp}→{u.NewHp} (delta={u.NewHp - oldHp})");
 
-                        GS.UpdateEntityState(info);
-                    }
-                    else
-                    {
+                    GS.UpdateEntityState(info);
+                    if (info.EntityType == (int)EntityType.Monster)
+                        P2PContentDirector.Instance?.MarkWorldDirty();
+                }
+                else
+                {
+                    if (P2PDebugConfig.TraceCombat)
                         Debug.LogWarning($"[DamageRecv] Entity not found: {u.EntityId}");
                     }
                 }
@@ -244,7 +267,8 @@ public class ClientHandlers : MonoBehaviour
     {
         if (BV == null)
         {
-            Debug.LogWarning($"[WarningRecv] BoardView.Instance is null. telegraph render skip. Beat={p.BeatIndex}");
+            if (P2PDebugConfig.TraceCombat)
+                Debug.LogWarning($"[WarningRecv] BoardView.Instance is null. telegraph render skip. Beat={p.BeatIndex}");
             return;
         }
 
@@ -260,7 +284,8 @@ public class ClientHandlers : MonoBehaviour
             // IsActorRunningNewSkill: ClientSkillRunner가 해당 actor에 대해 실행 중이면 true.
             if (t.CasterId == GS.MyActorId && BV.IsActorRunningNewSkill(t.CasterId))
             {
-                Debug.Log($"[WarningRecv] SKIP-mine caster={t.CasterId} packetBeat={p.BeatIndex} (local prediction owns this warning)");
+                if (P2PDebugConfig.TraceCombat)
+                    Debug.Log($"[WarningRecv] SKIP-mine caster={t.CasterId} packetBeat={p.BeatIndex} (local prediction owns this warning)");
                 continue;
             }
 
@@ -285,10 +310,13 @@ public class ClientHandlers : MonoBehaviour
                 // packetBeat와 clientBeat의 차이(RTT/2 정도)가 크면 원격 지연이 큰 것.
                 if (c == 0)
                 {
-                    long beatGap = clientBeat - p.BeatIndex;
-                    Debug.Log($"[WarningRecv] caster={t.CasterId} cell=({cell.X},{cell.Y}) " +
-                              $"packetBeat={p.BeatIndex} clientBeat={clientBeat} beatGap={beatGap} " +
-                              $"durationBeats={durationBeats} expireBeat={expireBeat} rtt={TimeSync.EstimatedRttMs:F0}ms");
+                    if (P2PDebugConfig.TraceCombat)
+                    {
+                        long beatGap = clientBeat - p.BeatIndex;
+                        Debug.Log($"[WarningRecv] caster={t.CasterId} cell=({cell.X},{cell.Y}) " +
+                                  $"packetBeat={p.BeatIndex} clientBeat={clientBeat} beatGap={beatGap} " +
+                                  $"durationBeats={durationBeats} expireBeat={expireBeat} rtt={TimeSync.EstimatedRttMs:F0}ms");
+                    }
                 }
             }
         }
@@ -297,7 +325,8 @@ public class ClientHandlers : MonoBehaviour
 
     public void Handle_SC_Warn(SC_Warn p)
     {
-        Debug.LogWarning($"[SC_Warn] code={p.code} msg={p.msg}");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.LogWarning($"[SC_Warn] code={p.code} msg={p.msg}");
     }
 
     public void Handle_SC_EntityDespawn(SC_EntityDespawn p)
@@ -305,11 +334,14 @@ public class ClientHandlers : MonoBehaviour
         int id = p.EntityId;
         bool removed = GS.RemoveEntity(id);
 
-        Debug.Log($"[SC_EntityDespawn] entityId={id} removed={removed}");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log($"[SC_EntityDespawn] entityId={id} removed={removed}");
+        P2PContentDirector.Instance?.OnEntityDespawned(id);
 
         if (id == GS.MyActorId)
         {
-            Debug.LogWarning("[SC_EntityDespawn] My actor despawned. Disable input / show UI.");
+            if (P2PDebugConfig.TraceCombat)
+                Debug.LogWarning("[SC_EntityDespawn] My actor despawned. Disable input / show UI.");
         }
     }
 
@@ -319,7 +351,8 @@ public class ClientHandlers : MonoBehaviour
         bool exists = GS.TryGetEntity(id, out var ent);
         if (exists)
         {
-            Debug.LogWarning($"이미 Entity가 존재합니다 ID{id}|| MyId : {GS.MyActorId}");
+            if (P2PDebugConfig.TraceCombat)
+                Debug.LogWarning($"이미 Entity가 존재합니다 ID{id}|| MyId : {GS.MyActorId}");
             return;
         }
 
@@ -335,23 +368,28 @@ public class ClientHandlers : MonoBehaviour
 
         GS.SpawnOrUpdateEntity(entity);
 
-        Debug.Log($"[SC_EntitySpawn] entityId={entity.EntityId} spawn ");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log($"[SC_EntitySpawn] entityId={entity.EntityId} spawn ");
+        P2PContentDirector.Instance?.OnEntitySpawned(entity);
 
         if (id == GS.MyActorId)
         {
-            Debug.LogWarning("[SC_EntitySpawn] My actor overload. Disable / show UI.");
+            if (P2PDebugConfig.TraceCombat)
+                Debug.LogWarning("[SC_EntitySpawn] My actor overload. Disable / show UI.");
         }
     }
 
     public void Handle_SC_ReturnToTown(SC_ReturnToTown p)
     {
-        Debug.Log("[ClientHandlers] Received ReturnToTown");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log("[ClientHandlers] Received ReturnToTown");
         ClientFlow.Instance.ReturnToTown();
     }
 
     public void Handle_SC_Inventory(SC_Inventory p)
     {
-        Debug.Log($"[ClientHandlers] Received Inventory: {p.itemss.Count} items, {p.equipmentss.Count} equips");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log($"[ClientHandlers] Received Inventory: {p.itemss.Count} items, {p.equipmentss.Count} equips");
 
         if (InventoryManager.Instance == null)
         {
@@ -378,7 +416,8 @@ public class ClientHandlers : MonoBehaviour
 
     public void Handle_SC_EquipResult(SC_EquipResult p)
     {
-        Debug.Log($"[ClientHandlers] EquipResult: Success={p.Success}, Item={p.InstanceId}, Equipped={p.Equipped}");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log($"[ClientHandlers] EquipResult: Success={p.Success}, Item={p.InstanceId}, Equipped={p.Equipped}");
 
         if (InventoryManager.Instance != null)
             InventoryManager.Instance.OnEquipResult(p);
@@ -386,10 +425,12 @@ public class ClientHandlers : MonoBehaviour
 
     public void Handle_SC_UpdateSkillSlots(SC_UpdateSkillSlots p)
     {
-        string tmpItemName = "[";
-        foreach (var item in p.activeSkillSlotss) tmpItemName += (item.SkillId + " | ");
-
-        Debug.Log($"[ClientHandlers] SC_UpdateSkillSlots: NormalAttack={p.NormalAttackSkillId}, Skills={p.activeSkillSlotss.Count} | {tmpItemName} ]");
+        if (P2PDebugConfig.TraceCombat)
+        {
+            string tmpItemName = "[";
+            foreach (var item in p.activeSkillSlotss) tmpItemName += (item.SkillId + " | ");
+            Debug.Log($"[ClientHandlers] SC_UpdateSkillSlots: NormalAttack={p.NormalAttackSkillId}, Skills={p.activeSkillSlotss.Count} | {tmpItemName} ]");
+        }
 
         if (RhythmInputController.Instance != null)
         {

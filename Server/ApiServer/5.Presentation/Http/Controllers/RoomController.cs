@@ -61,7 +61,7 @@ public class RoomController : ControllerBase
                    !string.IsNullOrEmpty(req.roomId) ? req.roomId : $"{name}'s Room";
 
         var newId = await _roomService.CreateAsync(
-            title, req.mapId, req.maxPlayers, uid, name);
+            title, req.mapId, req.maxPlayers, uid, name, req.useP2PRelay);
 
         if (newId == null) 
         {
@@ -80,5 +80,6 @@ public class RoomController : ControllerBase
         public string title { get; set; }
         public string mapId { get; set; }
         public int maxPlayers { get; set; }
+        public bool useP2PRelay { get; set; }
     }
 }

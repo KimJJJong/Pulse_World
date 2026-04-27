@@ -1,0 +1,2 @@
+2026-04-27 14:54:48.541 +09:00 [WRN] Auth Failed: Missing Token. IP=127.0.0.1, Path=/session/ticket/town
+2026-04-27 14:59:47.976 +09:00 [WRN] Start Fail: Not all ready. Room=9cdfa6a0

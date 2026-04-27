@@ -449,20 +449,21 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         _recentInstantActions[actorId] = Time.time;
 
-        if (_activeSkillRunners.TryGetValue(actorId, out var prevRunner))
+        if (!_activeSkillRunners.TryGetValue(actorId, out var runner) || runner == null)
         {
-            if (prevRunner != null) Destroy(prevRunner.gameObject);
-            _activeSkillRunners.Remove(actorId);
+            GameObject go = new GameObject($"SkillRunner_{actorId}_{skillId}");
+            go.transform.SetParent(this.transform);
+            runner = go.AddComponent<ClientSkillRunner>();
+            _activeSkillRunners[actorId] = runner;
+        }
+        else
+        {
+            runner.gameObject.name = $"SkillRunner_{actorId}_{skillId}";
         }
 
-        GameObject go = new GameObject($"SkillRunner_{actorId}_{skillId}");
-        go.transform.SetParent(this.transform);
-
-        var runner = go.AddComponent<ClientSkillRunner>();
         runner.Initialize(this, actorId, visual, skillId, startTick, isMine, rotation);
 
         visual.SetRotation(rotation);
-        _activeSkillRunners[actorId] = runner;
 
         long curTick = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentServerTick() : 0;
         long tickGap = curTick - startTick;

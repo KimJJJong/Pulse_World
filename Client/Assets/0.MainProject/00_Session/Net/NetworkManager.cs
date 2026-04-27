@@ -13,6 +13,7 @@ public sealed class NetworkManager : MonoBehaviour
 
     public bool IsReady => _state == ConnState.Ready;
     public bool IsConnected => _state == ConnState.Connected || _state == ConnState.Ready;
+    public PacketSession CurrentSession => _session;
 
     // 정석: Network는 “신호만 발행”
     public event Action? Ready;             // Handshake OK

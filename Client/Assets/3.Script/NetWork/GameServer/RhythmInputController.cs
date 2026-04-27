@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 public class RhythmInputController : MonoBehaviour
 {
     private static RhythmInputController _instance;
+    public static bool HasInstance => _instance != null;
     public static RhythmInputController Instance
     {
         get
@@ -65,13 +66,25 @@ public class RhythmInputController : MonoBehaviour
     {
         if (slotIndex < 0 || slotIndex >= _skillSlotIds.Length) return;
         _skillSlotIds[slotIndex] = skillId;
-        Debug.Log($"[RhythmInput] SkillSlot[{slotIndex}] set to {skillId}");
+        if (P2PDebugConfig.TraceInput)
+            Debug.Log($"[RhythmInput] SkillSlot[{slotIndex}] set to {skillId}");
     }
 
     public void SetNormalAttackSkill(string skillId)
     {
         _normalAttackSkillId = skillId;
-        Debug.Log($"[RhythmInput] NormalAttack set to {skillId}");
+        if (P2PDebugConfig.TraceInput)
+            Debug.Log($"[RhythmInput] NormalAttack set to {skillId}");
+    }
+
+    public string GetNormalAttackSkillId() => _normalAttackSkillId;
+
+    public string GetSkillSlotId(int slotIndex)
+    {
+        if (slotIndex < 0 || slotIndex >= _skillSlotIds.Length)
+            return "";
+
+        return _skillSlotIds[slotIndex] ?? "";
     }
 
 
@@ -122,7 +135,8 @@ public class RhythmInputController : MonoBehaviour
             _toggleAction.started += (ctx) => {
                 if (allowRuntimeToggle) {
                     channel = (channel == InputChannel.Town) ? InputChannel.Game : InputChannel.Town;
-                    Debug.Log($"[RhythmInput] Channel switched => {channel}");
+                    if (P2PDebugConfig.TraceInput)
+                        Debug.Log($"[RhythmInput] Channel switched => {channel}");
                 }
             };
         }
@@ -228,7 +242,8 @@ public class RhythmInputController : MonoBehaviour
             {
                 if (_lastActionBeatIndex == nearestBeat)
                 {
-                    Debug.Log($"[Input_Move] DUPLICATE beat={nearestBeat} diff={diff}ms BLOCKED");
+                    if (P2PDebugConfig.TraceInput)
+                        Debug.Log($"[Input_Move] DUPLICATE beat={nearestBeat} diff={diff}ms BLOCKED");
                     return;
                 }
                 _lastActionBeatIndex = nearestBeat;
@@ -267,9 +282,10 @@ public class RhythmInputController : MonoBehaviour
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
         if (!TryGetJudgeWindowInfo(serverNow, out long predictionBeat, out long diff, out bool inJudgeWin))
         {
-            Debug.Log($"[Input_Attack] OUT_OF_WINDOW skill={skillId} actor={me.EntityId} pos=({me.X},{me.Y}) " +
-                      $"serverNow={serverNow} beat={predictionBeat} diff={diff}ms " +
-                      $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → blocked");
+            if (P2PDebugConfig.TraceInput)
+                Debug.Log($"[Input_Attack] OUT_OF_WINDOW skill={skillId} actor={me.EntityId} pos=({me.X},{me.Y}) " +
+                          $"serverNow={serverNow} beat={predictionBeat} diff={diff}ms " +
+                          $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → blocked");
             return;
         }
 
@@ -278,7 +294,8 @@ public class RhythmInputController : MonoBehaviour
         // 클라이언트 선행 애니메이션 (Prediction) — 유효 window 안에서만 발동
         if (_lastAttackPredictionBeat == predictionBeat)
         {
-            Debug.Log($"[Input_Attack] DUPLICATE predictionBeat={predictionBeat} BLOCKED");
+            if (P2PDebugConfig.TraceInput)
+                Debug.Log($"[Input_Attack] DUPLICATE predictionBeat={predictionBeat} BLOCKED");
             return;
         }
         _lastAttackPredictionBeat = predictionBeat;
@@ -288,13 +305,19 @@ public class RhythmInputController : MonoBehaviour
         long startTick = Rhythm.GetBeatTick(predictionBeat);
         float rotation = targetObject != null ? targetObject.transform.eulerAngles.y : 0f;
 
-        // [Input_Attack] 핵심 로그 — Prediction 실행 시점 및 비트 정렬 상태
-        Debug.Log($"[Input_Attack] skill={skillId} actor={me.EntityId} pos=({me.X},{me.Y}) " +
-                  $"target=({tx},{ty}) rot={rotation:F0} serverNow={serverNow} " +
-                  $"beat={predictionBeat} startTick={startTick} diff={diff}ms inWin={inJudgeWin} " +
-                  $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → PlaySkillInstant");
+        bool deferHostLocalPlayback = ShouldDeferHostLocalPlayback();
 
-        if (BoardView.Instance != null)
+        // [Input_Attack] 핵심 로그 — Prediction 실행 시점 및 비트 정렬 상태
+        if (P2PDebugConfig.TraceInput)
+        {
+            Debug.Log($"[Input_Attack] skill={skillId} actor={me.EntityId} pos=({me.X},{me.Y}) " +
+                      $"target=({tx},{ty}) rot={rotation:F0} serverNow={serverNow} " +
+                      $"beat={predictionBeat} startTick={startTick} diff={diff}ms inWin={inJudgeWin} " +
+                      $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → " +
+                      (deferHostLocalPlayback ? "RelayHostDeferred" : "PlaySkillInstant"));
+        }
+
+        if (!deferHostLocalPlayback && BoardView.Instance != null)
             BoardView.Instance.PlaySkillInstant(me.EntityId, skillId, rotation, startTick);
 
         if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
@@ -315,7 +338,8 @@ public class RhythmInputController : MonoBehaviour
         // [Fix] 스킬이 바인드되지 않은 슬롯 입력 차단 + 사용자 경고
         if (string.IsNullOrEmpty(skillId))
         {
-            Debug.LogWarning($"[Input_Skill] Slot {slotIndex}: 스킬이 바인드되지 않았습니다. 장비에 Skill을 연결하세요.");
+            if (P2PDebugConfig.TraceInput)
+                Debug.LogWarning($"[Input_Skill] Slot {slotIndex}: 스킬이 바인드되지 않았습니다. 장비에 Skill을 연결하세요.");
             return;
         }
         if (!GS.TryGetMyEntity(out var me)) return;
@@ -330,9 +354,10 @@ public class RhythmInputController : MonoBehaviour
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
         if (!TryGetJudgeWindowInfo(serverNow, out long predictionBeat, out long diff, out bool inJudgeWin))
         {
-            Debug.Log($"[Input_Skill] OUT_OF_WINDOW skill={skillId} slot={slotIndex} actor={me.EntityId} " +
-                      $"pos=({me.X},{me.Y}) serverNow={serverNow} beat={predictionBeat} diff={diff}ms " +
-                      $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → blocked");
+            if (P2PDebugConfig.TraceInput)
+                Debug.Log($"[Input_Skill] OUT_OF_WINDOW skill={skillId} slot={slotIndex} actor={me.EntityId} " +
+                          $"pos=({me.X},{me.Y}) serverNow={serverNow} beat={predictionBeat} diff={diff}ms " +
+                          $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → blocked");
             return;
         }
 
@@ -340,7 +365,8 @@ public class RhythmInputController : MonoBehaviour
 
         if (_lastAttackPredictionBeat == predictionBeat)
         {
-            Debug.Log($"[Input_Skill] DUPLICATE predictionBeat={predictionBeat} slot={slotIndex} BLOCKED");
+            if (P2PDebugConfig.TraceInput)
+                Debug.Log($"[Input_Skill] DUPLICATE predictionBeat={predictionBeat} slot={slotIndex} BLOCKED");
             return;
         }
         _lastAttackPredictionBeat = predictionBeat;
@@ -350,12 +376,18 @@ public class RhythmInputController : MonoBehaviour
         long startTick = Rhythm.GetBeatTick(predictionBeat);
         float rotation = targetObject != null ? targetObject.transform.eulerAngles.y : 0f;
 
-        Debug.Log($"[Input_Skill] skill={skillId} slot={slotIndex} actor={me.EntityId} pos=({me.X},{me.Y}) " +
-                  $"target=({tx},{ty}) rot={rotation:F0} serverNow={serverNow} " +
-                  $"beat={predictionBeat} startTick={startTick} diff={diff}ms inWin={inJudgeWin} " +
-                  $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → PlaySkillInstant");
+        bool deferHostLocalPlayback = ShouldDeferHostLocalPlayback();
 
-        if (BoardView.Instance != null)
+        if (P2PDebugConfig.TraceInput)
+        {
+            Debug.Log($"[Input_Skill] skill={skillId} slot={slotIndex} actor={me.EntityId} pos=({me.X},{me.Y}) " +
+                      $"target=({tx},{ty}) rot={rotation:F0} serverNow={serverNow} " +
+                      $"beat={predictionBeat} startTick={startTick} diff={diff}ms inWin={inJudgeWin} " +
+                      $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → " +
+                      (deferHostLocalPlayback ? "RelayHostDeferred" : "PlaySkillInstant"));
+        }
+
+        if (!deferHostLocalPlayback && BoardView.Instance != null)
             BoardView.Instance.PlaySkillInstant(me.EntityId, skillId, rotation, startTick);
 
         if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
@@ -407,7 +439,8 @@ public class RhythmInputController : MonoBehaviour
     {
         if (GS == null || Rhythm == null)
         {
-            Debug.LogWarning($"GS:{GS} Rhythm:{Rhythm} Net:{NetworkManager.Instance}");
+            if (P2PDebugConfig.TraceInput)
+                Debug.LogWarning($"GS:{GS} Rhythm:{Rhythm} Net:{NetworkManager.Instance}");
             return false;
         }
         return true;
@@ -499,6 +532,9 @@ public class RhythmInputController : MonoBehaviour
 
     bool TrySendCalib(long serverNowMs)
     {
+        if (P2PRelayClientBridge.HasInstance && P2PRelayClientBridge.Instance.IsRelayMode)
+            return false;
+
         var calib = AudioOffsetAutoCalibrator.Instance;
         if (calib == null || !calib.Enabled)
             return false;
@@ -563,9 +599,31 @@ public class RhythmInputController : MonoBehaviour
             Rotation         = targetObject != null ? targetObject.transform.eulerAngles.y : 0f,
             ClientSendTimeMs = serverNowMs,
         };
-        NetworkManager.Instance.Send(pkt.Write());
+
+        var bridge = P2PRelayClientBridge.Instance;
+        if (bridge.IsRelayMode)
+        {
+            if (bridge.IsHostLocal)
+            {
+                P2PHostController.Instance.EnqueueLocalActionRequest(pkt);
+            }
+            else
+            {
+                bridge.SendWrappedPacket(pkt);
+            }
+        }
+        else
+        {
+            NetworkManager.Instance.Send(pkt.Write());
+        }
 
         if (kind == ActionKind.Attack || kind == ActionKind.Skill)
             LastAttackInputServerTimeMs = serverNowMs;
+    }
+
+    private static bool ShouldDeferHostLocalPlayback()
+    {
+        var bridge = P2PRelayClientBridge.Instance;
+        return bridge != null && bridge.IsRelayMode && bridge.IsHostLocal;
     }
 }

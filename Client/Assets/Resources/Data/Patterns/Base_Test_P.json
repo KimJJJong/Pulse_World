@@ -1,0 +1,193 @@
+{
+  "MonsterType": "Base_Test_P",
+  "DefaultPhase": "P1",
+  "Phases": [
+    {
+      "Id": "P1",
+      "Selectors": [
+        {
+          "Id": "1111112",
+          "Weight": 1,
+          "CooldownBeats": 0,
+          "When": {
+            "All": []
+          },
+          "Timeline": [
+            {
+              "Type": 3,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "Warning_Damage_Test",
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0
+            },
+            {
+              "Type": 0,
+              "AtBeatOffset": 2,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0
+            }
+          ]
+        },
+        {
+          "Id": "222211",
+          "Weight": 1,
+          "CooldownBeats": 0,
+          "When": {
+            "All": []
+          },
+          "Timeline": [
+            {
+              "Type": 4,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0
+            },
+            {
+              "Type": 4,
+              "AtBeatOffset": 2,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0
+            },
+            {
+              "Type": 0,
+              "AtBeatOffset": 1,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0
+            },
+            {
+              "Type": 0,
+              "AtBeatOffset": 3,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0
+            },
+            {
+              "Type": 4,
+              "AtBeatOffset": 4,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "Transitions": []
+}

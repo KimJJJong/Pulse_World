@@ -36,6 +36,7 @@ namespace NetClient.Room.UI
         //[SerializeField] TMP_InputField inputMapId;
         [SerializeField] TMP_Dropdown inputMapIds;
         [SerializeField] TMP_InputField inputMaxPlayers;
+        [SerializeField] bool useP2PRelay = true;
         [SerializeField] Button btnCreateConfirm;
         [SerializeField] Button btnCreateCancel;
 
@@ -57,6 +58,9 @@ namespace NetClient.Room.UI
         bool _isLoadMore = false; // 필요하면 더보기 붙일 때 사용
         bool _amIReady = false;
         string _currentRoomId = "";
+        bool _currentRoomUseP2PRelay = false;
+
+        const string RelayKeyPrefix = "p2p:";
 
         // 멤버 UI 부분갱신용
         readonly Dictionary<string, MemberItemView> _memberViews = new();
@@ -247,7 +251,8 @@ namespace NetClient.Room.UI
                 roomId = roomId,         // 빈 문자열이면 서버 생성 방식도 가능
                 title = string.IsNullOrEmpty(roomId) ? "New Room" : roomId,
                 mapId = mapId,
-                maxPlayers = maxPlayers
+                maxPlayers = maxPlayers,
+                useP2PRelay = useP2PRelay
             };
 
             SetStatus("Creating room...");
@@ -309,6 +314,7 @@ namespace NetClient.Room.UI
             {
                 Debug.Log($"[RoomUiController] OnInit Received. RoomId={room?.roomId}, Members={room?.memberUids?.Count}");
                 _currentRoomId = room?.roomId;
+                _currentRoomUseP2PRelay = room != null && room.useP2PRelay;
                 SetWarn("");
                 if (txtRoomTitle) txtRoomTitle.text = string.IsNullOrEmpty(room.title) ? room.roomId : room.title;
 
@@ -386,9 +392,10 @@ namespace NetClient.Room.UI
                 RefreshReadyButton();
             };
 
-            ws.OnGameStart += (endpoint, ticket, mapId, maxPlayers) =>
+            ws.OnGameStart += (endpoint, ticket, mapId, maxPlayers, relayMode) =>
             {
-                SetWarn($"GameStart: {endpoint.host}:{endpoint.port} Map:{mapId} Max:{maxPlayers}");
+                _currentRoomUseP2PRelay = relayMode;
+                SetWarn($"GameStart: {endpoint.host}:{endpoint.port} Map:{mapId} Max:{maxPlayers} Relay:{relayMode}");
                 _ = DisposeWsIfAny();
 
                 // DTO 변환 (Global EndpointDto -> SessionDtos.EndpointDto)
@@ -396,7 +403,7 @@ namespace NetClient.Room.UI
                 {
                    Endpoint = new SessionDtos.EndpointDto { Host = endpoint.host, Port = endpoint.port },
                    TicketId = ticket,
-                   Key = _currentRoomId, // RoomId가 곧 GameServer의 Key(MatchId)
+                   Key = _currentRoomUseP2PRelay ? $"{RelayKeyPrefix}{_currentRoomId}" : _currentRoomId,
                    MapId = mapId,
                    MaxPlayers = maxPlayers
                 };

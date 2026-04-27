@@ -48,6 +48,11 @@ public sealed class ClientFlow : MonoBehaviour
         _mapId = ticket.MapId;
         _maxPlayers = ticket.MaxPlayers;
 
+        SessionContext.Instance.ApplySessionKey(ticket.Key);
+
+        if (P2PRelayClientBridge.Instance != null)
+            P2PRelayClientBridge.Instance.ConfigureRelay(ticket.Key);
+
         if (string.IsNullOrEmpty(ticket.Key))
         {
             Debug.LogError("[ClientFlow] ConnectGame: ticket.Key가 비어 있습니다. 서버에서 Key를 제대로 내려줍니까?");
@@ -64,6 +69,7 @@ public sealed class ClientFlow : MonoBehaviour
     public void ReturnToTown()
     {
         Debug.Log("[ClientFlow] ReturnToTown");
+        P2PRelayClientBridge.Instance?.Reset();
         NetworkManager.Instance.Disconnect("ReturnToTown");
         _ = ReturnToTownAsync();
     }
@@ -116,6 +122,7 @@ public sealed class ClientFlow : MonoBehaviour
     void OnNetFailed(string reason)
     {
         Debug.LogWarning($"[ClientFlow] Net failed: {reason}");
+        P2PRelayClientBridge.Instance?.Reset();
         SessionContext.Instance.ResetForReconnect();
         _ = SceneRouter.LoadAsync(SceneNames.Login);
     }
@@ -124,6 +131,7 @@ public sealed class ClientFlow : MonoBehaviour
     {
         // TODO: 정책 결정 — 재접속 UI 표시 or 로그인 화면 복귀
         Debug.LogWarning("[ClientFlow] Disconnected — 재접속 정책 미구현");
+        P2PRelayClientBridge.Instance?.Reset();
     }
 
     // ──────────────────────────────────────────

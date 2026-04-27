@@ -194,6 +194,21 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
             t.Send(payload);
     }
 
+    public void BroadcastExcept(IPacket pkt, ClientSession? except)
+        => BroadcastExcept(pkt.Write(), except);
+
+    public void BroadcastExcept(ArraySegment<byte> payload, ClientSession? except)
+    {
+        var targets = GetBroadcastSnapshot();
+        foreach (var t in targets)
+        {
+            if (except != null && ReferenceEquals(t, except))
+                continue;
+
+            t.Send(payload);
+        }
+    }
+
     protected ClientSession[] GetBroadcastSnapshot()
     {
         lock (_lock)

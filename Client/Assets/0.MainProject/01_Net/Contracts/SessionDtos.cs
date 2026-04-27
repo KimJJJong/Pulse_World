@@ -27,13 +27,15 @@ public static class SessionDtos
         [JsonProperty("map")] public string Map;
         [JsonProperty("maxPlayers")] public int MaxPlayers;
         [JsonProperty("preferredRegion")] public string PreferredRegion;
+        [JsonProperty("useP2PRelay")] public bool UseP2PRelay;
 
-        public IssueGameTicketRequest(string roomId, string map, int maxPlayers, string preferredRegion)
+        public IssueGameTicketRequest(string roomId, string map, int maxPlayers, string preferredRegion, bool useP2PRelay = true)
         {
             RoomId = roomId;
             Map = map;
             MaxPlayers = maxPlayers;
             PreferredRegion = preferredRegion;
+            UseP2PRelay = useP2PRelay;
         }
     }
 

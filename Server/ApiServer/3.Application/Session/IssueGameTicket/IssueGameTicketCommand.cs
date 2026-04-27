@@ -5,5 +5,6 @@ public sealed record IssueGameTicketCommand(
     string RoomId,
     string Map,
     int MaxPlayers,
-    string? PreferredRegion
+    string? PreferredRegion,
+    bool UseP2PRelay = false
 );

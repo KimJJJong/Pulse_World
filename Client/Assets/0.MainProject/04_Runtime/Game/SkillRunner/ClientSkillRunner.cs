@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 using Client.Data;
@@ -5,6 +6,8 @@ using GameShared.Data;
 
 public class ClientSkillRunner : MonoBehaviour
 {
+    private static readonly bool VerboseSkillEventLogs = false;
+
     private NewSkillSO _skillDef;
     private long _startTick;
     private int _actorId;
@@ -25,6 +28,8 @@ public class ClientSkillRunner : MonoBehaviour
 
     public void Initialize(BoardView boardView, int actorId, EntityVisual visual, string skillId, long startTick, bool isMine, float casterRotation = 0f)
     {
+        ResetRuntimeState();
+
         _boardView = boardView;
         _actorId = actorId;
         _visual = visual;
@@ -33,7 +38,7 @@ public class ClientSkillRunner : MonoBehaviour
         _casterRotation = casterRotation;
 
         // Load Skill Data
-        _skillDef = Resources.Load<NewSkillSO>($"Data/NewSkills/{skillId}");
+        _skillDef = P2PCombatContentCache.GetSkillAsset(skillId);
         if (_skillDef == null)
         {
             Debug.LogError($"[ClientSkillRunner] Skill {skillId} not found in Resources/Data/NewSkills/");
@@ -72,9 +77,23 @@ public class ClientSkillRunner : MonoBehaviour
         if (RhythmClient.Instance != null)
         {
             float totalDurationSec = (_skillDef.Data.TotalDurationTicks / 480f) * (float)RhythmClient.Instance.GetBeatDurationMs() / 1000f;
-            if (_visual != null)
+        if (_visual != null)
                 _visual.PlaySkill(totalDurationSec, _isMine);
         }
+    }
+
+    private void ResetRuntimeState()
+    {
+        ReleaseInputLock();
+        _triggeredEvents.Clear();
+        _activeTelegraphs.Clear();
+        _skillDef = null;
+        _startTick = 0;
+        _actorId = 0;
+        _isMine = false;
+        _visual = null;
+        _boardView = null;
+        _casterRotation = 0f;
     }
 
     void Update()
@@ -112,12 +131,15 @@ public class ClientSkillRunner : MonoBehaviour
                 {
                     _triggeredEvents.Add(eventHash);
 
-                    // [SkillEvent] 스킬 이벤트 트리거 발동 — 어떤 이벤트가 언제 발동했는지 추적.
-                    // 특히 Warning 이벤트가 제때 트리거되는지, 지연 발동하지는 않는지 확인용.
-                    // track/event 인덱스는 이 스킬의 몇 번째 트랙/이벤트인지 (0,0)=첫 트랙 첫 이벤트.
-                    Debug.Log($"[SkillEvent] actor={_actorId} track={t} event={e} type={ev.Action?.Type} " +
-                              $"triggerTick={ev.TriggerTick} relativeTick={relativeTick} " +
-                              $"(lag={relativeTick - ev.TriggerTick} ticks late)");
+                    if (VerboseSkillEventLogs)
+                    {
+                        // [SkillEvent] 스킬 이벤트 트리거 발동 — 어떤 이벤트가 언제 발동했는지 추적.
+                        // 특히 Warning 이벤트가 제때 트리거되는지, 지연 발동하지는 않는지 확인용.
+                        // track/event 인덱스는 이 스킬의 몇 번째 트랙/이벤트인지 (0,0)=첫 트랙 첫 이벤트.
+                        Debug.Log($"[SkillEvent] actor={_actorId} track={t} event={e} type={ev.Action?.Type} " +
+                                  $"triggerTick={ev.TriggerTick} relativeTick={relativeTick} " +
+                                  $"(lag={relativeTick - ev.TriggerTick} ticks late)");
+                    }
 
                     ProcessEvent(ev, relativeTick);
 
@@ -300,5 +322,95 @@ public class ClientSkillRunner : MonoBehaviour
 
         if (_activeTelegraphs != null)
             _activeTelegraphs.Clear();
+    }
+}
+
+public static class P2PCombatContentCache
+{
+    private static readonly object _lock = new();
+    private static readonly Dictionary<string, NewSkillSO> _skillAssets = new(StringComparer.Ordinal);
+    private static bool _skillAssetsLoaded;
+
+    public static void WarmUpSkills()
+    {
+        EnsureSkillAssetsLoaded();
+    }
+
+    public static NewSkillSO GetSkillAsset(string skillId)
+    {
+        if (string.IsNullOrWhiteSpace(skillId))
+            return null;
+
+        EnsureSkillAssetsLoaded();
+
+        lock (_lock)
+        {
+            if (_skillAssets.TryGetValue(skillId, out var cached) && cached != null)
+                return cached;
+        }
+
+        // 캐시에 없으면 개별 경로를 마지막으로 시도하고, 성공하면 다시 캐시에 올린다.
+        var loaded = Resources.Load<NewSkillSO>($"Data/NewSkills/{skillId}");
+        if (loaded != null)
+        {
+            lock (_lock)
+            {
+                CacheSkillAsset(loaded);
+            }
+        }
+
+        return loaded;
+    }
+
+    public static NewSkillDef GetSkillDefinition(string skillId)
+    {
+        return GetSkillAsset(skillId)?.Data;
+    }
+
+    private static void EnsureSkillAssetsLoaded()
+    {
+        if (_skillAssetsLoaded)
+            return;
+
+        lock (_lock)
+        {
+            if (_skillAssetsLoaded)
+                return;
+
+            var assets = Resources.LoadAll<NewSkillSO>("Data/NewSkills");
+            int loadedCount = 0;
+
+            foreach (var asset in assets)
+            {
+                if (asset == null)
+                    continue;
+
+                if (CacheSkillAsset(asset))
+                    loadedCount++;
+            }
+
+            _skillAssetsLoaded = true;
+            Debug.Log($"[P2PCombatContentCache] Warmed skill assets: {loadedCount}");
+        }
+    }
+
+    private static bool CacheSkillAsset(NewSkillSO asset)
+    {
+        if (asset == null)
+            return false;
+
+        string primaryId = asset.Data != null && !string.IsNullOrWhiteSpace(asset.Data.SkillId)
+            ? asset.Data.SkillId
+            : asset.name;
+
+        if (string.IsNullOrWhiteSpace(primaryId))
+            return false;
+
+        _skillAssets[primaryId] = asset;
+
+        if (asset.Data != null && !string.IsNullOrWhiteSpace(asset.Data.SkillId))
+            _skillAssets[asset.Data.SkillId] = asset;
+
+        return true;
     }
 }

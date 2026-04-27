@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using Util;
 partial class PacketHandler
 {
+    private const string RelayKeyPrefix = "p2p:";
+
     public static async void CS_HandshakeHandler(PacketSession session, IPacket packet)
     {
         CS_Handshake req = (CS_Handshake)packet;
@@ -112,7 +114,22 @@ partial class PacketHandler
         }
 
         // 1) Game Mode (Key exists -> MatchId)
-        if (!string.IsNullOrEmpty(s.Key))
+        if (!string.IsNullOrEmpty(s.Key) && s.Key.StartsWith(RelayKeyPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            int max = req.MaxPlayers > 0 ? req.MaxPlayers : 2;
+            var room = P2PRelayManager.GetOrCreate(s.Key, req.MapId, max);
+
+            LogManager.Instance.LogInfo("P2PRelayRoom",
+                $"Entering relayId={s.Key} count={room.GetPlayersSnapshot().Count()}");
+
+            if (!room.BindOrReattach(s, out var actorId))
+            {
+                LogManager.Instance.LogWarning("MapEnter", $"Relay BindFail uid={s.Uid} key={s.Key}");
+                s.Close("relay_bind_fail");
+                return;
+            }
+        }
+        else if (!string.IsNullOrEmpty(s.Key))
         {
             int max = req.MaxPlayers > 0 ? req.MaxPlayers : 2;
             var room = GameManager.GetOrCreate(s.Key, req.MapId, max);
@@ -203,13 +220,11 @@ partial class PacketHandler
         ClientSession clientSession = (ClientSession)session;
         CS_ActionRequest req = (CS_ActionRequest)packet;
 
-        //TownManager.TryGet(clientSession.CurrentWorldId, out var action);
-        //if (action == null)
-        //{
-        //    session.Send(new SC_Warn { code = 2000, msg = "ROOM_NOT_FOUND" }.Write());
-        //    return;
-        //}
-        //action.OnCS_ActionRequest(clientSession, req);
+        if (P2PRelayManager.TryGet(clientSession.CurrentWorldId, out var relayRoom))
+        {
+            relayRoom.OnCS_ActionRequest(clientSession, req);
+            return;
+        }
 
         GameManager.TryGet(clientSession.CurrentWorldId, out var room);//clientSession.roo
         if (room == null)
@@ -227,6 +242,12 @@ partial class PacketHandler
         ClientSession clientSession = (ClientSession)session;
         CS_CalibHit req = (CS_CalibHit)packet;
 
+        if (P2PRelayManager.TryGet(clientSession.CurrentWorldId, out var relayRoom))
+        {
+            relayRoom.OnCS_CalibHit(clientSession, req);
+            return;
+        }
+
         GameManager.TryGet(clientSession.CurrentWorldId, out var room);//clientSession.roo
         if (room == null)
         {
@@ -235,5 +256,33 @@ partial class PacketHandler
         }
 
         room.OnCS_CalibHit(clientSession, req);
+    }
+
+    public static void CS_P2PPayloadHandler(PacketSession session, IPacket packet)
+    {
+        ClientSession clientSession = (ClientSession)session;
+        CS_P2PPayload req = (CS_P2PPayload)packet;
+
+        if (P2PRelayManager.TryGet(clientSession.CurrentWorldId, out var relayRoom))
+        {
+            relayRoom.OnCS_P2PPayload(clientSession, req);
+            return;
+        }
+
+        LogManager.Instance.LogWarning("P2PRelay", $"Payload dropped. Relay room not found world={clientSession.CurrentWorldId}");
+    }
+
+    public static void CS_P2PGameResultHandler(PacketSession session, IPacket packet)
+    {
+        ClientSession clientSession = (ClientSession)session;
+        CS_P2PGameResult req = (CS_P2PGameResult)packet;
+
+        if (P2PRelayManager.TryGet(clientSession.CurrentWorldId, out var relayRoom))
+        {
+            relayRoom.OnCS_P2PGameResult(clientSession, req);
+            return;
+        }
+
+        LogManager.Instance.LogWarning("P2PRelay", $"GameResult dropped. Relay room not found world={clientSession.CurrentWorldId}");
     }
 }

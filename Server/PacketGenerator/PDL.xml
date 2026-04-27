@@ -135,6 +135,26 @@
 		<int  name="startTick"/><!-- 동시 시작 tick -->
 	</packet>
 
+	<!-- P2P Relay -->
+	<packet name="CS_P2PPayload">
+		<int name="SenderActorId"/>
+		<string name="Payload"/>
+	</packet>
+
+	<packet name="SC_P2PBroadcast">
+		<string name="Payload"/>
+	</packet>
+
+	<packet name="SC_HostChange">
+		<int name="HostActorId"/>
+	</packet>
+
+	<packet name="CS_P2PGameResult">
+		<bool name="IsClear"/>
+		<long name="PlayTimeMs"/>
+		<int name="TotalDamage"/>
+	</packet>
+
 	<!-- 게임서버 -> 클라: 스킬 슬롯/기본공격 통보 -->
 	<packet name="SC_UpdateSkillSlots">
 		<string name="NormalAttackSkillId"/>

@@ -201,6 +201,15 @@ class PacketHandler
     public static void SC_ReturnToTownHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_ReturnToTown((SC_ReturnToTown)packet);
 
+    public static void CS_P2PPayloadHandler(PacketSession session, IPacket packet)
+        => P2PRelayClientBridge.Instance.HandleGuestPayload((CS_P2PPayload)packet);
+
+    public static void SC_P2PBroadcastHandler(PacketSession session, IPacket packet)
+        => P2PRelayClientBridge.Instance.HandleRelayBroadcast((SC_P2PBroadcast)packet);
+
+    public static void SC_HostChangeHandler(PacketSession session, IPacket packet)
+        => P2PRelayClientBridge.Instance.HandleHostChange((SC_HostChange)packet);
+
     public static void SC_InventoryHandler(PacketSession session, IPacket packet)
         => ClientHandlers.Instance.Handle_SC_Inventory((SC_Inventory)packet);
 

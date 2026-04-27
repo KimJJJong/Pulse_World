@@ -40,6 +40,7 @@ using System.Collections.Generic;
         public int maxPlayers;
         public string ownerUid;
         public string status;
+        public bool useP2PRelay;
         public List<string> memberUids; // JsonUtility supports List<string>
         public List<MemberReadyState> memberReady; // Changed from Dictionary for JsonUtility compatibility
     }
@@ -87,6 +88,7 @@ using System.Collections.Generic;
         public string ticket;
         public string mapId;
         public int maxPlayers;
+        public bool useP2PRelay;
     }
 
     [Serializable]

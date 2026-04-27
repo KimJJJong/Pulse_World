@@ -15,6 +15,7 @@ public class ClientGameState : MonoBehaviour
     // ActorId 목록 & 내 ActorId
     public int[] PlayerActorIds { get; private set; } = new int[0];
     public int MyActorId { get; private set; }
+    private readonly Dictionary<int, string> _playerUids = new();
 
     // 엔티티 상태
     private readonly Dictionary<int, ClientEntityInfo> _entities = new();
@@ -107,12 +108,69 @@ public class ClientGameState : MonoBehaviour
         WorldView?.OnSetTile(x, y, tileKind);
     }
 
+    public int GetTileKind(int x, int y)
+    {
+        if (_tiles == null) return (int)TileKind.None;
+        if (x < 0 || x >= MapWidth || y < 0 || y >= MapHeight) return (int)TileKind.None;
+        return _tiles[x, y];
+    }
+
+    public bool IsWalkable(int x, int y)
+    {
+        var kind = (TileKind)GetTileKind(x, y);
+        return kind == TileKind.Floor || kind == TileKind.Spawn;
+    }
+
+    public bool IsOccupied(int x, int y, int ignoreEntityId = -1)
+    {
+        foreach (var kv in _entities)
+        {
+            if (kv.Key == ignoreEntityId)
+                continue;
+
+            if (kv.Value.X == x && kv.Value.Y == y)
+                return true;
+        }
+
+        return false;
+    }
+
+    public IEnumerable<ClientEntityInfo> EnumerateEntities()
+        => _entities.Values;
+
     #endregion
 
     #region 플레이어/Actor
 
     public void SetPlayerActorIds(int[] actorIds) => PlayerActorIds = actorIds;
     public void SetMyActorId(int actorId) => MyActorId = actorId;
+
+    public void SetPlayerRoster(IEnumerable<(int ActorId, string Uid)> roster)
+    {
+        _playerUids.Clear();
+
+        if (roster == null)
+            return;
+
+        foreach (var (actorId, uid) in roster)
+        {
+            if (actorId <= 0)
+                continue;
+
+            _playerUids[actorId] = uid ?? "";
+        }
+    }
+
+    public void ClearPlayerRoster() => _playerUids.Clear();
+
+    public bool TryGetPlayerUid(int actorId, out string uid)
+        => _playerUids.TryGetValue(actorId, out uid);
+
+    public IEnumerable<(int ActorId, string Uid)> EnumeratePlayerRoster()
+    {
+        foreach (var kv in _playerUids)
+            yield return (kv.Key, kv.Value);
+    }
 
     #endregion
 

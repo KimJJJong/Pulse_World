@@ -27,6 +27,10 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.CS_Ready, PacketHandler.CS_ReadyHandler);
 		_makeFunc.Add((ushort)PacketID.CS_TownActionRequest, MakePacket<CS_TownActionRequest>);
 		_handler.Add((ushort)PacketID.CS_TownActionRequest, PacketHandler.CS_TownActionRequestHandler);
+		_makeFunc.Add((ushort)PacketID.CS_P2PPayload, MakePacket<CS_P2PPayload>);
+		_handler.Add((ushort)PacketID.CS_P2PPayload, PacketHandler.CS_P2PPayloadHandler);
+		_makeFunc.Add((ushort)PacketID.CS_P2PGameResult, MakePacket<CS_P2PGameResult>);
+		_handler.Add((ushort)PacketID.CS_P2PGameResult, PacketHandler.CS_P2PGameResultHandler);
 		_makeFunc.Add((ushort)PacketID.CS_Ping, MakePacket<CS_Ping>);
 		_handler.Add((ushort)PacketID.CS_Ping, PacketHandler.CS_PingHandler);
 		_makeFunc.Add((ushort)PacketID.CS_CalibHit, MakePacket<CS_CalibHit>);

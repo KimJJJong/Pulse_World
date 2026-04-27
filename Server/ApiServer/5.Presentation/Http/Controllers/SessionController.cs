@@ -39,7 +39,7 @@ public sealed class SessionController : ControllerBase
         //Console.WriteLine($" roomID : {req.RoomId} || Map :{req.Map} || Player : {req.MaxPlayers} || Uid : {uid}");
 
         var result = await handler.HandleAsync(
-            new IssueGameTicketCommand(uid, req.RoomId, req.Map, req.MaxPlayers, req.PreferredRegion),
+            new IssueGameTicketCommand(uid, req.RoomId, req.Map, req.MaxPlayers, req.PreferredRegion, req.UseP2PRelay),
             ct);
 
         return Ok(new SessionDtos.IssueGameTicketResponse(

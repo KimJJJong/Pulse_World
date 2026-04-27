@@ -12,6 +12,7 @@ public class WaitingRoomDto
     public int MaxPlayers { get; set; }
     public string OwnerUid { get; set; } = "";
     public string Status { get; set; } = "";
+    public bool UseP2PRelay { get; set; }
     public List<string> MemberUids { get; set; } = new();
     public Dictionary<string, bool> MemberReady { get; set; } = new();
 }
@@ -25,7 +26,7 @@ public sealed class WaitingRoomService
         _redis = redis;
     }
 
-    public async Task<string?> CreateAsync(string title, string mapId, int maxPlayers, string ownerUid, string ownerName)
+    public async Task<string?> CreateAsync(string title, string mapId, int maxPlayers, string ownerUid, string ownerName, bool useP2PRelay = false)
     {
         var roomId = Guid.NewGuid().ToString("N")[..8];
         var key = _redis.KeyWaitingRoom(roomId);
@@ -40,6 +41,7 @@ public sealed class WaitingRoomService
             new("maxPlayers", maxPlayers),
             new("ownerUid", ownerUid),
             new("status", "Open"),
+            new("useP2PRelay", useP2PRelay ? 1 : 0),
             new("createdAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
         };
 
@@ -153,6 +155,7 @@ public sealed class WaitingRoomService
             MaxPlayers = int.Parse(dict.GetValueOrDefault("maxPlayers") ?? "0"),
             OwnerUid = dict.GetValueOrDefault("ownerUid") ?? "",
             Status = dict.GetValueOrDefault("status") ?? "",
+            UseP2PRelay = int.TryParse(dict.GetValueOrDefault("useP2PRelay") ?? "0", out var relayVal) && relayVal != 0,
             MemberUids = new List<string>(),
             MemberReady = new Dictionary<string, bool>()
         };

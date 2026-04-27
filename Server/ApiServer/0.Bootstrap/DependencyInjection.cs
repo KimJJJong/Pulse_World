@@ -13,6 +13,7 @@ using ApiServer.Infrastructure.Persistence.Repositories;
 using ApiServer.Infrastructure.Security;
 using ApiServer.Infrastructure.Time;
 using ApiServer.Domain.WaitingRoom;
+using ApiServer.Domain.GameResult;
 using ApiServer.Shared.Abstractions;
 using ApiServer.Shared.Http.Idempotency;
 using Microsoft.EntityFrameworkCore;
@@ -82,6 +83,7 @@ public static class DependencyInjection
         services.Configure<RedisOptions>(config.GetSection("Redis"));
         services.AddSingleton<RedisStore>();
         services.AddScoped<WaitingRoomService>();
+        services.AddScoped<GameResultService>();
 
         // Auth infra
         services.AddSingleton<IJwtIssuerPort, JwtIssuer>();

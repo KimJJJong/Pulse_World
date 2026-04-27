@@ -16,6 +16,9 @@ public sealed class MonsterPatternDef
     public string DefaultPhase = "P1";
     public List<PhaseDef> Phases = new();
     public List<PhaseTransitionDef> Transitions = new();
+
+    public PhaseDef GetPhase(string id)
+        => Phases.Find(p => p.Id == id);
 }
 
 [Serializable]

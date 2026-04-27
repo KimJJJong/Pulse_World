@@ -13,9 +13,9 @@ public sealed class SessionApi
             attachAuth: true);
 
     public Task<ApiResult<SessionDtos.IssueGameTicketResponse>> IssueGameTicketAsync(
-        string roomId, string map, int maxPlayers, string preferredRegion)
+        string roomId, string map, int maxPlayers, string preferredRegion, bool useP2PRelay = true)
         => _api.PostJsonAsync<SessionDtos.IssueGameTicketResponse>(
             "/session/ticket/game",
-            new SessionDtos.IssueGameTicketRequest(roomId, map, maxPlayers, preferredRegion),
+            new SessionDtos.IssueGameTicketRequest(roomId, map, maxPlayers, preferredRegion, useP2PRelay),
             attachAuth: true);
 }

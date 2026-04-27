@@ -1,4 +1,4 @@
-START ../../PacketGenerator/bin/PacketGenerator.exe ../../PacketGenerator/PDL.xml
+START /WAIT ../../PacketGenerator/bin/PacketGenerator.exe ../../PacketGenerator/PDL.xml
 
 XCOPY /Y GenPackets.cs "D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\Packet"
 XCOPY /Y ServerPacketManager.cs "D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\Packet"

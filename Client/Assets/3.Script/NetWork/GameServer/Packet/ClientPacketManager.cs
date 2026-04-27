@@ -35,6 +35,10 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_AllPlayersLoaded, PacketHandler.SC_AllPlayersLoadedHandler);
 		_makeFunc.Add((ushort)PacketID.SC_GameBegin, MakePacket<SC_GameBegin>);
 		_handler.Add((ushort)PacketID.SC_GameBegin, PacketHandler.SC_GameBeginHandler);
+		_makeFunc.Add((ushort)PacketID.SC_P2PBroadcast, MakePacket<SC_P2PBroadcast>);
+		_handler.Add((ushort)PacketID.SC_P2PBroadcast, PacketHandler.SC_P2PBroadcastHandler);
+		_makeFunc.Add((ushort)PacketID.SC_HostChange, MakePacket<SC_HostChange>);
+		_handler.Add((ushort)PacketID.SC_HostChange, PacketHandler.SC_HostChangeHandler);
 		_makeFunc.Add((ushort)PacketID.SC_UpdateSkillSlots, MakePacket<SC_UpdateSkillSlots>);
 		_handler.Add((ushort)PacketID.SC_UpdateSkillSlots, PacketHandler.SC_UpdateSkillSlotsHandler);
 		_makeFunc.Add((ushort)PacketID.SC_Error, MakePacket<SC_Error>);
@@ -63,6 +67,8 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_EntityDespawn, PacketHandler.SC_EntityDespawnHandler);
 		_makeFunc.Add((ushort)PacketID.SC_EntitySpawn, MakePacket<SC_EntitySpawn>);
 		_handler.Add((ushort)PacketID.SC_EntitySpawn, PacketHandler.SC_EntitySpawnHandler);
+		_makeFunc.Add((ushort)PacketID.CS_P2PPayload, MakePacket<CS_P2PPayload>);
+		_handler.Add((ushort)PacketID.CS_P2PPayload, PacketHandler.CS_P2PPayloadHandler);
 		_makeFunc.Add((ushort)PacketID.SC_Inventory, MakePacket<SC_Inventory>);
 		_handler.Add((ushort)PacketID.SC_Inventory, PacketHandler.SC_InventoryHandler);
 		_makeFunc.Add((ushort)PacketID.SC_EquipResult, MakePacket<SC_EquipResult>);

@@ -10,6 +10,7 @@ public sealed class WaitingRoomDto
     public int MaxPlayers { get; set; }
     public string OwnerUid { get; set; } = "";
     public string Status { get; set; } = "";
+    public bool UseP2PRelay { get; set; }
     public List<string> MemberUids { get; set; } = new();
     public Dictionary<string, bool> MemberReady { get; set; } = new();
 }

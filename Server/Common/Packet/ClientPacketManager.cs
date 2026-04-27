@@ -35,6 +35,12 @@ public class PacketManager
 		_handler.Add((ushort)PacketID.SC_AllPlayersLoaded, PacketHandler.SC_AllPlayersLoadedHandler);
 		_makeFunc.Add((ushort)PacketID.SC_GameBegin, MakePacket<SC_GameBegin>);
 		_handler.Add((ushort)PacketID.SC_GameBegin, PacketHandler.SC_GameBeginHandler);
+		_makeFunc.Add((ushort)PacketID.SC_P2PBroadcast, MakePacket<SC_P2PBroadcast>);
+		_handler.Add((ushort)PacketID.SC_P2PBroadcast, PacketHandler.SC_P2PBroadcastHandler);
+		_makeFunc.Add((ushort)PacketID.SC_HostChange, MakePacket<SC_HostChange>);
+		_handler.Add((ushort)PacketID.SC_HostChange, PacketHandler.SC_HostChangeHandler);
+		_makeFunc.Add((ushort)PacketID.SC_UpdateSkillSlots, MakePacket<SC_UpdateSkillSlots>);
+		_handler.Add((ushort)PacketID.SC_UpdateSkillSlots, PacketHandler.SC_UpdateSkillSlotsHandler);
 		_makeFunc.Add((ushort)PacketID.SC_Error, MakePacket<SC_Error>);
 		_handler.Add((ushort)PacketID.SC_Error, PacketHandler.SC_ErrorHandler);
 		_makeFunc.Add((ushort)PacketID.SC_Warn, MakePacket<SC_Warn>);

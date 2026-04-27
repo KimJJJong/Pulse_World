@@ -26,6 +26,7 @@ namespace NetClient.Room
             public string mapId;
             public int maxPlayers;
             public string title;      
+            public bool useP2PRelay = true;
         }
 
         [Serializable]

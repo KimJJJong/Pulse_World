@@ -21,7 +21,8 @@ public static class SessionDtos
         string RoomId,
         string Map,
         int MaxPlayers,
-        string? PreferredRegion
+        string? PreferredRegion,
+        bool UseP2PRelay = false
     );
 
     public sealed record IssueGameTicketResponse(

@@ -57,10 +57,12 @@ public sealed class IssueGameTicketHandler
             ct: ct);
 
         // 4) IssueTicket (pinned)      : 여기 EndPoint 는 IssueTicket에서 받아오는거 Allocate와는 다르지만 값은 같아야지
+        var ticketKey = cmd.UseP2PRelay ? $"p2p:{cmd.RoomId}" : cmd.RoomId;
+
         var (tid, expAt, _, key, _endPoint) = await _cp.IssueTicketAsync(
             uid: cmd.Uid,
             target: "GAME",
-            key: cmd.RoomId,
+            key: ticketKey,
             preferredServerId: serverId,
             ttlSeconds: 30,
             ct: ct);

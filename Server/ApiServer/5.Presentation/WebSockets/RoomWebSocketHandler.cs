@@ -80,6 +80,7 @@ public sealed class RoomWebSocketHandler
                 maxPlayers = room.MaxPlayers,
                 ownerUid = room.OwnerUid,
                 status = room.Status,
+                useP2PRelay = room.UseP2PRelay,
                 memberUids = room.MemberUids,
                 memberReady = room.MemberReady.Select(kv => new { uid = kv.Key, ready = kv.Value }).ToList()
             };
@@ -180,13 +181,14 @@ public sealed class RoomWebSocketHandler
                     foreach(var memberUid in room.MemberUids)
                     {
                         // IssueTicket (RPC)
-                        // key: roomId (for validation in GS)
+                        // key: relay prefix + roomId (for validation in GS)
+                        var ticketKey = room.UseP2PRelay ? $"p2p:{roomId}" : roomId;
                         try 
                         {
                             var (ticketId, _, _, _, _) = await _cp.IssueTicketAsync(
                                 memberUid, 
                                 "GAME", 
-                                roomId, 
+                                ticketKey, 
                                 serverId, // issuedServerId
                                 60, 
                                 CancellationToken.None
@@ -198,7 +200,8 @@ public sealed class RoomWebSocketHandler
                                 endpoint = new { host = ep.Host, port = ep.Port },
                                 ticket = ticketId,
                                 mapId = room.MapId,
-                                maxPlayers = room.MemberUids.Count // 실제 참여 인원으로 시작
+                                maxPlayers = room.MemberUids.Count, // 실제 참여 인원으로 시작
+                                useP2PRelay = room.UseP2PRelay
                             };
                             await _conns.SendToAsync(roomId, memberUid, payload);
                         }
