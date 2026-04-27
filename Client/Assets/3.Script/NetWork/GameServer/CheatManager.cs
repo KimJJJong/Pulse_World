@@ -8,6 +8,8 @@ public class CheatManager : MonoBehaviour
     [Header("Add Item Settings")]
     [SerializeField] private int _itemTemplateId;
     [SerializeField] private int _itemAmount = 1;
+    [Tooltip("비워두면 현재 로그인한 본인 UID로 지급합니다.")]
+    [SerializeField] private string _targetUserId = "";
 
     private void Awake()
     {
@@ -49,13 +51,8 @@ public class CheatManager : MonoBehaviour
     [ContextMenu("Request Add Item (API)")]
     public async void RequestAddItemApi()
     {
-        var uid = SessionContext.Instance.Uid;
-        if (string.IsNullOrEmpty(uid))
-        {
-             // Fallback
-             if (AppBootstrap.Instance != null && AppBootstrap.Instance.Root != null) 
-                 uid = AppBootstrap.Instance.Root.Tokens.Uid;
-        }
+        var localUid = ResolveLocalUid();
+        var uid = ResolveTargetUid();
 
         if (string.IsNullOrEmpty(uid))
         {
@@ -70,8 +67,8 @@ public class CheatManager : MonoBehaviour
             return;
         }
 
-        string url = $"/api/cheat/additem?uid={uid}&templateId={_itemTemplateId}&amount={_itemAmount}";
-        Debug.Log($"[CheatManager] Sending API Request: {url}");
+        string url = $"/api/cheat/additem?uid={System.Uri.EscapeDataString(uid)}&templateId={_itemTemplateId}&amount={_itemAmount}";
+        Debug.Log($"[CheatManager] Sending API Request: targetUid={uid}, templateId={_itemTemplateId}, amount={_itemAmount}");
 
         // Using PostJsonAsync with empty body since params are in QueryString for simplicity in this implementation, 
         // OR change Controller to accept Body. 
@@ -80,12 +77,41 @@ public class CheatManager : MonoBehaviour
         var res = await api.PostJsonAsync<object>(url, null, attachAuth: true);
         if (res.Ok)
         {
-            Debug.Log("[CheatManager] API Cheat Success. Refreshing Inventory...");
-            InventoryManager.Instance?.LoadFromApi();
+            Debug.Log("[CheatManager] API Cheat Success.");
+
+            if (!string.IsNullOrWhiteSpace(localUid) && string.Equals(localUid, uid, System.StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.Log("[CheatManager] Refreshing local inventory...");
+                InventoryManager.Instance?.LoadFromApi();
+            }
+            else
+            {
+                Debug.Log($"[CheatManager] Target UID is different from local UID. Skipping local inventory refresh. targetUid={uid}");
+            }
         }
         else
         {
             Debug.LogError($"[CheatManager] API Cheat Failed: {res.Error} {res.StatusCode}");
         }
+    }
+
+    private string ResolveTargetUid()
+    {
+        if (!string.IsNullOrWhiteSpace(_targetUserId))
+            return _targetUserId.Trim();
+
+        return ResolveLocalUid();
+    }
+
+    private string ResolveLocalUid()
+    {
+        var uid = SessionContext.Instance != null ? SessionContext.Instance.Uid : "";
+        if (string.IsNullOrWhiteSpace(uid))
+        {
+            if (AppBootstrap.Instance != null && AppBootstrap.Instance.Root != null)
+                uid = AppBootstrap.Instance.Root.Tokens.Uid;
+        }
+
+        return string.IsNullOrWhiteSpace(uid) ? "" : uid.Trim();
     }
 }

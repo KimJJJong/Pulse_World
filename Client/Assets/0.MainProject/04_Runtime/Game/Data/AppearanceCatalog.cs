@@ -18,10 +18,10 @@ public static class AppearanceCatalog
 
     public static readonly IReadOnlyList<AppearanceOption> Options = new[]
     {
-        new AppearanceOption(0, "자동(장비기반)", ""),
-        new AppearanceOption(10, "Barbarian", "Barbarian_InGame"),
-        new AppearanceOption(11, "Mage", "Mage"),
-        new AppearanceOption(12, "Rogu", ""),
+        new AppearanceOption(0, "자동(장비기반)", "Players/Barbarian"),
+        new AppearanceOption(10, "Barbarian", "Players/Barbarian"),
+        new AppearanceOption(11, "Mage", "Players/Mage"),
+        new AppearanceOption(12, "Rogu", "Players/Rogue"),
     };
 
     public static bool TryGetPrefabName(int appearanceId, out string prefabName)

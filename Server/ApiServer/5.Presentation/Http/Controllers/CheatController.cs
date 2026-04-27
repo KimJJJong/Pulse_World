@@ -1,5 +1,6 @@
 using ApiServer.Application.Services;
 using ApiServer.Domain.Items;
+using ApiServer.Presentation.Http;
 using ApiServer.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,8 +25,13 @@ public class CheatController : ControllerBase
     }
 
     [HttpPost("additem")]
-    public async Task<IActionResult> AddItem(string uid, int templateId, int amount)
+    public async Task<IActionResult> AddItem([FromQuery] string uid, [FromQuery] int templateId, [FromQuery] int amount)
     {
+        if (string.IsNullOrWhiteSpace(uid))
+        {
+            uid = HttpContext.RequireUid();
+        }
+
         // 0. Validate TemplateId against CSV data
         bool isEquipment = templateId >= 100000 && templateId <= 399999;
         if (isEquipment)
