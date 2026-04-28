@@ -4,12 +4,13 @@ EXPOSE 13221
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["GameServer/GameServer.csproj", "GameServer/"]
-COPY ["ServerCore/ServerCore.csproj", "ServerCore/"]
-COPY ["Shared/Shared.csproj", "Shared/"]
-RUN dotnet restore "GameServer/GameServer.csproj"
-COPY . .
-WORKDIR "/src/GameServer"
+COPY ["Server/GameServer/GameServer.csproj", "Server/GameServer/"]
+COPY ["Server/ServerCore/ServerCore.csproj", "Server/ServerCore/"]
+COPY ["Server/Shared/Shared.csproj", "Server/Shared/"]
+RUN dotnet restore "Server/GameServer/GameServer.csproj"
+COPY ["Server/", "Server/"]
+COPY ["Client/Assets/SharedContent/", "Client/Assets/SharedContent/"]
+WORKDIR "/src/Server/GameServer"
 RUN dotnet build "GameServer.csproj" -c Release -o /app/build
 
 FROM build AS publish

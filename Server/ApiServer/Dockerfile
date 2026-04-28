@@ -4,11 +4,11 @@ EXPOSE 5000
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["ApiServer/ApiServer.csproj", "ApiServer/"]
-COPY ["Shared/Shared.csproj", "Shared/"]
-RUN dotnet restore "ApiServer/ApiServer.csproj"
-COPY . .
-WORKDIR "/src/ApiServer"
+COPY ["Server/ApiServer/ApiServer.csproj", "Server/ApiServer/"]
+COPY ["Server/Shared/Shared.csproj", "Server/Shared/"]
+RUN dotnet restore "Server/ApiServer/ApiServer.csproj"
+COPY ["Server/", "Server/"]
+WORKDIR "/src/Server/ApiServer"
 RUN dotnet build "ApiServer.csproj" -c Release -o /app/build
 
 FROM build AS publish

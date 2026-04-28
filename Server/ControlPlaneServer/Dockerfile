@@ -4,11 +4,11 @@ EXPOSE 5001
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["ControlPlaneServer/ControlPlaneServer.csproj", "ControlPlaneServer/"]
-COPY ["Shared/Shared.csproj", "Shared/"]
-RUN dotnet restore "ControlPlaneServer/ControlPlaneServer.csproj"
-COPY . .
-WORKDIR "/src/ControlPlaneServer"
+COPY ["Server/ControlPlaneServer/ControlPlaneServer.csproj", "Server/ControlPlaneServer/"]
+COPY ["Server/Shared/Shared.csproj", "Server/Shared/"]
+RUN dotnet restore "Server/ControlPlaneServer/ControlPlaneServer.csproj"
+COPY ["Server/", "Server/"]
+WORKDIR "/src/Server/ControlPlaneServer"
 RUN dotnet build "ControlPlaneServer.csproj" -c Release -o /app/build
 
 FROM build AS publish

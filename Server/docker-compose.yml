@@ -31,8 +31,8 @@ services:
 
   controlplane:
     build:
-      context: .
-      dockerfile: ControlPlaneServer/Dockerfile
+      context: ..
+      dockerfile: Server/ControlPlaneServer/Dockerfile
     container_name: controlplane_server
     restart: always
     depends_on:
@@ -50,8 +50,8 @@ services:
 
   apiserver:
     build:
-      context: .
-      dockerfile: ApiServer/Dockerfile
+      context: ..
+      dockerfile: Server/ApiServer/Dockerfile
     container_name: api_server
     restart: always
     depends_on:
@@ -84,8 +84,8 @@ services:
 
   townserver:
     build:
-      context: .
-      dockerfile: GameServer/Dockerfile
+      context: ..
+      dockerfile: Server/GameServer/Dockerfile
     container_name: town_server
     command: [ "--role", "Town" ]
     restart: always
@@ -109,8 +109,8 @@ services:
 
   gameserver:
     build:
-      context: .
-      dockerfile: GameServer/Dockerfile
+      context: ..
+      dockerfile: Server/GameServer/Dockerfile
     container_name: game_server
     command: [ "--role", "Game" ]
     restart: always
