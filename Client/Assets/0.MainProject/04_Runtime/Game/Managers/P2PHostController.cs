@@ -216,26 +216,24 @@ public sealed class P2PHostController : MonoBehaviour
             return;
 
         long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
-        if (currentBeat < 0)
+        if (currentBeat >= 0)
+            ProcessImmediateQueuedCommands(currentBeat);
+
+        long resolvedBeat = GetLastResolvedBeat();
+        if (resolvedBeat < 0)
             return;
 
-        bool hasQueuedCommands = HasQueuedCommands();
-        if (_lastProcessedBeat == currentBeat && !hasQueuedCommands)
+        if (_lastProcessedBeat == resolvedBeat)
             return;
 
         if (_lastProcessedBeat == long.MinValue)
-            _lastProcessedBeat = currentBeat - 1;
-
-        if (hasQueuedCommands)
-            ProcessQueuedCommands(currentBeat);
-
-        if (currentBeat <= _lastProcessedBeat)
-            return;
+            _lastProcessedBeat = resolvedBeat - 1;
 
         int processedBeats = 0;
-        while (_lastProcessedBeat < currentBeat && processedBeats < MaxCatchUpBeatsPerUpdate)
+        while (_lastProcessedBeat < resolvedBeat && processedBeats < MaxCatchUpBeatsPerUpdate)
         {
             _lastProcessedBeat++;
+            ProcessQueuedCommandsAtBeat(_lastProcessedBeat);
             ProcessSkillsAtBeat(_lastProcessedBeat);
             processedBeats++;
         }
@@ -253,15 +251,25 @@ public sealed class P2PHostController : MonoBehaviour
         }
     }
 
-    private bool HasQueuedCommands()
+    private long GetLastResolvedBeat()
     {
-        lock (_commandLock)
-        {
-            return _queuedCommands.Count > 0;
-        }
+        if (RhythmClient.Instance == null)
+            return -1;
+
+        double judgeWindowMs = RhythmClient.Instance.judgeWindowMs > 0 ? RhythmClient.Instance.judgeWindowMs : 100.0;
+        long resolvedServerTimeMs = RhythmClient.Instance.GetCurrentServerTimeMs() - (long)Math.Ceiling(judgeWindowMs);
+        if (resolvedServerTimeMs < RhythmClient.Instance.ServerSongStartMs)
+            return -1;
+
+        double elapsedMs = resolvedServerTimeMs - RhythmClient.Instance.ServerSongStartMs;
+        double beatMs = RhythmClient.Instance.GetBeatDurationMs();
+        if (beatMs <= 0.0)
+            return -1;
+
+        return (long)Math.Floor(elapsedMs / beatMs);
     }
 
-    private void ProcessQueuedCommands(long currentBeat)
+    private void ProcessImmediateQueuedCommands(long currentBeat)
     {
         List<QueuedCombatCommand> readyCommands = null;
 
@@ -273,10 +281,11 @@ public sealed class P2PHostController : MonoBehaviour
             var remaining = new List<QueuedCombatCommand>(_queuedCommands.Count);
             foreach (var command in _queuedCommands)
             {
-                if (command == null)
+                if (command?.Request == null)
                     continue;
 
-                if (command.ForcedExecuteBeat.HasValue && command.ForcedExecuteBeat.Value > currentBeat)
+                long executeBeat = ResolveQueuedCommandBeat(command, currentBeat);
+                if (executeBeat > currentBeat || command.Request.ActionKind == (int)ActionKind.Move)
                 {
                     remaining.Add(command);
                     continue;
@@ -295,14 +304,99 @@ public sealed class P2PHostController : MonoBehaviour
 
         readyCommands.Sort((a, b) =>
         {
-            long beatA = GetQueuedCommandPriorityBeat(a, currentBeat);
-            long beatB = GetQueuedCommandPriorityBeat(b, currentBeat);
+            long beatA = ResolveQueuedCommandBeat(a, currentBeat);
+            long beatB = ResolveQueuedCommandBeat(b, currentBeat);
 
             int cmp = beatA.CompareTo(beatB);
             if (cmp != 0)
                 return cmp;
 
             return a.Sequence.CompareTo(b.Sequence);
+        });
+
+        foreach (var command in readyCommands)
+        {
+            HandleActionRequest(
+                command.Request,
+                command.ActorId > 0 ? command.ActorId : command.Request.ActorId,
+                command.FromLocalSource,
+                command.SkillIdOverride,
+                command.BypassInputGuards,
+                ResolveQueuedCommandBeat(command, currentBeat));
+        }
+    }
+
+    private void ProcessQueuedCommandsAtBeat(long beat)
+    {
+        List<QueuedCombatCommand> readyCommands = null;
+        List<QueuedCombatCommand> staleCommands = null;
+
+        lock (_commandLock)
+        {
+            if (_queuedCommands.Count == 0)
+                return;
+
+            var remaining = new List<QueuedCombatCommand>(_queuedCommands.Count);
+            foreach (var command in _queuedCommands)
+            {
+                if (command == null)
+                    continue;
+
+                long executeBeat = ResolveQueuedCommandBeat(command, beat);
+                if (executeBeat > beat)
+                {
+                    remaining.Add(command);
+                    continue;
+                }
+
+                if (command.Request.ActionKind != (int)ActionKind.Move)
+                {
+                    remaining.Add(command);
+                    continue;
+                }
+
+                if (executeBeat < beat)
+                {
+                    staleCommands ??= new List<QueuedCombatCommand>();
+                    staleCommands.Add(command);
+                    continue;
+                }
+
+                readyCommands ??= new List<QueuedCombatCommand>();
+                readyCommands.Add(command);
+            }
+
+            _queuedCommands.Clear();
+            _queuedCommands.AddRange(remaining);
+        }
+
+        if (staleCommands != null && P2PDebugConfig.TraceHostFlow)
+        {
+            foreach (var command in staleCommands)
+            {
+                if (command?.Request == null)
+                    continue;
+
+                int actorId = command.ActorId > 0 ? command.ActorId : command.Request.ActorId;
+                long staleBeat = ResolveQueuedCommandBeat(command, beat);
+                Debug.Log($"[P2PHostController] Drop stale action actor={actorId} executeBeat={staleBeat} resolvedBeat={beat}");
+            }
+        }
+
+        if (readyCommands == null || readyCommands.Count == 0)
+            return;
+
+        readyCommands.Sort((a, b) =>
+        {
+            int cmp = GetCommandActionPriority(a).CompareTo(GetCommandActionPriority(b));
+            if (cmp != 0)
+                return cmp;
+
+            cmp = a.Sequence.CompareTo(b.Sequence);
+            if (cmp != 0)
+                return cmp;
+
+            return 0;
         });
 
         foreach (var command in readyCommands)
@@ -316,11 +410,11 @@ public sealed class P2PHostController : MonoBehaviour
                 command.FromLocalSource,
                 command.SkillIdOverride,
                 command.BypassInputGuards,
-                command.ForcedExecuteBeat);
+                beat);
         }
     }
 
-    private long GetQueuedCommandPriorityBeat(QueuedCombatCommand command, long fallbackBeat)
+    private long ResolveQueuedCommandBeat(QueuedCombatCommand command, long fallbackBeat)
     {
         if (command == null)
             return fallbackBeat;
@@ -332,6 +426,21 @@ public sealed class P2PHostController : MonoBehaviour
             return RhythmClient.Instance.GetNearestBeatIndex(command.Request.ClientSendTimeMs);
 
         return fallbackBeat;
+    }
+
+    private static int GetCommandActionPriority(QueuedCombatCommand command)
+    {
+        if (command?.Request == null)
+            return int.MaxValue;
+
+        ActionKind actionKind = (ActionKind)command.Request.ActionKind;
+        return actionKind switch
+        {
+            ActionKind.Move => 0,
+            ActionKind.Attack => 1,
+            ActionKind.Skill => 1,
+            _ => 2
+        };
     }
 
     private void HandleActionRequest(
@@ -378,6 +487,14 @@ public sealed class P2PHostController : MonoBehaviour
                 return;
             }
 
+            // 같은 확정 비트에서 처리 중인 입력은 허용하고, 이미 지난 비트만 폐기한다.
+            if (executeBeat < _lastProcessedBeat)
+            {
+                if (P2PDebugConfig.TraceHostFlow)
+                    Debug.Log($"[P2PHostController] Late action dropped actor={actorId} beat={executeBeat} lastProcessed={_lastProcessedBeat}");
+                return;
+            }
+
             if (!TryConsumeActionBeat(actorId, executeBeat))
             {
                 if (P2PDebugConfig.TraceHostFlow)
@@ -419,7 +536,6 @@ public sealed class P2PHostController : MonoBehaviour
         }
 
         _activeSkills.Add(scheduled);
-        ProcessSkillsAtBeat(currentBeat);
     }
 
     private void ProcessDueSkills(long currentBeat)

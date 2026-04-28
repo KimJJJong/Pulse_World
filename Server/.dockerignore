@@ -20,5 +20,13 @@
 docker-compose.yml
 .env
 
-# Ignore postgres data volume
+# Runtime volumes and local-only data
 data/
+Server/data/
+Server/logs/
+
+# Unity local caches
+Client/Library/
+Client/Temp/
+Client/Obj/
+Client/Logs/

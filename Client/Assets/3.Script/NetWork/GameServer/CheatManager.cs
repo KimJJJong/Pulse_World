@@ -27,8 +27,19 @@ public class CheatManager : MonoBehaviour
     [ContextMenu("Request Add Item")]
     public void RequestAddItem()
     {
+        var localUid = ResolveLocalUid();
+        var targetUid = ResolveTargetUid();
+        bool hasTargetOverride = !string.IsNullOrWhiteSpace(_targetUserId);
+
+        if (hasTargetOverride)
+        {
+            Debug.Log($"[CheatManager] Target UID override detected. Using API cheat path. localUid={localUid}, targetUid={targetUid}");
+            RequestAddItemApi();
+            return;
+        }
+
         SendCheatPacket(1, _itemTemplateId, _itemAmount);
-        Debug.Log($"[CheatManager] Requested Add Item: ID={_itemTemplateId}, Amount={_itemAmount}");
+        Debug.Log($"[CheatManager] Requested Add Item via packet: ID={_itemTemplateId}, Amount={_itemAmount}, targetUid={(string.IsNullOrWhiteSpace(targetUid) ? localUid : targetUid)}");
     }
 
     public void SendCheatPacket(int code, int p1, int p2)

@@ -62,7 +62,7 @@ public static class AppearanceCatalog
 
         var options = new List<AppearanceOption>
         {
-            new(AutoAppearanceId, "자동(장비기반)", string.Empty)
+            new(AutoAppearanceId, "자동(장비기반)", "Data/Entity_10_Player_Barbarian")
         };
 
         var textAsset = Resources.Load<TextAsset>("Data/EntityData");

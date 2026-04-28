@@ -221,9 +221,12 @@ public sealed class PingManager : MonoBehaviour
     {
         if (!running) return;
 
+        var relayBridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
+        bool showHostPing = relayBridge != null && relayBridge.IsRelayMode;
+
         // 화면 우측 상단 배치
         int width = 340;
-        int height = 180;
+        int height = showHostPing ? 220 : 180;
         Rect rect = new Rect(Screen.width - width - 10, 10, width, height);
 
         // 반투명 배경 박스
@@ -235,8 +238,18 @@ public sealed class PingManager : MonoBehaviour
         style.alignment = TextAnchor.UpperLeft;
         
         // 텍스트 내용 조립
+        string hostPingLine = "";
+        if (showHostPing)
+        {
+            hostPingLine = relayBridge.IsHostLocal
+                ? "<color=#ffa500>Host RTT:</color> Local Host\n"
+                : $"<color=#ffa500>Host RTT:</color> {relayBridge.HostAvgRttMs}ms (Last:{relayBridge.HostLastRttMs} Max:{relayBridge.HostMaxRttMs})\n" +
+                  $"<color=#ffd27f>Host Status:</color> {relayBridge.HostPingStatus}\n";
+        }
+
         string text = $"[Network Sync]\n" +
                       $"<color=#00FF00>RTT(Avg):</color> {avgRttMs}ms (Max:{maxRttMs})\n" +
+                      hostPingLine +
                       $"<color=#00e5ee>RawRTT:</color> {lastRawRTT}ms | <color=#ff69b4>S.Proc:</color> {lastServerProc}ms\n" +
                       $"<color=#FFFF00>Offset:</color> {TimeSync.OffsetMs:F1}ms\n" +
                       $"<color=#aaaaaa>L.Send:</color> {lastLocalSend}\n" +
