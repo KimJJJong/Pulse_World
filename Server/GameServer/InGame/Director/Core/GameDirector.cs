@@ -1,28 +1,20 @@
 using GameServer.Content.Map;
 using GameServer.InGame.Director.Data;
-using GameServer.InGame.Director.Events;
-using GameServer.InGame.Manager.Entity; // [NEW] for EntityType enum
+using GameServer.InGame.Manager.Entity;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace GameServer.InGame.Director.Core
 {
-    public class GameDirector
+    public sealed class GameDirector : IStageActionHost
     {
         private readonly GameSession _session;
+        private readonly StageRuntimeEngine _stageEngine = new();
         private StageScenario _currentScenario;
-        
-        // Runtime State
-        private readonly HashSet<int> _executedEvents = new();
-        private readonly List<RuntimeEvent> _runtimeEvents = new();
-        
         private long _startTime;
+        private long _lastServerTimeMs;
 
-        
-        // Tracking for Conditions (e.g. Monster Kill Count)
-        // GroupId -> Dead Count
-        public Dictionary<int, int> MonsterGroupDeadCounts { get; private set; } = new();
+        public Dictionary<int, int> MonsterGroupDeadCounts { get; } = new();
 
         public GameDirector(GameSession session)
         {
@@ -32,126 +24,87 @@ namespace GameServer.InGame.Director.Core
         public void LoadScenario(StageScenario scenario)
         {
             _currentScenario = scenario;
-            _executedEvents.Clear();
-            _runtimeEvents.Clear();
             MonsterGroupDeadCounts.Clear();
             _startTime = 0;
+            _lastServerTimeMs = 0;
+            _stageEngine.LoadScenario(scenario);
 
-
-            if (_currentScenario == null) return;
+            if (_currentScenario == null)
+                return;
 
             Console.WriteLine($"[GameDirector] Loading Scenario: {scenario.MapId}");
 
-            // 1. Convert Data to Runtime Objects
-            foreach (var evtData in _currentScenario.Events)
-            {
-                var rtEvent = new RuntimeEvent { Data = evtData };
-                
-                foreach (var condData in evtData.Conditions)
-                {
-                    var condition = CreateCondition(condData);
-                    if (condition != null) rtEvent.Conditions.Add(condition);
-                }
-
-                foreach (var actData in evtData.Actions)
-                {
-                    var action = CreateAction(actData);
-                    if (action != null) rtEvent.Actions.Add(action);
-                }
-
-                _runtimeEvents.Add(rtEvent);
-            }
-
-            // 2. Initial Spawns
-            foreach (var spawn in _currentScenario.InitialSpawns)
-            {
+            foreach (var spawn in _currentScenario.InitialSpawns ?? new List<SpawnData>())
                 SpawnMonster(spawn);
-            }
+
+            foreach (var obj in _currentScenario.InitialObjects ?? new List<SpawnObjectData>())
+                SpawnObject(obj);
         }
 
         public void NotifyEvent(GameEventContext context)
         {
-            if (_currentScenario == null) return;
+            if (_currentScenario == null)
+                return;
 
-            // Pre-process context for state tracking
+            _lastServerTimeMs = context.TimeMs != 0 ? context.TimeMs : _lastServerTimeMs;
+
+            if (context.Type == EventType.GameStart && _startTime == 0)
+                _startTime = context.TimeMs != 0 ? context.TimeMs : _lastServerTimeMs;
+
             if (context.Type == EventType.Dead)
             {
-                // Assuming TargetId is relevant group or monster logic
-                // For now, let's say we check if the dead monster belonged to a group.
-                // This requires GameSession to tell us the GroupId of the dead actor, 
-                // OR we pass it in TargetId. 
-                // Let's assume TargetId IS the MonsterId/GroupId or we track it.
-                
-                // Simple implementation: Just increment context.TargetId if it's treated as GroupId
                 if (!MonsterGroupDeadCounts.ContainsKey(context.TargetId))
                     MonsterGroupDeadCounts[context.TargetId] = 0;
                 MonsterGroupDeadCounts[context.TargetId]++;
                 Console.WriteLine($"[MonsterGroupDeadCount] {MonsterGroupDeadCounts[context.TargetId]}");
             }
 
-            // Check Triggers
-            foreach (var evt in _runtimeEvents)
-            {
-                if (evt.Data.IsOneShot && _executedEvents.Contains(evt.Data.EventId))
-                    continue;
-
-                bool allMet = true;
-                foreach (var cond in evt.Conditions)
-                {
-                    if (!cond.Check(this, context))
-                    {
-                        allMet = false;
-                        break;
-                    }
-                }
-
-                if (allMet)
-                {
-                    Console.WriteLine($"[GameDirector] Event {evt.Data.EventId} {evt.Data.Actions} Triggered!");
-                    
-                    foreach (var action in evt.Actions)
-                    {
-                        action.Execute(this);
-                    }
-
-                    if (evt.Data.IsOneShot)
-                        _executedEvents.Add(evt.Data.EventId);
-                }
-            }
+            _stageEngine.NotifyEvent(context, this);
         }
 
         public void Update(long currentTick)
         {
-            if (_startTime == 0) _startTime = currentTick;
-            
-            // Re-trigger checking for TimeElapsed events
-            NotifyEvent(new GameEventContext { Type = EventType.None });
+            _lastServerTimeMs = currentTick;
+            if (_startTime == 0)
+                _startTime = currentTick;
+
+            _stageEngine.NotifyEvent(new GameEventContext(EventType.TimeTick, timeMs: currentTick), this);
         }
-        
+
         public long GetElapsedTime(long currentTick)
         {
-             if (_startTime == 0) return 0;
-             return currentTick - _startTime;
+            if (_startTime == 0)
+                return 0;
+
+            return currentTick - _startTime;
         }
 
+        public long GetElapsedTimeMs()
+        {
+            if (_startTime == 0)
+                return 0;
 
-        // ========================================================
-        //  Helper Methods for Actions
-        // ========================================================
+            return _lastServerTimeMs - _startTime;
+        }
+
+        public int GetDeadMonsterCount(int groupId)
+        {
+            return MonsterGroupDeadCounts.TryGetValue(groupId, out var count) ? count : 0;
+        }
+
         public void SpawnMonster(SpawnData data)
         {
-            // Validate with Map
-            var map = _session.Map; // Access Map via Session
+            if (data == null)
+                return;
+
+            var map = _session.Map;
             int mapX = data.X;
             int mapY = ResolveMapY(data.Y, data.Z);
 
-            if (map != null)
+            if (map != null && !map.IsWalkable(mapX, mapY))
             {
-                if (!map.IsWalkable(mapX, mapY))
-                {
-                    Console.WriteLine($"[GameDirector] Spawn Failed. Invalid Pos ({mapX},{mapY}) for Monster {data.MonsterId}");
-                    return;
-                }
+                Console.WriteLine($"[GameDirector] Spawn Failed. Invalid Pos ({mapX},{mapY}) for Monster {data.MonsterId}");
+                return;
             }
 
             _session.SpawnEntityInternal(data.MonsterId, EntityType.Monster, mapX, mapY, data.GroupId, data.AI);
@@ -159,23 +112,24 @@ namespace GameServer.InGame.Director.Core
 
         public void SpawnObject(SpawnObjectData data)
         {
-             var map = _session.Map;
-             int mapX = data.X;
-             int mapY = ResolveMapY(data.Y, data.Z);
+            if (data == null)
+                return;
 
-             if (map != null && !map.IsWalkable(mapX, mapY))
-             {
-                 // Object는 벽에 생성될 수도 있으니 체크 완화 필요할 수도 있음
-                 Console.WriteLine($"[GameDirector] Spawn Object Failed. Invalid Pos ({mapX},{mapY})");
-                 return;
-             }
-             _session.SpawnEntityInternal(data.EntityId, (EntityType)data.EntityType, mapX, mapY, data.GroupId, data.Pattern);
+            var map = _session.Map;
+            int mapX = data.X;
+            int mapY = ResolveMapY(data.Y, data.Z);
+
+            if (map != null && !map.IsWalkable(mapX, mapY))
+            {
+                Console.WriteLine($"[GameDirector] Spawn Object Failed. Invalid Pos ({mapX},{mapY})");
+                return;
+            }
+
+            _session.SpawnEntityInternal(data.EntityId, (EntityType)data.EntityType, mapX, mapY, data.GroupId, data.Pattern);
         }
 
         public void BroadcastMessage(string msg)
         {
-            // _session.Broadcast(...) 
-            // Need public method in GameSession
             Console.WriteLine($"[Generate Broadcast] {msg}");
         }
 
@@ -188,75 +142,19 @@ namespace GameServer.InGame.Director.Core
         public void OpenGate(int x, int y)
         {
             var map = _session.Map;
-            if (map != null)
-            {
-                // Gate logic: Set tile to Floor to make it walkable
-                map.Set(x, y, TileKind.Floor);
-                Console.WriteLine($"[GameDirector] OpenGate at ({x},{y})");
-                
-                // Optional: Broadcast map update to clients if needed? 
-                // Currently Map is static on client, but we might need a packet for TileChange.
-                // For now, server logic allows movement.
-            }
-        }
+            if (map == null)
+                return;
 
-
-        // ========================================================
-        //  Factory Methods (Reflection or Switch)
-        // ========================================================
-        private EventCondition CreateCondition(ConditionData data)
-        {
-            EventCondition cond = null;
-            switch (data.Type)
-            {
-                case "MonsterAllDead": cond = new ConditionMonsterAllDead(); break;
-                case "AreaEnter": cond = new ConditionAreaEnter(); break;
-                case "TimeElapsed": cond = new ConditionTimeElapsed(); break;
-            }
-            cond?.Init(data);
-            return cond;
-        }
-
-        private EventAction CreateAction(ActionData data)
-        {
-            EventAction act = null;
-            switch (data.Type)
-            {
-                case "SpawnMonster": act = new ActionSpawnMonster(); break;
-                case "Broadcast": act = new ActionBroadcast(); break;
-                case "ReturnToTown": act = new ActionReturnToTown(); break;
-                case "OpenGate": act = new ActionOpenGate(); break;
-
-            }
-            act?.Init(data);
-            return act;
-        }
-
-        private class RuntimeEvent
-        {
-            public EventData Data;
-            public List<EventCondition> Conditions = new();
-            public List<EventAction> Actions = new();
+            map.Set(x, y, TileKind.Floor);
+            Console.WriteLine($"[GameDirector] OpenGate at ({x},{y})");
         }
 
         private static int ResolveMapY(int legacyY, int unityZ)
         {
-            // Exporter now writes Unity Z as map Y, but older/stale data may only have Y populated.
             if (unityZ != 0)
                 return unityZ;
 
             return legacyY;
         }
-
-        /*
-        private class ActionReturnToTown : EventAction
-        {
-            public override void Execute(GameDirector director)
-            {
-                director.ReturnToTown();
-            }
-        }
-        */
-
     }
 }

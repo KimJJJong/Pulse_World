@@ -34,10 +34,14 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\ServerCore\ServerCore.csproj" />
+	<ItemGroup>
+		<ProjectReference Include="..\ServerCore\ServerCore.csproj" />
 	<FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="..\..\Client\Assets\SharedContent\**\*.cs" LinkBase="SharedContent" />
+	</ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />

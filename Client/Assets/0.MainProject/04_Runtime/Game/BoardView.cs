@@ -514,7 +514,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     /// <summary>
     /// AppearanceId로 프리팹을 결정합니다.
-    /// 우선순위: 1) AppearanceId 정적 매핑 (플레이어 캐릭터 외견)
+    /// 우선순위: 1) AppearanceCatalog 경로 매핑 (플레이어 외견)
     ///          2) EntityData.json 매핑 → EntityDefinitionSO (몬스터/오브젝트)
     ///          3) Resources/Entity/ 직접 로드 (Entity_{id} 규칙)
     ///          4) Inspector playerPrefab / monsterPrefab 폴백
@@ -524,17 +524,18 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (_entityPrefabCache.TryGetValue(modelId, out var cached))
             return cached;
 
-        // 1. AppearanceId 정적 매핑 (플레이어 외견 ID 우선)
-        if (AppearanceCatalog.TryGetPrefabName(modelId, out var appearanceName))
+        // 1. AppearanceCatalog 경로 매핑 (플레이어 외견 ID 우선)
+        if (AppearanceCatalog.TryGetDefinitionPath(modelId, out var appearancePath))
         {
-            var ap = Resources.Load<GameObject>($"Entity/{appearanceName}");
-            if (ap != null)
+            var def = Resources.Load<RhythmRPG.Editor.StageBuilder.EntityDefinitionSO>(appearancePath);
+            if (def != null && def.Prefab != null)
             {
-                _entityPrefabCache[modelId] = ap;
-                Debug.Log($"[BoardView] ✅ AppearanceId={modelId} → Resources/Entity/{appearanceName}");
-                return ap;
+                _entityPrefabCache[modelId] = def.Prefab;
+                Debug.Log($"[BoardView] ✅ AppearanceId={modelId} → EntityDefinitionSO '{appearancePath}'");
+                return def.Prefab;
             }
-            Debug.LogWarning($"[BoardView] AppearanceId={modelId} 매핑 '{appearanceName}' 프리팹 없음. 폴백 진행.");
+
+            Debug.LogWarning($"[BoardView] AppearanceId={modelId} 매핑 '{appearancePath}' 프리팹 없음. 폴백 진행.");
         }
 
         // 2. EntityData.json 매핑 → EntityDefinitionSO

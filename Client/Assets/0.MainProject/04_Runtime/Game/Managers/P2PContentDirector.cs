@@ -1,10 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GameServer.InGame.Director.Core;
+using GameServer.InGame.Director.Data;
+using StageEventType = GameServer.InGame.Director.Core.EventType;
+using StageActionData = GameServer.InGame.Director.Data.ActionData;
+using StageConditionData = GameServer.InGame.Director.Data.ConditionData;
+using StageEventData = GameServer.InGame.Director.Data.EventData;
+using StageRectData = GameServer.InGame.Director.Data.RectData;
+using StageRhythmSettingsData = GameServer.InGame.Director.Data.RhythmSettingsData;
+using StageScenarioData = GameServer.InGame.Director.Data.StageScenario;
+using StageSpawnData = GameServer.InGame.Director.Data.SpawnData;
+using StageSpawnObjectData = GameServer.InGame.Director.Data.SpawnObjectData;
 using UnityEngine;
 
 [DefaultExecutionOrder(-800)]
-public sealed class P2PContentDirector : MonoBehaviour
+public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
 {
     private const int MaxCatchUpBeatsPerUpdate = 2;
 
@@ -31,8 +42,8 @@ public sealed class P2PContentDirector : MonoBehaviour
     private readonly Dictionary<int, StageMonsterTemplate> _templatesByAppearanceId = new();
     private readonly Dictionary<string, MonsterPatternDef> _patterns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, MonsterRuntimeState> _monsterStates = new();
-    private readonly HashSet<int> _executedEventIds = new();
     private readonly Dictionary<int, int> _entityMaxHpByTemplateId = new();
+    private readonly StageRuntimeEngine _stageEngine = new();
 
     private string _mapId = "";
     private StageScenarioData _stage;
@@ -97,6 +108,7 @@ public sealed class P2PContentDirector : MonoBehaviour
         LoadStageContent();
         SyncBindingsFromWorld();
         _bindingsDirty = false;
+        _stageEngine.NotifyEvent(new GameEventContext(StageEventType.GameStart, timeMs: _stageLoadServerTimeMs), this);
         if (P2PDebugConfig.TraceContent)
             Debug.Log($"[P2PContentDirector] ConfigureStage map={_mapId} loaded={_stageLoaded}");
     }
@@ -128,7 +140,7 @@ public sealed class P2PContentDirector : MonoBehaviour
         _templatesByAppearanceId.Clear();
         _patterns.Clear();
         _monsterStates.Clear();
-        _executedEventIds.Clear();
+        _stageEngine.Reset();
 
         if (P2PDebugConfig.TraceContent)
             Debug.Log("[P2PContentDirector] Match state reset");
@@ -156,6 +168,24 @@ public sealed class P2PContentDirector : MonoBehaviour
     public void MarkWorldDirty()
     {
         _bindingsDirty = true;
+    }
+
+    private GameEventContext BuildStageContext(StageEventType type, long beat)
+    {
+        int x = 0;
+        int y = 0;
+
+        if (ClientGameState.Instance != null && ClientGameState.Instance.TryGetMyEntity(out var my))
+        {
+            x = my.X;
+            y = my.Y;
+        }
+
+        int actorId = 0;
+        if (ClientGameState.Instance != null)
+            actorId = ClientGameState.Instance.MyActorId;
+
+        return new GameEventContext(type, actorId, actorId, x, y, TimeSync.ServerNowMs());
     }
 
     private void EnsureStageLoaded()
@@ -201,6 +231,7 @@ public sealed class P2PContentDirector : MonoBehaviour
             }
 
             BuildAppearanceTemplateIndex(_stage);
+            _stageEngine.LoadScenario(_stage);
             _stageLoaded = true;
             if (P2PDebugConfig.TraceContent)
                 Debug.Log($"[P2PContentDirector] Loaded stage={_stage.MapId} events={_stage.Events?.Count ?? 0}");
@@ -378,8 +409,7 @@ public sealed class P2PContentDirector : MonoBehaviour
     {
         SyncBindingsFromWorld();
         _bindingsDirty = false;
-
-        EvaluateStageEvents(beat);
+        _stageEngine.NotifyEvent(BuildStageContext(StageEventType.Beat, beat), this);
 
         if (P2PHostController.HasInstance)
             P2PHostController.Instance.CheckAndSubmitGameResultIfCleared();
@@ -393,79 +423,9 @@ public sealed class P2PContentDirector : MonoBehaviour
             _bindingsDirty = false;
         }
 
-        EvaluateStageEvents(beat);
+        _stageEngine.NotifyEvent(BuildStageContext(StageEventType.Beat, beat), this);
         RunMonsterAI(beat);
         P2PHostController.Instance.CheckAndSubmitGameResultIfCleared();
-    }
-
-    private void EvaluateStageEvents(long beat)
-    {
-        if (_stage == null || _stage.Events == null)
-            return;
-
-        foreach (var evt in _stage.Events)
-        {
-            if (evt == null)
-                continue;
-
-            if (evt.IsOneShot && _executedEventIds.Contains(evt.EventId))
-                continue;
-
-            if (!AreConditionsMet(evt.Conditions, beat))
-                continue;
-
-            ExecuteStageEvent(evt, beat);
-            if (evt.IsOneShot)
-                _executedEventIds.Add(evt.EventId);
-        }
-    }
-
-    private bool AreConditionsMet(List<StageConditionData> conditions, long beat)
-    {
-        if (conditions == null || conditions.Count == 0)
-            return true;
-
-        foreach (var condition in conditions)
-        {
-            if (!IsConditionMet(condition, beat))
-                return false;
-        }
-
-        return true;
-    }
-
-    private bool IsConditionMet(StageConditionData condition, long beat)
-    {
-        if (condition == null)
-            return false;
-
-        string type = condition.Type ?? "";
-        if (type.Equals("MonsterAllDead", StringComparison.OrdinalIgnoreCase))
-        {
-            int deadCount = CountDeadMonsters(condition.TargetId);
-            return deadCount >= condition.Count;
-        }
-
-        if (type.Equals("TimeElapsed", StringComparison.OrdinalIgnoreCase))
-        {
-            long elapsed = TimeSync.ServerNowMs() - _stageLoadServerTimeMs;
-            return elapsed >= condition.Count;
-        }
-
-        if (type.Equals("AreaEnter", StringComparison.OrdinalIgnoreCase))
-        {
-            if (ClientGameState.Instance == null || !ClientGameState.Instance.TryGetMyEntity(out var my))
-                return false;
-
-            var area = condition.Area;
-            if (area == null)
-                return false;
-
-            return my.X >= area.X && my.X < area.X + area.W &&
-                   my.Y >= area.Y && my.Y < area.Y + area.H;
-        }
-
-        return false;
     }
 
     private int CountDeadMonsters(int groupId)
@@ -495,61 +455,80 @@ public sealed class P2PContentDirector : MonoBehaviour
         return deadCount;
     }
 
-    private void ExecuteStageEvent(StageEventData evt, long beat)
+    public int GetDeadMonsterCount(int groupId) => CountDeadMonsters(groupId);
+
+    public long GetElapsedTimeMs()
     {
-        if (evt?.Actions == null)
-            return;
+        if (_stageLoadServerTimeMs <= 0)
+            return 0;
 
-        if (P2PDebugConfig.TraceContent)
-            Debug.Log($"[P2PContentDirector] Stage event fired id={evt.EventId}");
-
-        foreach (var action in evt.Actions)
-        {
-            if (action == null)
-                continue;
-
-            switch ((action.Type ?? "").ToLowerInvariant())
-            {
-                case "spawnmonster":
-                    SpawnMonster(action, beat);
-                    break;
-                case "returntotown":
-                    P2PHostController.Instance.SendLocalAndRelay(new SC_ReturnToTown());
-                    break;
-                case "opengate":
-                    OpenGate(action.X, ResolveMapY(action.Y, action.Z));
-                    break;
-            }
-        }
+        return Math.Max(0, TimeSync.ServerNowMs() - _stageLoadServerTimeMs);
     }
 
-    private void SpawnMonster(StageActionData action, long beat)
+    public void SpawnMonster(SpawnData data)
     {
-        int appearanceId = action.ParamId;
-        string monsterType = string.IsNullOrWhiteSpace(action.StringVal)
-            ? ResolveMonsterType(appearanceId)
-            : action.StringVal;
+        if (data == null)
+            return;
 
-        int mapY = ResolveMapY(action.Y, action.Z);
-        int maxHp = ResolveMaxHp(appearanceId);
+        string monsterType = string.IsNullOrWhiteSpace(data.AI)
+            ? ResolveMonsterType(data.MonsterId)
+            : data.AI;
+
+        int maxHp = ResolveMaxHp(data.MonsterId);
         int entityId = GenerateSpawnEntityId();
+        long beat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : 0;
 
-        RegisterRuntimeMonster(entityId, appearanceId, monsterType, action.GroupId, maxHp, beat);
+        RegisterRuntimeMonster(entityId, data.MonsterId, monsterType, data.GroupId, maxHp, beat);
 
         var pkt = new SC_EntitySpawn
         {
             BeatIndex = beat,
             EntityId = entityId,
             EntityType = (int)EntityType.Monster,
-            X = action.X,
-            Y = mapY,
+            X = data.X,
+            Y = ResolveMapY(data.Y, data.Z),
             Hp = maxHp,
-            AppearanceId = appearanceId
+            AppearanceId = data.MonsterId
         };
 
         if (P2PDebugConfig.TraceContent)
-            Debug.Log($"[P2PContentDirector] SpawnMonster entity={entityId} appearance={appearanceId} type={monsterType} group={action.GroupId} pos=({action.X},{mapY}) hp={maxHp}");
+            Debug.Log($"[P2PContentDirector] SpawnMonster entity={entityId} appearance={data.MonsterId} type={monsterType} group={data.GroupId} pos=({data.X},{ResolveMapY(data.Y, data.Z)}) hp={maxHp}");
+
         P2PHostController.Instance.SendLocalAndRelay(pkt);
+    }
+
+    public void SpawnObject(SpawnObjectData data)
+    {
+        if (data == null)
+            return;
+
+        long beat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : 0;
+        var pkt = new SC_EntitySpawn
+        {
+            BeatIndex = beat,
+            EntityId = data.EntityId,
+            EntityType = data.EntityType <= 0 ? (int)EntityType.Object : data.EntityType,
+            X = data.X,
+            Y = ResolveMapY(data.Y, data.Z),
+            Hp = 1,
+            AppearanceId = data.EntityId
+        };
+
+        if (P2PDebugConfig.TraceContent)
+            Debug.Log($"[P2PContentDirector] SpawnObject entity={data.EntityId} type={pkt.EntityType} pos=({data.X},{pkt.Y})");
+
+        P2PHostController.Instance.SendLocalAndRelay(pkt);
+    }
+
+    public new void BroadcastMessage(string msg)
+    {
+        if (P2PDebugConfig.TraceContent)
+            Debug.Log($"[P2PContentDirector] Broadcast: {msg}");
+    }
+
+    public void ReturnToTown()
+    {
+        P2PHostController.Instance.SendLocalAndRelay(new SC_ReturnToTown());
     }
 
     private void RegisterRuntimeMonster(int entityId, int appearanceId, string monsterType, int groupId, int maxHp, long beat)
@@ -581,7 +560,7 @@ public sealed class P2PContentDirector : MonoBehaviour
         };
     }
 
-    private void OpenGate(int x, int y)
+    public void OpenGate(int x, int y)
     {
         ClientGameState.Instance?.SetTile(x, y, (int)TileKind.Floor);
         if (P2PDebugConfig.TraceContent)
@@ -1252,89 +1231,6 @@ public sealed class P2PContentDirector : MonoBehaviour
         public int EntityType;
         public int MaxHp;
         public string ResourcePath;
-    }
-
-    [Serializable]
-    private sealed class StageScenarioData
-    {
-        public string MapId = "";
-        public string Description = "";
-        public StageRhythmSettingsData RhythmSettings = new();
-        public List<StageSpawnData> InitialSpawns = new();
-        public List<StageSpawnObjectData> InitialObjects = new();
-        public List<StageEventData> Events = new();
-    }
-
-    [Serializable]
-    private sealed class StageRhythmSettingsData
-    {
-        public string SongKey = "DefaultSong";
-        public int Bpm = 120;
-        public int BaseBeatDivision = 1;
-        public int ActionWindowMs = 100;
-        public int StartDelayMs = 2000;
-    }
-
-    [Serializable]
-    private sealed class StageSpawnData
-    {
-        public int MonsterId;
-        public int X;
-        public int Y;
-        public int Z;
-        public string AI = "Default";
-        public int GroupId;
-    }
-
-    [Serializable]
-    private sealed class StageSpawnObjectData
-    {
-        public int EntityId;
-        public int EntityType;
-        public int X;
-        public int Y;
-        public int Z;
-        public int GroupId;
-        public string Pattern;
-    }
-
-    [Serializable]
-    private sealed class StageEventData
-    {
-        public int EventId;
-        public bool IsOneShot = true;
-        public List<StageConditionData> Conditions = new();
-        public List<StageActionData> Actions = new();
-    }
-
-    [Serializable]
-    private sealed class StageConditionData
-    {
-        public string Type = "";
-        public int TargetId;
-        public int Count;
-        public StageRectData Area = new();
-    }
-
-    [Serializable]
-    private sealed class StageActionData
-    {
-        public string Type = "";
-        public int ParamId;
-        public int X;
-        public int Y;
-        public int Z;
-        public string StringVal = "";
-        public int GroupId;
-    }
-
-    [Serializable]
-    private sealed class StageRectData
-    {
-        public int X;
-        public int Y;
-        public int W;
-        public int H;
     }
 
     private sealed class MonsterRuntimeState

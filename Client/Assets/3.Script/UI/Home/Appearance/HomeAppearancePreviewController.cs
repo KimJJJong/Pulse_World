@@ -117,11 +117,11 @@ public sealed class HomeAppearancePreviewController : MonoBehaviour
 
     private GameObject ResolveAppearancePrefab(int appearanceId)
     {
-        if (AppearanceCatalog.TryGetPrefabName(appearanceId, out var prefabName))
+        if (AppearanceCatalog.TryGetDefinitionPath(appearanceId, out var definitionPath))
         {
-            var direct = Resources.Load<GameObject>($"Entity/{prefabName}");
-            if (direct != null)
-                return direct;
+            var def = Resources.Load<RhythmRPG.Editor.StageBuilder.EntityDefinitionSO>(definitionPath);
+            if (def != null && def.Prefab != null)
+                return def.Prefab;
         }
 
         if (_entityPathMap.TryGetValue(appearanceId, out var resourcePath))
