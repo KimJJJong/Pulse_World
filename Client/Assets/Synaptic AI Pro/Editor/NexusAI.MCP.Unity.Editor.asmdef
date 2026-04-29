@@ -46,7 +46,7 @@
     },
     {
       "name": "com.unity.visualeffectgraph",
-      "expression": "[10.0,)",
+      "expression": "[10.0.0,999.0.0]",
       "define": "VFX_GRAPH_10_PLUS"
     }
   ],

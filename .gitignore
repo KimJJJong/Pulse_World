@@ -113,7 +113,7 @@ fmod_editor.log
 
 # NuGet
 *.nupkg
-packages/
+/packages/
 
 # OS
 .DS_Store
