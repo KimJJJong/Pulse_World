@@ -220,8 +220,14 @@ namespace GameServer.InGame.Director.Core
             if (_scenario == null || host == null)
                 return;
 
-            foreach (var evt in _runtimeEvents)
+            var initialScenario = _scenario;
+
+            for (int i = 0; i < _runtimeEvents.Count; i++)
             {
+                if (_scenario != initialScenario || _scenario == null)
+                    break;
+
+                var evt = _runtimeEvents[i];
                 if (evt.Data == null)
                     continue;
 
@@ -243,6 +249,9 @@ namespace GameServer.InGame.Director.Core
 
                 foreach (var action in evt.Actions)
                     action.Execute(host);
+
+                if (_scenario != initialScenario || _scenario == null)
+                    break;
 
                 if (evt.Data.IsOneShot)
                     _executedEventIds.Add(evt.Data.EventId);

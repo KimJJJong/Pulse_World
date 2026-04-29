@@ -15,7 +15,7 @@ MonoBehaviour:
   Path: Assets/FMOD/Drums/Build/Desktop/Master.strings.bank
   Name: Master.strings
   StudioPath: bank:/Master.strings
-  lastModified: 639130670502750403
+  lastModified: 639130743733306785
   FileSizes:
   - Name: Desktop
     Value: 948
@@ -35,7 +35,7 @@ MonoBehaviour:
   Path: Assets/FMOD/Drums/Build/Desktop/Master.bank
   Name: Master
   StudioPath: bank:/Master
-  lastModified: 639130670502735047
+  lastModified: 639130743733301464
   FileSizes:
   - Name: Desktop
     Value: 36768
@@ -140,7 +140,7 @@ MonoBehaviour:
   StringsBanks:
   - {fileID: -6648232133885315028}
   cacheVersion: 131858
-  cacheTime: 639130670502750403
+  cacheTime: 639130743733306785
   SerializableEventsDict:
   - key: event:/Kick
     index: 0

@@ -57,6 +57,12 @@ ExportedObj/
 # appsettings 
 **/appsettings.*.json
 **/appsettings.json
+!Server/ApiServer/appsettings.json
+!Server/ApiServer/appsettings.Development.json
+!Server/ControlPlaneServer/appsettings.json
+!Server/GameServer/appsettings.json
+!Server/GameServer/appsettings.Game.json
+!Server/GameServer/appsettings.Town.json
 
 # Unity3D generated file on crash reports
 sysinfo.txt
@@ -107,7 +113,7 @@ fmod_editor.log
 [Bb]in/
 [Oo]bj/
 
-# Rider / VSCode / ±âÅ¸
+# Rider / VSCode / ï¿½ï¿½Å¸
 .idea/
 .vscode/
 
