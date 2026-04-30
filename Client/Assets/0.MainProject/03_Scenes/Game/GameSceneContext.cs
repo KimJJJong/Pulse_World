@@ -14,6 +14,12 @@ public sealed class GameSceneContext : BaseSceneContext
         base.Awake();
     }
 
+    protected override void ResolveSceneRefs()
+    {
+        base.ResolveSceneRefs();
+        _inputController?.ConfigureForScene(RhythmInputController.InputChannel.Game, enableHoldAutoInput: false);
+    }
+
     private async void Start()
     {
         await Task.Yield();

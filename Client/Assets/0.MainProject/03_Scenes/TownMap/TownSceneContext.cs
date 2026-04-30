@@ -20,8 +20,7 @@ public sealed class TownSceneContext : BaseSceneContext
     protected override void ResolveSceneRefs()
     {
         base.ResolveSceneRefs();
-        // Town은 holdAutoInput 활성화 (null 체크 후)
-        if (_inputController != null) _inputController.holdAutoInput = true;
+        _inputController?.ConfigureForScene(RhythmInputController.InputChannel.Town, enableHoldAutoInput: true);
     }
 
     public void OnInitMap(SC_InitMap p) => ApplyInitMapOnce(p);

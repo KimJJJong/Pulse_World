@@ -5,21 +5,13 @@ using UnityEngine.InputSystem;
 public class RhythmInputController : MonoBehaviour
 {
     private static RhythmInputController _instance;
-    public static bool HasInstance => _instance != null;
+    public static bool HasInstance => Instance != null;
     public static RhythmInputController Instance
     {
         get
         {
             if (_instance == null)
-            {
                 _instance = FindAnyObjectByType<RhythmInputController>();
-                if (_instance == null)
-                {
-                    var go = new GameObject("RhythmInputController");
-                    _instance = go.AddComponent<RhythmInputController>();
-                    DontDestroyOnLoad(go);
-                }
-            }
             return _instance;
         }
     }
@@ -100,6 +92,24 @@ public class RhythmInputController : MonoBehaviour
     InputAction _rotateRightAction;
     InputAction _toggleAction;
 
+    void Awake()
+    {
+        _instance = this;
+    }
+
+    public void ConfigureForScene(InputChannel inputChannel, bool enableHoldAutoInput)
+    {
+        channel = inputChannel;
+        holdAutoInput = enableHoldAutoInput;
+        IsInputBlocked = false;
+        _holdActive = false;
+        _holdDir = Vector2Int.zero;
+        _holdKind = ActionKind.Move;
+        _lastFiredBeatIndex = long.MinValue;
+        _lastAttackPredictionBeat = long.MinValue;
+        _lastActionBeatIndex = -1;
+    }
+
     void OnEnable()
     {
         if (_moveAction == null)
@@ -166,6 +176,9 @@ public class RhythmInputController : MonoBehaviour
 
     void OnDestroy()
     {
+        if (_instance == this)
+            _instance = null;
+
         _moveAction?.Dispose();
         _attackAction?.Dispose();
         _skillHAction?.Dispose();

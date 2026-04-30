@@ -97,7 +97,7 @@ services:
       DOTNET_ENVIRONMENT: "Docker"
       ControlPlane__Address: "http://controlplane:5001"
       ApiServer__BaseUrl: "http://apiserver:5000"
-      Server__Public__Host: "${SERVER_PUBLIC_HOST:-127.0.0.1}"
+      Server__Public__Host: "${SERVER_PUBLIC_HOST:-jjongserver.ddns.net}"
       Server__Public__Port: "${TOWN_PUBLIC_PORT:-13221}"
 
       # Content Path Overrides (mapped via volume)
@@ -126,7 +126,7 @@ services:
       DOTNET_ENVIRONMENT: "Docker"
       ControlPlane__Address: "http://controlplane:5001"
       ApiServer__BaseUrl: "http://apiserver:5000"
-      Server__Public__Host: "${SERVER_PUBLIC_HOST:-127.0.0.1}"
+      Server__Public__Host: "${SERVER_PUBLIC_HOST:-jjongserver.ddns.net}"
       Server__Public__Port: "${GAME_PUBLIC_PORT:-13222}"
 
       # Content Path Overrides

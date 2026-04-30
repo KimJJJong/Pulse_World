@@ -207,7 +207,7 @@ public sealed class P2PHostController : MonoBehaviour
         EnqueueGuestActionRequest(pkt);
     }
 
-    private void Update()
+    private void LateUpdate()
     {
         if (!IsHost)
             return;
@@ -215,6 +215,12 @@ public sealed class P2PHostController : MonoBehaviour
         if (RhythmClient.Instance == null || ClientGameState.Instance == null)
             return;
 
+        // 입력 콜백, MainThreadDispatcher, NetworkManager가 모두 Update 단계에서 큐를 채운 뒤
+        // 호스트 확정을 실행해야 같은 프레임 입력이 late/stale로 밀리지 않는다.
+        // 전투 확정은 두 단계로 나눈다.
+        // 1) currentBeat  : 스킬 시작/연출/Warning 예약
+        // 2) resolvedBeat : judge window 종료 후 이동과 데미지 확정
+        // 이 둘을 다시 합치면 Warning 회피/진입 판정이 흔들릴 수 있으므로 분리 유지가 중요하다.
         long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
         if (currentBeat >= 0)
             ProcessImmediateQueuedCommands(currentBeat);
@@ -224,7 +230,10 @@ public sealed class P2PHostController : MonoBehaviour
             return;
 
         if (_lastProcessedBeat == resolvedBeat)
+        {
+            DiscardExpiredQueuedCommands(resolvedBeat);
             return;
+        }
 
         if (_lastProcessedBeat == long.MinValue)
             _lastProcessedBeat = resolvedBeat - 1;
@@ -316,6 +325,9 @@ public sealed class P2PHostController : MonoBehaviour
 
         foreach (var command in readyCommands)
         {
+            if (command?.Request == null)
+                continue;
+
             HandleActionRequest(
                 command.Request,
                 command.ActorId > 0 ? command.ActorId : command.Request.ActorId,
@@ -379,7 +391,7 @@ public sealed class P2PHostController : MonoBehaviour
 
                 int actorId = command.ActorId > 0 ? command.ActorId : command.Request.ActorId;
                 long staleBeat = ResolveQueuedCommandBeat(command, beat);
-                Debug.Log($"[P2PHostController] Drop stale action actor={actorId} executeBeat={staleBeat} resolvedBeat={beat}");
+                Debug.Log($"[P2PHostController] Drop stale move actor={actorId} executeBeat={staleBeat} resolvedBeat={beat}");
             }
         }
 
@@ -410,7 +422,52 @@ public sealed class P2PHostController : MonoBehaviour
                 command.FromLocalSource,
                 command.SkillIdOverride,
                 command.BypassInputGuards,
-                beat);
+                beat,
+                true);
+        }
+    }
+
+    private void DiscardExpiredQueuedCommands(long resolvedBeat)
+    {
+        List<QueuedCombatCommand> expiredCommands = null;
+
+        lock (_commandLock)
+        {
+            if (_queuedCommands.Count == 0)
+                return;
+
+            var remaining = new List<QueuedCombatCommand>(_queuedCommands.Count);
+            foreach (var command in _queuedCommands)
+            {
+                long executeBeat = ResolveQueuedCommandBeat(command, resolvedBeat);
+                if (executeBeat <= resolvedBeat)
+                {
+                    expiredCommands ??= new List<QueuedCombatCommand>();
+                    expiredCommands.Add(command);
+                    continue;
+                }
+
+                remaining.Add(command);
+            }
+
+            if (expiredCommands == null || expiredCommands.Count == 0)
+                return;
+
+            _queuedCommands.Clear();
+            _queuedCommands.AddRange(remaining);
+        }
+
+        if (!P2PDebugConfig.TraceHostFlow || expiredCommands == null)
+            return;
+
+        foreach (var command in expiredCommands)
+        {
+            if (command?.Request == null)
+                continue;
+
+            int actorId = command.ActorId > 0 ? command.ActorId : command.Request.ActorId;
+            long staleBeat = ResolveQueuedCommandBeat(command, resolvedBeat);
+            Debug.Log($"[P2PHostController] Drop late queued action actor={actorId} executeBeat={staleBeat} resolvedBeat={resolvedBeat}");
         }
     }
 
@@ -449,7 +506,8 @@ public sealed class P2PHostController : MonoBehaviour
         bool fromLocalSource,
         string skillIdOverride = "",
         bool bypassInputGuards = false,
-        long? forcedExecuteBeat = null)
+        long? forcedExecuteBeat = null,
+        bool allowResolvedBeatExecution = false)
     {
         if (!IsHost || req == null || RhythmClient.Instance == null || ClientGameState.Instance == null)
             return;
@@ -487,8 +545,9 @@ public sealed class P2PHostController : MonoBehaviour
                 return;
             }
 
-            // 같은 확정 비트에서 처리 중인 입력은 허용하고, 이미 지난 비트만 폐기한다.
-            if (executeBeat < _lastProcessedBeat)
+            bool beatAlreadyResolved = executeBeat < _lastProcessedBeat
+                || (!allowResolvedBeatExecution && executeBeat == _lastProcessedBeat);
+            if (beatAlreadyResolved)
             {
                 if (P2PDebugConfig.TraceHostFlow)
                     Debug.Log($"[P2PHostController] Late action dropped actor={actorId} beat={executeBeat} lastProcessed={_lastProcessedBeat}");
@@ -1245,6 +1304,9 @@ public sealed class P2PHostController : MonoBehaviour
         if (actorId == ClientGameState.Instance.MyActorId)
         {
             var input = RhythmInputController.Instance;
+            if (input == null)
+                return "Attack";
+
             skillId = (slotIndex < 0 || actionKind == (int)ActionKind.Attack)
                 ? input.GetNormalAttackSkillId()
                 : input.GetSkillSlotId(slotIndex);

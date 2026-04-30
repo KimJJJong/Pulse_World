@@ -6,6 +6,7 @@ using Server.Infrastructure.Options;
 using Server.Runtime;
 using Shared.ControlPlane;
 using System;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -48,6 +49,7 @@ public sealed class ControlPlaneRegistrar
 
 
         var role = _roleResolver.Resolve();
+        ValidatePublicEndpoint(role.ToServerType());
 
         var req = new RegisterServerRequest
         {
@@ -66,5 +68,33 @@ public sealed class ControlPlaneRegistrar
 
         _log.LogInformation("[CP] Registered ok now={Now} type={Type} id={Id}",
             resp.ServerNowMs, req.Type, req.ServerId);
+    }
+
+    private void ValidatePublicEndpoint(ServerType type)
+    {
+        string host = _opt.Public.Host ?? "";
+        int port = _opt.Public.Port;
+        string env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            ?? "";
+
+        bool nonRoutableHost = string.IsNullOrWhiteSpace(host)
+            || string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(host, "::1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(host, "0.0.0.0", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(host, "::", StringComparison.OrdinalIgnoreCase)
+            || (IPAddress.TryParse(host, out var ip) && IPAddress.IsLoopback(ip));
+
+        if (!nonRoutableHost)
+            return;
+
+        string message =
+            $"[CP] Refusing to register non-routable public endpoint host='{host}' port={port} " +
+            $"type={type} env='{env}'. Set Server__Public__Host to the remote domain or public IP.";
+
+        if (string.Equals(env, "Docker", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(message);
+
+        _log.LogWarning(message);
     }
 }
