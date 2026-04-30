@@ -25,7 +25,7 @@ public sealed class SessionController : ControllerBase
         return Ok(new SessionDtos.IssueTownTicketResponse(
             TicketId: result.TicketId,
             ExpireAtMs: result.ExpireAtMs,
-            Endpoint: ToEndpointDto(EndpointHostResolver.ToClientReachableEndpoint(result.Endpoint, HttpContext))
+            Endpoint: new SessionDtos.EndpointDto(result.Endpoint.Host, result.Endpoint.Port)
         ));
     }
 
@@ -47,13 +47,10 @@ public sealed class SessionController : ControllerBase
             TicketId: result.TicketId,
             ExpireAtMs: result.ExpireAtMs,
             ServerId: result.ServerId,
-            Endpoint: ToEndpointDto(EndpointHostResolver.ToClientReachableEndpoint(result.Endpoint, HttpContext)),
+            Endpoint: new SessionDtos.EndpointDto(result.Endpoint.Host, result.Endpoint.Port),
             Key: result.Key,
             MapId: result.MapId,
             MaxPlayers: result.MaxPlayers
         ));
     }
-
-    private static SessionDtos.EndpointDto ToEndpointDto(ApiServer.Application.Ports.Models.Endpoint endpoint)
-        => new(endpoint.Host, endpoint.Port);
 }
