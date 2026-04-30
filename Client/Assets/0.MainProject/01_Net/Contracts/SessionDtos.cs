@@ -1,11 +1,41 @@
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 
 public static class SessionDtos
 {
+    [Serializable]
     public sealed class EndpointDto
     {
         [JsonProperty("host")] public string Host;
         [JsonProperty("port")] public int Port;
+    }
+
+    [Serializable]
+    public sealed class MatchParticipantDto
+    {
+        [JsonProperty("uid")] public string Uid;
+        [JsonProperty("steamId64")] public string SteamId64;
+        [JsonProperty("actorId")] public int ActorId;
+        [JsonProperty("loadoutHash")] public string LoadoutHash;
+    }
+
+    [Serializable]
+    public sealed class MatchManifestDto
+    {
+        [JsonProperty("matchId")] public string MatchId;
+        [JsonProperty("roomId")] public string RoomId;
+        [JsonProperty("networkMode")] public string NetworkMode;
+        [JsonProperty("protocolVersion")] public string ProtocolVersion;
+        [JsonProperty("mapId")] public string MapId;
+        [JsonProperty("stageSeed")] public int StageSeed;
+        [JsonProperty("songStartDelayMs")] public int SongStartDelayMs;
+        [JsonProperty("hostUid")] public string HostUid;
+        [JsonProperty("hostSteamId64")] public string HostSteamId64;
+        [JsonProperty("hostEpoch")] public int HostEpoch;
+        [JsonProperty("preferredHostRttMs")] public int PreferredHostRttMs;
+        [JsonProperty("createdAtMs")] public long CreatedAtMs;
+        [JsonProperty("participants")] public List<MatchParticipantDto> Participants;
     }
 
     public sealed class IssueTownTicketRequest
@@ -49,5 +79,6 @@ public static class SessionDtos
         [JsonProperty("key")] public string Key;
         [JsonProperty("mapId")] public string MapId;
         [JsonProperty("maxPlayers")] public int MaxPlayers;
+        [JsonProperty("matchManifest")] public MatchManifestDto MatchManifest;
     }
 }

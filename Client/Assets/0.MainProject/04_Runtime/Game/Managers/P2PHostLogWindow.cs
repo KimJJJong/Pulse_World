@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using NetClient.Room.UI;
 using UnityEngine;
 
 [DefaultExecutionOrder(-1000)]
@@ -311,5 +312,230 @@ internal static class P2PDebugConfig
         }
 
         return false;
+    }
+}
+
+[DefaultExecutionOrder(-995)]
+public sealed class SteamP2PDebugHud : MonoBehaviour
+{
+    public static SteamP2PDebugHud Ensure(bool visibleByDefault)
+    {
+        if (_instance == null)
+        {
+            var go = new GameObject(nameof(SteamP2PDebugHud));
+            _instance = go.AddComponent<SteamP2PDebugHud>();
+            _instance._visible = visibleByDefault;
+            DontDestroyOnLoad(go);
+        }
+        else
+        {
+            _instance._visible = _instance._visible || visibleByDefault;
+        }
+
+        return _instance;
+    }
+
+    private static SteamP2PDebugHud _instance;
+
+    [SerializeField] private Rect _windowRect = new Rect(18f, 18f, 620f, 470f);
+    [SerializeField] private bool _visible = true;
+    [SerializeField] private KeyCode _toggleKey = KeyCode.F8;
+
+    private Vector2 _scroll;
+    private GUIStyle _textStyle;
+
+    private void Awake()
+    {
+        if (_instance != null && _instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        _instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (_instance == this)
+            _instance = null;
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(_toggleKey))
+            _visible = !_visible;
+    }
+
+    private void OnGUI()
+    {
+        if (!_visible)
+            return;
+
+        EnsureStyles();
+        _windowRect = GUILayout.Window(991244, _windowRect, DrawWindow, "Steam / P2P Debug");
+    }
+
+    private void DrawWindow(int id)
+    {
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("F8 Toggle", GUILayout.Width(80f));
+        GUILayout.Label("Solo smoke / Steam / P2P status", GUILayout.ExpandWidth(true));
+
+        if (GUILayout.Button("Copy", GUILayout.Width(60f)))
+            GUIUtility.systemCopyBuffer = BuildSnapshot();
+
+        if (GUILayout.Button("Hide", GUILayout.Width(60f)))
+            _visible = false;
+
+        GUILayout.EndHorizontal();
+
+        string snapshot = BuildSnapshot();
+        float contentWidth = Mathf.Max(220f, _windowRect.width - 44f);
+        float contentHeight = Mathf.Max(160f, _textStyle.CalcHeight(new GUIContent(snapshot), contentWidth));
+
+        _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+        Rect rect = GUILayoutUtility.GetRect(contentWidth, contentHeight, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(false));
+        GUI.TextArea(rect, snapshot, _textStyle);
+        GUILayout.EndScrollView();
+
+        GUI.DragWindow(new Rect(0f, 0f, 10000f, 24f));
+    }
+
+    private string BuildSnapshot()
+    {
+        var sb = new StringBuilder(2048);
+
+        var root = AppBootstrap.Instance != null ? AppBootstrap.Instance.Root : null;
+        var config = root?.Config;
+        var steam = root?.SteamPlatform;
+        var auth = root?.AuthApi;
+        var room = RoomUiController.ActiveInstance;
+        var bridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
+        var manifest = SessionContext.Instance?.LastMatchManifest;
+
+        AppendHeader(sb, "Steam");
+        AppendField(sb, "Enabled", steam != null && steam.Enabled ? "YES" : "NO");
+        AppendField(sb, "Initialized", steam != null && steam.IsInitialized ? "YES" : "NO");
+        AppendField(sb, "AppId", config?.SteamAppId ?? "-");
+        AppendField(sb, "SteamId64", steam?.SteamId64 ?? "-");
+        AppendField(sb, "Name", steam?.DisplayName ?? "-");
+        AppendField(sb, "Lobby", steam != null && steam.HasJoinedLobby ? steam.CurrentLobbyId : "Not Joined");
+        AppendField(sb, "LobbyOwner", steam != null && steam.IsLobbyOwner ? "YES" : "NO");
+        AppendField(sb, "LastError", string.IsNullOrWhiteSpace(steam?.LastError) ? "-" : steam.LastError);
+
+        AppendHeader(sb, "Auth");
+        AppendField(sb, "Mode", auth?.LastPreferredLoginMode ?? "Unknown");
+        AppendField(sb, "Detail", auth?.LastPreferredLoginDetail ?? "-");
+
+        AppendHeader(sb, "Waiting Room");
+        if (room != null && room.IsUiOpen)
+        {
+            AppendField(sb, "RoomId", string.IsNullOrWhiteSpace(room.CurrentRoomId) ? "-" : room.CurrentRoomId);
+            AppendField(sb, "Members", room.MemberCount.ToString());
+            AppendField(sb, "SteamLobbyId", string.IsNullOrWhiteSpace(room.CurrentSteamLobbyId) ? "-" : room.CurrentSteamLobbyId);
+            AppendField(sb, "LobbyStatus", room.SteamLobbyStatus);
+            AppendField(sb, "Probe", room.LastWaitingProbeRttMs >= 0 ? $"{room.LastWaitingProbeRttMs} ms ({room.LastWaitingProbeStatus})" : room.LastWaitingProbeStatus);
+            AppendField(sb, "PreferredHost", string.IsNullOrWhiteSpace(room.PreferredHostUid) ? "-" : $"{room.PreferredHostUid} / epoch {room.PreferredHostEpoch}");
+            AppendField(sb, "RoomWarn", string.IsNullOrWhiteSpace(room.LastWarningText) ? "-" : room.LastWarningText);
+        }
+        else
+        {
+            AppendField(sb, "State", "Room UI closed");
+        }
+
+        AppendHeader(sb, "Match / Transport");
+        AppendField(sb, "Manifest", manifest != null ? $"{manifest.NetworkMode} / {manifest.MatchId}" : "No active manifest");
+        if (manifest != null)
+        {
+            AppendField(sb, "ManifestHost", $"{manifest.HostUid} / {manifest.HostSteamId64}");
+            AppendField(sb, "ManifestEpoch", manifest.HostEpoch.ToString());
+        }
+
+        if (bridge != null && bridge.IsP2PMode)
+        {
+            AppendField(sb, "Transport", bridge.TransportName);
+            AppendField(sb, "Role", bridge.IsHostLocal ? "Host" : "Guest");
+            AppendField(sb, "State", bridge.TransportDebugStatus);
+            AppendField(sb, "RelayKey", string.IsNullOrWhiteSpace(bridge.RelayKey) ? "-" : bridge.RelayKey);
+            AppendField(sb, "Host", $"{bridge.HostUid} / {bridge.HostSteamId64} / actor {bridge.HostActorId}");
+            AppendField(sb, "HostEpoch", bridge.HostEpoch.ToString());
+            AppendField(sb, "Peers", bridge.SteamConnectedPeerCount.ToString());
+            AppendField(sb, "ToHost", bridge.IsSteamTransport ? (bridge.IsSteamTransportConnectedToHost ? "Connected" : "Not Connected") : "-");
+            AppendField(sb, "Ping", bridge.IsHostLocal ? "Local Host" : FormatPingSummary(bridge));
+            AppendField(sb, "TransportError", string.IsNullOrWhiteSpace(bridge.TransportLastError) ? "-" : bridge.TransportLastError);
+        }
+        else
+        {
+            AppendField(sb, "State", "No active P2P match");
+        }
+
+        AppendHeader(sb, "Solo Check");
+        AppendField(sb, "Summary", BuildSoloHint(steam, room, bridge));
+
+        return sb.ToString();
+    }
+
+    private static string FormatPingSummary(P2PRelayClientBridge bridge)
+    {
+        if (bridge == null)
+            return "-";
+
+        if (!bridge.HasRemoteHostPing)
+            return bridge.HostPingStatus;
+
+        return $"{bridge.HostPingStatus} / last {bridge.HostLastRttMs} ms / avg {bridge.HostAvgRttMs} ms";
+    }
+
+    private static string BuildSoloHint(ISteamPlatformService steam, RoomUiController room, P2PRelayClientBridge bridge)
+    {
+        if (steam == null || !steam.Enabled)
+            return "Steam toggle is off. P2P path will not start.";
+
+        if (!steam.IsInitialized)
+            return $"Steam init is not complete. {steam.LastError}";
+
+        if (room != null && room.IsUiOpen && room.MemberCount <= 1)
+            return "Steam is ready. With one client, you can validate init/login/lobby/probe only. Guest-host direct connect and host reselection still need a second Steam account.";
+
+        if (bridge != null && bridge.IsServerRelayTransport)
+            return "This match started on ServerRelay, not Steam P2P. Usually that means the remote ApiServer did not send the new matchManifest/networkMode yet, or the deployment is still on the older build.";
+
+        if (bridge != null && bridge.IsSteamTransport && !bridge.IsHostLocal && !bridge.IsSteamTransportConnectedToHost)
+            return "Steam transport is selected, but this guest is not connected to the host yet.";
+
+        if (bridge != null && bridge.IsSteamTransport && bridge.IsHostLocal && bridge.SteamConnectedPeerCount == 0)
+            return "Steam host socket is ready. No remote guest is attached yet.";
+
+        return "Steam transport looks ready for the current step.";
+    }
+
+    private static void AppendHeader(StringBuilder sb, string title)
+    {
+        if (sb.Length > 0)
+            sb.AppendLine();
+
+        sb.AppendLine($"[{title}]");
+    }
+
+    private static void AppendField(StringBuilder sb, string key, string value)
+    {
+        sb.Append(key)
+            .Append(": ")
+            .AppendLine(string.IsNullOrWhiteSpace(value) ? "-" : value);
+    }
+
+    private void EnsureStyles()
+    {
+        if (_textStyle != null)
+            return;
+
+        _textStyle = new GUIStyle(GUI.skin.textArea)
+        {
+            wordWrap = true,
+            richText = false,
+            fontSize = 12
+        };
     }
 }

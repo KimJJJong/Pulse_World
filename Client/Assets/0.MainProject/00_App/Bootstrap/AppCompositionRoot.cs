@@ -7,6 +7,7 @@ public sealed class AppCompositionRoot
     public AuthApi AuthApi { get; }
     public SessionApi SessionApi { get; }
     public PlayerStateApi PlayerStateApi { get; }
+    public ISteamPlatformService SteamPlatform { get; }
 
     public AppCompositionRoot(AppConfig config)
     {
@@ -14,6 +15,7 @@ public sealed class AppCompositionRoot
 
         Tokens = new TokenStore();
         Identity = new ClientIdentity(config.ClientVersion);
+        SteamPlatform = SteamPlatformServiceFactory.Create(config);
 
         Api = new ApiClient(config.BaseUrl, config.TimeoutSeconds, Tokens, Identity);
 

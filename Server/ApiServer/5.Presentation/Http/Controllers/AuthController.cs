@@ -1,4 +1,5 @@
-﻿using ApiServer.Application.Auth.LoginGuest;
+using ApiServer.Application.Auth.LoginGuest;
+using ApiServer.Application.Auth.LoginSteam;
 using ApiServer.Application.Auth.Logout;
 using ApiServer.Application.Auth.Refresh;
 using ApiServer.Presentation.Http.Contracts;
@@ -21,6 +22,28 @@ public sealed class AuthController : ControllerBase
 
         var result = await handler.HandleAsync(
             new LoginGuestCommand(req.DeviceId, req.ClientVersion, ip, ua),
+            ct);
+
+        return Ok(new AuthDtos.AuthResponse(
+            Uid: result.Uid,
+            AccessToken: result.AccessToken,
+            AccessExpMs: result.AccessExp.ToUnixTimeMilliseconds(),
+            RefreshToken: result.RefreshToken,
+            RefreshExpMs: result.RefreshExp.ToUnixTimeMilliseconds()
+        ));
+    }
+
+    [HttpPost("login/steam")]
+    public async Task<ActionResult<AuthDtos.AuthResponse>> LoginSteam(
+        [FromServices] LoginSteamHandler handler,
+        [FromBody] AuthDtos.LoginSteamRequest req,
+        CancellationToken ct)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var ua = Request.Headers.UserAgent.ToString();
+
+        var result = await handler.HandleAsync(
+            new LoginSteamCommand(req.SteamId64, req.Ticket, req.Identity, req.ClientVersion, ip, ua),
             ct);
 
         return Ok(new AuthDtos.AuthResponse(

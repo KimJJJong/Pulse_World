@@ -11,11 +11,18 @@ using UnityEngine;
         
         // New Events
         private readonly string _clientVersion;
+        private string _pendingProbeNonce = "";
+        private long _pendingProbeSentAtMs;
+        public int LastHostProbeRttMs { get; private set; } = -1;
+        public string LastHostProbeStatus { get; private set; } = "Idle";
         public event Action<WaitingRoomDto> OnInit;
         public event Action<string, string> OnMemberJoin; // uid, name
         public event Action<string> OnMemberLeave; // uid
         public event Action<string, bool> OnMemberUpdate; // uid, ready
-        public event Action<EndpointDto, string, string, int, bool> OnGameStart; // endpoint, ticket, mapId, maxPlayers, useP2PRelay
+        public event Action<int> OnHostProbeMeasured;
+        public event Action<string, int> OnHostCandidateUpdate; // preferredHostUid, hostEpoch
+        public event Action<string> OnSteamLobbyBound; // steamLobbyId
+        public event Action<EndpointDto, string, string, int, bool, WsMatchManifestDto> OnGameStart; // endpoint, ticket, mapId, maxPlayers, useP2PRelay, matchManifest
         public event Action<string> OnErrorMsg;
         
         // Connection Events
@@ -58,11 +65,14 @@ using UnityEngine;
         public async Task ConnectAsync(string wsUrl, CancellationToken ct = default)
         {
             var headers = new Dictionary<string, string> { ["X-Client-Version"] = _clientVersion };
-            
+
+            LastHostProbeRttMs = -1;
+            LastHostProbeStatus = "Connecting";
             Subscribe();
             // Pass headers
             await _ws.ConnectAsync(wsUrl, headers, ct);
             Debug.Log($"ws connected: {wsUrl}");
+            await SendHostProbePingAsync(ct);
         }
 
         public Task ToggleReadyAsync(bool v, CancellationToken ct = default)
@@ -77,11 +87,38 @@ using UnityEngine;
             return _ws.SendTextAsync(JsonUtility.ToJson(req), ct);
         }
 
+        public Task BindSteamLobbyAsync(string steamLobbyId, CancellationToken ct = default)
+        {
+            var req = new BindSteamLobbyRequest { steamLobbyId = steamLobbyId ?? "" };
+            return _ws.SendTextAsync(JsonUtility.ToJson(req), ct);
+        }
+
         public Task LeaveAsync(CancellationToken ct = default)
         {
             // Just close connection or send specific message?
             // Server handles close as leave.
             return _ws.CloseAsync("leave", ct);
+        }
+
+        private Task SendHostProbePingAsync(CancellationToken ct = default)
+        {
+            _pendingProbeNonce = Guid.NewGuid().ToString("N");
+            _pendingProbeSentAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            LastHostProbeStatus = "Waiting Pong";
+            var req = new HostProbePingRequest { nonce = _pendingProbeNonce };
+            return _ws.SendTextAsync(JsonUtility.ToJson(req), ct);
+        }
+
+        private Task SendHostProbeReportAsync(int rttMs, CancellationToken ct = default)
+        {
+            LastHostProbeRttMs = Mathf.Max(0, rttMs);
+            LastHostProbeStatus = $"Reported {LastHostProbeRttMs} ms";
+            var req = new HostProbeReportRequest
+            {
+                rttMs = LastHostProbeRttMs,
+                reportedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
+            return _ws.SendTextAsync(JsonUtility.ToJson(req), ct);
         }
 
         private void HandleMessage(string json)
@@ -119,9 +156,30 @@ using UnityEngine;
                         var updateMsg = JsonUtility.FromJson<MemberUpdateMsg>(json);
                         OnMemberUpdate?.Invoke(updateMsg.uid, updateMsg.ready);
                         break;
+                    case "HostProbePong":
+                        var probePong = JsonUtility.FromJson<HostProbePongMsg>(json);
+                        if (!string.IsNullOrEmpty(probePong.nonce) && string.Equals(probePong.nonce, _pendingProbeNonce, StringComparison.Ordinal))
+                        {
+                            var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                            var deltaMs = nowMs - _pendingProbeSentAtMs;
+                            var rttMs = (int)Math.Max(0L, Math.Min(deltaMs, int.MaxValue));
+                            LastHostProbeRttMs = rttMs;
+                            LastHostProbeStatus = $"Measured {rttMs} ms";
+                            OnHostProbeMeasured?.Invoke(rttMs);
+                            _ = SendHostProbeReportAsync(rttMs);
+                        }
+                        break;
+                    case "HostCandidateUpdate":
+                        var hostCandidate = JsonUtility.FromJson<HostCandidateUpdateMsg>(json);
+                        OnHostCandidateUpdate?.Invoke(hostCandidate.preferredHostUid, hostCandidate.hostEpoch);
+                        break;
+                    case "SteamLobbyBound":
+                        var lobbyBound = JsonUtility.FromJson<SteamLobbyBoundMsg>(json);
+                        OnSteamLobbyBound?.Invoke(lobbyBound.steamLobbyId ?? "");
+                        break;
                     case "GameStart":
                         var startMsg = JsonUtility.FromJson<GameStartMsg>(json);
-                        OnGameStart?.Invoke(startMsg.endpoint, startMsg.ticket, startMsg.mapId, startMsg.maxPlayers, startMsg.useP2PRelay);
+                        OnGameStart?.Invoke(startMsg.endpoint, startMsg.ticket, startMsg.mapId, startMsg.maxPlayers, startMsg.useP2PRelay, startMsg.matchManifest);
                         break;
                     case "Error":
                         var errMsg = JsonUtility.FromJson<ErrorMsg>(json);

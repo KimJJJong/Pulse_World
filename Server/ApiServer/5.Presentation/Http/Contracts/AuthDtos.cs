@@ -7,6 +7,13 @@ public static class AuthDtos
         string? ClientVersion
     );
 
+    public sealed record LoginSteamRequest(
+        string SteamId64,
+        string Ticket,
+        string Identity,
+        string? ClientVersion
+    );
+
     public sealed record RefreshRequest(
         string RefreshToken,
         string? DeviceId,

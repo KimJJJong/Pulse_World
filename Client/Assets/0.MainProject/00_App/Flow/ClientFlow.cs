@@ -49,9 +49,11 @@ public sealed class ClientFlow : MonoBehaviour
         _maxPlayers = ticket.MaxPlayers;
 
         SessionContext.Instance.ApplySessionKey(ticket.Key);
+        if (ticket.MatchManifest != null)
+            SessionContext.Instance.ApplyMatchManifest(ticket.MatchManifest);
 
         if (P2PRelayClientBridge.Instance != null)
-            P2PRelayClientBridge.Instance.ConfigureRelay(ticket.Key);
+            P2PRelayClientBridge.Instance.ConfigureSession(ticket.Key, ticket.MatchManifest);
 
         if (string.IsNullOrEmpty(ticket.Key))
         {

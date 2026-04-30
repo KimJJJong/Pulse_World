@@ -15,3 +15,8 @@ MonoBehaviour:
   BaseUrl: http://jjongserver.ddns.net:80
   TimeoutSeconds: 15
   ClientVersion: 0.1.0
+  EnableSteam: 1
+  SteamAppId: 480
+  PreferSteamP2PInGame: 1
+  PreferSteamLogin: 1
+  SteamId64Override: 

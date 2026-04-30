@@ -6,8 +6,19 @@ namespace NetClient.Room.UI
     {
         public ApiClient Api => AppBootstrap.Instance.Root.Api;
         public string Uid => SessionContext.Instance.Uid;   
-        public string Name => SessionContext.Instance.MyActorId.ToString()??"NullName"; //SessionContext.Instance.Name; TODO : Name 주입 필요
+        public string Name
+        {
+            get
+            {
+                var steamName = AppBootstrap.Instance.Root.SteamPlatform.DisplayName;
+                if (!string.IsNullOrWhiteSpace(steamName))
+                    return steamName;
+
+                return SessionContext.Instance.MyActorId.ToString() ?? "NullName";
+            }
+        }
         public string AccessToken => AppBootstrap.Instance.Root.Tokens.AccessToken;
+        public string SteamId64 => AppBootstrap.Instance.Root.SteamPlatform.SteamId64;
 
         public string BuildRoomWsUrl(string roomId)
         {
@@ -21,8 +32,9 @@ namespace NetClient.Room.UI
             var encUid = System.Uri.EscapeDataString(Uid);
             var encName = System.Uri.EscapeDataString(Name ?? "Unknown");
             var encToken = System.Uri.EscapeDataString(AccessToken);
+            var encSteamId = System.Uri.EscapeDataString(SteamId64 ?? "");
             
-            var url = $"{safeBase}/hub/room?roomId={roomId}&uid={encUid}&name={encName}&access_token={encToken}";
+            var url = $"{safeBase}/hub/room?roomId={roomId}&uid={encUid}&name={encName}&steamId64={encSteamId}&access_token={encToken}";
             
             Debug.Log($"[ApiClientProvider] Generated WS URL: {url}");
             return url;

@@ -3,5 +3,6 @@
 public enum IdentityProvider : short
 {
     Google = 1,
-    Guest = 2
+    Guest = 2,
+    Steam = 3
 }

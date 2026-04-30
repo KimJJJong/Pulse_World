@@ -12,6 +12,8 @@ namespace NetClient.Room.UI
 {
     public sealed class RoomUiController : MonoBehaviour
     {
+        public static RoomUiController ActiveInstance { get; private set; }
+
         [Header("Deps")]
         [SerializeField] ApiClientProvider apiProvider;
         [SerializeField] string clientVersion = "1.0.0";
@@ -59,6 +61,14 @@ namespace NetClient.Room.UI
         bool _amIReady = false;
         string _currentRoomId = "";
         bool _currentRoomUseP2PRelay = false;
+        string _currentSteamLobbyId = "";
+        string _preferredHostUid = "";
+        int _preferredHostEpoch;
+        int _lastWaitingProbeRttMs = -1;
+        string _lastWaitingProbeStatus = "Idle";
+        string _steamLobbyStatus = "Idle";
+        string _lastWarn = "";
+        string _lastStatus = "";
 
         const string RelayKeyPrefix = "p2p:";
 
@@ -66,8 +76,22 @@ namespace NetClient.Room.UI
         readonly Dictionary<string, MemberItemView> _memberViews = new();
         readonly Dictionary<string, string> _uidToName = new();
 
+        public string CurrentRoomId => _currentRoomId ?? "";
+        public bool CurrentRoomUseP2PRelay => _currentRoomUseP2PRelay;
+        public string CurrentSteamLobbyId => _currentSteamLobbyId ?? "";
+        public string PreferredHostUid => _preferredHostUid ?? "";
+        public int PreferredHostEpoch => _preferredHostEpoch;
+        public int LastWaitingProbeRttMs => _lastWaitingProbeRttMs;
+        public string LastWaitingProbeStatus => _lastWaitingProbeStatus ?? "Idle";
+        public string SteamLobbyStatus => _steamLobbyStatus ?? "Idle";
+        public string LastWarningText => _lastWarn ?? "";
+        public string LastStatusText => _lastStatus ?? "";
+        public int MemberCount => _memberViews.Count;
+        public bool IsUiOpen => gameObject.activeInHierarchy;
+
         void Awake()
         {
+            ActiveInstance = this;
             _cts = new CancellationTokenSource();
 
             _roomListApi = new RoomListApiClient(apiProvider.Api);
@@ -107,6 +131,9 @@ namespace NetClient.Room.UI
 
         async void OnDestroy()
         {
+            if (ActiveInstance == this)
+                ActiveInstance = null;
+
             try
             {
                 _cts?.Cancel();
@@ -114,6 +141,7 @@ namespace NetClient.Room.UI
             }
             catch { /* ignore */ }
 
+            AppBootstrap.Instance?.Root?.SteamPlatform?.LeaveLobby();
             await DisposeWsIfAny();
         }
 
@@ -145,6 +173,8 @@ namespace NetClient.Room.UI
         {
             // UI 창 끄기 = 루트 비활성
             // (원하면 dispose하고 상태 초기화)
+            AppBootstrap.Instance.Root.SteamPlatform.LeaveLobby();
+            ResetDebugState();
             _ = DisposeWsIfAny();
             gameObject.SetActive(false);
         }
@@ -190,8 +220,17 @@ namespace NetClient.Room.UI
             _memberViews.Clear();
             _uidToName.Clear();
             _amIReady = false;
+            _preferredHostUid = "";
+            _preferredHostEpoch = 0;
+            _lastWaitingProbeRttMs = -1;
+            _lastWaitingProbeStatus = "Connecting";
+            _steamLobbyStatus = "Waiting";
 
-            _roomWs = new RoomWsClient(new StdWebSocketClient(), clientVersion);
+            var effectiveClientVersion = string.IsNullOrWhiteSpace(clientVersion)
+                ? AppBootstrap.Instance.Root.Config.ClientVersion
+                : clientVersion;
+
+            _roomWs = new RoomWsClient(new StdWebSocketClient(), effectiveClientVersion);
             BindWsEvents(_roomWs);
 
             var wsUrl = apiProvider.BuildRoomWsUrl(roomId);
@@ -303,6 +342,8 @@ namespace NetClient.Room.UI
             if (_roomWs != null)
                 await SafeCall(async () => await _roomWs.LeaveAsync(_cts.Token));
 
+            AppBootstrap.Instance.Root.SteamPlatform.LeaveLobby();
+            ResetDebugState();
             await DisposeWsIfAny();
             ShowRoomList();
             UI_Refresh();
@@ -310,11 +351,21 @@ namespace NetClient.Room.UI
 
         void BindWsEvents(RoomWsClient ws)
         {
+            ws.OnHostProbeMeasured += rttMs =>
+            {
+                _lastWaitingProbeRttMs = rttMs;
+                _lastWaitingProbeStatus = $"Measured {rttMs} ms";
+            };
+
             ws.OnInit += room =>
             {
                 Debug.Log($"[RoomUiController] OnInit Received. RoomId={room?.roomId}, Members={room?.memberUids?.Count}");
                 _currentRoomId = room?.roomId;
                 _currentRoomUseP2PRelay = room != null && room.useP2PRelay;
+                _currentSteamLobbyId = room?.steamLobbyId ?? "";
+                _steamLobbyStatus = string.IsNullOrWhiteSpace(_currentSteamLobbyId)
+                    ? "Waiting Lobby Bind"
+                    : $"Bound {_currentSteamLobbyId}";
                 SetWarn("");
                 if (txtRoomTitle) txtRoomTitle.text = string.IsNullOrEmpty(room.title) ? room.roomId : room.title;
 
@@ -324,6 +375,15 @@ namespace NetClient.Room.UI
 
                 ClearChildren(memberListContent);
                 _memberViews.Clear();
+
+                if (room.memberTransport != null)
+                {
+                    foreach (var member in room.memberTransport)
+                    {
+                        if (member != null && !string.IsNullOrEmpty(member.uid))
+                            _uidToName[member.uid] = string.IsNullOrEmpty(member.name) ? member.uid : member.name;
+                    }
+                }
 
                 if (room.memberUids != null)
                 {
@@ -349,6 +409,7 @@ namespace NetClient.Room.UI
 
                 RefreshReadyButton();
                 RefreshStartButton(ownerUid: room.ownerUid);
+                _ = SyncSteamLobbyAsync(room);
             };
 
             ws.OnMemberJoin += (uid, name) =>
@@ -392,10 +453,29 @@ namespace NetClient.Room.UI
                 RefreshReadyButton();
             };
 
-            ws.OnGameStart += (endpoint, ticket, mapId, maxPlayers, relayMode) =>
+            ws.OnHostCandidateUpdate += (preferredHostUid, hostEpoch) =>
+            {
+                _preferredHostUid = preferredHostUid ?? "";
+                _preferredHostEpoch = hostEpoch;
+                Debug.Log($"[RoomUiController] Host candidate updated. uid={preferredHostUid}, epoch={hostEpoch}");
+            };
+
+            ws.OnSteamLobbyBound += steamLobbyId =>
+            {
+                _currentSteamLobbyId = steamLobbyId ?? "";
+                _steamLobbyStatus = string.IsNullOrWhiteSpace(_currentSteamLobbyId)
+                    ? "Lobby Bind Missing"
+                    : $"Bound {_currentSteamLobbyId}";
+                Debug.Log($"[RoomUiController] Steam lobby bound: {steamLobbyId}");
+                _ = JoinBoundSteamLobbyAsync(_currentSteamLobbyId);
+            };
+
+            ws.OnGameStart += (endpoint, ticket, mapId, maxPlayers, relayMode, matchManifest) =>
             {
                 _currentRoomUseP2PRelay = relayMode;
-                SetWarn($"GameStart: {endpoint.host}:{endpoint.port} Map:{mapId} Max:{maxPlayers} Relay:{relayMode}");
+                var clientManifest = ConvertMatchManifest(matchManifest);
+                var hostUid = clientManifest != null ? clientManifest.HostUid : "";
+                SetWarn($"GameStart: {endpoint.host}:{endpoint.port} Map:{mapId} Max:{maxPlayers} Relay:{relayMode} Host:{hostUid}");
                 _ = DisposeWsIfAny();
 
                 // DTO 변환 (Global EndpointDto -> SessionDtos.EndpointDto)
@@ -405,7 +485,8 @@ namespace NetClient.Room.UI
                    TicketId = ticket,
                    Key = _currentRoomUseP2PRelay ? $"{RelayKeyPrefix}{_currentRoomId}" : _currentRoomId,
                    MapId = mapId,
-                   MaxPlayers = maxPlayers
+                    MaxPlayers = maxPlayers,
+                   MatchManifest = clientManifest
                 };
 
                 // ClientFlow를 통해 게임 서버 접속 및 씬 전환
@@ -425,6 +506,7 @@ namespace NetClient.Room.UI
             ws.OnClosed += reason =>
             {
                 SetWarn($"Closed: {reason}");
+                AppBootstrap.Instance.Root.SteamPlatform.LeaveLobby();
                 _ = DisposeWsIfAny();
                 ShowRoomList();
                 UI_Refresh();
@@ -456,6 +538,111 @@ namespace NetClient.Room.UI
             return false;
         }
 
+        async Task SyncSteamLobbyAsync(WaitingRoomDto room)
+        {
+            if (room == null)
+                return;
+
+            var steam = AppBootstrap.Instance.Root.SteamPlatform;
+            if (steam == null || !steam.Enabled)
+            {
+                _steamLobbyStatus = "Steam Disabled";
+                return;
+            }
+
+            if (!steam.IsInitialized)
+            {
+                _steamLobbyStatus = "Steam Init Failed";
+                if (!string.IsNullOrWhiteSpace(steam.LastError))
+                    Debug.LogWarning($"[RoomUiController] Steam unavailable: {steam.LastError}");
+                return;
+            }
+
+            bool isOwner = string.Equals(room.ownerUid, apiProvider.Uid, StringComparison.Ordinal);
+            if (isOwner && string.IsNullOrWhiteSpace(room.steamLobbyId))
+            {
+                _steamLobbyStatus = "Creating Lobby";
+                var lobbyId = await steam.CreateLobbyAsync(room.roomId, room.title, room.mapId, room.maxPlayers);
+                if (!string.IsNullOrWhiteSpace(lobbyId))
+                {
+                    _currentSteamLobbyId = lobbyId;
+                    _steamLobbyStatus = $"Created {lobbyId}";
+                    if (_roomWs != null)
+                        await _roomWs.BindSteamLobbyAsync(lobbyId, _cts.Token);
+                }
+                else if (!string.IsNullOrWhiteSpace(steam.LastError))
+                {
+                    _steamLobbyStatus = $"Create Failed: {steam.LastError}";
+                    SetWarn($"Steam lobby create failed: {steam.LastError}");
+                }
+
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(room.steamLobbyId))
+                await JoinBoundSteamLobbyAsync(room.steamLobbyId);
+        }
+
+        async Task JoinBoundSteamLobbyAsync(string steamLobbyId)
+        {
+            if (string.IsNullOrWhiteSpace(steamLobbyId))
+                return;
+
+            var steam = AppBootstrap.Instance.Root.SteamPlatform;
+            if (steam == null || !steam.Enabled || !steam.IsInitialized)
+            {
+                _steamLobbyStatus = "Join Skipped";
+                return;
+            }
+
+            _steamLobbyStatus = $"Joining {steamLobbyId}";
+            bool ok = await steam.JoinLobbyAsync(steamLobbyId, _currentRoomId);
+            _steamLobbyStatus = ok ? $"Joined {steamLobbyId}" : $"Join Failed {steamLobbyId}";
+            if (!ok && !string.IsNullOrWhiteSpace(steam.LastError))
+                SetWarn($"Steam lobby join failed: {steam.LastError}");
+        }
+
+        static SessionDtos.MatchManifestDto ConvertMatchManifest(WsMatchManifestDto src)
+        {
+            if (src == null)
+                return null;
+
+            var participants = new List<SessionDtos.MatchParticipantDto>();
+            if (src.participants != null)
+            {
+                for (int i = 0; i < src.participants.Count; i++)
+                {
+                    var p = src.participants[i];
+                    if (p == null) continue;
+
+                    participants.Add(new SessionDtos.MatchParticipantDto
+                    {
+                        Uid = p.uid,
+                        SteamId64 = p.steamId64,
+                        ActorId = p.actorId,
+                        LoadoutHash = p.loadoutHash
+                    });
+                }
+            }
+
+            return new SessionDtos.MatchManifestDto
+            {
+                MatchId = src.matchId,
+                RoomId = src.roomId,
+                NetworkMode = src.networkMode,
+                ProtocolVersion = src.protocolVersion,
+                MapId = src.mapId,
+                StageSeed = src.stageSeed,
+                SongStartDelayMs = src.songStartDelayMs,
+                HostUid = src.hostUid,
+                HostSteamId64 = src.hostSteamId64,
+                HostEpoch = src.hostEpoch,
+                PreferredHostRttMs = src.preferredHostRttMs,
+                CreatedAtMs = src.createdAtMs,
+                Participants = participants
+            };
+        }
+
         // -----------------------
         // Helpers
         // -----------------------
@@ -481,14 +668,28 @@ namespace NetClient.Room.UI
 
         void SetStatus(string s)
         {
+            _lastStatus = s ?? "";
             if (txtStatus) txtStatus.text = s;
             Debug.Log(s);
         }
 
         void SetWarn(string s)
         {
+            _lastWarn = s ?? "";
             if (txtWarn) txtWarn.text = s;
             if (!string.IsNullOrEmpty(s)) Debug.LogWarning(s);
+        }
+
+        void ResetDebugState()
+        {
+            _currentRoomId = "";
+            _currentRoomUseP2PRelay = false;
+            _currentSteamLobbyId = "";
+            _preferredHostUid = "";
+            _preferredHostEpoch = 0;
+            _lastWaitingProbeRttMs = -1;
+            _lastWaitingProbeStatus = "Idle";
+            _steamLobbyStatus = "Idle";
         }
     }
 }

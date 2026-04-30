@@ -28,6 +28,8 @@ public sealed class P2PRelayRoom : RoomBase
     private int _hostActorId;
     private bool _relayInitialized;
     private readonly Dictionary<int, (int x, int y)> _playerSpawns = new();
+    private string _preferredHostUid = "";
+    private List<string> _hostCandidateOrder = new();
 
     private const int RelayTickRate = 480;
 
@@ -76,6 +78,32 @@ public sealed class P2PRelayRoom : RoomBase
             foreach (var p in _players.Values)
                 yield return (p.Uid, p.ActorId, p.Conn != null && p.Conn.IsConnected);
         }
+    }
+
+    public void UpdateHostPreferences(string preferredHostUid, IEnumerable<string>? hostCandidateOrder)
+    {
+        var normalizedOrder = NormalizeHostCandidateOrder(preferredHostUid, hostCandidateOrder);
+        bool changed;
+
+        lock (_lock)
+        {
+            changed =
+                !string.Equals(_preferredHostUid, preferredHostUid ?? "", StringComparison.OrdinalIgnoreCase)
+                || !_hostCandidateOrder.SequenceEqual(normalizedOrder, StringComparer.OrdinalIgnoreCase);
+
+            _preferredHostUid = preferredHostUid ?? "";
+            _hostCandidateOrder = normalizedOrder;
+        }
+
+        if (!changed)
+            return;
+
+        _logger.LogInformation(
+            "[P2PRelayRoom] Host preference updated relayId={RelayId} preferredHost={PreferredHost} order={Order}",
+            RelayId,
+            _preferredHostUid,
+            string.Join(",", normalizedOrder));
+        Enqueue(ReevaluateHost);
     }
 
     private (int x, int y) GetOrAssignSpawn(RoomPlayer player)
@@ -186,14 +214,9 @@ public sealed class P2PRelayRoom : RoomBase
             }
             else
             {
-                foreach (var p in _players.Values.OrderBy(p => p.SeatIndex).ThenBy(p => p.ActorId))
-                {
-                    if (p.Conn != null && p.Conn.IsConnected)
-                    {
-                        nextHost = p.ActorId;
-                        break;
-                    }
-                }
+                nextHost = TrySelectPreferredConnectedHostUnsafe();
+                if (nextHost <= 0 && _hostCandidateOrder.Count == 0 && string.IsNullOrWhiteSpace(_preferredHostUid))
+                    nextHost = TrySelectFallbackConnectedHostUnsafe();
             }
 
             if (nextHost == _hostActorId)
@@ -203,7 +226,66 @@ public sealed class P2PRelayRoom : RoomBase
         }
 
         Broadcast(new SC_HostChange { HostActorId = _hostActorId });
-        _logger.LogInformation("[P2PRelayRoom] Host changed relayId={RelayId} host={Host}", RelayId, _hostActorId);
+        _logger.LogInformation(
+            "[P2PRelayRoom] Host changed relayId={RelayId} host={Host} preferredHost={PreferredHost}",
+            RelayId,
+            _hostActorId,
+            _preferredHostUid);
+    }
+
+    private int TrySelectPreferredConnectedHostUnsafe()
+    {
+        if (_hostCandidateOrder.Count == 0)
+            return 0;
+
+        foreach (var candidateUid in _hostCandidateOrder)
+        {
+            if (string.IsNullOrWhiteSpace(candidateUid))
+                continue;
+
+            var match = _players.Values.FirstOrDefault(p =>
+                p.Conn != null &&
+                p.Conn.IsConnected &&
+                string.Equals(p.Uid, candidateUid, StringComparison.OrdinalIgnoreCase));
+
+            if (match != null)
+                return match.ActorId;
+        }
+
+        return 0;
+    }
+
+    private int TrySelectFallbackConnectedHostUnsafe()
+    {
+        foreach (var p in _players.Values.OrderBy(p => p.SeatIndex).ThenBy(p => p.ActorId))
+        {
+            if (p.Conn != null && p.Conn.IsConnected)
+                return p.ActorId;
+        }
+
+        return 0;
+    }
+
+    private static List<string> NormalizeHostCandidateOrder(string preferredHostUid, IEnumerable<string>? hostCandidateOrder)
+    {
+        var normalized = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (!string.IsNullOrWhiteSpace(preferredHostUid) && seen.Add(preferredHostUid))
+            normalized.Add(preferredHostUid);
+
+        if (hostCandidateOrder == null)
+            return normalized;
+
+        foreach (var uid in hostCandidateOrder)
+        {
+            if (string.IsNullOrWhiteSpace(uid) || !seen.Add(uid))
+                continue;
+
+            normalized.Add(uid);
+        }
+
+        return normalized;
     }
 
     public void SendInitPacketToPlayer(ClientSession s)

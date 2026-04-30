@@ -20,6 +20,7 @@
         public string MapVersion { get; private set; } = "";
         public int MyActorId { get; private set; }
         public SC_InitMap LastInitMap { get; private set; }
+        public SessionDtos.MatchManifestDto LastMatchManifest { get; private set; }
 
 
 
@@ -48,6 +49,11 @@
             LastInitMap = map;
         }
 
+        public void ApplyMatchManifest(SessionDtos.MatchManifestDto manifest)
+        {
+            LastMatchManifest = manifest;
+        }
+
         public void ResetForReconnect()
         {
             Uid = "";
@@ -64,5 +70,6 @@
             MapVersion = "";
             MyActorId = 0;
             LastInitMap = null;
+            LastMatchManifest = null;
         }
     }

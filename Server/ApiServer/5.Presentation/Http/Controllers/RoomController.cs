@@ -39,7 +39,10 @@ public class RoomController : ControllerBase
                 maxPlayers = r.MaxPlayers,
                 memberCount = r.MemberUids.Count,
                 status = r.Status,
-                ownerUid = r.OwnerUid
+                ownerUid = r.OwnerUid,
+                useP2PRelay = r.UseP2PRelay,
+                preferredHostUid = r.PreferredHostUid,
+                steamLobbyId = r.SteamLobbyId
             }).ToList()
         };
 
@@ -76,9 +79,9 @@ public class RoomController : ControllerBase
 
     public class CreateRoomRequest
     {
-        public string roomId { get; set; }
-        public string title { get; set; }
-        public string mapId { get; set; }
+        public string roomId { get; set; } = "";
+        public string title { get; set; } = "";
+        public string mapId { get; set; } = "";
         public int maxPlayers { get; set; }
         public bool useP2PRelay { get; set; }
     }

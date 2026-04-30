@@ -1,5 +1,7 @@
 using ServerCore;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -24,9 +26,15 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     private static P2PRelayClientBridge _instance;
     public static bool HasInstance => _instance != null;
 
-    public bool IsRelayMode { get; private set; }
+    public bool IsP2PMode => _transportMode != P2PTransportMode.Disabled;
+    public bool IsRelayMode => IsP2PMode; // Legacy compatibility for existing gameplay systems.
+    public bool IsServerRelayTransport => _transportMode == P2PTransportMode.ServerRelay;
+    public bool IsSteamTransport => _transportMode == P2PTransportMode.SteamP2P;
     public bool IsHostLocal { get; private set; }
     public int HostActorId { get; private set; }
+    public string HostUid { get; private set; } = "";
+    public string HostSteamId64 { get; private set; } = "";
+    public int HostEpoch { get; private set; }
     public string RelayKey { get; private set; } = "";
     public bool IsDispatchingLocal { get; private set; }
     public long HostLastRttMs => _hostLastRttMs;
@@ -34,7 +42,33 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     public long HostMaxRttMs => _hostMaxRttMs;
     public long HostMinRttMs => _hostMinRttMs == long.MaxValue ? 0 : _hostMinRttMs;
     public string HostPingStatus => _hostPingStatus;
-    public bool HasRemoteHostPing => IsRelayMode && !IsHostLocal && HostActorId > 0;
+    public bool HasRemoteHostPing => IsP2PMode && !IsHostLocal && HostActorId > 0;
+    public string TransportName => IsSteamTransport ? (_steamTransport?.TransportName ?? "SteamP2P") : (IsServerRelayTransport ? "ServerRelay" : "Disabled");
+    public bool IsSteamTransportRunning => _steamTransport?.IsRunning ?? false;
+    public bool IsSteamTransportConnectedToHost => _steamTransport?.IsConnectedToHost ?? false;
+    public int SteamConnectedPeerCount => _steamTransport?.ConnectedPeerCount ?? 0;
+    public string TransportLastError => _steamTransport?.LastError ?? "";
+    public string TransportDebugStatus
+    {
+        get
+        {
+            if (!IsP2PMode)
+                return "Disabled";
+
+            if (!IsSteamTransport)
+                return IsServerRelayTransport ? "Server relay active" : "Disabled";
+
+            if (IsHostLocal)
+                return IsSteamTransportRunning
+                    ? $"Hosting ({SteamConnectedPeerCount} peer)"
+                    : "Host socket pending";
+
+            if (IsSteamTransportConnectedToHost)
+                return "Connected to host";
+
+            return IsSteamTransportRunning ? "Connecting to host" : "Waiting transport";
+        }
+    }
 
     [Header("P2P Host Ping")]
     [SerializeField, ReadOnly] int _hostPingIntervalMs = 2000;
@@ -53,10 +87,17 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     [SerializeField, ReadOnly] string _hostPingStatus = "Idle";
 
     private const float HostPingEmaAlpha = 0.2f;
+
+    private readonly Dictionary<string, string> _steamIdByUid = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _uidBySteamId = new(StringComparer.Ordinal);
+
     private CancellationTokenSource _hostPingCts;
     private long _hostPingSentCount;
     private long _hostPingRecvCount;
     private int _hostLastPongSeq;
+    private P2PTransportMode _transportMode;
+    private SessionDtos.MatchManifestDto _matchManifest;
+    private ISteamP2PClientTransport _steamTransport;
 
     private void Awake()
     {
@@ -68,13 +109,46 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
         _instance = this;
         DontDestroyOnLoad(gameObject);
+
+        _steamTransport ??= SteamP2PClientTransportFactory.Create();
+        _steamTransport.OnPayloadReceived -= HandleSteamPayloadReceived;
+        _steamTransport.OnPayloadReceived += HandleSteamPayloadReceived;
+    }
+
+    private void Update()
+    {
+        _steamTransport?.Pump();
+    }
+
+    private void OnDestroy()
+    {
+        if (_steamTransport != null)
+        {
+            _steamTransport.OnPayloadReceived -= HandleSteamPayloadReceived;
+            _steamTransport.Stop();
+        }
+
+        if (_instance == this)
+            _instance = null;
     }
 
     public void ConfigureRelay(string ticketKey)
     {
+        ConfigureSession(ticketKey, SessionContext.Instance.LastMatchManifest);
+    }
+
+    public void ConfigureSession(string ticketKey, SessionDtos.MatchManifestDto manifest)
+    {
         RelayKey = ticketKey ?? "";
-        IsRelayMode = !string.IsNullOrWhiteSpace(RelayKey) &&
-                      RelayKey.StartsWith("p2p:", StringComparison.OrdinalIgnoreCase);
+        _matchManifest = manifest;
+
+        ApplyManifest(manifest);
+
+        _transportMode = ResolveTransportMode(ticketKey, manifest);
+        if (IsSteamTransport)
+            RelayKey = !string.IsNullOrWhiteSpace(manifest?.MatchId)
+                ? $"steam:{manifest.MatchId}"
+                : $"steam:{HostSteamId64}";
 
         HostActorId = 0;
         IsHostLocal = false;
@@ -84,10 +158,13 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
         UpdateHostLogWindow();
 
-        if (!IsRelayMode)
+        if (!IsP2PMode)
+        {
             ResetState();
-        else
-            RefreshHostPingLoopState();
+            return;
+        }
+
+        SyncHostState();
     }
 
     public void Reset()
@@ -100,9 +177,16 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     {
         StopHostPingLoop();
         ResetHostPingStats();
-        IsRelayMode = false;
+        _transportMode = P2PTransportMode.Disabled;
         HostActorId = 0;
+        HostUid = "";
+        HostSteamId64 = "";
+        HostEpoch = 0;
         IsHostLocal = false;
+        _matchManifest = null;
+        _steamIdByUid.Clear();
+        _uidBySteamId.Clear();
+        _steamTransport?.Stop();
 
         if (P2PHostController.HasInstance)
             P2PHostController.Instance.ResetForMatchEnd();
@@ -116,8 +200,11 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
     public void SyncHostState()
     {
-        if (!IsRelayMode)
+        if (!IsP2PMode)
             return;
+
+        if (IsSteamTransport)
+            ResolveHostStateFromManifest();
 
         RefreshHostState();
     }
@@ -132,41 +219,33 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         }
 
         HostActorId = nextHostActorId;
+
+        if (IsSteamTransport)
+            ApplySteamRuntimeHostChange(nextHostActorId);
+
         RefreshHostState();
     }
 
     public void HandleGuestPayload(CS_P2PPayload pkt)
     {
-        if (!IsRelayMode || pkt == null)
+        if (!IsServerRelayTransport || pkt == null)
             return;
 
-        if (TryHandleGuestDiagnostics(pkt))
+        if (!TryDecodeBase64(pkt.Payload, out var payloadBytes))
             return;
 
-        P2PHostController.Instance.EnqueueGuestActionRequest(pkt);
+        HandleIncomingGuestPayloadBytes(pkt.SenderActorId, payloadBytes);
     }
 
     public void HandleRelayBroadcast(SC_P2PBroadcast pkt)
     {
-        if (pkt == null || string.IsNullOrWhiteSpace(pkt.Payload))
+        if (!IsServerRelayTransport || pkt == null || string.IsNullOrWhiteSpace(pkt.Payload))
             return;
 
-        try
-        {
-            var bytes = Convert.FromBase64String(pkt.Payload);
-            if (TryHandleRelayDiagnostics(bytes))
-                return;
+        if (!TryDecodeBase64(pkt.Payload, out var payloadBytes))
+            return;
 
-            var session = NetworkManager.Instance != null ? NetworkManager.Instance.CurrentSession : null;
-            if (session == null)
-                return;
-
-            PacketManager.Instance.OnRecvPacket(session, new ArraySegment<byte>(bytes));
-        }
-        catch (Exception ex)
-        {
-            Debug.LogWarning($"[P2PRelayClientBridge] Failed to decode broadcast: {ex.Message}");
-        }
+        HandleIncomingHostPayloadBytes(payloadBytes);
     }
 
     public void SendWrappedPacket(IPacket packet)
@@ -174,16 +253,31 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         if (packet == null || NetworkManager.Instance == null)
             return;
 
-        if (!IsRelayMode)
+        if (!IsP2PMode)
         {
             NetworkManager.Instance.Send(packet.Write());
             return;
         }
 
-        var payload = Encode(packet);
-        if (string.IsNullOrEmpty(payload))
+        var segment = packet.Write();
+        if (segment.Array == null || segment.Count <= 0)
             return;
 
+        if (IsSteamTransport)
+        {
+            var payloadBytes = CopySegment(segment);
+            if (payloadBytes.Length == 0)
+                return;
+
+            if (IsHostLocal)
+                _steamTransport?.SendHostToGuests(payloadBytes);
+            else if (!(_steamTransport?.SendGuestToHost(payloadBytes) ?? false) && P2PDebugConfig.TraceHostFlow)
+                Debug.LogWarning($"[P2PRelayClientBridge] Steam send to host failed host={HostSteamId64}");
+
+            return;
+        }
+
+        var payload = Convert.ToBase64String(segment.Array, segment.Offset, segment.Count);
         NetworkManager.Instance.Send(new CS_P2PPayload
         {
             SenderActorId = SessionContext.Instance.MyActorId,
@@ -213,10 +307,11 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
     private void RefreshHostState()
     {
-        if (!IsRelayMode)
+        if (!IsP2PMode)
         {
             HostActorId = 0;
             IsHostLocal = false;
+            _steamTransport?.Stop();
             StopHostPingLoop();
             ResetHostPingStats();
             if (P2PHostController.HasInstance)
@@ -226,18 +321,26 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             return;
         }
 
-        IsHostLocal = HostActorId > 0 && SessionContext.Instance.MyActorId == HostActorId;
+        IsHostLocal = ResolveLocalHostOwnership();
+        bool hostAuthorityReady = IsHostLocal && HostActorId > 0;
+
         P2PHostController.Instance.SetHostActorId(HostActorId);
-        P2PHostController.Instance.SetHostMode(IsHostLocal);
+        P2PHostController.Instance.SetHostMode(hostAuthorityReady);
         if (P2PContentDirector.HasInstance)
-            P2PContentDirector.Instance.OnHostLocalChanged(IsHostLocal);
+            P2PContentDirector.Instance.OnHostLocalChanged(hostAuthorityReady);
+
+        if (IsSteamTransport)
+            SyncSteamTransport();
+        else
+            _steamTransport?.Stop();
+
         RefreshHostPingLoopState();
         UpdateHostLogWindow();
     }
 
     private void UpdateHostLogWindow()
     {
-        if (!IsRelayMode)
+        if (!IsP2PMode)
         {
             if (P2PHostLogWindow.HasInstance)
                 P2PHostLogWindow.Instance.HideAndClear();
@@ -245,16 +348,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             return;
         }
 
-        P2PHostLogWindow.Instance.SetRelayContext(RelayKey, IsRelayMode, IsHostLocal, HostActorId);
-    }
-
-    private static string Encode(IPacket pkt)
-    {
-        var segment = pkt.Write();
-        if (segment.Array == null || segment.Count <= 0)
-            return "";
-
-        return Convert.ToBase64String(segment.Array, segment.Offset, segment.Count);
+        P2PHostLogWindow.Instance.SetRelayContext(RelayKey, IsP2PMode, IsHostLocal, HostActorId);
     }
 
     private void RefreshHostPingLoopState()
@@ -262,9 +356,9 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         if (!HasRemoteHostPing)
         {
             StopHostPingLoop();
-            _hostPingStatus = IsRelayMode
+            _hostPingStatus = IsP2PMode
                 ? (IsHostLocal ? "Local Host" : "Waiting Host")
-                : "Relay Off";
+                : "P2P Off";
             return;
         }
 
@@ -319,7 +413,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         {
             if (!HasRemoteHostPing || NetworkManager.Instance == null || SessionContext.Instance == null)
             {
-                _hostPingStatus = IsRelayMode ? "Waiting Host" : "Relay Off";
+                _hostPingStatus = IsP2PMode ? "Waiting Host" : "P2P Off";
                 try { await Task.Delay(250, ct); } catch (TaskCanceledException) { break; }
                 continue;
             }
@@ -370,14 +464,72 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         _hostPingRunning = false;
     }
 
-    private bool TryHandleGuestDiagnostics(CS_P2PPayload pkt)
+    private void HandleSteamPayloadReceived(SteamP2PIncomingPayload payload)
     {
-        if (!IsHostLocal || pkt == null || string.IsNullOrWhiteSpace(pkt.Payload))
+        if (!IsSteamTransport || payload == null || payload.PayloadBytes == null || payload.PayloadBytes.Length == 0)
+            return;
+
+        if (payload.IsFromHost)
+        {
+            HandleIncomingHostPayloadBytes(payload.PayloadBytes);
+            return;
+        }
+
+        int senderActorId = ResolveActorIdForSteamId(payload.SenderSteamId64);
+        HandleIncomingGuestPayloadBytes(senderActorId, payload.PayloadBytes);
+    }
+
+    private void HandleIncomingGuestPayloadBytes(int senderActorId, byte[] payloadBytes)
+    {
+        if (!IsP2PMode || payloadBytes == null || payloadBytes.Length == 0)
+            return;
+
+        if (TryHandleGuestDiagnostics(senderActorId, payloadBytes))
+            return;
+
+        if (senderActorId <= 0)
+        {
+            if (P2PDebugConfig.TraceHostFlow)
+                Debug.LogWarning("[P2PRelayClientBridge] Drop guest payload because sender actor could not be resolved.");
+            return;
+        }
+
+        P2PHostController.Instance.EnqueueGuestActionRequest(new CS_P2PPayload
+        {
+            SenderActorId = senderActorId,
+            Payload = Convert.ToBase64String(payloadBytes)
+        });
+    }
+
+    private void HandleIncomingHostPayloadBytes(byte[] payloadBytes)
+    {
+        if (payloadBytes == null || payloadBytes.Length == 0)
+            return;
+
+        if (TryHandleInboundDiagnostics(payloadBytes))
+            return;
+
+        var session = NetworkManager.Instance != null ? NetworkManager.Instance.CurrentSession : null;
+        if (session == null)
+            return;
+
+        try
+        {
+            PacketManager.Instance.OnRecvPacket(session, new ArraySegment<byte>(payloadBytes));
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[P2PRelayClientBridge] Failed to dispatch inbound packet: {ex.Message}");
+        }
+    }
+
+    private bool TryHandleGuestDiagnostics(int senderActorId, byte[] bytes)
+    {
+        if (!IsHostLocal || bytes == null || bytes.Length < 4)
             return false;
 
         try
         {
-            var bytes = Convert.FromBase64String(pkt.Payload);
             if (P2PRelayDiagnosticsPackets.PeekProtocol(bytes) != P2PRelayDiagnosticsPackets.HostPingRequestProtocol)
                 return false;
 
@@ -390,7 +542,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             long hostRecvMs = P2PRelayDiagnosticsPackets.NowMs();
             SendWrappedPacket(new P2PHostPingPongPacket
             {
-                TargetActorId = pkt.SenderActorId > 0 ? pkt.SenderActorId : request.RequesterActorId,
+                TargetActorId = senderActorId > 0 ? senderActorId : request.RequesterActorId,
                 HostActorId = HostActorId,
                 Seq = request.Seq,
                 ClientSendMs = request.ClientSendMs,
@@ -406,7 +558,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         }
     }
 
-    private bool TryHandleRelayDiagnostics(byte[] bytes)
+    private bool TryHandleInboundDiagnostics(byte[] bytes)
     {
         if (bytes == null || bytes.Length < 4)
             return false;
@@ -457,5 +609,269 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         _hostMaxRttMs = Math.Max(_hostMaxRttMs, rtt);
         _hostMinRttMs = Math.Min(_hostMinRttMs, rtt);
         _hostPingStatus = "Host OK";
+    }
+
+    private void ApplyManifest(SessionDtos.MatchManifestDto manifest)
+    {
+        HostUid = manifest?.HostUid ?? "";
+        HostSteamId64 = manifest?.HostSteamId64 ?? "";
+        HostEpoch = manifest?.HostEpoch ?? 0;
+
+        _steamIdByUid.Clear();
+        _uidBySteamId.Clear();
+
+        if (manifest?.Participants == null)
+            return;
+
+        foreach (var participant in manifest.Participants)
+        {
+            if (participant == null || string.IsNullOrWhiteSpace(participant.Uid))
+                continue;
+
+            string steamId64 = participant.SteamId64 ?? "";
+            _steamIdByUid[participant.Uid] = steamId64;
+            if (!string.IsNullOrWhiteSpace(steamId64))
+                _uidBySteamId[steamId64] = participant.Uid;
+        }
+    }
+
+    private void ApplySteamRuntimeHostChange(int hostActorId)
+    {
+        if (!TryResolveSteamHostIdentity(hostActorId, out var nextHostUid, out var nextHostSteamId64))
+        {
+            if (P2PDebugConfig.TraceHostFlow)
+                Debug.LogWarning($"[P2PRelayClientBridge] Steam host identity unresolved actor={hostActorId}");
+            return;
+        }
+
+        bool changed =
+            !string.Equals(HostUid, nextHostUid, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(HostSteamId64, nextHostSteamId64, StringComparison.Ordinal);
+
+        HostUid = nextHostUid;
+        HostSteamId64 = nextHostSteamId64;
+        if (changed)
+            HostEpoch = Math.Max(1, HostEpoch + 1);
+
+        if (_matchManifest != null)
+        {
+            _matchManifest.HostUid = HostUid;
+            _matchManifest.HostSteamId64 = HostSteamId64;
+            _matchManifest.HostEpoch = HostEpoch;
+        }
+
+        if (P2PDebugConfig.TraceHostFlow)
+        {
+            Debug.Log(
+                $"[P2PRelayClientBridge] Steam host changed actor={hostActorId} uid={HostUid} steam={HostSteamId64} epoch={HostEpoch}");
+        }
+    }
+
+    private P2PTransportMode ResolveTransportMode(string ticketKey, SessionDtos.MatchManifestDto manifest)
+    {
+        if (ShouldUseSteamTransport(manifest))
+            return P2PTransportMode.SteamP2P;
+
+        bool relayTicket = !string.IsNullOrWhiteSpace(ticketKey)
+                           && ticketKey.StartsWith("p2p:", StringComparison.OrdinalIgnoreCase);
+        return relayTicket ? P2PTransportMode.ServerRelay : P2PTransportMode.Disabled;
+    }
+
+    private bool ShouldUseSteamTransport(SessionDtos.MatchManifestDto manifest)
+    {
+        if (manifest == null)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(manifest.NetworkMode)
+            || manifest.NetworkMode.IndexOf("steam", StringComparison.OrdinalIgnoreCase) < 0)
+            return false;
+
+        var root = AppBootstrap.Instance != null ? AppBootstrap.Instance.Root : null;
+        if (root?.Config == null || !root.Config.EnableSteam || !root.Config.PreferSteamP2PInGame)
+            return false;
+
+        if (root.SteamPlatform == null || !root.SteamPlatform.IsInitialized)
+            return false;
+
+        return !string.IsNullOrWhiteSpace(root.SteamPlatform.SteamId64)
+               && !string.IsNullOrWhiteSpace(manifest.HostSteamId64);
+    }
+
+    private void ResolveHostStateFromManifest()
+    {
+        if (_matchManifest == null)
+            return;
+
+        HostUid = _matchManifest.HostUid ?? "";
+        HostSteamId64 = _matchManifest.HostSteamId64 ?? "";
+        HostEpoch = _matchManifest.HostEpoch;
+
+        int resolvedActorId = ResolveActorIdForUid(HostUid);
+        if (resolvedActorId <= 0
+            && !string.IsNullOrWhiteSpace(HostUid)
+            && string.Equals(HostUid, SessionContext.Instance.Uid, StringComparison.OrdinalIgnoreCase)
+            && SessionContext.Instance.MyActorId > 0)
+        {
+            resolvedActorId = SessionContext.Instance.MyActorId;
+        }
+
+        HostActorId = resolvedActorId;
+    }
+
+    private bool ResolveLocalHostOwnership()
+    {
+        if (IsSteamTransport)
+        {
+            if (!string.IsNullOrWhiteSpace(HostUid)
+                && string.Equals(HostUid, SessionContext.Instance.Uid, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            string localSteamId64 = GetLocalSteamId64();
+            if (!string.IsNullOrWhiteSpace(HostSteamId64)
+                && !string.IsNullOrWhiteSpace(localSteamId64)
+                && string.Equals(HostSteamId64, localSteamId64, StringComparison.Ordinal))
+                return true;
+        }
+
+        return HostActorId > 0 && SessionContext.Instance.MyActorId == HostActorId;
+    }
+
+    private void SyncSteamTransport()
+    {
+        if (_steamTransport == null)
+            return;
+
+        var config = BuildSteamTransportConfig();
+        if (config == null)
+        {
+            _steamTransport.Stop();
+            return;
+        }
+
+        _steamTransport.Configure(config);
+        _steamTransport.EnsureRunning();
+    }
+
+    private SteamP2PTransportConfig BuildSteamTransportConfig()
+    {
+        if (_matchManifest == null)
+            return null;
+
+        string localSteamId64 = GetLocalSteamId64();
+        if (string.IsNullOrWhiteSpace(localSteamId64))
+            return null;
+
+        string[] participants = (_matchManifest.Participants ?? new List<SessionDtos.MatchParticipantDto>())
+            .Where(x => x != null && !string.IsNullOrWhiteSpace(x.SteamId64))
+            .Select(x => x.SteamId64)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        return new SteamP2PTransportConfig
+        {
+            MatchId = _matchManifest.MatchId ?? "",
+            RoomId = _matchManifest.RoomId ?? "",
+            HostUid = HostUid ?? "",
+            HostSteamId64 = HostSteamId64 ?? "",
+            LocalSteamId64 = localSteamId64,
+            HostEpoch = HostEpoch,
+            IsLocalHost = ResolveLocalHostOwnership(),
+            AllowedParticipantSteamId64s = participants
+        };
+    }
+
+    private string GetLocalSteamId64()
+    {
+        return AppBootstrap.Instance?.Root?.SteamPlatform?.SteamId64 ?? "";
+    }
+
+    private int ResolveActorIdForUid(string uid)
+    {
+        if (string.IsNullOrWhiteSpace(uid) || ClientGameState.Instance == null)
+            return 0;
+
+        foreach (var entry in ClientGameState.Instance.EnumeratePlayerRoster())
+        {
+            if (string.Equals(entry.Uid, uid, StringComparison.OrdinalIgnoreCase))
+                return entry.ActorId;
+        }
+
+        return 0;
+    }
+
+    private int ResolveActorIdForSteamId(string steamId64)
+    {
+        if (string.IsNullOrWhiteSpace(steamId64))
+            return 0;
+
+        if (_uidBySteamId.TryGetValue(steamId64, out var uid))
+            return ResolveActorIdForUid(uid);
+
+        string localSteamId64 = GetLocalSteamId64();
+        if (!string.IsNullOrWhiteSpace(localSteamId64)
+            && string.Equals(localSteamId64, steamId64, StringComparison.Ordinal)
+            && SessionContext.Instance.MyActorId > 0)
+        {
+            return SessionContext.Instance.MyActorId;
+        }
+
+        return 0;
+    }
+
+    private bool TryResolveSteamHostIdentity(int hostActorId, out string hostUid, out string hostSteamId64)
+    {
+        hostUid = "";
+        hostSteamId64 = "";
+
+        if (hostActorId <= 0)
+            return false;
+
+        if (hostActorId == SessionContext.Instance.MyActorId
+            && !string.IsNullOrWhiteSpace(SessionContext.Instance.Uid))
+        {
+            hostUid = SessionContext.Instance.Uid;
+            hostSteamId64 = GetLocalSteamId64();
+            return !string.IsNullOrWhiteSpace(hostSteamId64);
+        }
+
+        if (ClientGameState.Instance == null
+            || !ClientGameState.Instance.TryGetPlayerUid(hostActorId, out hostUid)
+            || string.IsNullOrWhiteSpace(hostUid))
+        {
+            return false;
+        }
+
+        if (!_steamIdByUid.TryGetValue(hostUid, out hostSteamId64))
+            hostSteamId64 = "";
+
+        return !string.IsNullOrWhiteSpace(hostSteamId64);
+    }
+
+    private static bool TryDecodeBase64(string payload, out byte[] payloadBytes)
+    {
+        payloadBytes = Array.Empty<byte>();
+        if (string.IsNullOrWhiteSpace(payload))
+            return false;
+
+        try
+        {
+            payloadBytes = Convert.FromBase64String(payload);
+            return payloadBytes.Length > 0;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[P2PRelayClientBridge] Failed to decode payload: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static byte[] CopySegment(ArraySegment<byte> segment)
+    {
+        if (segment.Array == null || segment.Count <= 0)
+            return Array.Empty<byte>();
+
+        var bytes = new byte[segment.Count];
+        Buffer.BlockCopy(segment.Array, segment.Offset, bytes, 0, segment.Count);
+        return bytes;
     }
 }

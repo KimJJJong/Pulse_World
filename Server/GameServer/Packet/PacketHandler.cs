@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Util;
+using GameServer.Infrastructure.Api.Dto;
 partial class PacketHandler
 {
     private const string RelayKeyPrefix = "p2p:";
@@ -99,7 +100,7 @@ partial class PacketHandler
 
    
 
-    public static void CS_MapEnterHandler(PacketSession session, IPacket packet)
+    public static async void CS_MapEnterHandler(PacketSession session, IPacket packet)
     {
         var s = (ClientSession)session;
         var req = (CS_MapEnter)packet;
@@ -117,7 +118,15 @@ partial class PacketHandler
         if (!string.IsNullOrEmpty(s.Key) && s.Key.StartsWith(RelayKeyPrefix, StringComparison.OrdinalIgnoreCase))
         {
             int max = req.MaxPlayers > 0 ? req.MaxPlayers : 2;
+            var roomId = s.Key.Substring(RelayKeyPrefix.Length);
+            var manifest = await TryLoadRelayManifestAsync(roomId);
             var room = P2PRelayManager.GetOrCreate(s.Key, req.MapId, max);
+            if (manifest != null)
+            {
+                room.UpdateHostPreferences(
+                    manifest.HostUid ?? "",
+                    manifest.Participants?.Select(x => x.Uid) ?? Enumerable.Empty<string>());
+            }
 
             LogManager.Instance.LogInfo("P2PRelayRoom",
                 $"Entering relayId={s.Key} count={room.GetPlayersSnapshot().Count()}");
@@ -174,6 +183,32 @@ partial class PacketHandler
         ClientSession _session = (ClientSession)session;
         CS_MapEnter req = (CS_MapEnter)packet;
 
+    }
+
+    private static async Task<GameMatchManifestResponse?> TryLoadRelayManifestAsync(string roomId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId))
+            return null;
+
+        try
+        {
+            var manifest = await ServerServices.ApiClient.GetGameMatchManifestAsync(roomId);
+            if (manifest == null)
+            {
+                LogManager.Instance.LogWarning("P2PRelayRoom", $"Manifest missing roomId={roomId}");
+                return null;
+            }
+
+            LogManager.Instance.LogInfo(
+                "P2PRelayRoom",
+                $"Manifest loaded roomId={roomId} hostUid={manifest.HostUid} participants={manifest.Participants?.Count ?? 0}");
+            return manifest;
+        }
+        catch (Exception ex)
+        {
+            LogManager.Instance.LogError("P2PRelayRoom", $"Manifest load failed roomId={roomId} err={ex.Message}");
+            return null;
+        }
     }
 
 

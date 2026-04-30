@@ -13,12 +13,42 @@ public class WaitingRoomDto
     public string OwnerUid { get; set; } = "";
     public string Status { get; set; } = "";
     public bool UseP2PRelay { get; set; }
+    public string SteamLobbyId { get; set; } = "";
+    public string PreferredHostUid { get; set; } = "";
+    public int HostEpoch { get; set; }
     public List<string> MemberUids { get; set; } = new();
     public Dictionary<string, bool> MemberReady { get; set; } = new();
+    public List<WaitingRoomMemberTransportDto> MemberTransport { get; set; } = new();
+}
+
+public sealed class WaitingRoomMemberTransportDto
+{
+    public string Uid { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string SteamId64 { get; set; } = "";
+    public string ClientVersion { get; set; } = "";
+    public int HostProbeRttMs { get; set; } = -1;
+    public long HostProbeReportedAtMs { get; set; }
+}
+
+internal sealed class WaitingRoomMemberState
+{
+    public string Name { get; set; } = "";
+    public bool Ready { get; set; }
+    public string SteamId64 { get; set; } = "";
+    public string ClientVersion { get; set; } = "";
+    public int HostProbeRttMs { get; set; } = -1;
+    public long HostProbeReportedAtMs { get; set; }
 }
 
 public sealed class WaitingRoomService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = null,
+        WriteIndented = false
+    };
+
     private readonly RedisStore _redis;
 
     public WaitingRoomService(RedisStore redis)
@@ -42,6 +72,9 @@ public sealed class WaitingRoomService
             new("ownerUid", ownerUid),
             new("status", "Open"),
             new("useP2PRelay", useP2PRelay ? 1 : 0),
+            new("steamLobbyId", ""),
+            new("preferredHostUid", ownerUid),
+            new("hostEpoch", 0),
             new("createdAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
         };
 
@@ -52,7 +85,8 @@ public sealed class WaitingRoomService
         await _redis.Db.SetAddAsync(_redis.KeyWaitingRoomIndex(), roomId);
 
         // Add owner
-        await JoinAsync(roomId, ownerUid, ownerName); 
+        await JoinAsync(roomId, ownerUid, ownerName);
+        await UpdateMemberTransportAsync(roomId, ownerUid, ownerName, "", "", -1, 0);
         
         return roomId;
     }
@@ -67,17 +101,23 @@ public sealed class WaitingRoomService
         var maxVal = await _redis.Db.HashGetAsync(key, "maxPlayers");
         int max = (int)maxVal;
 
-        // If already member, update name? or Just return OK
+        // If already member, keep transport state but refresh name.
         if (await _redis.Db.HashExistsAsync(membersKey, uid))
         {
-             // Already joined
-             return (true, "");
+            var state = await GetMemberStateAsync(membersKey, uid);
+            state.Name = name ?? "";
+            await SaveMemberStateAsync(membersKey, uid, state);
+            return (true, "");
         }
 
         if (count >= max) return (false, "RoomFull");
 
-        var memberData = JsonSerializer.Serialize(new { Name = name, Ready = false });
-        await _redis.Db.HashSetAsync(membersKey, uid, memberData);
+        var memberState = new WaitingRoomMemberState
+        {
+            Name = name ?? "",
+            Ready = false
+        };
+        await SaveMemberStateAsync(membersKey, uid, memberState);
         
         return (true, "");
     }
@@ -119,21 +159,58 @@ public sealed class WaitingRoomService
     {
         var key = _redis.KeyWaitingRoom(roomId);
         var membersKey = $"{key}:members";
-        
-        var val = await _redis.Db.HashGetAsync(membersKey, uid);
-        if (!val.HasValue) return false;
 
-        try 
+        if (!await _redis.Db.HashExistsAsync(membersKey, uid))
+            return false;
+
+        var state = await GetMemberStateAsync(membersKey, uid);
+        state.Ready = ready;
+        await SaveMemberStateAsync(membersKey, uid, state);
+        return true;
+    }
+
+    public async Task<bool> UpdateMemberTransportAsync(
+        string roomId,
+        string uid,
+        string name,
+        string clientVersion,
+        string steamId64,
+        int hostProbeRttMs,
+        long hostProbeReportedAtMs)
+    {
+        var key = _redis.KeyWaitingRoom(roomId);
+        var membersKey = $"{key}:members";
+
+        if (!await _redis.Db.HashExistsAsync(membersKey, uid))
+            return false;
+
+        var state = await GetMemberStateAsync(membersKey, uid);
+        if (!string.IsNullOrWhiteSpace(name))
+            state.Name = name;
+        if (!string.IsNullOrWhiteSpace(clientVersion))
+            state.ClientVersion = clientVersion;
+        if (!string.IsNullOrWhiteSpace(steamId64))
+            state.SteamId64 = steamId64;
+        if (hostProbeRttMs >= 0)
+            state.HostProbeRttMs = hostProbeRttMs;
+        if (hostProbeReportedAtMs > 0)
+            state.HostProbeReportedAtMs = hostProbeReportedAtMs;
+
+        await SaveMemberStateAsync(membersKey, uid, state);
+        return true;
+    }
+
+    public async Task<bool> BindSteamLobbyAsync(string roomId, string steamLobbyId)
+    {
+        var key = _redis.KeyWaitingRoom(roomId);
+        if (!await _redis.Db.KeyExistsAsync(key))
+            return false;
+
+        await _redis.Db.HashSetAsync(key, new HashEntry[]
         {
-            using var doc = JsonDocument.Parse(val.ToString());
-            var name = "";
-            if(doc.RootElement.TryGetProperty("Name", out var n)) name = n.GetString() ?? "";
-
-            var newData = JsonSerializer.Serialize(new { Name = name, Ready = ready });
-            await _redis.Db.HashSetAsync(membersKey, uid, newData);
-            return true;
-        }
-        catch { return false; }
+            new("steamLobbyId", steamLobbyId ?? ""),
+        });
+        return true;
     }
 
     public async Task<(bool exists, WaitingRoomDto? dto)> GetAsync(string roomId)
@@ -156,24 +233,32 @@ public sealed class WaitingRoomService
             OwnerUid = dict.GetValueOrDefault("ownerUid") ?? "",
             Status = dict.GetValueOrDefault("status") ?? "",
             UseP2PRelay = int.TryParse(dict.GetValueOrDefault("useP2PRelay") ?? "0", out var relayVal) && relayVal != 0,
+            SteamLobbyId = dict.GetValueOrDefault("steamLobbyId") ?? "",
+            PreferredHostUid = dict.GetValueOrDefault("preferredHostUid") ?? "",
+            HostEpoch = int.TryParse(dict.GetValueOrDefault("hostEpoch") ?? "0", out var hostEpoch) ? hostEpoch : 0,
             MemberUids = new List<string>(),
-            MemberReady = new Dictionary<string, bool>()
+            MemberReady = new Dictionary<string, bool>(),
+            MemberTransport = new List<WaitingRoomMemberTransportDto>()
         };
 
         foreach(var m in members)
         {
              var uid = m.Name.ToString();
              dto.MemberUids.Add(uid);
-             try {
-                using var doc = JsonDocument.Parse(m.Value.ToString());
-                 if(doc.RootElement.TryGetProperty("Ready", out var r))
-                    dto.MemberReady[uid] = r.GetBoolean();
-                 else 
-                    dto.MemberReady[uid] = false;
-             } catch {
-                 dto.MemberReady[uid] = false;
-             }
+             var state = DeserializeMemberState(m.Value);
+             dto.MemberReady[uid] = state.Ready;
+             dto.MemberTransport.Add(new WaitingRoomMemberTransportDto
+             {
+                 Uid = uid,
+                 Name = state.Name,
+                 SteamId64 = state.SteamId64,
+                 ClientVersion = state.ClientVersion,
+                 HostProbeRttMs = state.HostProbeRttMs,
+                 HostProbeReportedAtMs = state.HostProbeReportedAtMs
+             });
         }
+
+        dto.PreferredHostUid = SelectPreferredHostUid(dto);
         
         return (true, dto);
     }
@@ -184,15 +269,19 @@ public sealed class WaitingRoomService
         if (string.IsNullOrEmpty(cursor)) cursor = "0";
 
         var result = await _redis.Db.ExecuteAsync("SSCAN", _redis.KeyWaitingRoomIndex(), cursor, "COUNT", limit);
-        var resArr = (RedisResult[])result;
+        var resArr = (RedisResult[]?)result ?? Array.Empty<RedisResult>();
+        if (resArr.Length < 2)
+            return (new List<WaitingRoomDto>(), "0");
 
-        var nextCursor = (string)resArr[0];
-        var ids = (RedisResult[])resArr[1];
+        var nextCursor = resArr[0].ToString() ?? "0";
+        var ids = (RedisResult[]?)resArr[1] ?? Array.Empty<RedisResult>();
 
         var tasks = new List<Task<(bool, WaitingRoomDto?)>>();
         foreach (var id in ids)
         {
-            tasks.Add(GetAsync((string)id));
+            var roomId = id.ToString();
+            if (!string.IsNullOrWhiteSpace(roomId))
+                tasks.Add(GetAsync(roomId));
         }
 
         var results = await Task.WhenAll(tasks);
@@ -203,5 +292,77 @@ public sealed class WaitingRoomService
         }
 
         return (list, nextCursor);
+    }
+
+    private static string SelectPreferredHostUid(WaitingRoomDto room)
+    {
+        var best = room.MemberTransport
+            .Where(x => !string.IsNullOrWhiteSpace(x.Uid))
+            .Where(x => x.HostProbeRttMs >= 0)
+            .Where(x => x.HostProbeReportedAtMs > 0)
+            .OrderBy(x => x.HostProbeRttMs)
+            .ThenBy(x => string.Equals(x.Uid, room.OwnerUid, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+
+        if (best != null)
+            return best.Uid;
+
+        if (!string.IsNullOrWhiteSpace(room.OwnerUid))
+            return room.OwnerUid;
+
+        return room.MemberUids.FirstOrDefault() ?? "";
+    }
+
+    private async Task<WaitingRoomMemberState> GetMemberStateAsync(string membersKey, string uid)
+    {
+        var val = await _redis.Db.HashGetAsync(membersKey, uid);
+        return DeserializeMemberState(val);
+    }
+
+    private async Task SaveMemberStateAsync(string membersKey, string uid, WaitingRoomMemberState state)
+    {
+        var memberData = JsonSerializer.Serialize(state, JsonOptions);
+        await _redis.Db.HashSetAsync(membersKey, uid, memberData);
+    }
+
+    private static WaitingRoomMemberState DeserializeMemberState(RedisValue value)
+    {
+        if (!value.HasValue)
+            return new WaitingRoomMemberState();
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<WaitingRoomMemberState>(value.ToString(), JsonOptions);
+            if (parsed != null)
+                return parsed;
+        }
+        catch
+        {
+            // Backward compatibility with older payload shape.
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(value.ToString());
+            var state = new WaitingRoomMemberState();
+            if (doc.RootElement.TryGetProperty("Name", out var name))
+                state.Name = name.GetString() ?? "";
+            if (doc.RootElement.TryGetProperty("Ready", out var ready))
+                state.Ready = ready.GetBoolean();
+            if (doc.RootElement.TryGetProperty("SteamId64", out var steam))
+                state.SteamId64 = steam.GetString() ?? "";
+            if (doc.RootElement.TryGetProperty("ClientVersion", out var version))
+                state.ClientVersion = version.GetString() ?? "";
+            if (doc.RootElement.TryGetProperty("HostProbeRttMs", out var rtt) && rtt.TryGetInt32(out var parsedRtt))
+                state.HostProbeRttMs = parsedRtt;
+            if (doc.RootElement.TryGetProperty("HostProbeReportedAtMs", out var reported) && reported.TryGetInt64(out var parsedReported))
+                state.HostProbeReportedAtMs = parsedReported;
+            return state;
+        }
+        catch
+        {
+            return new WaitingRoomMemberState();
+        }
     }
 }

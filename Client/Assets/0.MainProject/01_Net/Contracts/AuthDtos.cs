@@ -28,6 +28,22 @@ public static class AuthDtos
         }
     }
 
+    public sealed class LoginSteamRequest
+    {
+        [JsonProperty("steamId64")] public string SteamId64;
+        [JsonProperty("ticket")] public string Ticket;
+        [JsonProperty("identity")] public string Identity;
+        [JsonProperty("clientVersion")] public string ClientVersion;
+
+        public LoginSteamRequest(string steamId64, string ticket, string identity, string clientVersion)
+        {
+            SteamId64 = steamId64;
+            Ticket = ticket;
+            Identity = identity;
+            ClientVersion = clientVersion;
+        }
+    }
+
     public sealed class LogoutRequest
     {
         [JsonProperty("refreshToken")] public string RefreshToken;

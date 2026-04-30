@@ -12,6 +12,7 @@ public static class OptionsRegistration
         services.Configure<DbOptions>(config.GetSection("Db"));
         services.Configure<ControlPlaneOptions>(config.GetSection("ControlPlane"));
         services.Configure<SecurityOptions>(config.GetSection("Security"));
+        services.Configure<SteamOptions>(config.GetSection("Steam"));
         //services.Configure<TownEndpointOptions>(config.GetSection("TownEndpoint"));
 
         return services;

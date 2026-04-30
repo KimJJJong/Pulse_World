@@ -1,4 +1,5 @@
 using ApiServer.Application.Ports;
+using ApiServer.Domain.GameMatch;
 using ApiServer.Domain.WaitingRoom;
 using System.Net.WebSockets;
 using System.Text;
@@ -9,17 +10,20 @@ namespace ApiServer.Presentation.WebSockets;
 public sealed class RoomWebSocketHandler
 {
     private readonly IControlPlanePort _cp;
+    private readonly GameMatchService _gameMatch;
     private readonly WaitingRoomService _waitingRoom;
     private readonly ConnectionManager _conns;
     private readonly ILogger<RoomWebSocketHandler> _logger;
 
     public RoomWebSocketHandler(
-        IControlPlanePort cp, 
+        IControlPlanePort cp,
+        GameMatchService gameMatch,
         WaitingRoomService waitingRoom,
-        ConnectionManager conns, 
+        ConnectionManager conns,
         ILogger<RoomWebSocketHandler> logger)
     {
         _cp = cp;
+        _gameMatch = gameMatch;
         _waitingRoom = waitingRoom;
         _conns = conns;
         _logger = logger;
@@ -36,8 +40,10 @@ public sealed class RoomWebSocketHandler
         var uid = context.Items["uid"]?.ToString() ?? context.Request.Query["uid"].ToString();
         var name = context.Request.Query["name"].ToString();
         var roomId = context.Request.Query["roomId"].ToString();
+        var steamId64 = context.Request.Query["steamId64"].ToString();
+        var clientVersion = context.Request.Headers["X-Client-Version"].ToString();
 
-        if (string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(roomId)) 
+        if (string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(roomId))
         {
             context.Response.StatusCode = 401;
             return;
@@ -58,6 +64,8 @@ public sealed class RoomWebSocketHandler
                 await CloseAsync(ws, "Join Failed: " + joinErr);
                 return;
             }
+
+            await _waitingRoom.UpdateMemberTransportAsync(roomId, uid, name, clientVersion, steamId64, -1, 0);
 
             var (_, room) = await _waitingRoom.GetAsync(roomId);
             if (room == null) // Strange timing
@@ -81,8 +89,20 @@ public sealed class RoomWebSocketHandler
                 ownerUid = room.OwnerUid,
                 status = room.Status,
                 useP2PRelay = room.UseP2PRelay,
+                steamLobbyId = room.SteamLobbyId,
+                preferredHostUid = room.PreferredHostUid,
+                hostEpoch = room.HostEpoch,
                 memberUids = room.MemberUids,
-                memberReady = room.MemberReady.Select(kv => new { uid = kv.Key, ready = kv.Value }).ToList()
+                memberReady = room.MemberReady.Select(kv => new { uid = kv.Key, ready = kv.Value }).ToList(),
+                memberTransport = room.MemberTransport.Select(x => new
+                {
+                    uid = x.Uid,
+                    name = x.Name,
+                    steamId64 = x.SteamId64,
+                    clientVersion = x.ClientVersion,
+                    hostProbeRttMs = x.HostProbeRttMs,
+                    hostProbeReportedAtMs = x.HostProbeReportedAtMs
+                }).ToList()
             };
             await _conns.SendToAsync(roomId, uid, new { type = "Init", room = clientRoom });
 
@@ -131,6 +151,56 @@ public sealed class RoomWebSocketHandler
                     await _conns.BroadcastAsync(roomId, new { type = "MemberUpdate", uid, ready = val });
                 }
             }
+            else if (type == "HostProbePing")
+            {
+                var nonce = root.TryGetProperty("nonce", out var nonceElement)
+                    ? nonceElement.GetString() ?? ""
+                    : "";
+
+                await _conns.SendToAsync(roomId, uid, new
+                {
+                    type = "HostProbePong",
+                    nonce,
+                    serverTimeMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                });
+            }
+            else if (type == "HostProbeReport")
+            {
+                var probeRttMs = root.TryGetProperty("rttMs", out var rttElement) && rttElement.TryGetInt32(out var parsedRtt)
+                    ? parsedRtt
+                    : -1;
+                var reportedAtMs = root.TryGetProperty("reportedAtMs", out var reportedElement) && reportedElement.TryGetInt64(out var parsedReportedAt)
+                    ? parsedReportedAt
+                    : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+                if (await _waitingRoom.UpdateMemberTransportAsync(roomId, uid, "", "", "", probeRttMs, reportedAtMs))
+                {
+                    var (_, room) = await _waitingRoom.GetAsync(roomId);
+                    await _conns.BroadcastAsync(roomId, new
+                    {
+                        type = "HostCandidateUpdate",
+                        preferredHostUid = room?.PreferredHostUid ?? "",
+                        hostEpoch = room?.HostEpoch ?? 0,
+                        uid,
+                        hostProbeRttMs = probeRttMs
+                    });
+                }
+            }
+            else if (type == "BindSteamLobby")
+            {
+                var steamLobbyId = root.TryGetProperty("steamLobbyId", out var lobbyElement)
+                    ? lobbyElement.GetString() ?? ""
+                    : "";
+
+                if (await _waitingRoom.BindSteamLobbyAsync(roomId, steamLobbyId))
+                {
+                    await _conns.BroadcastAsync(roomId, new
+                    {
+                        type = "SteamLobbyBound",
+                        steamLobbyId
+                    });
+                }
+            }
             else if (type == "Start")
             {
                 try 
@@ -176,6 +246,15 @@ public sealed class RoomWebSocketHandler
                          throw new Exception("No game server available: " + ex.Message);
                     }
 
+                    var ownerTransport = room.MemberTransport
+                        .FirstOrDefault(x => string.Equals(x.Uid, uid, StringComparison.OrdinalIgnoreCase));
+                    var protocolVersion = ownerTransport?.ClientVersion ?? "0.0.0";
+                    var matchManifest = await _gameMatch.CreateOrReplaceForWaitingRoomAsync(
+                        room,
+                        room.UseP2PRelay ? "steam_p2p_host" : "gameserver",
+                        protocolVersion,
+                        CancellationToken.None);
+
                     // 4. Issue Tickets & Broadcast
                     // (Ideally, CP should support BulkIssue, but for now loop)
                     foreach(var memberUid in room.MemberUids)
@@ -201,7 +280,8 @@ public sealed class RoomWebSocketHandler
                                 ticket = ticketId,
                                 mapId = room.MapId,
                                 maxPlayers = room.MemberUids.Count, // 실제 참여 인원으로 시작
-                                useP2PRelay = room.UseP2PRelay
+                                useP2PRelay = room.UseP2PRelay,
+                                matchManifest
                             };
                             await _conns.SendToAsync(roomId, memberUid, payload);
                         }

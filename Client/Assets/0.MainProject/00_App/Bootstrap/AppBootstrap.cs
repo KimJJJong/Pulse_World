@@ -18,6 +18,9 @@ public sealed class AppBootstrap : MonoBehaviour
             config = Resources.Load<AppConfig>("AppConfig");
 
         Root = new AppCompositionRoot(config);
+        Root.SteamPlatform.Initialize();
+        if (config == null || config.ShowSteamDebugHud)
+            SteamP2PDebugHud.Ensure(visibleByDefault: true);
 
         // 앱 시작 시 토큰이 있으면 바로 Town으로, 없으면 Login으로
         if (!ignoreToken)
@@ -32,5 +35,15 @@ public sealed class AppBootstrap : MonoBehaviour
         }
 
 
+    }
+
+    void Update()
+    {
+        Root?.SteamPlatform?.RunCallbacks();
+    }
+
+    void OnDestroy()
+    {
+        Root?.SteamPlatform?.Shutdown();
     }
 }

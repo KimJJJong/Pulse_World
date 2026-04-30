@@ -68,5 +68,8 @@ namespace NetClient.Room
         public int memberCount;
         public string status;
         public string ownerUid;
+        public bool useP2PRelay;
+        public string preferredHostUid;
+        public string steamLobbyId;
     }
 }

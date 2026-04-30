@@ -49,7 +49,7 @@ public sealed class LoginScreen : MonoBehaviour
 
         var root = AppBootstrap.Instance.Root;
 
-        var r = await root.AuthApi.LoginGuestAsync();
+        var r = await root.AuthApi.LoginPreferredAsync(root.SteamPlatform, root.Config);
         view.SetBusy(false);
 
         if (!r.Ok)

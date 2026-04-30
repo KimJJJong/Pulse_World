@@ -22,6 +22,28 @@ using System.Collections.Generic;
         public string type = "Start";
     }
 
+    [Serializable]
+    public class HostProbePingRequest
+    {
+        public string type = "HostProbePing";
+        public string nonce;
+    }
+
+    [Serializable]
+    public class HostProbeReportRequest
+    {
+        public string type = "HostProbeReport";
+        public int rttMs;
+        public long reportedAtMs;
+    }
+
+    [Serializable]
+    public class BindSteamLobbyRequest
+    {
+        public string type = "BindSteamLobby";
+        public string steamLobbyId;
+    }
+
     // --- Responses / Events ---
     
     [Serializable]
@@ -41,8 +63,23 @@ using System.Collections.Generic;
         public string ownerUid;
         public string status;
         public bool useP2PRelay;
+        public string steamLobbyId;
+        public string preferredHostUid;
+        public int hostEpoch;
         public List<string> memberUids; // JsonUtility supports List<string>
         public List<MemberReadyState> memberReady; // Changed from Dictionary for JsonUtility compatibility
+        public List<MemberTransportState> memberTransport;
+    }
+
+    [Serializable]
+    public class MemberTransportState
+    {
+        public string uid;
+        public string name;
+        public string steamId64;
+        public string clientVersion;
+        public int hostProbeRttMs;
+        public long hostProbeReportedAtMs;
     }
 
     // "Init"
@@ -79,6 +116,58 @@ using System.Collections.Generic;
         public bool ready;
     }
 
+    [Serializable]
+    public class HostProbePongMsg
+    {
+        public string type;
+        public string nonce;
+        public long serverTimeMs;
+    }
+
+    [Serializable]
+    public class HostCandidateUpdateMsg
+    {
+        public string type;
+        public string preferredHostUid;
+        public int hostEpoch;
+        public string uid;
+        public int hostProbeRttMs;
+    }
+
+    [Serializable]
+    public class SteamLobbyBoundMsg
+    {
+        public string type;
+        public string steamLobbyId;
+    }
+
+    [Serializable]
+    public class WsMatchParticipantDto
+    {
+        public string uid;
+        public string steamId64;
+        public int actorId;
+        public string loadoutHash;
+    }
+
+    [Serializable]
+    public class WsMatchManifestDto
+    {
+        public string matchId;
+        public string roomId;
+        public string networkMode;
+        public string protocolVersion;
+        public string mapId;
+        public int stageSeed;
+        public int songStartDelayMs;
+        public string hostUid;
+        public string hostSteamId64;
+        public int hostEpoch;
+        public int preferredHostRttMs;
+        public long createdAtMs;
+        public List<WsMatchParticipantDto> participants;
+    }
+
     // "GameStart"
     [Serializable]
     public class GameStartMsg
@@ -89,6 +178,7 @@ using System.Collections.Generic;
         public string mapId;
         public int maxPlayers;
         public bool useP2PRelay;
+        public WsMatchManifestDto matchManifest;
     }
 
     [Serializable]

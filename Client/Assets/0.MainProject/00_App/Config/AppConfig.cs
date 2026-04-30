@@ -9,4 +9,14 @@ public sealed class AppConfig : ScriptableObject
 
     [Header("Client")]
     public string ClientVersion = "0.1.0";
+
+    [Header("Steam")]
+    public bool EnableSteam = true;
+    public string SteamAppId = "480";
+    public bool PreferSteamP2PInGame = true;
+    public bool PreferSteamLogin = true;
+    public string SteamId64Override = "";
+
+    [Header("Debug")]
+    public bool ShowSteamDebugHud = true;
 }
