@@ -48,6 +48,7 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
     private string _mapId = "";
     private StageScenarioData _stage;
     private bool _stageLoaded;
+    private string _lastStageLoadAttemptMapId = "";
     private long _lastProcessedBeat = long.MinValue;
     private long _stageLoadServerTimeMs;
     private int _nextSpawnEntityId = 10_000_000;
@@ -71,31 +72,13 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
             return;
 
         EnsureStageLoaded();
-        if (!_stageLoaded || RhythmClient.Instance == null || ClientGameState.Instance == null)
+        if (!_stageLoaded || ClientGameState.Instance == null)
             return;
 
-        long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
-        if (currentBeat < 0)
-            return;
-
-        if (_lastProcessedBeat == currentBeat && !_bindingsDirty)
-            return;
-
-        if (_lastProcessedBeat == long.MinValue)
-            _lastProcessedBeat = currentBeat - 1;
-
-        if (_bindingsDirty && _lastProcessedBeat >= currentBeat)
+        if (_bindingsDirty)
         {
-            ProcessDirtyBeat(currentBeat);
-            return;
-        }
-
-        int processedBeats = 0;
-        while (_lastProcessedBeat < currentBeat && processedBeats < MaxCatchUpBeatsPerUpdate)
-        {
-            _lastProcessedBeat++;
-            ProcessBeat(_lastProcessedBeat);
-            processedBeats++;
+            SyncBindingsFromWorld();
+            _bindingsDirty = false;
         }
     }
 
@@ -105,10 +88,14 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
         _stageLoadServerTimeMs = TimeSync.ServerNowMs();
         _lastProcessedBeat = long.MinValue;
         _bindingsDirty = true;
+        ResetStageRuntime();
         LoadStageContent();
-        SyncBindingsFromWorld();
-        _bindingsDirty = false;
-        _stageEngine.NotifyEvent(new GameEventContext(StageEventType.GameStart, timeMs: _stageLoadServerTimeMs), this);
+        if (_stageLoaded)
+        {
+            SyncBindingsFromWorld();
+            _bindingsDirty = false;
+            _stageEngine.NotifyEvent(new GameEventContext(StageEventType.GameStart, timeMs: _stageLoadServerTimeMs), this);
+        }
         if (P2PDebugConfig.TraceContent)
             Debug.Log($"[P2PContentDirector] ConfigureStage map={_mapId} loaded={_stageLoaded}");
     }
@@ -130,17 +117,12 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
     public void ResetMatchState()
     {
         _mapId = "";
-        _stage = null;
-        _stageLoaded = false;
         _lastProcessedBeat = long.MinValue;
         _stageLoadServerTimeMs = 0;
         _nextSpawnEntityId = 10_000_000;
         _bindingsDirty = true;
-
-        _templatesByAppearanceId.Clear();
+        ResetStageRuntime();
         _patterns.Clear();
-        _monsterStates.Clear();
-        _stageEngine.Reset();
 
         if (P2PDebugConfig.TraceContent)
             Debug.Log("[P2PContentDirector] Match state reset");
@@ -170,31 +152,14 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
         _bindingsDirty = true;
     }
 
-    private GameEventContext BuildStageContext(StageEventType type, long beat)
-    {
-        int x = 0;
-        int y = 0;
-
-        if (ClientGameState.Instance != null && ClientGameState.Instance.TryGetMyEntity(out var my))
-        {
-            x = my.X;
-            y = my.Y;
-        }
-
-        int actorId = 0;
-        if (ClientGameState.Instance != null)
-            actorId = ClientGameState.Instance.MyActorId;
-
-        return new GameEventContext(type, actorId, actorId, x, y, TimeSync.ServerNowMs());
-    }
-
     private void EnsureStageLoaded()
     {
         if (_stageLoaded)
             return;
 
         LoadStageContent();
-        SyncBindingsFromWorld();
+        if (_stageLoaded)
+            SyncBindingsFromWorld();
     }
 
     private bool ShouldDriveHostContent()
@@ -211,19 +176,36 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
         if (_stageLoaded)
             return;
 
+        if (string.Equals(_lastStageLoadAttemptMapId, _mapId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _lastStageLoadAttemptMapId = _mapId;
+
         LoadEntityTemplateData();
         LoadPatternData();
 
-        var textAsset = Resources.Load<TextAsset>($"Data/Stage/{_mapId}");
-        if (textAsset == null)
-        {
-            Debug.LogWarning($"[P2PContentDirector] Stage json not found: Data/Stage/{_mapId}");
-            return;
-        }
-
         try
         {
-            _stage = JsonUtility.FromJson<StageScenarioData>(textAsset.text);
+            string jsonText = null;
+            if (P2PServerContentResolver.TryLoadStageJson(_mapId, out var serverStageJson))
+            {
+                jsonText = serverStageJson;
+                if (P2PDebugConfig.TraceContent)
+                    Debug.Log($"[P2PContentDirector] Using server stage json: {_mapId}");
+            }
+            else
+            {
+                var textAsset = Resources.Load<TextAsset>($"Data/Stage/{_mapId}");
+                if (textAsset == null)
+                {
+                    Debug.LogWarning($"[P2PContentDirector] Stage json not found: Data/Stage/{_mapId}");
+                    return;
+                }
+
+                jsonText = textAsset.text;
+            }
+
+            _stage = JsonUtility.FromJson<StageScenarioData>(jsonText);
             if (_stage == null)
             {
                 Debug.LogWarning($"[P2PContentDirector] Failed to parse stage json: {_mapId}");
@@ -240,6 +222,16 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
         {
             Debug.LogWarning($"[P2PContentDirector] Stage load failed: {ex.Message}");
         }
+    }
+
+    private void ResetStageRuntime()
+    {
+        _stage = null;
+        _stageLoaded = false;
+        _lastStageLoadAttemptMapId = "";
+        _templatesByAppearanceId.Clear();
+        _monsterStates.Clear();
+        _stageEngine.Reset();
     }
 
     private void LoadEntityTemplateData()
@@ -279,28 +271,55 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
         if (_patterns.Count > 0)
             return;
 
-        var assets = Resources.LoadAll<TextAsset>("Data/Patterns");
-        foreach (var asset in assets)
+        bool loadedFromServer = false;
+        foreach (var jsonText in P2PServerContentResolver.EnumeratePatternJsonTexts())
         {
-            if (asset == null || string.IsNullOrWhiteSpace(asset.text))
-                continue;
-
             try
             {
-                var set = JsonUtility.FromJson<MonsterPatternSet>(asset.text);
+                var set = JsonUtility.FromJson<MonsterPatternSet>(jsonText);
                 if (set?.Monsters != null && set.Monsters.Count > 0)
                 {
                     foreach (var pattern in set.Monsters)
                         CachePattern(pattern);
+                    loadedFromServer = true;
                     continue;
                 }
 
-                var patternDef = JsonUtility.FromJson<MonsterPatternDef>(asset.text);
+                var patternDef = JsonUtility.FromJson<MonsterPatternDef>(jsonText);
                 CachePattern(patternDef);
+                loadedFromServer = true;
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[P2PContentDirector] Pattern parse failed '{asset.name}': {ex.Message}");
+                Debug.LogWarning($"[P2PContentDirector] Server pattern parse failed: {ex.Message}");
+            }
+        }
+
+        if (!loadedFromServer)
+        {
+            var assets = Resources.LoadAll<TextAsset>("Data/Patterns");
+            foreach (var asset in assets)
+            {
+                if (asset == null || string.IsNullOrWhiteSpace(asset.text))
+                    continue;
+
+                try
+                {
+                    var set = JsonUtility.FromJson<MonsterPatternSet>(asset.text);
+                    if (set?.Monsters != null && set.Monsters.Count > 0)
+                    {
+                        foreach (var pattern in set.Monsters)
+                            CachePattern(pattern);
+                        continue;
+                    }
+
+                    var patternDef = JsonUtility.FromJson<MonsterPatternDef>(asset.text);
+                    CachePattern(patternDef);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[P2PContentDirector] Pattern parse failed '{asset.name}': {ex.Message}");
+                }
             }
         }
 
@@ -405,27 +424,40 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
         state.Rotation = entity.Rotation;
     }
 
-    private void ProcessDirtyBeat(long beat)
+    public void PrepareHostBeat(long beat)
     {
-        SyncBindingsFromWorld();
-        _bindingsDirty = false;
-        _stageEngine.NotifyEvent(BuildStageContext(StageEventType.Beat, beat), this);
+        EnsureStageLoaded();
+        if (!_stageLoaded || ClientGameState.Instance == null)
+            return;
 
-        if (P2PHostController.HasInstance)
-            P2PHostController.Instance.CheckAndSubmitGameResultIfCleared();
-    }
-
-    private void ProcessBeat(long beat)
-    {
         if (_bindingsDirty)
         {
             SyncBindingsFromWorld();
             _bindingsDirty = false;
         }
 
-        _stageEngine.NotifyEvent(BuildStageContext(StageEventType.Beat, beat), this);
         RunMonsterAI(beat);
-        P2PHostController.Instance.CheckAndSubmitGameResultIfCleared();
+
+        if (P2PDebugConfig.TraceContent)
+            Debug.Log($"[P2PContentDirector] PrepareHostBeat beat={beat} monsters={_monsterStates.Count}");
+    }
+
+    public void FinalizeHostBeat(long beat)
+    {
+        EnsureStageLoaded();
+        if (!_stageLoaded)
+            return;
+
+        long serverNow = TimeSync.ServerNowMs();
+        _lastProcessedBeat = beat;
+        _stageEngine.NotifyEvent(new GameEventContext(StageEventType.Beat, timeMs: serverNow), this);
+        _stageEngine.NotifyEvent(new GameEventContext(StageEventType.TimeTick, timeMs: serverNow), this);
+
+        if (P2PHostController.HasInstance)
+            P2PHostController.Instance.CheckAndSubmitGameResultIfCleared();
+
+        if (P2PDebugConfig.TraceContent)
+            Debug.Log($"[P2PContentDirector] FinalizeHostBeat beat={beat} timeMs={serverNow}");
     }
 
     private int CountDeadMonsters(int groupId)
@@ -789,11 +821,13 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
                             break;
                         }
 
-                        var nextPos = StepTowards(plannedPos, new Vector2Int(target.Value.X, target.Value.Y), Math.Max(1, action.MoveDistance), state.EntityId);
-                        if (!IsWalkable(nextPos.x, nextPos.y, state.EntityId))
+                        var nextPos = StepTowards(plannedPos, new Vector2Int(target.Value.X, target.Value.Y), Math.Max(1, action.MoveDistance));
+                        if (!IsMapWalkable(nextPos.x, nextPos.y))
                             nextPos = plannedPos;
 
                         float rotation = CalculateRotation(plannedPos, nextPos, plannedRotation);
+                        if (P2PDebugConfig.TraceContent)
+                            Debug.Log($"[P2PContentDirector] AIScheduleMove actor={state.EntityId} beat={executeBeat} from=({plannedPos.x},{plannedPos.y}) to=({nextPos.x},{nextPos.y}) mode=MoveStepToward");
                         P2PHostController.Instance.EnqueueAiAction(state.EntityId, ActionKind.Move, nextPos.x, nextPos.y, rotation, "", executeBeat);
 
                         plannedPos = nextPos;
@@ -808,10 +842,12 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
                             ? ResolveMoveDirection(plannedPos, state, action)
                             : ResolveMoveStrategy(plannedPos, state, action);
 
-                        if (!IsWalkable(nextPos.x, nextPos.y, state.EntityId))
+                        if (!IsMapWalkable(nextPos.x, nextPos.y))
                             nextPos = plannedPos;
 
                         float rotation = CalculateRotation(plannedPos, nextPos, plannedRotation);
+                        if (P2PDebugConfig.TraceContent)
+                            Debug.Log($"[P2PContentDirector] AIScheduleMove actor={state.EntityId} beat={executeBeat} from=({plannedPos.x},{plannedPos.y}) to=({nextPos.x},{nextPos.y}) mode=Move");
                         P2PHostController.Instance.EnqueueAiAction(state.EntityId, ActionKind.Move, nextPos.x, nextPos.y, rotation, "", executeBeat);
 
                         plannedPos = nextPos;
@@ -852,12 +888,12 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
         return lastBeat;
     }
 
-    private bool IsWalkable(int x, int y, int ignoreEntityId)
+    private bool IsMapWalkable(int x, int y)
     {
         if (ClientGameState.Instance == null)
             return false;
 
-        return ClientGameState.Instance.IsWalkable(x, y) && !ClientGameState.Instance.IsOccupied(x, y, ignoreEntityId);
+        return ClientGameState.Instance.IsWalkable(x, y);
     }
 
     private Vector2Int ResolveMoveDirection(Vector2Int from, MonsterRuntimeState state, ActionDef action)
@@ -899,7 +935,7 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
                     break;
             }
 
-            if (!IsWalkable(next.x, next.y, state.EntityId))
+            if (!IsMapWalkable(next.x, next.y))
                 break;
 
             pos = next;
@@ -924,7 +960,7 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
                         new Vector2Int(from.x - dist, from.y)
                     };
 
-                    candidates = candidates.Where(c => IsWalkable(c.x, c.y, state.EntityId)).ToList();
+                    candidates = candidates.Where(c => IsMapWalkable(c.x, c.y)).ToList();
                     if (candidates.Count == 0)
                         return from;
 
@@ -951,7 +987,7 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
                     if (target == null)
                         return from;
 
-                    return StepTowards(from, new Vector2Int(target.Value.X, target.Value.Y), dist, state.EntityId);
+                    return StepTowards(from, new Vector2Int(target.Value.X, target.Value.Y), dist);
                 }
 
             case MoveStrategy.Backward:
@@ -980,7 +1016,7 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
         return from;
     }
 
-    private Vector2Int StepTowards(Vector2Int from, Vector2Int target, int distance, int ignoreEntityId = -1)
+    private Vector2Int StepTowards(Vector2Int from, Vector2Int target, int distance)
     {
         Vector2Int pos = from;
         int steps = Math.Max(1, distance);
@@ -994,12 +1030,14 @@ public sealed class P2PContentDirector : MonoBehaviour, IStageActionHost
                 break;
 
             Vector2Int next;
-            if (Math.Abs(dx) >= Math.Abs(dy))
+            if (Math.Abs(dx) > Math.Abs(dy))
                 next = new Vector2Int(pos.x + Math.Sign(dx), pos.y);
-            else
+            else if (dy != 0)
                 next = new Vector2Int(pos.x, pos.y + Math.Sign(dy));
+            else
+                next = pos;
 
-            if (!IsWalkable(next.x, next.y, ignoreEntityId))
+            if (!IsMapWalkable(next.x, next.y))
                 break;
 
             pos = next;

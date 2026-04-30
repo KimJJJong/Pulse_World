@@ -291,8 +291,6 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             return;
 
         var session = NetworkManager.Instance.CurrentSession;
-        if (session == null)
-            return;
 
         try
         {
@@ -322,6 +320,12 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         }
 
         IsHostLocal = ResolveLocalHostOwnership();
+
+        if (IsSteamTransport && IsHostLocal && HostActorId <= 0)
+        {
+            HostActorId = ClientGameState.Instance?.MyActorId ?? SessionContext.Instance?.MyActorId ?? 1;
+        }
+
         bool hostAuthorityReady = IsHostLocal && HostActorId > 0;
 
         P2PHostController.Instance.SetHostActorId(HostActorId);
@@ -510,8 +514,6 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             return;
 
         var session = NetworkManager.Instance != null ? NetworkManager.Instance.CurrentSession : null;
-        if (session == null)
-            return;
 
         try
         {
@@ -722,6 +724,9 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     {
         if (IsSteamTransport)
         {
+            if (_steamTransport != null && _steamTransport.IsHosting)
+                return true;
+
             if (!string.IsNullOrWhiteSpace(HostUid)
                 && string.Equals(HostUid, SessionContext.Instance.Uid, StringComparison.OrdinalIgnoreCase))
                 return true;
@@ -731,6 +736,9 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
                 && !string.IsNullOrWhiteSpace(localSteamId64)
                 && string.Equals(HostSteamId64, localSteamId64, StringComparison.Ordinal))
                 return true;
+
+            if (string.IsNullOrWhiteSpace(HostUid) && string.IsNullOrWhiteSpace(HostSteamId64))
+                return true; // Assume host in Steam P2P if no host is specified (local testing)
         }
 
         return HostActorId > 0 && SessionContext.Instance.MyActorId == HostActorId;

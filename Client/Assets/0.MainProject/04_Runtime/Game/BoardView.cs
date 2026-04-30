@@ -300,6 +300,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     public void OnSpawnOrUpdateEntity(ClientEntityInfo info)
     {
+        bool createdNow = false;
         if (!_entityViews.TryGetValue(info.EntityId, out var visual) || visual == null)
         {
             GameObject prefab = ChoosePrefab(info.EntityType, info.AppearanceId);
@@ -316,6 +317,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 visual = go.AddComponent<EntityVisual>();
 
             _entityViews[info.EntityId] = visual;
+            createdNow = true;
 
             if (visual.TryGetComponent<RhythmRPG.Visual.CharacterVisualController>(out var visualCtrl))
             {
@@ -330,6 +332,14 @@ public class BoardView : MonoBehaviour, IClientWorldView
         {
             CameraBinder.Instance?.Bind(visual.transform);
             RhythmInputControllerBinder.Instance?.Bind(visual.gameObject);
+
+            if (createdNow)
+            {
+                string controllerState = RhythmInputController.Instance != null
+                    ? RhythmInputController.Instance.GetDebugState()
+                    : "<controller-missing>";
+                Debug.Log($"[BoardView] Local player bound actor={info.EntityId} target={visual.gameObject.name} controller={controllerState}");
+            }
         }
 
         visual.transform.position = GridToWorld(info.X, info.Y);

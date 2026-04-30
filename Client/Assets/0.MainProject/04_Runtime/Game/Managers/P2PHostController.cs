@@ -10,7 +10,7 @@ using UnityEngine;
 [DefaultExecutionOrder(-900)]
 public sealed class P2PHostController : MonoBehaviour
 {
-    private const int MaxCatchUpBeatsPerUpdate = 2;
+    private const int MaxCatchUpBeatsPerUpdate = 10;
 
     public static P2PHostController Instance
     {
@@ -39,10 +39,16 @@ public sealed class P2PHostController : MonoBehaviour
     private readonly Dictionary<int, long> _lastAcceptedBeatByActor = new();
     private readonly object _snapshotLock = new();
     private readonly object _commandLock = new();
-    private readonly List<QueuedCombatCommand> _queuedCommands = new();
-    private long _commandSequence;
+    private readonly BeatCommandScheduler _beatScheduler = new();
+    private readonly BeatCommandScheduler _delayedScheduler = new();
+    private readonly List<QueuedCombatCommand> _commandBuffer = new(16);
+
+    private readonly List<SC_BeatActions.BeatActionResult> _batchedBeatResults = new();
+    private readonly HashSet<int> _batchedDeadEntities = new();
+    private readonly Dictionary<int, Vector2Int> _hostPositions = new();
 
     private long _lastProcessedBeat = long.MinValue;
+    private long _lastJudgeWindowBeat = long.MinValue;
     private bool _snapshotRefreshInFlight;
     private bool _resultSubmitted;
     private long _totalDamageDealt;
@@ -65,6 +71,7 @@ public sealed class P2PHostController : MonoBehaviour
         IsHost = false;
         HostActorId = 0;
         _lastProcessedBeat = long.MinValue;
+        _lastJudgeWindowBeat = long.MinValue;
         _resultSubmitted = false;
         _totalDamageDealt = 0;
         _snapshotRefreshInFlight = false;
@@ -75,7 +82,9 @@ public sealed class P2PHostController : MonoBehaviour
 
         lock (_commandLock)
         {
-            _queuedCommands.Clear();
+            _beatScheduler.Clear();
+            _delayedScheduler.Clear();
+            _commandBuffer.Clear();
         }
 
         lock (_snapshotLock)
@@ -132,15 +141,13 @@ public sealed class P2PHostController : MonoBehaviour
 
     public void EnqueueLocalActionRequest(CS_ActionRequest req)
     {
-        if (req == null)
+        if (!IsHost || req == null)
             return;
 
-        EnqueueCommand(new QueuedCombatCommand
-        {
-            Request = req,
-            ActorId = req.ActorId,
-            FromLocalSource = true
-        });
+        if (P2PDebugConfig.TraceHostFlow)
+            Debug.Log($"[P2PHostController] EnqueueLocal actor={req.ActorId} action={(ActionKind)req.ActionKind} slot={req.SlotIndex} target=({req.TargetX},{req.TargetY}) sendMs={req.ClientSendTimeMs}");
+
+        HandleActionRequest(req, req.ActorId, fromLocalSource: true);
     }
 
     public void EnqueueGuestActionRequest(CS_P2PPayload pkt)
@@ -152,12 +159,7 @@ public sealed class P2PHostController : MonoBehaviour
             return;
 
         int actorId = pkt.SenderActorId > 0 ? pkt.SenderActorId : req.ActorId;
-        EnqueueCommand(new QueuedCombatCommand
-        {
-            Request = req,
-            ActorId = actorId,
-            FromLocalSource = false
-        });
+        HandleActionRequest(req, actorId, fromLocalSource: false);
     }
 
     public void EnqueueAiAction(
@@ -183,7 +185,7 @@ public sealed class P2PHostController : MonoBehaviour
             ClientSendTimeMs = RhythmClient.Instance.GetBeatTimeMs(executeBeat)
         };
 
-        EnqueueCommand(new QueuedCombatCommand
+        EnqueueScheduledCommand(new QueuedCombatCommand
         {
             Request = req,
             ActorId = actorId,
@@ -207,297 +209,135 @@ public sealed class P2PHostController : MonoBehaviour
         EnqueueGuestActionRequest(pkt);
     }
 
-    private void LateUpdate()
+    private float _debugTimer = 0f;
+
+    private void Update()
     {
+        _debugTimer += Time.deltaTime;
+        if (_debugTimer > 1f)
+        {
+            _debugTimer = 0f;
+        }
+
         if (!IsHost)
             return;
 
         if (RhythmClient.Instance == null || ClientGameState.Instance == null)
             return;
 
-        // 입력 콜백, MainThreadDispatcher, NetworkManager가 모두 Update 단계에서 큐를 채운 뒤
-        // 호스트 확정을 실행해야 같은 프레임 입력이 late/stale로 밀리지 않는다.
-        // 전투 확정은 두 단계로 나눈다.
-        // 1) currentBeat  : 스킬 시작/연출/Warning 예약
-        // 2) resolvedBeat : judge window 종료 후 이동과 데미지 확정
-        // 이 둘을 다시 합치면 Warning 회피/진입 판정이 흔들릴 수 있으므로 분리 유지가 중요하다.
         long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
-        if (currentBeat >= 0)
-            ProcessImmediateQueuedCommands(currentBeat);
-
-        long resolvedBeat = GetLastResolvedBeat();
-        if (resolvedBeat < 0)
+        if (currentBeat < 0)
             return;
-
-        if (_lastProcessedBeat == resolvedBeat)
-        {
-            DiscardExpiredQueuedCommands(resolvedBeat);
-            return;
-        }
 
         if (_lastProcessedBeat == long.MinValue)
-            _lastProcessedBeat = resolvedBeat - 1;
+            _lastProcessedBeat = currentBeat - 1;
 
+        var contentDirector = P2PContentDirector.HasInstance ? P2PContentDirector.Instance : null;
         int processedBeats = 0;
-        while (_lastProcessedBeat < resolvedBeat && processedBeats < MaxCatchUpBeatsPerUpdate)
+        while (_lastProcessedBeat < currentBeat && processedBeats < MaxCatchUpBeatsPerUpdate)
         {
             _lastProcessedBeat++;
-            ProcessQueuedCommandsAtBeat(_lastProcessedBeat);
+            contentDirector?.PrepareHostBeat(_lastProcessedBeat);
+            ProcessScheduledCommandsAtBeat(_lastProcessedBeat);
+            contentDirector?.FinalizeHostBeat(_lastProcessedBeat);
             ProcessSkillsAtBeat(_lastProcessedBeat);
+            
+            FlushBatchedBeatResults(_lastProcessedBeat);
+            
+            processedBeats++;
+        }
+
+        ProcessJudgeWindowCallbacks();
+    }
+
+    private void ProcessJudgeWindowCallbacks()
+    {
+        if (RhythmClient.Instance == null)
+            return;
+
+        if (_lastJudgeWindowBeat == long.MinValue)
+            _lastJudgeWindowBeat = _lastProcessedBeat - 1;
+
+        long now = RhythmClient.Instance.GetCurrentServerTimeMs();
+        double judgeWindowMs = RhythmClient.Instance.judgeWindowMs > 0 ? RhythmClient.Instance.judgeWindowMs : 100.0;
+        int processedBeats = 0;
+
+        while (processedBeats < MaxCatchUpBeatsPerUpdate)
+        {
+            long nextBeat = _lastJudgeWindowBeat + 1;
+            long windowEndMs = RhythmClient.Instance.GetBeatTimeMs(nextBeat) + (long)Math.Ceiling(judgeWindowMs);
+            if (now < windowEndMs)
+                break;
+
+            _lastJudgeWindowBeat = nextBeat;
+            ProcessDelayedCommandsAtBeat(nextBeat);
+            
+            FlushBatchedBeatResults(nextBeat);
+            
             processedBeats++;
         }
     }
 
-    private void EnqueueCommand(QueuedCombatCommand command)
+    private void EnqueueScheduledCommand(QueuedCombatCommand command)
     {
         if (command == null)
             return;
 
         lock (_commandLock)
         {
-            command.Sequence = ++_commandSequence;
-            _queuedCommands.Add(command);
+            long beat = command.ForcedExecuteBeat ?? 0;
+            var scheduler = IsImmediateBeatCommand(command) ? _beatScheduler : _delayedScheduler;
+            scheduler.Enqueue(beat, command);
         }
     }
 
-    private long GetLastResolvedBeat()
+    private void ProcessScheduledCommandsAtBeat(long beat)
     {
-        if (RhythmClient.Instance == null)
-            return -1;
-
-        double judgeWindowMs = RhythmClient.Instance.judgeWindowMs > 0 ? RhythmClient.Instance.judgeWindowMs : 100.0;
-        long resolvedServerTimeMs = RhythmClient.Instance.GetCurrentServerTimeMs() - (long)Math.Ceiling(judgeWindowMs);
-        if (resolvedServerTimeMs < RhythmClient.Instance.ServerSongStartMs)
-            return -1;
-
-        double elapsedMs = resolvedServerTimeMs - RhythmClient.Instance.ServerSongStartMs;
-        double beatMs = RhythmClient.Instance.GetBeatDurationMs();
-        if (beatMs <= 0.0)
-            return -1;
-
-        return (long)Math.Floor(elapsedMs / beatMs);
-    }
-
-    private void ProcessImmediateQueuedCommands(long currentBeat)
-    {
-        List<QueuedCombatCommand> readyCommands = null;
-
+        _commandBuffer.Clear();
         lock (_commandLock)
         {
-            if (_queuedCommands.Count == 0)
-                return;
-
-            var remaining = new List<QueuedCombatCommand>(_queuedCommands.Count);
-            foreach (var command in _queuedCommands)
-            {
-                if (command?.Request == null)
-                    continue;
-
-                long executeBeat = ResolveQueuedCommandBeat(command, currentBeat);
-                if (executeBeat > currentBeat || command.Request.ActionKind == (int)ActionKind.Move)
-                {
-                    remaining.Add(command);
-                    continue;
-                }
-
-                readyCommands ??= new List<QueuedCombatCommand>();
-                readyCommands.Add(command);
-            }
-
-            _queuedCommands.Clear();
-            _queuedCommands.AddRange(remaining);
+            _beatScheduler.PopActions(beat, _commandBuffer);
         }
 
-        if (readyCommands == null || readyCommands.Count == 0)
+        if (_commandBuffer.Count == 0)
             return;
 
-        readyCommands.Sort((a, b) =>
-        {
-            long beatA = ResolveQueuedCommandBeat(a, currentBeat);
-            long beatB = ResolveQueuedCommandBeat(b, currentBeat);
-
-            int cmp = beatA.CompareTo(beatB);
-            if (cmp != 0)
-                return cmp;
-
-            return a.Sequence.CompareTo(b.Sequence);
-        });
-
-        foreach (var command in readyCommands)
+        foreach (var command in _commandBuffer)
         {
             if (command?.Request == null)
                 continue;
 
-            HandleActionRequest(
-                command.Request,
-                command.ActorId > 0 ? command.ActorId : command.Request.ActorId,
-                command.FromLocalSource,
-                command.SkillIdOverride,
-                command.BypassInputGuards,
-                ResolveQueuedCommandBeat(command, currentBeat));
+            ActivateScheduledCommand(command, beat);
         }
     }
 
-    private void ProcessQueuedCommandsAtBeat(long beat)
+    private void ProcessDelayedCommandsAtBeat(long beat)
     {
-        List<QueuedCombatCommand> readyCommands = null;
-        List<QueuedCombatCommand> staleCommands = null;
-
+        _commandBuffer.Clear();
         lock (_commandLock)
         {
-            if (_queuedCommands.Count == 0)
-                return;
-
-            var remaining = new List<QueuedCombatCommand>(_queuedCommands.Count);
-            foreach (var command in _queuedCommands)
-            {
-                if (command == null)
-                    continue;
-
-                long executeBeat = ResolveQueuedCommandBeat(command, beat);
-                if (executeBeat > beat)
-                {
-                    remaining.Add(command);
-                    continue;
-                }
-
-                if (command.Request.ActionKind != (int)ActionKind.Move)
-                {
-                    remaining.Add(command);
-                    continue;
-                }
-
-                if (executeBeat < beat)
-                {
-                    staleCommands ??= new List<QueuedCombatCommand>();
-                    staleCommands.Add(command);
-                    continue;
-                }
-
-                readyCommands ??= new List<QueuedCombatCommand>();
-                readyCommands.Add(command);
-            }
-
-            _queuedCommands.Clear();
-            _queuedCommands.AddRange(remaining);
+            _delayedScheduler.PopActions(beat, _commandBuffer);
         }
 
-        if (staleCommands != null && P2PDebugConfig.TraceHostFlow)
-        {
-            foreach (var command in staleCommands)
-            {
-                if (command?.Request == null)
-                    continue;
-
-                int actorId = command.ActorId > 0 ? command.ActorId : command.Request.ActorId;
-                long staleBeat = ResolveQueuedCommandBeat(command, beat);
-                Debug.Log($"[P2PHostController] Drop stale move actor={actorId} executeBeat={staleBeat} resolvedBeat={beat}");
-            }
-        }
-
-        if (readyCommands == null || readyCommands.Count == 0)
+        if (_commandBuffer.Count == 0)
             return;
 
-        readyCommands.Sort((a, b) =>
-        {
-            int cmp = GetCommandActionPriority(a).CompareTo(GetCommandActionPriority(b));
-            if (cmp != 0)
-                return cmp;
-
-            cmp = a.Sequence.CompareTo(b.Sequence);
-            if (cmp != 0)
-                return cmp;
-
-            return 0;
-        });
-
-        foreach (var command in readyCommands)
+        foreach (var command in _commandBuffer)
         {
             if (command?.Request == null)
                 continue;
 
-            HandleActionRequest(
-                command.Request,
-                command.ActorId > 0 ? command.ActorId : command.Request.ActorId,
-                command.FromLocalSource,
-                command.SkillIdOverride,
-                command.BypassInputGuards,
-                beat,
-                true);
+            ActivateScheduledCommand(command, beat);
         }
     }
 
-    private void DiscardExpiredQueuedCommands(long resolvedBeat)
-    {
-        List<QueuedCombatCommand> expiredCommands = null;
-
-        lock (_commandLock)
-        {
-            if (_queuedCommands.Count == 0)
-                return;
-
-            var remaining = new List<QueuedCombatCommand>(_queuedCommands.Count);
-            foreach (var command in _queuedCommands)
-            {
-                long executeBeat = ResolveQueuedCommandBeat(command, resolvedBeat);
-                if (executeBeat <= resolvedBeat)
-                {
-                    expiredCommands ??= new List<QueuedCombatCommand>();
-                    expiredCommands.Add(command);
-                    continue;
-                }
-
-                remaining.Add(command);
-            }
-
-            if (expiredCommands == null || expiredCommands.Count == 0)
-                return;
-
-            _queuedCommands.Clear();
-            _queuedCommands.AddRange(remaining);
-        }
-
-        if (!P2PDebugConfig.TraceHostFlow || expiredCommands == null)
-            return;
-
-        foreach (var command in expiredCommands)
-        {
-            if (command?.Request == null)
-                continue;
-
-            int actorId = command.ActorId > 0 ? command.ActorId : command.Request.ActorId;
-            long staleBeat = ResolveQueuedCommandBeat(command, resolvedBeat);
-            Debug.Log($"[P2PHostController] Drop late queued action actor={actorId} executeBeat={staleBeat} resolvedBeat={resolvedBeat}");
-        }
-    }
-
-    private long ResolveQueuedCommandBeat(QueuedCombatCommand command, long fallbackBeat)
-    {
-        if (command == null)
-            return fallbackBeat;
-
-        if (command.ForcedExecuteBeat.HasValue)
-            return command.ForcedExecuteBeat.Value;
-
-        if (command.Request != null && RhythmClient.Instance != null)
-            return RhythmClient.Instance.GetNearestBeatIndex(command.Request.ClientSendTimeMs);
-
-        return fallbackBeat;
-    }
-
-    private static int GetCommandActionPriority(QueuedCombatCommand command)
+    private static bool IsImmediateBeatCommand(QueuedCombatCommand command)
     {
         if (command?.Request == null)
-            return int.MaxValue;
+            return false;
 
-        ActionKind actionKind = (ActionKind)command.Request.ActionKind;
-        return actionKind switch
-        {
-            ActionKind.Move => 0,
-            ActionKind.Attack => 1,
-            ActionKind.Skill => 1,
-            _ => 2
-        };
+        var kind = (ActionKind)command.Request.ActionKind;
+        return kind == ActionKind.Move || kind == ActionKind.Wait;
     }
 
     private void HandleActionRequest(
@@ -506,21 +346,35 @@ public sealed class P2PHostController : MonoBehaviour
         bool fromLocalSource,
         string skillIdOverride = "",
         bool bypassInputGuards = false,
-        long? forcedExecuteBeat = null,
-        bool allowResolvedBeatExecution = false)
+        long? forcedExecuteBeat = null)
     {
         if (!IsHost || req == null || RhythmClient.Instance == null || ClientGameState.Instance == null)
+        {
+            if (fromLocalSource)
+                Debug.LogWarning($"[P2PHostController] DropLocal action={(ActionKind?)req?.ActionKind} reason=HostOrDepsMissing isHost={IsHost} rhythm={(RhythmClient.Instance != null)} gs={(ClientGameState.Instance != null)}");
             return;
+        }
 
         if (!ClientGameState.Instance.TryGetEntity(actorId, out var actorInfo))
+        {
+            if (fromLocalSource)
+                Debug.LogWarning($"[P2PHostController] DropLocal actor={actorId} action={(ActionKind)req.ActionKind} reason=ActorNotFound");
             return;
+        }
 
         if (actorInfo.Hp <= 0)
+        {
+            if (fromLocalSource)
+                Debug.LogWarning($"[P2PHostController] DropLocal actor={actorId} action={(ActionKind)req.ActionKind} reason=ActorDead hp={actorInfo.Hp}");
             return;
+        }
 
-        long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
-        if (currentBeat < 0 && !bypassInputGuards)
+        if (!bypassInputGuards && RhythmClient.Instance.GetCurrentBeatIndex() < 0)
+        {
+            if (fromLocalSource)
+                Debug.LogWarning($"[P2PHostController] DropLocal actor={actorId} action={(ActionKind)req.ActionKind} reason=CurrentBeatInvalid");
             return;
+        }
 
         long executeBeat;
         if (forcedExecuteBeat.HasValue)
@@ -542,15 +396,8 @@ public sealed class P2PHostController : MonoBehaviour
             {
                 if (P2PDebugConfig.TraceHostFlow)
                     Debug.Log($"[P2PHostController] Reject action actor={actorId} diff={diffMs}ms window={judgeWindowMs:F0}ms");
-                return;
-            }
-
-            bool beatAlreadyResolved = executeBeat < _lastProcessedBeat
-                || (!allowResolvedBeatExecution && executeBeat == _lastProcessedBeat);
-            if (beatAlreadyResolved)
-            {
-                if (P2PDebugConfig.TraceHostFlow)
-                    Debug.Log($"[P2PHostController] Late action dropped actor={actorId} beat={executeBeat} lastProcessed={_lastProcessedBeat}");
+                if (fromLocalSource)
+                    //Debug.LogWarning($"[P2PHostController] RejectLocal actor={actorId} action={(ActionKind)req.ActionKind} reason=OutOfJudgeWindow beat={executeBeat} diffMs={diffMs} windowMs={judgeWindowMs:F0}");
                 return;
             }
 
@@ -558,43 +405,89 @@ public sealed class P2PHostController : MonoBehaviour
             {
                 if (P2PDebugConfig.TraceHostFlow)
                     Debug.Log($"[P2PHostController] Duplicate action blocked actor={actorId} beat={executeBeat}");
+                if (fromLocalSource)
+                    Debug.LogWarning($"[P2PHostController] RejectLocal actor={actorId} action={(ActionKind)req.ActionKind} reason=DuplicateBeat executeBeat={executeBeat}");
                 return;
             }
         }
 
         if (req.ActionKind == (int)ActionKind.Move)
         {
-            ProcessMoveAction(actorId, req, executeBeat, actorInfo);
+            ProcessImmediateMoveAction(actorId, req, executeBeat, actorInfo);
             return;
         }
+
+        if (req.ActionKind == (int)ActionKind.Wait)
+            return;
 
         if (req.ActionKind != (int)ActionKind.Attack && req.ActionKind != (int)ActionKind.Skill)
             return;
 
         string skillId = ResolveSkillId(actorId, req.SlotIndex, req.ActionKind, skillIdOverride);
         long startTick = executeBeat * 480;
+        if (P2PDebugConfig.TraceHostFlow)
+            Debug.Log($"[P2PHostController] AcceptLocal actor={actorId} action={(ActionKind)req.ActionKind} skill={skillId} beat={executeBeat} startTick={startTick} target=({req.TargetX},{req.TargetY})");
         BroadcastInstantSkill(actorId, skillId, req.Rotation, startTick, fromLocalSource);
 
-        var scheduled = new ScheduledSkill
+        EnqueueScheduledCommand(new QueuedCombatCommand
         {
             Request = req,
             ActorId = actorId,
-            SkillId = skillId,
-            StartBeat = executeBeat,
-            StartTick = startTick,
-            Rotation = req.Rotation,
             FromLocalSource = fromLocalSource,
+            SkillIdOverride = skillId,
+            ForcedExecuteBeat = executeBeat,
+            InstantBroadcasted = true
+        });
+    }
+
+    private void ActivateScheduledCommand(QueuedCombatCommand command, long beat)
+    {
+        if (command?.Request == null || ClientGameState.Instance == null)
+            return;
+
+        int actorId = command.ActorId > 0 ? command.ActorId : command.Request.ActorId;
+        if (!ClientGameState.Instance.TryGetEntity(actorId, out var actorInfo) || actorInfo.Hp <= 0)
+            return;
+
+        var kind = (ActionKind)command.Request.ActionKind;
+        if (kind == ActionKind.Move)
+        {
+            ProcessMoveAction(actorId, command.Request, beat, actorInfo);
+            return;
+        }
+
+        if (kind == ActionKind.Wait)
+            return;
+
+        if (kind != ActionKind.Attack && kind != ActionKind.Skill)
+            return;
+
+        string skillId = ResolveSkillId(actorId, command.Request.SlotIndex, command.Request.ActionKind, command.SkillIdOverride);
+        long startTick = beat * 480;
+
+        if (!command.InstantBroadcasted)
+            BroadcastInstantSkill(actorId, skillId, command.Request.Rotation, startTick, command.FromLocalSource);
+
+        var scheduled = new ScheduledSkill
+        {
+            Request = command.Request,
+            ActorId = actorId,
+            SkillId = skillId,
+            StartBeat = beat,
+            StartTick = startTick,
+            Rotation = command.Request.Rotation,
+            FromLocalSource = command.FromLocalSource,
             SkillDef = LoadSkillDefinition(skillId)
         };
 
-        // 스킬 데이터가 없거나, 실제 게임 상태 변화가 없는 경우는 즉시 폴백 처리.
         if (scheduled.SkillDef == null || !HasGameplayEvents(scheduled.SkillDef))
         {
-            ProcessFallbackDamage(scheduled, actorInfo, executeBeat);
+            ProcessFallbackDamage(scheduled, actorInfo, beat);
             return;
         }
 
         _activeSkills.Add(scheduled);
+        ProcessSkillsAtBeat(beat);
     }
 
     private void ProcessDueSkills(long currentBeat)
@@ -768,10 +661,9 @@ public sealed class P2PHostController : MonoBehaviour
                 break;
         }
 
-        if (!accepted)
+        if (accepted)
         {
-            targetX = origin.x;
-            targetY = origin.y;
+            _hostPositions[scheduled.ActorId] = new Vector2Int(targetX, targetY);
         }
 
         var result = new SC_BeatActions.BeatActionResult
@@ -787,11 +679,7 @@ public sealed class P2PHostController : MonoBehaviour
             hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>()
         };
 
-        BroadcastBeatPacket(new SC_BeatActions
-        {
-            BeatIndex = beat,
-            beatActionResults = new List<SC_BeatActions.BeatActionResult> { result }
-        });
+        _batchedBeatResults.Add(result);
     }
 
     private void ProcessMoveAction(int actorId, CS_ActionRequest req, long beat, ClientEntityInfo actorInfo)
@@ -801,12 +689,56 @@ public sealed class P2PHostController : MonoBehaviour
         int toX = req.TargetX;
         int toY = req.TargetY;
 
-        bool accepted = TryMoveActor(actorId, toX, toY);
+        bool accepted = TryMoveActor(actorId, toX, toY, out string rejectReason);
         if (!accepted)
         {
             toX = fromX;
             toY = fromY;
         }
+        else
+        {
+            _hostPositions[actorId] = new Vector2Int(toX, toY);
+        }
+
+        if (P2PDebugConfig.TraceHostFlow)
+            Debug.Log($"[P2PHostController] MoveResult actor={actorId} beat={beat} from=({fromX},{fromY}) reqTo=({req.TargetX},{req.TargetY}) finalTo=({toX},{toY}) accepted={accepted} reason={(accepted ? "OK" : rejectReason)}");
+
+        var result = new SC_BeatActions.BeatActionResult
+        {
+            ActorId = actorId,
+            ActionKind = (int)ActionKind.Move,
+            FromX = fromX,
+            FromY = fromY,
+            ToX = toX,
+            ToY = toY,
+            Rotation = req.Rotation,
+            Accepted = accepted,
+            hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>()
+        };
+
+        _batchedBeatResults.Add(result);
+    }
+
+    private void ProcessImmediateMoveAction(int actorId, CS_ActionRequest req, long beat, ClientEntityInfo actorInfo)
+    {
+        int fromX = actorInfo.X;
+        int fromY = actorInfo.Y;
+        int toX = req.TargetX;
+        int toY = req.TargetY;
+
+        bool accepted = TryMoveActor(actorId, toX, toY, out string rejectReason);
+        if (!accepted)
+        {
+            toX = fromX;
+            toY = fromY;
+        }
+        else
+        {
+            _hostPositions[actorId] = new Vector2Int(toX, toY);
+        }
+
+        if (P2PDebugConfig.TraceHostFlow)
+            Debug.Log($"[P2PHostController] ImmediateMove actor={actorId} beat={beat} from=({fromX},{fromY}) reqTo=({req.TargetX},{req.TargetY}) finalTo=({toX},{toY}) accepted={accepted} reason={(accepted ? "OK" : rejectReason)}");
 
         var result = new SC_BeatActions.BeatActionResult
         {
@@ -827,7 +759,7 @@ public sealed class P2PHostController : MonoBehaviour
             beatActionResults = new List<SC_BeatActions.BeatActionResult> { result }
         };
 
-        BroadcastBeatPacket(pkt);
+        SendLocalAndRelay(pkt);
     }
 
     private void BroadcastBeatResult(
@@ -855,16 +787,35 @@ public sealed class P2PHostController : MonoBehaviour
             hpUpdates = hpUpdates ?? new List<SC_BeatActions.BeatActionResult.HpUpdate>()
         };
 
-        BroadcastBeatPacket(new SC_BeatActions
-        {
-            BeatIndex = beat,
-            beatActionResults = new List<SC_BeatActions.BeatActionResult> { result }
-        });
+        _batchedBeatResults.Add(result);
 
         if (deadEntities != null)
         {
             foreach (var deadId in deadEntities)
+                _batchedDeadEntities.Add(deadId);
+        }
+    }
+
+    private void FlushBatchedBeatResults(long beat)
+    {
+        if (_batchedBeatResults.Count > 0)
+        {
+            var pkt = new SC_BeatActions
+            {
+                BeatIndex = beat,
+                beatActionResults = new List<SC_BeatActions.BeatActionResult>(_batchedBeatResults)
+            };
+            BroadcastAndRelay(pkt);
+            _batchedBeatResults.Clear();
+        }
+
+        if (_batchedDeadEntities.Count > 0)
+        {
+            foreach (var deadId in _batchedDeadEntities)
+            {
                 BroadcastAndRelay(new SC_EntityDespawn { BeatIndex = beat, EntityId = deadId });
+            }
+            _batchedDeadEntities.Clear();
         }
     }
 
@@ -883,11 +834,12 @@ public sealed class P2PHostController : MonoBehaviour
 
     private void BroadcastAndRelay(IPacket packet)
     {
-        if (packet == null || !P2PRelayClientBridge.Instance.IsRelayMode)
+        var bridge = P2PRelayClientBridge.Instance;
+        if (packet == null || !bridge.IsRelayMode)
             return;
 
-        P2PRelayClientBridge.Instance.DispatchLocal(packet);
-        P2PRelayClientBridge.Instance.SendWrappedPacket(packet);
+        bridge.DispatchLocal(packet);
+        bridge.SendWrappedPacket(packet);
     }
 
     private void BroadcastInstantSkill(int actorId, string skillId, float rotation, long startTick, bool fromLocalSource)
@@ -901,28 +853,76 @@ public sealed class P2PHostController : MonoBehaviour
             StartTick = startTick
         };
 
-        // 호스트 로컬도 입력 콜백이 아니라 이 시점에서 한 번만 재생한다.
-        // 게스트는 기존처럼 로컬 예측 후 서버 브로드캐스트를 무시한다.
-        P2PRelayClientBridge.Instance.DispatchLocal(pkt);
+        var bridge = P2PRelayClientBridge.Instance;
+        bridge.DispatchLocal(pkt);
+        if (P2PDebugConfig.TraceHostFlow)
+            Debug.Log($"[P2PHostController] LocalInstantSkill actor={actorId} skill={skillId} startTick={startTick} rot={rotation:F0}");
+        bridge.SendWrappedPacket(pkt);
+    }
 
-        P2PRelayClientBridge.Instance.SendWrappedPacket(pkt);
+    private bool IsTileOccupied(int targetX, int targetY, int ignoreActorId)
+    {
+        foreach (var kv in _hostPositions)
+        {
+            if (kv.Key == ignoreActorId) continue;
+            if (kv.Value.x == targetX && kv.Value.y == targetY)
+                return true;
+        }
+
+        if (ClientGameState.Instance != null)
+        {
+            foreach (var entity in ClientGameState.Instance.EnumerateEntities())
+            {
+                if (entity.Hp <= 0 || entity.EntityId == ignoreActorId)
+                    continue;
+
+                if (_hostPositions.ContainsKey(entity.EntityId))
+                    continue;
+
+                if (entity.X == targetX && entity.Y == targetY)
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     private bool TryMoveActor(int actorId, int targetX, int targetY)
     {
+        return TryMoveActor(actorId, targetX, targetY, out _);
+    }
+
+    private bool TryMoveActor(int actorId, int targetX, int targetY, out string reason)
+    {
         var current = ClientGameState.Instance;
         if (current == null || !current.TryGetEntity(actorId, out var actor))
+        {
+            reason = "ActorMissing";
             return false;
+        }
 
-        if (actor.X == targetX && actor.Y == targetY)
+        int currentX = _hostPositions.TryGetValue(actorId, out var p) ? p.x : actor.X;
+        int currentY = _hostPositions.TryGetValue(actorId, out p) ? p.y : actor.Y;
+
+        if (currentX == targetX && currentY == targetY)
+        {
+            reason = "SameTile";
             return false;
+        }
 
         if (!current.IsWalkable(targetX, targetY))
+        {
+            reason = $"BlockedTile kind={current.GetTileKind(targetX, targetY)}";
             return false;
+        }
 
-        if (current.IsOccupied(targetX, targetY, actorId))
+        if (IsTileOccupied(targetX, targetY, actorId))
+        {
+            reason = "Occupied";
             return false;
+        }
 
+        reason = "OK";
         return true;
     }
 
@@ -949,7 +949,10 @@ public sealed class P2PHostController : MonoBehaviour
         _totalDamageDealt += Math.Max(0, before - after);
 
         if (after <= 0 && deadEntities.Add(target.EntityId))
+        {
+            _hostPositions.Remove(target.EntityId);
             return true;
+        }
 
         return true;
     }
@@ -961,13 +964,19 @@ public sealed class P2PHostController : MonoBehaviour
 
         foreach (var entity in ClientGameState.Instance.EnumerateEntities())
         {
-            if (entity.X == x && entity.Y == y)
+            int cx = _hostPositions.TryGetValue(entity.EntityId, out var p) ? p.x : entity.X;
+            int cy = _hostPositions.TryGetValue(entity.EntityId, out p) ? p.y : entity.Y;
+
+            if (cx == x && cy == y)
                 yield return entity;
         }
     }
 
     private Vector2Int GetActorOrigin(int actorId)
     {
+        if (_hostPositions.TryGetValue(actorId, out var pos))
+            return pos;
+
         if (ClientGameState.Instance != null && ClientGameState.Instance.TryGetEntity(actorId, out var actor))
             return new Vector2Int(actor.X, actor.Y);
 
@@ -1015,7 +1024,7 @@ public sealed class P2PHostController : MonoBehaviour
         if (bestX == fromX && bestY == fromY)
             return false;
 
-        if (state.IsOccupied(bestX, bestY, actorId))
+        if (IsTileOccupied(bestX, bestY, actorId))
             return false;
 
         targetX = bestX;
@@ -1034,7 +1043,7 @@ public sealed class P2PHostController : MonoBehaviour
         if (ClientGameState.Instance == null || !ClientGameState.Instance.IsWalkable(targetX, targetY))
             return false;
 
-        if (ClientGameState.Instance.IsOccupied(targetX, targetY, actorId))
+        if (IsTileOccupied(targetX, targetY, actorId))
             return false;
 
         return true;
@@ -1164,6 +1173,7 @@ public sealed class P2PHostController : MonoBehaviour
     private void ResetCombatState()
     {
         _lastProcessedBeat = long.MinValue;
+        _lastJudgeWindowBeat = long.MinValue;
         _resultSubmitted = false;
         _totalDamageDealt = 0;
         _snapshotRefreshInFlight = false;
@@ -1171,13 +1181,19 @@ public sealed class P2PHostController : MonoBehaviour
         _lastAcceptedBeatByActor.Clear();
         lock (_commandLock)
         {
-            _queuedCommands.Clear();
+            _beatScheduler.Clear();
+            _delayedScheduler.Clear();
+            _commandBuffer.Clear();
         }
 
         lock (_snapshotLock)
         {
             _combatSnapshots.Clear();
         }
+
+        _batchedBeatResults.Clear();
+        _batchedDeadEntities.Clear();
+        _hostPositions.Clear();
     }
 
     private async void RefreshSnapshotsAsync()
@@ -1376,9 +1392,56 @@ public sealed class P2PHostController : MonoBehaviour
         public int ActorId;
         public bool FromLocalSource;
         public bool BypassInputGuards;
+        public bool InstantBroadcasted;
         public string SkillIdOverride = "";
         public long? ForcedExecuteBeat;
-        public long Sequence;
+    }
+
+    private sealed class BeatCommandScheduler
+    {
+        private readonly Dictionary<long, Dictionary<int, QueuedCombatCommand>> _byBeat = new();
+
+        public void Enqueue(long beat, QueuedCombatCommand command)
+        {
+            if (!_byBeat.TryGetValue(beat, out var perActor))
+            {
+                perActor = new Dictionary<int, QueuedCombatCommand>(8);
+                _byBeat[beat] = perActor;
+            }
+
+            int actorId = command?.ActorId ?? 0;
+            perActor[actorId] = command;
+        }
+
+        public void PopActions(long beat, List<QueuedCombatCommand> output)
+        {
+            output.Clear();
+            if (!_byBeat.TryGetValue(beat, out var perActor) || perActor.Count == 0)
+                return;
+
+            foreach (var command in perActor.Values)
+                output.Add(command);
+
+            output.Sort((a, b) =>
+            {
+                int kindA = a?.Request?.ActionKind ?? int.MaxValue;
+                int kindB = b?.Request?.ActionKind ?? int.MaxValue;
+                int cmp = kindA.CompareTo(kindB);
+                if (cmp != 0)
+                    return cmp;
+
+                int actorA = a?.ActorId ?? int.MaxValue;
+                int actorB = b?.ActorId ?? int.MaxValue;
+                return actorA.CompareTo(actorB);
+            });
+
+            _byBeat.Remove(beat);
+        }
+
+        public void Clear()
+        {
+            _byBeat.Clear();
+        }
     }
 
     private static List<ScheduledEventEntry> CollectDueEvents(ScheduledSkill skill, long beat)

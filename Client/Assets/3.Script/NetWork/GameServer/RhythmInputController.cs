@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -37,6 +38,9 @@ public class RhythmInputController : MonoBehaviour
     [SerializeField] public GameObject targetObject = null;
 
     public bool IsInputBlocked { get; set; } = false;
+    public InputChannel CurrentChannel => channel;
+    public bool HoldAutoInputEnabled => holdAutoInput;
+    public string CurrentTargetName => targetObject != null ? targetObject.name : "<null>";
 
     long _lastSendLocalMs = 0;
 
@@ -49,6 +53,8 @@ public class RhythmInputController : MonoBehaviour
 
     public static long LastAttackInputServerTimeMs { get; private set; }
     private long _lastActionBeatIndex = -1;
+    private double _nextGuardLogAt;
+    private bool _hasLoggedFirstSend;
 
     [Header("Skill Slots")]
     [SerializeField] private string _normalAttackSkillId = "Attack";
@@ -95,6 +101,13 @@ public class RhythmInputController : MonoBehaviour
     void Awake()
     {
         _instance = this;
+        EnsureSceneConfiguration("Awake");
+    }
+
+    void Start()
+    {
+        EnsureSceneConfiguration("Start");
+        Debug.Log($"[RhythmInput] Ready {GetDebugState()}");
     }
 
     public void ConfigureForScene(InputChannel inputChannel, bool enableHoldAutoInput)
@@ -108,6 +121,9 @@ public class RhythmInputController : MonoBehaviour
         _lastFiredBeatIndex = long.MinValue;
         _lastAttackPredictionBeat = long.MinValue;
         _lastActionBeatIndex = -1;
+        _hasLoggedFirstSend = false;
+
+        Debug.Log($"[RhythmInput] ConfigureForScene scene={GetSceneName()} channel={channel} hold={holdAutoInput} blocked={IsInputBlocked}");
     }
 
     void OnEnable()
@@ -159,6 +175,9 @@ public class RhythmInputController : MonoBehaviour
         _rotateLeftAction.Enable();
         _rotateRightAction.Enable();
         _toggleAction.Enable();
+
+        EnsureSceneConfiguration("OnEnable");
+        Debug.Log($"[RhythmInput] Actions enabled {GetDebugState()}");
     }
 
     void OnDisable()
@@ -216,7 +235,7 @@ public class RhythmInputController : MonoBehaviour
 
     void HandleMoveInputEvent(InputAction.CallbackContext ctx)
     {
-        if (!IsReady() || IsInputBlocked) return;
+        if (!TryBeginInput("Move")) return;
 
         Vector2 val = ctx.ReadValue<Vector2>();
         Vector2Int dir = Vector2Int.zero;
@@ -233,7 +252,11 @@ public class RhythmInputController : MonoBehaviour
 
         // [서버 권위] 현재 서버 확정 위치(me.X/Y)로만 목표 계산
         // Prediction 비주얼 선행 제거 — 이동 결과는 SC_BeatActions(Move) 수신 시 처리
-        if (!GS.TryGetMyEntity(out var me)) return;
+        if (!GS.TryGetMyEntity(out var me))
+        {
+            LogGuardFailure("Move", $"MyEntity missing myActorId={GS.MyActorId} entityCount={GS.EntityCount} {GetDebugState()}");
+            return;
+        }
 
         var rdir = RotateDirByTarget(dir);
         int tx = me.X + rdir.x;
@@ -242,7 +265,8 @@ public class RhythmInputController : MonoBehaviour
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
         BeatDebugUI_TMP.Instance?.MarkHitNow();
 
-        // Beat 중복 입력 차단 (judgeWindow 안일 때만 '확정 비트' 체크)
+        // 이동은 가장 가까운 비트로 양자화되므로 judge window 밖이어도
+        // 같은 비트로 중복 입력되는 요청은 클라이언트에서 먼저 막는다.
         long nearestBeat = -1;
         long diff = 0;
         if (Rhythm != null)
@@ -251,16 +275,14 @@ public class RhythmInputController : MonoBehaviour
             long judgeTime = Rhythm.GetBeatTimeMs(nearestBeat);
             diff = System.Math.Abs(serverNow - judgeTime);
 
-            if (diff <= Rhythm.judgeWindowMs)
+            if (_lastActionBeatIndex == nearestBeat)
             {
-                if (_lastActionBeatIndex == nearestBeat)
-                {
-                    if (P2PDebugConfig.TraceInput)
-                        Debug.Log($"[Input_Move] DUPLICATE beat={nearestBeat} diff={diff}ms BLOCKED");
-                    return;
-                }
-                _lastActionBeatIndex = nearestBeat;
+                if (P2PDebugConfig.TraceInput)
+                    Debug.Log($"[Input_Move] DUPLICATE beat={nearestBeat} diff={diff}ms BLOCKED");
+                return;
             }
+
+            _lastActionBeatIndex = nearestBeat;
         }
 
         // [Input_Move] 이동 입력 로그 — 비트 판정, 서버 시간, 타겟 좌표를 한 번에 확인
@@ -280,9 +302,17 @@ public class RhythmInputController : MonoBehaviour
     /// </summary>
     void HandleAttackInputEvent(string skillId)
     {
-        if (!IsReady() || IsInputBlocked) return;
-        if (string.IsNullOrEmpty(skillId)) return;
-        if (!GS.TryGetMyEntity(out var me)) return;
+        if (!TryBeginInput("Attack")) return;
+        if (string.IsNullOrEmpty(skillId))
+        {
+            LogGuardFailure("Attack", $"Normal attack skill is empty {GetDebugState()}");
+            return;
+        }
+        if (!GS.TryGetMyEntity(out var me))
+        {
+            LogGuardFailure("Attack", $"MyEntity missing myActorId={GS.MyActorId} entityCount={GS.EntityCount} {GetDebugState()}");
+            return;
+        }
 
         // 바라보는 방향 앞 칸을 타겟으로
         var rdir = RotateDirByTarget(Vector2Int.up);
@@ -346,7 +376,7 @@ public class RhythmInputController : MonoBehaviour
     /// </summary>
     void HandleSkillInputEvent(string skillId, int slotIndex)
     {
-        if (!IsReady() || IsInputBlocked) return;
+        if (!TryBeginInput($"Skill[{slotIndex}]")) return;
 
         // [Fix] 스킬이 바인드되지 않은 슬롯 입력 차단 + 사용자 경고
         if (string.IsNullOrEmpty(skillId))
@@ -355,7 +385,11 @@ public class RhythmInputController : MonoBehaviour
                 Debug.LogWarning($"[Input_Skill] Slot {slotIndex}: 스킬이 바인드되지 않았습니다. 장비에 Skill을 연결하세요.");
             return;
         }
-        if (!GS.TryGetMyEntity(out var me)) return;
+        if (!GS.TryGetMyEntity(out var me))
+        {
+            LogGuardFailure($"Skill[{slotIndex}]", $"MyEntity missing myActorId={GS.MyActorId} entityCount={GS.EntityCount} {GetDebugState()}");
+            return;
+        }
 
         var rdir = RotateDirByTarget(Vector2Int.up);
         int tx = me.X + rdir.x;
@@ -415,7 +449,7 @@ public class RhythmInputController : MonoBehaviour
 
     void Update()
     {
-        if (!IsReady() || IsInputBlocked)
+        if (!TryBeginInput("Hold"))
             return;
 
         if (holdAutoInput)
@@ -429,7 +463,10 @@ public class RhythmInputController : MonoBehaviour
             _holdActive = true;
 
             if (!GS.TryGetMyEntity(out var me))
+            {
+                LogGuardFailure("Hold", $"MyEntity missing myActorId={GS.MyActorId} entityCount={GS.EntityCount} {GetDebugState()}");
                 return;
+            }
 
             var rdir = RotateDirByTarget(_holdDir);
             int targetX = me.X + rdir.x;
@@ -450,13 +487,7 @@ public class RhythmInputController : MonoBehaviour
 
     bool IsReady()
     {
-        if (GS == null || Rhythm == null)
-        {
-            if (P2PDebugConfig.TraceInput)
-                Debug.LogWarning($"GS:{GS} Rhythm:{Rhythm} Net:{NetworkManager.Instance}");
-            return false;
-        }
-        return true;
+        return GS != null && Rhythm != null;
     }
 
     static long LocalNowMs()
@@ -569,6 +600,8 @@ public class RhythmInputController : MonoBehaviour
 
     void SendActionRouted(ActionKind kind, int targetX, int targetY, long serverNowMs, int slotIndex = -1)
     {
+        EnsureSceneConfiguration("SendActionRouted");
+
         if (NetworkManager.Instance == null)
         {
             Debug.LogError("NetworkManager.Instance NULL");
@@ -588,6 +621,8 @@ public class RhythmInputController : MonoBehaviour
 
     void SendTownAction(ActionKind kind, int targetX, int targetY, long serverNowMs)
     {
+        LogFirstSuccessfulSend(kind, targetX, targetY, serverNowMs, -1);
+
         CS_TownActionRequest pkt = new CS_TownActionRequest
         {
             ActorId          = GS.MyActorId,
@@ -602,6 +637,10 @@ public class RhythmInputController : MonoBehaviour
 
     void SendGameAction(ActionKind kind, int targetX, int targetY, long serverNowMs, int slotIndex = -1)
     {
+        LogFirstSuccessfulSend(kind, targetX, targetY, serverNowMs, slotIndex);
+
+        Debug.LogWarning($"[P2P_DEBUG_FLOW] SendGameAction: kind={kind}, target=({targetX},{targetY}), slot={slotIndex}, serverNow={serverNowMs}");
+
         CS_ActionRequest pkt = new CS_ActionRequest
         {
             ActorId          = GS.MyActorId,
@@ -638,5 +677,97 @@ public class RhythmInputController : MonoBehaviour
     {
         var bridge = P2PRelayClientBridge.Instance;
         return bridge != null && bridge.IsRelayMode && bridge.IsHostLocal;
+    }
+
+    public string GetDebugState()
+    {
+        return $"scene={GetSceneName()} channel={channel} hold={holdAutoInput} blocked={IsInputBlocked} target={CurrentTargetName} active={isActiveAndEnabled}";
+    }
+
+    private bool TryBeginInput(string actionTag)
+    {
+        EnsureSceneConfiguration(actionTag);
+
+        if (!IsReady())
+        {
+            LogGuardFailure(actionTag, BuildNotReadyReason());
+            return false;
+        }
+
+        if (IsInputBlocked)
+        {
+            LogGuardFailure(actionTag, $"IsInputBlocked=true {GetDebugState()}");
+            return false;
+        }
+
+        return true;
+    }
+
+    private void EnsureSceneConfiguration(string reason)
+    {
+        if (!TryGetScenePreset(out var expectedChannel, out var expectedHold))
+            return;
+
+        if (channel == expectedChannel && holdAutoInput == expectedHold)
+            return;
+
+        var beforeChannel = channel;
+        var beforeHold = holdAutoInput;
+        ConfigureForScene(expectedChannel, expectedHold);
+        Debug.LogWarning($"[RhythmInput] Auto-corrected config reason={reason} scene={GetSceneName()} channel={beforeChannel}->{channel} hold={beforeHold}->{holdAutoInput}");
+    }
+
+    private bool TryGetScenePreset(out InputChannel expectedChannel, out bool enableHoldAutoInput)
+    {
+        expectedChannel = channel;
+        enableHoldAutoInput = holdAutoInput;
+
+        string sceneName = GetSceneName();
+        if (sceneName.StartsWith("Game", StringComparison.OrdinalIgnoreCase))
+        {
+            expectedChannel = InputChannel.Game;
+            enableHoldAutoInput = false;
+            return true;
+        }
+
+        if (string.Equals(sceneName, "TownMap", StringComparison.OrdinalIgnoreCase))
+        {
+            expectedChannel = InputChannel.Town;
+            enableHoldAutoInput = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    private string GetSceneName()
+    {
+        return gameObject.scene.IsValid() ? gameObject.scene.name : "<invalid-scene>";
+    }
+
+    private string BuildNotReadyReason()
+    {
+        return $"deps missing gs={(GS != null)} rhythm={(Rhythm != null)} net={(NetworkManager.Instance != null)} {GetDebugState()}";
+    }
+
+    private void LogGuardFailure(string actionTag, string reason)
+    {
+        double now = Time.realtimeSinceStartupAsDouble;
+        if (now < _nextGuardLogAt)
+            return;
+
+        _nextGuardLogAt = now + 1.0d;
+        Debug.LogWarning($"[RhythmInput] BLOCK {actionTag}: {reason}");
+    }
+
+    private void LogFirstSuccessfulSend(ActionKind kind, int targetX, int targetY, long serverNowMs, int slotIndex)
+    {
+        if (_hasLoggedFirstSend)
+            return;
+
+        _hasLoggedFirstSend = true;
+
+        bool isRelayMode = P2PRelayClientBridge.HasInstance && P2PRelayClientBridge.Instance.IsRelayMode;
+        Debug.Log($"[RhythmInput] FirstSend kind={kind} scene={GetSceneName()} channel={channel} actor={GS?.MyActorId ?? 0} target=({targetX},{targetY}) slot={slotIndex} relay={isRelayMode} serverNow={serverNowMs} {GetDebugState()}");
     }
 }

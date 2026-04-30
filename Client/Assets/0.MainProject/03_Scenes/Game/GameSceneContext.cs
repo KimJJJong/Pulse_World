@@ -55,6 +55,13 @@ public sealed class GameSceneContext : BaseSceneContext
         // 씬 오브젝트(BoardView, 타일 등)의 Awake/Start 완료를 보장하기 위해 대기
         await WaitForSceneReady();
 
+        ResolveSceneRefs();
+        _inputController?.ConfigureForScene(RhythmInputController.InputChannel.Game, enableHoldAutoInput: false);
+        if (_inputController != null)
+            Debug.Log($"[GameSceneContext] Input controller ready {_inputController.GetDebugState()}");
+        else
+            Debug.LogWarning($"[GameSceneContext] RhythmInputController not found after scene ready scene={gameObject.scene.name}");
+
         // 전투 중 스킬/패턴 로딩으로 프레임이 끊기지 않도록 공용 콘텐츠를 미리 워밍업한다.
         P2PCombatContentCache.WarmUpSkills();
 

@@ -8,12 +8,11 @@ public class RhythmInputControllerBinder : MonoBehaviour
 
     private void Awake()
     {
-
-
         Instance = this;
+        ResolveController();
 
         if (Controller == null)
-            Controller = FindFirstObjectByType<RhythmInputController>();
+            Debug.LogWarning("[RhythmInputBinder] RhythmInputController not found during Awake");
 
     }
 
@@ -22,10 +21,16 @@ public class RhythmInputControllerBinder : MonoBehaviour
     /// </summary>
     public void Bind(GameObject owner)
     {
+        ResolveController();
+
         if (Controller == null || owner == null)
+        {
+            Debug.LogWarning($"[RhythmInputBinder] Bind skipped controller={(Controller != null)} owner={(owner != null)}");
             return;
+        }
 
         Controller.targetObject = owner;
+        Debug.Log($"[RhythmInputBinder] Bound target={owner.name} controllerState={Controller.GetDebugState()}");
 
     }
 
@@ -34,9 +39,23 @@ public class RhythmInputControllerBinder : MonoBehaviour
     /// </summary>
     public void Unbind()
     {
+        ResolveController();
+
         if (Controller == null)
             return;
 
+        Controller.targetObject = null;
         Controller.transform.SetParent(null);
+        Debug.Log("[RhythmInputBinder] Unbound target");
+    }
+
+    private void ResolveController()
+    {
+        if (Controller != null)
+            return;
+
+        Controller = RhythmInputController.Instance;
+        if (Controller == null)
+            Controller = FindFirstObjectByType<RhythmInputController>();
     }
 }

@@ -34,26 +34,46 @@ public class ClientHandlers : MonoBehaviour
         // 1) 맵 생성
         var mapName = p.MapId;
 
-        var reg = MapRegistry.Instance;
-        if (reg == null)
-        {
-            Debug.LogError("[InitMap] MapRegistry.Instance is null. MapRegistry가 씬에 배치되어 있어야 합니다.");
-            return;
-        }
+        MapJson serverMapJson = null;
+        MapAsset mapAsset = null;
 
-        if (!reg.TryGet(mapName, out var mapAsset) || mapAsset == null)
+        if (P2PServerContentResolver.TryLoadMapJson(mapName, out var loadedMapJson))
         {
-            Debug.LogError($"[InitMap] MapAsset not found: {mapName}");
-            return;
-        }
+            serverMapJson = loadedMapJson;
 
-        if (p.MapWidth > 0 && p.MapHeight > 0 &&
-            (mapAsset.Width != p.MapWidth || mapAsset.Height != p.MapHeight))
-        {
-            if (P2PDebugConfig.TraceCombat)
+            if (p.MapWidth > 0 && p.MapHeight > 0 &&
+                (serverMapJson.width != p.MapWidth || serverMapJson.height != p.MapHeight))
             {
                 Debug.LogWarning(
-                    $"[InitMap] Map size mismatch for {mapName}. Packet=({p.MapWidth}x{p.MapHeight}) Asset=({mapAsset.Width}x{mapAsset.Height})");
+                    $"[InitMap] Server map json size mismatch for {mapName}. Packet=({p.MapWidth}x{p.MapHeight}) Json=({serverMapJson.width}x{serverMapJson.height})");
+            }
+
+            if (P2PDebugConfig.TraceCombat)
+                Debug.Log($"[InitMap] Using server map json for {mapName}");
+        }
+        else
+        {
+            var reg = MapRegistry.Instance;
+            if (reg == null)
+            {
+                Debug.LogError("[InitMap] MapRegistry.Instance is null. MapRegistry가 씬에 배치되어 있어야 합니다.");
+                return;
+            }
+
+            if (!reg.TryGet(mapName, out mapAsset) || mapAsset == null)
+            {
+                Debug.LogError($"[InitMap] MapAsset not found: {mapName}");
+                return;
+            }
+
+            if (p.MapWidth > 0 && p.MapHeight > 0 &&
+                (mapAsset.Width != p.MapWidth || mapAsset.Height != p.MapHeight))
+            {
+                if (P2PDebugConfig.TraceCombat)
+                {
+                    Debug.LogWarning(
+                        $"[InitMap] Map size mismatch for {mapName}. Packet=({p.MapWidth}x{p.MapHeight}) Asset=({mapAsset.Width}x{mapAsset.Height})");
+                }
             }
         }
 
@@ -88,7 +108,10 @@ public class ClientHandlers : MonoBehaviour
             }
         }
 
-        GS.StartMapGeneration(mapAsset);
+        if (serverMapJson != null)
+            GS.StartMapGeneration(serverMapJson);
+        else
+            GS.StartMapGeneration(mapAsset);
 
         // 2) 플레이어 Actor 정보
         GS.SetPlayerRoster(p.playerss.Select(pa => (pa.ActorId, pa.Uid)));
@@ -116,8 +139,23 @@ public class ClientHandlers : MonoBehaviour
         }
 
         GS.OnInitGameCompleted();
-        P2PRelayClientBridge.Instance?.SyncHostState();
-        P2PContentDirector.Instance?.ConfigureStage(mapName);
+
+        if (P2PHostController.HasInstance)
+        {
+            P2PHostController.Instance.ResetForMatchEnd();
+        }
+
+        var relayBridge = P2PRelayClientBridge.Instance;
+        relayBridge?.SyncHostState();
+
+        if (relayBridge != null && relayBridge.IsRelayMode)
+        {
+            P2PContentDirector.Instance?.ConfigureStage(mapName);
+        }
+        else if (P2PContentDirector.HasInstance)
+        {
+            P2PContentDirector.Instance.ResetMatchState();
+        }
     }
 
     public void Handle_SC_CalibResult(SC_CalibResult p)
@@ -207,8 +245,14 @@ public class ClientHandlers : MonoBehaviour
     /// </summary>
     public void Handle_SC_BeatActions(SC_BeatActions p)
     {
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log($"[ClientHandlers] SC_BeatActions beat={p.BeatIndex} count={p.beatActionResults?.Count ?? 0}");
+
         foreach (var a in p.beatActionResults)
         {
+            if (P2PDebugConfig.TraceCombat)
+                Debug.Log($"[ClientHandlers] BeatAction actor={a.ActorId} kind={(ActionKind)a.ActionKind} from=({a.FromX},{a.FromY}) to=({a.ToX},{a.ToY}) accepted={a.Accepted} hpUpdates={a.hpUpdates?.Count ?? 0}");
+
             var action = new ClientBeatAction
             {
                 BeatIndex = p.BeatIndex,

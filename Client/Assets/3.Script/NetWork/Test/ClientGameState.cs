@@ -19,6 +19,7 @@ public class ClientGameState : MonoBehaviour
 
     // 엔티티 상태
     private readonly Dictionary<int, ClientEntityInfo> _entities = new();
+    public int EntityCount => _entities.Count;
 
     public IClientWorldView WorldView { get; set; }
 
@@ -38,6 +39,11 @@ public class ClientGameState : MonoBehaviour
     public void StartMapGeneration(MapAsset asset)
     {
         StartCoroutine(Co_CreateMapFromAsset(asset));
+    }
+
+    public void StartMapGeneration(MapJson mapJson)
+    {
+        StartCoroutine(Co_CreateMapFromJson(mapJson));
     }
 
     public System.Collections.IEnumerator Co_CreateMapFromAsset(MapAsset asset)
@@ -86,6 +92,53 @@ public class ClientGameState : MonoBehaviour
         Debug.Log("[ClientGameState] Map Generation Complete (Async)");
     }
 
+    public System.Collections.IEnumerator Co_CreateMapFromJson(MapJson mapJson)
+    {
+        IsMapGenerationComplete = false;
+        MapGenProgress = 0f;
+
+        if (mapJson == null || mapJson.width <= 0 || mapJson.height <= 0)
+        {
+            Debug.LogError("[ClientGameState] CreateMapFromJson failed: invalid json");
+            IsMapGenerationComplete = true;
+            yield break;
+        }
+
+        yield return null;
+        yield return null;
+        yield return null;
+
+        CreateMap(mapJson.width, mapJson.height);
+        yield return null;
+
+        int totalTiles = mapJson.width * mapJson.height;
+        int processedCount = 0;
+        int tilesPerFrame = 200;
+
+        for (int y = 0; y < mapJson.height; y++)
+        {
+            for (int x = 0; x < mapJson.width; x++)
+            {
+                int idx = y * mapJson.width + x;
+                int tileKind = mapJson.cells != null && idx >= 0 && idx < mapJson.cells.Length
+                    ? mapJson.cells[idx].k
+                    : (int)TileKind.None;
+                SetTile(x, y, tileKind);
+
+                processedCount++;
+                if (processedCount % tilesPerFrame == 0)
+                {
+                    MapGenProgress = (float)processedCount / totalTiles;
+                    yield return null;
+                }
+            }
+        }
+
+        MapGenProgress = 1.0f;
+        IsMapGenerationComplete = true;
+        Debug.Log("[ClientGameState] Map Generation Complete (Server Json)");
+    }
+
     public void CreateMap(int width, int height)
     {
         Debug.Log($"[ClientGameState] CreateMap: Size=({width}x{height}) - Resetting Tiles");
@@ -126,6 +179,9 @@ public class ClientGameState : MonoBehaviour
         foreach (var kv in _entities)
         {
             if (kv.Key == ignoreEntityId)
+                continue;
+
+            if (kv.Value.Hp <= 0)
                 continue;
 
             if (kv.Value.X == x && kv.Value.Y == y)

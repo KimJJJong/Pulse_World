@@ -215,6 +215,13 @@ public sealed class ClientFlow : MonoBehaviour
         while (!SceneManager.GetSceneByName(targetScene).isLoaded)
             await Task.Yield();
 
+        var loadedScene = SceneManager.GetSceneByName(targetScene);
+        if (loadedScene.IsValid())
+        {
+            SceneManager.SetActiveScene(loadedScene);
+            Debug.Log($"[ClientFlow] Active scene set: {loadedScene.name}");
+        }
+
         Debug.Log($"[ClientFlow] Scene loaded: {targetScene}");
         await onLoaded();
     }

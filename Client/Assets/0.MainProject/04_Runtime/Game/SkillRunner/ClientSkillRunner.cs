@@ -186,7 +186,7 @@ public class ClientSkillRunner : MonoBehaviour
                     }
 
                     ShowWarningCells(warning.Shape, expireBeat);
-                    Debug.Log($"[ClientSkillRunner] Warning shown: expireBeat={expireBeat} currentBeat={currentBeat} actor={_actorId}");
+                    //Debug.Log($"[ClientSkillRunner] Warning shown: expireBeat={expireBeat} currentBeat={currentBeat} actor={_actorId}");
                 }
                 break;
 
