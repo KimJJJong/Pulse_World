@@ -35,7 +35,9 @@ public sealed class ClientFlow : MonoBehaviour
     {
         _target = Target.TownMap;
 
-        var ep = await ResolveEndpointAsync(ticket.Endpoint.Host, ticket.Endpoint.Port);
+        var endpoint = ResolveClientEndpoint(ticket.Endpoint);
+        if (endpoint == null) { Debug.LogError("[ClientFlow] ConnectTown: endpoint is missing."); return; }
+        var ep = await ResolveEndpointAsync(endpoint.Host, endpoint.Port);
         if (ep == null) return;
 
         Debug.Log($"[ClientFlow] ConnectTown → {ep} Ticket={ticket.TicketId}");
@@ -61,7 +63,9 @@ public sealed class ClientFlow : MonoBehaviour
             return;
         }
 
-        var ep = await ResolveEndpointAsync(ticket.Endpoint.Host, ticket.Endpoint.Port);
+        var endpoint = ResolveClientEndpoint(ticket.Endpoint);
+        if (endpoint == null) { Debug.LogError("[ClientFlow] ConnectGame: endpoint is missing."); return; }
+        var ep = await ResolveEndpointAsync(endpoint.Host, endpoint.Port);
         if (ep == null) return;
 
         Debug.Log($"[ClientFlow] ConnectGame → {ep} Ticket={ticket.TicketId} Map={_mapId}");
@@ -164,6 +168,39 @@ public sealed class ClientFlow : MonoBehaviour
             Debug.LogError($"[ClientFlow] DNS error for '{host}': {ex.Message}");
         }
         return null;
+    }
+
+    static SessionDtos.EndpointDto ResolveClientEndpoint(SessionDtos.EndpointDto endpoint)
+    {
+        if (endpoint == null || !ShouldUseConfiguredHost(endpoint.Host))
+            return endpoint;
+
+        var baseUrl = AppBootstrap.Instance?.Root?.Config?.BaseUrl;
+        if (string.IsNullOrWhiteSpace(baseUrl) ||
+            !Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) ||
+            ShouldUseConfiguredHost(baseUri.Host))
+        {
+            return endpoint;
+        }
+
+        Debug.Log($"[ClientFlow] Endpoint host from AppConfig: {endpoint.Host}:{endpoint.Port} -> {baseUri.Host}:{endpoint.Port}");
+        return new SessionDtos.EndpointDto
+        {
+            Host = baseUri.Host,
+            Port = endpoint.Port
+        };
+    }
+
+    static bool ShouldUseConfiguredHost(string host)
+    {
+        if (string.IsNullOrWhiteSpace(host))
+            return true;
+
+        return string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(host, "::1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(host, "0.0.0.0", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(host, "::", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
