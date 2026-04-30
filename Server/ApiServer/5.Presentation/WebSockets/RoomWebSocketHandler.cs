@@ -1,6 +1,7 @@
 using ApiServer.Application.Ports;
 using ApiServer.Domain.GameMatch;
 using ApiServer.Domain.WaitingRoom;
+using ApiServer.Presentation.Http;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -113,7 +114,7 @@ public sealed class RoomWebSocketHandler
                 if (result.MessageType == WebSocketMessageType.Close) break;
 
                 var msg = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                await ProcessMessageAsync(roomId, uid, msg);
+                await ProcessMessageAsync(context, roomId, uid, msg);
             }
         }
         catch (Exception ex)
@@ -133,7 +134,7 @@ public sealed class RoomWebSocketHandler
         }
     }
 
-    private async Task ProcessMessageAsync(string roomId, string uid, string json)
+    private async Task ProcessMessageAsync(HttpContext context, string roomId, string uid, string json)
     {
         _logger.LogInformation("WS Msg: Room={roomId}, Uid={uid}, Payload={json}", roomId, uid, json);
         try 
@@ -273,10 +274,11 @@ public sealed class RoomWebSocketHandler
                                 CancellationToken.None
                             );
                             
+                            var clientEndpoint = EndpointHostResolver.ToClientReachableEndpoint(ep, context);
                             var payload = new 
                             { 
                                 type = "GameStart", 
-                                endpoint = new { host = ep.Host, port = ep.Port },
+                                endpoint = new { host = clientEndpoint.Host, port = clientEndpoint.Port },
                                 ticket = ticketId,
                                 mapId = room.MapId,
                                 maxPlayers = room.MemberUids.Count, // 실제 참여 인원으로 시작
