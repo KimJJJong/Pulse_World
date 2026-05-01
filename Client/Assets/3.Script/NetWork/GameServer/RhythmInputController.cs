@@ -32,7 +32,7 @@ public class RhythmInputController : MonoBehaviour
     [SerializeField] KeyCode toggleKey = KeyCode.F1;
 
     [Header("Input")]
-    [SerializeField] float inputCooldownMs = 80f;
+    [SerializeField] float inputCooldownMs = 0f;
     [SerializeField] public bool holdAutoInput = false;
     [SerializeField] float rotateAngle = 90f;
     [SerializeField] public GameObject targetObject = null;
@@ -494,7 +494,12 @@ public class RhythmInputController : MonoBehaviour
         => TimeSync.LocalNowMs();
 
     bool PassCooldown(long nowLocalMs)
-        => (nowLocalMs - _lastSendLocalMs) >= inputCooldownMs;
+    {
+        if (inputCooldownMs <= 0f)
+            return true;
+
+        return (nowLocalMs - _lastSendLocalMs) >= inputCooldownMs;
+    }
 
     bool TryGetJudgeWindowInfo(long serverNowMs, out long predictionBeat, out long diffMs, out bool inJudgeWindow)
     {
@@ -639,7 +644,9 @@ public class RhythmInputController : MonoBehaviour
     {
         LogFirstSuccessfulSend(kind, targetX, targetY, serverNowMs, slotIndex);
 
-        Debug.LogWarning($"[P2P_DEBUG_FLOW] SendGameAction: kind={kind}, target=({targetX},{targetY}), slot={slotIndex}, serverNow={serverNowMs}");
+        // Input hot path: unconditional warning logs cause large editor spikes for local host input.
+        if (P2PDebugConfig.TraceInput)
+            Debug.Log($"[P2P_DEBUG_FLOW] SendGameAction: kind={kind}, target=({targetX},{targetY}), slot={slotIndex}, serverNow={serverNowMs}");
 
         CS_ActionRequest pkt = new CS_ActionRequest
         {

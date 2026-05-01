@@ -45,6 +45,7 @@ public sealed class P2PHostLogWindow : MonoBehaviour
     private Vector2 _scroll;
     private bool _scrollToBottomRequested = true;
     private GUIStyle _logStyle;
+    private bool _captureSubscribed;
 
     private sealed class LogEntry
     {
@@ -64,21 +65,42 @@ public sealed class P2PHostLogWindow : MonoBehaviour
 
         _instance = this;
         DontDestroyOnLoad(gameObject);
-        Application.logMessageReceivedThreaded += OnLogMessageReceived;
+        SetCaptureEnabled(P2PDebugConfig.LogOverheadEnabled);
     }
 
     private void OnDestroy()
     {
+        SetCaptureEnabled(false);
+
         if (_instance == this)
             _instance = null;
-
-        Application.logMessageReceivedThreaded -= OnLogMessageReceived;
     }
 
     private void Update()
     {
+        P2PDebugConfig.PollRuntimeToggle();
+
         if (_visible && Input.GetKeyDown(KeyCode.F9))
             _visible = false;
+    }
+
+    internal void SetCaptureEnabled(bool enabled)
+    {
+        if (enabled)
+        {
+            if (_captureSubscribed)
+                return;
+
+            Application.logMessageReceivedThreaded += OnLogMessageReceived;
+            _captureSubscribed = true;
+            return;
+        }
+
+        if (!_captureSubscribed)
+            return;
+
+        Application.logMessageReceivedThreaded -= OnLogMessageReceived;
+        _captureSubscribed = false;
     }
 
     public void SetRelayContext(string relayKey, bool isRelayMode, bool isHostLocal, int hostActorId)
@@ -103,7 +125,7 @@ public sealed class P2PHostLogWindow : MonoBehaviour
             PushSystemMessage(_statusLine);
         }
 
-        _visible = _isRelayMode && _isHostLocal;
+        _visible = P2PDebugConfig.LogOverheadEnabled && _isRelayMode && _isHostLocal;
         _dirty = true;
     }
 
@@ -140,7 +162,10 @@ public sealed class P2PHostLogWindow : MonoBehaviour
 
     private void OnLogMessageReceived(string condition, string stackTrace, LogType type)
     {
-        if (!_isRelayMode || string.IsNullOrWhiteSpace(condition))
+        if (!P2PDebugConfig.LogOverheadEnabled)
+            return;
+
+        if (!_isRelayMode || !_isHostLocal || string.IsNullOrWhiteSpace(condition))
             return;
 
         if (!P2PDebugConfig.ShouldCaptureHostLog(condition, type))
@@ -273,14 +298,53 @@ public sealed class P2PHostLogWindow : MonoBehaviour
 
 internal static class P2PDebugConfig
 {
-    internal static readonly bool TraceHostFlow = false;
-    internal static readonly bool TraceContent = false;
-    internal static readonly bool TraceInput = false;
-    internal static readonly bool TraceCombat = false;
-    internal static readonly bool CaptureOnlyP2PHostLogs = true;
+    private const bool TraceHostFlowDefault = false;
+    private const bool TraceContentDefault = false;
+    private const bool TraceInputDefault = false;
+    private const bool TraceCombatDefault = false;
+    private const bool CaptureOnlyP2PHostLogs = true;
+    private const KeyCode ToggleLogOverheadKey = KeyCode.F10;
+    private static int _lastToggleFrame = -1;
+
+    internal static bool LogOverheadEnabled { get; private set; } = false;
+    internal static bool TraceHostFlow => LogOverheadEnabled && TraceHostFlowDefault;
+    internal static bool TraceContent => LogOverheadEnabled && TraceContentDefault;
+    internal static bool TraceInput => LogOverheadEnabled && TraceInputDefault;
+    internal static bool TraceCombat => LogOverheadEnabled && TraceCombatDefault;
+
+    internal static void PollRuntimeToggle()
+    {
+        if (!Input.GetKeyDown(ToggleLogOverheadKey))
+            return;
+
+        int frame = Time.frameCount;
+        if (_lastToggleFrame == frame)
+            return;
+
+        _lastToggleFrame = frame;
+        SetLogOverheadEnabled(!LogOverheadEnabled);
+    }
+
+    internal static void SetLogOverheadEnabled(bool enabled)
+    {
+        if (LogOverheadEnabled == enabled)
+            return;
+
+        LogOverheadEnabled = enabled;
+
+        if (P2PHostLogWindow.HasInstance)
+        {
+            P2PHostLogWindow.Instance.SetCaptureEnabled(enabled);
+            if (!enabled)
+                P2PHostLogWindow.Instance.HideAndClear();
+        }
+    }
 
     internal static bool ShouldCaptureHostLog(string condition, LogType type)
     {
+        if (!LogOverheadEnabled)
+            return false;
+
         if (type == LogType.Error || type == LogType.Exception)
             return true;
 
@@ -364,6 +428,8 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
 
     private void Update()
     {
+        P2PDebugConfig.PollRuntimeToggle();
+
         if (Input.GetKeyDown(_toggleKey))
             _visible = !_visible;
     }
@@ -446,6 +512,7 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
         }
 
         AppendHeader(sb, "Match / Transport");
+        AppendField(sb, "LogOverhead", P2PDebugConfig.LogOverheadEnabled ? "ON (F10)" : "OFF (F10)");
         AppendField(sb, "Manifest", manifest != null ? $"{manifest.NetworkMode} / {manifest.MatchId}" : "No active manifest");
         if (manifest != null)
         {

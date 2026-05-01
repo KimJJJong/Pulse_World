@@ -117,6 +117,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
     private void Update()
     {
+        P2PDebugConfig.PollRuntimeToggle();
         _steamTransport?.Pump();
     }
 
@@ -344,6 +345,16 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
     private void UpdateHostLogWindow()
     {
+        if (!P2PDebugConfig.LogOverheadEnabled)
+        {
+            if (P2PHostLogWindow.HasInstance)
+            {
+                P2PHostLogWindow.Instance.SetCaptureEnabled(false);
+                P2PHostLogWindow.Instance.HideAndClear();
+            }
+            return;
+        }
+
         if (!IsP2PMode)
         {
             if (P2PHostLogWindow.HasInstance)
@@ -352,6 +363,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             return;
         }
 
+        P2PHostLogWindow.Instance.SetCaptureEnabled(IsHostLocal);
         P2PHostLogWindow.Instance.SetRelayContext(RelayKey, IsP2PMode, IsHostLocal, HostActorId);
     }
 

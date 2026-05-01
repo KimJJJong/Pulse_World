@@ -72,7 +72,8 @@ public class ClientSkillRunner : MonoBehaviour
             }
         }
 
-        Debug.Log($"[ClientSkillRunner] Started {skillId} for Actor {actorId} at Tick {startTick} Rotation={casterRotation}");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log($"[ClientSkillRunner] Started {skillId} for Actor {actorId} at Tick {startTick} Rotation={casterRotation}");
 
         if (RhythmClient.Instance != null)
         {
@@ -158,7 +159,8 @@ public class ClientSkillRunner : MonoBehaviour
                 if (ev.Action is DamageAction damage && damage.HitMonsters)
                 {
                     ShowDamageCells(damage.Shape);
-                    Debug.Log($"[ClientSkillRunner] DamageAction fired for actor {_actorId} (HitMonsters=true)");
+                    if (P2PDebugConfig.TraceCombat)
+                        Debug.Log($"[ClientSkillRunner] DamageAction fired for actor {_actorId} (HitMonsters=true)");
                 }
                 break;
 
@@ -196,7 +198,8 @@ public class ClientSkillRunner : MonoBehaviour
                 {
                     long lockEndTick = _startTick + ev.TriggerTick + ev.DurationTicks;
                     ApplyInputLock(lockEndTick);
-                    Debug.Log($"[ClientSkillRunner] InputLock applied for actor {_actorId}: EndTick={lockEndTick}");
+                    if (P2PDebugConfig.TraceCombat)
+                        Debug.Log($"[ClientSkillRunner] InputLock applied for actor {_actorId}: EndTick={lockEndTick}");
                 }
                 break;
 
@@ -235,7 +238,8 @@ public class ClientSkillRunner : MonoBehaviour
         _isInputLocked = false;
         if (RhythmInputController.Instance != null)
             RhythmInputController.Instance.IsInputBlocked = false;
-        Debug.Log($"[ClientSkillRunner] InputLock released for actor {_actorId}");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log($"[ClientSkillRunner] InputLock released for actor {_actorId}");
     }
 
     // ── Shape → World Cells ───────────────────────────────────────────────────
@@ -300,7 +304,8 @@ public class ClientSkillRunner : MonoBehaviour
     {
         if (shape == null) return;
         var cells = ShapeToWorldCells(shape);
-        Debug.Log($"[ClientSkillRunner] DamageCells count={cells.Count} rotation={_casterRotation}");
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log($"[ClientSkillRunner] DamageCells count={cells.Count} rotation={_casterRotation}");
     }
 
     private GridPoint RotateGridPoint(int x, int y, float rotation)

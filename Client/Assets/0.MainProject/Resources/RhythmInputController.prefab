@@ -44,4 +44,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e35e5bd316428947a39843a6c273e6e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RhythmInputController
-  inputCooldownMs: 80
+  inputCooldownMs: 0

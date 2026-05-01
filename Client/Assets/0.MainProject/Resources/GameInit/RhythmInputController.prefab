@@ -47,7 +47,7 @@ MonoBehaviour:
   channel: 1
   allowRuntimeToggle: 1
   toggleKey: 283
-  inputCooldownMs: 80
+  inputCooldownMs: 0
   holdAutoInput: 0
   rotateAngle: 90
   targetObject: {fileID: 0}
