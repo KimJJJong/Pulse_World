@@ -176,6 +176,14 @@ public sealed class RoomWebSocketHandler
                 if (await _waitingRoom.UpdateMemberTransportAsync(roomId, uid, "", "", "", probeRttMs, reportedAtMs))
                 {
                     var (_, room) = await _waitingRoom.GetAsync(roomId);
+                    _logger.LogInformation(
+                        "[WaitingRoom] Host probe room={RoomId} uid={Uid} rtt={Rtt} reportedAt={ReportedAt} preferredHost={PreferredHost} hostEpoch={HostEpoch}",
+                        roomId,
+                        uid,
+                        probeRttMs,
+                        reportedAtMs,
+                        room?.PreferredHostUid ?? "",
+                        room?.HostEpoch ?? 0);
                     await _conns.BroadcastAsync(roomId, new
                     {
                         type = "HostCandidateUpdate",

@@ -38,6 +38,17 @@
             Key = key ?? "";
         }
 
+        public void ClearInitMap()
+        {
+            InitMapReceived = false;
+            Rev = 0;
+            TickRate = 0;
+            MapId = "";
+            MapVersion = "";
+            MyActorId = 0;
+            LastInitMap = null;
+        }
+
         public void ApplyInitMap(int rev, int tickRate, string mapId, string mapVersion, int myActorId, SC_InitMap map)
         {
             Rev = rev;

@@ -9,6 +9,8 @@ namespace ApiServer.Domain.GameMatch;
 
 public sealed class GameMatchService
 {
+    private const long HostProbeFreshnessWindowMs = 90_000;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = null,
@@ -33,8 +35,9 @@ public sealed class GameMatchService
         ArgumentNullException.ThrowIfNull(room);
 
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var orderedMembers = OrderHostCandidates(room);
-        string hostUid = orderedMembers.FirstOrDefault() ?? SelectPreferredHostUid(room);
+        bool requireSteamHost = RequiresSteamHost(networkMode, room);
+        var orderedMembers = OrderHostCandidates(room, requireSteamHost, nowMs);
+        string hostUid = orderedMembers.FirstOrDefault() ?? SelectPreferredHostUid(room, requireSteamHost, nowMs);
         string hostSteamId64 = room.MemberTransport
             .FirstOrDefault(x => string.Equals(x.Uid, hostUid, StringComparison.OrdinalIgnoreCase))
             ?.SteamId64 ?? "";
@@ -85,12 +88,14 @@ public sealed class GameMatchService
         await _redis.Db.StringSetAsync(_redis.KeyGameMatchManifestByMatchId(manifest.MatchId), json, expiry: TimeSpan.FromHours(1));
 
         _logger.LogInformation(
-            "[GameMatch] Stored manifest room={RoomId} match={MatchId} host={HostUid} hostRtt={HostRtt} members={MemberCount}",
+            "[GameMatch] Stored manifest room={RoomId} match={MatchId} host={HostUid} hostRtt={HostRtt} steamHostRequired={SteamHostRequired} members={MemberCount} order={Order}",
             manifest.RoomId,
             manifest.MatchId,
             manifest.HostUid,
             manifest.PreferredHostRttMs,
-            manifest.Participants.Count);
+            requireSteamHost,
+            manifest.Participants.Count,
+            string.Join(",", manifest.Participants.Select(x => $"{x.ActorId}:{x.Uid}/{(string.IsNullOrWhiteSpace(x.SteamId64) ? "-" : x.SteamId64)}")));
 
         return manifest;
     }
@@ -111,11 +116,21 @@ public sealed class GameMatchService
         return await ReadManifestAsync(_redis.KeyGameMatchManifestByMatchId(matchId), ct);
     }
 
-    private static string SelectPreferredHostUid(WaitingRoomDto room)
+    private static string SelectPreferredHostUid(WaitingRoomDto room, bool requireSteamHost, long nowMs)
     {
-        var orderedMembers = OrderHostCandidates(room);
+        var orderedMembers = OrderHostCandidates(room, requireSteamHost, nowMs);
         if (orderedMembers.Count > 0)
             return orderedMembers[0];
+
+        if (requireSteamHost)
+        {
+            var steamCapableOwner = (room.MemberTransport ?? new List<WaitingRoomMemberTransportDto>())
+                .FirstOrDefault(x =>
+                    string.Equals(x.Uid, room.OwnerUid, StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(x.SteamId64));
+            if (steamCapableOwner != null)
+                return steamCapableOwner.Uid;
+        }
 
         if (!string.IsNullOrWhiteSpace(room.OwnerUid))
             return room.OwnerUid;
@@ -140,7 +155,7 @@ public sealed class GameMatchService
         }
     }
 
-    private static List<string> OrderHostCandidates(WaitingRoomDto room)
+    private static List<string> OrderHostCandidates(WaitingRoomDto room, bool requireSteamHost, long nowMs)
     {
         var transportByUid = (room.MemberTransport ?? new List<WaitingRoomMemberTransportDto>())
             .Where(x => !string.IsNullOrWhiteSpace(x.Uid))
@@ -148,7 +163,7 @@ public sealed class GameMatchService
             .ToDictionary(
                 g => g.Key,
                 g => g
-                    .OrderBy(x => x.HostProbeRttMs >= 0 && x.HostProbeReportedAtMs > 0 ? 0 : 1)
+                    .OrderBy(x => IsFreshProbe(x, nowMs) ? 0 : 1)
                     .ThenBy(x => x.HostProbeRttMs >= 0 ? x.HostProbeRttMs : int.MaxValue)
                     .ThenByDescending(x => x.HostProbeReportedAtMs)
                     .First(),
@@ -157,11 +172,18 @@ public sealed class GameMatchService
         return room.MemberUids
             .Where(uid => !string.IsNullOrWhiteSpace(uid))
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(uid =>
+            {
+                if (!requireSteamHost)
+                    return true;
+
+                return transportByUid.TryGetValue(uid, out var state)
+                       && !string.IsNullOrWhiteSpace(state.SteamId64);
+            })
             .OrderBy(uid =>
             {
                 return transportByUid.TryGetValue(uid, out var state)
-                       && state.HostProbeRttMs >= 0
-                       && state.HostProbeReportedAtMs > 0
+                       && IsFreshProbe(state, nowMs)
                     ? 0
                     : 1;
             })
@@ -175,6 +197,24 @@ public sealed class GameMatchService
             .ThenBy(uid => string.Equals(uid, room.OwnerUid, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenBy(uid => uid, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static bool RequiresSteamHost(string networkMode, WaitingRoomDto room)
+    {
+        if (room.UseP2PRelay)
+            return true;
+
+        return !string.IsNullOrWhiteSpace(networkMode)
+               && networkMode.IndexOf("steam", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static bool IsFreshProbe(WaitingRoomMemberTransportDto state, long nowMs)
+    {
+        if (state == null || state.HostProbeRttMs < 0 || state.HostProbeReportedAtMs <= 0)
+            return false;
+
+        long ageMs = Math.Max(0, nowMs - state.HostProbeReportedAtMs);
+        return ageMs <= HostProbeFreshnessWindowMs;
     }
 }
 

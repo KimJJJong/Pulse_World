@@ -30,6 +30,8 @@ public sealed class P2PRelayRoom : RoomBase
     private readonly Dictionary<int, (int x, int y)> _playerSpawns = new();
     private string _preferredHostUid = "";
     private List<string> _hostCandidateOrder = new();
+    private readonly Dictionary<string, int> _preferredActorIdByUid = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _preferredSeatByUid = new(StringComparer.OrdinalIgnoreCase);
 
     private const int RelayTickRate = 480;
 
@@ -80,19 +82,36 @@ public sealed class P2PRelayRoom : RoomBase
         }
     }
 
-    public void UpdateHostPreferences(string preferredHostUid, IEnumerable<string>? hostCandidateOrder)
+    public void UpdateHostPreferences(string preferredHostUid, IEnumerable<GameServer.Infrastructure.Api.Dto.GameMatchParticipantResponse>? participants)
     {
-        var normalizedOrder = NormalizeHostCandidateOrder(preferredHostUid, hostCandidateOrder);
+        var normalizedParticipants = NormalizeManifestParticipants(preferredHostUid, participants);
+        var normalizedOrder = normalizedParticipants.Select(x => x.Uid).ToList();
+        var preferredActorIds = normalizedParticipants
+            .Where(x => x.ActorId > 0)
+            .GroupBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.First().ActorId, StringComparer.OrdinalIgnoreCase);
+        var preferredSeats = normalizedParticipants
+            .Where(x => x.ActorId > 0)
+            .GroupBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => Math.Max(0, x.First().ActorId - 1), StringComparer.OrdinalIgnoreCase);
         bool changed;
 
         lock (_lock)
         {
             changed =
                 !string.Equals(_preferredHostUid, preferredHostUid ?? "", StringComparison.OrdinalIgnoreCase)
-                || !_hostCandidateOrder.SequenceEqual(normalizedOrder, StringComparer.OrdinalIgnoreCase);
+                || !_hostCandidateOrder.SequenceEqual(normalizedOrder, StringComparer.OrdinalIgnoreCase)
+                || !DictionaryEqual(_preferredActorIdByUid, preferredActorIds)
+                || !DictionaryEqual(_preferredSeatByUid, preferredSeats);
 
             _preferredHostUid = preferredHostUid ?? "";
             _hostCandidateOrder = normalizedOrder;
+            _preferredActorIdByUid.Clear();
+            _preferredSeatByUid.Clear();
+            foreach (var pair in preferredActorIds)
+                _preferredActorIdByUid[pair.Key] = pair.Value;
+            foreach (var pair in preferredSeats)
+                _preferredSeatByUid[pair.Key] = pair.Value;
         }
 
         if (!changed)
@@ -104,6 +123,82 @@ public sealed class P2PRelayRoom : RoomBase
             _preferredHostUid,
             string.Join(",", normalizedOrder));
         Enqueue(ReevaluateHost);
+    }
+
+    public override bool BindOrReattach(ClientSession s, out int actorId)
+    {
+        actorId = -1;
+        if (s == null || !s.HasAuth || string.IsNullOrEmpty(s.Uid))
+            return false;
+
+        bool isNew = false;
+        int seat = -1;
+        RoomPlayer? p = null;
+
+        lock (_lock)
+        {
+            if (CheckRoomEnded())
+                return false;
+
+            var key = (s.Uid, s.Epoch);
+            if (_players.TryGetValue(key, out var existing))
+            {
+                p = existing;
+                actorId = p.ActorId;
+                seat = p.SeatIndex;
+
+                p.Attach(s);
+                _byActor[actorId] = s;
+
+                s.ActorId = actorId;
+                s.SeatIndex = seat;
+                UpdateSessionWorldId(s);
+
+                _broadcastDirty = true;
+                isNew = false;
+            }
+            else
+            {
+                if (_players.Count >= _maxPlayers)
+                    return false;
+
+                if (_freeSeats.Count == 0 && _players.Count < _maxPlayers)
+                {
+                    LogManager.Instance.LogError("P2PRelayRoom",
+                        $"FreeSeats empty but room not full. players={_players.Count} max={_maxPlayers}");
+                    return false;
+                }
+
+                if (_freeSeats.Count == 0)
+                    return false;
+
+                actorId = ResolvePreferredActorIdUnsafe(s.Uid);
+                if (actorId <= 0 || _byActor.ContainsKey(actorId))
+                    actorId = ReserveNextActorIdUnsafe();
+                else
+                    _nextActorId = Math.Max(_nextActorId, actorId + 1);
+
+                int preferredSeat = ResolvePreferredSeatIndexUnsafe(s.Uid);
+                if (!TryReserveSeatUnsafe(preferredSeat, out seat))
+                    return false;
+
+                p = new RoomPlayer(s.Uid, s.Epoch, actorId, seat);
+                p.Attach(s);
+
+                _players[key] = p;
+                _byActor[actorId] = s;
+
+                s.ActorId = actorId;
+                s.SeatIndex = seat;
+                UpdateSessionWorldId(s);
+
+                _broadcastDirty = true;
+                isNew = true;
+            }
+        }
+
+        OnPlayerBound(p, isNew);
+        return true;
     }
 
     private (int x, int y) GetOrAssignSpawn(RoomPlayer player)
@@ -126,11 +221,23 @@ public sealed class P2PRelayRoom : RoomBase
     {
         Enqueue(() =>
         {
+            _logger.LogInformation(
+                "[P2PRelayRoom] Player bound relayId={RelayId} uid={Uid} epoch={Epoch} actor={ActorId} seat={SeatIndex} isNew={IsNew} connId={ConnId} preferredHost={PreferredHost} order={Order}",
+                RelayId,
+                p.Uid,
+                p.Epoch,
+                p.ActorId,
+                p.SeatIndex,
+                isNew,
+                p.Conn?.ConnId ?? "-",
+                _preferredHostUid,
+                string.Join(",", _hostCandidateOrder));
+
             EnsureStarted();
             ReevaluateHost();
 
             if (p.Conn != null)
-                SendInitPacketToPlayer(p.Conn);
+                SendInitPacketToPlayer(p.Conn, isNew);
         });
     }
 
@@ -200,23 +307,41 @@ public sealed class P2PRelayRoom : RoomBase
     private void ReevaluateHost()
     {
         int nextHost = 0;
+        string selectionReason = "retain";
         lock (_lock)
         {
             if (_phase == RoomPhase.Ended)
                 return;
 
-            if (_hostActorId > 0 &&
+            int preferredConnectedHost = GetConnectedActorIdByUidUnsafe(_preferredHostUid);
+            bool currentConnected = _hostActorId > 0 &&
                 _byActor.TryGetValue(_hostActorId, out var cur) &&
                 cur != null &&
-                cur.IsConnected)
+                cur.IsConnected;
+
+            if (preferredConnectedHost > 0)
+            {
+                nextHost = preferredConnectedHost;
+                selectionReason = currentConnected && _hostActorId != preferredConnectedHost
+                    ? "promote_preferred"
+                    : "preferred";
+            }
+            else if (currentConnected)
             {
                 nextHost = _hostActorId;
             }
             else
             {
-                nextHost = TrySelectPreferredConnectedHostUnsafe();
-                if (nextHost <= 0 && _hostCandidateOrder.Count == 0 && string.IsNullOrWhiteSpace(_preferredHostUid))
-                    nextHost = TrySelectFallbackConnectedHostUnsafe();
+                if (_hostActorId <= 0 && !string.IsNullOrWhiteSpace(_preferredHostUid))
+                {
+                    nextHost = 0;
+                    selectionReason = "await_preferred_initial";
+                }
+                else
+                {
+                    nextHost = TrySelectFailoverConnectedHostUnsafe();
+                    selectionReason = nextHost > 0 ? "failover" : "no_connected_candidate";
+                }
             }
 
             if (nextHost == _hostActorId)
@@ -227,10 +352,12 @@ public sealed class P2PRelayRoom : RoomBase
 
         Broadcast(new SC_HostChange { HostActorId = _hostActorId });
         _logger.LogInformation(
-            "[P2PRelayRoom] Host changed relayId={RelayId} host={Host} preferredHost={PreferredHost}",
+            "[P2PRelayRoom] Host changed relayId={RelayId} host={Host} preferredHost={PreferredHost} reason={Reason} players={Players}",
             RelayId,
             _hostActorId,
-            _preferredHostUid);
+            _preferredHostUid,
+            selectionReason,
+            string.Join(",", GetPlayersSnapshot().Select(x => $"{x.actorId}:{x.uid}:{(x.connected ? "on" : "off")}")));
     }
 
     private int TrySelectPreferredConnectedHostUnsafe()
@@ -253,6 +380,27 @@ public sealed class P2PRelayRoom : RoomBase
         }
 
         return 0;
+    }
+
+    private int TrySelectFailoverConnectedHostUnsafe()
+    {
+        if (_hostCandidateOrder.Count > 0)
+        {
+            foreach (var candidateUid in _hostCandidateOrder)
+            {
+                if (string.IsNullOrWhiteSpace(candidateUid)
+                    || string.Equals(candidateUid, _preferredHostUid, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                int actorId = GetConnectedActorIdByUidUnsafe(candidateUid);
+                if (actorId > 0)
+                    return actorId;
+            }
+        }
+
+        return TrySelectFallbackConnectedHostUnsafe();
     }
 
     private int TrySelectFallbackConnectedHostUnsafe()
@@ -288,7 +436,139 @@ public sealed class P2PRelayRoom : RoomBase
         return normalized;
     }
 
+    private static List<GameServer.Infrastructure.Api.Dto.GameMatchParticipantResponse> NormalizeManifestParticipants(
+        string preferredHostUid,
+        IEnumerable<GameServer.Infrastructure.Api.Dto.GameMatchParticipantResponse>? participants)
+    {
+        var normalized = new List<GameServer.Infrastructure.Api.Dto.GameMatchParticipantResponse>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (participants != null)
+        {
+            foreach (var participant in participants)
+            {
+                if (participant == null || string.IsNullOrWhiteSpace(participant.Uid) || !seen.Add(participant.Uid))
+                    continue;
+
+                normalized.Add(participant);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(preferredHostUid) && seen.Add(preferredHostUid))
+        {
+            normalized.Insert(0, new GameServer.Infrastructure.Api.Dto.GameMatchParticipantResponse
+            {
+                Uid = preferredHostUid
+            });
+        }
+
+        return normalized;
+    }
+
+    private static bool DictionaryEqual(
+        Dictionary<string, int> left,
+        Dictionary<string, int> right)
+    {
+        if (ReferenceEquals(left, right))
+            return true;
+
+        if (left == null || right == null || left.Count != right.Count)
+            return false;
+
+        foreach (var pair in left)
+        {
+            if (!right.TryGetValue(pair.Key, out var rightValue) || rightValue != pair.Value)
+                return false;
+        }
+
+        return true;
+    }
+
+    private int ResolvePreferredActorIdUnsafe(string uid)
+    {
+        if (string.IsNullOrWhiteSpace(uid))
+            return 0;
+
+        return _preferredActorIdByUid.TryGetValue(uid, out var actorId)
+            ? actorId
+            : 0;
+    }
+
+    private int ResolvePreferredSeatIndexUnsafe(string uid)
+    {
+        if (string.IsNullOrWhiteSpace(uid))
+            return -1;
+
+        return _preferredSeatByUid.TryGetValue(uid, out var seat)
+            ? seat
+            : -1;
+    }
+
+    private int ReserveNextActorIdUnsafe()
+    {
+        while (_byActor.ContainsKey(_nextActorId))
+            _nextActorId++;
+
+        return _nextActorId++;
+    }
+
+    private bool TryReserveSeatUnsafe(int preferredSeat, out int seat)
+    {
+        if (preferredSeat >= 0 && TryRemoveSeatUnsafe(preferredSeat))
+        {
+            seat = preferredSeat;
+            return true;
+        }
+
+        if (_freeSeats.Count <= 0)
+        {
+            seat = -1;
+            return false;
+        }
+
+        seat = _freeSeats.Dequeue();
+        return true;
+    }
+
+    private bool TryRemoveSeatUnsafe(int seatIndex)
+    {
+        if (seatIndex < 0 || _freeSeats.Count <= 0)
+            return false;
+
+        bool removed = false;
+        int count = _freeSeats.Count;
+        for (int i = 0; i < count; i++)
+        {
+            int seat = _freeSeats.Dequeue();
+            if (!removed && seat == seatIndex)
+            {
+                removed = true;
+                continue;
+            }
+
+            _freeSeats.Enqueue(seat);
+        }
+
+        return removed;
+    }
+
+    private int GetConnectedActorIdByUidUnsafe(string uid)
+    {
+        if (string.IsNullOrWhiteSpace(uid))
+            return 0;
+
+        var match = _players.Values.FirstOrDefault(p =>
+            p.Conn != null &&
+            p.Conn.IsConnected &&
+            string.Equals(p.Uid, uid, StringComparison.OrdinalIgnoreCase));
+
+        return match?.ActorId ?? 0;
+    }
+
     public void SendInitPacketToPlayer(ClientSession s)
+        => SendInitPacketToPlayer(s, isNewJoin: false);
+
+    private void SendInitPacketToPlayer(ClientSession s, bool isNewJoin)
     {
         if (s == null || !s.IsConnected)
             return;
@@ -324,6 +604,15 @@ public sealed class P2PRelayRoom : RoomBase
             }
 
             var init = BuildInitPacketForPlayer(myActorId, states);
+            _logger.LogInformation(
+                "[P2PRelayRoom] Init payload relayId={RelayId} actor={ActorId} roster={Roster} playerEntities={PlayerEntities}",
+                RelayId,
+                myActorId,
+                string.Join(",", init.playerss.Select(x => $"{x.ActorId}:{x.Uid}")),
+                string.Join(",", init.entitiess.Where(x => x.EntityType == (int)EntityType.Player).Select(x => $"{x.EntityId}@({x.X},{x.Y})")));
+
+            if (!s.IsConnected)
+                return;
 
             if (states.TryGetValue(s.Uid, out var myState) && myState != null)
             {
@@ -374,7 +663,61 @@ public sealed class P2PRelayRoom : RoomBase
                 RelayId,
                 myActorId,
                 _hostActorId);
+
+            if (!isNewJoin)
+                return;
+
+            BroadcastCurrentPlayerSpawns(states);
         });
+    }
+
+    private void BroadcastCurrentPlayerSpawns(
+        IReadOnlyDictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?> states)
+    {
+        List<RoomPlayer> playersSnapshot;
+        lock (_lock)
+        {
+            playersSnapshot = _players.Values
+                .Where(x => x.Conn != null && x.Conn.IsConnected)
+                .OrderBy(x => x.SeatIndex)
+                .ThenBy(x => x.ActorId)
+                .ToList();
+        }
+
+        if (playersSnapshot.Count == 0)
+            return;
+
+        foreach (var player in playersSnapshot)
+        {
+            states.TryGetValue(player.Uid, out var playerState);
+            var spawn = GetOrAssignSpawn(player);
+
+            _logger.LogInformation(
+                "[P2PRelayRoom] Snapshot spawn relayId={RelayId} actor={ActorId} uid={Uid} pos=({X},{Y}) hp={Hp} appearance={Appearance}",
+                RelayId,
+                player.ActorId,
+                player.Uid,
+                spawn.x,
+                spawn.y,
+                playerState?.TotalHp > 0 ? playerState.TotalHp : 1000,
+                playerState?.AppearanceId ?? 0);
+
+            Broadcast(new SC_EntitySpawn
+            {
+                BeatIndex = 0,
+                EntityId = player.ActorId,
+                EntityType = (int)EntityType.Player,
+                AppearanceId = playerState?.AppearanceId ?? 0,
+                X = spawn.x,
+                Y = spawn.y,
+                Hp = playerState?.TotalHp > 0 ? playerState.TotalHp : 1000
+            });
+        }
+
+        _logger.LogInformation(
+            "[P2PRelayRoom] Player snapshot broadcast relayId={RelayId} count={Count}",
+            RelayId,
+            playersSnapshot.Count);
     }
 
     private SC_InitMap BuildInitPacketForPlayer(

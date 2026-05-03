@@ -285,9 +285,15 @@ public class RhythmInputController : MonoBehaviour
             _lastActionBeatIndex = nearestBeat;
         }
 
-        // [Input_Move] 이동 입력 로그 — 비트 판정, 서버 시간, 타겟 좌표를 한 번에 확인
         //Debug.Log($"[Input_Move] from=({me.X},{me.Y}) to=({tx},{ty}) dir=({rdir.x},{rdir.y}) " +
         //          $"serverNow={serverNow} beat={nearestBeat} diff={diff}ms inWin={diff <= (Rhythm != null ? Rhythm.judgeWindowMs : 0)}");
+
+        if (P2PDebugConfig.LogOverheadEnabled)
+        {
+            Debug.Log(
+                $"[P2PInputMove] actor={me.EntityId} from=({me.X},{me.Y}) to=({tx},{ty}) rawDir=({dir.x},{dir.y}) " +
+                $"rotDir=({rdir.x},{rdir.y}) beat={nearestBeat} diff={diff}ms serverNow={serverNow} {DescribeP2PRoute()}");
+        }
 
         SendActionRouted(ActionKind.Move, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;
@@ -501,6 +507,22 @@ public class RhythmInputController : MonoBehaviour
         return (nowLocalMs - _lastSendLocalMs) >= inputCooldownMs;
     }
 
+    /// <summary>
+    /// Dedicate 서버의 판정 방식과 동일하게 ±judgeWindowMs 대칭 window를 적용한다.
+    ///
+    /// [버그 원인]
+    /// GetNearestBeatIndex는 Math.Round(반올림)를 사용하므로,
+    /// 비트 포인트 T의 후반부(T ~ T+beatDuration/2) 에서 입력하면
+    /// 다음 비트(N+1)가 반환된다.
+    /// 이때 N+1까지의 diff가 커서 judgeWindowMs 초과 → 차단됨.
+    /// 실제로는 비트 N의 window 안인데 클라이언트가 잘못 판단한 것.
+    ///
+    /// [수정]
+    /// nearest(반올림)과 이전(prevBeat=nearest-1) 비트 양쪽의 diff를 계산하여
+    /// 더 가까운 비트를 predictionBeat로 선택한다.
+    /// 이렇게 하면 비트 포인트 중심의 ±window가 대칭으로 적용되어
+    /// 서버(P2PHostController.HandleActionRequest)의 판정과 일치한다.
+    /// </summary>
     bool TryGetJudgeWindowInfo(long serverNowMs, out long predictionBeat, out long diffMs, out bool inJudgeWindow)
     {
         predictionBeat = -1;
@@ -510,9 +532,28 @@ public class RhythmInputController : MonoBehaviour
         if (Rhythm == null)
             return false;
 
-        predictionBeat = Rhythm.GetNearestBeatIndex(serverNowMs);
-        long judgeTime = Rhythm.GetBeatTimeMs(predictionBeat);
-        diffMs = System.Math.Abs(serverNowMs - judgeTime);
+        // 서버와 동일한 반올림 비트 (Math.Round AwayFromZero)
+        long nearestBeat = Rhythm.GetNearestBeatIndex(serverNowMs);
+        long nearestTime = Rhythm.GetBeatTimeMs(nearestBeat);
+        long nearestDiff = System.Math.Abs(serverNowMs - nearestTime);
+
+        // 이전 비트: nearest가 다음 비트를 가리킬 때(후반부 입력) 실제로 더 가까운 비트를 보정
+        long prevBeat = nearestBeat - 1;
+        long prevTime = Rhythm.GetBeatTimeMs(prevBeat);
+        long prevDiff = System.Math.Abs(serverNowMs - prevTime);
+
+        // 둘 중 더 가까운 쪽이 실제 판정 기준 비트
+        if (prevDiff < nearestDiff)
+        {
+            predictionBeat = prevBeat;
+            diffMs = prevDiff;
+        }
+        else
+        {
+            predictionBeat = nearestBeat;
+            diffMs = nearestDiff;
+        }
+
         inJudgeWindow = diffMs <= Rhythm.judgeWindowMs;
         return inJudgeWindow;
     }
@@ -660,6 +701,13 @@ public class RhythmInputController : MonoBehaviour
         };
 
         var bridge = P2PRelayClientBridge.Instance;
+        if (P2PDebugConfig.LogOverheadEnabled)
+        {
+            Debug.Log(
+                $"[P2PInputRoute] kind={kind} actor={pkt.ActorId} target=({targetX},{targetY}) slot={slotIndex} " +
+                $"serverNow={serverNowMs} {DescribeP2PRoute()}");
+        }
+
         if (bridge.IsRelayMode)
         {
             if (bridge.IsHostLocal)
@@ -689,6 +737,29 @@ public class RhythmInputController : MonoBehaviour
     public string GetDebugState()
     {
         return $"scene={GetSceneName()} channel={channel} hold={holdAutoInput} blocked={IsInputBlocked} target={CurrentTargetName} active={isActiveAndEnabled}";
+    }
+
+    private string DescribeP2PRoute()
+    {
+        var bridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
+        if (bridge == null)
+            return "route=BridgeMissing";
+
+        string route;
+        if (!bridge.IsRelayMode)
+            route = "DedicatedServer";
+        else if (bridge.IsHostLocal)
+            route = "LocalHostQueue";
+        else if (bridge.IsSteamTransport)
+            route = bridge.IsSteamTransportConnectedToHost ? "SteamToHost" : "SteamToHostPending";
+        else
+            route = "ServerRelayToHost";
+
+        return
+            $"route={route} relay={bridge.IsRelayMode} transport={bridge.TransportName} role={(bridge.IsHostLocal ? "Host" : "Guest")} " +
+            $"localActor={SessionContext.Instance?.MyActorId ?? 0} hostActor={bridge.HostActorId} " +
+            $"hostUid={bridge.HostUid} hostSteam={bridge.HostSteamId64} peers={bridge.SteamConnectedPeerCount} " +
+            $"connectedToHost={bridge.IsSteamTransportConnectedToHost}";
     }
 
     private bool TryBeginInput(string actionTag)
@@ -765,6 +836,47 @@ public class RhythmInputController : MonoBehaviour
 
         _nextGuardLogAt = now + 1.0d;
         Debug.LogWarning($"[RhythmInput] BLOCK {actionTag}: {reason}");
+
+        // [HostInit_Diag] 입력이 막히는 가장 흔한 원인: 본인 Player Entity가 GS에 없음.
+        // - Host 입장에서 자기 입력이 안되거나, Client 입장에서 자기 입력이 안되는 케이스 모두 여기로 떨어진다.
+        // 따라서 Host권한/세션/엔티티 상태를 같이 덤프하여 어느 단계에서 깨졌는지 즉시 식별 가능하게 한다.
+        if (GS != null && actionTag != "<not-ready>")
+        {
+            int my = GS.MyActorId;
+            bool hasMy = GS.TryGetEntity(my, out var info);
+            int entCount = GS.EntityCount;
+            int sessionActor = SessionContext.Instance?.MyActorId ?? 0;
+            string bridgeRole = "<no-bridge>";
+            int hostActor = 0;
+            string transport = "-";
+            string authority = "-";
+            if (P2PRelayClientBridge.HasInstance)
+            {
+                var b = P2PRelayClientBridge.Instance;
+                bridgeRole = b.IsHostLocal ? "Host" : "Guest";
+                hostActor = b.HostActorId;
+                transport = b.TransportName;
+            }
+
+            Debug.LogWarning(
+                $"[HostInit_Diag] InputBlock-Detail tag={actionTag} my={my} hasMyEntity={hasMy} " +
+                (hasMy ? $"myPos=({info.X},{info.Y}) myType={info.EntityType} myHp={info.Hp} " : "") +
+                $"entityCount={entCount} sessionActor={sessionActor} role={bridgeRole} hostActor={hostActor} transport={transport}");
+
+            if (!hasMy && my > 0)
+            {
+                Debug.LogError(
+                    $"[HostInit_Diag] CRITICAL Local input dropped because GS has no entity for my actor={my}. " +
+                    $"Root cause is upstream: SC_InitMap.entitiess did not include this player, OR SetMyActorId set a value " +
+                    $"that does not match any spawned Player entity. Check earlier [HostInit_Diag] InitMap.Verify line.");
+            }
+            else if (my <= 0)
+            {
+                Debug.LogError(
+                    $"[HostInit_Diag] CRITICAL Local input dropped because GS.MyActorId is 0. " +
+                    $"SetMyActorId was not called or InitMap was not applied yet. sessionActor={sessionActor}");
+            }
+        }
     }
 
     private void LogFirstSuccessfulSend(ActionKind kind, int targetX, int targetY, long serverNowMs, int slotIndex)

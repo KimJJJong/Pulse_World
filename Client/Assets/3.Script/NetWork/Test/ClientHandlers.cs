@@ -18,16 +18,58 @@ public class ClientHandlers : MonoBehaviour
 
     // [REMOVED] Local tracking is now centralized in BoardView
     private long _lastTelegraphCleanupBeat = long.MinValue;
+    private bool _initMapApplied;
+    private readonly List<PendingEntitySpawn> _pendingEntitySpawnsBeforeInit = new();
 
     private BoardView BV => BoardView.Instance;
     void Awake()
     {
         Instance = this;
+        _initMapApplied = false;
+        _pendingEntitySpawnsBeforeInit.Clear();
+    }
+
+    private readonly struct PendingEntitySpawn
+    {
+        public readonly long BeatIndex;
+        public readonly int EntityId;
+        public readonly int EntityType;
+        public readonly int AppearanceId;
+        public readonly int X;
+        public readonly int Y;
+        public readonly int Hp;
+
+        public PendingEntitySpawn(long beatIndex, int entityId, int entityType, int appearanceId, int x, int y, int hp)
+        {
+            BeatIndex = beatIndex;
+            EntityId = entityId;
+            EntityType = entityType;
+            AppearanceId = appearanceId;
+            X = x;
+            Y = y;
+            Hp = hp;
+        }
+
+        public static PendingEntitySpawn From(SC_EntitySpawn p)
+            => new PendingEntitySpawn(p.BeatIndex, p.EntityId, p.EntityType, p.AppearanceId, p.X, p.Y, p.Hp);
+
+        public ClientEntityInfo ToEntityInfo()
+            => new ClientEntityInfo
+            {
+                EntityId = EntityId,
+                EntityType = EntityType,
+                AppearanceId = AppearanceId,
+                X = X,
+                Y = Y,
+                Hp = Hp
+            };
     }
 
 
     public void HandleSC_InitMap(SC_InitMap p)
     {
+        _initMapApplied = false;
+
         if (P2PDebugConfig.TraceCombat)
             Debug.Log($"[ClientHandlers] HandleSC_InitMap: MapId={p.MapId} MyActorId={p.MyActorId}");
 
@@ -114,10 +156,13 @@ public class ClientHandlers : MonoBehaviour
             GS.StartMapGeneration(mapAsset);
 
         // 2) 플레이어 Actor 정보
-        GS.SetPlayerRoster(p.playerss.Select(pa => (pa.ActorId, pa.Uid)));
-        var actorIds = p.playerss.Select(pa => pa.ActorId).ToArray();
-        GS.SetPlayerActorIds(actorIds);
+        ApplyRosterSnapshot(p.playerss.Select(pa => (pa.ActorId, pa.Uid)));
         GS.SetMyActorId(p.MyActorId);
+        LogInitMapPlayerSnapshot(p);
+        string myUid = GS.TryGetPlayerUid(p.MyActorId, out var resolvedMyUid) ? resolvedMyUid : "-";
+        Debug.Log(
+            $"[P2PPlayerSync] InitMap identity sessionUid={SessionContext.Instance?.Uid ?? "-"} myActor={p.MyActorId} rosterUid={myUid} " +
+            $"manifestHostUid={SessionContext.Instance?.LastMatchManifest?.HostUid ?? "-"}");
         if (P2PDebugConfig.TraceCombat)
             Debug.Log($"[InitMap] MyActorId: {GS.MyActorId}, TotalEntities: {p.entitiess.Count}");
 
@@ -139,6 +184,52 @@ public class ClientHandlers : MonoBehaviour
         }
 
         GS.OnInitGameCompleted();
+        _initMapApplied = true;
+        DrainPendingEntitySpawnsBeforeInit();
+        ValidatePlayerEntitySync("InitMap");
+        Debug.Log($"[P2PPlayerSync] InitMap applied statePlayers={FormatStatePlayerEntities()}");
+
+        // [HostInit_Diag] InitMap 적용 직후 검증 — Host측 ClientGameState의 신뢰성을 단언한다.
+        // 핵심: 본인의 Player Entity가 entitiess 배열에 포함되어 있는지가 Host 권한 활성의 필수 조건.
+        // 누락 시 P2PHostController.HandleActionRequest 가 ActorNotFound 로 본인 입력을 영구 drop하고
+        // P2PRelayClientBridge.GetHostAuthorityState 가 "LocalPlayerEntityMissing" 으로 떨어진다.
+        {
+            int my = p.MyActorId;
+            bool myInRoster = false;
+            if (p.playerss != null)
+            {
+                for (int i = 0; i < p.playerss.Count; i++)
+                {
+                    if (p.playerss[i] != null && p.playerss[i].ActorId == my) { myInRoster = true; break; }
+                }
+            }
+            bool myInEntities = false;
+            int playerEntityCount = 0;
+            if (p.entitiess != null)
+            {
+                for (int i = 0; i < p.entitiess.Count; i++)
+                {
+                    var e = p.entitiess[i];
+                    if (e == null) continue;
+                    if (e.EntityType == (int)EntityType.Player) playerEntityCount++;
+                    if (e.EntityType == (int)EntityType.Player && e.EntityId == my) myInEntities = true;
+                }
+            }
+
+            Debug.Log(
+                $"[HostInit_Diag] InitMap.Verify map={p.MapId} myActor={my} myInRoster={myInRoster} " +
+                $"myInEntities={myInEntities} playerEntityCount={playerEntityCount} " +
+                $"sessionUid={SessionContext.Instance?.Uid ?? "-"} sessionActor={SessionContext.Instance?.MyActorId ?? 0} " +
+                $"manifestParticipants={SessionContext.Instance?.LastMatchManifest?.Participants?.Count ?? 0}");
+
+            if (!myInRoster)
+                Debug.LogError($"[HostInit_Diag] CRITICAL InitMap roster missing my actor={my}. Host authority will fail (ActorMatchesHostActor=false).");
+            if (!myInEntities)
+                Debug.LogError(
+                    $"[HostInit_Diag] CRITICAL InitMap entitiess missing my Player entity actor={my}. " +
+                    $"Symptoms: Host->no own visual, Client->Host can walk through their tile, ActorNotFound drops on input. " +
+                    $"Server must include EVERY player participant as EntityType.Player in SC_InitMap.entitiess.");
+        }
 
         if (P2PHostController.HasInstance)
         {
@@ -247,6 +338,18 @@ public class ClientHandlers : MonoBehaviour
     {
         if (P2PDebugConfig.TraceCombat)
             Debug.Log($"[ClientHandlers] SC_BeatActions beat={p.BeatIndex} count={p.beatActionResults?.Count ?? 0}");
+
+        if (P2PDebugConfig.LogOverheadEnabled && p.beatActionResults != null)
+        {
+            var moves = p.beatActionResults
+                .Where(x => x != null
+                    && x.ActionKind == (int)ActionKind.Move
+                    && IsTrackedPlayerActor(x.ActorId))
+                .Select(x => $"{x.ActorId}:({x.FromX},{x.FromY})->({x.ToX},{x.ToY}) accepted={x.Accepted}")
+                .ToArray();
+            if (moves.Length > 0)
+                Debug.Log($"[P2PPlayerSync] RecvBeatMoves beat={p.BeatIndex} moves={string.Join(",", moves)}");
+        }
 
         foreach (var a in p.beatActionResults)
         {
@@ -391,36 +494,281 @@ public class ClientHandlers : MonoBehaviour
 
     public void Handle_SC_EntitySpawnHandler(SC_EntitySpawn p)
     {
-        int id = p.EntityId;
+        if (!_initMapApplied)
+        {
+            BufferEntitySpawnBeforeInit(PendingEntitySpawn.From(p));
+            return;
+        }
+
+        ApplyEntitySpawn(PendingEntitySpawn.From(p), "SC_EntitySpawn");
+    }
+
+    private void BufferEntitySpawnBeforeInit(PendingEntitySpawn spawn)
+    {
+        for (int i = 0; i < _pendingEntitySpawnsBeforeInit.Count; i++)
+        {
+            if (_pendingEntitySpawnsBeforeInit[i].EntityId != spawn.EntityId)
+                continue;
+
+            _pendingEntitySpawnsBeforeInit[i] = spawn;
+            return;
+        }
+
+        _pendingEntitySpawnsBeforeInit.Add(spawn);
+        Debug.LogWarning(
+            $"[SC_EntitySpawn] Buffered before InitMap entity={spawn.EntityId} type={(EntityType)spawn.EntityType} pos=({spawn.X},{spawn.Y})");
+        Debug.LogWarning(
+            $"[P2PPlayerSync] Buffered spawn before InitMap entity={spawn.EntityId} type={(EntityType)spawn.EntityType} pos=({spawn.X},{spawn.Y})");
+    }
+
+    private void DrainPendingEntitySpawnsBeforeInit()
+    {
+        if (_pendingEntitySpawnsBeforeInit.Count == 0)
+            return;
+
+        var pending = _pendingEntitySpawnsBeforeInit.ToArray();
+        _pendingEntitySpawnsBeforeInit.Clear();
+
+        for (int i = 0; i < pending.Length; i++)
+            ApplyEntitySpawn(pending[i], "BufferedBeforeInitMap");
+
+        Debug.LogWarning($"[ClientHandlers] Replayed {pending.Length} entity spawn(s) received before InitMap.");
+        Debug.LogWarning($"[P2PPlayerSync] Replayed buffered spawns count={pending.Length} statePlayers={FormatStatePlayerEntities()}");
+    }
+
+    private void ApplyEntitySpawn(PendingEntitySpawn spawn, string source)
+    {
+        int id = spawn.EntityId;
         bool exists = GS.TryGetEntity(id, out var ent);
         if (exists)
         {
             if (P2PDebugConfig.TraceCombat)
-                Debug.LogWarning($"이미 Entity가 존재합니다 ID{id}|| MyId : {GS.MyActorId}");
+                Debug.LogWarning($"이미 Entity가 존재합니다 ID{id}|| MyId : {GS.MyActorId} source={source}");
+            if (spawn.EntityType == (int)EntityType.Player)
+            {
+                string uid = GS.TryGetPlayerUid(id, out var existingUid) ? existingUid : "-";
+                Debug.LogWarning(
+                    $"[P2PPlayerSync] Duplicate player spawn ignored source={source} actor={id} uid={uid} " +
+                    $"incoming=({spawn.X},{spawn.Y}) existing=({ent.X},{ent.Y}) hp={ent.Hp}");
+            }
             return;
         }
 
-        var entity = new ClientEntityInfo
-        {
-            EntityId = p.EntityId,
-            EntityType = p.EntityType,
-            AppearanceId = p.AppearanceId,
-            X = p.X,
-            Y = p.Y,
-            Hp = p.Hp
-        };
+        if (spawn.EntityType == (int)EntityType.Player)
+            EnsureManifestRosterApplied();
+
+        var entity = spawn.ToEntityInfo();
 
         GS.SpawnOrUpdateEntity(entity);
 
         if (P2PDebugConfig.TraceCombat)
-            Debug.Log($"[SC_EntitySpawn] entityId={entity.EntityId} spawn ");
+            Debug.Log($"[SC_EntitySpawn] entityId={entity.EntityId} spawn source={source}");
         P2PContentDirector.Instance?.OnEntitySpawned(entity);
+
+        if (spawn.EntityType == (int)EntityType.Player && P2PRelayClientBridge.HasInstance)
+        {
+            string uid = GS.TryGetPlayerUid(id, out var playerUid) ? playerUid : "-";
+            Debug.Log(
+                $"[P2PPlayerSync] Player spawn applied source={source} actor={id} uid={uid} " +
+                $"pos=({spawn.X},{spawn.Y}) hp={spawn.Hp} app={spawn.AppearanceId} my={GS.MyActorId}");
+            P2PRelayClientBridge.Instance.SyncHostState();
+        }
 
         if (id == GS.MyActorId)
         {
             if (P2PDebugConfig.TraceCombat)
                 Debug.LogWarning("[SC_EntitySpawn] My actor overload. Disable / show UI.");
         }
+    }
+
+    private void ValidatePlayerEntitySync(string source)
+    {
+        var rosterActors = new HashSet<int>(GS.PlayerActorIds ?? Array.Empty<int>());
+        int missingCount = 0;
+        int orphanCount = 0;
+        foreach (var actorId in rosterActors)
+        {
+            if (!GS.TryGetEntity(actorId, out var entity) || entity.EntityType != (int)EntityType.Player)
+            {
+                missingCount++;
+                Debug.LogWarning($"[PlayerSync] Missing player entity after {source}. actor={actorId}");
+                Debug.LogWarning($"[P2PPlayerSync] Missing player entity after {source}. actor={actorId}");
+            }
+        }
+
+        foreach (var entity in GS.EnumerateEntities())
+        {
+            if (entity.EntityType == (int)EntityType.Player && !rosterActors.Contains(entity.EntityId))
+            {
+                orphanCount++;
+                Debug.LogWarning($"[PlayerSync] Player entity has no roster entry after {source}. actor={entity.EntityId}");
+                Debug.LogWarning($"[P2PPlayerSync] Player entity has no roster entry after {source}. actor={entity.EntityId}");
+            }
+        }
+
+        if (missingCount == 0 && orphanCount == 0)
+        {
+            Debug.Log(
+                $"[P2PPlayerSync] Player entities OK after {source}. " +
+                $"roster={FormatRosterActors()} entities={FormatStatePlayerEntities()} my={GS.MyActorId}");
+        }
+    }
+
+    private void ApplyRosterSnapshot(IEnumerable<(int ActorId, string Uid)> packetRoster)
+    {
+        var mergedRoster = new Dictionary<int, string>();
+
+        if (packetRoster != null)
+        {
+            foreach (var (actorId, uid) in packetRoster)
+            {
+                if (actorId <= 0)
+                    continue;
+
+                mergedRoster[actorId] = uid ?? "";
+            }
+        }
+
+        MergeManifestParticipants(mergedRoster);
+        ApplyMergedRoster(mergedRoster);
+    }
+
+    private void EnsureManifestRosterApplied()
+    {
+        var mergedRoster = GS.EnumeratePlayerRoster().ToDictionary(x => x.ActorId, x => x.Uid ?? "");
+        int beforeCount = mergedRoster.Count;
+
+        MergeManifestParticipants(mergedRoster);
+        if (mergedRoster.Count == beforeCount)
+            return;
+
+        ApplyMergedRoster(mergedRoster);
+    }
+
+    private void MergeManifestParticipants(Dictionary<int, string> rosterByActorId)
+    {
+        if (rosterByActorId == null)
+            return;
+
+        var participants = SessionContext.Instance.LastMatchManifest?.Participants;
+        if (participants == null)
+            return;
+
+        foreach (var participant in participants)
+        {
+            if (participant == null || participant.ActorId <= 0)
+                continue;
+
+            if (rosterByActorId.TryGetValue(participant.ActorId, out var existingUid)
+                && !string.IsNullOrWhiteSpace(existingUid)
+                && !string.Equals(existingUid, participant.Uid ?? "", StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.LogWarning(
+                    $"[P2PPlayerSync] Manifest roster conflict actor={participant.ActorId} packetUid={existingUid} " +
+                    $"manifestUid={participant.Uid ?? "-"}");
+            }
+
+            if (!rosterByActorId.ContainsKey(participant.ActorId))
+                rosterByActorId[participant.ActorId] = participant.Uid ?? "";
+        }
+    }
+
+    private void ApplyMergedRoster(Dictionary<int, string> rosterByActorId)
+    {
+        var orderedRoster = rosterByActorId
+            .Where(x => x.Key > 0)
+            .OrderBy(x => x.Key)
+            .Select(x => (x.Key, x.Value ?? ""))
+            .ToArray();
+
+        GS.SetPlayerRoster(orderedRoster);
+        GS.SetPlayerActorIds(orderedRoster.Select(x => x.Item1).ToArray());
+
+        Debug.Log($"[P2PPlayerSync] Roster applied count={orderedRoster.Length} actors={FormatRosterActors()}");
+
+        foreach (var duplicateUid in orderedRoster
+                     .Where(x => !string.IsNullOrWhiteSpace(x.Item2))
+                     .GroupBy(x => x.Item2, StringComparer.OrdinalIgnoreCase)
+                     .Where(g => g.Select(x => x.Item1).Distinct().Count() > 1))
+        {
+            Debug.LogWarning(
+                $"[P2PPlayerSync] Duplicate uid in merged roster uid={duplicateUid.Key} " +
+                $"actors={string.Join(",", duplicateUid.Select(x => x.Item1).OrderBy(x => x))} " +
+                $"sessionUid={SessionContext.Instance?.Uid ?? "-"}");
+        }
+
+        if (P2PDebugConfig.TraceCombat)
+            Debug.Log($"[ClientHandlers] Roster applied count={orderedRoster.Length} actors={string.Join(",", orderedRoster.Select(x => x.Item1))}");
+    }
+
+    private void LogInitMapPlayerSnapshot(SC_InitMap p)
+    {
+        int totalEntities = p.entitiess?.Count ?? 0;
+        int playerEntities = p.entitiess?.Count(e => e.EntityType == (int)EntityType.Player) ?? 0;
+        int monsterEntities = p.entitiess?.Count(e => e.EntityType == (int)EntityType.Monster) ?? 0;
+        int objectEntities = p.entitiess?.Count(e => e.EntityType == (int)EntityType.Object) ?? 0;
+
+        Debug.Log(
+            $"[P2PPlayerSync] InitMap received map={p.MapId} my={p.MyActorId} " +
+            $"roster={FormatInitMapRoster(p)} playerEntities={FormatInitMapPlayerEntities(p)} " +
+            $"counts total={totalEntities} players={playerEntities} monsters={monsterEntities} objects={objectEntities}");
+    }
+
+    private string FormatRosterActors()
+        => string.Join(",", GS.EnumeratePlayerRoster()
+            .OrderBy(x => x.ActorId)
+            .Select(x => $"{x.ActorId}:{(string.IsNullOrWhiteSpace(x.Uid) ? "-" : x.Uid)}"));
+
+    private string FormatStatePlayerEntities()
+    {
+        var entries = GS.EnumerateEntities()
+            .Where(e => e.EntityType == (int)EntityType.Player)
+            .OrderBy(e => e.EntityId)
+            .Select(e =>
+            {
+                string uid = GS.TryGetPlayerUid(e.EntityId, out var resolvedUid) && !string.IsNullOrWhiteSpace(resolvedUid)
+                    ? resolvedUid
+                    : "-";
+                return $"{e.EntityId}:{uid}@({e.X},{e.Y}) hp={e.Hp} app={e.AppearanceId}";
+            })
+            .ToArray();
+
+        return entries.Length == 0 ? "none" : string.Join(",", entries);
+    }
+
+    private bool IsTrackedPlayerActor(int actorId)
+    {
+        if (actorId <= 0)
+            return false;
+
+        if (GS.TryGetPlayerUid(actorId, out _))
+            return true;
+
+        return GS.PlayerActorIds != null && Array.IndexOf(GS.PlayerActorIds, actorId) >= 0;
+    }
+
+    private static string FormatInitMapRoster(SC_InitMap p)
+    {
+        if (p.playerss == null || p.playerss.Count == 0)
+            return "none";
+
+        return string.Join(",", p.playerss
+            .OrderBy(x => x.ActorId)
+            .Select(x => $"{x.ActorId}:{(string.IsNullOrWhiteSpace(x.Uid) ? "-" : x.Uid)}"));
+    }
+
+    private static string FormatInitMapPlayerEntities(SC_InitMap p)
+    {
+        if (p.entitiess == null || p.entitiess.Count == 0)
+            return "none";
+
+        var entries = p.entitiess
+            .Where(e => e.EntityType == (int)EntityType.Player)
+            .OrderBy(e => e.EntityId)
+            .Select(e => $"{e.EntityId}@({e.X},{e.Y}) hp={e.Hp} app={e.AppearanceId}")
+            .ToArray();
+
+        return entries.Length == 0 ? "none" : string.Join(",", entries);
     }
 
     public void Handle_SC_ReturnToTown(SC_ReturnToTown p)

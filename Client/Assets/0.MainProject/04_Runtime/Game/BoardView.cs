@@ -307,6 +307,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
             if (prefab == null)
             {
                 Debug.LogWarning($"[BoardView] EntityType {info.EntityType}용 Prefab이 없음 (AppearanceId={info.AppearanceId})");
+                if (info.EntityType == (int)EntityType.Player)
+                    Debug.LogWarning($"[P2PPlayerSync] Player visual spawn failed actor={info.EntityId} reason=MissingPrefab app={info.AppearanceId}");
                 return;
             }
 
@@ -318,6 +320,13 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
             _entityViews[info.EntityId] = visual;
             createdNow = true;
+            if (info.EntityType == (int)EntityType.Player)
+            {
+                bool isLocal = ClientGameState.Instance != null && info.EntityId == ClientGameState.Instance.MyActorId;
+                Debug.Log(
+                    $"[P2PPlayerSync] Player visual created actor={info.EntityId} local={isLocal} " +
+                    $"prefab={prefab.name} pos=({info.X},{info.Y}) app={info.AppearanceId}");
+            }
 
             if (visual.TryGetComponent<RhythmRPG.Visual.CharacterVisualController>(out var visualCtrl))
             {

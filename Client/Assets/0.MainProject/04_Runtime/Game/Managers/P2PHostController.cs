@@ -42,6 +42,7 @@ public sealed partial class P2PHostController : MonoBehaviour
     private readonly object _commandLock = new();
     private readonly BeatCommandScheduler _beatScheduler = new();
     private readonly BeatCommandScheduler _delayedScheduler = new();
+    private readonly BeatCommandScheduler _lateResolvedScheduler = new();
     private readonly List<QueuedCombatCommand> _commandBuffer = new(16);
 
     private readonly List<SC_BeatActions.BeatActionResult> _batchedBeatResults = new();
@@ -120,6 +121,7 @@ public sealed partial class P2PHostController : MonoBehaviour
         {
             _beatScheduler.Clear();
             _delayedScheduler.Clear();
+            _lateResolvedScheduler.Clear();
             _commandBuffer.Clear();
         }
 
@@ -154,6 +156,7 @@ public sealed partial class P2PHostController : MonoBehaviour
                 RhythmInputController.Instance.IsInputBlocked = false;
 
             ResetCombatState();
+            Debug.Log($"[P2PPlayerSync] Host authority disabled actor={HostActorId}");
             if (P2PDebugConfig.TraceHostFlow)
                 Debug.Log("[P2PHostController] Host mode disabled");
             return;
@@ -162,19 +165,92 @@ public sealed partial class P2PHostController : MonoBehaviour
         SyncSessionKey();
         P2PCombatContentCache.WarmUpSkills();
         MaybeRefreshSnapshots();
+        Debug.Log($"[P2PPlayerSync] Host authority enabled actor={HostActorId} session={_activeSessionKey}");
+        DumpHostInitDiagnostics("SetHostMode_Enable");
         if (P2PDebugConfig.TraceHostFlow)
             Debug.Log($"[P2PHostController] Host mode enabled actor={HostActorId}");
     }
 
     public void SetHostActorId(int actorId)
     {
+        if (HostActorId == actorId)
+        {
+            if (IsHost)
+                MaybeRefreshSnapshots();
+            return;
+        }
+
         HostActorId = actorId;
 
         if (IsHost)
             MaybeRefreshSnapshots();
 
+        Debug.Log($"[P2PPlayerSync] Host actor set actor={actorId} isHost={IsHost}");
+        DumpHostInitDiagnostics("SetHostActorId");
         if (P2PDebugConfig.TraceHostFlow)
             Debug.Log($"[P2PHostController] Host actor set to {actorId}");
+    }
+
+    /// <summary>
+    /// [HostInit_Diag] Host 권한이 활성/변경된 시점에 ClientGameState 상태를 덤프하여
+    /// 1) 본인 actor entity가 등록되어 있는지
+    /// 2) 다른 player actor entity들도 모두 등록되어 있는지
+    /// 3) HostActorId / SessionContext.MyActorId / GS.MyActorId 의 일관성
+    /// 을 한눈에 확인할 수 있게 한다.
+    /// </summary>
+    private void DumpHostInitDiagnostics(string source)
+    {
+        var gs = ClientGameState.Instance;
+        var session = SessionContext.Instance;
+        int sessionActor = session?.MyActorId ?? 0;
+        int gsActor = gs?.MyActorId ?? 0;
+        int entityCount = gs?.EntityCount ?? -1;
+
+        string roster = "<gs-null>";
+        string playerEntities = "<gs-null>";
+        bool hostHasOwnEntity = false;
+        bool sessionActorHasEntity = false;
+
+        if (gs != null)
+        {
+            var rosterEntries = new System.Text.StringBuilder();
+            foreach (var entry in gs.EnumeratePlayerRoster())
+            {
+                if (rosterEntries.Length > 0) rosterEntries.Append(',');
+                rosterEntries.Append(entry.ActorId).Append(':').Append(string.IsNullOrWhiteSpace(entry.Uid) ? "-" : entry.Uid);
+            }
+            roster = rosterEntries.Length == 0 ? "none" : rosterEntries.ToString();
+
+            var entitySb = new System.Text.StringBuilder();
+            foreach (var e in gs.EnumerateEntities())
+            {
+                if (e.EntityType != (int)EntityType.Player) continue;
+                if (entitySb.Length > 0) entitySb.Append(',');
+                entitySb.Append(e.EntityId).Append("@(").Append(e.X).Append(',').Append(e.Y).Append(") hp=").Append(e.Hp);
+                if (e.EntityId == HostActorId) hostHasOwnEntity = true;
+                if (e.EntityId == sessionActor) sessionActorHasEntity = true;
+            }
+            playerEntities = entitySb.Length == 0 ? "none" : entitySb.ToString();
+        }
+
+        Debug.Log(
+            $"[HostInit_Diag] source={source} hostActor={HostActorId} isHost={IsHost} " +
+            $"sessionActor={sessionActor} gsActor={gsActor} entityCount={entityCount} " +
+            $"hostHasOwnEntity={hostHasOwnEntity} sessionActorHasEntity={sessionActorHasEntity} " +
+            $"roster=[{roster}] playerEntities=[{playerEntities}]");
+
+        // 일관성 위반 — 가장 자주 보고되는 결함 케이스
+        if (IsHost)
+        {
+            if (HostActorId <= 0)
+                Debug.LogWarning("[HostInit_Diag] WARN HostActorId is 0 while IsHost=true — Host authority will not pass GetHostAuthorityState gate");
+            else if (sessionActor != HostActorId)
+                Debug.LogWarning($"[HostInit_Diag] WARN sessionActor({sessionActor}) != HostActorId({HostActorId}) — host treats different actor as authority");
+            else if (gsActor != HostActorId)
+                Debug.LogWarning($"[HostInit_Diag] WARN GS.MyActorId({gsActor}) != HostActorId({HostActorId}) — InitMap not yet applied or actor mismatch");
+            else if (!hostHasOwnEntity)
+                Debug.LogWarning($"[HostInit_Diag] WARN HostActorId={HostActorId} but no Player entity for own actor in GS. Host requests will be dropped (ActorNotFound). Likely InitMap entitiess missing host or roster/MyActorId mismatch");
+        }
     }
 
     public void EnqueueLocalActionRequest(CS_ActionRequest req)
@@ -202,6 +278,12 @@ public sealed partial class P2PHostController : MonoBehaviour
             return;
 
         int actorId = pkt.SenderActorId > 0 ? pkt.SenderActorId : req.ActorId;
+        if (P2PDebugConfig.LogOverheadEnabled)
+        {
+            Debug.Log(
+                $"[P2PHostController] EnqueueGuest actor={actorId} reqActor={req.ActorId} action={(ActionKind)req.ActionKind} " +
+                $"slot={req.SlotIndex} target=({req.TargetX},{req.TargetY}) sendMs={req.ClientSendTimeMs} hostActor={HostActorId}");
+        }
         _pendingActionRequests.Enqueue(new PendingActionRequest
         {
             Request = req,

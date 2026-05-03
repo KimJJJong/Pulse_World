@@ -23,7 +23,8 @@ public sealed class GameSceneContext : BaseSceneContext
     private async void Start()
     {
         await Task.Yield();
-        if (_autoEnter) await EnterGameAsync();
+        if (_autoEnter && ShouldAutoEnterFromScene())
+            await EnterGameAsync();
     }
 
     public void SetMapId(string mapId) => _mapId = mapId;
@@ -79,6 +80,13 @@ public sealed class GameSceneContext : BaseSceneContext
 
         Debug.Log($"[GameSceneContext] Sending CS_MapEnter... MapId={_mapId}");
         NetworkManager.Instance.Send(req.Write());
+    }
+
+    private static bool ShouldAutoEnterFromScene()
+    {
+        // In the normal game-start flow ClientFlow sets map/max first, then calls EnterGameAsync.
+        // Auto-entering while a session key is active can race that setup and send CS_MapEnter with defaults.
+        return string.IsNullOrWhiteSpace(SessionContext.Instance.Key);
     }
 
     /// <summary>

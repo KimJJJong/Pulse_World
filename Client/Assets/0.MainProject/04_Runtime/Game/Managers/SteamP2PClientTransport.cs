@@ -111,6 +111,7 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
 
     private SteamP2PTransportConfig _config = new();
     private string _configFingerprint = "";
+    private string _lastStateSignature = "";
     private long _nextGuestReconnectAtMs;
     private RelaySocketHost _hostSocket;
     private RelayGuestConnection _guestConnection;
@@ -135,8 +136,15 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         _config = CloneConfig(config);
         _configFingerprint = nextFingerprint;
 
+        Debug.Log(
+            $"[SteamP2P] Configure match={_config.MatchId} localHost={_config.IsLocalHost} " +
+            $"hostSteam={_config.HostSteamId64} localSteam={_config.LocalSteamId64} " +
+            $"participants={string.Join(",", _config.AllowedParticipantSteamId64s ?? Array.Empty<string>())}");
+
         if (changed)
             Stop();
+
+        LogStateIfChanged("Configure");
     }
 
     public void EnsureRunning()
@@ -154,6 +162,7 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
 
             if (_hostSocket == null)
                 StartHostSocket();
+            LogStateIfChanged("EnsureRunning");
             return;
         }
 
@@ -162,6 +171,8 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
 
         if (_guestConnection == null && P2PRelayDiagnosticsPackets.NowMs() >= _nextGuestReconnectAtMs)
             StartGuestConnection();
+
+        LogStateIfChanged("EnsureRunning");
     }
 
     public void Pump()
@@ -179,6 +190,8 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
 
         if (!_config.IsLocalHost && _guestConnection == null && IsConfigUsable() && P2PRelayDiagnosticsPackets.NowMs() >= _nextGuestReconnectAtMs)
             StartGuestConnection();
+
+        LogStateIfChanged("Pump");
     }
 
     public void Stop()
@@ -186,6 +199,7 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         CloseGuestConnection("Stop");
         CloseHostSocket();
         _nextGuestReconnectAtMs = 0;
+        LogStateIfChanged("Stop");
     }
 
     public bool SendGuestToHost(byte[] payload)
@@ -263,11 +277,13 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         _guestConnection = null;
         _nextGuestReconnectAtMs = P2PRelayDiagnosticsPackets.NowMs() + ReconnectDelayMs;
         Debug.LogWarning($"[SteamP2P] Guest disconnected from host. state={info.State} reason={info.EndReason}");
+        LogStateIfChanged("GuestDisconnected");
     }
 
     private void OnHostPeerDisconnected(Connection connection, ConnectionInfo info)
     {
         Debug.LogWarning($"[SteamP2P] Peer disconnected. conn={connection.Id} state={info.State} reason={info.EndReason}");
+        LogStateIfChanged("PeerDisconnected");
     }
 
     private bool IsConfigUsable()
@@ -295,6 +311,7 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
             _hostSocket = socket;
             LastError = "";
             Debug.Log($"[SteamP2P] Host relay socket ready. match={_config.MatchId} host={_config.LocalSteamId64}");
+            LogStateIfChanged("StartHostSocket");
         }
         catch (Exception ex)
         {
@@ -321,6 +338,7 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
             _guestConnection = conn;
             LastError = "";
             Debug.Log($"[SteamP2P] Connecting to host={_config.HostSteamId64} match={_config.MatchId}");
+            LogStateIfChanged("StartGuestConnection");
         }
         catch (Exception ex)
         {
@@ -347,6 +365,7 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         finally
         {
             _hostSocket = null;
+            LogStateIfChanged("CloseHostSocket");
         }
     }
 
@@ -366,7 +385,23 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         finally
         {
             _guestConnection = null;
+            LogStateIfChanged("CloseGuestConnection");
         }
+    }
+
+    private void LogStateIfChanged(string source)
+    {
+        string signature =
+            $"{source}|hosting={IsHosting}|connected={IsConnectedToHost}|running={IsRunning}|peers={ConnectedPeerCount}|" +
+            $"localHost={_config.IsLocalHost}|host={_config.HostSteamId64}|local={_config.LocalSteamId64}|err={LastError}";
+        if (string.Equals(signature, _lastStateSignature, StringComparison.Ordinal))
+            return;
+
+        _lastStateSignature = signature;
+        Debug.Log(
+            $"[SteamP2P] State source={source} hosting={IsHosting} connectedToHost={IsConnectedToHost} running={IsRunning} " +
+            $"peers={ConnectedPeerCount} localHost={_config.IsLocalHost} hostSteam={_config.HostSteamId64} " +
+            $"localSteam={_config.LocalSteamId64} nextReconnectAt={_nextGuestReconnectAtMs} err={LastError}");
     }
 
     private static SteamP2PTransportConfig CloneConfig(SteamP2PTransportConfig src)
@@ -427,6 +462,10 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
             bool isAllowed = !string.IsNullOrWhiteSpace(steamId64)
                              && !string.Equals(steamId64, LocalSteamId64, StringComparison.Ordinal)
                              && AllowedParticipantSteamIds.Contains(steamId64);
+
+            Debug.Log(
+                $"[SteamP2P] HostOnConnecting steam={steamId64} allowed={isAllowed} conn={connection.Id} " +
+                $"allowedSet={string.Join(",", AllowedParticipantSteamIds.OrderBy(x => x, StringComparer.Ordinal))}");
 
             if (!isAllowed)
             {

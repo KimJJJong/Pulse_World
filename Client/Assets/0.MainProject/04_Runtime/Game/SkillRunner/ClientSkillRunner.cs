@@ -14,6 +14,7 @@ public class ClientSkillRunner : MonoBehaviour
     private bool _isMine;
     private EntityVisual _visual;
     private BoardView _boardView;
+    private bool _playbackStarted;
 
     private float _casterRotation;
 
@@ -65,8 +66,8 @@ public class ClientSkillRunner : MonoBehaviour
             long relativeTick = currentTick - _startTick;
             if (relativeTick > _skillDef.Data.TotalDurationTicks)
             {
-                Debug.LogWarning($"[ClientSkillRunner] Skill {skillId} already expired on arrival. " +
-                                 $"RelativeTick={relativeTick} > TotalDuration={_skillDef.Data.TotalDurationTicks}. Discarding.");
+/*                Debug.LogWarning($"[ClientSkillRunner] Skill {skillId} already expired on arrival. " +
+                                 $"RelativeTick={relativeTick} > TotalDuration={_skillDef.Data.TotalDurationTicks}. Discarding.");*/
                 Destroy(gameObject);
                 return;
             }
@@ -77,9 +78,7 @@ public class ClientSkillRunner : MonoBehaviour
 
         if (RhythmClient.Instance != null)
         {
-            float totalDurationSec = (_skillDef.Data.TotalDurationTicks / 480f) * (float)RhythmClient.Instance.GetBeatDurationMs() / 1000f;
-        if (_visual != null)
-                _visual.PlaySkill(totalDurationSec, _isMine);
+            TryStartPlayback(RhythmClient.Instance.GetCurrentServerTick());
         }
     }
 
@@ -95,6 +94,7 @@ public class ClientSkillRunner : MonoBehaviour
         _visual = null;
         _boardView = null;
         _casterRotation = 0f;
+        _playbackStarted = false;
     }
 
     void Update()
@@ -104,6 +104,8 @@ public class ClientSkillRunner : MonoBehaviour
 
         long currentTick = RhythmClient.Instance.GetCurrentServerTick();
         long relativeTick = currentTick - _startTick;
+
+        TryStartPlayback(currentTick);
 
         // InputLock 만료 체크 — 종료 시점이 되면 입력 해제
         if (_isInputLocked && currentTick >= _inputLockEndTick)
@@ -147,6 +149,23 @@ public class ClientSkillRunner : MonoBehaviour
                 }
             }
         }
+    }
+
+    private void TryStartPlayback(long currentTick)
+    {
+        if (_playbackStarted || _visual == null || _skillDef?.Data == null)
+            return;
+
+        var rhythm = RhythmClient.Instance;
+        if (rhythm == null)
+            return;
+
+        if (currentTick < _startTick)
+            return;
+
+        float totalDurationSec = (_skillDef.Data.TotalDurationTicks / 480f) * (float)rhythm.GetBeatDurationMs() / 1000f;
+        _visual.PlaySkill(totalDurationSec, _isMine);
+        _playbackStarted = true;
     }
 
     private void ProcessEvent(SkillEvent ev, long relativeTick)

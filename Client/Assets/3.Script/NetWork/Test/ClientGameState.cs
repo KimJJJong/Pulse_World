@@ -1,5 +1,7 @@
 using UnityEngine;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class ClientGameState : MonoBehaviour
 {
@@ -198,8 +200,19 @@ public class ClientGameState : MonoBehaviour
 
     #region 플레이어/Actor
 
-    public void SetPlayerActorIds(int[] actorIds) => PlayerActorIds = actorIds;
-    public void SetMyActorId(int actorId) => MyActorId = actorId;
+    public void SetPlayerActorIds(int[] actorIds)
+    {
+        PlayerActorIds = actorIds ?? new int[0];
+        if (P2PDebugConfig.LogOverheadEnabled)
+            Debug.Log($"[P2PPlayerSync] SetPlayerActorIds actors={string.Join(",", PlayerActorIds)}");
+    }
+
+    public void SetMyActorId(int actorId)
+    {
+        MyActorId = actorId;
+        string uid = TryGetPlayerUid(actorId, out var resolvedUid) ? resolvedUid : "-";
+        Debug.Log($"[P2PPlayerSync] SetMyActorId actor={actorId} uid={uid}");
+    }
 
     public void SetPlayerRoster(IEnumerable<(int ActorId, string Uid)> roster)
     {
@@ -214,6 +227,25 @@ public class ClientGameState : MonoBehaviour
                 continue;
 
             _playerUids[actorId] = uid ?? "";
+        }
+
+        if (P2PDebugConfig.LogOverheadEnabled)
+        {
+            var entries = _playerUids
+                .OrderBy(x => x.Key)
+                .Select(x => $"{x.Key}:{(string.IsNullOrWhiteSpace(x.Value) ? "-" : x.Value)}")
+                .ToArray();
+            Debug.Log($"[P2PPlayerSync] SetPlayerRoster actors={string.Join(",", entries)}");
+        }
+
+        foreach (var duplicateUid in _playerUids
+                     .Where(x => !string.IsNullOrWhiteSpace(x.Value))
+                     .GroupBy(x => x.Value, StringComparer.OrdinalIgnoreCase)
+                     .Where(g => g.Select(x => x.Key).Distinct().Count() > 1))
+        {
+            Debug.LogWarning(
+                $"[P2PPlayerSync] Duplicate uid mapped to multiple actors uid={duplicateUid.Key} " +
+                $"actors={string.Join(",", duplicateUid.Select(x => x.Key).OrderBy(x => x))}");
         }
     }
 
@@ -258,6 +290,14 @@ public class ClientGameState : MonoBehaviour
         }
 
         _entities[info.EntityId] = info;
+
+        if (P2PDebugConfig.LogOverheadEnabled && info.EntityType == (int)EntityType.Player)
+        {
+            string uid = TryGetPlayerUid(info.EntityId, out var resolvedUid) ? resolvedUid : "-";
+            Debug.Log(
+                $"[P2PPlayerSync] EntityStateUpsert actor={info.EntityId} uid={uid} pos=({info.X},{info.Y}) " +
+                $"hp={info.Hp} app={info.AppearanceId} myActor={MyActorId}");
+        }
 
         if (WorldView == null)
             Debug.LogError($"[ClientGameState] WorldView is null! Entity renders will fail. ID={info.EntityId}");
@@ -318,8 +358,28 @@ public class ClientGameState : MonoBehaviour
             entity.Hp = action.NewHp;
 
         _entities[action.ActorId] = entity;
+        if (P2PDebugConfig.LogOverheadEnabled
+            && action.ActionKind == (int)ActionKind.Move
+            && ShouldTracePlayerBeatAction(action.ActorId))
+        {
+            string uid = TryGetPlayerUid(action.ActorId, out var resolvedUid) ? resolvedUid : "-";
+            Debug.Log(
+                $"[P2PPlayerSync] ApplyBeatMove actor={action.ActorId} uid={uid} accepted={action.Accepted} " +
+                $"from=({action.FromX},{action.FromY}) to=({action.ToX},{action.ToY}) now=({entity.X},{entity.Y}) myActor={MyActorId}");
+        }
         WorldView?.OnBeatAction(action, entity);
         NotifyMyEntityChanged(action.ActorId);
+    }
+
+    private bool ShouldTracePlayerBeatAction(int actorId)
+    {
+        if (actorId <= 0)
+            return false;
+
+        if (_playerUids.ContainsKey(actorId))
+            return true;
+
+        return PlayerActorIds != null && Array.IndexOf(PlayerActorIds, actorId) >= 0;
     }
 
     #endregion

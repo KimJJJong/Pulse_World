@@ -43,6 +43,8 @@ internal sealed class WaitingRoomMemberState
 
 public sealed class WaitingRoomService
 {
+    private const long HostProbeFreshnessWindowMs = 90_000;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = null,
@@ -296,11 +298,19 @@ public sealed class WaitingRoomService
 
     private static string SelectPreferredHostUid(WaitingRoomDto room)
     {
-        var best = room.MemberTransport
+        bool requireSteamHost = room.UseP2PRelay;
+        long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var best = (room.MemberTransport ?? new List<WaitingRoomMemberTransportDto>())
             .Where(x => !string.IsNullOrWhiteSpace(x.Uid))
-            .Where(x => x.HostProbeRttMs >= 0)
-            .Where(x => x.HostProbeReportedAtMs > 0)
-            .OrderBy(x => x.HostProbeRttMs)
+            .GroupBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g
+                .OrderBy(x => IsFreshProbe(x, nowMs) ? 0 : 1)
+                .ThenBy(x => x.HostProbeRttMs >= 0 ? x.HostProbeRttMs : int.MaxValue)
+                .ThenByDescending(x => x.HostProbeReportedAtMs)
+                .First())
+            .Where(x => !requireSteamHost || !string.IsNullOrWhiteSpace(x.SteamId64))
+            .OrderBy(x => IsFreshProbe(x, nowMs) ? 0 : 1)
+            .ThenBy(x => x.HostProbeRttMs >= 0 ? x.HostProbeRttMs : int.MaxValue)
             .ThenBy(x => string.Equals(x.Uid, room.OwnerUid, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault();
@@ -308,10 +318,36 @@ public sealed class WaitingRoomService
         if (best != null)
             return best.Uid;
 
+        if (requireSteamHost)
+        {
+            var steamCapableOwner = (room.MemberTransport ?? new List<WaitingRoomMemberTransportDto>())
+                .FirstOrDefault(x =>
+                    string.Equals(x.Uid, room.OwnerUid, StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(x.SteamId64));
+            if (steamCapableOwner != null)
+                return steamCapableOwner.Uid;
+
+            var steamCapableMember = (room.MemberTransport ?? new List<WaitingRoomMemberTransportDto>())
+                .Where(x => !string.IsNullOrWhiteSpace(x.Uid) && !string.IsNullOrWhiteSpace(x.SteamId64))
+                .OrderBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
+            if (steamCapableMember != null)
+                return steamCapableMember.Uid;
+        }
+
         if (!string.IsNullOrWhiteSpace(room.OwnerUid))
             return room.OwnerUid;
 
         return room.MemberUids.FirstOrDefault() ?? "";
+    }
+
+    private static bool IsFreshProbe(WaitingRoomMemberTransportDto state, long nowMs)
+    {
+        if (state == null || state.HostProbeRttMs < 0 || state.HostProbeReportedAtMs <= 0)
+            return false;
+
+        long ageMs = Math.Max(0, nowMs - state.HostProbeReportedAtMs);
+        return ageMs <= HostProbeFreshnessWindowMs;
     }
 
     private async Task<WaitingRoomMemberState> GetMemberStateAsync(string membersKey, string uid)

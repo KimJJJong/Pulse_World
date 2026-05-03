@@ -34,6 +34,15 @@ public sealed partial class P2PHostController
                 pending.ForcedExecuteBeat);
             processed++;
         }
+
+        if (P2PDebugConfig.LogOverheadEnabled && processed > 0)
+        {
+            Debug.Log(
+                $"[P2PHostController] DrainPending processed={processed} remaining={_pendingActionRequests.Count} " +
+                $"hostActor={HostActorId} isHost={IsHost}");
+        }
+
+        ProcessLateResolvedCommands();
     }
 
     private void DriveHostBeatSimulation()
@@ -133,6 +142,61 @@ public sealed partial class P2PHostController
         }
     }
 
+    private void EnqueueLateResolvedCommand(QueuedCombatCommand command)
+    {
+        if (command == null)
+            return;
+
+        lock (_commandLock)
+        {
+            _lateResolvedScheduler.Enqueue(command.ForcedExecuteBeat ?? 0, command);
+        }
+    }
+
+    private void ProcessLateResolvedCommands()
+    {
+        if (_lastJudgeWindowBeat == long.MinValue)
+            return;
+
+        long firstLateBeat;
+        lock (_commandLock)
+        {
+            if (!_lateResolvedScheduler.TryPeekMinBeat(out firstLateBeat))
+                return;
+        }
+
+        for (long beat = firstLateBeat; beat <= _lastJudgeWindowBeat; beat++)
+        {
+            _commandBuffer.Clear();
+            lock (_commandLock)
+            {
+                _lateResolvedScheduler.PopActions(beat, _commandBuffer);
+            }
+
+            foreach (var command in _commandBuffer)
+            {
+                if (command?.Request == null)
+                    continue;
+
+                ActivateScheduledCommand(command, beat, lateCatchUp: true);
+            }
+
+            ProcessSkillsAtBeat(beat, lateCatchUpOnly: true);
+            FlushBatchedBeatResults(beat);
+        }
+
+        PromoteLateCatchUpSkills();
+    }
+
+    private void PromoteLateCatchUpSkills()
+    {
+        foreach (var scheduled in _activeSkills)
+        {
+            if (scheduled != null && scheduled.IsLateCatchUp)
+                scheduled.IsLateCatchUp = false;
+        }
+    }
+
     // currentBeat phase: only starts attack/skill flows and registers them for later resolution.
     private void ProcessCurrentBeatCommandsAtBeat(long beat)
     {
@@ -203,6 +267,8 @@ public sealed partial class P2PHostController
         {
             if (fromLocalSource)
                 Debug.LogWarning($"[P2PHostController] DropLocal actor={actorId} action={(ActionKind)req.ActionKind} reason=ActorNotFound");
+            else if (P2PDebugConfig.TraceHostFlow)
+                Debug.LogWarning($"[P2PHostController] DropGuest actor={actorId} action={(ActionKind)req.ActionKind} reason=ActorNotFound entities={ClientGameState.Instance.EntityCount}");
             return;
         }
 
@@ -220,17 +286,46 @@ public sealed partial class P2PHostController
             return;
         }
 
-        long executeBeat = forcedExecuteBeat ?? RhythmClient.Instance.GetNearestBeatIndex(req.ClientSendTimeMs);
+        long executeBeat;
+        if (forcedExecuteBeat.HasValue)
+        {
+            executeBeat = forcedExecuteBeat.Value;
+        }
+        else
+        {
+            // [Fix] 클라이언트 TryGetJudgeWindowInfo와 동일한 nearest/prev 비교 로직.
+            // GetNearestBeatIndex(반올림)만 쓰면 비트 포인트 후반부(T 이후) 입력 시
+            // N+1이 반환되어 diffMs가 크게 나와 window 초과 → 차단됨.
+            // nearest와 prev(nearest-1) 중 더 가까운 쪽을 선택해야
+            // 비트 포인트 기준 ±window가 대칭으로 적용된다.
+            long nearestBeat = RhythmClient.Instance.GetNearestBeatIndex(req.ClientSendTimeMs);
+            long nearestTime = RhythmClient.Instance.GetBeatTimeMs(nearestBeat);
+            long nearestDiff = Math.Abs(req.ClientSendTimeMs - nearestTime);
+
+            long prevBeat = nearestBeat - 1;
+            long prevTime = RhythmClient.Instance.GetBeatTimeMs(prevBeat);
+            long prevDiff = Math.Abs(req.ClientSendTimeMs - prevTime);
+
+            executeBeat = prevDiff < nearestDiff ? prevBeat : nearestBeat;
+        }
+        bool isLateResolvedBeat = !bypassInputGuards
+                                  && _lastJudgeWindowBeat != long.MinValue
+                                  && executeBeat <= _lastJudgeWindowBeat;
+        bool hasMissedSkillStartBeat = !bypassInputGuards
+                                       && _lastProcessedBeat != long.MinValue
+                                       && executeBeat <= _lastProcessedBeat;
+
+        if (P2PDebugConfig.LogOverheadEnabled)
+        {
+            Debug.Log(
+                $"[P2PHostController] HandleAction src={(fromLocalSource ? "Local" : "Guest")} actor={actorId} reqActor={req.ActorId} " +
+                $"action={(ActionKind)req.ActionKind} slot={req.SlotIndex} target=({req.TargetX},{req.TargetY}) " +
+                $"sendMs={req.ClientSendTimeMs} executeBeat={executeBeat} lateResolved={isLateResolvedBeat} " +
+                $"processedBeat={_lastProcessedBeat} judgeBeat={_lastJudgeWindowBeat}");
+        }
 
         if (!bypassInputGuards)
         {
-            if (_lastJudgeWindowBeat != long.MinValue && executeBeat <= _lastJudgeWindowBeat)
-            {
-                if (fromLocalSource)
-                    Debug.LogWarning($"[P2PHostController] RejectLocal actor={actorId} action={(ActionKind)req.ActionKind} reason=LateResolvedBeat executeBeat={executeBeat} resolvedBeat={_lastJudgeWindowBeat}");
-                return;
-            }
-
             long judgeTimeMs = RhythmClient.Instance.GetBeatTimeMs(executeBeat);
             long diffMs = Math.Abs(req.ClientSendTimeMs - judgeTimeMs);
             double judgeWindowMs = RhythmClient.Instance.judgeWindowMs > 0 ? RhythmClient.Instance.judgeWindowMs : 100.0;
@@ -252,43 +347,65 @@ public sealed partial class P2PHostController
             }
         }
 
-        if (req.ActionKind == (int)ActionKind.Move)
-        {
-            EnqueueScheduledCommand(new QueuedCombatCommand
-            {
-                Request = req,
-                ActorId = actorId,
-                FromLocalSource = fromLocalSource,
-                SkillIdOverride = skillIdOverride,
-                ForcedExecuteBeat = executeBeat
-            });
-            return;
-        }
-
         if (req.ActionKind == (int)ActionKind.Wait)
             return;
+
+        QueuedCombatCommand command = new QueuedCombatCommand
+        {
+            Request = req,
+            ActorId = actorId,
+            FromLocalSource = fromLocalSource,
+            SkillIdOverride = skillIdOverride,
+            ForcedExecuteBeat = executeBeat
+        };
+
+        if (req.ActionKind == (int)ActionKind.Move)
+        {
+            if (isLateResolvedBeat)
+            {
+                if (P2PDebugConfig.TraceHostFlow)
+                    Debug.Log($"[P2PHostController] LateAccept move actor={actorId} beat={executeBeat} resolvedBeat={_lastJudgeWindowBeat}");
+                EnqueueLateResolvedCommand(command);
+            }
+            else
+            {
+                EnqueueScheduledCommand(command);
+            }
+            return;
+        }
 
         if (req.ActionKind != (int)ActionKind.Attack && req.ActionKind != (int)ActionKind.Skill)
             return;
 
         string skillId = ResolveSkillId(actorId, req.SlotIndex, req.ActionKind, skillIdOverride);
+        command.SkillIdOverride = skillId;
+
         long startTick = executeBeat * 480;
         if (P2PDebugConfig.TraceHostFlow)
-            Debug.Log($"[P2PHostController] AcceptLocal actor={actorId} action={(ActionKind)req.ActionKind} skill={skillId} beat={executeBeat} startTick={startTick} target=({req.TargetX},{req.TargetY})");
-        BroadcastInstantSkill(actorId, skillId, req.Rotation, startTick, fromLocalSource);
+            Debug.Log($"[P2PHostController] AcceptLocal actor={actorId} action={(ActionKind)req.ActionKind} skill={skillId} beat={executeBeat} startTick={startTick} target=({req.TargetX},{req.TargetY}) late={isLateResolvedBeat}");
 
-        EnqueueScheduledCommand(new QueuedCombatCommand
+        if (isLateResolvedBeat)
         {
-            Request = req,
-            ActorId = actorId,
-            FromLocalSource = fromLocalSource,
-            SkillIdOverride = skillId,
-            ForcedExecuteBeat = executeBeat,
-            InstantBroadcasted = true
-        });
+            EnqueueLateResolvedCommand(command);
+            return;
+        }
+
+        // currentBeat 시작 phase는 이미 지나갔지만 judge window 안이면,
+        // 해당 비트의 스킬을 지금 즉시 활성화해서 "입력 씹힘" 없이 이어서 처리한다.
+        if (hasMissedSkillStartBeat)
+        {
+            if (P2PDebugConfig.TraceHostFlow)
+                Debug.Log($"[P2PHostController] CatchUpSkill actor={actorId} skill={skillId} beat={executeBeat} processedBeat={_lastProcessedBeat} judgeBeat={_lastJudgeWindowBeat}");
+            ActivateScheduledCommand(command, executeBeat);
+            return;
+        }
+
+        BroadcastInstantSkill(actorId, skillId, req.Rotation, startTick, fromLocalSource);
+        command.InstantBroadcasted = true;
+        EnqueueScheduledCommand(command);
     }
 
-    private void ActivateScheduledCommand(QueuedCombatCommand command, long beat)
+    private void ActivateScheduledCommand(QueuedCombatCommand command, long beat, bool lateCatchUp = false)
     {
         if (command?.Request == null || ClientGameState.Instance == null)
             return;
@@ -325,7 +442,8 @@ public sealed partial class P2PHostController
             StartTick = startTick,
             Rotation = command.Request.Rotation,
             FromLocalSource = command.FromLocalSource,
-            SkillDef = LoadSkillDefinition(skillId)
+            SkillDef = LoadSkillDefinition(skillId),
+            IsLateCatchUp = lateCatchUp
         };
 
         scheduled.UseFallbackDamage = scheduled.SkillDef == null || !HasGameplayEvents(scheduled.SkillDef);
@@ -333,7 +451,7 @@ public sealed partial class P2PHostController
         _activeSkills.Add(scheduled);
     }
 
-    private void ProcessSkillsAtBeat(long beat)
+    private void ProcessSkillsAtBeat(long beat, bool lateCatchUpOnly = false)
     {
         if (_activeSkills.Count == 0 || ClientGameState.Instance == null)
             return;
@@ -341,6 +459,9 @@ public sealed partial class P2PHostController
         for (int i = _activeSkills.Count - 1; i >= 0; i--)
         {
             var scheduled = _activeSkills[i];
+
+            if (scheduled.IsLateCatchUp != lateCatchUpOnly)
+                continue;
 
             if (!ClientGameState.Instance.TryGetEntity(scheduled.ActorId, out var actorInfo) || actorInfo.Hp <= 0)
             {
@@ -536,7 +657,7 @@ public sealed partial class P2PHostController
             _hostPositions[actorId] = new Vector2Int(toX, toY);
         }
 
-        if (P2PDebugConfig.TraceHostFlow)
+        if (P2PDebugConfig.LogOverheadEnabled && ShouldTraceHostPlayerActor(actorId))
             Debug.Log($"[P2PHostController] MoveResult actor={actorId} beat={beat} from=({fromX},{fromY}) reqTo=({req.TargetX},{req.TargetY}) finalTo=({toX},{toY}) accepted={accepted} reason={(accepted ? "OK" : rejectReason)}");
 
         var result = new SC_BeatActions.BeatActionResult
@@ -593,6 +714,18 @@ public sealed partial class P2PHostController
     {
         if (_batchedBeatResults.Count > 0)
         {
+            if (P2PDebugConfig.LogOverheadEnabled)
+            {
+                var playerResults = _batchedBeatResults
+                    .Where(x => x != null && ShouldTraceHostPlayerActor(x.ActorId))
+                    .ToArray();
+                string summary = string.Join(",",
+                    playerResults.Select(x =>
+                        $"{(ActionKind)x.ActionKind}:{x.ActorId} ({x.FromX},{x.FromY})->({x.ToX},{x.ToY}) accepted={x.Accepted}"));
+                if (playerResults.Length > 0)
+                    Debug.Log($"[P2PHostController] FlushBeatResults beat={beat} count={playerResults.Length} results={summary}");
+            }
+
             var pkt = new SC_BeatActions
             {
                 BeatIndex = beat,
@@ -630,6 +763,20 @@ public sealed partial class P2PHostController
         if (packet == null || !bridge.IsRelayMode)
             return;
 
+        if (P2PDebugConfig.LogOverheadEnabled)
+        {
+            string detail = packet switch
+            {
+                SC_BeatActions beatPkt => $"beat={beatPkt.BeatIndex} count={beatPkt.beatActionResults?.Count ?? 0}",
+                SC_ActionInstantBroadcast instantPkt => $"actor={instantPkt.ActorId} skill={instantPkt.SkillId} startTick={instantPkt.StartTick}",
+                SC_EntityDespawn despawnPkt => $"entity={despawnPkt.EntityId} beat={despawnPkt.BeatIndex}",
+                _ => ""
+            };
+            Debug.Log(
+                $"[P2PHostController] BroadcastAndRelay packet={packet.GetType().Name} {detail} " +
+                $"pendingSendBefore={_pendingSendQueue.Count}");
+        }
+
         bridge.DispatchLocal(packet);
         // [최적화] 동기 전송 → 큐 적재 (LateUpdate에서 일괄 전송)
         _pendingSendQueue.Enqueue(packet);
@@ -648,10 +795,22 @@ public sealed partial class P2PHostController
 
         var bridge = P2PRelayClientBridge.Instance;
         bridge.DispatchLocal(pkt);
-        if (P2PDebugConfig.TraceHostFlow)
+        if (P2PDebugConfig.TraceHostFlow && ShouldTraceHostPlayerActor(actorId))
             Debug.Log($"[P2PHostController] LocalInstantSkill actor={actorId} skill={skillId} startTick={startTick} rot={rotation:F0}");
         // [최적화] 동기 전송 → 큐 적재
         _pendingSendQueue.Enqueue(pkt);
+    }
+
+    private bool ShouldTraceHostPlayerActor(int actorId)
+    {
+        if (actorId <= 0 || ClientGameState.Instance == null)
+            return false;
+
+        if (ClientGameState.Instance.TryGetPlayerUid(actorId, out _))
+            return true;
+
+        var playerActorIds = ClientGameState.Instance.PlayerActorIds;
+        return playerActorIds != null && Array.IndexOf(playerActorIds, actorId) >= 0;
     }
 
     private bool IsTileOccupied(int targetX, int targetY, int ignoreActorId)
@@ -982,6 +1141,7 @@ public sealed partial class P2PHostController
         {
             _beatScheduler.Clear();
             _delayedScheduler.Clear();
+            _lateResolvedScheduler.Clear();
             _commandBuffer.Clear();
         }
 

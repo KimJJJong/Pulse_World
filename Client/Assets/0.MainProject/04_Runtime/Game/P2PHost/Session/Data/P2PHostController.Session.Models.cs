@@ -67,6 +67,25 @@ public sealed partial class P2PHostController
             _byBeat.Remove(beat);
         }
 
+        public bool TryPeekMinBeat(out long beat)
+        {
+            beat = long.MaxValue;
+
+            foreach (var key in _byBeat.Keys)
+            {
+                if (key < beat)
+                    beat = key;
+            }
+
+            if (beat == long.MaxValue)
+            {
+                beat = 0;
+                return false;
+            }
+
+            return true;
+        }
+
         public void Clear()
         {
             _byBeat.Clear();
@@ -86,6 +105,7 @@ public sealed partial class P2PHostController
         public bool UseFallbackDamage;
         public int RemainingActionEvents;
         public int[] NextEventIndexByTrack = Array.Empty<int>();
+        public bool IsLateCatchUp;
     }
 
     private sealed class ScheduledEventEntry

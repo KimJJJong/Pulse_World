@@ -109,7 +109,7 @@ public class RhythmVisualDebugger : MonoBehaviour
             currentPitchOffset = _currentBlock.ChordEvents[_currentBlock.ChordEvents.Count - 1].PitchOffset;
         }
 
-        // 5. GUI 레이아웃 렌더링
+        // 5. GUI 렌더링
         DrawOverlay(currentBeatIndex, measureIndex, beatInMeasure, _currentBlock.BlockId, currentPitchOffset);
     }
 
@@ -128,30 +128,34 @@ public class RhythmVisualDebugger : MonoBehaviour
         textStyle.fontStyle = FontStyle.Bold;
         textStyle.normal.textColor = Color.cyan;
 
-        // 화면 중앙(위쪽) 배치 계산
-        float width = 450f;
+        // GUILayout은 Layout/Repaint 이벤트가 어긋날 때 예외가 나서 고정 Rect GUI로만 그린다.
+        float width = Mathf.Min(450f, Mathf.Max(260f, Screen.width - 20f));
         float height = 200f;
-        float startX = (Screen.width - width) / 2f;
+        float startX = Mathf.Max(10f, (Screen.width - width) / 2f);
         float startY = 20f; // 상단으로 고정
 
-        GUILayout.BeginArea(new Rect(startX, startY, width, height), "🎵 Rhythm Debugger", boxStyle);
-        GUILayout.Space(30);
-        
-        GUILayout.Label($"BPM : {RhythmClient.Instance.Bpm:F1} | Stage : {_stageData.StageId}");
-        GUILayout.Space(5);
-        
-        textStyle.normal.textColor = Color.yellow;
-        GUILayout.Label($"🎸 Current Block : {blockId}", textStyle);
-        GUILayout.Space(5);
-        
-        textStyle.normal.textColor = Color.green;
-        GUILayout.Label($"⏳ Measure {measureIndex} : Beat {beatInMeasure} (Abs: {currentBeatIndex})", textStyle);
-        GUILayout.Space(5);
-        
-        textStyle.normal.textColor = new Color(1f, 0.5f, 1f); // Pink
-        GUILayout.Label($"🎹 Pitch Offset : {(pitchOffset >= 0 ? "+" + pitchOffset : pitchOffset.ToString())}", textStyle);
+        Rect boxRect = new Rect(startX, startY, width, height);
+        GUI.Box(boxRect, "Rhythm Debugger", boxStyle);
 
-        GUILayout.EndArea();
+        float contentX = startX + 16f;
+        float contentY = startY + 34f;
+        float contentWidth = width - 32f;
+        const float rowHeight = 30f;
+        const float rowGap = 8f;
+
+        GUI.Label(new Rect(contentX, contentY, contentWidth, rowHeight), $"BPM : {RhythmClient.Instance.Bpm:F1} | Stage : {_stageData.StageId}");
+        contentY += rowHeight + rowGap;
+
+        textStyle.normal.textColor = Color.yellow;
+        GUI.Label(new Rect(contentX, contentY, contentWidth, rowHeight), $"Current Block : {blockId}", textStyle);
+        contentY += rowHeight + rowGap;
+
+        textStyle.normal.textColor = Color.green;
+        GUI.Label(new Rect(contentX, contentY, contentWidth, rowHeight), $"Measure {measureIndex} : Beat {beatInMeasure} (Abs: {currentBeatIndex})", textStyle);
+        contentY += rowHeight + rowGap;
+
+        textStyle.normal.textColor = new Color(1f, 0.5f, 1f); // Pink
+        GUI.Label(new Rect(contentX, contentY, contentWidth, rowHeight), $"Pitch Offset : {(pitchOffset >= 0 ? "+" + pitchOffset : pitchOffset.ToString())}", textStyle);
     }
 
     private void DrawWarning(string msg)
@@ -159,10 +163,10 @@ public class RhythmVisualDebugger : MonoBehaviour
         GUIStyle warningStyle = new GUIStyle(GUI.skin.box);
         warningStyle.fontSize = 16;
         warningStyle.normal.textColor = Color.red;
-        float width = 450f;
+        float width = Mathf.Min(450f, Mathf.Max(260f, Screen.width - 20f));
         float height = 80f;
-        float startX = (Screen.width - width) / 2f;
+        float startX = Mathf.Max(10f, (Screen.width - width) / 2f);
         float startY = 20f;
-        GUI.Box(new Rect(startX, startY, width, height), "🎵 Rhythm Debugger\n" + msg, warningStyle);
+        GUI.Box(new Rect(startX, startY, width, height), "Rhythm Debugger\n" + msg, warningStyle);
     }
 }

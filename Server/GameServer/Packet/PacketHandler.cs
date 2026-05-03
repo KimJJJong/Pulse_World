@@ -125,7 +125,7 @@ partial class PacketHandler
             {
                 room.UpdateHostPreferences(
                     manifest.HostUid ?? "",
-                    manifest.Participants?.Select(x => x.Uid) ?? Enumerable.Empty<string>());
+                    manifest.Participants);
             }
 
             LogManager.Instance.LogInfo("P2PRelayRoom",

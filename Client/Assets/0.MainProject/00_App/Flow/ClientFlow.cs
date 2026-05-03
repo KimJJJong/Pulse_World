@@ -34,6 +34,9 @@ public sealed class ClientFlow : MonoBehaviour
     public async Task ConnectTown(SessionDtos.IssueTownTicketResponse ticket, string clientNonce)
     {
         _target = Target.TownMap;
+        SessionContext.Instance.ClearInitMap();
+        SessionContext.Instance.ApplySessionKey("");
+        SessionContext.Instance.ApplyMatchManifest(null);
 
         var endpoint = ResolveClientEndpoint(ticket.Endpoint);
         if (endpoint == null) { Debug.LogError("[ClientFlow] ConnectTown: endpoint is missing."); return; }
@@ -50,9 +53,9 @@ public sealed class ClientFlow : MonoBehaviour
         _mapId = ticket.MapId;
         _maxPlayers = ticket.MaxPlayers;
 
+        SessionContext.Instance.ClearInitMap();
         SessionContext.Instance.ApplySessionKey(ticket.Key);
-        if (ticket.MatchManifest != null)
-            SessionContext.Instance.ApplyMatchManifest(ticket.MatchManifest);
+        SessionContext.Instance.ApplyMatchManifest(ticket.MatchManifest);
 
         if (P2PRelayClientBridge.Instance != null)
             P2PRelayClientBridge.Instance.ConfigureSession(ticket.Key, ticket.MatchManifest);

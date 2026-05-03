@@ -46,6 +46,8 @@ public sealed class P2PHostLogWindow : MonoBehaviour
     private bool _scrollToBottomRequested = true;
     private GUIStyle _logStyle;
     private bool _captureSubscribed;
+    private const int MaxStackLines = 6;
+    private const int MaxMessageChars = 900;
 
     private sealed class LogEntry
     {
@@ -165,13 +167,21 @@ public sealed class P2PHostLogWindow : MonoBehaviour
         if (!P2PDebugConfig.LogOverheadEnabled)
             return;
 
-        if (!_isRelayMode || !_isHostLocal || string.IsNullOrWhiteSpace(condition))
+        if (!_isRelayMode || string.IsNullOrWhiteSpace(condition))
             return;
 
         if (!P2PDebugConfig.ShouldCaptureHostLog(condition, type))
             return;
 
-        AddEntry(type.ToString().ToUpperInvariant(), condition, stackTrace ?? "");
+        string message = NormalizeLogMessage(condition);
+        if (string.IsNullOrWhiteSpace(message))
+            return;
+
+        string compactStack = ShouldShowStackTrace(type)
+            ? CompactStackTrace(stackTrace)
+            : "";
+
+        AddEntry(type.ToString().ToUpperInvariant(), message, compactStack);
     }
 
     private void AddEntry(string type, string message, string stackTrace)
@@ -282,6 +292,86 @@ public sealed class P2PHostLogWindow : MonoBehaviour
         }
     }
 
+    private static bool ShouldShowStackTrace(LogType type)
+        => type == LogType.Error || type == LogType.Exception || type == LogType.Assert;
+
+    private static string NormalizeLogMessage(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return "";
+
+        string[] lines = message.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        var sb = new StringBuilder(message.Length);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i]?.TrimEnd() ?? "";
+            if (line.Length == 0)
+                continue;
+
+            if (i > 0 && IsStackTraceLine(line))
+                continue;
+
+            if (sb.Length > 0)
+                sb.Append(" | ");
+
+            sb.Append(line.Trim());
+            if (sb.Length >= MaxMessageChars)
+                break;
+        }
+
+        if (sb.Length > MaxMessageChars)
+            return sb.ToString(0, MaxMessageChars) + "...";
+
+        return sb.ToString();
+    }
+
+    private static string CompactStackTrace(string stackTrace)
+    {
+        if (string.IsNullOrWhiteSpace(stackTrace))
+            return "";
+
+        string[] lines = stackTrace.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        var sb = new StringBuilder(512);
+        int kept = 0;
+        for (int i = 0; i < lines.Length && kept < MaxStackLines; i++)
+        {
+            string line = lines[i]?.Trim() ?? "";
+            if (line.Length == 0 || IsUnityDebugStackLine(line))
+                continue;
+
+            if (sb.Length > 0)
+                sb.Append('\n');
+
+            sb.Append("    ").Append(line);
+            kept++;
+        }
+
+        return sb.ToString();
+    }
+
+    private static bool IsStackTraceLine(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+            return false;
+
+        string trimmed = line.TrimStart();
+        return trimmed.StartsWith("UnityEngine.", StringComparison.Ordinal)
+            || trimmed.StartsWith("System.", StringComparison.Ordinal)
+            || trimmed.StartsWith("at ", StringComparison.Ordinal)
+            || trimmed.Contains(" (at ");
+    }
+
+    private static bool IsUnityDebugStackLine(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+            return true;
+
+        return line.StartsWith("UnityEngine.Debug:", StringComparison.Ordinal)
+            || line.StartsWith("UnityEngine.Logger:", StringComparison.Ordinal)
+            || line.StartsWith("P2PHostLogWindow:", StringComparison.Ordinal)
+            || line.StartsWith("P2PDebugConfig:", StringComparison.Ordinal);
+    }
+
     private void EnsureStyles()
     {
         if (_logStyle != null)
@@ -298,31 +388,33 @@ public sealed class P2PHostLogWindow : MonoBehaviour
 
 internal static class P2PDebugConfig
 {
-    private const bool TraceHostFlowDefault = false;
+    private const bool TraceHostFlowDefault = true;
     private const bool TraceContentDefault = false;
-    private const bool TraceInputDefault = false;
+    private const bool TraceInputDefault = true;
     private const bool TraceCombatDefault = false;
     private const bool CaptureOnlyP2PHostLogs = true;
-    private const KeyCode ToggleLogOverheadKey = KeyCode.F10;
+    private const KeyCode ToggleLogOverheadKey = KeyCode.F7;
     private static int _lastToggleFrame = -1;
 
+    internal const string ToggleLogOverheadKeyName = "F7";
     internal static bool LogOverheadEnabled { get; private set; } = false;
     internal static bool TraceHostFlow => LogOverheadEnabled && TraceHostFlowDefault;
     internal static bool TraceContent => LogOverheadEnabled && TraceContentDefault;
     internal static bool TraceInput => LogOverheadEnabled && TraceInputDefault;
     internal static bool TraceCombat => LogOverheadEnabled && TraceCombatDefault;
 
-    internal static void PollRuntimeToggle()
+    internal static bool PollRuntimeToggle()
     {
         if (!Input.GetKeyDown(ToggleLogOverheadKey))
-            return;
+            return false;
 
         int frame = Time.frameCount;
         if (_lastToggleFrame == frame)
-            return;
+            return false;
 
         _lastToggleFrame = frame;
         SetLogOverheadEnabled(!LogOverheadEnabled);
+        return true;
     }
 
     internal static void SetLogOverheadEnabled(bool enabled)
@@ -332,11 +424,19 @@ internal static class P2PDebugConfig
 
         LogOverheadEnabled = enabled;
 
+        if (enabled)
+        {
+            P2PHostLogWindow.Instance.SetCaptureEnabled(true);
+            P2PHostLogWindow.Instance.PushSystemMessage($"Log overhead enabled ({ToggleLogOverheadKeyName})");
+            if (P2PRelayClientBridge.HasInstance)
+                P2PRelayClientBridge.Instance.RefreshHostLogWindow();
+            return;
+        }
+
         if (P2PHostLogWindow.HasInstance)
         {
-            P2PHostLogWindow.Instance.SetCaptureEnabled(enabled);
-            if (!enabled)
-                P2PHostLogWindow.Instance.HideAndClear();
+            P2PHostLogWindow.Instance.SetCaptureEnabled(false);
+            P2PHostLogWindow.Instance.HideAndClear();
         }
     }
 
@@ -512,7 +612,9 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
         }
 
         AppendHeader(sb, "Match / Transport");
-        AppendField(sb, "LogOverhead", P2PDebugConfig.LogOverheadEnabled ? "ON (F10)" : "OFF (F10)");
+        AppendField(sb, "LogOverhead", P2PDebugConfig.LogOverheadEnabled
+            ? $"ON ({P2PDebugConfig.ToggleLogOverheadKeyName})"
+            : $"OFF ({P2PDebugConfig.ToggleLogOverheadKeyName})");
         AppendField(sb, "Manifest", manifest != null ? $"{manifest.NetworkMode} / {manifest.MatchId}" : "No active manifest");
         if (manifest != null)
         {

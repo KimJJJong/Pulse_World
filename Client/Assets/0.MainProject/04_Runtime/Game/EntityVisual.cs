@@ -146,7 +146,7 @@ public class EntityVisual : MonoBehaviour
         long nearestBeat = RhythmClient.Instance.GetNearestBeatIndex(serverNowMs);
         long beatTimeMs  = RhythmClient.Instance.GetBeatTimeMs(nearestBeat);
         long diff        = serverNowMs - beatTimeMs;
-        Debug.LogWarning($"[SFX Timing] {actionName} Diff to Peak: {diff}ms (Beat:{nearestBeat})");
+        //Debug.LogWarning($"[SFX Timing] {actionName} Diff to Peak: {diff}ms (Beat:{nearestBeat})");
 
         if (isMine && RhythmInputController.Instance != null)
         {
