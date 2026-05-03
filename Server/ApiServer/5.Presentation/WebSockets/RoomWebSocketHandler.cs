@@ -108,6 +108,8 @@ public sealed class RoomWebSocketHandler
                     averagePairRttMs = x.AveragePairRttMs,
                     worstPairRttMs = x.WorstPairRttMs,
                     steamPairCount = x.SteamPairCount,
+                    measuredSteamPairCount = x.MeasuredSteamPairCount,
+                    proxySteamPairCount = x.ProxySteamPairCount,
                     serverRelayPairCount = x.ServerRelayPairCount,
                     unavailablePairCount = x.UnavailablePairCount,
                     hostCapacityPenalty = x.HostCapacityPenalty,
@@ -139,6 +141,17 @@ public sealed class RoomWebSocketHandler
                     avgFrameMs = x.AvgFrameMs,
                     p95FrameMs = x.P95FrameMs,
                     sendQueueDepth = x.SendQueueDepth,
+                    measuredSteamPairs = x.MeasuredSteamPairs.Select(p => new
+                    {
+                        peerUid = p.PeerUid,
+                        peerSteamId64 = p.PeerSteamId64,
+                        rttMs = p.RttMs,
+                        connectionQualityLocal = p.ConnectionQualityLocal,
+                        connectionQualityRemote = p.ConnectionQualityRemote,
+                        connected = p.Connected,
+                        reportedAtMs = p.ReportedAtMs,
+                        source = p.Source
+                    }).ToList(),
                     hostSelectionReportedAtMs = x.HostSelectionReportedAtMs
                 }).ToList()
             };
@@ -255,6 +268,29 @@ public sealed class RoomWebSocketHandler
                 var sendQueueDepth = root.TryGetProperty("sendQueueDepth", out var sendQueueDepthElement) && sendQueueDepthElement.TryGetInt32(out var parsedSendQueueDepth)
                     ? parsedSendQueueDepth
                     : 0;
+                var measuredSteamPairs = root.TryGetProperty("measuredSteamPairs", out var measuredSteamPairsElement) && measuredSteamPairsElement.ValueKind == JsonValueKind.Array
+                    ? measuredSteamPairsElement.EnumerateArray()
+                        .Select(item => new WaitingRoomMeasuredSteamPairDto
+                        {
+                            PeerUid = item.TryGetProperty("peerUid", out var peerUidElement) ? peerUidElement.GetString() ?? "" : "",
+                            PeerSteamId64 = item.TryGetProperty("peerSteamId64", out var peerSteamIdElement) ? peerSteamIdElement.GetString() ?? "" : "",
+                            RttMs = item.TryGetProperty("rttMs", out var pairRttElement) && pairRttElement.TryGetInt32(out var parsedPairRtt)
+                                ? parsedPairRtt
+                                : -1,
+                            ConnectionQualityLocal = item.TryGetProperty("connectionQualityLocal", out var qualityLocalElement) && qualityLocalElement.TryGetSingle(out var parsedQualityLocal)
+                                ? parsedQualityLocal
+                                : -1f,
+                            ConnectionQualityRemote = item.TryGetProperty("connectionQualityRemote", out var qualityRemoteElement) && qualityRemoteElement.TryGetSingle(out var parsedQualityRemote)
+                                ? parsedQualityRemote
+                                : -1f,
+                            Connected = item.TryGetProperty("connected", out var connectedElement) && connectedElement.GetBoolean(),
+                            ReportedAtMs = item.TryGetProperty("reportedAtMs", out var pairReportedAtElement) && pairReportedAtElement.TryGetInt64(out var parsedPairReportedAt)
+                                ? parsedPairReportedAt
+                                : 0L,
+                            Source = item.TryGetProperty("source", out var sourceElement) ? sourceElement.GetString() ?? "" : ""
+                        })
+                        .ToList()
+                    : new List<WaitingRoomMeasuredSteamPairDto>();
                 var reportedAtMs = root.TryGetProperty("reportedAtMs", out var selectionReportedElement) && selectionReportedElement.TryGetInt64(out var parsedSelectionReportedAt)
                     ? parsedSelectionReportedAt
                     : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -273,17 +309,19 @@ public sealed class RoomWebSocketHandler
                         avgFrameMs,
                         p95FrameMs,
                         sendQueueDepth,
+                        measuredSteamPairs,
                         reportedAtMs))
                 {
                     var (_, room) = await _waitingRoom.GetAsync(roomId);
                     _logger.LogInformation(
-                        "[WaitingRoom] Host selection report room={RoomId} uid={Uid} steamReady={SteamReady} serverRtt={ServerRtt} jitter={Jitter} loss={Loss} preferredHost={PreferredHost} mode={Mode} epoch={Epoch}",
+                        "[WaitingRoom] Host selection report room={RoomId} uid={Uid} steamReady={SteamReady} serverRtt={ServerRtt} jitter={Jitter} loss={Loss} measuredPairs={MeasuredPairs} preferredHost={PreferredHost} mode={Mode} epoch={Epoch}",
                         roomId,
                         uid,
                         steamReady,
                         currentServerRttMs,
                         currentServerJitterMs,
                         currentServerLossPct,
+                        measuredSteamPairs.Count,
                         room?.PreferredHostUid ?? "",
                         room?.HostSelectionMode ?? "",
                         room?.HostSelectionEpoch ?? 0);
@@ -449,6 +487,8 @@ public sealed class RoomWebSocketHandler
                     averagePairRttMs = x.AveragePairRttMs,
                     worstPairRttMs = x.WorstPairRttMs,
                     steamPairCount = x.SteamPairCount,
+                    measuredSteamPairCount = x.MeasuredSteamPairCount,
+                    proxySteamPairCount = x.ProxySteamPairCount,
                     serverRelayPairCount = x.ServerRelayPairCount,
                     unavailablePairCount = x.UnavailablePairCount,
                     hostCapacityPenalty = x.HostCapacityPenalty,
@@ -459,6 +499,38 @@ public sealed class RoomWebSocketHandler
                     avgFrameMs = x.AvgFrameMs,
                     p95FrameMs = x.P95FrameMs,
                     disqualifiedReasons = x.DisqualifiedReasons
+                }).ToList(),
+            memberTransport = (room.MemberTransport ?? new List<WaitingRoomMemberTransportDto>())
+                .Select(x => new
+                {
+                    uid = x.Uid,
+                    name = x.Name,
+                    steamId64 = x.SteamId64,
+                    clientVersion = x.ClientVersion,
+                    hostProbeRttMs = x.HostProbeRttMs,
+                    hostProbeReportedAtMs = x.HostProbeReportedAtMs,
+                    steamEnabled = x.SteamEnabled,
+                    steamInitialized = x.SteamInitialized,
+                    steamLobbyJoined = x.SteamLobbyJoined,
+                    steamReady = x.SteamReady,
+                    currentServerRttMs = x.CurrentServerRttMs,
+                    currentServerLossPct = x.CurrentServerLossPct,
+                    currentServerJitterMs = x.CurrentServerJitterMs,
+                    avgFrameMs = x.AvgFrameMs,
+                    p95FrameMs = x.P95FrameMs,
+                    sendQueueDepth = x.SendQueueDepth,
+                    measuredSteamPairs = x.MeasuredSteamPairs.Select(p => new
+                    {
+                        peerUid = p.PeerUid,
+                        peerSteamId64 = p.PeerSteamId64,
+                        rttMs = p.RttMs,
+                        connectionQualityLocal = p.ConnectionQualityLocal,
+                        connectionQualityRemote = p.ConnectionQualityRemote,
+                        connected = p.Connected,
+                        reportedAtMs = p.ReportedAtMs,
+                        source = p.Source
+                    }).ToList(),
+                    hostSelectionReportedAtMs = x.HostSelectionReportedAtMs
                 }).ToList()
         });
     }

@@ -35,6 +35,22 @@ public sealed class SteamP2PIncomingPayload
     public bool IsFromHost { get; set; }
 }
 
+public struct SteamP2PConnectionStatsSnapshot
+{
+    public bool IsAvailable { get; set; }
+    public int PingMs { get; set; }
+    public float OutPacketsPerSec { get; set; }
+    public float OutBytesPerSec { get; set; }
+    public float InPacketsPerSec { get; set; }
+    public float InBytesPerSec { get; set; }
+    public float ConnectionQualityLocal { get; set; }
+    public float ConnectionQualityRemote { get; set; }
+    public int PendingUnreliable { get; set; }
+    public int PendingReliable { get; set; }
+    public int SentUnackedReliable { get; set; }
+    public string TransportDetail { get; set; }
+}
+
 public interface ISteamP2PClientTransport
 {
     string TransportName { get; }
@@ -51,6 +67,7 @@ public interface ISteamP2PClientTransport
     void Stop();
     bool SendGuestToHost(byte[] payload);
     int SendHostToGuests(byte[] payload);
+    bool TryGetConnectionStats(out SteamP2PConnectionStatsSnapshot snapshot);
 }
 
 public static class SteamP2PClientTransportFactory
@@ -99,6 +116,11 @@ public sealed class NullSteamP2PClientTransport : ISteamP2PClientTransport
 
     public bool SendGuestToHost(byte[] payload) => false;
     public int SendHostToGuests(byte[] payload) => 0;
+    public bool TryGetConnectionStats(out SteamP2PConnectionStatsSnapshot snapshot)
+    {
+        snapshot = default;
+        return false;
+    }
 }
 
 #if RHYTHM_USE_FACEPUNCH_STEAMWORKS
@@ -200,6 +222,32 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         CloseHostSocket();
         _nextGuestReconnectAtMs = 0;
         LogStateIfChanged("Stop");
+    }
+
+    public bool TryGetConnectionStats(out SteamP2PConnectionStatsSnapshot snapshot)
+    {
+        snapshot = default;
+
+        try
+        {
+            if (_guestConnection != null && _guestConnection.Connected)
+            {
+                snapshot = BuildSnapshot(_guestConnection.Connection);
+                return snapshot.IsAvailable;
+            }
+
+            if (_hostSocket != null && _hostSocket.Connected != null && _hostSocket.Connected.Count > 0)
+            {
+                snapshot = BuildHostAggregateSnapshot(_hostSocket.Connected);
+                return snapshot.IsAvailable;
+            }
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+        }
+
+        return false;
     }
 
     public bool SendGuestToHost(byte[] payload)
@@ -438,6 +486,76 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
             config.HostEpoch.ToString(),
             config.IsLocalHost ? "1" : "0",
             participants);
+    }
+
+    private static SteamP2PConnectionStatsSnapshot BuildSnapshot(Connection connection)
+    {
+        var status = connection.QuickStatus();
+        return new SteamP2PConnectionStatsSnapshot
+        {
+            IsAvailable = true,
+            PingMs = status.Ping,
+            OutPacketsPerSec = status.OutPacketsPerSec,
+            OutBytesPerSec = status.OutBytesPerSec,
+            InPacketsPerSec = status.InPacketsPerSec,
+            InBytesPerSec = status.InBytesPerSec,
+            ConnectionQualityLocal = status.ConnectionQualityLocal,
+            ConnectionQualityRemote = status.ConnectionQualityRemote,
+            PendingUnreliable = status.PendingUnreliable,
+            PendingReliable = status.PendingReliable,
+            SentUnackedReliable = status.SentUnackedReliable,
+            TransportDetail = ""
+        };
+    }
+
+    private static SteamP2PConnectionStatsSnapshot BuildHostAggregateSnapshot(IEnumerable<Connection> connections)
+    {
+        if (connections == null)
+            return default;
+
+        int count = 0;
+        int pingMs = 0;
+        float outPacketsPerSec = 0f;
+        float outBytesPerSec = 0f;
+        float inPacketsPerSec = 0f;
+        float inBytesPerSec = 0f;
+        float localQuality = 1f;
+        float remoteQuality = 1f;
+        int pendingUnreliable = 0;
+        int pendingReliable = 0;
+        int sentUnackedReliable = 0;
+
+        foreach (var connection in connections)
+        {
+            var status = connection.QuickStatus();
+            count++;
+            pingMs = Math.Max(pingMs, status.Ping);
+            outPacketsPerSec += status.OutPacketsPerSec;
+            outBytesPerSec += status.OutBytesPerSec;
+            inPacketsPerSec += status.InPacketsPerSec;
+            inBytesPerSec += status.InBytesPerSec;
+            localQuality = Math.Min(localQuality, status.ConnectionQualityLocal);
+            remoteQuality = Math.Min(remoteQuality, status.ConnectionQualityRemote);
+            pendingUnreliable = Math.Max(pendingUnreliable, status.PendingUnreliable);
+            pendingReliable = Math.Max(pendingReliable, status.PendingReliable);
+            sentUnackedReliable = Math.Max(sentUnackedReliable, status.SentUnackedReliable);
+        }
+
+        return new SteamP2PConnectionStatsSnapshot
+        {
+            IsAvailable = count > 0,
+            PingMs = pingMs,
+            OutPacketsPerSec = outPacketsPerSec,
+            OutBytesPerSec = outBytesPerSec,
+            InPacketsPerSec = inPacketsPerSec,
+            InBytesPerSec = inBytesPerSec,
+            ConnectionQualityLocal = localQuality,
+            ConnectionQualityRemote = remoteQuality,
+            PendingUnreliable = pendingUnreliable,
+            PendingReliable = pendingReliable,
+            SentUnackedReliable = sentUnackedReliable,
+            TransportDetail = $"Host aggregate over {count} peer(s)"
+        };
     }
 
     private static byte[] CopyPayload(IntPtr data, int size)

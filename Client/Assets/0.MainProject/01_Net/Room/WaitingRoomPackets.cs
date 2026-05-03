@@ -52,6 +52,7 @@ using System.Collections.Generic;
         public float avgFrameMs = -1f;
         public float p95FrameMs = -1f;
         public int sendQueueDepth;
+        public List<MeasuredSteamPairState> measuredSteamPairs;
         public long reportedAtMs;
     }
 
@@ -115,7 +116,21 @@ using System.Collections.Generic;
         public float avgFrameMs;
         public float p95FrameMs;
         public int sendQueueDepth;
+        public List<MeasuredSteamPairState> measuredSteamPairs;
         public long hostSelectionReportedAtMs;
+    }
+
+    [Serializable]
+    public class MeasuredSteamPairState
+    {
+        public string peerUid;
+        public string peerSteamId64;
+        public int rttMs = -1;
+        public float connectionQualityLocal = -1f;
+        public float connectionQualityRemote = -1f;
+        public bool connected;
+        public long reportedAtMs;
+        public string source;
     }
 
     [Serializable]
@@ -129,6 +144,8 @@ using System.Collections.Generic;
         public int averagePairRttMs;
         public int worstPairRttMs;
         public int steamPairCount;
+        public int measuredSteamPairCount;
+        public int proxySteamPairCount;
         public int serverRelayPairCount;
         public int unavailablePairCount;
         public float hostCapacityPenalty;
@@ -196,6 +213,7 @@ using System.Collections.Generic;
         public long hostSelectionUpdatedAtMs;
         public List<string> hostCandidateOrder;
         public List<HostSelectionCandidateState> hostSelectionCandidates;
+        public List<MemberTransportState> memberTransport;
         public string uid;
         public int hostProbeRttMs;
     }

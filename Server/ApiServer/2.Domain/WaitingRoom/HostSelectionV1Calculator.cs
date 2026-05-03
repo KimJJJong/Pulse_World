@@ -14,6 +14,8 @@ public sealed class WaitingRoomHostSelectionCandidateDto
     public int AveragePairRttMs { get; set; } = -1;
     public int WorstPairRttMs { get; set; } = -1;
     public int SteamPairCount { get; set; }
+    public int MeasuredSteamPairCount { get; set; }
+    public int ProxySteamPairCount { get; set; }
     public int ServerRelayPairCount { get; set; }
     public int UnavailablePairCount { get; set; }
     public float HostCapacityPenalty { get; set; }
@@ -41,7 +43,7 @@ public sealed class WaitingRoomHostSelectionSnapshotDto
 
 public static class WaitingRoomHostSelectionV1Calculator
 {
-    public const string MetricVersion = "host-selection-v1-proxy";
+    public const string MetricVersion = "host-selection-v2-hybrid";
 
     private const long ReportFreshnessWindowMs = 30_000;
     private const int RelayProcessingAllowanceMs = 8;
@@ -111,7 +113,7 @@ public static class WaitingRoomHostSelectionV1Calculator
             PreferredHostScore = preferredScore,
             Epoch = Math.Max(0, room.HostSelectionEpoch),
             UpdatedAtMs = Math.Max(nowMs, sortedCandidates.Max(x => x.CurrentServerRttMs >= 0 ? 1 : 0) > 0
-                ? (stateByUid.Values.Max(x => Math.Max(x.HostSelectionReportedAtMs, x.HostProbeReportedAtMs)))
+                ? (stateByUid.Values.Max(GetLatestTransportReportedAtMs))
                 : nowMs),
             HostCandidateOrder = orderedUids,
             Candidates = sortedCandidates
@@ -163,7 +165,7 @@ public static class WaitingRoomHostSelectionV1Calculator
                 continue;
 
             stateByUid.TryGetValue(peerUid, out var peerState);
-            var pair = EvaluatePair(candidateState, peerState);
+            var pair = EvaluatePair(candidateState, peerState, nowMs);
             if (pair.PathType == HostSelectionPathType.Unavailable)
             {
                 summary.UnavailablePairCount++;
@@ -173,7 +175,13 @@ public static class WaitingRoomHostSelectionV1Calculator
             coverageCount++;
             usedPartialEstimate |= pair.UsedDefaultProxyValues;
             if (pair.PathType == HostSelectionPathType.SteamEligible)
+            {
                 summary.SteamPairCount++;
+                if (pair.UsedMeasuredSteamPairMetrics)
+                    summary.MeasuredSteamPairCount++;
+                else
+                    summary.ProxySteamPairCount++;
+            }
             else if (pair.PathType == HostSelectionPathType.ServerRelayComposite)
                 summary.ServerRelayPairCount++;
 
@@ -222,7 +230,8 @@ public static class WaitingRoomHostSelectionV1Calculator
 
     private static HostSelectionPairEvaluation EvaluatePair(
         WaitingRoomMemberTransportDto? candidateState,
-        WaitingRoomMemberTransportDto? peerState)
+        WaitingRoomMemberTransportDto? peerState,
+        long nowMs)
     {
         if (candidateState == null || peerState == null)
             return HostSelectionPairEvaluation.Unavailable();
@@ -232,6 +241,21 @@ public static class WaitingRoomHostSelectionV1Calculator
 
         if (candidateSteam && peerSteam)
         {
+            if (TryResolveMeasuredSteamPairRttMs(candidateState, peerState, nowMs, out int measuredRttMs))
+            {
+                int measuredJitter = Math.Max(4, Math.Max(GetJitterMs(candidateState), GetJitterMs(peerState)) / 2);
+                float measuredLoss = Math.Max(GetLossPct(candidateState), GetLossPct(peerState));
+                return new HostSelectionPairEvaluation(
+                    HostSelectionPathType.SteamEligible,
+                    measuredRttMs,
+                    Math.Max(measuredRttMs, measuredRttMs + measuredJitter),
+                    measuredJitter,
+                    measuredLoss,
+                    RelayPenalty: 0.02f,
+                    UsedDefaultProxyValues: false,
+                    UsedMeasuredSteamPairMetrics: true);
+            }
+
             int avgRtt = EstimateSteamPairRttMs(candidateState.CurrentServerRttMs, peerState.CurrentServerRttMs);
             int jitter = Math.Max(GetJitterMs(candidateState), GetJitterMs(peerState));
             float loss = Math.Max(GetLossPct(candidateState), GetLossPct(peerState));
@@ -247,7 +271,8 @@ public static class WaitingRoomHostSelectionV1Calculator
                 jitter,
                 loss,
                 RelayPenalty: 0.03f,
-                UsedDefaultProxyValues: usedDefault);
+                UsedDefaultProxyValues: usedDefault,
+                UsedMeasuredSteamPairMetrics: false);
         }
 
         if (candidateState.CurrentServerRttMs >= 0 && peerState.CurrentServerRttMs >= 0)
@@ -263,7 +288,8 @@ public static class WaitingRoomHostSelectionV1Calculator
                 jitter,
                 loss,
                 RelayPenalty: 0.12f,
-                UsedDefaultProxyValues: false);
+                UsedDefaultProxyValues: false,
+                UsedMeasuredSteamPairMetrics: false);
         }
 
         return HostSelectionPairEvaluation.Unavailable();
@@ -277,9 +303,6 @@ public static class WaitingRoomHostSelectionV1Calculator
         if (preferredCandidate == null || !preferredCandidate.IsEligible)
             return "EmergencyFallback";
 
-        if (preferredCandidate.UsesPartialProxyMetrics)
-            return "PartialMetrics";
-
         int participatingCount = (room.MemberUids ?? new List<string>())
             .Count(uid => !string.IsNullOrWhiteSpace(uid)
                           && (string.Equals(uid, room.OwnerUid, StringComparison.OrdinalIgnoreCase)
@@ -288,10 +311,24 @@ public static class WaitingRoomHostSelectionV1Calculator
         int expectedPairs = Math.Max(0, participatingCount - 1);
         bool fullCoverage = expectedPairs == 0
             || (preferredCandidate.SteamPairCount + preferredCandidate.ServerRelayPairCount) >= expectedPairs;
-        if (!fullCoverage)
-            return "PartialMetrics";
 
-        if (preferredCandidate.SteamPairCount > 0 && preferredCandidate.ServerRelayPairCount > 0)
+        bool hasMeasuredSteamPairs = preferredCandidate.MeasuredSteamPairCount > 0;
+        bool hasProxySteamPairs = preferredCandidate.ProxySteamPairCount > 0;
+        bool hasServerRelayPairs = preferredCandidate.ServerRelayPairCount > 0;
+
+        if (!fullCoverage)
+            return hasMeasuredSteamPairs ? "PartialMeasured" : "PartialMetrics";
+
+        if (hasMeasuredSteamPairs && !hasProxySteamPairs && !hasServerRelayPairs)
+            return "FullMeasured";
+
+        if (hasMeasuredSteamPairs)
+            return "HybridMeasured";
+
+        if (hasProxySteamPairs)
+            return preferredCandidate.UsesPartialProxyMetrics ? "PartialProxyFallback" : "FullProxy";
+
+        if (preferredCandidate.SteamPairCount > 0 && hasServerRelayPairs)
             return "HybridMixed";
 
         return "Full";
@@ -396,6 +433,81 @@ public static class WaitingRoomHostSelectionV1Calculator
                && !string.IsNullOrWhiteSpace(state.SteamId64);
     }
 
+    private static bool TryResolveMeasuredSteamPairRttMs(
+        WaitingRoomMemberTransportDto candidateState,
+        WaitingRoomMemberTransportDto peerState,
+        long nowMs,
+        out int measuredRttMs)
+    {
+        measuredRttMs = -1;
+
+        int left = FindFreshMeasuredPairRttMs(candidateState, peerState, nowMs);
+        int right = FindFreshMeasuredPairRttMs(peerState, candidateState, nowMs);
+
+        if (left >= 0 && right >= 0)
+        {
+            measuredRttMs = (int)Math.Round((left + right) / 2f);
+            return true;
+        }
+
+        if (left >= 0)
+        {
+            measuredRttMs = left;
+            return true;
+        }
+
+        if (right >= 0)
+        {
+            measuredRttMs = right;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static int FindFreshMeasuredPairRttMs(
+        WaitingRoomMemberTransportDto sourceState,
+        WaitingRoomMemberTransportDto peerState,
+        long nowMs)
+    {
+        if (sourceState?.MeasuredSteamPairs == null || sourceState.MeasuredSteamPairs.Count <= 0)
+            return -1;
+
+        var match = sourceState.MeasuredSteamPairs
+            .Where(x => x != null
+                        && x.Connected
+                        && x.RttMs >= 0
+                        && Math.Max(0L, nowMs - x.ReportedAtMs) <= ReportFreshnessWindowMs
+                        && MatchesPeer(x, peerState))
+            .OrderByDescending(x => x.ReportedAtMs)
+            .ThenBy(x => x.RttMs)
+            .FirstOrDefault();
+
+        return match?.RttMs ?? -1;
+    }
+
+    private static bool MatchesPeer(WaitingRoomMeasuredSteamPairDto pair, WaitingRoomMemberTransportDto peerState)
+    {
+        if (pair == null || peerState == null)
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(pair.PeerUid)
+            && !string.IsNullOrWhiteSpace(peerState.Uid)
+            && string.Equals(pair.PeerUid, peerState.Uid, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(pair.PeerSteamId64)
+            && !string.IsNullOrWhiteSpace(peerState.SteamId64)
+            && string.Equals(pair.PeerSteamId64, peerState.SteamId64, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private static int EstimateSteamPairRttMs(int leftServerRttMs, int rightServerRttMs)
     {
         if (leftServerRttMs >= 0 && rightServerRttMs >= 0)
@@ -450,6 +562,20 @@ public static class WaitingRoomHostSelectionV1Calculator
         return 0.70f * normFramePenalty;
     }
 
+    private static long GetLatestTransportReportedAtMs(WaitingRoomMemberTransportDto state)
+    {
+        if (state == null)
+            return 0L;
+
+        long latestPairReportedAtMs = state.MeasuredSteamPairs != null && state.MeasuredSteamPairs.Count > 0
+            ? state.MeasuredSteamPairs.Max(x => x?.ReportedAtMs ?? 0L)
+            : 0L;
+
+        return Math.Max(
+            Math.Max(state.HostSelectionReportedAtMs, state.HostProbeReportedAtMs),
+            latestPairReportedAtMs);
+    }
+
     private static float Clamp01(float value)
     {
         if (value <= 0f)
@@ -473,7 +599,8 @@ public static class WaitingRoomHostSelectionV1Calculator
         int JitterMs,
         float LossPct,
         float RelayPenalty,
-        bool UsedDefaultProxyValues)
+        bool UsedDefaultProxyValues,
+        bool UsedMeasuredSteamPairMetrics)
     {
         public float PairCost =>
             (0.50f * Clamp01(AverageRttMs / 120f)) +
@@ -483,6 +610,6 @@ public static class WaitingRoomHostSelectionV1Calculator
             (0.05f * RelayPenalty);
 
         public static HostSelectionPairEvaluation Unavailable()
-            => new(HostSelectionPathType.Unavailable, -1, -1, -1, 100f, 1f, true);
+            => new(HostSelectionPathType.Unavailable, -1, -1, -1, 100f, 1f, true, false);
     }
 }

@@ -41,6 +41,8 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     public long HostAvgRttMs => _hostAvgRttMs;
     public long HostMaxRttMs => _hostMaxRttMs;
     public long HostMinRttMs => _hostMinRttMs == long.MaxValue ? 0 : _hostMinRttMs;
+    public long HostLastRawRttMs => _hostLastRawRttMs;
+    public long HostLastProcMs => _hostLastProcMs;
     public string HostPingStatus => _hostPingStatus;
     public bool HasRemoteHostPing => IsP2PMode && !IsHostLocal && HostActorId > 0;
     public string TransportName => IsSteamTransport ? (_steamTransport?.TransportName ?? "SteamP2P") : (IsServerRelayTransport ? "ServerRelay" : "Disabled");
@@ -48,6 +50,21 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     public bool IsSteamTransportConnectedToHost => _steamTransport?.IsConnectedToHost ?? false;
     public int SteamConnectedPeerCount => _steamTransport?.ConnectedPeerCount ?? 0;
     public string TransportLastError => _steamTransport?.LastError ?? "";
+    public bool HasTransportPairStats => _transportPairStats.IsAvailable;
+    public int TransportPairPingMs => _transportPairStats.IsAvailable ? _transportPairStats.PingMs : -1;
+    public int TransportPendingReliableBytes => _transportPairStats.PendingReliable;
+    public int TransportPendingUnreliableBytes => _transportPairStats.PendingUnreliable;
+    public int TransportSentUnackedReliableBytes => _transportPairStats.SentUnackedReliable;
+    public float TransportConnectionQualityLocal => _transportPairStats.ConnectionQualityLocal;
+    public float TransportConnectionQualityRemote => _transportPairStats.ConnectionQualityRemote;
+    public long GameplayLastStartRttMs => _gameplayLastStartRttMs;
+    public long GameplayAvgStartRttMs => _gameplayAvgStartRttMs;
+    public long GameplayMaxStartRttMs => _gameplayMaxStartRttMs;
+    public long GameplayLastResultRttMs => _gameplayLastResultRttMs;
+    public long GameplayAvgResultRttMs => _gameplayAvgResultRttMs;
+    public long GameplayMaxResultRttMs => _gameplayMaxResultRttMs;
+    public int GameplayPendingActionCount => _pendingGameplayActions.Count;
+    public string GameplayTelemetryStatus => _gameplayTelemetryStatus;
     public string LocalSteamId64 => GetLocalSteamId64();
     public string HostAuthorityDebugState => GetHostAuthorityState();
     public string ServerRoleSummary => IsP2PMode ? "Start/End validation only" : "Dedicated simulation";
@@ -186,10 +203,41 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     [SerializeField, ReadOnly] long _hostLastProcMs;
     [SerializeField, ReadOnly] string _hostPingStatus = "Idle";
 
+    [Header("Steam Pair RTT")]
+    [SerializeField, ReadOnly] int _transportPairPingMs = -1;
+    [SerializeField, ReadOnly] float _transportQualityLocal = -1f;
+    [SerializeField, ReadOnly] float _transportQualityRemote = -1f;
+    [SerializeField, ReadOnly] int _transportPendingReliable;
+    [SerializeField, ReadOnly] int _transportPendingUnreliable;
+    [SerializeField, ReadOnly] int _transportSentUnackedReliable;
+
+    [Header("Gameplay RTT")]
+    [SerializeField, ReadOnly] long _gameplayLastStartRttMs;
+    [SerializeField, ReadOnly] long _gameplayAvgStartRttMs;
+    [SerializeField, ReadOnly] long _gameplayMaxStartRttMs;
+    [SerializeField, ReadOnly] long _gameplayLastResultRttMs;
+    [SerializeField, ReadOnly] long _gameplayAvgResultRttMs;
+    [SerializeField, ReadOnly] long _gameplayMaxResultRttMs;
+    [SerializeField, ReadOnly] string _gameplayTelemetryStatus = "Idle";
+
     private const float HostPingEmaAlpha = 0.2f;
+    private const float GameplayTelemetryEmaAlpha = 0.2f;
+    private const long GameplayTelemetryTimeoutMs = 15000;
+
+    private sealed class PendingGameplayAction
+    {
+        public int ActorId;
+        public int ActionKind;
+        public int SlotIndex;
+        public int TargetX;
+        public int TargetY;
+        public long SentAtMs;
+        public bool InstantObserved;
+    }
 
     private readonly Dictionary<string, string> _steamIdByUid = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _uidBySteamId = new(StringComparer.Ordinal);
+    private readonly List<PendingGameplayAction> _pendingGameplayActions = new();
 
     private CancellationTokenSource _hostPingCts;
     private long _hostPingSentCount;
@@ -199,6 +247,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     private P2PTransportMode _transportMode;
     private SessionDtos.MatchManifestDto _matchManifest;
     private ISteamP2PClientTransport _steamTransport;
+    private SteamP2PConnectionStatsSnapshot _transportPairStats;
 
     private void Awake()
     {
@@ -220,6 +269,8 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     {
         P2PDebugConfig.PollRuntimeToggle();
         _steamTransport?.Pump();
+        RefreshTransportPairStats();
+        PurgeExpiredGameplayTelemetry(P2PRelayDiagnosticsPackets.NowMs());
     }
 
     private void OnDestroy()
@@ -284,6 +335,8 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     {
         StopHostPingLoop();
         ResetHostPingStats();
+        ResetTransportPairStats();
+        ResetGameplayTelemetry();
         _transportMode = P2PTransportMode.Disabled;
         HostActorId = 0;
         HostUid = "";
@@ -304,6 +357,81 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
         if (P2PHostLogWindow.HasInstance)
             P2PHostLogWindow.Instance.HideAndClear();
+    }
+
+    public void RecordGameplayActionSent(int actorId, ActionKind actionKind, int slotIndex, int targetX, int targetY)
+    {
+        if (!IsP2PMode || IsHostLocal || actorId <= 0)
+            return;
+
+        long now = P2PRelayDiagnosticsPackets.NowMs();
+        PurgeExpiredGameplayTelemetry(now);
+
+        _pendingGameplayActions.Add(new PendingGameplayAction
+        {
+            ActorId = actorId,
+            ActionKind = (int)actionKind,
+            SlotIndex = slotIndex,
+            TargetX = targetX,
+            TargetY = targetY,
+            SentAtMs = now
+        });
+
+        _gameplayTelemetryStatus = "Tracking";
+    }
+
+    public void RecordGameplayInstantFeedback(int actorId)
+    {
+        if (!IsP2PMode || IsHostLocal || actorId <= 0)
+            return;
+
+        long now = P2PRelayDiagnosticsPackets.NowMs();
+        PurgeExpiredGameplayTelemetry(now);
+
+        int index = FindPendingGameplayActionIndex(actorId, preferSkillLike: true, requireInstantPending: true);
+        if (index < 0)
+            return;
+
+        var pending = _pendingGameplayActions[index];
+        pending.InstantObserved = true;
+        _pendingGameplayActions[index] = pending;
+
+        long rtt = Math.Max(0, now - pending.SentAtMs);
+        _gameplayLastStartRttMs = rtt;
+        if (_gameplayAvgStartRttMs == 0)
+            _gameplayAvgStartRttMs = rtt;
+        else
+            _gameplayAvgStartRttMs = (long)(GameplayTelemetryEmaAlpha * rtt + (1f - GameplayTelemetryEmaAlpha) * _gameplayAvgStartRttMs);
+
+        _gameplayMaxStartRttMs = Math.Max(_gameplayMaxStartRttMs, rtt);
+        _gameplayTelemetryStatus = "Start Ack";
+    }
+
+    public void RecordGameplayBeatResult(int actorId, int resultActionKind)
+    {
+        if (!IsP2PMode || IsHostLocal || actorId <= 0)
+            return;
+
+        long now = P2PRelayDiagnosticsPackets.NowMs();
+        PurgeExpiredGameplayTelemetry(now);
+
+        bool preferSkillLike = resultActionKind == (int)ActionKind.Skill;
+        int index = FindPendingGameplayActionIndex(actorId, preferSkillLike, requireInstantPending: false);
+        if (index < 0)
+            return;
+
+        var pending = _pendingGameplayActions[index];
+        _pendingGameplayActions.RemoveAt(index);
+
+        long rtt = Math.Max(0, now - pending.SentAtMs);
+        _gameplayLastResultRttMs = rtt;
+        if (_gameplayAvgResultRttMs == 0)
+            _gameplayAvgResultRttMs = rtt;
+        else
+            _gameplayAvgResultRttMs = (long)(GameplayTelemetryEmaAlpha * rtt + (1f - GameplayTelemetryEmaAlpha) * _gameplayAvgResultRttMs);
+
+        _gameplayMaxResultRttMs = Math.Max(_gameplayMaxResultRttMs, rtt);
+        _gameplayTelemetryStatus = "Result Ack";
     }
 
     public void SyncHostState()
@@ -333,6 +461,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         {
             StopHostPingLoop();
             ResetHostPingStats();
+            ResetGameplayTelemetry();
         }
 
         HostActorId = nextHostActorId;
@@ -423,6 +552,8 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             _steamTransport?.Stop();
             StopHostPingLoop();
             ResetHostPingStats();
+            ResetTransportPairStats();
+            ResetGameplayTelemetry();
             if (P2PHostController.HasInstance)
                 P2PHostController.Instance.SetHostMode(false);
 
@@ -538,6 +669,89 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         _hostPingSentCount = 0;
         _hostPingRecvCount = 0;
         _hostPingStatus = "Idle";
+    }
+
+    private void RefreshTransportPairStats()
+    {
+        if (!IsSteamTransport || _steamTransport == null)
+        {
+            ResetTransportPairStats();
+            return;
+        }
+
+        if (!_steamTransport.TryGetConnectionStats(out _transportPairStats))
+        {
+            ResetTransportPairStats();
+            return;
+        }
+
+        _transportPairPingMs = _transportPairStats.PingMs;
+        _transportQualityLocal = _transportPairStats.ConnectionQualityLocal;
+        _transportQualityRemote = _transportPairStats.ConnectionQualityRemote;
+        _transportPendingReliable = _transportPairStats.PendingReliable;
+        _transportPendingUnreliable = _transportPairStats.PendingUnreliable;
+        _transportSentUnackedReliable = _transportPairStats.SentUnackedReliable;
+    }
+
+    private void ResetTransportPairStats()
+    {
+        _transportPairStats = default;
+        _transportPairPingMs = -1;
+        _transportQualityLocal = -1f;
+        _transportQualityRemote = -1f;
+        _transportPendingReliable = 0;
+        _transportPendingUnreliable = 0;
+        _transportSentUnackedReliable = 0;
+    }
+
+    private void ResetGameplayTelemetry()
+    {
+        _pendingGameplayActions.Clear();
+        _gameplayLastStartRttMs = 0;
+        _gameplayAvgStartRttMs = 0;
+        _gameplayMaxStartRttMs = 0;
+        _gameplayLastResultRttMs = 0;
+        _gameplayAvgResultRttMs = 0;
+        _gameplayMaxResultRttMs = 0;
+        _gameplayTelemetryStatus = "Idle";
+    }
+
+    private void PurgeExpiredGameplayTelemetry(long nowMs)
+    {
+        if (_pendingGameplayActions.Count <= 0)
+            return;
+
+        for (int i = _pendingGameplayActions.Count - 1; i >= 0; i--)
+        {
+            var pending = _pendingGameplayActions[i];
+            if (Math.Max(0, nowMs - pending.SentAtMs) <= GameplayTelemetryTimeoutMs)
+                continue;
+
+            _pendingGameplayActions.RemoveAt(i);
+            _gameplayTelemetryStatus = "Telemetry Timeout";
+        }
+    }
+
+    private int FindPendingGameplayActionIndex(int actorId, bool preferSkillLike, bool requireInstantPending)
+    {
+        for (int i = 0; i < _pendingGameplayActions.Count; i++)
+        {
+            var pending = _pendingGameplayActions[i];
+            if (pending.ActorId != actorId)
+                continue;
+
+            bool isSkillLike = pending.ActionKind == (int)ActionKind.Attack
+                               || pending.ActionKind == (int)ActionKind.Skill;
+            if (preferSkillLike != isSkillLike)
+                continue;
+
+            if (requireInstantPending && pending.InstantObserved)
+                continue;
+
+            return i;
+        }
+
+        return -1;
     }
 
     private async Task HostPingLoopAsync(CancellationToken ct)

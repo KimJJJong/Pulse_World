@@ -701,6 +701,9 @@ public class RhythmInputController : MonoBehaviour
         };
 
         var bridge = P2PRelayClientBridge.Instance;
+        if (bridge.IsRelayMode && !bridge.IsHostLocal)
+            bridge.RecordGameplayActionSent(pkt.ActorId, kind, slotIndex, targetX, targetY);
+
         if (P2PDebugConfig.LogOverheadEnabled)
         {
             Debug.Log(

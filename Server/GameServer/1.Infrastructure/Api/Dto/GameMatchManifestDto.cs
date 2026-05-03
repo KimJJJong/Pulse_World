@@ -16,7 +16,7 @@ public sealed class GameMatchManifestResponse
     public int HostEpoch { get; set; }
     public int PreferredHostRttMs { get; set; } = -1;
     public string HostSelectionMode { get; set; } = "";
-    public string HostSelectionMetricVersion { get; set; } = "host-selection-v1-proxy";
+    public string HostSelectionMetricVersion { get; set; } = "host-selection-v2-hybrid";
     public int HostSelectionEpoch { get; set; }
     public float HostSelectionScore { get; set; } = -1f;
     public long HostSelectionUpdatedAtMs { get; set; }

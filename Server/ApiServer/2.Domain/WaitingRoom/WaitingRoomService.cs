@@ -46,7 +46,20 @@ public sealed class WaitingRoomMemberTransportDto
     public float AvgFrameMs { get; set; } = -1f;
     public float P95FrameMs { get; set; } = -1f;
     public int SendQueueDepth { get; set; }
+    public List<WaitingRoomMeasuredSteamPairDto> MeasuredSteamPairs { get; set; } = new();
     public long HostSelectionReportedAtMs { get; set; }
+}
+
+public sealed class WaitingRoomMeasuredSteamPairDto
+{
+    public string PeerUid { get; set; } = "";
+    public string PeerSteamId64 { get; set; } = "";
+    public int RttMs { get; set; } = -1;
+    public float ConnectionQualityLocal { get; set; } = -1f;
+    public float ConnectionQualityRemote { get; set; } = -1f;
+    public bool Connected { get; set; }
+    public long ReportedAtMs { get; set; }
+    public string Source { get; set; } = "";
 }
 
 internal sealed class WaitingRoomMemberState
@@ -67,6 +80,7 @@ internal sealed class WaitingRoomMemberState
     public float AvgFrameMs { get; set; } = -1f;
     public float P95FrameMs { get; set; } = -1f;
     public int SendQueueDepth { get; set; }
+    public List<WaitingRoomMeasuredSteamPairDto> MeasuredSteamPairs { get; set; } = new();
     public long HostSelectionReportedAtMs { get; set; }
 }
 
@@ -254,6 +268,7 @@ public sealed class WaitingRoomService
         float avgFrameMs,
         float p95FrameMs,
         int sendQueueDepth,
+        List<WaitingRoomMeasuredSteamPairDto>? measuredSteamPairs,
         long reportedAtMs)
     {
         var key = _redis.KeyWaitingRoom(roomId);
@@ -274,6 +289,7 @@ public sealed class WaitingRoomService
         state.AvgFrameMs = avgFrameMs;
         state.P95FrameMs = p95FrameMs;
         state.SendQueueDepth = Math.Max(0, sendQueueDepth);
+        state.MeasuredSteamPairs = NormalizeMeasuredSteamPairs(measuredSteamPairs);
         state.HostSelectionReportedAtMs = reportedAtMs > 0
             ? reportedAtMs
             : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -351,6 +367,7 @@ public sealed class WaitingRoomService
                  AvgFrameMs = state.AvgFrameMs,
                  P95FrameMs = state.P95FrameMs,
                  SendQueueDepth = state.SendQueueDepth,
+                 MeasuredSteamPairs = CloneMeasuredSteamPairs(state.MeasuredSteamPairs),
                  HostSelectionReportedAtMs = state.HostSelectionReportedAtMs
              });
         }
@@ -462,6 +479,8 @@ public sealed class WaitingRoomService
                 state.P95FrameMs = parsedP95Frame;
             if (doc.RootElement.TryGetProperty("SendQueueDepth", out var sendQueueDepth) && sendQueueDepth.TryGetInt32(out var parsedSendQueueDepth))
                 state.SendQueueDepth = parsedSendQueueDepth;
+            if (doc.RootElement.TryGetProperty("MeasuredSteamPairs", out var measuredSteamPairs) && measuredSteamPairs.ValueKind == JsonValueKind.Array)
+                state.MeasuredSteamPairs = DeserializeMeasuredSteamPairs(measuredSteamPairs);
             if (doc.RootElement.TryGetProperty("HostSelectionReportedAtMs", out var selectionReportedAt) && selectionReportedAt.TryGetInt64(out var parsedSelectionReportedAt))
                 state.HostSelectionReportedAtMs = parsedSelectionReportedAt;
             return state;
@@ -478,5 +497,88 @@ public sealed class WaitingRoomService
             return 0;
 
         return await _redis.Db.HashIncrementAsync(roomKey, "hostSelectionEpoch", 1);
+    }
+
+    private static List<WaitingRoomMeasuredSteamPairDto> CloneMeasuredSteamPairs(IEnumerable<WaitingRoomMeasuredSteamPairDto>? measuredSteamPairs)
+    {
+        return NormalizeMeasuredSteamPairs(measuredSteamPairs);
+    }
+
+    private static List<WaitingRoomMeasuredSteamPairDto> NormalizeMeasuredSteamPairs(IEnumerable<WaitingRoomMeasuredSteamPairDto>? measuredSteamPairs)
+    {
+        if (measuredSteamPairs == null)
+            return new List<WaitingRoomMeasuredSteamPairDto>();
+
+        return measuredSteamPairs
+            .Where(x => x != null
+                        && x.Connected
+                        && x.RttMs >= 0
+                        && (!string.IsNullOrWhiteSpace(x.PeerUid) || !string.IsNullOrWhiteSpace(x.PeerSteamId64)))
+            .GroupBy(
+                x => !string.IsNullOrWhiteSpace(x.PeerUid) ? $"uid:{x.PeerUid}" : $"steam:{x.PeerSteamId64}",
+                StringComparer.OrdinalIgnoreCase)
+            .Select(g => g
+                .OrderByDescending(x => x.ReportedAtMs)
+                .ThenBy(x => x.RttMs)
+                .First())
+            .Select(x => new WaitingRoomMeasuredSteamPairDto
+            {
+                PeerUid = x.PeerUid ?? "",
+                PeerSteamId64 = x.PeerSteamId64 ?? "",
+                RttMs = x.RttMs,
+                ConnectionQualityLocal = x.ConnectionQualityLocal,
+                ConnectionQualityRemote = x.ConnectionQualityRemote,
+                Connected = x.Connected,
+                ReportedAtMs = x.ReportedAtMs,
+                Source = x.Source ?? ""
+            })
+            .OrderBy(x => string.IsNullOrWhiteSpace(x.PeerUid) ? x.PeerSteamId64 : x.PeerUid, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static List<WaitingRoomMeasuredSteamPairDto> DeserializeMeasuredSteamPairs(JsonElement element)
+    {
+        var result = new List<WaitingRoomMeasuredSteamPairDto>();
+        foreach (var item in element.EnumerateArray())
+        {
+            string peerUid = item.TryGetProperty("PeerUid", out var peerUidPascal)
+                ? peerUidPascal.GetString() ?? ""
+                : (item.TryGetProperty("peerUid", out var peerUidCamel) ? peerUidCamel.GetString() ?? "" : "");
+            string peerSteamId64 = item.TryGetProperty("PeerSteamId64", out var peerSteamPascal)
+                ? peerSteamPascal.GetString() ?? ""
+                : (item.TryGetProperty("peerSteamId64", out var peerSteamCamel) ? peerSteamCamel.GetString() ?? "" : "");
+            int rttMs = item.TryGetProperty("RttMs", out var rttPascal) && rttPascal.TryGetInt32(out var parsedRttPascal)
+                ? parsedRttPascal
+                : (item.TryGetProperty("rttMs", out var rttCamel) && rttCamel.TryGetInt32(out var parsedRttCamel) ? parsedRttCamel : -1);
+            float qualityLocal = item.TryGetProperty("ConnectionQualityLocal", out var qualityLocalPascal) && qualityLocalPascal.TryGetSingle(out var parsedQualityLocalPascal)
+                ? parsedQualityLocalPascal
+                : (item.TryGetProperty("connectionQualityLocal", out var qualityLocalCamel) && qualityLocalCamel.TryGetSingle(out var parsedQualityLocalCamel) ? parsedQualityLocalCamel : -1f);
+            float qualityRemote = item.TryGetProperty("ConnectionQualityRemote", out var qualityRemotePascal) && qualityRemotePascal.TryGetSingle(out var parsedQualityRemotePascal)
+                ? parsedQualityRemotePascal
+                : (item.TryGetProperty("connectionQualityRemote", out var qualityRemoteCamel) && qualityRemoteCamel.TryGetSingle(out var parsedQualityRemoteCamel) ? parsedQualityRemoteCamel : -1f);
+            bool connected = item.TryGetProperty("Connected", out var connectedPascal)
+                ? connectedPascal.GetBoolean()
+                : (item.TryGetProperty("connected", out var connectedCamel) && connectedCamel.GetBoolean());
+            long reportedAtMs = item.TryGetProperty("ReportedAtMs", out var reportedAtPascal) && reportedAtPascal.TryGetInt64(out var parsedReportedAtPascal)
+                ? parsedReportedAtPascal
+                : (item.TryGetProperty("reportedAtMs", out var reportedAtCamel) && reportedAtCamel.TryGetInt64(out var parsedReportedAtCamel) ? parsedReportedAtCamel : 0L);
+            string source = item.TryGetProperty("Source", out var sourcePascal)
+                ? sourcePascal.GetString() ?? ""
+                : (item.TryGetProperty("source", out var sourceCamel) ? sourceCamel.GetString() ?? "" : "");
+
+            result.Add(new WaitingRoomMeasuredSteamPairDto
+            {
+                PeerUid = peerUid,
+                PeerSteamId64 = peerSteamId64,
+                RttMs = rttMs,
+                ConnectionQualityLocal = qualityLocal,
+                ConnectionQualityRemote = qualityRemote,
+                Connected = connected,
+                ReportedAtMs = reportedAtMs,
+                Source = source
+            });
+        }
+
+        return NormalizeMeasuredSteamPairs(result);
     }
 }

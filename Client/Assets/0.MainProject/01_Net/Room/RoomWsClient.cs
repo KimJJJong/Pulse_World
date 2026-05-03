@@ -15,6 +15,10 @@ using UnityEngine;
         private string _pendingProbeNonce = "";
         private long _pendingProbeSentAtMs;
         private CancellationTokenSource _hostSelectionReportCts;
+        private readonly IRoomSteamPairProbeService _pairProbe = RoomSteamPairProbeServiceFactory.Create();
+        private readonly List<MemberTransportState> _latestMemberTransport = new();
+        private string _currentRoomId = "";
+        private bool _currentRoomUseP2PRelay;
         public int LastHostProbeRttMs { get; private set; } = -1;
         public string LastHostProbeStatus { get; private set; } = "Idle";
         public event Action<WaitingRoomDto> OnInit;
@@ -46,6 +50,7 @@ using UnityEngine;
             _onClosed = reason =>
             {
                 StopHostSelectionReportLoop();
+                _pairProbe.Stop();
                 OnClosed?.Invoke(reason);
             };
             _onError = ex => OnWarn?.Invoke(ex.Message);
@@ -75,6 +80,10 @@ using UnityEngine;
 
             LastHostProbeRttMs = -1;
             LastHostProbeStatus = "Connecting";
+            _currentRoomId = "";
+            _currentRoomUseP2PRelay = false;
+            _latestMemberTransport.Clear();
+            _pairProbe.Stop();
             StopHostSelectionReportLoop();
             Subscribe();
             // Pass headers
@@ -144,6 +153,7 @@ using UnityEngine;
             bool steamLobbyJoined = steam != null && steam.HasJoinedLobby;
             string steamId64 = steam != null ? steam.SteamId64 ?? "" : "";
             bool steamReady = steamEnabled && steamInitialized && steamLobbyJoined && !string.IsNullOrWhiteSpace(steamId64);
+            RefreshPairProbeState(steamId64, steamReady);
 
             var req = new HostSelectionReportRequest
             {
@@ -158,9 +168,25 @@ using UnityEngine;
                 avgFrameMs = room != null ? room.HostSelectionAvgFrameMs : Mathf.Max(1f, Time.smoothDeltaTime * 1000f),
                 p95FrameMs = room != null ? room.HostSelectionP95FrameMs : Mathf.Max(1f, Time.smoothDeltaTime * 1000f),
                 sendQueueDepth = 0,
+                measuredSteamPairs = BuildMeasuredSteamPairs(),
                 reportedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
             return _ws.SendTextAsync(JsonUtility.ToJson(req), ct);
+        }
+
+        public void Tick()
+        {
+            var steam = AppBootstrap.Instance != null && AppBootstrap.Instance.Root != null
+                ? AppBootstrap.Instance.Root.SteamPlatform
+                : null;
+            string steamId64 = steam != null ? steam.SteamId64 ?? "" : "";
+            bool steamReady = steam != null
+                              && steam.Enabled
+                              && steam.IsInitialized
+                              && steam.HasJoinedLobby
+                              && !string.IsNullOrWhiteSpace(steamId64);
+            RefreshPairProbeState(steamId64, steamReady);
+            _pairProbe.Pump();
         }
 
         private void StartHostSelectionReportLoop()
@@ -229,6 +255,7 @@ using UnityEngine;
                         var initMsg = JsonUtility.FromJson<InitMsg>(json);
                         var count = initMsg.room?.memberUids?.Count ?? 0;
                         Debug.Log($"[RoomWsClient] Init Parsed Members: {count}");
+                        ApplyRoomSnapshot(initMsg.room);
                         OnInit?.Invoke(initMsg.room);
                         break;
                     case "MemberJoin":
@@ -239,6 +266,7 @@ using UnityEngine;
                         break;
                     case "MemberLeave":
                         var leaveMsg = JsonUtility.FromJson<MemberLeaveMsg>(json);
+                        RemoveMemberTransportState(leaveMsg.uid);
                         OnMemberLeave?.Invoke(leaveMsg.uid);
                         break;
                     case "MemberUpdate":
@@ -260,6 +288,7 @@ using UnityEngine;
                         break;
                     case "HostCandidateUpdate":
                         var hostCandidate = JsonUtility.FromJson<HostCandidateUpdateMsg>(json);
+                        ApplyMemberTransportSnapshot(hostCandidate.memberTransport);
                         OnHostCandidateUpdate?.Invoke(
                             hostCandidate.preferredHostUid,
                             hostCandidate.hostSelectionEpoch > 0 ? hostCandidate.hostSelectionEpoch : hostCandidate.hostEpoch);
@@ -292,8 +321,87 @@ using UnityEngine;
         public async ValueTask DisposeAsync()
         {
             StopHostSelectionReportLoop();
+            _pairProbe.Stop();
             Unsubscribe();
             await _ws.CloseAsync("dispose");
+        }
+
+        private void ApplyRoomSnapshot(WaitingRoomDto room)
+        {
+            _currentRoomId = room != null ? room.roomId ?? "" : "";
+            _currentRoomUseP2PRelay = room != null && room.useP2PRelay;
+            ApplyMemberTransportSnapshot(room != null ? room.memberTransport : null);
+        }
+
+        private void ApplyMemberTransportSnapshot(List<MemberTransportState> memberTransport)
+        {
+            _latestMemberTransport.Clear();
+            if (memberTransport == null)
+                return;
+
+            for (int i = 0; i < memberTransport.Count; i++)
+            {
+                var src = memberTransport[i];
+                if (src == null || string.IsNullOrWhiteSpace(src.uid))
+                    continue;
+
+                _latestMemberTransport.Add(new MemberTransportState
+                {
+                    uid = src.uid ?? "",
+                    name = src.name ?? "",
+                    steamId64 = src.steamId64 ?? "",
+                    clientVersion = src.clientVersion ?? "",
+                    hostProbeRttMs = src.hostProbeRttMs,
+                    hostProbeReportedAtMs = src.hostProbeReportedAtMs,
+                    steamEnabled = src.steamEnabled,
+                    steamInitialized = src.steamInitialized,
+                    steamLobbyJoined = src.steamLobbyJoined,
+                    steamReady = src.steamReady,
+                    currentServerRttMs = src.currentServerRttMs,
+                    currentServerLossPct = src.currentServerLossPct,
+                    currentServerJitterMs = src.currentServerJitterMs,
+                    avgFrameMs = src.avgFrameMs,
+                    p95FrameMs = src.p95FrameMs,
+                    sendQueueDepth = src.sendQueueDepth,
+                    measuredSteamPairs = src.measuredSteamPairs != null
+                        ? new List<MeasuredSteamPairState>(src.measuredSteamPairs)
+                        : null,
+                    hostSelectionReportedAtMs = src.hostSelectionReportedAtMs
+                });
+            }
+        }
+
+        private void RemoveMemberTransportState(string uid)
+        {
+            if (string.IsNullOrWhiteSpace(uid))
+                return;
+
+            _latestMemberTransport.RemoveAll(x => x != null && string.Equals(x.uid, uid, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private void RefreshPairProbeState(string localSteamId64, bool localSteamReady)
+        {
+            if (!_currentRoomUseP2PRelay)
+            {
+                _pairProbe.Stop();
+                return;
+            }
+
+            _pairProbe.Configure(new RoomSteamPairProbeConfig
+            {
+                RoomId = _currentRoomId,
+                LocalSteamId64 = localSteamId64 ?? "",
+                LocalSteamReady = localSteamReady,
+                Members = _latestMemberTransport
+            });
+        }
+
+        private List<MeasuredSteamPairState> BuildMeasuredSteamPairs()
+        {
+            var pairs = _pairProbe.SnapshotMeasurements();
+            return pairs != null && pairs.Count > 0
+                ? pairs
+                : new List<MeasuredSteamPairState>();
         }
     }
 

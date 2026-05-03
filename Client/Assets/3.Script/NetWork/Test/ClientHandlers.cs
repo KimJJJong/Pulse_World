@@ -309,7 +309,11 @@ public class ClientHandlers : MonoBehaviour
         bool isLocalEcho = bridge != null && bridge.IsDispatchingLocal;
 
         // 로컬에서 이미 즉시 재생한 액션은 서버 에코만 무시한다.
-        if (p.ActorId == GS.MyActorId && !isLocalEcho) return;
+        if (p.ActorId == GS.MyActorId && !isLocalEcho)
+        {
+            bridge?.RecordGameplayInstantFeedback(p.ActorId);
+            return;
+        }
 
         if (!string.IsNullOrEmpty(p.SkillId))
         {
@@ -355,6 +359,10 @@ public class ClientHandlers : MonoBehaviour
         {
             if (P2PDebugConfig.TraceCombat)
                 Debug.Log($"[ClientHandlers] BeatAction actor={a.ActorId} kind={(ActionKind)a.ActionKind} from=({a.FromX},{a.FromY}) to=({a.ToX},{a.ToY}) accepted={a.Accepted} hpUpdates={a.hpUpdates?.Count ?? 0}");
+
+            var bridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
+            if (bridge != null && !bridge.IsDispatchingLocal && a.ActorId == GS.MyActorId)
+                bridge.RecordGameplayBeatResult(a.ActorId, a.ActionKind);
 
             var action = new ClientBeatAction
             {

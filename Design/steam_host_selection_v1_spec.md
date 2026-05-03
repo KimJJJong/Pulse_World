@@ -1,5 +1,8 @@
 # Steam Host Selection V1 Spec
 
+> 참고: 이 문서는 V1 기준의 상세 설계 기록이다.  
+> 현재 런타임 metric version은 `host-selection-v2-hybrid`이며, 최신 프로젝트 기준 문서는 [steam_host_selection_v2_spec.md](./steam_host_selection_v2_spec.md)다.
+
 작성일: 2026-05-03  
 대상 프로젝트: RhythmRPG  
 문서 목적: 현재 `ApiServer / WaitingRoom WS RTT` 기반의 `Preferred Host` 선정을, 실제 인게임 경로 품질을 기준으로 하는 `Steam Hybrid P2P Host Selection V1`로 교체하기 위한 상세 스펙을 정의한다.

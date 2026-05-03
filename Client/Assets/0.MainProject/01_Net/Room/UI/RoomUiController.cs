@@ -148,6 +148,7 @@ namespace NetClient.Room.UI
         private void Update()
         {
             SampleHostSelectionFrameMetrics();
+            _roomWs?.Tick();
         }
 
         async void OnDestroy()
