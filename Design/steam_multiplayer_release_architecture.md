@@ -4,6 +4,9 @@
 대상 프로젝트: RhythmRPG  
 문서 목적: 현재 `P2PRelayRoom` 기반 구조를 Steam 출시 기준에서 어떤 구조로 가져가야 하는지, 개발 환경과 구현 절차까지 한 번에 정리한다.
 
+빠르게 흐름만 보고 싶다면 [steam_hybrid_p2p_flow.md](./steam_hybrid_p2p_flow.md)를 함께 참고한다.  
+이 문서는 `Owner`, `Preferred Host`, `P2PHost`, `Guest Client`, `ApiServer`, `GameServer`, `Steam P2P`의 역할을 시각적으로 분리해 둔 보조 문서다.
+
 ## 결론
 
 Steam 출시를 목표로 한다면 최종 권장 구조는 **Steam Lobby + Steam 인증 + 권위 서버(authoritative dedicated GameServer)** 이다. 현재 구현처럼 클라이언트 중 한 명이 전투 판정 Host가 되는 방식은 개발 속도는 빠르지만, Steam 출시 후 보상/진행도/아이템이 얽히면 치팅, Host 이탈, Host 선출 레이스, NAT/중계 비용 문제가 계속 남는다.

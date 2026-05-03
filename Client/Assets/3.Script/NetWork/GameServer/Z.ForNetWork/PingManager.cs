@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -217,55 +218,222 @@ public sealed class PingManager : MonoBehaviour
         if (maxMiss.HasValue) maxConsecMiss = Math.Max(1, maxMiss.Value);
     }
 
+    private void BuildNetworkSyncText(P2PRelayClientBridge relayBridge, out string richText, out string plainText)
+    {
+        var richLines = new List<string>(16);
+        var plainLines = new List<string>(16);
+        var steam = AppBootstrap.Instance != null && AppBootstrap.Instance.Root != null
+            ? AppBootstrap.Instance.Root.SteamPlatform
+            : null;
+
+        AddSyncLine(richLines, plainLines, "[Network Sync]");
+        AddSyncLine(
+            richLines,
+            plainLines,
+            $"RTT(Avg): {avgRttMs}ms (Last:{lastRttMs} Max:{maxRttMs} Loss:{packetLossPercent:F1}%)",
+            $"<color=#00FF00>RTT(Avg):</color> {avgRttMs}ms (Last:{lastRttMs} Max:{maxRttMs} Loss:{packetLossPercent:F1}%)");
+
+        if (relayBridge != null && relayBridge.IsRelayMode)
+        {
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Mode: {relayBridge.TransportName} / {relayBridge.NetworkStateSummary}",
+                $"<color=#7fffd4>Mode:</color> {relayBridge.TransportName} / {relayBridge.NetworkStateSummary}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Flow: {relayBridge.NetworkFlowSummary}",
+                $"<color=#87cefa>Flow:</color> {relayBridge.NetworkFlowSummary}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Authority: {relayBridge.HostAuthorityDebugState} / {(relayBridge.IsHostLocal ? "Host" : "Guest")}",
+                $"<color=#ffd700>Authority:</color> {relayBridge.HostAuthorityDebugState} / {(relayBridge.IsHostLocal ? "Host" : "Guest")}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Server: {relayBridge.ServerRoleSummary}",
+                $"<color=#ffb347>Server:</color> {relayBridge.ServerRoleSummary}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Host: actor {relayBridge.HostActorId} / uid {FormatDebugValue(relayBridge.HostUid)} / epoch {relayBridge.HostEpoch}",
+                $"<color=#ff9ff3>Host:</color> actor {relayBridge.HostActorId} / uid {FormatDebugValue(relayBridge.HostUid)} / epoch {relayBridge.HostEpoch}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Transport: {relayBridge.TransportDebugStatus}",
+                $"<color=#c8a2c8>Transport:</color> {relayBridge.TransportDebugStatus}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Steam Decision: {relayBridge.SteamTransportDecisionReason}",
+                $"<color=#98fb98>Steam Decision:</color> {relayBridge.SteamTransportDecisionReason}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Steam IDs: local {FormatDebugValue(relayBridge.LocalSteamId64)} / host {FormatDebugValue(relayBridge.HostSteamId64)}",
+                $"<color=#66d9ef>Steam IDs:</color> local {FormatDebugValue(relayBridge.LocalSteamId64)} / host {FormatDebugValue(relayBridge.HostSteamId64)}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"RelayKey: {FormatDebugValue(relayBridge.RelayKey)}",
+                $"<color=#b0c4de>RelayKey:</color> {FormatDebugValue(relayBridge.RelayKey)}");
+
+            string hostPingPlain = relayBridge.IsHostLocal
+                ? "Host RTT: Local Host"
+                : $"Host RTT: {relayBridge.HostAvgRttMs}ms (Last:{relayBridge.HostLastRttMs} Max:{relayBridge.HostMaxRttMs})";
+            string hostPingRich = relayBridge.IsHostLocal
+                ? "<color=#ffa500>Host RTT:</color> Local Host"
+                : $"<color=#ffa500>Host RTT:</color> {relayBridge.HostAvgRttMs}ms (Last:{relayBridge.HostLastRttMs} Max:{relayBridge.HostMaxRttMs})";
+            AddSyncLine(richLines, plainLines, hostPingPlain, hostPingRich);
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Host Status: {relayBridge.HostPingStatus}",
+                $"<color=#ffd27f>Host Status:</color> {relayBridge.HostPingStatus}");
+        }
+        else
+        {
+            AddSyncLine(
+                richLines,
+                plainLines,
+                "Mode: Dedicated / Client <-> GameServer",
+                "<color=#7fffd4>Mode:</color> Dedicated / Client <-> GameServer");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                "Server: Dedicated simulation",
+                "<color=#ffb347>Server:</color> Dedicated simulation");
+        }
+
+        if (steam != null)
+        {
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Steam Runtime: enabled={steam.Enabled} init={steam.IsInitialized} joined={steam.HasJoinedLobby} owner={steam.IsLobbyOwner}",
+                $"<color=#adff2f>Steam Runtime:</color> enabled={steam.Enabled} init={steam.IsInitialized} joined={steam.HasJoinedLobby} owner={steam.IsLobbyOwner}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Steam Lobby: {FormatDebugValue(steam.CurrentLobbyId)}",
+                $"<color=#dda0dd>Steam Lobby:</color> {FormatDebugValue(steam.CurrentLobbyId)}");
+            if (!string.IsNullOrWhiteSpace(steam.LastError))
+            {
+                AddSyncLine(
+                    richLines,
+                    plainLines,
+                    $"Steam Error: {steam.LastError}",
+                    $"<color=#ff6b6b>Steam Error:</color> {steam.LastError}");
+            }
+        }
+
+        AddSyncLine(
+            richLines,
+            plainLines,
+            $"RawRTT: {lastRawRTT}ms | S.Proc: {lastServerProc}ms",
+            $"<color=#00e5ee>RawRTT:</color> {lastRawRTT}ms | <color=#ff69b4>S.Proc:</color> {lastServerProc}ms");
+        AddSyncLine(
+            richLines,
+            plainLines,
+            $"Offset: {TimeSync.OffsetMs:F1}ms",
+            $"<color=#FFFF00>Offset:</color> {TimeSync.OffsetMs:F1}ms");
+        AddSyncLine(
+            richLines,
+            plainLines,
+            $"L.Send: {lastLocalSend}",
+            $"<color=#aaaaaa>L.Send:</color> {lastLocalSend}");
+        AddSyncLine(
+            richLines,
+            plainLines,
+            $"L.Recv: {lastLocalRecv}",
+            $"<color=#aaaaaa>L.Recv:</color> {lastLocalRecv}");
+        AddSyncLine(
+            richLines,
+            plainLines,
+            $"Status: {(sentCount <= TimeSync.WarmupCount ? "Warming Up" : status)}",
+            $"<color=#00FFFF>Status:</color> {(sentCount <= TimeSync.WarmupCount ? "Warming Up" : status)}");
+
+        richText = string.Join("\n", richLines);
+        plainText = string.Join("\n", plainLines);
+    }
+
+    private static void AddSyncLine(List<string> richLines, List<string> plainLines, string plainText, string richOverride = null)
+    {
+        if (string.IsNullOrWhiteSpace(plainText))
+            return;
+
+        plainLines.Add(plainText);
+        richLines.Add(string.IsNullOrWhiteSpace(richOverride) ? plainText : richOverride);
+    }
+
+    private static string FormatDebugValue(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
+
+    private static Vector2 MeasureTextBlock(GUIStyle style, string text, float maxTextWidth)
+    {
+        if (style == null)
+            return Vector2.zero;
+
+        float desiredWidth = 0f;
+        foreach (var rawLine in text.Split('\n'))
+        {
+            var line = string.IsNullOrEmpty(rawLine) ? " " : rawLine;
+            desiredWidth = Mathf.Max(desiredWidth, style.CalcSize(new GUIContent(line)).x);
+        }
+
+        float width = Mathf.Clamp(desiredWidth, 220f, maxTextWidth);
+        float height = style.CalcHeight(new GUIContent(text), width);
+        return new Vector2(width, height);
+    }
+
     void OnGUI()
     {
         if (!running) return;
 
         var relayBridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
-        bool showHostPing = relayBridge != null && relayBridge.IsRelayMode;
+        BuildNetworkSyncText(relayBridge, out var richText, out var plainText);
 
-        // 화면 우측 상단 배치
-        int width = 340;
-        int height = showHostPing ? 220 : 180;
-        Rect rect = new Rect(Screen.width - width - 10, 10, width, height);
+        const float screenPadding = 10f;
+        const float contentPadding = 12f;
+        float maxWindowWidth = Mathf.Max(360f, Mathf.Min(760f, Screen.width * 0.48f));
 
-        // 반투명 배경 박스
+        GUIStyle style = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 18,
+            alignment = TextAnchor.UpperLeft,
+            richText = true,
+            wordWrap = true
+        };
+
+        GUIStyle measureStyle = new GUIStyle(style)
+        {
+            richText = false,
+            wordWrap = true
+        };
+
+        Vector2 measured = MeasureTextBlock(measureStyle, plainText, Mathf.Max(240f, maxWindowWidth - contentPadding * 2f));
+        float width = Mathf.Clamp(measured.x + contentPadding * 2f, 340f, Screen.width - screenPadding * 2f);
+        float textWidth = Mathf.Max(220f, width - contentPadding * 2f);
+        float height = Mathf.Clamp(
+            measureStyle.CalcHeight(new GUIContent(plainText), textWidth) + contentPadding * 2f,
+            150f,
+            Screen.height - screenPadding * 2f);
+
+        Rect rect = new Rect(Screen.width - width - screenPadding, screenPadding, width, height);
         GUI.Box(rect, "");
 
-        // 글꼴 색상 및 정렬 설정
-        GUIStyle style = new GUIStyle(GUI.skin.label);
-        style.fontSize = 20;
-        style.alignment = TextAnchor.UpperLeft;
-        
-        // 텍스트 내용 조립
-        string hostPingLine = "";
-        if (showHostPing)
-        {
-            hostPingLine = relayBridge.IsHostLocal
-                ? "<color=#ffa500>Host RTT:</color> Local Host\n"
-                : $"<color=#ffa500>Host RTT:</color> {relayBridge.HostAvgRttMs}ms (Last:{relayBridge.HostLastRttMs} Max:{relayBridge.HostMaxRttMs})\n" +
-                  $"<color=#ffd27f>Host Status:</color> {relayBridge.HostPingStatus}\n";
-        }
-
-        string text = $"[Network Sync]\n" +
-                      $"<color=#00FF00>RTT(Avg):</color> {avgRttMs}ms (Max:{maxRttMs})\n" +
-                      hostPingLine +
-                      $"<color=#00e5ee>RawRTT:</color> {lastRawRTT}ms | <color=#ff69b4>S.Proc:</color> {lastServerProc}ms\n" +
-                      $"<color=#FFFF00>Offset:</color> {TimeSync.OffsetMs:F1}ms\n" +
-                      $"<color=#aaaaaa>L.Send:</color> {lastLocalSend}\n" +
-                      $"<color=#aaaaaa>L.Recv:</color> {lastLocalRecv}\n" +
-                      $"<color=#00FFFF>Status:</color> {(sentCount <= 10 ? "Warming Up" : status)}";
-
-        // 약간의 그림자 효과를 위해 검은색 텍스트 먼저 찍기
         style.normal.textColor = Color.black;
-        Rect shadowRect = new Rect(rect.x + 6, rect.y + 6, rect.width, rect.height);
-        GUI.Label(shadowRect, text, style);
+        Rect shadowRect = new Rect(rect.x + contentPadding + 1f, rect.y + contentPadding + 1f, textWidth, height - contentPadding * 2f);
+        GUI.Label(shadowRect, richText, style);
 
-        // 그 위에 하얀색 텍스트 (RichText 허용)
-        style.richText = true;
         style.normal.textColor = Color.white;
-        Rect textRect = new Rect(rect.x + 5, rect.y + 5, rect.width, rect.height);
-        GUI.Label(textRect, text, style);
+        Rect textRect = new Rect(rect.x + contentPadding, rect.y + contentPadding, textWidth, height - contentPadding * 2f);
+        GUI.Label(textRect, richText, style);
     }
 }
 

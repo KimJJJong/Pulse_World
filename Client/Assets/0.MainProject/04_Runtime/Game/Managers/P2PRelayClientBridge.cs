@@ -48,6 +48,95 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     public bool IsSteamTransportConnectedToHost => _steamTransport?.IsConnectedToHost ?? false;
     public int SteamConnectedPeerCount => _steamTransport?.ConnectedPeerCount ?? 0;
     public string TransportLastError => _steamTransport?.LastError ?? "";
+    public string LocalSteamId64 => GetLocalSteamId64();
+    public string HostAuthorityDebugState => GetHostAuthorityState();
+    public string ServerRoleSummary => IsP2PMode ? "Start/End validation only" : "Dedicated simulation";
+    public string SteamTransportDecisionReason => DescribeSteamTransportDecision(_matchManifest);
+    public string NetworkStateSummary
+    {
+        get
+        {
+            if (!IsP2PMode)
+                return "DedicatedServer";
+
+            if (HostActorId <= 0)
+                return "WaitingHostElection";
+
+            if (IsHostLocal)
+                return IsSteamTransport ? "HostAuthorityLocal(Steam)" : "HostAuthorityLocal(ServerRelay)";
+
+            if (IsSteamTransport)
+                return IsSteamTransportConnectedToHost
+                    ? "GuestConnectedToHost"
+                    : "GuestWaitingSteamLink";
+
+            return "GuestViaServerRelay";
+        }
+    }
+
+    private string DescribeSteamTransportDecision(SessionDtos.MatchManifestDto manifest)
+    {
+        if (manifest == null)
+            return "ManifestMissing";
+
+        if (string.IsNullOrWhiteSpace(manifest.NetworkMode))
+            return "NetworkModeMissing";
+
+        if (manifest.NetworkMode.IndexOf("steam", StringComparison.OrdinalIgnoreCase) < 0)
+            return $"NonSteamMode:{manifest.NetworkMode}";
+
+        var root = AppBootstrap.Instance != null ? AppBootstrap.Instance.Root : null;
+        if (root?.Config == null)
+            return "ConfigMissing";
+
+        if (!root.Config.EnableSteam)
+            return "ConfigEnableSteamOff";
+
+        if (!root.Config.PreferSteamP2PInGame)
+            return "PreferSteamP2PInGameOff";
+
+        var steam = root.SteamPlatform;
+        if (steam == null)
+            return "SteamPlatformMissing";
+
+        if (!steam.Enabled)
+            return "SteamDisabled";
+
+        if (!steam.IsInitialized)
+            return string.IsNullOrWhiteSpace(steam.LastError)
+                ? "SteamNotInitialized"
+                : $"SteamNotInitialized:{steam.LastError}";
+
+        if (string.IsNullOrWhiteSpace(steam.SteamId64))
+            return "LocalSteamIdMissing";
+
+        if (string.IsNullOrWhiteSpace(manifest.HostSteamId64))
+            return "ManifestHostSteamMissing";
+
+        return IsSteamTransport
+            ? "SteamTransportSelected"
+            : "SteamEligibleButRelaySelected";
+    }
+    public string NetworkFlowSummary
+    {
+        get
+        {
+            if (!IsP2PMode)
+                return "Client <-> GameServer";
+
+            if (IsHostLocal)
+                return IsSteamTransport
+                    ? "Local host -> Steam guests"
+                    : "Local host -> Server relay guests";
+
+            if (IsSteamTransport)
+                return IsSteamTransportConnectedToHost
+                    ? "Guest -> Steam -> Host"
+                    : "Guest -> Steam pending (relay fallback)";
+
+            return "Guest -> Server relay -> Host";
+        }
+    }
     public string TransportDebugStatus
     {
         get

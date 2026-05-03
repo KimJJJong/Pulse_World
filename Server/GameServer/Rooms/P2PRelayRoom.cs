@@ -14,6 +14,7 @@ using Util;
 public sealed class P2PRelayRoom : RoomBase
 {
     private enum RoomPhase { Waiting, Running, Ended }
+    private const string ServerGuardMode = "StartEndValidationOnly";
 
     public string RelayId { get; }
     public string MapId { get; private set; }
@@ -46,6 +47,13 @@ public sealed class P2PRelayRoom : RoomBase
     protected override SessionBase? GetSession() => null;
     protected override bool IsRoomRunning() => _phase == RoomPhase.Running;
     protected override bool CheckRoomEnded() => _phase == RoomPhase.Ended;
+
+    public override void Update()
+    {
+        // P2P mode never runs server-authoritative gameplay simulation.
+        // GameServer only brokers room lifecycle, host election, and end-of-match validation.
+        PumpQueuedActions();
+    }
 
     protected override void UpdateSessionWorldId(ClientSession s)
     {
@@ -297,11 +305,12 @@ public sealed class P2PRelayRoom : RoomBase
         EntityDataManager.Instance.Load();
 
         _logger.LogInformation(
-            "[P2PRelayRoom] Started relayId={RelayId} mapId={MapId} songStart={SongStart} host={Host}",
+            "[P2PRelayRoom] Started relayId={RelayId} mapId={MapId} songStart={SongStart} host={Host} serverRole={ServerRole}",
             RelayId,
             MapId,
             _songStartAtMs,
-            _hostActorId);
+            _hostActorId,
+            ServerGuardMode);
     }
 
     private void ReevaluateHost()
