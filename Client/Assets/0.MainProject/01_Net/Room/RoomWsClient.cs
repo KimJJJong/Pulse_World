@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using NetClient.Room.UI;
 using UnityEngine;
 
 
@@ -13,6 +14,7 @@ using UnityEngine;
         private readonly string _clientVersion;
         private string _pendingProbeNonce = "";
         private long _pendingProbeSentAtMs;
+        private CancellationTokenSource _hostSelectionReportCts;
         public int LastHostProbeRttMs { get; private set; } = -1;
         public string LastHostProbeStatus { get; private set; } = "Idle";
         public event Action<WaitingRoomDto> OnInit;
@@ -21,6 +23,7 @@ using UnityEngine;
         public event Action<string, bool> OnMemberUpdate; // uid, ready
         public event Action<int> OnHostProbeMeasured;
         public event Action<string, int> OnHostCandidateUpdate; // preferredHostUid, hostEpoch
+        public event Action<HostCandidateUpdateMsg> OnHostSelectionUpdated;
         public event Action<string> OnSteamLobbyBound; // steamLobbyId
         public event Action<EndpointDto, string, string, int, bool, WsMatchManifestDto> OnGameStart; // endpoint, ticket, mapId, maxPlayers, useP2PRelay, matchManifest
         public event Action<string> OnErrorMsg;
@@ -40,7 +43,11 @@ using UnityEngine;
             _clientVersion = clientVersion;
 
             _onMessage = HandleMessage;
-            _onClosed = reason => OnClosed?.Invoke(reason);
+            _onClosed = reason =>
+            {
+                StopHostSelectionReportLoop();
+                OnClosed?.Invoke(reason);
+            };
             _onError = ex => OnWarn?.Invoke(ex.Message);
         }
 
@@ -68,11 +75,13 @@ using UnityEngine;
 
             LastHostProbeRttMs = -1;
             LastHostProbeStatus = "Connecting";
+            StopHostSelectionReportLoop();
             Subscribe();
             // Pass headers
             await _ws.ConnectAsync(wsUrl, headers, ct);
             Debug.Log($"ws connected: {wsUrl}");
             await SendHostProbePingAsync(ct);
+            StartHostSelectionReportLoop();
         }
 
         public Task ToggleReadyAsync(bool v, CancellationToken ct = default)
@@ -90,6 +99,7 @@ using UnityEngine;
         public Task BindSteamLobbyAsync(string steamLobbyId, CancellationToken ct = default)
         {
             var req = new BindSteamLobbyRequest { steamLobbyId = steamLobbyId ?? "" };
+            _ = SendHostSelectionReportAsync(ct);
             return _ws.SendTextAsync(JsonUtility.ToJson(req), ct);
         }
 
@@ -119,6 +129,85 @@ using UnityEngine;
                 reportedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
             return _ws.SendTextAsync(JsonUtility.ToJson(req), ct);
+        }
+
+        private Task SendHostSelectionReportAsync(CancellationToken ct = default)
+        {
+            var room = RoomUiController.ActiveInstance;
+            var steam = AppBootstrap.Instance != null && AppBootstrap.Instance.Root != null
+                ? AppBootstrap.Instance.Root.SteamPlatform
+                : null;
+            var ping = PingManager.Instance;
+
+            bool steamEnabled = steam != null && steam.Enabled;
+            bool steamInitialized = steam != null && steam.IsInitialized;
+            bool steamLobbyJoined = steam != null && steam.HasJoinedLobby;
+            string steamId64 = steam != null ? steam.SteamId64 ?? "" : "";
+            bool steamReady = steamEnabled && steamInitialized && steamLobbyJoined && !string.IsNullOrWhiteSpace(steamId64);
+
+            var req = new HostSelectionReportRequest
+            {
+                steamId64 = steamId64,
+                steamEnabled = steamEnabled,
+                steamInitialized = steamInitialized,
+                steamLobbyJoined = steamLobbyJoined,
+                steamReady = steamReady,
+                currentServerRttMs = ping != null ? (int)ping.AvgRttMs : -1,
+                currentServerLossPct = ping != null ? ping.PacketLossPercent : 0f,
+                currentServerJitterMs = ping != null ? (int)ping.AvgJitterMs : -1,
+                avgFrameMs = room != null ? room.HostSelectionAvgFrameMs : Mathf.Max(1f, Time.smoothDeltaTime * 1000f),
+                p95FrameMs = room != null ? room.HostSelectionP95FrameMs : Mathf.Max(1f, Time.smoothDeltaTime * 1000f),
+                sendQueueDepth = 0,
+                reportedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
+            return _ws.SendTextAsync(JsonUtility.ToJson(req), ct);
+        }
+
+        private void StartHostSelectionReportLoop()
+        {
+            if (_hostSelectionReportCts != null)
+                return;
+
+            _hostSelectionReportCts = new CancellationTokenSource();
+            _ = HostSelectionReportLoopAsync(_hostSelectionReportCts.Token);
+        }
+
+        private void StopHostSelectionReportLoop()
+        {
+            if (_hostSelectionReportCts == null)
+                return;
+
+            _hostSelectionReportCts.Cancel();
+            _hostSelectionReportCts.Dispose();
+            _hostSelectionReportCts = null;
+        }
+
+        private async Task HostSelectionReportLoopAsync(CancellationToken ct)
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    await SendHostSelectionReportAsync(ct);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    OnWarn?.Invoke($"HostSelectionReport failed: {ex.Message}");
+                }
+
+                try
+                {
+                    await Task.Delay(3000, ct);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+            }
         }
 
         private void HandleMessage(string json)
@@ -171,7 +260,10 @@ using UnityEngine;
                         break;
                     case "HostCandidateUpdate":
                         var hostCandidate = JsonUtility.FromJson<HostCandidateUpdateMsg>(json);
-                        OnHostCandidateUpdate?.Invoke(hostCandidate.preferredHostUid, hostCandidate.hostEpoch);
+                        OnHostCandidateUpdate?.Invoke(
+                            hostCandidate.preferredHostUid,
+                            hostCandidate.hostSelectionEpoch > 0 ? hostCandidate.hostSelectionEpoch : hostCandidate.hostEpoch);
+                        OnHostSelectionUpdated?.Invoke(hostCandidate);
                         break;
                     case "SteamLobbyBound":
                         var lobbyBound = JsonUtility.FromJson<SteamLobbyBoundMsg>(json);
@@ -199,6 +291,7 @@ using UnityEngine;
 
         public async ValueTask DisposeAsync()
         {
+            StopHostSelectionReportLoop();
             Unsubscribe();
             await _ws.CloseAsync("dispose");
         }

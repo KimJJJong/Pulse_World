@@ -38,6 +38,24 @@ using System.Collections.Generic;
     }
 
     [Serializable]
+    public class HostSelectionReportRequest
+    {
+        public string type = "HostSelectionReport";
+        public string steamId64;
+        public bool steamEnabled;
+        public bool steamInitialized;
+        public bool steamLobbyJoined;
+        public bool steamReady;
+        public int currentServerRttMs = -1;
+        public float currentServerLossPct;
+        public int currentServerJitterMs = -1;
+        public float avgFrameMs = -1f;
+        public float p95FrameMs = -1f;
+        public int sendQueueDepth;
+        public long reportedAtMs;
+    }
+
+    [Serializable]
     public class BindSteamLobbyRequest
     {
         public string type = "BindSteamLobby";
@@ -66,6 +84,13 @@ using System.Collections.Generic;
         public string steamLobbyId;
         public string preferredHostUid;
         public int hostEpoch;
+        public int hostSelectionEpoch;
+        public string hostSelectionMode;
+        public string hostSelectionMetricVersion;
+        public float hostSelectionScore;
+        public long hostSelectionUpdatedAtMs;
+        public List<string> hostCandidateOrder;
+        public List<HostSelectionCandidateState> hostSelectionCandidates;
         public List<string> memberUids; // JsonUtility supports List<string>
         public List<MemberReadyState> memberReady; // Changed from Dictionary for JsonUtility compatibility
         public List<MemberTransportState> memberTransport;
@@ -80,6 +105,40 @@ using System.Collections.Generic;
         public string clientVersion;
         public int hostProbeRttMs;
         public long hostProbeReportedAtMs;
+        public bool steamEnabled;
+        public bool steamInitialized;
+        public bool steamLobbyJoined;
+        public bool steamReady;
+        public int currentServerRttMs;
+        public float currentServerLossPct;
+        public int currentServerJitterMs;
+        public float avgFrameMs;
+        public float p95FrameMs;
+        public int sendQueueDepth;
+        public long hostSelectionReportedAtMs;
+    }
+
+    [Serializable]
+    public class HostSelectionCandidateState
+    {
+        public string uid;
+        public bool isEligible;
+        public float candidateCost;
+        public float averagePairCost;
+        public float worstPairCost;
+        public int averagePairRttMs;
+        public int worstPairRttMs;
+        public int steamPairCount;
+        public int serverRelayPairCount;
+        public int unavailablePairCount;
+        public float hostCapacityPenalty;
+        public bool steamReady;
+        public int currentServerRttMs;
+        public float currentServerLossPct;
+        public int currentServerJitterMs;
+        public float avgFrameMs;
+        public float p95FrameMs;
+        public List<string> disqualifiedReasons;
     }
 
     // "Init"
@@ -130,6 +189,13 @@ using System.Collections.Generic;
         public string type;
         public string preferredHostUid;
         public int hostEpoch;
+        public int hostSelectionEpoch;
+        public string hostSelectionMode;
+        public string hostSelectionMetricVersion;
+        public float hostSelectionScore;
+        public long hostSelectionUpdatedAtMs;
+        public List<string> hostCandidateOrder;
+        public List<HostSelectionCandidateState> hostSelectionCandidates;
         public string uid;
         public int hostProbeRttMs;
     }
@@ -164,6 +230,12 @@ using System.Collections.Generic;
         public string hostSteamId64;
         public int hostEpoch;
         public int preferredHostRttMs;
+        public string hostSelectionMode;
+        public string hostSelectionMetricVersion;
+        public int hostSelectionEpoch;
+        public float hostSelectionScore;
+        public long hostSelectionUpdatedAtMs;
+        public List<string> hostCandidateOrder;
         public long createdAtMs;
         public List<WsMatchParticipantDto> participants;
     }

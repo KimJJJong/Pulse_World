@@ -92,6 +92,33 @@ public sealed class RoomWebSocketHandler
                 steamLobbyId = room.SteamLobbyId,
                 preferredHostUid = room.PreferredHostUid,
                 hostEpoch = room.HostEpoch,
+                hostSelectionEpoch = room.HostSelectionEpoch,
+                hostSelectionMode = room.HostSelectionMode,
+                hostSelectionMetricVersion = room.HostSelectionMetricVersion,
+                hostSelectionScore = room.HostSelectionScore,
+                hostSelectionUpdatedAtMs = room.HostSelectionUpdatedAtMs,
+                hostCandidateOrder = room.HostCandidateOrder,
+                hostSelectionCandidates = room.HostSelectionCandidates.Select(x => new
+                {
+                    uid = x.Uid,
+                    isEligible = x.IsEligible,
+                    candidateCost = x.CandidateCost,
+                    averagePairCost = x.AveragePairCost,
+                    worstPairCost = x.WorstPairCost,
+                    averagePairRttMs = x.AveragePairRttMs,
+                    worstPairRttMs = x.WorstPairRttMs,
+                    steamPairCount = x.SteamPairCount,
+                    serverRelayPairCount = x.ServerRelayPairCount,
+                    unavailablePairCount = x.UnavailablePairCount,
+                    hostCapacityPenalty = x.HostCapacityPenalty,
+                    steamReady = x.SteamReady,
+                    currentServerRttMs = x.CurrentServerRttMs,
+                    currentServerLossPct = x.CurrentServerLossPct,
+                    currentServerJitterMs = x.CurrentServerJitterMs,
+                    avgFrameMs = x.AvgFrameMs,
+                    p95FrameMs = x.P95FrameMs,
+                    disqualifiedReasons = x.DisqualifiedReasons
+                }).ToList(),
                 memberUids = room.MemberUids,
                 memberReady = room.MemberReady.Select(kv => new { uid = kv.Key, ready = kv.Value }).ToList(),
                 memberTransport = room.MemberTransport.Select(x => new
@@ -101,10 +128,22 @@ public sealed class RoomWebSocketHandler
                     steamId64 = x.SteamId64,
                     clientVersion = x.ClientVersion,
                     hostProbeRttMs = x.HostProbeRttMs,
-                    hostProbeReportedAtMs = x.HostProbeReportedAtMs
+                    hostProbeReportedAtMs = x.HostProbeReportedAtMs,
+                    steamEnabled = x.SteamEnabled,
+                    steamInitialized = x.SteamInitialized,
+                    steamLobbyJoined = x.SteamLobbyJoined,
+                    steamReady = x.SteamReady,
+                    currentServerRttMs = x.CurrentServerRttMs,
+                    currentServerLossPct = x.CurrentServerLossPct,
+                    currentServerJitterMs = x.CurrentServerJitterMs,
+                    avgFrameMs = x.AvgFrameMs,
+                    p95FrameMs = x.P95FrameMs,
+                    sendQueueDepth = x.SendQueueDepth,
+                    hostSelectionReportedAtMs = x.HostSelectionReportedAtMs
                 }).ToList()
             };
             await _conns.SendToAsync(roomId, uid, new { type = "Init", room = clientRoom });
+            await BroadcastHostSelectionAsync(roomId, room);
 
             var buffer = new byte[1024 * 4];
             while (ws.State == WebSocketState.Open)
@@ -129,6 +168,7 @@ public sealed class RoomWebSocketHandler
             if (await _waitingRoom.LeaveAsync(roomId, uid))
             {
                 await _conns.BroadcastAsync(roomId, new { type = "MemberLeave", uid });
+                await BroadcastHostSelectionAsync(roomId);
             }
         }
     }
@@ -149,6 +189,7 @@ public sealed class RoomWebSocketHandler
                 if (await _waitingRoom.SetReadyAsync(roomId, uid, val))
                 {
                     await _conns.BroadcastAsync(roomId, new { type = "MemberUpdate", uid, ready = val });
+                    await BroadcastHostSelectionAsync(roomId);
                 }
             }
             else if (type == "HostProbePing")
@@ -183,15 +224,70 @@ public sealed class RoomWebSocketHandler
                         probeRttMs,
                         reportedAtMs,
                         room?.PreferredHostUid ?? "",
-                        room?.HostEpoch ?? 0);
-                    await _conns.BroadcastAsync(roomId, new
-                    {
-                        type = "HostCandidateUpdate",
-                        preferredHostUid = room?.PreferredHostUid ?? "",
-                        hostEpoch = room?.HostEpoch ?? 0,
+                        room?.HostSelectionEpoch ?? 0);
+                    await BroadcastHostSelectionAsync(roomId, room);
+                }
+            }
+            else if (type == "HostSelectionReport")
+            {
+                var steamId = root.TryGetProperty("steamId64", out var steamIdElement)
+                    ? steamIdElement.GetString() ?? ""
+                    : "";
+                var steamEnabled = root.TryGetProperty("steamEnabled", out var steamEnabledElement) && steamEnabledElement.GetBoolean();
+                var steamInitialized = root.TryGetProperty("steamInitialized", out var steamInitializedElement) && steamInitializedElement.GetBoolean();
+                var steamLobbyJoined = root.TryGetProperty("steamLobbyJoined", out var steamLobbyJoinedElement) && steamLobbyJoinedElement.GetBoolean();
+                var steamReady = root.TryGetProperty("steamReady", out var steamReadyElement) && steamReadyElement.GetBoolean();
+                var currentServerRttMs = root.TryGetProperty("currentServerRttMs", out var currentServerRttElement) && currentServerRttElement.TryGetInt32(out var parsedCurrentServerRtt)
+                    ? parsedCurrentServerRtt
+                    : -1;
+                var currentServerLossPct = root.TryGetProperty("currentServerLossPct", out var currentServerLossElement) && currentServerLossElement.TryGetSingle(out var parsedCurrentServerLoss)
+                    ? parsedCurrentServerLoss
+                    : 0f;
+                var currentServerJitterMs = root.TryGetProperty("currentServerJitterMs", out var currentServerJitterElement) && currentServerJitterElement.TryGetInt32(out var parsedCurrentServerJitter)
+                    ? parsedCurrentServerJitter
+                    : -1;
+                var avgFrameMs = root.TryGetProperty("avgFrameMs", out var avgFrameElement) && avgFrameElement.TryGetSingle(out var parsedAvgFrame)
+                    ? parsedAvgFrame
+                    : -1f;
+                var p95FrameMs = root.TryGetProperty("p95FrameMs", out var p95FrameElement) && p95FrameElement.TryGetSingle(out var parsedP95Frame)
+                    ? parsedP95Frame
+                    : -1f;
+                var sendQueueDepth = root.TryGetProperty("sendQueueDepth", out var sendQueueDepthElement) && sendQueueDepthElement.TryGetInt32(out var parsedSendQueueDepth)
+                    ? parsedSendQueueDepth
+                    : 0;
+                var reportedAtMs = root.TryGetProperty("reportedAtMs", out var selectionReportedElement) && selectionReportedElement.TryGetInt64(out var parsedSelectionReportedAt)
+                    ? parsedSelectionReportedAt
+                    : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+                if (await _waitingRoom.UpdateMemberHostSelectionAsync(
+                        roomId,
                         uid,
-                        hostProbeRttMs = probeRttMs
-                    });
+                        steamId,
+                        steamEnabled,
+                        steamInitialized,
+                        steamLobbyJoined,
+                        steamReady,
+                        currentServerRttMs,
+                        currentServerLossPct,
+                        currentServerJitterMs,
+                        avgFrameMs,
+                        p95FrameMs,
+                        sendQueueDepth,
+                        reportedAtMs))
+                {
+                    var (_, room) = await _waitingRoom.GetAsync(roomId);
+                    _logger.LogInformation(
+                        "[WaitingRoom] Host selection report room={RoomId} uid={Uid} steamReady={SteamReady} serverRtt={ServerRtt} jitter={Jitter} loss={Loss} preferredHost={PreferredHost} mode={Mode} epoch={Epoch}",
+                        roomId,
+                        uid,
+                        steamReady,
+                        currentServerRttMs,
+                        currentServerJitterMs,
+                        currentServerLossPct,
+                        room?.PreferredHostUid ?? "",
+                        room?.HostSelectionMode ?? "",
+                        room?.HostSelectionEpoch ?? 0);
+                    await BroadcastHostSelectionAsync(roomId, room);
                 }
             }
             else if (type == "BindSteamLobby")
@@ -315,5 +411,55 @@ public sealed class RoomWebSocketHandler
     {
         if(ws.State == WebSocketState.Open)
             await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, reason, CancellationToken.None);
+    }
+
+    private async Task BroadcastHostSelectionAsync(string roomId, WaitingRoomDto? room = null)
+    {
+        if (string.IsNullOrWhiteSpace(roomId))
+            return;
+
+        if (room == null)
+        {
+            var (_, fetchedRoom) = await _waitingRoom.GetAsync(roomId);
+            room = fetchedRoom;
+        }
+
+        if (room == null)
+            return;
+
+        await _conns.BroadcastAsync(roomId, new
+        {
+            type = "HostCandidateUpdate",
+            preferredHostUid = room.PreferredHostUid ?? "",
+            hostEpoch = room.HostEpoch,
+            hostSelectionEpoch = room.HostSelectionEpoch,
+            hostSelectionMode = room.HostSelectionMode ?? "",
+            hostSelectionMetricVersion = room.HostSelectionMetricVersion ?? WaitingRoomHostSelectionV1Calculator.MetricVersion,
+            hostSelectionScore = room.HostSelectionScore,
+            hostSelectionUpdatedAtMs = room.HostSelectionUpdatedAtMs,
+            hostCandidateOrder = room.HostCandidateOrder ?? new List<string>(),
+            hostSelectionCandidates = (room.HostSelectionCandidates ?? new List<WaitingRoomHostSelectionCandidateDto>())
+                .Select(x => new
+                {
+                    uid = x.Uid,
+                    isEligible = x.IsEligible,
+                    candidateCost = x.CandidateCost,
+                    averagePairCost = x.AveragePairCost,
+                    worstPairCost = x.WorstPairCost,
+                    averagePairRttMs = x.AveragePairRttMs,
+                    worstPairRttMs = x.WorstPairRttMs,
+                    steamPairCount = x.SteamPairCount,
+                    serverRelayPairCount = x.ServerRelayPairCount,
+                    unavailablePairCount = x.UnavailablePairCount,
+                    hostCapacityPenalty = x.HostCapacityPenalty,
+                    steamReady = x.SteamReady,
+                    currentServerRttMs = x.CurrentServerRttMs,
+                    currentServerLossPct = x.CurrentServerLossPct,
+                    currentServerJitterMs = x.CurrentServerJitterMs,
+                    avgFrameMs = x.AvgFrameMs,
+                    p95FrameMs = x.P95FrameMs,
+                    disqualifiedReasons = x.DisqualifiedReasons
+                }).ToList()
+        });
     }
 }

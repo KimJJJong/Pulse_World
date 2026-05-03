@@ -16,6 +16,13 @@ public class WaitingRoomDto
     public string SteamLobbyId { get; set; } = "";
     public string PreferredHostUid { get; set; } = "";
     public int HostEpoch { get; set; }
+    public int HostSelectionEpoch { get; set; }
+    public string HostSelectionMode { get; set; } = "";
+    public string HostSelectionMetricVersion { get; set; } = WaitingRoomHostSelectionV1Calculator.MetricVersion;
+    public float HostSelectionScore { get; set; } = -1f;
+    public long HostSelectionUpdatedAtMs { get; set; }
+    public List<string> HostCandidateOrder { get; set; } = new();
+    public List<WaitingRoomHostSelectionCandidateDto> HostSelectionCandidates { get; set; } = new();
     public List<string> MemberUids { get; set; } = new();
     public Dictionary<string, bool> MemberReady { get; set; } = new();
     public List<WaitingRoomMemberTransportDto> MemberTransport { get; set; } = new();
@@ -29,6 +36,17 @@ public sealed class WaitingRoomMemberTransportDto
     public string ClientVersion { get; set; } = "";
     public int HostProbeRttMs { get; set; } = -1;
     public long HostProbeReportedAtMs { get; set; }
+    public bool SteamEnabled { get; set; }
+    public bool SteamInitialized { get; set; }
+    public bool SteamLobbyJoined { get; set; }
+    public bool SteamReady { get; set; }
+    public int CurrentServerRttMs { get; set; } = -1;
+    public float CurrentServerLossPct { get; set; }
+    public int CurrentServerJitterMs { get; set; } = -1;
+    public float AvgFrameMs { get; set; } = -1f;
+    public float P95FrameMs { get; set; } = -1f;
+    public int SendQueueDepth { get; set; }
+    public long HostSelectionReportedAtMs { get; set; }
 }
 
 internal sealed class WaitingRoomMemberState
@@ -39,6 +57,17 @@ internal sealed class WaitingRoomMemberState
     public string ClientVersion { get; set; } = "";
     public int HostProbeRttMs { get; set; } = -1;
     public long HostProbeReportedAtMs { get; set; }
+    public bool SteamEnabled { get; set; }
+    public bool SteamInitialized { get; set; }
+    public bool SteamLobbyJoined { get; set; }
+    public bool SteamReady { get; set; }
+    public int CurrentServerRttMs { get; set; } = -1;
+    public float CurrentServerLossPct { get; set; }
+    public int CurrentServerJitterMs { get; set; } = -1;
+    public float AvgFrameMs { get; set; } = -1f;
+    public float P95FrameMs { get; set; } = -1f;
+    public int SendQueueDepth { get; set; }
+    public long HostSelectionReportedAtMs { get; set; }
 }
 
 public sealed class WaitingRoomService
@@ -77,6 +106,7 @@ public sealed class WaitingRoomService
             new("steamLobbyId", ""),
             new("preferredHostUid", ownerUid),
             new("hostEpoch", 0),
+            new("hostSelectionEpoch", 0),
             new("createdAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
         };
 
@@ -109,6 +139,7 @@ public sealed class WaitingRoomService
             var state = await GetMemberStateAsync(membersKey, uid);
             state.Name = name ?? "";
             await SaveMemberStateAsync(membersKey, uid, state);
+            await BumpHostSelectionEpochAsync(key);
             return (true, "");
         }
 
@@ -120,6 +151,7 @@ public sealed class WaitingRoomService
             Ready = false
         };
         await SaveMemberStateAsync(membersKey, uid, memberState);
+        await BumpHostSelectionEpochAsync(key);
         
         return (true, "");
     }
@@ -152,6 +184,10 @@ public sealed class WaitingRoomService
                await _redis.Db.KeyDeleteAsync(membersKey);
                await _redis.Db.SetRemoveAsync(_redis.KeyWaitingRoomIndex(), roomId);
             }
+            else
+            {
+                await BumpHostSelectionEpochAsync(key);
+            }
         }
         
         return removed;
@@ -168,6 +204,7 @@ public sealed class WaitingRoomService
         var state = await GetMemberStateAsync(membersKey, uid);
         state.Ready = ready;
         await SaveMemberStateAsync(membersKey, uid, state);
+        await BumpHostSelectionEpochAsync(key);
         return true;
     }
 
@@ -199,6 +236,50 @@ public sealed class WaitingRoomService
             state.HostProbeReportedAtMs = hostProbeReportedAtMs;
 
         await SaveMemberStateAsync(membersKey, uid, state);
+        await BumpHostSelectionEpochAsync(key);
+        return true;
+    }
+
+    public async Task<bool> UpdateMemberHostSelectionAsync(
+        string roomId,
+        string uid,
+        string steamId64,
+        bool steamEnabled,
+        bool steamInitialized,
+        bool steamLobbyJoined,
+        bool steamReady,
+        int currentServerRttMs,
+        float currentServerLossPct,
+        int currentServerJitterMs,
+        float avgFrameMs,
+        float p95FrameMs,
+        int sendQueueDepth,
+        long reportedAtMs)
+    {
+        var key = _redis.KeyWaitingRoom(roomId);
+        var membersKey = $"{key}:members";
+
+        if (!await _redis.Db.HashExistsAsync(membersKey, uid))
+            return false;
+
+        var state = await GetMemberStateAsync(membersKey, uid);
+        state.SteamId64 = steamId64 ?? "";
+        state.SteamEnabled = steamEnabled;
+        state.SteamInitialized = steamInitialized;
+        state.SteamLobbyJoined = steamLobbyJoined;
+        state.SteamReady = steamReady;
+        state.CurrentServerRttMs = currentServerRttMs;
+        state.CurrentServerLossPct = currentServerLossPct >= 0f ? currentServerLossPct : 0f;
+        state.CurrentServerJitterMs = currentServerJitterMs;
+        state.AvgFrameMs = avgFrameMs;
+        state.P95FrameMs = p95FrameMs;
+        state.SendQueueDepth = Math.Max(0, sendQueueDepth);
+        state.HostSelectionReportedAtMs = reportedAtMs > 0
+            ? reportedAtMs
+            : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        await SaveMemberStateAsync(membersKey, uid, state);
+        await BumpHostSelectionEpochAsync(key);
         return true;
     }
 
@@ -238,9 +319,12 @@ public sealed class WaitingRoomService
             SteamLobbyId = dict.GetValueOrDefault("steamLobbyId") ?? "",
             PreferredHostUid = dict.GetValueOrDefault("preferredHostUid") ?? "",
             HostEpoch = int.TryParse(dict.GetValueOrDefault("hostEpoch") ?? "0", out var hostEpoch) ? hostEpoch : 0,
+            HostSelectionEpoch = int.TryParse(dict.GetValueOrDefault("hostSelectionEpoch") ?? "0", out var selectionEpoch) ? selectionEpoch : 0,
             MemberUids = new List<string>(),
             MemberReady = new Dictionary<string, bool>(),
-            MemberTransport = new List<WaitingRoomMemberTransportDto>()
+            MemberTransport = new List<WaitingRoomMemberTransportDto>(),
+            HostCandidateOrder = new List<string>(),
+            HostSelectionCandidates = new List<WaitingRoomHostSelectionCandidateDto>()
         };
 
         foreach(var m in members)
@@ -256,11 +340,29 @@ public sealed class WaitingRoomService
                  SteamId64 = state.SteamId64,
                  ClientVersion = state.ClientVersion,
                  HostProbeRttMs = state.HostProbeRttMs,
-                 HostProbeReportedAtMs = state.HostProbeReportedAtMs
+                 HostProbeReportedAtMs = state.HostProbeReportedAtMs,
+                 SteamEnabled = state.SteamEnabled,
+                 SteamInitialized = state.SteamInitialized,
+                 SteamLobbyJoined = state.SteamLobbyJoined,
+                 SteamReady = state.SteamReady,
+                 CurrentServerRttMs = state.CurrentServerRttMs,
+                 CurrentServerLossPct = state.CurrentServerLossPct,
+                 CurrentServerJitterMs = state.CurrentServerJitterMs,
+                 AvgFrameMs = state.AvgFrameMs,
+                 P95FrameMs = state.P95FrameMs,
+                 SendQueueDepth = state.SendQueueDepth,
+                 HostSelectionReportedAtMs = state.HostSelectionReportedAtMs
              });
         }
 
-        dto.PreferredHostUid = SelectPreferredHostUid(dto);
+        var selection = WaitingRoomHostSelectionV1Calculator.Calculate(dto, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        dto.PreferredHostUid = selection.PreferredHostUid;
+        dto.HostSelectionMode = selection.Mode;
+        dto.HostSelectionMetricVersion = selection.MetricVersion;
+        dto.HostSelectionScore = selection.PreferredHostScore;
+        dto.HostSelectionUpdatedAtMs = selection.UpdatedAtMs;
+        dto.HostCandidateOrder = selection.HostCandidateOrder ?? new List<string>();
+        dto.HostSelectionCandidates = selection.Candidates ?? new List<WaitingRoomHostSelectionCandidateDto>();
         
         return (true, dto);
     }
@@ -294,60 +396,6 @@ public sealed class WaitingRoomService
         }
 
         return (list, nextCursor);
-    }
-
-    private static string SelectPreferredHostUid(WaitingRoomDto room)
-    {
-        bool requireSteamHost = room.UseP2PRelay;
-        long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var best = (room.MemberTransport ?? new List<WaitingRoomMemberTransportDto>())
-            .Where(x => !string.IsNullOrWhiteSpace(x.Uid))
-            .GroupBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g
-                .OrderBy(x => IsFreshProbe(x, nowMs) ? 0 : 1)
-                .ThenBy(x => x.HostProbeRttMs >= 0 ? x.HostProbeRttMs : int.MaxValue)
-                .ThenByDescending(x => x.HostProbeReportedAtMs)
-                .First())
-            .Where(x => !requireSteamHost || !string.IsNullOrWhiteSpace(x.SteamId64))
-            .OrderBy(x => IsFreshProbe(x, nowMs) ? 0 : 1)
-            .ThenBy(x => x.HostProbeRttMs >= 0 ? x.HostProbeRttMs : int.MaxValue)
-            .ThenBy(x => string.Equals(x.Uid, room.OwnerUid, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-            .ThenBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault();
-
-        if (best != null)
-            return best.Uid;
-
-        if (requireSteamHost)
-        {
-            var steamCapableOwner = (room.MemberTransport ?? new List<WaitingRoomMemberTransportDto>())
-                .FirstOrDefault(x =>
-                    string.Equals(x.Uid, room.OwnerUid, StringComparison.OrdinalIgnoreCase)
-                    && !string.IsNullOrWhiteSpace(x.SteamId64));
-            if (steamCapableOwner != null)
-                return steamCapableOwner.Uid;
-
-            var steamCapableMember = (room.MemberTransport ?? new List<WaitingRoomMemberTransportDto>())
-                .Where(x => !string.IsNullOrWhiteSpace(x.Uid) && !string.IsNullOrWhiteSpace(x.SteamId64))
-                .OrderBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
-                .FirstOrDefault();
-            if (steamCapableMember != null)
-                return steamCapableMember.Uid;
-        }
-
-        if (!string.IsNullOrWhiteSpace(room.OwnerUid))
-            return room.OwnerUid;
-
-        return room.MemberUids.FirstOrDefault() ?? "";
-    }
-
-    private static bool IsFreshProbe(WaitingRoomMemberTransportDto state, long nowMs)
-    {
-        if (state == null || state.HostProbeRttMs < 0 || state.HostProbeReportedAtMs <= 0)
-            return false;
-
-        long ageMs = Math.Max(0, nowMs - state.HostProbeReportedAtMs);
-        return ageMs <= HostProbeFreshnessWindowMs;
     }
 
     private async Task<WaitingRoomMemberState> GetMemberStateAsync(string membersKey, string uid)
@@ -394,11 +442,41 @@ public sealed class WaitingRoomService
                 state.HostProbeRttMs = parsedRtt;
             if (doc.RootElement.TryGetProperty("HostProbeReportedAtMs", out var reported) && reported.TryGetInt64(out var parsedReported))
                 state.HostProbeReportedAtMs = parsedReported;
+            if (doc.RootElement.TryGetProperty("SteamEnabled", out var steamEnabled))
+                state.SteamEnabled = steamEnabled.GetBoolean();
+            if (doc.RootElement.TryGetProperty("SteamInitialized", out var steamInitialized))
+                state.SteamInitialized = steamInitialized.GetBoolean();
+            if (doc.RootElement.TryGetProperty("SteamLobbyJoined", out var steamLobbyJoined))
+                state.SteamLobbyJoined = steamLobbyJoined.GetBoolean();
+            if (doc.RootElement.TryGetProperty("SteamReady", out var steamReady))
+                state.SteamReady = steamReady.GetBoolean();
+            if (doc.RootElement.TryGetProperty("CurrentServerRttMs", out var currentServerRtt) && currentServerRtt.TryGetInt32(out var parsedCurrentServerRtt))
+                state.CurrentServerRttMs = parsedCurrentServerRtt;
+            if (doc.RootElement.TryGetProperty("CurrentServerLossPct", out var currentServerLoss) && currentServerLoss.TryGetSingle(out var parsedCurrentServerLoss))
+                state.CurrentServerLossPct = parsedCurrentServerLoss;
+            if (doc.RootElement.TryGetProperty("CurrentServerJitterMs", out var currentServerJitter) && currentServerJitter.TryGetInt32(out var parsedCurrentServerJitter))
+                state.CurrentServerJitterMs = parsedCurrentServerJitter;
+            if (doc.RootElement.TryGetProperty("AvgFrameMs", out var avgFrame) && avgFrame.TryGetSingle(out var parsedAvgFrame))
+                state.AvgFrameMs = parsedAvgFrame;
+            if (doc.RootElement.TryGetProperty("P95FrameMs", out var p95Frame) && p95Frame.TryGetSingle(out var parsedP95Frame))
+                state.P95FrameMs = parsedP95Frame;
+            if (doc.RootElement.TryGetProperty("SendQueueDepth", out var sendQueueDepth) && sendQueueDepth.TryGetInt32(out var parsedSendQueueDepth))
+                state.SendQueueDepth = parsedSendQueueDepth;
+            if (doc.RootElement.TryGetProperty("HostSelectionReportedAtMs", out var selectionReportedAt) && selectionReportedAt.TryGetInt64(out var parsedSelectionReportedAt))
+                state.HostSelectionReportedAtMs = parsedSelectionReportedAt;
             return state;
         }
         catch
         {
             return new WaitingRoomMemberState();
         }
+    }
+
+    private async Task<long> BumpHostSelectionEpochAsync(string roomKey)
+    {
+        if (string.IsNullOrWhiteSpace(roomKey))
+            return 0;
+
+        return await _redis.Db.HashIncrementAsync(roomKey, "hostSelectionEpoch", 1);
     }
 }

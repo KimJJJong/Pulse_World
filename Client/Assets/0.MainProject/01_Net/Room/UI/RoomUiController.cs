@@ -64,6 +64,15 @@ namespace NetClient.Room.UI
         string _currentSteamLobbyId = "";
         string _preferredHostUid = "";
         int _preferredHostEpoch;
+        string _hostSelectionMode = "";
+        string _hostSelectionMetricVersion = "";
+        float _hostSelectionScore = -1f;
+        long _hostSelectionUpdatedAtMs;
+        readonly List<string> _hostCandidateOrder = new();
+        readonly List<float> _frameTimeSamplesMs = new();
+        float _hostSelectionAvgFrameMs = 16.7f;
+        float _hostSelectionP95FrameMs = 16.7f;
+        float _nextFrameMetricRefreshAt;
         int _lastWaitingProbeRttMs = -1;
         string _lastWaitingProbeStatus = "Idle";
         string _steamLobbyStatus = "Idle";
@@ -81,6 +90,13 @@ namespace NetClient.Room.UI
         public string CurrentSteamLobbyId => _currentSteamLobbyId ?? "";
         public string PreferredHostUid => _preferredHostUid ?? "";
         public int PreferredHostEpoch => _preferredHostEpoch;
+        public string HostSelectionMode => _hostSelectionMode ?? "";
+        public string HostSelectionMetricVersion => _hostSelectionMetricVersion ?? "";
+        public float HostSelectionScore => _hostSelectionScore;
+        public long HostSelectionUpdatedAtMs => _hostSelectionUpdatedAtMs;
+        public float HostSelectionAvgFrameMs => _hostSelectionAvgFrameMs;
+        public float HostSelectionP95FrameMs => _hostSelectionP95FrameMs;
+        public string HostCandidateOrderSummary => _hostCandidateOrder.Count > 0 ? string.Join(" > ", _hostCandidateOrder) : "-";
         public int LastWaitingProbeRttMs => _lastWaitingProbeRttMs;
         public string LastWaitingProbeStatus => _lastWaitingProbeStatus ?? "Idle";
         public string SteamLobbyStatus => _steamLobbyStatus ?? "Idle";
@@ -127,6 +143,11 @@ namespace NetClient.Room.UI
         {
             gameObject.SetActive(false);
 
+        }
+
+        private void Update()
+        {
+            SampleHostSelectionFrameMetrics();
         }
 
         async void OnDestroy()
@@ -222,6 +243,15 @@ namespace NetClient.Room.UI
             _amIReady = false;
             _preferredHostUid = "";
             _preferredHostEpoch = 0;
+            _hostSelectionMode = "";
+            _hostSelectionMetricVersion = "";
+            _hostSelectionScore = -1f;
+            _hostSelectionUpdatedAtMs = 0;
+            _hostCandidateOrder.Clear();
+            _frameTimeSamplesMs.Clear();
+            _hostSelectionAvgFrameMs = 16.7f;
+            _hostSelectionP95FrameMs = 16.7f;
+            _nextFrameMetricRefreshAt = 0f;
             _lastWaitingProbeRttMs = -1;
             _lastWaitingProbeStatus = "Connecting";
             _steamLobbyStatus = "Waiting";
@@ -366,6 +396,14 @@ namespace NetClient.Room.UI
                 _steamLobbyStatus = string.IsNullOrWhiteSpace(_currentSteamLobbyId)
                     ? "Waiting Lobby Bind"
                     : $"Bound {_currentSteamLobbyId}";
+                ApplyHostSelectionState(
+                    room?.preferredHostUid,
+                    room != null ? room.hostSelectionEpoch : 0,
+                    room?.hostSelectionMode,
+                    room?.hostSelectionMetricVersion,
+                    room != null ? room.hostSelectionScore : -1f,
+                    room != null ? room.hostSelectionUpdatedAtMs : 0L,
+                    room?.hostCandidateOrder);
                 SetWarn("");
                 if (txtRoomTitle) txtRoomTitle.text = string.IsNullOrEmpty(room.title) ? room.roomId : room.title;
 
@@ -458,6 +496,18 @@ namespace NetClient.Room.UI
                 _preferredHostUid = preferredHostUid ?? "";
                 _preferredHostEpoch = hostEpoch;
                 Debug.Log($"[RoomUiController] Host candidate updated. uid={preferredHostUid}, epoch={hostEpoch}");
+            };
+
+            ws.OnHostSelectionUpdated += update =>
+            {
+                ApplyHostSelectionState(
+                    update?.preferredHostUid,
+                    update != null ? update.hostSelectionEpoch : 0,
+                    update?.hostSelectionMode,
+                    update?.hostSelectionMetricVersion,
+                    update != null ? update.hostSelectionScore : -1f,
+                    update != null ? update.hostSelectionUpdatedAtMs : 0L,
+                    update?.hostCandidateOrder);
             };
 
             ws.OnSteamLobbyBound += steamLobbyId =>
@@ -638,6 +688,12 @@ namespace NetClient.Room.UI
                 HostSteamId64 = src.hostSteamId64,
                 HostEpoch = src.hostEpoch,
                 PreferredHostRttMs = src.preferredHostRttMs,
+                HostSelectionMode = src.hostSelectionMode,
+                HostSelectionMetricVersion = src.hostSelectionMetricVersion,
+                HostSelectionEpoch = src.hostSelectionEpoch,
+                HostSelectionScore = src.hostSelectionScore,
+                HostSelectionUpdatedAtMs = src.hostSelectionUpdatedAtMs,
+                HostCandidateOrder = src.hostCandidateOrder,
                 CreatedAtMs = src.createdAtMs,
                 Participants = participants
             };
@@ -680,6 +736,65 @@ namespace NetClient.Room.UI
             if (!string.IsNullOrEmpty(s)) Debug.LogWarning(s);
         }
 
+        void SampleHostSelectionFrameMetrics()
+        {
+            if (!gameObject.activeInHierarchy)
+                return;
+
+            float frameMs = Mathf.Max(1f, Time.unscaledDeltaTime * 1000f);
+            _frameTimeSamplesMs.Add(frameMs);
+            if (_frameTimeSamplesMs.Count > 300)
+                _frameTimeSamplesMs.RemoveAt(0);
+
+            if (Time.unscaledTime < _nextFrameMetricRefreshAt)
+                return;
+
+            _nextFrameMetricRefreshAt = Time.unscaledTime + 0.5f;
+            if (_frameTimeSamplesMs.Count <= 0)
+                return;
+
+            float sum = 0f;
+            for (int i = 0; i < _frameTimeSamplesMs.Count; i++)
+                sum += _frameTimeSamplesMs[i];
+
+            _hostSelectionAvgFrameMs = sum / _frameTimeSamplesMs.Count;
+
+            var sorted = new List<float>(_frameTimeSamplesMs);
+            sorted.Sort();
+            int p95Index = Mathf.Clamp(Mathf.CeilToInt(sorted.Count * 0.95f) - 1, 0, sorted.Count - 1);
+            _hostSelectionP95FrameMs = sorted[p95Index];
+        }
+
+        void ApplyHostSelectionState(
+            string preferredHostUid,
+            int selectionEpoch,
+            string selectionMode,
+            string metricVersion,
+            float selectionScore,
+            long selectionUpdatedAtMs,
+            List<string> candidateOrder)
+        {
+            _preferredHostUid = preferredHostUid ?? "";
+            _preferredHostEpoch = selectionEpoch;
+            _hostSelectionMode = selectionMode ?? "";
+            _hostSelectionMetricVersion = metricVersion ?? "";
+            _hostSelectionScore = selectionScore;
+            _hostSelectionUpdatedAtMs = selectionUpdatedAtMs;
+            _hostCandidateOrder.Clear();
+
+            if (candidateOrder == null)
+                return;
+
+            for (int i = 0; i < candidateOrder.Count; i++)
+            {
+                var uid = candidateOrder[i];
+                if (string.IsNullOrWhiteSpace(uid) || _hostCandidateOrder.Contains(uid))
+                    continue;
+
+                _hostCandidateOrder.Add(uid);
+            }
+        }
+
         void ResetDebugState()
         {
             _currentRoomId = "";
@@ -687,6 +802,15 @@ namespace NetClient.Room.UI
             _currentSteamLobbyId = "";
             _preferredHostUid = "";
             _preferredHostEpoch = 0;
+            _hostSelectionMode = "";
+            _hostSelectionMetricVersion = "";
+            _hostSelectionScore = -1f;
+            _hostSelectionUpdatedAtMs = 0;
+            _hostCandidateOrder.Clear();
+            _frameTimeSamplesMs.Clear();
+            _hostSelectionAvgFrameMs = 16.7f;
+            _hostSelectionP95FrameMs = 16.7f;
+            _nextFrameMetricRefreshAt = 0f;
             _lastWaitingProbeRttMs = -1;
             _lastWaitingProbeStatus = "Idle";
             _steamLobbyStatus = "Idle";

@@ -15,6 +15,12 @@ public sealed class GameMatchManifestResponse
     public string HostSteamId64 { get; set; } = "";
     public int HostEpoch { get; set; }
     public int PreferredHostRttMs { get; set; } = -1;
+    public string HostSelectionMode { get; set; } = "";
+    public string HostSelectionMetricVersion { get; set; } = "host-selection-v1-proxy";
+    public int HostSelectionEpoch { get; set; }
+    public float HostSelectionScore { get; set; } = -1f;
+    public long HostSelectionUpdatedAtMs { get; set; }
+    public List<string> HostCandidateOrder { get; set; } = new();
     public long CreatedAtMs { get; set; }
     public List<GameMatchParticipantResponse> Participants { get; set; } = new();
 }

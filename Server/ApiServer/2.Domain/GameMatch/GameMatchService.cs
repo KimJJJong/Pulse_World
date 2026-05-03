@@ -9,8 +9,6 @@ namespace ApiServer.Domain.GameMatch;
 
 public sealed class GameMatchService
 {
-    private const long HostProbeFreshnessWindowMs = 90_000;
-
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = null,
@@ -35,9 +33,17 @@ public sealed class GameMatchService
         ArgumentNullException.ThrowIfNull(room);
 
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        bool requireSteamHost = RequiresSteamHost(networkMode, room);
-        var orderedMembers = OrderHostCandidates(room, requireSteamHost, nowMs);
-        string hostUid = orderedMembers.FirstOrDefault() ?? SelectPreferredHostUid(room, requireSteamHost, nowMs);
+        var selection = WaitingRoomHostSelectionV1Calculator.Calculate(room, nowMs);
+        room.PreferredHostUid = selection.PreferredHostUid;
+        room.HostCandidateOrder = selection.HostCandidateOrder ?? new List<string>();
+        room.HostSelectionMode = selection.Mode;
+        room.HostSelectionMetricVersion = selection.MetricVersion;
+        room.HostSelectionScore = selection.PreferredHostScore;
+        room.HostSelectionUpdatedAtMs = selection.UpdatedAtMs;
+        room.HostSelectionCandidates = selection.Candidates ?? new List<WaitingRoomHostSelectionCandidateDto>();
+
+        var orderedMembers = BuildManifestOrder(room);
+        string hostUid = ResolveHostUid(room, orderedMembers);
         string hostSteamId64 = room.MemberTransport
             .FirstOrDefault(x => string.Equals(x.Uid, hostUid, StringComparison.OrdinalIgnoreCase))
             ?.SteamId64 ?? "";
@@ -45,7 +51,7 @@ public sealed class GameMatchService
         int hostEpoch = Math.Max(1, room.HostEpoch + 1);
         int nextActorId = 1;
 
-        var hostEntry = room.MemberTransport
+        var hostSelectionEntry = room.HostSelectionCandidates
             .FirstOrDefault(x => string.Equals(x.Uid, hostUid, StringComparison.OrdinalIgnoreCase));
 
         var participants = new List<GameMatchParticipant>(orderedMembers.Count);
@@ -73,7 +79,13 @@ public sealed class GameMatchService
             HostUid = hostUid,
             HostSteamId64 = hostSteamId64,
             HostEpoch = hostEpoch,
-            PreferredHostRttMs = hostEntry?.HostProbeRttMs ?? -1,
+            PreferredHostRttMs = hostSelectionEntry?.AveragePairRttMs ?? -1,
+            HostSelectionMode = room.HostSelectionMode ?? "",
+            HostSelectionMetricVersion = room.HostSelectionMetricVersion ?? WaitingRoomHostSelectionV1Calculator.MetricVersion,
+            HostSelectionEpoch = Math.Max(0, room.HostSelectionEpoch),
+            HostSelectionScore = room.HostSelectionScore,
+            HostSelectionUpdatedAtMs = room.HostSelectionUpdatedAtMs,
+            HostCandidateOrder = orderedMembers.ToList(),
             CreatedAtMs = nowMs,
             Participants = participants
         };
@@ -93,7 +105,7 @@ public sealed class GameMatchService
             manifest.MatchId,
             manifest.HostUid,
             manifest.PreferredHostRttMs,
-            requireSteamHost,
+            room.UseP2PRelay,
             manifest.Participants.Count,
             string.Join(",", manifest.Participants.Select(x => $"{x.ActorId}:{x.Uid}/{(string.IsNullOrWhiteSpace(x.SteamId64) ? "-" : x.SteamId64)}")));
 
@@ -116,21 +128,13 @@ public sealed class GameMatchService
         return await ReadManifestAsync(_redis.KeyGameMatchManifestByMatchId(matchId), ct);
     }
 
-    private static string SelectPreferredHostUid(WaitingRoomDto room, bool requireSteamHost, long nowMs)
+    private static string ResolveHostUid(WaitingRoomDto room, IReadOnlyList<string> orderedMembers)
     {
-        var orderedMembers = OrderHostCandidates(room, requireSteamHost, nowMs);
         if (orderedMembers.Count > 0)
             return orderedMembers[0];
 
-        if (requireSteamHost)
-        {
-            var steamCapableOwner = (room.MemberTransport ?? new List<WaitingRoomMemberTransportDto>())
-                .FirstOrDefault(x =>
-                    string.Equals(x.Uid, room.OwnerUid, StringComparison.OrdinalIgnoreCase)
-                    && !string.IsNullOrWhiteSpace(x.SteamId64));
-            if (steamCapableOwner != null)
-                return steamCapableOwner.Uid;
-        }
+        if (!string.IsNullOrWhiteSpace(room.PreferredHostUid))
+            return room.PreferredHostUid;
 
         if (!string.IsNullOrWhiteSpace(room.OwnerUid))
             return room.OwnerUid;
@@ -155,66 +159,31 @@ public sealed class GameMatchService
         }
     }
 
-    private static List<string> OrderHostCandidates(WaitingRoomDto room, bool requireSteamHost, long nowMs)
+    private static List<string> BuildManifestOrder(WaitingRoomDto room)
     {
-        var transportByUid = (room.MemberTransport ?? new List<WaitingRoomMemberTransportDto>())
-            .Where(x => !string.IsNullOrWhiteSpace(x.Uid))
-            .GroupBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(
-                g => g.Key,
-                g => g
-                    .OrderBy(x => IsFreshProbe(x, nowMs) ? 0 : 1)
-                    .ThenBy(x => x.HostProbeRttMs >= 0 ? x.HostProbeRttMs : int.MaxValue)
-                    .ThenByDescending(x => x.HostProbeReportedAtMs)
-                    .First(),
-                StringComparer.OrdinalIgnoreCase);
+        var ordered = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        return room.MemberUids
-            .Where(uid => !string.IsNullOrWhiteSpace(uid))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Where(uid =>
+        if (room.HostCandidateOrder != null)
+        {
+            foreach (var uid in room.HostCandidateOrder)
             {
-                if (!requireSteamHost)
-                    return true;
+                if (string.IsNullOrWhiteSpace(uid) || !seen.Add(uid))
+                    continue;
 
-                return transportByUid.TryGetValue(uid, out var state)
-                       && !string.IsNullOrWhiteSpace(state.SteamId64);
-            })
-            .OrderBy(uid =>
-            {
-                return transportByUid.TryGetValue(uid, out var state)
-                       && IsFreshProbe(state, nowMs)
-                    ? 0
-                    : 1;
-            })
-            .ThenBy(uid =>
-            {
-                return transportByUid.TryGetValue(uid, out var state)
-                       && state.HostProbeRttMs >= 0
-                    ? state.HostProbeRttMs
-                    : int.MaxValue;
-            })
-            .ThenBy(uid => string.Equals(uid, room.OwnerUid, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-            .ThenBy(uid => uid, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-    }
+                ordered.Add(uid);
+            }
+        }
 
-    private static bool RequiresSteamHost(string networkMode, WaitingRoomDto room)
-    {
-        if (room.UseP2PRelay)
-            return true;
+        foreach (var uid in room.MemberUids ?? Enumerable.Empty<string>())
+        {
+            if (string.IsNullOrWhiteSpace(uid) || !seen.Add(uid))
+                continue;
 
-        return !string.IsNullOrWhiteSpace(networkMode)
-               && networkMode.IndexOf("steam", StringComparison.OrdinalIgnoreCase) >= 0;
-    }
+            ordered.Add(uid);
+        }
 
-    private static bool IsFreshProbe(WaitingRoomMemberTransportDto state, long nowMs)
-    {
-        if (state == null || state.HostProbeRttMs < 0 || state.HostProbeReportedAtMs <= 0)
-            return false;
-
-        long ageMs = Math.Max(0, nowMs - state.HostProbeReportedAtMs);
-        return ageMs <= HostProbeFreshnessWindowMs;
+        return ordered;
     }
 }
 
@@ -231,6 +200,12 @@ public sealed class GameMatchManifest
     public string HostSteamId64 { get; set; } = "";
     public int HostEpoch { get; set; }
     public int PreferredHostRttMs { get; set; } = -1;
+    public string HostSelectionMode { get; set; } = "";
+    public string HostSelectionMetricVersion { get; set; } = WaitingRoomHostSelectionV1Calculator.MetricVersion;
+    public int HostSelectionEpoch { get; set; }
+    public float HostSelectionScore { get; set; } = -1f;
+    public long HostSelectionUpdatedAtMs { get; set; }
+    public List<string> HostCandidateOrder { get; set; } = new();
     public long CreatedAtMs { get; set; }
     public List<GameMatchParticipant> Participants { get; set; } = new();
 }

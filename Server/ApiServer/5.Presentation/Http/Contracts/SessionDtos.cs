@@ -49,6 +49,12 @@ public static class SessionDtos
         string HostSteamId64,
         int HostEpoch,
         int PreferredHostRttMs,
+        string HostSelectionMode,
+        string HostSelectionMetricVersion,
+        int HostSelectionEpoch,
+        float HostSelectionScore,
+        long HostSelectionUpdatedAtMs,
+        IReadOnlyList<string> HostCandidateOrder,
         long CreatedAtMs,
         IReadOnlyList<MatchParticipantDto> Participants
     );

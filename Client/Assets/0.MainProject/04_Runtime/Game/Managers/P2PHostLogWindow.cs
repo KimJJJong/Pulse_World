@@ -604,6 +604,9 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
             AppendField(sb, "LobbyStatus", room.SteamLobbyStatus);
             AppendField(sb, "Probe", room.LastWaitingProbeRttMs >= 0 ? $"{room.LastWaitingProbeRttMs} ms ({room.LastWaitingProbeStatus})" : room.LastWaitingProbeStatus);
             AppendField(sb, "PreferredHost", string.IsNullOrWhiteSpace(room.PreferredHostUid) ? "-" : $"{room.PreferredHostUid} / epoch {room.PreferredHostEpoch}");
+            AppendField(sb, "Selection", string.IsNullOrWhiteSpace(room.HostSelectionMode) ? "-" : $"{room.HostSelectionMode} / {room.HostSelectionMetricVersion}");
+            AppendField(sb, "SelectionScore", room.HostSelectionScore >= 0f ? room.HostSelectionScore.ToString("F3") : "-");
+            AppendField(sb, "CandidateOrder", room.HostCandidateOrderSummary);
             AppendField(sb, "RoomWarn", string.IsNullOrWhiteSpace(room.LastWarningText) ? "-" : room.LastWarningText);
         }
         else
@@ -620,6 +623,10 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
         {
             AppendField(sb, "ManifestHost", $"{manifest.HostUid} / {manifest.HostSteamId64}");
             AppendField(sb, "ManifestEpoch", manifest.HostEpoch.ToString());
+            AppendField(sb, "HostSelection", $"{bridge?.HostSelectionModeSummary ?? manifest.HostSelectionMode} / {bridge?.HostSelectionMetricVersion ?? manifest.HostSelectionMetricVersion}");
+            AppendField(sb, "SelectionEpoch", (bridge?.HostSelectionEpoch ?? manifest.HostSelectionEpoch).ToString());
+            AppendField(sb, "SelectionScore", (bridge?.HostSelectionScore ?? manifest.HostSelectionScore).ToString("F3"));
+            AppendField(sb, "CandidateOrder", bridge != null ? bridge.HostCandidateOrderSummary : (manifest.HostCandidateOrder != null && manifest.HostCandidateOrder.Count > 0 ? string.Join(" > ", manifest.HostCandidateOrder) : "-"));
         }
 
         if (bridge != null && bridge.IsP2PMode)
@@ -627,9 +634,15 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
             AppendField(sb, "Transport", bridge.TransportName);
             AppendField(sb, "Role", bridge.IsHostLocal ? "Host" : "Guest");
             AppendField(sb, "State", bridge.TransportDebugStatus);
+            AppendField(sb, "NetworkState", bridge.NetworkStateSummary);
+            AppendField(sb, "NetworkFlow", bridge.NetworkFlowSummary);
+            AppendField(sb, "HostAuthority", bridge.HostAuthorityDebugState);
+            AppendField(sb, "ServerRole", bridge.ServerRoleSummary);
+            AppendField(sb, "SteamDecision", bridge.SteamTransportDecisionReason);
             AppendField(sb, "RelayKey", string.IsNullOrWhiteSpace(bridge.RelayKey) ? "-" : bridge.RelayKey);
             AppendField(sb, "Host", $"{bridge.HostUid} / {bridge.HostSteamId64} / actor {bridge.HostActorId}");
             AppendField(sb, "HostEpoch", bridge.HostEpoch.ToString());
+            AppendField(sb, "LocalSteamId", string.IsNullOrWhiteSpace(bridge.LocalSteamId64) ? "-" : bridge.LocalSteamId64);
             AppendField(sb, "Peers", bridge.SteamConnectedPeerCount.ToString());
             AppendField(sb, "ToHost", bridge.IsSteamTransport ? (bridge.IsSteamTransportConnectedToHost ? "Connected" : "Not Connected") : "-");
             AppendField(sb, "Ping", bridge.IsHostLocal ? "Local Host" : FormatPingSummary(bridge));
@@ -669,7 +682,7 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
             return "Steam is ready. With one client, you can validate init/login/lobby/probe only. Guest-host direct connect and host reselection still need a second Steam account.";
 
         if (bridge != null && bridge.IsServerRelayTransport)
-            return "This match started on ServerRelay, not Steam P2P. Usually that means the remote ApiServer did not send the new matchManifest/networkMode yet, or the deployment is still on the older build.";
+            return $"This match started on ServerRelay, not Steam P2P. Decision={bridge.SteamTransportDecisionReason}";
 
         if (bridge != null && bridge.IsSteamTransport && !bridge.IsHostLocal && !bridge.IsSteamTransportConnectedToHost)
             return "Steam transport is selected, but this guest is not connected to the host yet.";

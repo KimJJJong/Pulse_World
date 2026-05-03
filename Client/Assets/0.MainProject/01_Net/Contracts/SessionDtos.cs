@@ -34,6 +34,12 @@ public static class SessionDtos
         [JsonProperty("hostSteamId64")] public string HostSteamId64;
         [JsonProperty("hostEpoch")] public int HostEpoch;
         [JsonProperty("preferredHostRttMs")] public int PreferredHostRttMs;
+        [JsonProperty("hostSelectionMode")] public string HostSelectionMode;
+        [JsonProperty("hostSelectionMetricVersion")] public string HostSelectionMetricVersion;
+        [JsonProperty("hostSelectionEpoch")] public int HostSelectionEpoch;
+        [JsonProperty("hostSelectionScore")] public float HostSelectionScore;
+        [JsonProperty("hostSelectionUpdatedAtMs")] public long HostSelectionUpdatedAtMs;
+        [JsonProperty("hostCandidateOrder")] public List<string> HostCandidateOrder;
         [JsonProperty("createdAtMs")] public long CreatedAtMs;
         [JsonProperty("participants")] public List<MatchParticipantDto> Participants;
     }

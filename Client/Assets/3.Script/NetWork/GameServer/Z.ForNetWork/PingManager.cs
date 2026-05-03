@@ -40,6 +40,8 @@ public sealed class PingManager : MonoBehaviour
     [SerializeField, ReadOnly] long minRttMs = long.MaxValue;
     [SerializeField, ReadOnly] float packetLossPercent;
     [SerializeField, ReadOnly] string status = "Idle";
+    [SerializeField, ReadOnly] long lastJitterMs;
+    [SerializeField, ReadOnly] long avgJitterMs;
     
     [Header("Detailed Debug")]
     [SerializeField, ReadOnly] long lastRawRTT;
@@ -62,6 +64,11 @@ public sealed class PingManager : MonoBehaviour
     }
 
     public bool IsRunning => running;
+    public long LastRttMs => lastRttMs;
+    public long AvgRttMs => avgRttMs;
+    public long LastJitterMs => lastJitterMs;
+    public long AvgJitterMs => avgJitterMs;
+    public float PacketLossPercent => packetLossPercent;
 
     [ContextMenu("StartLoop")]
     public void StartLoop()
@@ -92,6 +99,8 @@ public sealed class PingManager : MonoBehaviour
         maxRttMs = 0;
         minRttMs = long.MaxValue;
         packetLossPercent = 0;
+        lastJitterMs = 0;
+        avgJitterMs = 0;
         sentCount = 0;
         receivedCount = 0;
         seq = 0;
@@ -174,6 +183,11 @@ public sealed class PingManager : MonoBehaviour
 
         // RTT 추정: (recv - clientSend) - proc
         var rtt = Math.Max(0, rawRtt - proc);
+
+        var prevRtt = lastRttMs;
+        lastJitterMs = prevRtt > 0 ? Math.Abs(rtt - prevRtt) : 0;
+        if (avgJitterMs == 0) avgJitterMs = lastJitterMs;
+        else avgJitterMs = (long)(EMA_ALPHA * lastJitterMs + (1 - EMA_ALPHA) * avgJitterMs);
 
         lastRttMs = rtt;
         if (avgRttMs == 0) avgRttMs = rtt;
@@ -260,6 +274,21 @@ public sealed class PingManager : MonoBehaviour
                 plainLines,
                 $"Host: actor {relayBridge.HostActorId} / uid {FormatDebugValue(relayBridge.HostUid)} / epoch {relayBridge.HostEpoch}",
                 $"<color=#ff9ff3>Host:</color> actor {relayBridge.HostActorId} / uid {FormatDebugValue(relayBridge.HostUid)} / epoch {relayBridge.HostEpoch}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"Selection: {relayBridge.HostSelectionModeSummary} / {relayBridge.HostSelectionMetricVersion} / epoch {relayBridge.HostSelectionEpoch}",
+                $"<color=#90ee90>Selection:</color> {relayBridge.HostSelectionModeSummary} / {relayBridge.HostSelectionMetricVersion} / epoch {relayBridge.HostSelectionEpoch}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"CandidateOrder: {relayBridge.HostCandidateOrderSummary}",
+                $"<color=#f0e68c>CandidateOrder:</color> {relayBridge.HostCandidateOrderSummary}");
+            AddSyncLine(
+                richLines,
+                plainLines,
+                $"SelectionScore: {relayBridge.HostSelectionScore:F3}",
+                $"<color=#ffdead>SelectionScore:</color> {relayBridge.HostSelectionScore:F3}");
             AddSyncLine(
                 richLines,
                 plainLines,

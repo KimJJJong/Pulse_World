@@ -52,6 +52,17 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     public string HostAuthorityDebugState => GetHostAuthorityState();
     public string ServerRoleSummary => IsP2PMode ? "Start/End validation only" : "Dedicated simulation";
     public string SteamTransportDecisionReason => DescribeSteamTransportDecision(_matchManifest);
+    public string HostSelectionModeSummary => _matchManifest != null && !string.IsNullOrWhiteSpace(_matchManifest.HostSelectionMode)
+        ? _matchManifest.HostSelectionMode
+        : "-";
+    public string HostSelectionMetricVersion => _matchManifest != null && !string.IsNullOrWhiteSpace(_matchManifest.HostSelectionMetricVersion)
+        ? _matchManifest.HostSelectionMetricVersion
+        : "-";
+    public int HostSelectionEpoch => _matchManifest != null ? _matchManifest.HostSelectionEpoch : 0;
+    public float HostSelectionScore => _matchManifest != null ? _matchManifest.HostSelectionScore : -1f;
+    public string HostCandidateOrderSummary => _matchManifest != null && _matchManifest.HostCandidateOrder != null && _matchManifest.HostCandidateOrder.Count > 0
+        ? string.Join(" > ", _matchManifest.HostCandidateOrder)
+        : "-";
     public string NetworkStateSummary
     {
         get
