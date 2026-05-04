@@ -479,6 +479,553 @@ internal static class P2PDebugConfig
     }
 }
 
+internal static class P2PTransportDiagnostics
+{
+    private const int MaxEventCount = 12;
+    private const int MaxMessageLength = 160;
+    private const int MaxActionHistory = 6;
+    private const long HostSeenTimeoutMs = 1500;
+
+    private sealed class DiagnosticEvent
+    {
+        public string Time = "";
+        public string Category = "";
+        public string Message = "";
+    }
+
+    private sealed class LocalActionTrace
+    {
+        public string Key = "";
+        public string ActionName = "";
+        public int ActionKind;
+        public int ActorId;
+        public int SlotIndex;
+        public int TargetX;
+        public int TargetY;
+        public long ClientSendTimeMs;
+        public long InputAtMs;
+        public long LastUpdatedAtMs;
+        public string SendStatus = "Pending";
+        public string HostStatus = "Pending";
+        public string JudgeStatus = "Pending";
+        public string ResultStatus = "Pending";
+        public bool Completed;
+    }
+
+    private static readonly object _gate = new object();
+    private static readonly Queue<DiagnosticEvent> _events = new Queue<DiagnosticEvent>();
+    private static readonly Dictionary<string, LocalActionTrace> _actionsByKey = new Dictionary<string, LocalActionTrace>(StringComparer.Ordinal);
+    private static readonly List<LocalActionTrace> _actionHistory = new List<LocalActionTrace>(MaxActionHistory);
+
+    private static string _context = "-";
+    private static int _inputBlockedCount;
+    private static int _inputAttemptCount;
+    private static int _steamSendCount;
+    private static int _steamSendFailCount;
+    private static int _relaySendCount;
+    private static int _hostReceiveSteamCount;
+    private static int _hostReceiveRelayCount;
+    private static int _actorFallbackRecoveredCount;
+    private static int _actorResolveDropCount;
+    private static int _hostQueueCount;
+    private static int _hostJudgeAcceptedCount;
+    private static int _hostJudgeRejectedCount;
+    private static int _steamAttemptStartCount;
+    private static int _steamAttemptConnectedCount;
+    private static int _steamAttemptDisconnectedCount;
+    private static int _fallbackCount;
+
+    internal static void Reset(string context)
+    {
+        lock (_gate)
+        {
+            _context = string.IsNullOrWhiteSpace(context) ? "-" : context;
+            _events.Clear();
+            _actionsByKey.Clear();
+            _actionHistory.Clear();
+            _inputBlockedCount = 0;
+            _inputAttemptCount = 0;
+            _steamSendCount = 0;
+            _steamSendFailCount = 0;
+            _relaySendCount = 0;
+            _hostReceiveSteamCount = 0;
+            _hostReceiveRelayCount = 0;
+            _actorFallbackRecoveredCount = 0;
+            _actorResolveDropCount = 0;
+            _hostQueueCount = 0;
+            _hostJudgeAcceptedCount = 0;
+            _hostJudgeRejectedCount = 0;
+            _steamAttemptStartCount = 0;
+            _steamAttemptConnectedCount = 0;
+            _steamAttemptDisconnectedCount = 0;
+            _fallbackCount = 0;
+            AddEventUnsafe("RESET", $"context={_context}");
+        }
+    }
+
+    internal static void RecordInputBlocked(string actionTag, string reason)
+    {
+        lock (_gate)
+        {
+            _inputBlockedCount++;
+            AddEventUnsafe("BLOCK", $"{Safe(actionTag)} {Trim(reason)}");
+        }
+    }
+
+    internal static void RecordInputAttempt(
+        string action,
+        int actionKind,
+        int actorId,
+        int slotIndex,
+        int targetX,
+        int targetY,
+        long clientSendTimeMs,
+        string detail)
+    {
+        lock (_gate)
+        {
+            _inputAttemptCount++;
+            var trace = new LocalActionTrace
+            {
+                Key = BuildActionKey(actorId, actionKind, slotIndex, targetX, targetY, clientSendTimeMs),
+                ActionName = Safe(action),
+                ActionKind = actionKind,
+                ActorId = actorId,
+                SlotIndex = slotIndex,
+                TargetX = targetX,
+                TargetY = targetY,
+                ClientSendTimeMs = clientSendTimeMs,
+                InputAtMs = P2PRelayDiagnosticsPackets.NowMs(),
+                LastUpdatedAtMs = P2PRelayDiagnosticsPackets.NowMs()
+            };
+
+            _actionsByKey[trace.Key] = trace;
+            _actionHistory.Add(trace);
+            while (_actionHistory.Count > MaxActionHistory)
+            {
+                var expired = _actionHistory[0];
+                _actionHistory.RemoveAt(0);
+                _actionsByKey.Remove(expired.Key);
+            }
+
+            AddEventUnsafe("INPUT", $"actor={actorId} action={Safe(action)} target=({targetX},{targetY}) slot={slotIndex} sendMs={clientSendTimeMs}");
+        }
+    }
+
+    internal static void RecordOutgoing(string route, string protocol, bool success, string detail, byte[] payloadBytes = null)
+    {
+        lock (_gate)
+        {
+            if (!string.IsNullOrWhiteSpace(route) && route.IndexOf("relay", StringComparison.OrdinalIgnoreCase) >= 0)
+                _relaySendCount++;
+            else if (success)
+                _steamSendCount++;
+            else
+                _steamSendFailCount++;
+
+            if (TryExtractActionRequest(payloadBytes, out var req))
+            {
+                if (TryGetActionTrace(req.ActorId, req.ActionKind, req.SlotIndex, req.TargetX, req.TargetY, req.ClientSendTimeMs, out var trace))
+                {
+                    trace.SendStatus = $"{Safe(route)} {(success ? "OK" : "FAIL")} {Trim(detail)}";
+                    trace.LastUpdatedAtMs = P2PRelayDiagnosticsPackets.NowMs();
+                }
+
+                AddEventUnsafe("SEND", $"{Safe(route)} action={(ActionKind)req.ActionKind} {(success ? "OK" : "FAIL")} {Trim(detail)}");
+                return;
+            }
+
+            if (string.Equals(protocol, "CS_ActionRequest(27)", StringComparison.Ordinal))
+                AddEventUnsafe("SEND", $"{Safe(route)} {Safe(protocol)} {(success ? "OK" : "FAIL")} {Trim(detail)}");
+        }
+    }
+
+    internal static void RecordIncoming(string route, string protocol, int actorId, string detail)
+    {
+        lock (_gate)
+        {
+            if (!string.IsNullOrWhiteSpace(route) && route.IndexOf("relay", StringComparison.OrdinalIgnoreCase) >= 0)
+                _hostReceiveRelayCount++;
+            else
+                _hostReceiveSteamCount++;
+
+            if (!string.IsNullOrWhiteSpace(route)
+                && route.IndexOf("GuestToHost", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                AddEventUnsafe("RECV", $"{Safe(route)} actor={actorId} {Safe(protocol)}");
+            }
+        }
+    }
+
+    internal static void RecordActorFallbackRecovered(string steamId64, int actorId, string protocol)
+    {
+        lock (_gate)
+        {
+            _actorFallbackRecoveredCount++;
+            AddEventUnsafe("RESOLVE", $"payload actor={actorId} steam={Safe(steamId64)} {Safe(protocol)}");
+        }
+    }
+
+    internal static void RecordActorResolveDrop(string steamId64, string protocol, string detail)
+    {
+        lock (_gate)
+        {
+            _actorResolveDropCount++;
+            AddEventUnsafe("DROP", $"actor unresolved steam={Safe(steamId64)} {Safe(protocol)} {Trim(detail)}");
+        }
+    }
+
+    internal static void RecordHostQueue(string source, int actorId, string action, string detail)
+    {
+        lock (_gate)
+        {
+            _hostQueueCount++;
+            AddEventUnsafe("QUEUE", $"{Safe(source)} actor={actorId} action={Safe(action)} {Trim(detail)}");
+        }
+    }
+
+    internal static void RecordHostJudge(string outcome, int actorId, string action, string detail)
+    {
+        lock (_gate)
+        {
+            if (!string.IsNullOrWhiteSpace(outcome) && outcome.IndexOf("accept", StringComparison.OrdinalIgnoreCase) >= 0)
+                _hostJudgeAcceptedCount++;
+            else
+                _hostJudgeRejectedCount++;
+
+            AddEventUnsafe("JUDGE", $"{Safe(outcome)} actor={actorId} action={Safe(action)} {Trim(detail)}");
+        }
+    }
+
+    internal static void RecordFallback(string reason, string protocol, string detail)
+    {
+        lock (_gate)
+        {
+            _fallbackCount++;
+            AddEventUnsafe("FALLBACK", $"{Safe(reason)} {Safe(protocol)} {Trim(detail)}");
+        }
+    }
+
+    internal static void RecordSteamAttempt(string stage, int attempt, string detail)
+    {
+        lock (_gate)
+        {
+            if (string.Equals(stage, "Start", StringComparison.OrdinalIgnoreCase))
+                _steamAttemptStartCount++;
+            else if (string.Equals(stage, "Connected", StringComparison.OrdinalIgnoreCase))
+                _steamAttemptConnectedCount++;
+            else if (string.Equals(stage, "Disconnected", StringComparison.OrdinalIgnoreCase))
+                _steamAttemptDisconnectedCount++;
+
+            AddEventUnsafe("STEAM", $"{Safe(stage)}#{Math.Max(0, attempt)} {Trim(detail)}");
+        }
+    }
+
+    internal static void RecordActionTrace(P2PActionTracePacket packet)
+    {
+        if (packet == null)
+            return;
+
+        lock (_gate)
+        {
+            if (!TryGetActionTrace(
+                    packet.ActorId,
+                    packet.ActionKind,
+                    packet.SlotIndex,
+                    packet.TargetX,
+                    packet.TargetY,
+                    packet.ClientSendTimeMs,
+                    out var trace))
+            {
+                return;
+            }
+
+            long deltaMs = Math.Max(0, P2PRelayDiagnosticsPackets.NowMs() - trace.InputAtMs);
+            trace.LastUpdatedAtMs = P2PRelayDiagnosticsPackets.NowMs();
+
+            switch ((P2PActionTraceStage)packet.StageCode)
+            {
+                case P2PActionTraceStage.HostSeen:
+                    trace.HostStatus = $"Seen +{deltaMs}ms";
+                    AddEventUnsafe("HOST", $"{trace.ActionName} actor={trace.ActorId} +{deltaMs}ms");
+                    break;
+
+                case P2PActionTraceStage.Judge:
+                    trace.JudgeStatus = DescribeJudgeReason((P2PActionTraceReason)packet.ReasonCode, packet.ExecuteBeat, packet.DetailValue);
+                    AddEventUnsafe("JUDGE", $"{trace.ActionName} {trace.JudgeStatus}");
+                    break;
+
+                case P2PActionTraceStage.MoveResult:
+                    trace.ResultStatus = DescribeMoveResultReason((P2PActionTraceReason)packet.ReasonCode, packet.ResultX, packet.ResultY);
+                    trace.Completed = true;
+                    AddEventUnsafe("RESULT", $"{trace.ActionName} {trace.ResultStatus}");
+                    break;
+            }
+        }
+    }
+
+    internal static void RecordBeatResult(int actorId, int actionKind, bool accepted, int fromX, int fromY, int toX, int toY)
+    {
+        lock (_gate)
+        {
+            if (!TryFindLatestActionTrace(actorId, actionKind, out var trace))
+                return;
+
+            trace.LastUpdatedAtMs = P2PRelayDiagnosticsPackets.NowMs();
+            trace.ResultStatus = actionKind == (int)ActionKind.Move
+                ? (accepted ? $"Beat Ack -> ({toX},{toY})" : $"Beat Reject -> ({fromX},{fromY})")
+                : (accepted ? "Beat Ack" : "Beat Reject");
+            trace.Completed = true;
+        }
+    }
+
+    internal static bool HasPendingHostSeenTimeout(out long ageMs, out string summary)
+    {
+        lock (_gate)
+        {
+            ageMs = 0;
+            summary = "";
+
+            for (int i = _actionHistory.Count - 1; i >= 0; i--)
+            {
+                var trace = _actionHistory[i];
+                if (trace == null || trace.Completed || !string.Equals(trace.HostStatus, "Pending", StringComparison.Ordinal))
+                    continue;
+
+                ageMs = Math.Max(0, P2PRelayDiagnosticsPackets.NowMs() - trace.InputAtMs);
+                if (ageMs < HostSeenTimeoutMs)
+                    return false;
+
+                summary = $"{trace.ActionName} actor={trace.ActorId} target=({trace.TargetX},{trace.TargetY}) age={ageMs}ms";
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    internal static void MarkPendingHostSeenTimeout()
+    {
+        lock (_gate)
+        {
+            for (int i = _actionHistory.Count - 1; i >= 0; i--)
+            {
+                var trace = _actionHistory[i];
+                if (trace == null || trace.Completed || !string.Equals(trace.HostStatus, "Pending", StringComparison.Ordinal))
+                    continue;
+
+                long ageMs = Math.Max(0, P2PRelayDiagnosticsPackets.NowMs() - trace.InputAtMs);
+                trace.HostStatus = $"Timeout {ageMs}ms";
+                trace.LastUpdatedAtMs = P2PRelayDiagnosticsPackets.NowMs();
+                AddEventUnsafe("HOST", $"{trace.ActionName} timeout {ageMs}ms");
+                return;
+            }
+        }
+    }
+
+    internal static List<string> BuildReportLines(int maxEvents = 10)
+    {
+        lock (_gate)
+        {
+            var lines = new List<string>(8)
+            {
+                $"Context: {_context}"
+            };
+
+            var bridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
+            if (bridge != null && bridge.IsP2PMode)
+            {
+                lines.Add(
+                    $"Direct: phase={Safe(bridge.SteamConnectionPhase)} route={Safe(bridge.SteamRouteHint)} ping={Safe(bridge.HostPingStatus)} fallback={Safe(bridge.FallbackReason)}");
+            }
+
+            if (TryGetLatestActionTrace(out var latest))
+            {
+                long ageMs = Math.Max(0, P2PRelayDiagnosticsPackets.NowMs() - latest.InputAtMs);
+                string hostStatus = latest.HostStatus;
+                if (string.Equals(hostStatus, "Pending", StringComparison.Ordinal))
+                    hostStatus = ageMs >= HostSeenTimeoutMs ? $"Pending {ageMs}ms (uplink suspect)" : $"Pending {ageMs}ms";
+
+                lines.Add(
+                    $"LastAction: {latest.ActionName} actor={latest.ActorId} target=({latest.TargetX},{latest.TargetY}) slot={latest.SlotIndex} sendMs={latest.ClientSendTimeMs}");
+                lines.Add($"LastSend: {latest.SendStatus}");
+                lines.Add($"HostSeen: {hostStatus}");
+                lines.Add($"Judge: {latest.JudgeStatus}");
+                lines.Add($"Result: {latest.ResultStatus}");
+            }
+            else
+            {
+                lines.Add("LastAction: -");
+            }
+
+            lines.Add(
+                $"Counters: input {_inputAttemptCount} | block {_inputBlockedCount} | steamSend {_steamSendCount} | steamFail {_steamSendFailCount} | relaySend {_relaySendCount} | directStart {_steamAttemptStartCount} | directConn {_steamAttemptConnectedCount} | directDisc {_steamAttemptDisconnectedCount} | fallback {_fallbackCount}");
+
+            int eventCount = Math.Min(Math.Max(0, maxEvents), _events.Count);
+            if (eventCount > 0)
+            {
+                var recent = new List<DiagnosticEvent>(_events);
+                int start = Math.Max(0, recent.Count - eventCount);
+                for (int i = start; i < recent.Count; i++)
+                {
+                    var entry = recent[i];
+                    lines.Add($"{entry.Time} [{entry.Category}] {entry.Message}");
+                }
+            }
+
+            return lines;
+        }
+    }
+
+    private static bool TryExtractActionRequest(byte[] payloadBytes, out CS_ActionRequest req)
+    {
+        req = null;
+        if (payloadBytes == null || payloadBytes.Length < 4)
+            return false;
+
+        if (P2PRelayDiagnosticsPackets.PeekProtocol(payloadBytes) != (ushort)PacketID.CS_ActionRequest)
+            return false;
+
+        try
+        {
+            req = new CS_ActionRequest();
+            req.Read(new ArraySegment<byte>(payloadBytes));
+            return true;
+        }
+        catch
+        {
+            req = null;
+            return false;
+        }
+    }
+
+    private static bool TryGetLatestActionTrace(out LocalActionTrace trace)
+    {
+        trace = null;
+        if (_actionHistory.Count <= 0)
+            return false;
+
+        trace = _actionHistory[_actionHistory.Count - 1];
+        return trace != null;
+    }
+
+    private static bool TryGetActionTrace(int actorId, int actionKind, int slotIndex, int targetX, int targetY, long clientSendTimeMs, out LocalActionTrace trace)
+    {
+        return _actionsByKey.TryGetValue(
+            BuildActionKey(actorId, actionKind, slotIndex, targetX, targetY, clientSendTimeMs),
+            out trace);
+    }
+
+    private static bool TryFindLatestActionTrace(int actorId, int actionKind, out LocalActionTrace trace)
+    {
+        trace = null;
+        for (int i = _actionHistory.Count - 1; i >= 0; i--)
+        {
+            var candidate = _actionHistory[i];
+            if (candidate == null || candidate.ActorId != actorId)
+                continue;
+
+            bool isSkillLike = actionKind == (int)ActionKind.Attack || actionKind == (int)ActionKind.Skill;
+            bool candidateSkillLike = candidate.ActionKind == (int)ActionKind.Attack || candidate.ActionKind == (int)ActionKind.Skill;
+            if (isSkillLike == candidateSkillLike)
+            {
+                trace = candidate;
+                return true;
+            }
+
+            if (candidate.ActionKind == actionKind)
+            {
+                trace = candidate;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string BuildActionKey(int actorId, int actionKind, int slotIndex, int targetX, int targetY, long clientSendTimeMs)
+    {
+        return $"{actorId}:{actionKind}:{slotIndex}:{targetX}:{targetY}:{clientSendTimeMs}";
+    }
+
+    private static string DescribeJudgeReason(P2PActionTraceReason reason, long executeBeat, int detailValue)
+    {
+        switch (reason)
+        {
+            case P2PActionTraceReason.AcceptMove:
+                return $"Accept Move beat={executeBeat}";
+            case P2PActionTraceReason.AcceptMoveLate:
+                return $"Accept MoveLate beat={executeBeat}";
+            case P2PActionTraceReason.AcceptSkill:
+                return $"Accept Skill beat={executeBeat}";
+            case P2PActionTraceReason.AcceptSkillLate:
+                return $"Accept SkillLate beat={executeBeat}";
+            case P2PActionTraceReason.AcceptSkillCatchUp:
+                return $"Accept SkillCatchUp beat={executeBeat}";
+            case P2PActionTraceReason.RejectHostOrDepsMissing:
+                return "Reject HostOrDepsMissing";
+            case P2PActionTraceReason.RejectActorNotFound:
+                return "Reject ActorNotFound";
+            case P2PActionTraceReason.RejectActorDead:
+                return "Reject ActorDead";
+            case P2PActionTraceReason.RejectCurrentBeatInvalid:
+                return "Reject CurrentBeatInvalid";
+            case P2PActionTraceReason.RejectJudgeWindow:
+                return $"Reject JudgeWindow diff={detailValue}ms beat={executeBeat}";
+            case P2PActionTraceReason.RejectDuplicateBeat:
+                return $"Reject DuplicateBeat beat={executeBeat}";
+            default:
+                return "Pending";
+        }
+    }
+
+    private static string DescribeMoveResultReason(P2PActionTraceReason reason, int resultX, int resultY)
+    {
+        switch (reason)
+        {
+            case P2PActionTraceReason.MoveApplied:
+                return $"Move Applied -> ({resultX},{resultY})";
+            case P2PActionTraceReason.MoveSameTile:
+                return "Move Reject SameTile";
+            case P2PActionTraceReason.MoveBlockedTile:
+                return "Move Reject BlockedTile";
+            case P2PActionTraceReason.MoveOccupied:
+                return "Move Reject Occupied";
+            default:
+                return "Move Reject";
+        }
+    }
+
+    private static void AddEventUnsafe(string category, string message)
+    {
+        _events.Enqueue(new DiagnosticEvent
+        {
+            Time = DateTime.Now.ToString("HH:mm:ss.fff"),
+            Category = Safe(category),
+            Message = Trim(message)
+        });
+
+        while (_events.Count > MaxEventCount)
+            _events.Dequeue();
+    }
+
+    private static string Trim(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "-";
+
+        string trimmed = value.Trim();
+        return trimmed.Length > MaxMessageLength
+            ? trimmed.Substring(0, MaxMessageLength) + "..."
+            : trimmed;
+    }
+
+    private static string Safe(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
+}
+
 [DefaultExecutionOrder(-995)]
 public sealed class SteamP2PDebugHud : MonoBehaviour
 {
@@ -676,6 +1223,9 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
         {
             AppendField(sb, "State", "No active P2P match");
         }
+
+        AppendHeader(sb, "Input / Direct Trace");
+        AppendLines(sb, P2PTransportDiagnostics.BuildReportLines(12));
 
         AppendHeader(sb, "Solo Check");
         AppendField(sb, "Summary", BuildSoloHint(steam, room, bridge));

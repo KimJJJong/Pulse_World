@@ -204,9 +204,9 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     }
 
     [Header("P2P Host Ping")]
-    [SerializeField, ReadOnly] int _hostPingIntervalMs = 2000;
-    [SerializeField, ReadOnly] int _hostPingTimeoutMs = 6000;
-    [SerializeField, ReadOnly] int _hostPingMaxMiss = 3;
+    [SerializeField, ReadOnly] int _hostPingIntervalMs = 1000;
+    [SerializeField, ReadOnly] int _hostPingTimeoutMs = 2000;
+    [SerializeField, ReadOnly] int _hostPingMaxMiss = 2;
     [SerializeField, ReadOnly] bool _hostPingRunning;
     [SerializeField, ReadOnly] int _hostPingSeq;
     [SerializeField, ReadOnly] int _hostPingMissCount;
@@ -239,6 +239,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     [SerializeField, ReadOnly] long _fallbackActivatedAtMs;
     [SerializeField, ReadOnly] long _recoveryObservedAtMs;
     [SerializeField, ReadOnly] string _fallbackReason = "None";
+    [SerializeField, ReadOnly] bool _forceGuestRelayForGameplay;
 
     private const float HostPingEmaAlpha = 0.2f;
     private const float GameplayTelemetryEmaAlpha = 0.2f;
@@ -251,6 +252,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         public int SlotIndex;
         public int TargetX;
         public int TargetY;
+        public long ClientSendTimeMs;
         public long SentAtMs;
         public bool InstantObserved;
     }
@@ -290,6 +292,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         P2PDebugConfig.PollRuntimeToggle();
         _steamTransport?.Pump();
         RefreshTransportPairStats();
+        RefreshGuestGameplayFallbackState(P2PRelayDiagnosticsPackets.NowMs());
         PurgeExpiredGameplayTelemetry(P2PRelayDiagnosticsPackets.NowMs());
     }
 
@@ -323,6 +326,8 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             RelayKey = !string.IsNullOrWhiteSpace(manifest?.MatchId)
                 ? $"steam:{manifest.MatchId}"
                 : $"steam:{HostSteamId64}";
+
+        P2PTransportDiagnostics.Reset($"{TransportName}:{RelayKey}:{HostUid}");
 
         Debug.Log(
             $"[P2PPlayerSync] ConfigureSession key={RelayKey} transport={TransportName} " +
@@ -370,6 +375,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         _steamTransport?.Stop();
         _lastHostStateLogSignature = "";
         ResetTransportFallbackTimeline();
+        P2PTransportDiagnostics.Reset("ResetState");
 
         if (P2PHostController.HasInstance)
             P2PHostController.Instance.ResetForMatchEnd();
@@ -381,7 +387,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             P2PHostLogWindow.Instance.HideAndClear();
     }
 
-    public void RecordGameplayActionSent(int actorId, ActionKind actionKind, int slotIndex, int targetX, int targetY)
+    public void RecordGameplayActionSent(int actorId, ActionKind actionKind, int slotIndex, int targetX, int targetY, long clientSendTimeMs)
     {
         if (!IsP2PMode || IsHostLocal || actorId <= 0)
             return;
@@ -396,6 +402,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             SlotIndex = slotIndex,
             TargetX = targetX,
             TargetY = targetY,
+            ClientSendTimeMs = clientSendTimeMs,
             SentAtMs = now
         });
 
@@ -429,7 +436,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         _gameplayTelemetryStatus = "Start Ack";
     }
 
-    public void RecordGameplayBeatResult(int actorId, int resultActionKind)
+    public void RecordGameplayBeatResult(int actorId, int resultActionKind, bool accepted, int fromX, int fromY, int toX, int toY)
     {
         if (!IsP2PMode || IsHostLocal || actorId <= 0)
             return;
@@ -453,7 +460,9 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             _gameplayAvgResultRttMs = (long)(GameplayTelemetryEmaAlpha * rtt + (1f - GameplayTelemetryEmaAlpha) * _gameplayAvgResultRttMs);
 
         _gameplayMaxResultRttMs = Math.Max(_gameplayMaxResultRttMs, rtt);
-        _gameplayTelemetryStatus = "Result Ack";
+        _gameplayTelemetryStatus = accepted
+            ? "Result Ack"
+            : $"Result Reject ({fromX},{fromY})->({toX},{toY})";
     }
 
     public void SyncHostState()
@@ -503,7 +512,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         if (!TryDecodeBase64(pkt.Payload, out var payloadBytes))
             return;
 
-        HandleIncomingGuestPayloadBytes(pkt.SenderActorId, payloadBytes);
+        HandleIncomingGuestPayloadBytes(pkt.SenderActorId, payloadBytes, "", "ServerRelay");
     }
 
     public void HandleRelayBroadcast(SC_P2PBroadcast pkt)
@@ -514,7 +523,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         if (!TryDecodeBase64(pkt.Payload, out var payloadBytes))
             return;
 
-        HandleIncomingHostPayloadBytes(payloadBytes);
+        HandleIncomingHostPayloadBytes(payloadBytes, "ServerRelay");
     }
 
     public void SendWrappedPacket(IPacket packet)
@@ -538,6 +547,17 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             if (payloadBytes.Length == 0)
                 return;
 
+            if (!IsHostLocal && ShouldForceRelayForGuestGameplay(payloadBytes, out var forcedFallbackReason))
+            {
+                MarkRelayFallback(forcedFallbackReason);
+                P2PTransportDiagnostics.RecordFallback(
+                    forcedFallbackReason,
+                    FormatPacketProtocol(PeekPacketProtocol(payloadBytes)),
+                    FormatBridgeContext());
+                SendViaServerRelay(segment);
+                return;
+            }
+
             if (TrySendViaSteamTransport(payloadBytes))
                 return;
 
@@ -546,6 +566,38 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         }
 
         SendViaServerRelay(segment);
+    }
+
+    public void ReportGuestActionTrace(
+        int targetActorId,
+        CS_ActionRequest req,
+        P2PActionTraceStage stage,
+        P2PActionTraceReason reason = P2PActionTraceReason.None,
+        long executeBeat = 0,
+        int detailValue = 0,
+        int resultX = 0,
+        int resultY = 0)
+    {
+        if (!IsP2PMode || targetActorId <= 0 || req == null)
+            return;
+
+        SendWrappedPacket(new P2PActionTracePacket
+        {
+            TargetActorId = targetActorId,
+            ActorId = req.ActorId,
+            ActionKind = req.ActionKind,
+            SlotIndex = req.SlotIndex,
+            TargetX = req.TargetX,
+            TargetY = req.TargetY,
+            ClientSendTimeMs = req.ClientSendTimeMs,
+            StageCode = (int)stage,
+            ReasonCode = (int)reason,
+            DetailValue = detailValue,
+            ResultX = resultX,
+            ResultY = resultY,
+            ExecuteBeat = executeBeat,
+            HostObservedMs = P2PRelayDiagnosticsPackets.NowMs()
+        });
     }
 
     public void DispatchLocal(IPacket packet)
@@ -733,6 +785,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         _fallbackActivatedAtMs = 0L;
         _recoveryObservedAtMs = 0L;
         _fallbackReason = "None";
+        _forceGuestRelayForGameplay = false;
     }
 
     private void MarkRelayFallback(string reason)
@@ -766,6 +819,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         _gameplayAvgResultRttMs = 0;
         _gameplayMaxResultRttMs = 0;
         _gameplayTelemetryStatus = "Idle";
+        _forceGuestRelayForGameplay = false;
     }
 
     private void PurgeExpiredGameplayTelemetry(long nowMs)
@@ -781,6 +835,41 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
             _pendingGameplayActions.RemoveAt(i);
             _gameplayTelemetryStatus = "Telemetry Timeout";
+        }
+    }
+
+    private void RefreshGuestGameplayFallbackState(long nowMs)
+    {
+        if (!IsSteamTransport || IsHostLocal)
+            return;
+
+        if (P2PTransportDiagnostics.HasPendingHostSeenTimeout(out var ageMs, out var summary))
+        {
+            _forceGuestRelayForGameplay = true;
+            _gameplayTelemetryStatus = $"HostSeenTimeout {ageMs}ms";
+            MarkRelayFallback("GuestUplinkTimeout");
+            P2PTransportDiagnostics.MarkPendingHostSeenTimeout();
+            if (P2PDebugConfig.TraceHostFlow)
+                Debug.LogWarning($"[P2PRelayClientBridge] Guest uplink unhealthy. forcing server relay. {summary}");
+            return;
+        }
+
+        if (_hostPingMissCount >= _hostPingMaxMiss)
+        {
+            _forceGuestRelayForGameplay = true;
+            _gameplayTelemetryStatus = "DirectProbeTimeout";
+            MarkRelayFallback("GuestDirectProbeTimeout");
+            return;
+        }
+
+        if (_forceGuestRelayForGameplay
+            && _hostLastPongAtMs > 0
+            && Math.Max(0, nowMs - _hostLastPongAtMs) <= _hostPingTimeoutMs
+            && string.Equals(_hostPingStatus, "Host OK", StringComparison.Ordinal))
+        {
+            _forceGuestRelayForGameplay = false;
+            _gameplayTelemetryStatus = "DirectProbeRecovered";
+            MarkSteamRecoveryObserved();
         }
     }
 
@@ -877,7 +966,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
                     $"[P2PTransport] SteamRecv dir=HostToClient protocol={FormatPacketProtocol(protocol)} bytes={payload.PayloadBytes.Length} " +
                     $"{FormatBridgeContext()}");
             }
-            HandleIncomingHostPayloadBytes(payload.PayloadBytes);
+            HandleIncomingHostPayloadBytes(payload.PayloadBytes, "SteamHostBroadcast");
             return;
         }
 
@@ -888,10 +977,14 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
                 $"[P2PTransport] SteamRecv dir=GuestToHost senderSteam={payload.SenderSteamId64} senderActor={senderActorId} " +
                 $"protocol={FormatPacketProtocol(protocol)} bytes={payload.PayloadBytes.Length} {FormatBridgeContext()}");
         }
-        HandleIncomingGuestPayloadBytes(senderActorId, payload.PayloadBytes, payload.SenderSteamId64);
+        HandleIncomingGuestPayloadBytes(senderActorId, payload.PayloadBytes, payload.SenderSteamId64, "SteamGuestToHost");
     }
 
-    private void HandleIncomingGuestPayloadBytes(int senderActorId, byte[] payloadBytes, string senderSteamId64 = "")
+    private void HandleIncomingGuestPayloadBytes(
+        int senderActorId,
+        byte[] payloadBytes,
+        string senderSteamId64 = "",
+        string transportSource = "Unknown")
     {
         if (!IsP2PMode || payloadBytes == null || payloadBytes.Length == 0)
             return;
@@ -905,6 +998,10 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             if (TryResolveGuestActorIdFromPayload(payloadBytes, out var fallbackActorId))
             {
                 senderActorId = fallbackActorId;
+                P2PTransportDiagnostics.RecordActorFallbackRecovered(
+                    senderSteamId64,
+                    senderActorId,
+                    FormatPacketProtocol(protocol));
                 if (P2PDebugConfig.TraceHostFlow)
                 {
                     Debug.LogWarning(
@@ -916,11 +1013,23 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
         if (senderActorId <= 0)
         {
+            P2PTransportDiagnostics.RecordActorResolveDrop(
+                senderSteamId64,
+                FormatPacketProtocol(protocol),
+                $"{transportSource} {FormatBridgeContext()}");
             Debug.LogWarning(
                 $"[P2PRelayClientBridge] Drop guest payload because sender actor could not be resolved. " +
                 $"steam={senderSteamId64} protocol={FormatPacketProtocol(protocol)} bytes={payloadBytes.Length} {FormatBridgeContext()}");
             return;
         }
+
+        P2PTransportDiagnostics.RecordIncoming(
+            transportSource,
+            FormatPacketProtocol(protocol),
+            senderActorId,
+            string.IsNullOrWhiteSpace(senderSteamId64)
+                ? FormatBridgeContext()
+                : $"steam={senderSteamId64} {FormatBridgeContext()}");
 
         if (P2PDebugConfig.LogOverheadEnabled)
         {
@@ -962,7 +1071,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         }
     }
 
-    private void HandleIncomingHostPayloadBytes(byte[] payloadBytes)
+    private void HandleIncomingHostPayloadBytes(byte[] payloadBytes, string transportSource = "Unknown")
     {
         if (payloadBytes == null || payloadBytes.Length == 0)
             return;
@@ -977,6 +1086,12 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
                 $"[P2PTransport] DispatchHostPayload protocol={FormatPacketProtocol(protocol)} bytes={payloadBytes.Length} " +
                 $"{FormatBridgeContext()}");
         }
+
+        P2PTransportDiagnostics.RecordIncoming(
+            transportSource,
+            FormatPacketProtocol(protocol),
+            SessionContext.Instance?.MyActorId ?? 0,
+            FormatBridgeContext());
 
         var session = NetworkManager.Instance != null ? NetworkManager.Instance.CurrentSession : null;
 
@@ -1030,13 +1145,24 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         if (bytes == null || bytes.Length < 4)
             return false;
 
-        if (P2PRelayDiagnosticsPackets.PeekProtocol(bytes) != P2PRelayDiagnosticsPackets.HostPingPongProtocol)
-            return false;
+        ushort protocol = P2PRelayDiagnosticsPackets.PeekProtocol(bytes);
+        if (protocol == P2PRelayDiagnosticsPackets.HostPingPongProtocol)
+        {
+            var pong = new P2PHostPingPongPacket();
+            pong.Read(new ArraySegment<byte>(bytes));
+            HandleHostPingPong(pong);
+            return true;
+        }
 
-        var pong = new P2PHostPingPongPacket();
-        pong.Read(new ArraySegment<byte>(bytes));
-        HandleHostPingPong(pong);
-        return true;
+        if (protocol == P2PRelayDiagnosticsPackets.ActionTraceProtocol)
+        {
+            var trace = new P2PActionTracePacket();
+            trace.Read(new ArraySegment<byte>(bytes));
+            HandleActionTracePacket(trace);
+            return true;
+        }
+
+        return false;
     }
 
     private void HandleHostPingPong(P2PHostPingPongPacket pong)
@@ -1076,6 +1202,17 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         _hostMaxRttMs = Math.Max(_hostMaxRttMs, rtt);
         _hostMinRttMs = Math.Min(_hostMinRttMs, rtt);
         _hostPingStatus = "Host OK";
+    }
+
+    private void HandleActionTracePacket(P2PActionTracePacket trace)
+    {
+        if (trace == null || SessionContext.Instance == null || SessionContext.Instance.MyActorId <= 0)
+            return;
+
+        if (trace.TargetActorId != SessionContext.Instance.MyActorId)
+            return;
+
+        P2PTransportDiagnostics.RecordActionTrace(trace);
     }
 
     private void ApplyManifest(SessionDtos.MatchManifestDto manifest)
@@ -1538,6 +1675,21 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         return bytes;
     }
 
+    private bool ShouldForceRelayForGuestGameplay(byte[] payloadBytes, out string reason)
+    {
+        reason = "";
+        if (!_forceGuestRelayForGameplay || payloadBytes == null || payloadBytes.Length < 4)
+            return false;
+
+        if (PeekPacketProtocol(payloadBytes) != (ushort)PacketID.CS_ActionRequest)
+            return false;
+
+        reason = string.IsNullOrWhiteSpace(_fallbackReason) || string.Equals(_fallbackReason, "None", StringComparison.Ordinal)
+            ? "GuestUplinkFallbackLocked"
+            : _fallbackReason;
+        return true;
+    }
+
     private bool TrySendViaSteamTransport(byte[] payloadBytes)
     {
         if (!IsSteamTransport || payloadBytes == null || payloadBytes.Length == 0)
@@ -1555,6 +1707,12 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             }
             if (sent > 0)
             {
+                P2PTransportDiagnostics.RecordOutgoing(
+                    "SteamHostToGuests",
+                    FormatPacketProtocol(protocol),
+                    true,
+                    $"sentPeers={sent} connectedPeers={SteamConnectedPeerCount} phase={SteamConnectionPhase} route={SteamRouteHint}",
+                    payloadBytes);
                 MarkSteamRecoveryObserved();
                 return true;
             }
@@ -1562,6 +1720,16 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             if (P2PDebugConfig.TraceHostFlow)
                 Debug.LogWarning("[P2PRelayClientBridge] Steam host broadcast had no connected guest. Falling back to relay.");
             MarkRelayFallback("HostBroadcastNoConnectedSteamPeer");
+            P2PTransportDiagnostics.RecordOutgoing(
+                "SteamHostToGuests",
+                FormatPacketProtocol(protocol),
+                false,
+                $"connectedPeers={SteamConnectedPeerCount} phase={SteamConnectionPhase}",
+                payloadBytes);
+            P2PTransportDiagnostics.RecordFallback(
+                "HostBroadcastNoConnectedSteamPeer",
+                FormatPacketProtocol(protocol),
+                FormatBridgeContext());
             return false;
         }
 
@@ -1575,13 +1743,30 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
         if (success)
         {
+            P2PTransportDiagnostics.RecordOutgoing(
+                "SteamGuestToHost",
+                FormatPacketProtocol(protocol),
+                true,
+                $"phase={SteamConnectionPhase} connectedToHost={IsSteamTransportConnectedToHost} route={SteamRouteHint}",
+                payloadBytes);
             MarkSteamRecoveryObserved();
             return true;
         }
 
         if (P2PDebugConfig.TraceHostFlow)
             Debug.LogWarning($"[P2PRelayClientBridge] Steam send to host failed host={HostSteamId64}. Falling back to relay.");
-        MarkRelayFallback(ResolveSteamFallbackReason());
+        string fallbackReason = ResolveSteamFallbackReason();
+        MarkRelayFallback(fallbackReason);
+        P2PTransportDiagnostics.RecordOutgoing(
+            "SteamGuestToHost",
+            FormatPacketProtocol(protocol),
+            false,
+            $"phase={SteamConnectionPhase} connectedToHost={IsSteamTransportConnectedToHost} route={SteamRouteHint}",
+            payloadBytes);
+        P2PTransportDiagnostics.RecordFallback(
+            fallbackReason,
+            FormatPacketProtocol(protocol),
+            FormatBridgeContext());
         return false;
     }
 
@@ -1615,6 +1800,12 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
                 $"[P2PTransport] SendRelay protocol={FormatPacketProtocol(protocol)} bytes={segment.Count} senderActor={SessionContext.Instance?.MyActorId ?? 0} " +
                 $"{FormatBridgeContext()}");
         }
+        P2PTransportDiagnostics.RecordOutgoing(
+            "ServerRelay",
+            FormatPacketProtocol(protocol),
+            true,
+            $"senderActor={SessionContext.Instance?.MyActorId ?? 0} {FormatBridgeContext()}",
+            CopySegment(segment));
         NetworkManager.Instance.Send(new CS_P2PPayload
         {
             SenderActorId = SessionContext.Instance.MyActorId,
@@ -1706,6 +1897,9 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
         if (protocol == P2PRelayDiagnosticsPackets.HostPingPongProtocol)
             return $"P2PHostPingPong({protocol})";
+
+        if (protocol == P2PRelayDiagnosticsPackets.ActionTraceProtocol)
+            return $"P2PActionTrace({protocol})";
 
         return $"Unknown({protocol})";
     }

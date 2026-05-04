@@ -362,7 +362,10 @@ public class ClientHandlers : MonoBehaviour
 
             var bridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
             if (bridge != null && !bridge.IsDispatchingLocal && a.ActorId == GS.MyActorId)
-                bridge.RecordGameplayBeatResult(a.ActorId, a.ActionKind);
+            {
+                bridge.RecordGameplayBeatResult(a.ActorId, a.ActionKind, a.Accepted, a.FromX, a.FromY, a.ToX, a.ToY);
+                P2PTransportDiagnostics.RecordBeatResult(a.ActorId, a.ActionKind, a.Accepted, a.FromX, a.FromY, a.ToX, a.ToY);
+            }
 
             var action = new ClientBeatAction
             {

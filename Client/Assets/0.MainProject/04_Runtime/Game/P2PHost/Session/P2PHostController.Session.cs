@@ -248,6 +248,44 @@ public sealed partial class P2PHostController
         return kind == ActionKind.Attack || kind == ActionKind.Skill;
     }
 
+    private static void ReportGuestJudgeTrace(
+        CS_ActionRequest req,
+        int actorId,
+        bool fromLocalSource,
+        P2PActionTraceReason reason,
+        long executeBeat = 0,
+        int detailValue = 0)
+    {
+        if (fromLocalSource || req == null || !P2PRelayClientBridge.HasInstance)
+            return;
+
+        P2PRelayClientBridge.Instance.ReportGuestActionTrace(
+            actorId,
+            req,
+            P2PActionTraceStage.Judge,
+            reason,
+            executeBeat,
+            detailValue);
+    }
+
+    private static P2PActionTraceReason ResolveMoveResultReason(bool accepted, string rejectReason)
+    {
+        if (accepted)
+            return P2PActionTraceReason.MoveApplied;
+
+        if (string.Equals(rejectReason, "SameTile", StringComparison.Ordinal))
+            return P2PActionTraceReason.MoveSameTile;
+
+        if (!string.IsNullOrWhiteSpace(rejectReason)
+            && rejectReason.StartsWith("BlockedTile", StringComparison.Ordinal))
+            return P2PActionTraceReason.MoveBlockedTile;
+
+        if (string.Equals(rejectReason, "Occupied", StringComparison.Ordinal))
+            return P2PActionTraceReason.MoveOccupied;
+
+        return P2PActionTraceReason.MoveRejected;
+    }
+
     private void HandleActionRequest(
         CS_ActionRequest req,
         int actorId,
@@ -260,6 +298,12 @@ public sealed partial class P2PHostController
         {
             if (fromLocalSource)
                 Debug.LogWarning($"[P2PHostController] DropLocal action={(ActionKind?)req?.ActionKind} reason=HostOrDepsMissing isHost={IsHost} rhythm={(RhythmClient.Instance != null)} gs={(ClientGameState.Instance != null)}");
+            P2PTransportDiagnostics.RecordHostJudge(
+                "Reject:HostOrDepsMissing",
+                actorId,
+                ((ActionKind?)req?.ActionKind)?.ToString() ?? "Unknown",
+                $"isHost={IsHost} rhythm={(RhythmClient.Instance != null)} gs={(ClientGameState.Instance != null)}");
+            ReportGuestJudgeTrace(req, actorId, fromLocalSource, P2PActionTraceReason.RejectHostOrDepsMissing);
             return;
         }
 
@@ -269,6 +313,12 @@ public sealed partial class P2PHostController
                 Debug.LogWarning($"[P2PHostController] DropLocal actor={actorId} action={(ActionKind)req.ActionKind} reason=ActorNotFound");
             else if (P2PDebugConfig.TraceHostFlow)
                 Debug.LogWarning($"[P2PHostController] DropGuest actor={actorId} action={(ActionKind)req.ActionKind} reason=ActorNotFound entities={ClientGameState.Instance.EntityCount}");
+            P2PTransportDiagnostics.RecordHostJudge(
+                "Reject:ActorNotFound",
+                actorId,
+                ((ActionKind)req.ActionKind).ToString(),
+                $"entities={ClientGameState.Instance.EntityCount}");
+            ReportGuestJudgeTrace(req, actorId, fromLocalSource, P2PActionTraceReason.RejectActorNotFound);
             return;
         }
 
@@ -276,6 +326,12 @@ public sealed partial class P2PHostController
         {
             if (fromLocalSource)
                 Debug.LogWarning($"[P2PHostController] DropLocal actor={actorId} action={(ActionKind)req.ActionKind} reason=ActorDead hp={actorInfo.Hp}");
+            P2PTransportDiagnostics.RecordHostJudge(
+                "Reject:ActorDead",
+                actorId,
+                ((ActionKind)req.ActionKind).ToString(),
+                $"hp={actorInfo.Hp}");
+            ReportGuestJudgeTrace(req, actorId, fromLocalSource, P2PActionTraceReason.RejectActorDead);
             return;
         }
 
@@ -283,6 +339,12 @@ public sealed partial class P2PHostController
         {
             if (fromLocalSource)
                 Debug.LogWarning($"[P2PHostController] DropLocal actor={actorId} action={(ActionKind)req.ActionKind} reason=CurrentBeatInvalid");
+            P2PTransportDiagnostics.RecordHostJudge(
+                "Reject:CurrentBeatInvalid",
+                actorId,
+                ((ActionKind)req.ActionKind).ToString(),
+                "current beat < 0");
+            ReportGuestJudgeTrace(req, actorId, fromLocalSource, P2PActionTraceReason.RejectCurrentBeatInvalid);
             return;
         }
 
@@ -334,6 +396,12 @@ public sealed partial class P2PHostController
             {
                 if (P2PDebugConfig.TraceHostFlow)
                     Debug.Log($"[P2PHostController] Reject action actor={actorId} diff={diffMs}ms window={judgeWindowMs:F0}ms");
+                P2PTransportDiagnostics.RecordHostJudge(
+                    "Reject:JudgeWindow",
+                    actorId,
+                    ((ActionKind)req.ActionKind).ToString(),
+                    $"diff={diffMs}ms window={judgeWindowMs:F0}ms executeBeat={executeBeat}");
+                ReportGuestJudgeTrace(req, actorId, fromLocalSource, P2PActionTraceReason.RejectJudgeWindow, executeBeat, (int)Math.Min(int.MaxValue, diffMs));
                 return;
             }
 
@@ -343,6 +411,12 @@ public sealed partial class P2PHostController
                     Debug.Log($"[P2PHostController] Duplicate action blocked actor={actorId} beat={executeBeat}");
                 if (fromLocalSource)
                     Debug.LogWarning($"[P2PHostController] RejectLocal actor={actorId} action={(ActionKind)req.ActionKind} reason=DuplicateBeat executeBeat={executeBeat}");
+                P2PTransportDiagnostics.RecordHostJudge(
+                    "Reject:DuplicateBeat",
+                    actorId,
+                    ((ActionKind)req.ActionKind).ToString(),
+                    $"executeBeat={executeBeat}");
+                ReportGuestJudgeTrace(req, actorId, fromLocalSource, P2PActionTraceReason.RejectDuplicateBeat, executeBeat);
                 return;
             }
         }
@@ -361,6 +435,17 @@ public sealed partial class P2PHostController
 
         if (req.ActionKind == (int)ActionKind.Move)
         {
+            P2PTransportDiagnostics.RecordHostJudge(
+                isLateResolvedBeat ? "Accept:MoveLate" : "Accept:Move",
+                actorId,
+                ActionKind.Move.ToString(),
+                $"executeBeat={executeBeat} target=({req.TargetX},{req.TargetY})");
+            ReportGuestJudgeTrace(
+                req,
+                actorId,
+                fromLocalSource,
+                isLateResolvedBeat ? P2PActionTraceReason.AcceptMoveLate : P2PActionTraceReason.AcceptMove,
+                executeBeat);
             if (isLateResolvedBeat)
             {
                 if (P2PDebugConfig.TraceHostFlow)
@@ -386,6 +471,12 @@ public sealed partial class P2PHostController
 
         if (isLateResolvedBeat)
         {
+            P2PTransportDiagnostics.RecordHostJudge(
+                "Accept:SkillLate",
+                actorId,
+                ((ActionKind)req.ActionKind).ToString(),
+                $"skill={skillId} executeBeat={executeBeat}");
+            ReportGuestJudgeTrace(req, actorId, fromLocalSource, P2PActionTraceReason.AcceptSkillLate, executeBeat);
             EnqueueLateResolvedCommand(command);
             return;
         }
@@ -396,10 +487,22 @@ public sealed partial class P2PHostController
         {
             if (P2PDebugConfig.TraceHostFlow)
                 Debug.Log($"[P2PHostController] CatchUpSkill actor={actorId} skill={skillId} beat={executeBeat} processedBeat={_lastProcessedBeat} judgeBeat={_lastJudgeWindowBeat}");
+            P2PTransportDiagnostics.RecordHostJudge(
+                "Accept:SkillCatchUp",
+                actorId,
+                ((ActionKind)req.ActionKind).ToString(),
+                $"skill={skillId} executeBeat={executeBeat}");
+            ReportGuestJudgeTrace(req, actorId, fromLocalSource, P2PActionTraceReason.AcceptSkillCatchUp, executeBeat);
             ActivateScheduledCommand(command, executeBeat);
             return;
         }
 
+        P2PTransportDiagnostics.RecordHostJudge(
+            "Accept:Skill",
+            actorId,
+            ((ActionKind)req.ActionKind).ToString(),
+            $"skill={skillId} executeBeat={executeBeat}");
+        ReportGuestJudgeTrace(req, actorId, fromLocalSource, P2PActionTraceReason.AcceptSkill, executeBeat);
         BroadcastInstantSkill(actorId, skillId, req.Rotation, startTick, fromLocalSource);
         command.InstantBroadcasted = true;
         EnqueueScheduledCommand(command);
@@ -659,6 +762,20 @@ public sealed partial class P2PHostController
 
         if (P2PDebugConfig.LogOverheadEnabled && ShouldTraceHostPlayerActor(actorId))
             Debug.Log($"[P2PHostController] MoveResult actor={actorId} beat={beat} from=({fromX},{fromY}) reqTo=({req.TargetX},{req.TargetY}) finalTo=({toX},{toY}) accepted={accepted} reason={(accepted ? "OK" : rejectReason)}");
+
+        if (P2PRelayClientBridge.HasInstance
+            && actorId != (SessionContext.Instance?.MyActorId ?? 0))
+        {
+            P2PRelayClientBridge.Instance.ReportGuestActionTrace(
+                actorId,
+                req,
+                P2PActionTraceStage.MoveResult,
+                ResolveMoveResultReason(accepted, rejectReason),
+                beat,
+                0,
+                toX,
+                toY);
+        }
 
         var result = new SC_BeatActions.BeatActionResult
         {

@@ -304,7 +304,9 @@ partial class PacketHandler
             return;
         }
 
-        LogManager.Instance.LogWarning("P2PRelay", $"Payload dropped. Relay room not found world={clientSession.CurrentWorldId}");
+        LogManager.Instance.LogWarning(
+            "P2PRelay",
+            $"Payload dropped. Relay room not found world={clientSession.CurrentWorldId} uid={clientSession.Uid} actor={clientSession.ActorId} protocol={DescribeP2PPayloadProtocol(req)}");
     }
 
     public static void CS_P2PGameResultHandler(PacketSession session, IPacket packet)
@@ -319,5 +321,27 @@ partial class PacketHandler
         }
 
         LogManager.Instance.LogWarning("P2PRelay", $"GameResult dropped. Relay room not found world={clientSession.CurrentWorldId}");
+    }
+
+    private static string DescribeP2PPayloadProtocol(CS_P2PPayload req)
+    {
+        if (req == null || string.IsNullOrWhiteSpace(req.Payload))
+            return "-";
+
+        try
+        {
+            var bytes = Convert.FromBase64String(req.Payload);
+            if (bytes.Length < 4)
+                return "ShortPayload";
+
+            ushort protocol = BitConverter.ToUInt16(bytes, 2);
+            return Enum.IsDefined(typeof(PacketID), (int)protocol)
+                ? $"{(PacketID)protocol}({protocol})"
+                : protocol.ToString();
+        }
+        catch
+        {
+            return "DecodeFailed";
+        }
     }
 }

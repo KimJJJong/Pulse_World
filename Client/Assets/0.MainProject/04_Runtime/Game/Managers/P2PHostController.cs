@@ -267,6 +267,11 @@ public sealed partial class P2PHostController : MonoBehaviour
             ActorId = req.ActorId,
             FromLocalSource = true
         });
+        P2PTransportDiagnostics.RecordHostQueue(
+            "LocalQueue",
+            req.ActorId,
+            ((ActionKind)req.ActionKind).ToString(),
+            $"slot={req.SlotIndex} target=({req.TargetX},{req.TargetY})");
     }
 
     public void EnqueueGuestActionRequest(CS_P2PPayload pkt)
@@ -275,9 +280,19 @@ public sealed partial class P2PHostController : MonoBehaviour
             return;
 
         if (!TryDecodeActionRequest(pkt.Payload, out var req))
+        {
+            P2PTransportDiagnostics.RecordHostJudge("DecodeFail", pkt.SenderActorId, "Unknown", "guest payload decode failed");
             return;
+        }
 
         int actorId = pkt.SenderActorId > 0 ? pkt.SenderActorId : req.ActorId;
+        if (P2PRelayClientBridge.HasInstance)
+        {
+            P2PRelayClientBridge.Instance.ReportGuestActionTrace(
+                actorId,
+                req,
+                P2PActionTraceStage.HostSeen);
+        }
         if (P2PDebugConfig.LogOverheadEnabled)
         {
             Debug.Log(
@@ -290,6 +305,11 @@ public sealed partial class P2PHostController : MonoBehaviour
             ActorId = actorId,
             FromLocalSource = false
         });
+        P2PTransportDiagnostics.RecordHostQueue(
+            "GuestQueue",
+            actorId,
+            ((ActionKind)req.ActionKind).ToString(),
+            $"reqActor={req.ActorId} slot={req.SlotIndex} target=({req.TargetX},{req.TargetY})");
     }
 
     public void EnqueueAiAction(

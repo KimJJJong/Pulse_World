@@ -464,6 +464,11 @@ public sealed class PingManager : MonoBehaviour
                 for (int i = 0; i < detailLines.Count; i++)
                     AddSyncLine(richLines, plainLines, detailLines[i]);
             }
+
+            AddSyncSection(richLines, plainLines, "[Input / Direct Trace]", "<b><color=#ffd6a5>[Input / Direct Trace]</color></b>");
+            var traceLines = P2PTransportDiagnostics.BuildReportLines(8);
+            for (int i = 0; i < traceLines.Count; i++)
+                AddSyncLine(richLines, plainLines, traceLines[i]);
         }
 
         AddSyncSection(richLines, plainLines, "[Steam Runtime]", "<b><color=#dda0dd>[Steam Runtime]</color></b>");

@@ -874,6 +874,11 @@ public sealed class P2PRelayRoom : RoomBase
 
             if (player.ActorId == _hostActorId)
             {
+                _logger.LogDebug(
+                    "[P2PRelayRoom] Host broadcast relayId={RelayId} sender={Sender} protocol={Protocol}",
+                    RelayId,
+                    player.ActorId,
+                    DescribePayloadProtocol(pkt.Payload));
                 BroadcastExcept(new SC_P2PBroadcast
                 {
                     Payload = pkt.Payload ?? ""
@@ -889,12 +894,23 @@ public sealed class P2PRelayRoom : RoomBase
 
             if (host?.Conn == null)
             {
-                _logger.LogWarning("[P2PRelayRoom] Guest input dropped. Host not connected relayId={RelayId} sender={Sender}", RelayId, player.ActorId);
+                _logger.LogWarning(
+                    "[P2PRelayRoom] Guest input dropped. Host not connected relayId={RelayId} sender={Sender} hostActor={HostActor} protocol={Protocol}",
+                    RelayId,
+                    player.ActorId,
+                    _hostActorId,
+                    DescribePayloadProtocol(pkt.Payload));
                 return;
             }
 
             pkt.SenderActorId = player.ActorId;
             host.Conn.Send(pkt.Write());
+            _logger.LogDebug(
+                "[P2PRelayRoom] Guest relay forward relayId={RelayId} sender={Sender} hostActor={HostActor} protocol={Protocol}",
+                RelayId,
+                player.ActorId,
+                _hostActorId,
+                DescribePayloadProtocol(pkt.Payload));
         });
     }
 
@@ -1002,5 +1018,27 @@ public sealed class P2PRelayRoom : RoomBase
         public int TotalDamage { get; set; }
         public List<string> PlayerUids { get; set; } = new();
         public long SubmittedAtMs { get; set; }
+    }
+
+    private static string DescribePayloadProtocol(string payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+            return "-";
+
+        try
+        {
+            var bytes = Convert.FromBase64String(payload);
+            if (bytes.Length < 4)
+                return "ShortPayload";
+
+            ushort protocol = BitConverter.ToUInt16(bytes, 2);
+            return Enum.IsDefined(typeof(PacketID), (int)protocol)
+                ? $"{(PacketID)protocol}({protocol})"
+                : protocol.ToString();
+        }
+        catch
+        {
+            return "DecodeFailed";
+        }
     }
 }

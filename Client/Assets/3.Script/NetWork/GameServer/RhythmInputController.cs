@@ -702,7 +702,7 @@ public class RhythmInputController : MonoBehaviour
 
         var bridge = P2PRelayClientBridge.Instance;
         if (bridge.IsRelayMode && !bridge.IsHostLocal)
-            bridge.RecordGameplayActionSent(pkt.ActorId, kind, slotIndex, targetX, targetY);
+            bridge.RecordGameplayActionSent(pkt.ActorId, kind, slotIndex, targetX, targetY, serverNowMs);
 
         if (P2PDebugConfig.LogOverheadEnabled)
         {
@@ -710,6 +710,16 @@ public class RhythmInputController : MonoBehaviour
                 $"[P2PInputRoute] kind={kind} actor={pkt.ActorId} target=({targetX},{targetY}) slot={slotIndex} " +
                 $"serverNow={serverNowMs} {DescribeP2PRoute()}");
         }
+
+        P2PTransportDiagnostics.RecordInputAttempt(
+            kind.ToString(),
+            (int)kind,
+            pkt.ActorId,
+            slotIndex,
+            targetX,
+            targetY,
+            serverNowMs,
+            $"{DescribeP2PRoute()}");
 
         if (bridge.IsRelayMode)
         {
@@ -771,12 +781,14 @@ public class RhythmInputController : MonoBehaviour
 
         if (!IsReady())
         {
+            P2PTransportDiagnostics.RecordInputBlocked(actionTag, BuildNotReadyReason());
             LogGuardFailure(actionTag, BuildNotReadyReason());
             return false;
         }
 
         if (IsInputBlocked)
         {
+            P2PTransportDiagnostics.RecordInputBlocked(actionTag, $"IsInputBlocked=true {GetDebugState()}");
             LogGuardFailure(actionTag, $"IsInputBlocked=true {GetDebugState()}");
             return false;
         }
