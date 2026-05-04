@@ -392,7 +392,7 @@ internal static class P2PDebugConfig
     private const bool TraceContentDefault = false;
     private const bool TraceInputDefault = true;
     private const bool TraceCombatDefault = false;
-    private const bool CaptureOnlyP2PHostLogs = true;
+    private static readonly bool CaptureOnlyP2PHostLogs = true;
     private const KeyCode ToggleLogOverheadKey = KeyCode.F7;
     private static int _lastToggleFrame = -1;
 
@@ -608,10 +608,22 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
             AppendField(sb, "SelectionScore", room.HostSelectionScore >= 0f ? room.HostSelectionScore.ToString("F3") : "-");
             AppendField(sb, "CandidateOrder", room.HostCandidateOrderSummary);
             AppendField(sb, "RoomWarn", string.IsNullOrWhiteSpace(room.LastWarningText) ? "-" : room.LastWarningText);
+
+            if (RoomNetworkDebugFormatter.HasWaitingRoomDetails(room))
+            {
+                AppendHeader(sb, "Waiting Room Detail");
+                AppendLines(sb, RoomNetworkDebugFormatter.BuildDetailedReportLines(room, maxCandidates: 4, maxPairs: 6));
+            }
         }
         else
         {
             AppendField(sb, "State", "Room UI closed");
+        }
+
+        if (room != null && !room.IsUiOpen && RoomNetworkDebugFormatter.HasWaitingRoomDetails(room))
+        {
+            AppendHeader(sb, "Waiting Room Detail");
+            AppendLines(sb, RoomNetworkDebugFormatter.BuildDetailedReportLines(room, maxCandidates: 4, maxPairs: 6));
         }
 
         AppendHeader(sb, "Match / Transport");
@@ -645,6 +657,18 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
             AppendField(sb, "LocalSteamId", string.IsNullOrWhiteSpace(bridge.LocalSteamId64) ? "-" : bridge.LocalSteamId64);
             AppendField(sb, "Peers", bridge.SteamConnectedPeerCount.ToString());
             AppendField(sb, "ToHost", bridge.IsSteamTransport ? (bridge.IsSteamTransportConnectedToHost ? "Connected" : "Not Connected") : "-");
+            AppendField(sb, "SteamPhase", bridge.IsSteamTransport ? bridge.SteamConnectionPhase : "-");
+            AppendField(sb, "RouteHint", bridge.IsSteamTransport ? bridge.SteamRouteHint : bridge.TransportPairRouteHint);
+            AppendField(sb, "Retry", bridge.IsSteamTransport
+                ? $"attempts {bridge.SteamConnectAttemptCount} / retries {bridge.SteamRetryCount} / nextBackoff {bridge.SteamRetryBackoffMs} ms"
+                : "-");
+            AppendField(sb, "RetryTimeline", bridge.IsSteamTransport
+                ? $"start {FormatTimestampMs(bridge.SteamInitialConnectAttemptAtMs)} / last {FormatTimestampMs(bridge.SteamLastConnectAttemptAtMs)} / connected {FormatTimestampMs(bridge.SteamConnectedAtMs)}"
+                : "-");
+            AppendField(sb, "Fallback", bridge.IsSteamTransport
+                ? $"{bridge.FallbackReason} / at {FormatTimestampMs(bridge.FallbackActivatedAtMs)} / recovery {FormatTimestampMs(bridge.RecoveryObservedAtMs)}"
+                : "-");
+            AppendField(sb, "Detail", bridge.IsSteamTransport ? bridge.SteamDetailedStatusSnippet : bridge.TransportPairDetail);
             AppendField(sb, "Ping", bridge.IsHostLocal ? "Local Host" : FormatPingSummary(bridge));
             AppendField(sb, "TransportError", string.IsNullOrWhiteSpace(bridge.TransportLastError) ? "-" : bridge.TransportLastError);
         }
@@ -706,6 +730,25 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
         sb.Append(key)
             .Append(": ")
             .AppendLine(string.IsNullOrWhiteSpace(value) ? "-" : value);
+    }
+
+    private static void AppendLines(StringBuilder sb, IEnumerable<string> lines)
+    {
+        if (lines == null)
+            return;
+
+        foreach (var line in lines)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            sb.AppendLine(line);
+        }
+    }
+
+    private static string FormatTimestampMs(long timestampMs)
+    {
+        return timestampMs > 0 ? timestampMs.ToString() : "-";
     }
 
     private void EnsureStyles()

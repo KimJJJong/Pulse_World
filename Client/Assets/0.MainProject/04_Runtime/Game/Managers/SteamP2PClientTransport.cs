@@ -49,6 +49,8 @@ public struct SteamP2PConnectionStatsSnapshot
     public int PendingReliable { get; set; }
     public int SentUnackedReliable { get; set; }
     public string TransportDetail { get; set; }
+    public string DetailedStatus { get; set; }
+    public string RouteHint { get; set; }
 }
 
 public interface ISteamP2PClientTransport
@@ -59,6 +61,17 @@ public interface ISteamP2PClientTransport
     bool IsRunning { get; }
     int ConnectedPeerCount { get; }
     string LastError { get; }
+    string ConnectionPhase { get; }
+    string DetailedStatusHint { get; }
+    string RouteHint { get; }
+    string LastDisconnectReason { get; }
+    long InitialConnectAttemptAtMs { get; }
+    long LastConnectAttemptAtMs { get; }
+    long LastConnectedAtMs { get; }
+    long NextReconnectAtMs { get; }
+    int ConnectAttemptCount { get; }
+    int RetryCount { get; }
+    int CurrentRetryBackoffMs { get; }
     event Action<SteamP2PIncomingPayload> OnPayloadReceived;
 
     void Configure(SteamP2PTransportConfig config);
@@ -90,6 +103,17 @@ public sealed class NullSteamP2PClientTransport : ISteamP2PClientTransport
     public bool IsRunning => false;
     public int ConnectedPeerCount => 0;
     public string LastError { get; private set; } = "Facepunch.Steamworks plugin is unavailable.";
+    public string ConnectionPhase => "Unavailable";
+    public string DetailedStatusHint => "";
+    public string RouteHint => "Unknown";
+    public string LastDisconnectReason => "";
+    public long InitialConnectAttemptAtMs => 0L;
+    public long LastConnectAttemptAtMs => 0L;
+    public long LastConnectedAtMs => 0L;
+    public long NextReconnectAtMs => 0L;
+    public int ConnectAttemptCount => 0;
+    public int RetryCount => 0;
+    public int CurrentRetryBackoffMs => 0;
 
     public event Action<SteamP2PIncomingPayload> OnPayloadReceived
     {
@@ -128,13 +152,27 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
 {
     private const int VirtualPort = 0;
     private const int PumpBatchSize = 32;
-    private const int ReconnectDelayMs = 1500;
+    private static readonly int[] ReconnectBackoffMs = { 150, 300, 600, 1200, 1500 };
+    // Steam relay/P2P connect can legitimately take a few seconds on SDR routes.
+    // Aggressively recycling the connection during handshake was causing guest input
+    // to flap between Steam and relay fallback during match start.
+    private const int ConnectAttemptTimeoutMs = 5000;
     private const int CloseReasonCode = 4900;
 
     private SteamP2PTransportConfig _config = new();
     private string _configFingerprint = "";
     private string _lastStateSignature = "";
     private long _nextGuestReconnectAtMs;
+    private long _initialConnectAttemptAtMs;
+    private long _lastConnectAttemptAtMs;
+    private long _lastConnectedAtMs;
+    private int _connectAttemptCount;
+    private int _retryCount;
+    private int _currentRetryBackoffMs;
+    private string _connectionPhase = "Idle";
+    private string _detailedStatusHint = "";
+    private string _routeHint = "Unknown";
+    private string _lastDisconnectReason = "";
     private RelaySocketHost _hostSocket;
     private RelayGuestConnection _guestConnection;
 
@@ -146,6 +184,17 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         ? _hostSocket.Connected.Count
         : (_guestConnection != null && _guestConnection.Connected ? 1 : 0);
     public string LastError { get; private set; } = "";
+    public string ConnectionPhase => _connectionPhase ?? "Idle";
+    public string DetailedStatusHint => _detailedStatusHint ?? "";
+    public string RouteHint => _routeHint ?? "Unknown";
+    public string LastDisconnectReason => _lastDisconnectReason ?? "";
+    public long InitialConnectAttemptAtMs => _initialConnectAttemptAtMs;
+    public long LastConnectAttemptAtMs => _lastConnectAttemptAtMs;
+    public long LastConnectedAtMs => _lastConnectedAtMs;
+    public long NextReconnectAtMs => _nextGuestReconnectAtMs;
+    public int ConnectAttemptCount => _connectAttemptCount;
+    public int RetryCount => _retryCount;
+    public int CurrentRetryBackoffMs => _currentRetryBackoffMs;
 
     public event Action<SteamP2PIncomingPayload> OnPayloadReceived;
 
@@ -173,6 +222,7 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
     {
         if (!IsConfigUsable())
         {
+            _connectionPhase = "ConfigUnavailable";
             Stop();
             return;
         }
@@ -184,6 +234,7 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
 
             if (_hostSocket == null)
                 StartHostSocket();
+            _connectionPhase = _hostSocket != null ? "Hosting" : "HostSocketPending";
             LogStateIfChanged("EnsureRunning");
             return;
         }
@@ -210,8 +261,23 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
             Debug.LogWarning($"[SteamP2P] Pump failed: {ex.Message}");
         }
 
-        if (!_config.IsLocalHost && _guestConnection == null && IsConfigUsable() && P2PRelayDiagnosticsPackets.NowMs() >= _nextGuestReconnectAtMs)
-            StartGuestConnection();
+        long nowMs = P2PRelayDiagnosticsPackets.NowMs();
+        RefreshConnectionDiagnostics();
+
+        if (!_config.IsLocalHost)
+        {
+            if (_guestConnection != null
+                && !_guestConnection.Connected
+                && _lastConnectAttemptAtMs > 0
+                && Math.Max(0L, nowMs - _lastConnectAttemptAtMs) >= ConnectAttemptTimeoutMs)
+            {
+                CaptureConnectionDiagnostics(_guestConnection.Connection);
+                CloseGuestConnection("ConnectAttemptTimeout", scheduleReconnect: true);
+            }
+
+            if (_guestConnection == null && IsConfigUsable() && nowMs >= _nextGuestReconnectAtMs)
+                StartGuestConnection();
+        }
 
         LogStateIfChanged("Pump");
     }
@@ -221,6 +287,7 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         CloseGuestConnection("Stop");
         CloseHostSocket();
         _nextGuestReconnectAtMs = 0;
+        ResetGuestConnectTimeline();
         LogStateIfChanged("Stop");
     }
 
@@ -322,14 +389,47 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         if (!ReferenceEquals(_guestConnection, connection))
             return;
 
+        CaptureConnectionDiagnostics(connection.Connection);
         _guestConnection = null;
-        _nextGuestReconnectAtMs = P2PRelayDiagnosticsPackets.NowMs() + ReconnectDelayMs;
+        ScheduleGuestReconnect(BuildDisconnectReason(info));
         Debug.LogWarning($"[SteamP2P] Guest disconnected from host. state={info.State} reason={info.EndReason}");
         LogStateIfChanged("GuestDisconnected");
     }
 
+    private void OnGuestConnected(RelayGuestConnection connection, ConnectionInfo info)
+    {
+        if (!ReferenceEquals(_guestConnection, connection))
+            return;
+
+        _lastConnectedAtMs = P2PRelayDiagnosticsPackets.NowMs();
+        _retryCount = 0;
+        _currentRetryBackoffMs = 0;
+        _lastDisconnectReason = "";
+        _connectionPhase = "Connected";
+        CaptureConnectionDiagnostics(connection.Connection);
+        LogStateIfChanged("GuestConnected");
+    }
+
+    private void OnGuestConnecting(RelayGuestConnection connection, ConnectionInfo info)
+    {
+        if (!ReferenceEquals(_guestConnection, connection))
+            return;
+
+        _connectionPhase = $"Connecting#{Math.Max(1, _connectAttemptCount)}";
+        CaptureConnectionDiagnostics(connection.Connection);
+        LogStateIfChanged("GuestConnecting");
+    }
+
+    private void OnHostPeerConnected(Connection connection, ConnectionInfo info)
+    {
+        _connectionPhase = "Hosting";
+        CaptureConnectionDiagnostics(connection);
+        LogStateIfChanged("PeerConnected");
+    }
+
     private void OnHostPeerDisconnected(Connection connection, ConnectionInfo info)
     {
+        CaptureConnectionDiagnostics(connection);
         Debug.LogWarning($"[SteamP2P] Peer disconnected. conn={connection.Id} state={info.State} reason={info.EndReason}");
         LogStateIfChanged("PeerDisconnected");
     }
@@ -358,14 +458,15 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
                 StringComparer.Ordinal);
             _hostSocket = socket;
             LastError = "";
+            _connectionPhase = "Hosting";
             Debug.Log($"[SteamP2P] Host relay socket ready. match={_config.MatchId} host={_config.LocalSteamId64}");
             LogStateIfChanged("StartHostSocket");
         }
         catch (Exception ex)
         {
             LastError = ex.Message;
+            _connectionPhase = "HostSocketFailed";
             Debug.LogWarning($"[SteamP2P] Failed to create host relay socket: {ex.Message}");
-            _nextGuestReconnectAtMs = P2PRelayDiagnosticsPackets.NowMs() + ReconnectDelayMs;
         }
     }
 
@@ -376,8 +477,17 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
             if (!ulong.TryParse(_config.HostSteamId64, out ulong hostSteamId) || hostSteamId == 0)
             {
                 LastError = $"Invalid host SteamID64 '{_config.HostSteamId64}'.";
+                _connectionPhase = "HostSteamIdMissing";
                 return;
             }
+
+            long nowMs = P2PRelayDiagnosticsPackets.NowMs();
+            if (_initialConnectAttemptAtMs <= 0)
+                _initialConnectAttemptAtMs = nowMs;
+            _lastConnectAttemptAtMs = nowMs;
+            _connectAttemptCount++;
+            _connectionPhase = $"Connecting#{_connectAttemptCount}";
+            _nextGuestReconnectAtMs = 0;
 
             var conn = SteamNetworkingSockets.ConnectRelay<RelayGuestConnection>((SteamId)hostSteamId, VirtualPort);
             conn.Owner = this;
@@ -392,7 +502,7 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         {
             LastError = ex.Message;
             _guestConnection = null;
-            _nextGuestReconnectAtMs = P2PRelayDiagnosticsPackets.NowMs() + ReconnectDelayMs;
+            ScheduleGuestReconnect($"ConnectStartFailed:{ex.GetType().Name}");
             Debug.LogWarning($"[SteamP2P] Failed to connect relay guest: {ex.Message}");
         }
     }
@@ -417,10 +527,14 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         }
     }
 
-    private void CloseGuestConnection(string reason)
+    private void CloseGuestConnection(string reason, bool scheduleReconnect = false)
     {
         if (_guestConnection == null)
+        {
+            if (scheduleReconnect)
+                ScheduleGuestReconnect(reason);
             return;
+        }
 
         try
         {
@@ -433,15 +547,141 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         finally
         {
             _guestConnection = null;
+            if (scheduleReconnect)
+                ScheduleGuestReconnect(reason);
+            else if (!string.IsNullOrWhiteSpace(reason))
+                _connectionPhase = $"Closed:{reason}";
             LogStateIfChanged("CloseGuestConnection");
         }
+    }
+
+    private void ScheduleGuestReconnect(string reason)
+    {
+        _retryCount++;
+        _currentRetryBackoffMs = ResolveReconnectBackoffMs(_retryCount);
+        _nextGuestReconnectAtMs = P2PRelayDiagnosticsPackets.NowMs() + _currentRetryBackoffMs;
+        _lastDisconnectReason = reason ?? "";
+        _connectionPhase = $"RetryPending#{_retryCount}";
+    }
+
+    private void ResetGuestConnectTimeline()
+    {
+        _initialConnectAttemptAtMs = 0L;
+        _lastConnectAttemptAtMs = 0L;
+        _lastConnectedAtMs = 0L;
+        _connectAttemptCount = 0;
+        _retryCount = 0;
+        _currentRetryBackoffMs = 0;
+        _connectionPhase = "Idle";
+        _detailedStatusHint = "";
+        _routeHint = "Unknown";
+        _lastDisconnectReason = "";
+    }
+
+    private void RefreshConnectionDiagnostics()
+    {
+        if (_guestConnection != null)
+        {
+            CaptureConnectionDiagnostics(_guestConnection.Connection);
+            return;
+        }
+
+        if (_hostSocket != null && _hostSocket.Connected != null && _hostSocket.Connected.Count > 0)
+        {
+            var firstConnection = _hostSocket.Connected.FirstOrDefault();
+            if (firstConnection.Id != 0)
+                CaptureConnectionDiagnostics(firstConnection);
+            return;
+        }
+
+        if (_config.IsLocalHost)
+        {
+            _detailedStatusHint = "";
+            _routeHint = "Unknown";
+            return;
+        }
+
+        if (_nextGuestReconnectAtMs > P2PRelayDiagnosticsPackets.NowMs())
+            _connectionPhase = $"RetryPending#{Math.Max(1, _retryCount)}";
+    }
+
+    private void CaptureConnectionDiagnostics(Connection connection)
+    {
+        try
+        {
+            string detail = connection.DetailedStatus() ?? "";
+            _detailedStatusHint = CompactDetailedStatus(detail);
+            _routeHint = ResolveRouteHint(detail);
+        }
+        catch
+        {
+            _detailedStatusHint = "";
+            _routeHint = "Unknown";
+        }
+    }
+
+    private static int ResolveReconnectBackoffMs(int retryCount)
+    {
+        if (retryCount <= 0)
+            return 0;
+
+        int index = Math.Min(retryCount - 1, ReconnectBackoffMs.Length - 1);
+        return ReconnectBackoffMs[index];
+    }
+
+    private static string BuildDisconnectReason(ConnectionInfo info)
+    {
+        return $"State={info.State},Reason={info.EndReason}";
+    }
+
+    private static string CompactDetailedStatus(string detail)
+    {
+        if (string.IsNullOrWhiteSpace(detail))
+            return "";
+
+        var parts = detail
+            .Replace("\r\n", "\n")
+            .Split('\n')
+            .Select(x => x?.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Take(2)
+            .ToArray();
+        if (parts.Length <= 0)
+            return "";
+
+        string compact = string.Join(" | ", parts);
+        return compact.Length > 180 ? compact.Substring(0, 180) + "..." : compact;
+    }
+
+    private static string ResolveRouteHint(string detail)
+    {
+        if (string.IsNullOrWhiteSpace(detail))
+            return "Unknown";
+
+        string normalized = detail.ToLowerInvariant();
+        if (normalized.Contains("steam datagram relay")
+            || normalized.Contains(" sdr")
+            || normalized.Contains("relay"))
+        {
+            return "SDRLikely";
+        }
+
+        if (normalized.Contains("ice")
+            || normalized.Contains("direct")
+            || normalized.Contains("p2p"))
+        {
+            return "DirectLikely";
+        }
+
+        return "Unknown";
     }
 
     private void LogStateIfChanged(string source)
     {
         string signature =
             $"{source}|hosting={IsHosting}|connected={IsConnectedToHost}|running={IsRunning}|peers={ConnectedPeerCount}|" +
-            $"localHost={_config.IsLocalHost}|host={_config.HostSteamId64}|local={_config.LocalSteamId64}|err={LastError}";
+            $"localHost={_config.IsLocalHost}|host={_config.HostSteamId64}|local={_config.LocalSteamId64}|" +
+            $"phase={_connectionPhase}|retry={_retryCount}|err={LastError}|detail={_detailedStatusHint}";
         if (string.Equals(signature, _lastStateSignature, StringComparison.Ordinal))
             return;
 
@@ -449,7 +689,8 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         Debug.Log(
             $"[SteamP2P] State source={source} hosting={IsHosting} connectedToHost={IsConnectedToHost} running={IsRunning} " +
             $"peers={ConnectedPeerCount} localHost={_config.IsLocalHost} hostSteam={_config.HostSteamId64} " +
-            $"localSteam={_config.LocalSteamId64} nextReconnectAt={_nextGuestReconnectAtMs} err={LastError}");
+            $"localSteam={_config.LocalSteamId64} phase={_connectionPhase} attempts={_connectAttemptCount} retries={_retryCount} " +
+            $"nextReconnectAt={_nextGuestReconnectAtMs} routeHint={_routeHint} detail={_detailedStatusHint} err={LastError}");
     }
 
     private static SteamP2PTransportConfig CloneConfig(SteamP2PTransportConfig src)
@@ -491,6 +732,16 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
     private static SteamP2PConnectionStatsSnapshot BuildSnapshot(Connection connection)
     {
         var status = connection.QuickStatus();
+        string detailedStatus = "";
+        try
+        {
+            detailedStatus = connection.DetailedStatus() ?? "";
+        }
+        catch
+        {
+            detailedStatus = "";
+        }
+
         return new SteamP2PConnectionStatsSnapshot
         {
             IsAvailable = true,
@@ -504,7 +755,9 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
             PendingUnreliable = status.PendingUnreliable,
             PendingReliable = status.PendingReliable,
             SentUnackedReliable = status.SentUnackedReliable,
-            TransportDetail = ""
+            TransportDetail = CompactDetailedStatus(detailedStatus),
+            DetailedStatus = detailedStatus,
+            RouteHint = ResolveRouteHint(detailedStatus)
         };
     }
 
@@ -524,6 +777,8 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
         int pendingUnreliable = 0;
         int pendingReliable = 0;
         int sentUnackedReliable = 0;
+        string detailedStatus = "";
+        string routeHint = "Unknown";
 
         foreach (var connection in connections)
         {
@@ -539,6 +794,20 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
             pendingUnreliable = Math.Max(pendingUnreliable, status.PendingUnreliable);
             pendingReliable = Math.Max(pendingReliable, status.PendingReliable);
             sentUnackedReliable = Math.Max(sentUnackedReliable, status.SentUnackedReliable);
+
+            if (string.IsNullOrWhiteSpace(detailedStatus))
+            {
+                try
+                {
+                    detailedStatus = connection.DetailedStatus() ?? "";
+                    routeHint = ResolveRouteHint(detailedStatus);
+                }
+                catch
+                {
+                    detailedStatus = "";
+                    routeHint = "Unknown";
+                }
+            }
         }
 
         return new SteamP2PConnectionStatsSnapshot
@@ -554,7 +823,9 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
             PendingUnreliable = pendingUnreliable,
             PendingReliable = pendingReliable,
             SentUnackedReliable = sentUnackedReliable,
-            TransportDetail = $"Host aggregate over {count} peer(s)"
+            TransportDetail = $"Host aggregate over {count} peer(s)",
+            DetailedStatus = detailedStatus,
+            RouteHint = routeHint
         };
     }
 
@@ -599,6 +870,11 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
             Owner?.OnHostPeerDisconnected(connection, info);
         }
 
+        public override void OnConnected(Connection connection, ConnectionInfo info)
+        {
+            Owner?.OnHostPeerConnected(connection, info);
+        }
+
         public override void OnMessage(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
         {
             Owner?.RaiseIncomingFromGuest(ExtractSteamId64(identity), CopyPayload(data, size));
@@ -609,6 +885,16 @@ internal sealed class FacepunchSteamP2PClientTransport : ISteamP2PClientTranspor
     {
         public FacepunchSteamP2PClientTransport Owner { get; set; }
         public string ExpectedHostSteamId64 { get; set; } = "";
+
+        public override void OnConnecting(ConnectionInfo info)
+        {
+            Owner?.OnGuestConnecting(this, info);
+        }
+
+        public override void OnConnected(ConnectionInfo info)
+        {
+            Owner?.OnGuestConnected(this, info);
+        }
 
         public override void OnDisconnected(ConnectionInfo info)
         {

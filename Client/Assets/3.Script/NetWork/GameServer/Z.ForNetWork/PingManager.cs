@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using NetClient.Room.UI;
 using UnityEngine;
 using UnityEngine.Events;
 #if UNITY_EDITOR
@@ -283,6 +284,11 @@ public sealed class PingManager : MonoBehaviour
             AddSyncLine(
                 richLines,
                 plainLines,
+                $"Steam Phase: {relayBridge.SteamConnectionPhase} / route {relayBridge.SteamRouteHint}",
+                $"<color=#98fb98>Steam Phase:</color> {relayBridge.SteamConnectionPhase} / route {relayBridge.SteamRouteHint}");
+            AddSyncLine(
+                richLines,
+                plainLines,
                 $"Steam IDs: local {FormatDebugValue(relayBridge.LocalSteamId64)} / host {FormatDebugValue(relayBridge.HostSteamId64)}",
                 $"<color=#66d9ef>Steam IDs:</color> local {FormatDebugValue(relayBridge.LocalSteamId64)} / host {FormatDebugValue(relayBridge.HostSteamId64)}");
             AddSyncLine(
@@ -392,6 +398,33 @@ public sealed class PingManager : MonoBehaviour
                 plainLines,
                 $"Host Status: {relayBridge.HostPingStatus}",
                 $"<color=#ffd27f>Host Status:</color> {relayBridge.HostPingStatus}");
+
+            if (relayBridge.IsSteamTransport)
+            {
+                AddSyncLine(
+                    richLines,
+                    plainLines,
+                    $"Retry Timeline: start {FormatTimestamp(relayBridge.SteamInitialConnectAttemptAtMs)} / last {FormatTimestamp(relayBridge.SteamLastConnectAttemptAtMs)} / connected {FormatTimestamp(relayBridge.SteamConnectedAtMs)}",
+                    $"<color=#f8c291>Retry Timeline:</color> start {FormatTimestamp(relayBridge.SteamInitialConnectAttemptAtMs)} / last {FormatTimestamp(relayBridge.SteamLastConnectAttemptAtMs)} / connected {FormatTimestamp(relayBridge.SteamConnectedAtMs)}");
+                AddSyncLine(
+                    richLines,
+                    plainLines,
+                    $"Retry State: attempts {relayBridge.SteamConnectAttemptCount} / retries {relayBridge.SteamRetryCount} / nextBackoff {relayBridge.SteamRetryBackoffMs}ms",
+                    $"<color=#f6b93b>Retry State:</color> attempts {relayBridge.SteamConnectAttemptCount} / retries {relayBridge.SteamRetryCount} / nextBackoff {relayBridge.SteamRetryBackoffMs}ms");
+                AddSyncLine(
+                    richLines,
+                    plainLines,
+                    $"Fallback: {relayBridge.FallbackReason} / at {FormatTimestamp(relayBridge.FallbackActivatedAtMs)} / recovery {FormatTimestamp(relayBridge.RecoveryObservedAtMs)}",
+                    $"<color=#ff7675>Fallback:</color> {relayBridge.FallbackReason} / at {FormatTimestamp(relayBridge.FallbackActivatedAtMs)} / recovery {FormatTimestamp(relayBridge.RecoveryObservedAtMs)}");
+                if (!string.IsNullOrWhiteSpace(relayBridge.SteamDetailedStatusSnippet))
+                {
+                    AddSyncLine(
+                        richLines,
+                        plainLines,
+                        $"DetailedStatus: {relayBridge.SteamDetailedStatusSnippet}",
+                        $"<color=#74b9ff>DetailedStatus:</color> {relayBridge.SteamDetailedStatusSnippet}");
+                }
+            }
         }
 
         if (relayBridge != null && relayBridge.IsRelayMode)
@@ -422,6 +455,15 @@ public sealed class PingManager : MonoBehaviour
                 plainLines,
                 $"CandidateOrder: {relayBridge.HostCandidateOrderSummary}",
                 $"<color=#f0e68c>CandidateOrder:</color> {relayBridge.HostCandidateOrderSummary}");
+
+            var room = RoomUiController.ActiveInstance;
+            if (RoomNetworkDebugFormatter.HasWaitingRoomDetails(room))
+            {
+                AddSyncSection(richLines, plainLines, "[Selection Detail]", "<b><color=#c7f9cc>[Selection Detail]</color></b>");
+                var detailLines = RoomNetworkDebugFormatter.BuildDetailedReportLines(room, maxCandidates: 3, maxPairs: 4);
+                for (int i = 0; i < detailLines.Count; i++)
+                    AddSyncLine(richLines, plainLines, detailLines[i]);
+            }
         }
 
         AddSyncSection(richLines, plainLines, "[Steam Runtime]", "<b><color=#dda0dd>[Steam Runtime]</color></b>");
@@ -528,6 +570,11 @@ public sealed class PingManager : MonoBehaviour
             return "-";
 
         return $"{avg}ms avg (Last:{last} Max:{max})";
+    }
+
+    private static string FormatTimestamp(long value)
+    {
+        return value > 0 ? value.ToString() : "-";
     }
 
     private static string DescribeTransportPath(P2PRelayClientBridge relayBridge)

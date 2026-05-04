@@ -61,7 +61,8 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
 {
     private const int VirtualPort = 17;
     private const int PumpBatchSize = 8;
-    private const int ReconnectDelayMs = 1500;
+    private static readonly int[] ReconnectBackoffMs = { 150, 300, 600, 1200, 1500 };
+    private const int ConnectAttemptTimeoutMs = 900;
     private const int CloseReasonCode = 4917;
     private const string MeasurementSource = "steam_quick_status_pair_ping";
 
@@ -69,6 +70,7 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
     private ProbeHostSocket _hostSocket;
     private readonly Dictionary<string, ProbeGuestConnection> _guestConnections = new(StringComparer.Ordinal);
     private readonly Dictionary<string, long> _nextReconnectAtMsBySteamId = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _retryCountBySteamId = new(StringComparer.Ordinal);
 
     public void Configure(RoomSteamPairProbeConfig config)
     {
@@ -94,6 +96,8 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
 
             foreach (var connection in _guestConnections.Values.ToList())
                 connection.Receive(PumpBatchSize, true);
+
+            EvaluateGuestConnectTimeouts();
         }
         catch (Exception ex)
         {
@@ -108,6 +112,7 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
 
         _guestConnections.Clear();
         _nextReconnectAtMsBySteamId.Clear();
+        _retryCountBySteamId.Clear();
 
         if (_hostSocket == null)
             return;
@@ -153,7 +158,15 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
             return;
 
         _guestConnections.Remove(connection.PeerSteamId64);
-        _nextReconnectAtMsBySteamId[connection.PeerSteamId64] = NowMs() + ReconnectDelayMs;
+        ScheduleReconnect(connection.PeerSteamId64);
+    }
+
+    private void OnGuestConnected(ProbeGuestConnection connection, ConnectionInfo info)
+    {
+        if (connection == null || string.IsNullOrWhiteSpace(connection.PeerSteamId64))
+            return;
+
+        _retryCountBySteamId[connection.PeerSteamId64] = 0;
     }
 
     private static RoomSteamPairProbeConfig CloneConfig(RoomSteamPairProbeConfig config)
@@ -298,23 +311,28 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
             connection.PeerUid = peer.Uid ?? "";
             connection.PeerSteamId64 = peer.SteamId64 ?? "";
             connection.ConnectionName = $"RoomProbe:{_config.RoomId}:{_config.LocalSteamId64}->{peer.SteamId64}";
+            connection.ConnectAttemptAtMs = NowMs();
             _guestConnections[peer.SteamId64] = connection;
             _nextReconnectAtMsBySteamId.Remove(peer.SteamId64);
         }
         catch (Exception ex)
         {
-            _nextReconnectAtMsBySteamId[peer.SteamId64] = NowMs() + ReconnectDelayMs;
+            ScheduleReconnect(peer.SteamId64);
             Debug.LogWarning($"[RoomSteamPairProbe] Failed to connect to peer={peer.SteamId64}: {ex.Message}");
         }
     }
 
-    private void CloseGuestConnection(string peerSteamId64, string reason)
+    private void CloseGuestConnection(string peerSteamId64, string reason, bool scheduleReconnect = false)
     {
         if (string.IsNullOrWhiteSpace(peerSteamId64))
             return;
 
         if (!_guestConnections.TryGetValue(peerSteamId64, out var connection) || connection == null)
+        {
+            if (scheduleReconnect)
+                ScheduleReconnect(peerSteamId64);
             return;
+        }
 
         try
         {
@@ -327,6 +345,8 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
         finally
         {
             _guestConnections.Remove(peerSteamId64);
+            if (scheduleReconnect)
+                ScheduleReconnect(peerSteamId64);
         }
     }
 
@@ -364,6 +384,16 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
         if (status.Ping <= 0)
             return false;
 
+        string detail = "";
+        try
+        {
+            detail = connection.DetailedStatus() ?? "";
+        }
+        catch
+        {
+            detail = "";
+        }
+
         measurement = new MeasuredSteamPairState
         {
             peerUid = peer.Uid ?? "",
@@ -373,9 +403,75 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
             connectionQualityRemote = status.ConnectionQualityRemote,
             connected = true,
             reportedAtMs = nowMs,
-            source = MeasurementSource
+            source = string.IsNullOrWhiteSpace(detail)
+                ? MeasurementSource
+                : $"{MeasurementSource}:{ResolveRouteHint(detail)}"
         };
         return true;
+    }
+
+    private void EvaluateGuestConnectTimeouts()
+    {
+        long nowMs = NowMs();
+        foreach (var pair in _guestConnections.ToList())
+        {
+            var connection = pair.Value;
+            if (connection == null || connection.Connected)
+                continue;
+
+            if (connection.ConnectAttemptAtMs <= 0)
+                continue;
+
+            if (Math.Max(0L, nowMs - connection.ConnectAttemptAtMs) < ConnectAttemptTimeoutMs)
+                continue;
+
+            CloseGuestConnection(pair.Key, "ConnectAttemptTimeout", scheduleReconnect: true);
+        }
+    }
+
+    private void ScheduleReconnect(string peerSteamId64)
+    {
+        if (string.IsNullOrWhiteSpace(peerSteamId64))
+            return;
+
+        int retryCount = 1;
+        if (_retryCountBySteamId.TryGetValue(peerSteamId64, out var existingRetryCount))
+            retryCount = existingRetryCount + 1;
+
+        _retryCountBySteamId[peerSteamId64] = retryCount;
+        _nextReconnectAtMsBySteamId[peerSteamId64] = NowMs() + ResolveReconnectBackoffMs(retryCount);
+    }
+
+    private static int ResolveReconnectBackoffMs(int retryCount)
+    {
+        if (retryCount <= 0)
+            return 0;
+
+        int index = Math.Min(retryCount - 1, ReconnectBackoffMs.Length - 1);
+        return ReconnectBackoffMs[index];
+    }
+
+    private static string ResolveRouteHint(string detail)
+    {
+        if (string.IsNullOrWhiteSpace(detail))
+            return "Unknown";
+
+        string normalized = detail.ToLowerInvariant();
+        if (normalized.Contains("steam datagram relay")
+            || normalized.Contains(" sdr")
+            || normalized.Contains("relay"))
+        {
+            return "SDRLikely";
+        }
+
+        if (normalized.Contains("ice")
+            || normalized.Contains("direct")
+            || normalized.Contains("p2p"))
+        {
+            return "DirectLikely";
+        }
+
+        return "Unknown";
     }
 
     private static long NowMs()
@@ -431,6 +527,12 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
         public FacepunchRoomSteamPairProbeService Owner { get; set; }
         public string PeerUid { get; set; } = "";
         public string PeerSteamId64 { get; set; } = "";
+        public long ConnectAttemptAtMs { get; set; }
+
+        public override void OnConnected(ConnectionInfo info)
+        {
+            Owner?.OnGuestConnected(this, info);
+        }
 
         public override void OnDisconnected(ConnectionInfo info)
         {

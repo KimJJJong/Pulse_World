@@ -85,12 +85,16 @@ public static class WaitingRoomHostSelectionV1Calculator
         foreach (var candidateUid in allMembers)
             candidates.Add(EvaluateCandidate(room, candidateUid, participatingMembers, stateByUid, nowMs));
 
+        ApplyV2EligibilityAdjustments(room, candidates, participatingMembers.Count);
+
+        int expectedPeerCount = Math.Max(0, participatingMembers.Count - 1);
+
         var sortedCandidates = candidates
             .OrderBy(x => x.IsEligible ? 0 : 1)
             .ThenBy(x => x.CandidateCost)
-            .ThenBy(x => x.ServerRelayPairCount)
+            .ThenBy(x => ComputePairRatio(x.ServerRelayPairCount, expectedPeerCount))
+            .ThenByDescending(x => x.MeasuredSteamPairCount)
             .ThenBy(x => x.WorstPairCost)
-            .ThenBy(x => x.HostCapacityPenalty)
             .ThenBy(x => string.Equals(x.Uid, room.OwnerUid, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -145,7 +149,7 @@ public static class WaitingRoomHostSelectionV1Calculator
         if (candidateState == null)
         {
             summary.DisqualifiedReasons.Add("MissingState");
-            return FinalizeCandidate(summary, pairCosts: Array.Empty<float>(), pairRtts: Array.Empty<int>());
+            return FinalizeCandidate(summary, pairCosts: Array.Empty<float>(), pairRtts: Array.Empty<int>(), expectedPeerCount: participatingMembers.Count - 1);
         }
 
         if (!HasFreshHostSelectionReport(candidateState, nowMs))
@@ -153,6 +157,9 @@ public static class WaitingRoomHostSelectionV1Calculator
 
         if (GetP95FrameMs(candidateState) > 33f)
             summary.DisqualifiedReasons.Add("FrameBudgetExceeded");
+
+        if (room.UseP2PRelay && !summary.SteamReady)
+            summary.DisqualifiedReasons.Add("SteamNotReady");
 
         var pairCosts = new List<float>();
         var pairRtts = new List<int>();
@@ -195,13 +202,14 @@ public static class WaitingRoomHostSelectionV1Calculator
 
         summary.UsesPartialProxyMetrics = usedPartialEstimate;
 
-        return FinalizeCandidate(summary, pairCosts, pairRtts);
+        return FinalizeCandidate(summary, pairCosts, pairRtts, participatingMembers.Count - 1);
     }
 
     private static WaitingRoomHostSelectionCandidateDto FinalizeCandidate(
         WaitingRoomHostSelectionCandidateDto summary,
         IReadOnlyList<float> pairCosts,
-        IReadOnlyList<int> pairRtts)
+        IReadOnlyList<int> pairRtts,
+        int expectedPeerCount)
     {
         summary.HostCapacityPenalty = CalculateHostCapacityPenalty(summary.P95FrameMs, summary.AvgFrameMs);
 
@@ -216,16 +224,65 @@ public static class WaitingRoomHostSelectionV1Calculator
             return summary;
         }
 
+        float relayPenalty = ComputePairRatio(summary.ServerRelayPairCount, expectedPeerCount);
+        float proxyPenalty = ComputePairRatio(summary.ProxySteamPairCount, expectedPeerCount);
         summary.AveragePairCost = pairCosts.Average();
         summary.WorstPairCost = pairCosts.Max();
         summary.AveragePairRttMs = (int)Math.Round(pairRtts.Average());
         summary.WorstPairRttMs = pairRtts.Max();
         summary.CandidateCost =
-            (0.70f * summary.AveragePairCost) +
+            (0.45f * summary.AveragePairCost) +
             (0.20f * summary.WorstPairCost) +
+            (0.15f * relayPenalty) +
+            (0.10f * proxyPenalty) +
             (0.10f * summary.HostCapacityPenalty);
         summary.IsEligible = summary.DisqualifiedReasons.Count == 0;
         return summary;
+    }
+
+    private static void ApplyV2EligibilityAdjustments(
+        WaitingRoomDto room,
+        IReadOnlyList<WaitingRoomHostSelectionCandidateDto> candidates,
+        int participatingMemberCount)
+    {
+        if (candidates == null || candidates.Count <= 0)
+            return;
+
+        int expectedPeerCount = Math.Max(0, participatingMemberCount - 1);
+        int requiredMeasuredCoverage = ComputeRequiredCoverage(expectedPeerCount);
+        bool hasStrongMeasuredCandidate = candidates.Any(x =>
+            x != null
+            && x.MeasuredSteamPairCount >= requiredMeasuredCoverage
+            && !HasDisqualifyingStateForMeasuredPreference(x));
+
+        foreach (var candidate in candidates)
+        {
+            if (candidate == null)
+                continue;
+
+            if (room.UseP2PRelay
+                && hasStrongMeasuredCandidate
+                && candidate.MeasuredSteamPairCount <= 0
+                && candidate.ServerRelayPairCount >= requiredMeasuredCoverage
+                && !candidate.DisqualifiedReasons.Contains("RelayHeavyCandidate"))
+            {
+                candidate.DisqualifiedReasons.Add("RelayHeavyCandidate");
+            }
+
+            candidate.IsEligible = candidate.DisqualifiedReasons.Count == 0;
+        }
+    }
+
+    private static bool HasDisqualifyingStateForMeasuredPreference(WaitingRoomHostSelectionCandidateDto candidate)
+    {
+        if (candidate == null || candidate.DisqualifiedReasons == null || candidate.DisqualifiedReasons.Count <= 0)
+            return false;
+
+        return candidate.DisqualifiedReasons.Any(reason =>
+            string.Equals(reason, "MissingState", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(reason, "SelectionReportStale", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(reason, "FrameBudgetExceeded", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(reason, "SteamNotReady", StringComparison.OrdinalIgnoreCase));
     }
 
     private static HostSelectionPairEvaluation EvaluatePair(
@@ -574,6 +631,14 @@ public static class WaitingRoomHostSelectionV1Calculator
         return Math.Max(
             Math.Max(state.HostSelectionReportedAtMs, state.HostProbeReportedAtMs),
             latestPairReportedAtMs);
+    }
+
+    private static float ComputePairRatio(int pairCount, int expectedPeerCount)
+    {
+        if (expectedPeerCount <= 0)
+            return 0f;
+
+        return Clamp01(pairCount / (float)expectedPeerCount);
     }
 
     private static float Clamp01(float value)

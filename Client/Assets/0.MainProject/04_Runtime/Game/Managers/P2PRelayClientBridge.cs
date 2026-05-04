@@ -50,6 +50,17 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     public bool IsSteamTransportConnectedToHost => _steamTransport?.IsConnectedToHost ?? false;
     public int SteamConnectedPeerCount => _steamTransport?.ConnectedPeerCount ?? 0;
     public string TransportLastError => _steamTransport?.LastError ?? "";
+    public string SteamConnectionPhase => _steamTransport?.ConnectionPhase ?? "-";
+    public string SteamRouteHint => _steamTransport?.RouteHint ?? "Unknown";
+    public string SteamDetailedStatusSnippet => _steamTransport?.DetailedStatusHint ?? "";
+    public string SteamLastDisconnectReason => _steamTransport?.LastDisconnectReason ?? "";
+    public long SteamInitialConnectAttemptAtMs => _steamTransport?.InitialConnectAttemptAtMs ?? 0L;
+    public long SteamLastConnectAttemptAtMs => _steamTransport?.LastConnectAttemptAtMs ?? 0L;
+    public long SteamConnectedAtMs => _steamTransport?.LastConnectedAtMs ?? 0L;
+    public long SteamNextReconnectAtMs => _steamTransport?.NextReconnectAtMs ?? 0L;
+    public int SteamConnectAttemptCount => _steamTransport?.ConnectAttemptCount ?? 0;
+    public int SteamRetryCount => _steamTransport?.RetryCount ?? 0;
+    public int SteamRetryBackoffMs => _steamTransport?.CurrentRetryBackoffMs ?? 0;
     public bool HasTransportPairStats => _transportPairStats.IsAvailable;
     public int TransportPairPingMs => _transportPairStats.IsAvailable ? _transportPairStats.PingMs : -1;
     public int TransportPendingReliableBytes => _transportPairStats.PendingReliable;
@@ -57,6 +68,11 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     public int TransportSentUnackedReliableBytes => _transportPairStats.SentUnackedReliable;
     public float TransportConnectionQualityLocal => _transportPairStats.ConnectionQualityLocal;
     public float TransportConnectionQualityRemote => _transportPairStats.ConnectionQualityRemote;
+    public string TransportPairRouteHint => _transportPairStats.RouteHint ?? "Unknown";
+    public string TransportPairDetail => _transportPairStats.TransportDetail ?? "";
+    public long FallbackActivatedAtMs => _fallbackActivatedAtMs;
+    public long RecoveryObservedAtMs => _recoveryObservedAtMs;
+    public string FallbackReason => _fallbackReason ?? "None";
     public long GameplayLastStartRttMs => _gameplayLastStartRttMs;
     public long GameplayAvgStartRttMs => _gameplayAvgStartRttMs;
     public long GameplayMaxStartRttMs => _gameplayMaxStartRttMs;
@@ -96,7 +112,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             if (IsSteamTransport)
                 return IsSteamTransportConnectedToHost
                     ? "GuestConnectedToHost"
-                    : "GuestWaitingSteamLink";
+                    : $"GuestWaitingSteamLink({SteamConnectionPhase})";
 
             return "GuestViaServerRelay";
         }
@@ -183,7 +199,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             if (IsSteamTransportConnectedToHost)
                 return "Connected to host";
 
-            return IsSteamTransportRunning ? "Connecting to host" : "Waiting transport";
+            return IsSteamTransportRunning ? SteamConnectionPhase : "Waiting transport";
         }
     }
 
@@ -219,6 +235,10 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
     [SerializeField, ReadOnly] long _gameplayAvgResultRttMs;
     [SerializeField, ReadOnly] long _gameplayMaxResultRttMs;
     [SerializeField, ReadOnly] string _gameplayTelemetryStatus = "Idle";
+    [Header("Retry / Fallback Timeline")]
+    [SerializeField, ReadOnly] long _fallbackActivatedAtMs;
+    [SerializeField, ReadOnly] long _recoveryObservedAtMs;
+    [SerializeField, ReadOnly] string _fallbackReason = "None";
 
     private const float HostPingEmaAlpha = 0.2f;
     private const float GameplayTelemetryEmaAlpha = 0.2f;
@@ -298,6 +318,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         ApplyManifest(manifest);
 
         _transportMode = ResolveTransportMode(ticketKey, manifest);
+        ResetTransportFallbackTimeline();
         if (IsSteamTransport)
             RelayKey = !string.IsNullOrWhiteSpace(manifest?.MatchId)
                 ? $"steam:{manifest.MatchId}"
@@ -348,6 +369,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         _uidBySteamId.Clear();
         _steamTransport?.Stop();
         _lastHostStateLogSignature = "";
+        ResetTransportFallbackTimeline();
 
         if (P2PHostController.HasInstance)
             P2PHostController.Instance.ResetForMatchEnd();
@@ -462,6 +484,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             StopHostPingLoop();
             ResetHostPingStats();
             ResetGameplayTelemetry();
+            ResetTransportFallbackTimeline();
         }
 
         HostActorId = nextHostActorId;
@@ -691,6 +714,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         _transportPendingReliable = _transportPairStats.PendingReliable;
         _transportPendingUnreliable = _transportPairStats.PendingUnreliable;
         _transportSentUnackedReliable = _transportPairStats.SentUnackedReliable;
+        MarkSteamRecoveryObserved();
     }
 
     private void ResetTransportPairStats()
@@ -702,6 +726,34 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         _transportPendingReliable = 0;
         _transportPendingUnreliable = 0;
         _transportSentUnackedReliable = 0;
+    }
+
+    private void ResetTransportFallbackTimeline()
+    {
+        _fallbackActivatedAtMs = 0L;
+        _recoveryObservedAtMs = 0L;
+        _fallbackReason = "None";
+    }
+
+    private void MarkRelayFallback(string reason)
+    {
+        if (!IsSteamTransport)
+            return;
+
+        long nowMs = P2PRelayDiagnosticsPackets.NowMs();
+        if (_fallbackActivatedAtMs <= 0)
+            _fallbackActivatedAtMs = nowMs;
+
+        _fallbackReason = string.IsNullOrWhiteSpace(reason) ? "SteamFallback" : reason;
+    }
+
+    private void MarkSteamRecoveryObserved()
+    {
+        if (!IsSteamTransport || !IsSteamTransportConnectedToHost || _fallbackActivatedAtMs <= 0)
+            return;
+
+        if (_recoveryObservedAtMs <= 0)
+            _recoveryObservedAtMs = P2PRelayDiagnosticsPackets.NowMs();
     }
 
     private void ResetGameplayTelemetry()
@@ -836,10 +888,10 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
                 $"[P2PTransport] SteamRecv dir=GuestToHost senderSteam={payload.SenderSteamId64} senderActor={senderActorId} " +
                 $"protocol={FormatPacketProtocol(protocol)} bytes={payload.PayloadBytes.Length} {FormatBridgeContext()}");
         }
-        HandleIncomingGuestPayloadBytes(senderActorId, payload.PayloadBytes);
+        HandleIncomingGuestPayloadBytes(senderActorId, payload.PayloadBytes, payload.SenderSteamId64);
     }
 
-    private void HandleIncomingGuestPayloadBytes(int senderActorId, byte[] payloadBytes)
+    private void HandleIncomingGuestPayloadBytes(int senderActorId, byte[] payloadBytes, string senderSteamId64 = "")
     {
         if (!IsP2PMode || payloadBytes == null || payloadBytes.Length == 0)
             return;
@@ -850,9 +902,23 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         ushort protocol = PeekPacketProtocol(payloadBytes);
         if (senderActorId <= 0)
         {
+            if (TryResolveGuestActorIdFromPayload(payloadBytes, out var fallbackActorId))
+            {
+                senderActorId = fallbackActorId;
+                if (P2PDebugConfig.TraceHostFlow)
+                {
+                    Debug.LogWarning(
+                        $"[P2PRelayClientBridge] Guest actor resolved from payload fallback. " +
+                        $"steam={senderSteamId64} actor={senderActorId} protocol={FormatPacketProtocol(protocol)} {FormatBridgeContext()}");
+                }
+            }
+        }
+
+        if (senderActorId <= 0)
+        {
             Debug.LogWarning(
                 $"[P2PRelayClientBridge] Drop guest payload because sender actor could not be resolved. " +
-                $"protocol={FormatPacketProtocol(protocol)} bytes={payloadBytes.Length} {FormatBridgeContext()}");
+                $"steam={senderSteamId64} protocol={FormatPacketProtocol(protocol)} bytes={payloadBytes.Length} {FormatBridgeContext()}");
             return;
         }
 
@@ -868,6 +934,32 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             SenderActorId = senderActorId,
             Payload = Convert.ToBase64String(payloadBytes)
         });
+    }
+
+    private static bool TryResolveGuestActorIdFromPayload(byte[] payloadBytes, out int actorId)
+    {
+        actorId = 0;
+        if (payloadBytes == null || payloadBytes.Length < 4)
+            return false;
+
+        ushort protocol = PeekPacketProtocol(payloadBytes);
+        if (protocol != (ushort)PacketID.CS_ActionRequest)
+            return false;
+
+        try
+        {
+            var request = new CS_ActionRequest();
+            request.Read(new ArraySegment<byte>(payloadBytes));
+            actorId = request.ActorId;
+            return actorId > 0;
+        }
+        catch (Exception ex)
+        {
+            if (P2PDebugConfig.TraceHostFlow)
+                Debug.LogWarning($"[P2PRelayClientBridge] Failed to resolve guest actor from payload: {ex.Message}");
+            actorId = 0;
+            return false;
+        }
     }
 
     private void HandleIncomingHostPayloadBytes(byte[] payloadBytes)
@@ -1245,6 +1337,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         {
             if (P2PDebugConfig.LogOverheadEnabled)
                 Debug.LogWarning($"[P2PTransport] Steam config unavailable. {FormatBridgeContext()}");
+            MarkRelayFallback("SteamConfigUnavailable");
             _steamTransport.Stop();
             return;
         }
@@ -1461,10 +1554,14 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
                     $"sentPeers={sent} connectedPeers={SteamConnectedPeerCount} {FormatBridgeContext()}");
             }
             if (sent > 0)
+            {
+                MarkSteamRecoveryObserved();
                 return true;
+            }
 
             if (P2PDebugConfig.TraceHostFlow)
                 Debug.LogWarning("[P2PRelayClientBridge] Steam host broadcast had no connected guest. Falling back to relay.");
+            MarkRelayFallback("HostBroadcastNoConnectedSteamPeer");
             return false;
         }
 
@@ -1477,11 +1574,32 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         }
 
         if (success)
+        {
+            MarkSteamRecoveryObserved();
             return true;
+        }
 
         if (P2PDebugConfig.TraceHostFlow)
             Debug.LogWarning($"[P2PRelayClientBridge] Steam send to host failed host={HostSteamId64}. Falling back to relay.");
+        MarkRelayFallback(ResolveSteamFallbackReason());
         return false;
+    }
+
+    private string ResolveSteamFallbackReason()
+    {
+        if (_steamTransport == null)
+            return "TransportMissing";
+
+        if (!IsSteamTransportConnectedToHost)
+            return $"SteamGuestNotConnected:{SteamConnectionPhase}";
+
+        if (!string.IsNullOrWhiteSpace(_steamTransport.LastError))
+            return $"SteamSendFailed:{_steamTransport.LastError}";
+
+        if (!string.IsNullOrWhiteSpace(_steamTransport.LastDisconnectReason))
+            return $"SteamDisconnected:{_steamTransport.LastDisconnectReason}";
+
+        return "SteamSendFailed";
     }
 
     private void SendViaServerRelay(ArraySegment<byte> segment)
