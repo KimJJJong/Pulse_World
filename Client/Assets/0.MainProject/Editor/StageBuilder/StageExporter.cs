@@ -7,6 +7,9 @@ namespace RhythmRPG.Editor.StageBuilder
 {
     public static class StageExporter
     {
+        private const string ClientStageJsonFolder = "Resources/Data/Stage";
+        private const string ServerStageJsonRelativePath = "../Server/GameServer/Content/01.Game/Stage/Json";
+
         public static void Export(StageDataSO stage)
         {
             if (stage == null || string.IsNullOrEmpty(stage.MapId))
@@ -164,24 +167,29 @@ namespace RhythmRPG.Editor.StageBuilder
             }
 
             string finalJson = JsonUtility.ToJson(dto, true);
-            
-            // Save to Server Path
-            string projectRoot = System.IO.Directory.GetParent(Application.dataPath).FullName; 
-            string serverPath = System.IO.Path.Combine(projectRoot, "../Server/GameServer/Content/01.Game/Stage/Json"); 
-            
-            serverPath = System.IO.Path.GetFullPath(serverPath);
 
-            if (!Directory.Exists(serverPath))
-            {
-                try { Directory.CreateDirectory(serverPath); }
-                catch { serverPath = "Assets/Resources/Data/Stage"; }
-            }
+            string clientRuntimePath = Path.Combine(Application.dataPath, ClientStageJsonFolder, $"{stage.MapId}.json");
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string serverPath = Path.GetFullPath(
+                Path.Combine(projectRoot, ServerStageJsonRelativePath, $"{stage.MapId}.json"));
 
-            string fullPath = $"{serverPath}/{stage.MapId}.json";
-            File.WriteAllText(fullPath, finalJson);
+            ExportToFile(clientRuntimePath, finalJson);
+            ExportToFile(serverPath, finalJson);
 
             AssetDatabase.Refresh();
-            Debug.Log($"<b>[StageExporter]</b> Exported to {fullPath}");
+            Debug.Log($"<b>[StageExporter]</b> Exported to runtime and server paths for '{stage.MapId}'.");
+        }
+
+        private static void ExportToFile(string path, string content)
+        {
+            string dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            File.WriteAllText(path, content);
+            Debug.Log($"<b>[StageExporter]</b> Exported to {path}");
         }
         
         // --- DTO Definition (Mirrors Server) ---

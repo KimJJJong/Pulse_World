@@ -5,6 +5,8 @@ using UnityEngine;
 
 public sealed class MapPainterWindow : EditorWindow
 {
+    private const string DefaultMapAssetFolder = "Assets/Resources/Data/Map";
+
     private MapAsset _map;
     private TileKind _paintKind = TileKind.Floor;
     private int _paintVariant = 0;
@@ -38,9 +40,14 @@ public sealed class MapPainterWindow : EditorWindow
         if (EditorGUI.EndChangeCheck() && _map != null)
             _map.EnsureSize();
 
+        if (GUILayout.Button("New Map Asset"))
+        {
+            CreateNewMapAsset();
+        }
+
         if (_map == null)
         {
-            EditorGUILayout.HelpBox("MapAsset을 만들고(우클릭 Create/Game/Map/MapAsset) 여기 넣어줘.", MessageType.Info);
+            EditorGUILayout.HelpBox("MapAsset을 만들고 여기 넣어줘. 새로 만들면 Resources/Data/Map 경로로 바로 저장됩니다.", MessageType.Info);
             return;
         }
 
@@ -308,6 +315,29 @@ public sealed class MapPainterWindow : EditorWindow
             EditorGUILayout.LabelField("Next Step", EditorStyles.boldLabel);
             EditorGUILayout.LabelField("이 MapAsset을 JSON으로 Export 해서 서버(Map2D)에서 로드하면 끝.");
         }
+    }
+
+    private void CreateNewMapAsset()
+    {
+        string path = EditorUtility.SaveFilePanelInProject(
+            "Create New Map Asset",
+            "NewMap",
+            "asset",
+            "Save Map Asset",
+            DefaultMapAssetFolder);
+        if (string.IsNullOrEmpty(path))
+        {
+            return;
+        }
+
+        var asset = CreateInstance<MapAsset>();
+        asset.EnsureSize();
+        AssetDatabase.CreateAsset(asset, path);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
+        _map = asset;
+        EditorGUIUtility.PingObject(asset);
     }
 }
 #endif

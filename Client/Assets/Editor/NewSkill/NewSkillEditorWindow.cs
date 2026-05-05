@@ -8,6 +8,9 @@ using GameShared.Data;
 
 public class NewSkillEditorWindow : EditorWindow
 {
+    private const string DefaultSkillAssetFolder = "Assets/Resources/Data/NewSkills";
+    private const string ServerSkillJsonRelativePath = "../Server/GameServer/Content/01.Game/Skill/Json";
+
     [SerializeField]
     private NewSkillSO _currentAsset;
     private Vector2 _mainScrollPos;
@@ -46,7 +49,7 @@ public class NewSkillEditorWindow : EditorWindow
                 EditorGUILayout.HelpBox("Please select a NewSkillSO to begin.", MessageType.Info);
                 if (GUILayout.Button("Create New Asset"))
                 {
-                    // Simple helper to create asset if needed (optional)
+                    CreateNewSkillAsset();
                 }
                 return;
             }
@@ -91,6 +94,11 @@ public class NewSkillEditorWindow : EditorWindow
         using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
         {
             _currentAsset = (NewSkillSO)EditorGUILayout.ObjectField(_currentAsset, typeof(NewSkillSO), false, GUILayout.Width(200));
+
+            if (GUILayout.Button("New Skill Asset", EditorStyles.toolbarButton))
+            {
+                CreateNewSkillAsset();
+            }
             
             GUILayout.FlexibleSpace();
 
@@ -112,31 +120,54 @@ public class NewSkillEditorWindow : EditorWindow
         }
     }
 
+    private void CreateNewSkillAsset()
+    {
+        string path = EditorUtility.SaveFilePanelInProject(
+            "Create New Skill Asset",
+            "NewSkill",
+            "asset",
+            "Save New Skill Asset",
+            DefaultSkillAssetFolder);
+
+        if (string.IsNullOrEmpty(path))
+        {
+            return;
+        }
+
+        string skillId = System.IO.Path.GetFileNameWithoutExtension(path);
+        var asset = CreateInstance<NewSkillSO>();
+        asset.Data.SkillId = skillId;
+        AssetDatabase.CreateAsset(asset, path);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
+        _currentAsset = asset;
+        EditorGUIUtility.PingObject(asset);
+    }
+
     private void ExportSkillToJson(NewSkillSO so)
     {
         if (so == null || so.Data == null) return;
-        
-        string fileName = $"{so.Data.SkillId ?? "Unknown"}.json";
-        
-        string projectRoot = System.IO.Directory.GetParent(Application.dataPath).FullName; // .../Client
-        string serverPath = System.IO.Path.Combine(projectRoot, "../Server/GameServer/Content/01.Game/Skill/Json");
-        serverPath = System.IO.Path.GetFullPath(serverPath);
 
-        if (!System.IO.Directory.Exists(serverPath))
+        string skillId = string.IsNullOrWhiteSpace(so.Data.SkillId) ? so.name : so.Data.SkillId;
+        so.Data.SkillId = skillId;
+        EditorUtility.SetDirty(so);
+
+        string projectRoot = System.IO.Directory.GetParent(Application.dataPath).FullName; // .../Client
+        string serverPath = System.IO.Path.GetFullPath(
+            System.IO.Path.Combine(projectRoot, ServerSkillJsonRelativePath, $"{skillId}.json"));
+        string directory = System.IO.Path.GetDirectoryName(serverPath);
+        if (!string.IsNullOrEmpty(directory) && !System.IO.Directory.Exists(directory))
         {
-            try { System.IO.Directory.CreateDirectory(serverPath); }
-            catch { serverPath = "Assets/Export/Skill"; }
+            System.IO.Directory.CreateDirectory(directory);
         }
 
-        string path = EditorUtility.SaveFilePanel("Export Skill JSON", serverPath, fileName, "json");
-        
-        if (string.IsNullOrEmpty(path)) return;
-
         var settings = BatchDataExporter.GetJsonSettings();
-
         string json = Newtonsoft.Json.JsonConvert.SerializeObject(so.Data, settings);
-        System.IO.File.WriteAllText(path, json);
-        UnityEngine.Debug.Log($"Exported to {path}");
+        System.IO.File.WriteAllText(serverPath, json);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        UnityEngine.Debug.Log($"[SkillEditor] Exported to {serverPath}");
     }
 
     // ------------------------------------------------------------------------

@@ -8,6 +8,8 @@ namespace RhythmRPG.Editor.StageBuilder
 {
     public class StageEditorWindow : EditorWindow
     {
+        private const string DefaultStageAssetFolder = "Assets/Resources/Data/StageAssets";
+
         private StageDataSO _currentStage;
         private Vector2 _scrollPos;
         private readonly BoxBoundsHandle _boundsHandle = new BoxBoundsHandle();
@@ -1005,18 +1007,26 @@ namespace RhythmRPG.Editor.StageBuilder
 
         private void CreateNewStageData()
         {
-            string path = EditorUtility.SaveFilePanelInProject("Create New Stage Data", "NewStage", "asset", "Save Stage Data");
+            string path = EditorUtility.SaveFilePanelInProject(
+                "Create New Stage Data",
+                "NewStage",
+                "asset",
+                "Save Stage Data",
+                DefaultStageAssetFolder);
             if (string.IsNullOrEmpty(path))
             {
                 return;
             }
 
+            string stageId = System.IO.Path.GetFileNameWithoutExtension(path);
             var newData = CreateInstance<StageDataSO>();
+            newData.MapId = stageId;
             AssetDatabase.CreateAsset(newData, path);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             _currentStage = newData;
+            EditorGUIUtility.PingObject(newData);
         }
 
         private static void DrawLine()

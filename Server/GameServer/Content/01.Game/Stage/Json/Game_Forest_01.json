@@ -83,6 +83,43 @@
             ],
             "Actions": [
                 {
+                    "Type": "SpawnMonster",
+                    "ParamId": 1010,
+                    "X": 22,
+                    "Y": 0,
+                    "Z": 14,
+                    "StringVal": "Base_Test_P",
+                    "GroupId": 20
+                },
+                {
+                    "Type": "SpawnMonster",
+                    "ParamId": 1012,
+                    "X": 22,
+                    "Y": 0,
+                    "Z": 4,
+                    "StringVal": "Enemy_EvilMage",
+                    "GroupId": 20
+                }
+            ]
+        },
+        {
+            "EventId": 3,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "AreaEnter",
+                    "TargetId": 0,
+                    "Count": 0,
+                    "Area": {
+                        "X": 34,
+                        "Y": 1,
+                        "W": 4,
+                        "H": 5
+                    }
+                }
+            ],
+            "Actions": [
+                {
                     "Type": "ReturnToTown",
                     "ParamId": 0,
                     "X": 0,

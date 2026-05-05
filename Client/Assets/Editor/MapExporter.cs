@@ -6,6 +6,8 @@ using UnityEngine;
 
 public static class MapExportUtility
 {
+    private const string ServerMapJsonRelativePath = "../Server/GameServer/Content/01.Game/Map/Json";
+
     [MenuItem("RhythmRPG/Editors/World/Export MapAsset to JSON", true)]
     private static bool Validate()
         => Selection.activeObject is MapAsset;
@@ -14,18 +16,14 @@ public static class MapExportUtility
     private static void ExportSelected()
     {
         var asset = (MapAsset)Selection.activeObject;
-
-        // 저장 경로 선택
-        var defaultName = $"{asset.name}.json";
-        var path = EditorUtility.SaveFilePanel(
-            title: "Export Map JSON",
-            directory: Application.dataPath,
-            defaultName: defaultName,
-            extension: "json"
-        );
-
-        if (string.IsNullOrWhiteSpace(path))
-            return;
+        string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        string path = Path.GetFullPath(
+            Path.Combine(projectRoot, ServerMapJsonRelativePath, $"{asset.name}.json"));
+        string dir = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
 
         var jsonObj = new MapJson
         {

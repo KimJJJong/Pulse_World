@@ -6,6 +6,10 @@ using Client.Data;
 
 public class PatternEditorWindow : EditorWindow
 {
+    private const string DefaultPatternAssetFolder = "Assets/Resources/Data/PatternSets";
+    private const string ClientPatternJsonFolder = "Resources/Data/Patterns";
+    private const string ServerPatternJsonRelativePath = "../Server/GameServer/Content/01.Game/Pattern/Json";
+
     [MenuItem("RhythmRPG/Editors/Content/Pattern Editor")]
     public static void OpenWindow()
     {
@@ -353,24 +357,39 @@ public class PatternEditorWindow : EditorWindow
     private void ExportPatternToJson(MonsterPatternSO so)
     {
         if (so == null || so.Data == null) return;
-        string fileName   = $"{so.Data.MonsterType ?? "Unknown"}.json";
-        string projectRoot = System.IO.Directory.GetParent(Application.dataPath).FullName;
-        string serverPath  = System.IO.Path.GetFullPath(
-            System.IO.Path.Combine(projectRoot, "../Server/GameServer/Content/01.Game/Pattern/Json"));
-
-        if (!System.IO.Directory.Exists(serverPath))
-        {
-            try { System.IO.Directory.CreateDirectory(serverPath); }
-            catch { serverPath = "Assets/Export/Pattern/Json"; }
-        }
-
-        string path = EditorUtility.SaveFilePanel("Export Pattern JSON", serverPath, fileName, "json");
-        if (string.IsNullOrEmpty(path)) return;
+        string patternId = string.IsNullOrWhiteSpace(so.Data.MonsterType) ? so.name : so.Data.MonsterType;
+        so.Data.MonsterType = patternId;
+        EditorUtility.SetDirty(so);
 
         var settings = BatchDataExporter.GetJsonSettings();
-        string json  = Newtonsoft.Json.JsonConvert.SerializeObject(so.Data, settings);
+        string json = Newtonsoft.Json.JsonConvert.SerializeObject(so.Data, settings);
+
+        string clientRuntimePath = System.IO.Path.Combine(
+            Application.dataPath,
+            ClientPatternJsonFolder,
+            $"{patternId}.json");
+        string projectRoot = System.IO.Directory.GetParent(Application.dataPath).FullName;
+        string serverPath = System.IO.Path.GetFullPath(
+            System.IO.Path.Combine(projectRoot, ServerPatternJsonRelativePath, $"{patternId}.json"));
+
+        WriteJsonFile(clientRuntimePath, json);
+        WriteJsonFile(serverPath, json);
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        UnityEngine.Debug.Log($"[PatternEditor] Exported runtime/server JSON for '{patternId}'.");
+    }
+
+    private static void WriteJsonFile(string path, string json)
+    {
+        string dir = System.IO.Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir) && !System.IO.Directory.Exists(dir))
+        {
+            System.IO.Directory.CreateDirectory(dir);
+        }
+
         System.IO.File.WriteAllText(path, json);
-        UnityEngine.Debug.Log($"Exported to {path}");
+        UnityEngine.Debug.Log($"[PatternEditor] Exported to {path}");
     }
 
     // ─────────────────────────────────────────────────────
@@ -595,11 +614,20 @@ public class PatternEditorWindow : EditorWindow
 
     private void CreateNewPatternAsset()
     {
-        string path = EditorUtility.SaveFilePanelInProject("Save Monster Pattern", "NewMonsterPattern", "asset", "Save Monster Pattern");
+        string path = EditorUtility.SaveFilePanelInProject(
+            "Save Monster Pattern",
+            "NewMonsterPattern",
+            "asset",
+            "Save Monster Pattern",
+            DefaultPatternAssetFolder);
         if (string.IsNullOrEmpty(path)) return;
+
+        string assetName = System.IO.Path.GetFileNameWithoutExtension(path);
         var asset = CreateInstance<MonsterPatternSO>();
+        asset.Data.MonsterType = assetName;
         AssetDatabase.CreateAsset(asset, path);
         AssetDatabase.SaveAssets();
         _currentPattern = asset;
+        EditorGUIUtility.PingObject(asset);
     }
 }

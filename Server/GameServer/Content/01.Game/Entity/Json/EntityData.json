@@ -34,6 +34,76 @@
             "EntityType": 2,
             "MaxHp": 50,
             "ResourcePath": "Data/Entity_1001_Monster_WhitePawn"
+        },
+        {
+            "EntityId": 1010,
+            "Name": "Entity_1010_Monster_Bat",
+            "EntityType": 2,
+            "MaxHp": 10,
+            "ResourcePath": "Data/Entity_1010_Monster_Bat"
+        },
+        {
+            "EntityId": 1011,
+            "Name": "Entity_1011_Monster_Dragon",
+            "EntityType": 2,
+            "MaxHp": 10,
+            "ResourcePath": "Data/Entity_1011_Monster_Dragon"
+        },
+        {
+            "EntityId": 1012,
+            "Name": "Entity_1012_Monster_EvilMage",
+            "EntityType": 2,
+            "MaxHp": 10,
+            "ResourcePath": "Data/Entity_1012_Monster_EvilMage"
+        },
+        {
+            "EntityId": 1013,
+            "Name": "Entity_1013_Monster_Golem",
+            "EntityType": 2,
+            "MaxHp": 10,
+            "ResourcePath": "Data/Entity_1013_Monster_Golem"
+        },
+        {
+            "EntityId": 1014,
+            "Name": "Entity_1014_Monster_MonsterPlant",
+            "EntityType": 2,
+            "MaxHp": 10,
+            "ResourcePath": "Data/Entity_1014_Monster_MonsterPlant"
+        },
+        {
+            "EntityId": 1015,
+            "Name": "Entity_1015_Monster_Orc",
+            "EntityType": 2,
+            "MaxHp": 10,
+            "ResourcePath": "Data/Entity_1015_Monster_Orc"
+        },
+        {
+            "EntityId": 1016,
+            "Name": "Entity_1016_Monster_Skeleton",
+            "EntityType": 2,
+            "MaxHp": 10,
+            "ResourcePath": "Data/Entity_1016_Monster_Skeleton"
+        },
+        {
+            "EntityId": 1017,
+            "Name": "Entity_1017_Monster_Slim",
+            "EntityType": 2,
+            "MaxHp": 10,
+            "ResourcePath": "Data/Entity_1017_Monster_Slim"
+        },
+        {
+            "EntityId": 1018,
+            "Name": "Entity_1018_Monster_Spider",
+            "EntityType": 2,
+            "MaxHp": 10,
+            "ResourcePath": "Data/Entity_1018_Monster_Spider"
+        },
+        {
+            "EntityId": 1019,
+            "Name": "Entity_1019_Monster_TurtleShell",
+            "EntityType": 2,
+            "MaxHp": 10,
+            "ResourcePath": "Data/Entity_1019_Monster_TurtleShell"
         }
     ]
 }

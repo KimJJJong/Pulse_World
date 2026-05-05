@@ -12,6 +12,8 @@ using UnityEngine;
 /// </summary>
 public sealed class MapRegistry : MonoBehaviour
 {
+    private const string MapResourcesPath = "Data/Map";
+
     public static MapRegistry Instance { get; private set; }
 
     [Header("Maps")]
@@ -40,26 +42,58 @@ public sealed class MapRegistry : MonoBehaviour
     {
         _byName.Clear();
 
-        foreach (var m in Maps)
+        var uniqueMaps = new List<MapAsset>();
+        AppendUniqueMaps(uniqueMaps, Maps);
+
+        var resourceMaps = Resources.LoadAll<MapAsset>(MapResourcesPath);
+        AppendUniqueMaps(uniqueMaps, resourceMaps);
+
+        foreach (var m in uniqueMaps)
         {
-            if (m == null) continue;
-
-            // 핵심: 서버 MapName은 "MapAsset.name"을 쓰는 것으로 통일하자.
-            // (예: MapAsset 파일 이름을 "Map"으로 만들면 서버에서 MapName="Map")
-            var key = m.name;
-
-            if (_byName.ContainsKey(key))
-            {
-                Debug.LogWarning($"[MapRegistry] Duplicate map name: {key} (last one wins)");
-                _byName[key] = m;
-            }
-            else
-            {
-                _byName.Add(key, m);
-            }
+            RegisterMap(m);
         }
 
-        Debug.Log($"[MapRegistry] Loaded maps: {_byName.Count}");
+        if ((Maps == null || Maps.Length == 0) && uniqueMaps.Count > 0)
+        {
+            Maps = uniqueMaps.ToArray();
+        }
+
+        Debug.Log($"[MapRegistry] Loaded maps: {_byName.Count} (Resources: {resourceMaps.Length})");
+    }
+
+    private static void AppendUniqueMaps(List<MapAsset> buffer, IEnumerable<MapAsset> source)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        foreach (var map in source)
+        {
+            if (map == null || buffer.Contains(map))
+            {
+                continue;
+            }
+
+            buffer.Add(map);
+        }
+    }
+
+    private void RegisterMap(MapAsset map)
+    {
+        // 핵심: 서버 MapName은 "MapAsset.name"을 쓰는 것으로 통일하자.
+        // (예: MapAsset 파일 이름을 "Map"으로 만들면 서버에서 MapName="Map")
+        var key = map.name;
+
+        if (_byName.ContainsKey(key))
+        {
+            Debug.LogWarning($"[MapRegistry] Duplicate map name: {key} (last one wins)");
+            _byName[key] = map;
+        }
+        else
+        {
+            _byName.Add(key, map);
+        }
     }
 
     public bool TryGet(string mapName, out MapAsset map)

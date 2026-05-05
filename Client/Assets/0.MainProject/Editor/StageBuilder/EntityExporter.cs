@@ -67,11 +67,7 @@ namespace RhythmRPG.Editor.StageBuilder
             string runtimePath = "Assets/Resources/Data/EntityData.json";
             ExportToFile(runtimePath, json);
 
-            // Path 2: Record / Backup (Assets/5.Data/Entity/EntityData.json)
-            string backupPath = "Assets/5.Data/Entity/EntityData.json";
-            ExportToFile(backupPath, json);
-
-            // Path 3: Server
+            // Path 2: Server
             string gameServerRoot = @"D:\Git\Server\RhythmRPG\RhythmRPG\Server\GameServer\Content\01.Game";
             string serverPath = Path.Combine(gameServerRoot, "Entity", "Json", "EntityData.json");
             ExportToFile(serverPath, json);
