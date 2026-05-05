@@ -40,7 +40,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Include="..\..\Client\Assets\SharedContent\**\*.cs" LinkBase="SharedContent" />
+		<Compile Include="..\..\Client\Assets\SharedContent\**\*.cs"
+		         Exclude="..\..\Client\Assets\SharedContent\Legacy\**\*.cs"
+		         LinkBase="SharedContent" />
 	</ItemGroup>
 
   <ItemGroup>
