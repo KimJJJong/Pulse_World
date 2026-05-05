@@ -35,7 +35,7 @@ MonoBehaviour:
   - Key: Bat
     EntityDef: {fileID: 11400000, guid: 43d8c389cdc58c344b12fdcf3141294a, type: 2}
     DefaultGroupId: 20
-    PatternRef: {fileID: 11400000, guid: 445266891432cb94292ce44372e24f8e, type: 2}
+    PatternRef: {fileID: 11400000, guid: a4a198aafd7067341ac59c129dea5768, type: 2}
   - Key: EvilMage
     EntityDef: {fileID: 11400000, guid: 4021cc5e70989ef47a251bda6f44bf07, type: 2}
     DefaultGroupId: 20
