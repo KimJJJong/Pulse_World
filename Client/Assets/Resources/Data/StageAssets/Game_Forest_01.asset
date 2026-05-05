@@ -117,4 +117,10 @@ MonoBehaviour:
         y: 1
         width: 4
         height: 5
-    Actions: []
+    Actions:
+    - Type: 3
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 0

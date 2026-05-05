@@ -6,7 +6,7 @@
       "Id": "P1",
       "Selectors": [
         {
-          "Id": "New Pattern",
+          "Id": "ApproachTarget",
           "Weight": 2,
           "CooldownBeats": 0,
           "When": {
@@ -42,7 +42,7 @@
           ]
         },
         {
-          "Id": "New Pattern",
+          "Id": "CastAttackRange2",
           "Weight": 1,
           "CooldownBeats": 0,
           "When": {
