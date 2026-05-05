@@ -140,10 +140,11 @@ public class BeatDebugUI_TMP : MonoBehaviour
             // 여기서는 최신(16개 모아서 median -> delta -> OFF) 기준
             calibText =
                 $"\n--- AutoCalib ---\n" +
-                $"Enabled: {_autoCalib.Enabled} (F8 toggle)\n" +
+                $"Enabled: {_autoCalib.Enabled} ({AudioOffsetAutoCalibrator.ToggleHotkeyName} toggle)\n" +
                 $"Samples: {_autoCalib.SampleCount}\n" +
                 $"LastMedianDiff: {_autoCalib.LastMedianDiffMs}ms\n" +
-                $"LastAppliedDelta: {_autoCalib.LastAppliedDeltaMs}ms\n";
+                $"LastAppliedDelta: {_autoCalib.LastAppliedDeltaMs}ms\n" +
+                $"Apply/Clear: {AudioOffsetAutoCalibrator.ApplyNowHotkeyName} / {AudioOffsetAutoCalibrator.ClearHotkeyName}\n";
         }
 
         // ---- Server diff debug ----

@@ -28,6 +28,7 @@ public sealed class P2PHostLogWindow : MonoBehaviour
 
     [SerializeField] private Rect _windowRect = new Rect(18f, 18f, 760f, 420f);
     [SerializeField] private bool _visible;
+    [SerializeField] private bool _windowEnabled = true;
     [SerializeField] private bool _followLatest = true;
     [SerializeField] private int _maxEntries = 240;
 
@@ -48,6 +49,8 @@ public sealed class P2PHostLogWindow : MonoBehaviour
     private bool _captureSubscribed;
     private const int MaxStackLines = 6;
     private const int MaxMessageChars = 900;
+    private const KeyCode ToggleWindowKey = KeyCode.F9;
+    private const string ToggleWindowKeyName = "Ctrl+Alt+F9";
 
     private sealed class LogEntry
     {
@@ -81,9 +84,13 @@ public sealed class P2PHostLogWindow : MonoBehaviour
     private void Update()
     {
         P2PDebugConfig.PollRuntimeToggle();
+        P2PDebugViewConfig.PollRuntimeToggles();
 
-        if (_visible && Input.GetKeyDown(KeyCode.F9))
-            _visible = false;
+        if (RuntimeHotkey.WasPressed(ToggleWindowKey, requireCtrl: true, requireAlt: true))
+        {
+            _windowEnabled = !_windowEnabled;
+            RefreshVisibility();
+        }
     }
 
     internal void SetCaptureEnabled(bool enabled)
@@ -127,7 +134,7 @@ public sealed class P2PHostLogWindow : MonoBehaviour
             PushSystemMessage(_statusLine);
         }
 
-        _visible = P2PDebugConfig.LogOverheadEnabled && _isRelayMode && _isHostLocal;
+        RefreshVisibility();
         _dirty = true;
     }
 
@@ -142,6 +149,11 @@ public sealed class P2PHostLogWindow : MonoBehaviour
         _stateSignature = "";
         Clear();
         _scroll = Vector2.zero;
+    }
+
+    private void RefreshVisibility()
+    {
+        _visible = _windowEnabled && P2PDebugConfig.LogOverheadEnabled && _isRelayMode && _isHostLocal;
     }
 
     public void PushSystemMessage(string message)
@@ -232,7 +244,10 @@ public sealed class P2PHostLogWindow : MonoBehaviour
             Clear();
 
         if (GUILayout.Button("Hide", GUILayout.Width(60)))
+        {
+            _windowEnabled = false;
             _visible = false;
+        }
 
         bool followLatest = GUILayout.Toggle(_followLatest, "Follow", GUILayout.Width(74));
         if (followLatest != _followLatest)
@@ -242,6 +257,8 @@ public sealed class P2PHostLogWindow : MonoBehaviour
         }
 
         GUILayout.EndHorizontal();
+
+        GUILayout.Label($"{ToggleWindowKeyName} Window: {(_windowEnabled ? "ON" : "OFF")} | {P2PDebugViewConfig.ToggleSteamSectionKeyName} Steam: {(P2PDebugViewConfig.ShowSteamSections ? "ON" : "OFF")}");
 
         GUILayout.Label($"RelayKey: {_relayKey} | HostActorId: {_hostActorId}");
 
@@ -386,26 +403,67 @@ public sealed class P2PHostLogWindow : MonoBehaviour
     }
 }
 
+internal static class RuntimeHotkey
+{
+    internal static bool WasPressed(
+        KeyCode key,
+        bool requireCtrl = false,
+        bool requireAlt = false,
+        bool requireShift = false)
+    {
+        if (!Input.GetKeyDown(key))
+            return false;
+
+        return IsExactMatch(requireCtrl, IsCtrlHeld())
+            && IsExactMatch(requireAlt, IsAltHeld())
+            && IsExactMatch(requireShift, IsShiftHeld());
+    }
+
+    private static bool IsExactMatch(bool required, bool actual)
+    {
+        return required == actual;
+    }
+
+    private static bool IsCtrlHeld()
+    {
+        return Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+    }
+
+    private static bool IsAltHeld()
+    {
+        return Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+    }
+
+    private static bool IsShiftHeld()
+    {
+        return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+    }
+}
+
 internal static class P2PDebugConfig
 {
     private const bool TraceHostFlowDefault = true;
     private const bool TraceContentDefault = false;
     private const bool TraceInputDefault = true;
     private const bool TraceCombatDefault = false;
+    private const bool TraceRealtimeTransportDefault = false;
+    private const bool TraceRealtimeInputVerboseDefault = false;
     private static readonly bool CaptureOnlyP2PHostLogs = true;
     private const KeyCode ToggleLogOverheadKey = KeyCode.F7;
     private static int _lastToggleFrame = -1;
 
-    internal const string ToggleLogOverheadKeyName = "F7";
+    internal const string ToggleLogOverheadKeyName = "Ctrl+Alt+F7";
     internal static bool LogOverheadEnabled { get; private set; } = false;
     internal static bool TraceHostFlow => LogOverheadEnabled && TraceHostFlowDefault;
     internal static bool TraceContent => LogOverheadEnabled && TraceContentDefault;
     internal static bool TraceInput => LogOverheadEnabled && TraceInputDefault;
     internal static bool TraceCombat => LogOverheadEnabled && TraceCombatDefault;
+    internal static bool TraceRealtimeTransport => LogOverheadEnabled && TraceRealtimeTransportDefault;
+    internal static bool TraceRealtimeInputVerbose => LogOverheadEnabled && TraceRealtimeInputVerboseDefault;
 
     internal static bool PollRuntimeToggle()
     {
-        if (!Input.GetKeyDown(ToggleLogOverheadKey))
+        if (!RuntimeHotkey.WasPressed(ToggleLogOverheadKey, requireCtrl: true, requireAlt: true))
             return false;
 
         int frame = Time.frameCount;
@@ -476,6 +534,42 @@ internal static class P2PDebugConfig
         }
 
         return false;
+    }
+}
+
+internal static class P2PDebugViewConfig
+{
+    private const KeyCode ToggleNetworkOverlayKey = KeyCode.F10;
+    private const KeyCode ToggleSteamSectionKey = KeyCode.F11;
+    private static int _lastOverlayToggleFrame = -1;
+    private static int _lastSteamToggleFrame = -1;
+
+    internal const string ToggleNetworkOverlayKeyName = "Ctrl+Alt+F10";
+    internal const string ToggleSteamSectionKeyName = "Ctrl+Alt+F11";
+    internal static bool ShowNetworkSyncOverlay { get; private set; } = true;
+    internal static bool ShowSteamSections { get; private set; } = true;
+
+    internal static void PollRuntimeToggles()
+    {
+        if (RuntimeHotkey.WasPressed(ToggleNetworkOverlayKey, requireCtrl: true, requireAlt: true))
+        {
+            int frame = Time.frameCount;
+            if (_lastOverlayToggleFrame != frame)
+            {
+                _lastOverlayToggleFrame = frame;
+                ShowNetworkSyncOverlay = !ShowNetworkSyncOverlay;
+            }
+        }
+
+        if (RuntimeHotkey.WasPressed(ToggleSteamSectionKey, requireCtrl: true, requireAlt: true))
+        {
+            int frame = Time.frameCount;
+            if (_lastSteamToggleFrame != frame)
+            {
+                _lastSteamToggleFrame = frame;
+                ShowSteamSections = !ShowSteamSections;
+            }
+        }
     }
 }
 
@@ -823,7 +917,7 @@ internal static class P2PTransportDiagnostics
         }
     }
 
-    internal static List<string> BuildReportLines(int maxEvents = 10)
+    internal static List<string> BuildReportLines(int maxEvents = 0)
     {
         lock (_gate)
         {
@@ -1050,10 +1144,11 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
 
     [SerializeField] private Rect _windowRect = new Rect(18f, 18f, 620f, 470f);
     [SerializeField] private bool _visible = true;
-    [SerializeField] private KeyCode _toggleKey = KeyCode.F8;
 
     private Vector2 _scroll;
     private GUIStyle _textStyle;
+    private const KeyCode ToggleWindowKey = KeyCode.F8;
+    private const string ToggleWindowKeyName = "Ctrl+Alt+F8";
 
     private void Awake()
     {
@@ -1076,8 +1171,9 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
     private void Update()
     {
         P2PDebugConfig.PollRuntimeToggle();
+        P2PDebugViewConfig.PollRuntimeToggles();
 
-        if (Input.GetKeyDown(_toggleKey))
+        if (RuntimeHotkey.WasPressed(ToggleWindowKey, requireCtrl: true, requireAlt: true))
             _visible = !_visible;
     }
 
@@ -1093,7 +1189,8 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
     private void DrawWindow(int id)
     {
         GUILayout.BeginHorizontal();
-        GUILayout.Label("F8 Toggle", GUILayout.Width(80f));
+        GUILayout.Label($"{ToggleWindowKeyName} Window", GUILayout.Width(150f));
+        GUILayout.Label($"{P2PDebugViewConfig.ToggleSteamSectionKeyName} Steam", GUILayout.Width(160f));
         GUILayout.Label("Solo smoke / Steam / P2P status", GUILayout.ExpandWidth(true));
 
         if (GUILayout.Button("Copy", GUILayout.Width(60f)))
@@ -1128,15 +1225,24 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
         var bridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
         var manifest = SessionContext.Instance?.LastMatchManifest;
 
-        AppendHeader(sb, "Steam");
-        AppendField(sb, "Enabled", steam != null && steam.Enabled ? "YES" : "NO");
-        AppendField(sb, "Initialized", steam != null && steam.IsInitialized ? "YES" : "NO");
-        AppendField(sb, "AppId", config?.SteamAppId ?? "-");
-        AppendField(sb, "SteamId64", steam?.SteamId64 ?? "-");
-        AppendField(sb, "Name", steam?.DisplayName ?? "-");
-        AppendField(sb, "Lobby", steam != null && steam.HasJoinedLobby ? steam.CurrentLobbyId : "Not Joined");
-        AppendField(sb, "LobbyOwner", steam != null && steam.IsLobbyOwner ? "YES" : "NO");
-        AppendField(sb, "LastError", string.IsNullOrWhiteSpace(steam?.LastError) ? "-" : steam.LastError);
+        AppendHeader(sb, "Debug Toggles");
+        AppendField(sb, "Window", $"ON ({ToggleWindowKeyName})");
+        AppendField(sb, "SteamSection", P2PDebugViewConfig.ShowSteamSections
+            ? $"ON ({P2PDebugViewConfig.ToggleSteamSectionKeyName})"
+            : $"OFF ({P2PDebugViewConfig.ToggleSteamSectionKeyName})");
+
+        if (P2PDebugViewConfig.ShowSteamSections)
+        {
+            AppendHeader(sb, "Steam");
+            AppendField(sb, "Enabled", steam != null && steam.Enabled ? "YES" : "NO");
+            AppendField(sb, "Initialized", steam != null && steam.IsInitialized ? "YES" : "NO");
+            AppendField(sb, "AppId", config?.SteamAppId ?? "-");
+            AppendField(sb, "SteamId64", steam?.SteamId64 ?? "-");
+            AppendField(sb, "Name", steam?.DisplayName ?? "-");
+            AppendField(sb, "Lobby", steam != null && steam.HasJoinedLobby ? steam.CurrentLobbyId : "Not Joined");
+            AppendField(sb, "LobbyOwner", steam != null && steam.IsLobbyOwner ? "YES" : "NO");
+            AppendField(sb, "LastError", string.IsNullOrWhiteSpace(steam?.LastError) ? "-" : steam.LastError);
+        }
 
         AppendHeader(sb, "Auth");
         AppendField(sb, "Mode", auth?.LastPreferredLoginMode ?? "Unknown");
@@ -1147,8 +1253,11 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
         {
             AppendField(sb, "RoomId", string.IsNullOrWhiteSpace(room.CurrentRoomId) ? "-" : room.CurrentRoomId);
             AppendField(sb, "Members", room.MemberCount.ToString());
-            AppendField(sb, "SteamLobbyId", string.IsNullOrWhiteSpace(room.CurrentSteamLobbyId) ? "-" : room.CurrentSteamLobbyId);
-            AppendField(sb, "LobbyStatus", room.SteamLobbyStatus);
+            if (P2PDebugViewConfig.ShowSteamSections)
+            {
+                AppendField(sb, "SteamLobbyId", string.IsNullOrWhiteSpace(room.CurrentSteamLobbyId) ? "-" : room.CurrentSteamLobbyId);
+                AppendField(sb, "LobbyStatus", room.SteamLobbyStatus);
+            }
             AppendField(sb, "Probe", room.LastWaitingProbeRttMs >= 0 ? $"{room.LastWaitingProbeRttMs} ms ({room.LastWaitingProbeStatus})" : room.LastWaitingProbeStatus);
             AppendField(sb, "PreferredHost", string.IsNullOrWhiteSpace(room.PreferredHostUid) ? "-" : $"{room.PreferredHostUid} / epoch {room.PreferredHostEpoch}");
             AppendField(sb, "Selection", string.IsNullOrWhiteSpace(room.HostSelectionMode) ? "-" : $"{room.HostSelectionMode} / {room.HostSelectionMetricVersion}");
@@ -1180,7 +1289,9 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
         AppendField(sb, "Manifest", manifest != null ? $"{manifest.NetworkMode} / {manifest.MatchId}" : "No active manifest");
         if (manifest != null)
         {
-            AppendField(sb, "ManifestHost", $"{manifest.HostUid} / {manifest.HostSteamId64}");
+            AppendField(sb, "ManifestHost", P2PDebugViewConfig.ShowSteamSections
+                ? $"{manifest.HostUid} / {manifest.HostSteamId64}"
+                : manifest.HostUid);
             AppendField(sb, "ManifestEpoch", manifest.HostEpoch.ToString());
             AppendField(sb, "HostSelection", $"{bridge?.HostSelectionModeSummary ?? manifest.HostSelectionMode} / {bridge?.HostSelectionMetricVersion ?? manifest.HostSelectionMetricVersion}");
             AppendField(sb, "SelectionEpoch", (bridge?.HostSelectionEpoch ?? manifest.HostSelectionEpoch).ToString());
@@ -1197,14 +1308,13 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
             AppendField(sb, "NetworkFlow", bridge.NetworkFlowSummary);
             AppendField(sb, "HostAuthority", bridge.HostAuthorityDebugState);
             AppendField(sb, "ServerRole", bridge.ServerRoleSummary);
-            AppendField(sb, "SteamDecision", bridge.SteamTransportDecisionReason);
             AppendField(sb, "RelayKey", string.IsNullOrWhiteSpace(bridge.RelayKey) ? "-" : bridge.RelayKey);
-            AppendField(sb, "Host", $"{bridge.HostUid} / {bridge.HostSteamId64} / actor {bridge.HostActorId}");
+            AppendField(sb, "Host", P2PDebugViewConfig.ShowSteamSections
+                ? $"{bridge.HostUid} / {bridge.HostSteamId64} / actor {bridge.HostActorId}"
+                : $"{bridge.HostUid} / actor {bridge.HostActorId}");
             AppendField(sb, "HostEpoch", bridge.HostEpoch.ToString());
-            AppendField(sb, "LocalSteamId", string.IsNullOrWhiteSpace(bridge.LocalSteamId64) ? "-" : bridge.LocalSteamId64);
             AppendField(sb, "Peers", bridge.SteamConnectedPeerCount.ToString());
             AppendField(sb, "ToHost", bridge.IsSteamTransport ? (bridge.IsSteamTransportConnectedToHost ? "Connected" : "Not Connected") : "-");
-            AppendField(sb, "SteamPhase", bridge.IsSteamTransport ? bridge.SteamConnectionPhase : "-");
             AppendField(sb, "RouteHint", bridge.IsSteamTransport ? bridge.SteamRouteHint : bridge.TransportPairRouteHint);
             AppendField(sb, "Retry", bridge.IsSteamTransport
                 ? $"attempts {bridge.SteamConnectAttemptCount} / retries {bridge.SteamRetryCount} / nextBackoff {bridge.SteamRetryBackoffMs} ms"
@@ -1215,9 +1325,16 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
             AppendField(sb, "Fallback", bridge.IsSteamTransport
                 ? $"{bridge.FallbackReason} / at {FormatTimestampMs(bridge.FallbackActivatedAtMs)} / recovery {FormatTimestampMs(bridge.RecoveryObservedAtMs)}"
                 : "-");
-            AppendField(sb, "Detail", bridge.IsSteamTransport ? bridge.SteamDetailedStatusSnippet : bridge.TransportPairDetail);
             AppendField(sb, "Ping", bridge.IsHostLocal ? "Local Host" : FormatPingSummary(bridge));
             AppendField(sb, "TransportError", string.IsNullOrWhiteSpace(bridge.TransportLastError) ? "-" : bridge.TransportLastError);
+
+            if (P2PDebugViewConfig.ShowSteamSections)
+            {
+                AppendField(sb, "SteamDecision", bridge.SteamTransportDecisionReason);
+                AppendField(sb, "LocalSteamId", string.IsNullOrWhiteSpace(bridge.LocalSteamId64) ? "-" : bridge.LocalSteamId64);
+                AppendField(sb, "SteamPhase", bridge.IsSteamTransport ? bridge.SteamConnectionPhase : "-");
+                AppendField(sb, "Detail", bridge.IsSteamTransport ? bridge.SteamDetailedStatusSnippet : bridge.TransportPairDetail);
+            }
         }
         else
         {
@@ -1225,7 +1342,7 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
         }
 
         AppendHeader(sb, "Input / Direct Trace");
-        AppendLines(sb, P2PTransportDiagnostics.BuildReportLines(12));
+        AppendLines(sb, P2PTransportDiagnostics.BuildReportLines(0));
 
         AppendHeader(sb, "Solo Check");
         AppendField(sb, "Summary", BuildSoloHint(steam, room, bridge));

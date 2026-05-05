@@ -31,9 +31,14 @@ public sealed class AudioOffsetAutoCalibrator : MonoBehaviour
 
     [Header("Hotkeys")]
     [SerializeField] private bool _enableHotkeys = true;
-    [SerializeField] private KeyCode _toggleKey = KeyCode.F8;
-    [SerializeField] private KeyCode _applyNowKey = KeyCode.F9;
-    [SerializeField] private KeyCode _clearKey = KeyCode.F10;
+
+    private const KeyCode ToggleHotkey = KeyCode.F8;
+    private const KeyCode ApplyNowHotkey = KeyCode.F9;
+    private const KeyCode ClearHotkey = KeyCode.F10;
+
+    public const string ToggleHotkeyName = "Ctrl+Shift+F8";
+    public const string ApplyNowHotkeyName = "Ctrl+Shift+F9";
+    public const string ClearHotkeyName = "Ctrl+Shift+F10";
 
     private readonly List<int> _samples = new();
     public int SampleCount => _samples.Count;
@@ -53,13 +58,13 @@ public sealed class AudioOffsetAutoCalibrator : MonoBehaviour
     {
         if (!_enableHotkeys) return;
 
-        if (Input.GetKeyDown(_toggleKey))
+        if (RuntimeHotkey.WasPressed(ToggleHotkey, requireCtrl: true, requireShift: true))
             SetEnabled(!_enabled, resetSamples: true);
 
-        if (Input.GetKeyDown(_applyNowKey))
+        if (RuntimeHotkey.WasPressed(ApplyNowHotkey, requireCtrl: true, requireShift: true))
             Apply(force: true);
 
-        if (Input.GetKeyDown(_clearKey))
+        if (RuntimeHotkey.WasPressed(ClearHotkey, requireCtrl: true, requireShift: true))
             ClearSamples();
     }
 

@@ -288,7 +288,7 @@ public class RhythmInputController : MonoBehaviour
         //Debug.Log($"[Input_Move] from=({me.X},{me.Y}) to=({tx},{ty}) dir=({rdir.x},{rdir.y}) " +
         //          $"serverNow={serverNow} beat={nearestBeat} diff={diff}ms inWin={diff <= (Rhythm != null ? Rhythm.judgeWindowMs : 0)}");
 
-        if (P2PDebugConfig.LogOverheadEnabled)
+        if (P2PDebugConfig.TraceRealtimeInputVerbose)
         {
             Debug.Log(
                 $"[P2PInputMove] actor={me.EntityId} from=({me.X},{me.Y}) to=({tx},{ty}) rawDir=({dir.x},{dir.y}) " +
@@ -704,7 +704,7 @@ public class RhythmInputController : MonoBehaviour
         if (bridge.IsRelayMode && !bridge.IsHostLocal)
             bridge.RecordGameplayActionSent(pkt.ActorId, kind, slotIndex, targetX, targetY, serverNowMs);
 
-        if (P2PDebugConfig.LogOverheadEnabled)
+        if (P2PDebugConfig.TraceRealtimeInputVerbose)
         {
             Debug.Log(
                 $"[P2PInputRoute] kind={kind} actor={pkt.ActorId} target=({targetX},{targetY}) slot={slotIndex} " +

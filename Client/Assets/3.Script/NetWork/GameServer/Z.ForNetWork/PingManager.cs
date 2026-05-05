@@ -64,6 +64,12 @@ public sealed class PingManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    void Update()
+    {
+        P2PDebugConfig.PollRuntimeToggle();
+        P2PDebugViewConfig.PollRuntimeToggles();
+    }
+
     public bool IsRunning => running;
     public long LastRttMs => lastRttMs;
     public long AvgRttMs => avgRttMs;
@@ -242,6 +248,11 @@ public sealed class PingManager : MonoBehaviour
             : null;
 
         AddSyncSection(richLines, plainLines, "[Network Sync]", "<b><color=#ffffff>[Network Sync]</color></b>");
+        AddSyncLine(
+            richLines,
+            plainLines,
+            $"Overlay: {(P2PDebugViewConfig.ShowNetworkSyncOverlay ? "ON" : "OFF")} ({P2PDebugViewConfig.ToggleNetworkOverlayKeyName}) / Steam: {(P2PDebugViewConfig.ShowSteamSections ? "ON" : "OFF")} ({P2PDebugViewConfig.ToggleSteamSectionKeyName})",
+            $"<color=#dfe6e9>Overlay:</color> {(P2PDebugViewConfig.ShowNetworkSyncOverlay ? "ON" : "OFF")} ({P2PDebugViewConfig.ToggleNetworkOverlayKeyName}) / <color=#dda0dd>Steam:</color> {(P2PDebugViewConfig.ShowSteamSections ? "ON" : "OFF")} ({P2PDebugViewConfig.ToggleSteamSectionKeyName})");
         AddSyncSection(richLines, plainLines, "[Transport]", "<b><color=#7fffd4>[Transport]</color></b>");
 
         if (relayBridge != null && relayBridge.IsRelayMode)
@@ -276,21 +287,24 @@ public sealed class PingManager : MonoBehaviour
                 plainLines,
                 $"Transport: {relayBridge.TransportDebugStatus}",
                 $"<color=#c8a2c8>Transport:</color> {relayBridge.TransportDebugStatus}");
-            AddSyncLine(
-                richLines,
-                plainLines,
-                $"Steam Decision: {relayBridge.SteamTransportDecisionReason}",
-                $"<color=#98fb98>Steam Decision:</color> {relayBridge.SteamTransportDecisionReason}");
-            AddSyncLine(
-                richLines,
-                plainLines,
-                $"Steam Phase: {relayBridge.SteamConnectionPhase} / route {relayBridge.SteamRouteHint}",
-                $"<color=#98fb98>Steam Phase:</color> {relayBridge.SteamConnectionPhase} / route {relayBridge.SteamRouteHint}");
-            AddSyncLine(
-                richLines,
-                plainLines,
-                $"Steam IDs: local {FormatDebugValue(relayBridge.LocalSteamId64)} / host {FormatDebugValue(relayBridge.HostSteamId64)}",
-                $"<color=#66d9ef>Steam IDs:</color> local {FormatDebugValue(relayBridge.LocalSteamId64)} / host {FormatDebugValue(relayBridge.HostSteamId64)}");
+            if (P2PDebugViewConfig.ShowSteamSections)
+            {
+                AddSyncLine(
+                    richLines,
+                    plainLines,
+                    $"Steam Decision: {relayBridge.SteamTransportDecisionReason}",
+                    $"<color=#98fb98>Steam Decision:</color> {relayBridge.SteamTransportDecisionReason}");
+                AddSyncLine(
+                    richLines,
+                    plainLines,
+                    $"Steam Phase: {relayBridge.SteamConnectionPhase} / route {relayBridge.SteamRouteHint}",
+                    $"<color=#98fb98>Steam Phase:</color> {relayBridge.SteamConnectionPhase} / route {relayBridge.SteamRouteHint}");
+                AddSyncLine(
+                    richLines,
+                    plainLines,
+                    $"Steam IDs: local {FormatDebugValue(relayBridge.LocalSteamId64)} / host {FormatDebugValue(relayBridge.HostSteamId64)}",
+                    $"<color=#66d9ef>Steam IDs:</color> local {FormatDebugValue(relayBridge.LocalSteamId64)} / host {FormatDebugValue(relayBridge.HostSteamId64)}");
+            }
             AddSyncLine(
                 richLines,
                 plainLines,
@@ -466,40 +480,43 @@ public sealed class PingManager : MonoBehaviour
             }
 
             AddSyncSection(richLines, plainLines, "[Input / Direct Trace]", "<b><color=#ffd6a5>[Input / Direct Trace]</color></b>");
-            var traceLines = P2PTransportDiagnostics.BuildReportLines(8);
+            var traceLines = P2PTransportDiagnostics.BuildReportLines(0);
             for (int i = 0; i < traceLines.Count; i++)
                 AddSyncLine(richLines, plainLines, traceLines[i]);
         }
 
-        AddSyncSection(richLines, plainLines, "[Steam Runtime]", "<b><color=#dda0dd>[Steam Runtime]</color></b>");
-        if (steam != null)
+        if (P2PDebugViewConfig.ShowSteamSections)
         {
-            AddSyncLine(
-                richLines,
-                plainLines,
-                $"Steam Runtime: enabled={steam.Enabled} init={steam.IsInitialized} joined={steam.HasJoinedLobby} owner={steam.IsLobbyOwner}",
-                $"<color=#adff2f>Steam Runtime:</color> enabled={steam.Enabled} init={steam.IsInitialized} joined={steam.HasJoinedLobby} owner={steam.IsLobbyOwner}");
-            AddSyncLine(
-                richLines,
-                plainLines,
-                $"Steam Lobby: {FormatDebugValue(steam.CurrentLobbyId)}",
-                $"<color=#dda0dd>Steam Lobby:</color> {FormatDebugValue(steam.CurrentLobbyId)}");
-            if (!string.IsNullOrWhiteSpace(steam.LastError))
+            AddSyncSection(richLines, plainLines, "[Steam Runtime]", "<b><color=#dda0dd>[Steam Runtime]</color></b>");
+            if (steam != null)
             {
                 AddSyncLine(
                     richLines,
                     plainLines,
-                    $"Steam Error: {steam.LastError}",
-                    $"<color=#ff6b6b>Steam Error:</color> {steam.LastError}");
+                    $"Steam Runtime: enabled={steam.Enabled} init={steam.IsInitialized} joined={steam.HasJoinedLobby} owner={steam.IsLobbyOwner}",
+                    $"<color=#adff2f>Steam Runtime:</color> enabled={steam.Enabled} init={steam.IsInitialized} joined={steam.HasJoinedLobby} owner={steam.IsLobbyOwner}");
+                AddSyncLine(
+                    richLines,
+                    plainLines,
+                    $"Steam Lobby: {FormatDebugValue(steam.CurrentLobbyId)}",
+                    $"<color=#dda0dd>Steam Lobby:</color> {FormatDebugValue(steam.CurrentLobbyId)}");
+                if (!string.IsNullOrWhiteSpace(steam.LastError))
+                {
+                    AddSyncLine(
+                        richLines,
+                        plainLines,
+                        $"Steam Error: {steam.LastError}",
+                        $"<color=#ff6b6b>Steam Error:</color> {steam.LastError}");
+                }
             }
-        }
-        else
-        {
-            AddSyncLine(
-                richLines,
-                plainLines,
-                "Steam Runtime: unavailable",
-                "<color=#adff2f>Steam Runtime:</color> unavailable");
+            else
+            {
+                AddSyncLine(
+                    richLines,
+                    plainLines,
+                    "Steam Runtime: unavailable",
+                    "<color=#adff2f>Steam Runtime:</color> unavailable");
+            }
         }
 
         AddSyncSection(richLines, plainLines, "[Clock Sync]", "<b><color=#ffff99>[Clock Sync]</color></b>");
@@ -664,7 +681,7 @@ public sealed class PingManager : MonoBehaviour
 
     void OnGUI()
     {
-        if (!running) return;
+        if (!running || !P2PDebugViewConfig.ShowNetworkSyncOverlay) return;
 
         var relayBridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
         BuildNetworkSyncText(relayBridge, out var richText, out var plainText);

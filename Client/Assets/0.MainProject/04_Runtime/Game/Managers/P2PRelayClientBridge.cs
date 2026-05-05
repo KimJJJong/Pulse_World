@@ -960,7 +960,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         ushort protocol = PeekPacketProtocol(payload.PayloadBytes);
         if (payload.IsFromHost)
         {
-            if (P2PDebugConfig.LogOverheadEnabled)
+            if (P2PDebugConfig.TraceRealtimeTransport)
             {
                 Debug.Log(
                     $"[P2PTransport] SteamRecv dir=HostToClient protocol={FormatPacketProtocol(protocol)} bytes={payload.PayloadBytes.Length} " +
@@ -971,7 +971,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         }
 
         int senderActorId = ResolveActorIdForSteamId(payload.SenderSteamId64);
-        if (P2PDebugConfig.LogOverheadEnabled)
+        if (P2PDebugConfig.TraceRealtimeTransport)
         {
             Debug.Log(
                 $"[P2PTransport] SteamRecv dir=GuestToHost senderSteam={payload.SenderSteamId64} senderActor={senderActorId} " +
@@ -1031,7 +1031,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
                 ? FormatBridgeContext()
                 : $"steam={senderSteamId64} {FormatBridgeContext()}");
 
-        if (P2PDebugConfig.LogOverheadEnabled)
+        if (P2PDebugConfig.TraceRealtimeTransport)
         {
             Debug.Log(
                 $"[P2PTransport] QueueGuestPayload senderActor={senderActorId} protocol={FormatPacketProtocol(protocol)} " +
@@ -1080,7 +1080,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             return;
 
         ushort protocol = PeekPacketProtocol(payloadBytes);
-        if (P2PDebugConfig.LogOverheadEnabled)
+        if (P2PDebugConfig.TraceRealtimeTransport)
         {
             Debug.Log(
                 $"[P2PTransport] DispatchHostPayload protocol={FormatPacketProtocol(protocol)} bytes={payloadBytes.Length} " +
@@ -1472,14 +1472,14 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         var config = BuildSteamTransportConfig();
         if (config == null)
         {
-            if (P2PDebugConfig.LogOverheadEnabled)
+            if (P2PDebugConfig.TraceRealtimeTransport)
                 Debug.LogWarning($"[P2PTransport] Steam config unavailable. {FormatBridgeContext()}");
             MarkRelayFallback("SteamConfigUnavailable");
             _steamTransport.Stop();
             return;
         }
 
-        if (P2PDebugConfig.LogOverheadEnabled)
+        if (P2PDebugConfig.TraceRealtimeTransport)
         {
             Debug.Log(
                 $"[P2PTransport] SyncSteamTransport match={config.MatchId} isLocalHost={config.IsLocalHost} " +
@@ -1584,7 +1584,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         if (_uidBySteamId.TryGetValue(steamId64, out var uid))
         {
             int actorId = ResolveActorIdForUid(uid);
-            if (P2PDebugConfig.LogOverheadEnabled)
+            if (P2PDebugConfig.TraceRealtimeTransport)
             {
                 Debug.Log(
                     $"[P2PPlayerSync] ResolveActorIdForSteamId steam={steamId64} uid={uid} actor={actorId} roster={FormatRosterActors()}");
@@ -1600,7 +1600,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             return SessionContext.Instance.MyActorId;
         }
 
-        if (P2PDebugConfig.LogOverheadEnabled)
+        if (P2PDebugConfig.TraceRealtimeTransport)
         {
             Debug.LogWarning(
                 $"[P2PPlayerSync] ResolveActorIdForSteamId miss steam={steamId64} localSteam={localSteamId64} roster={FormatRosterActors()}");
@@ -1699,7 +1699,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         if (IsHostLocal)
         {
             int sent = _steamTransport?.SendHostToGuests(payloadBytes) ?? 0;
-            if (P2PDebugConfig.LogOverheadEnabled)
+            if (P2PDebugConfig.TraceRealtimeTransport)
             {
                 Debug.Log(
                     $"[P2PTransport] SendSteam route=HostToGuests protocol={FormatPacketProtocol(protocol)} bytes={payloadBytes.Length} " +
@@ -1734,7 +1734,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         }
 
         bool success = _steamTransport?.SendGuestToHost(payloadBytes) ?? false;
-        if (P2PDebugConfig.LogOverheadEnabled)
+        if (P2PDebugConfig.TraceRealtimeTransport)
         {
             Debug.Log(
                 $"[P2PTransport] SendSteam route=GuestToHost protocol={FormatPacketProtocol(protocol)} bytes={payloadBytes.Length} " +
@@ -1794,7 +1794,7 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
         ushort protocol = PeekPacketProtocol(segment);
         var payload = Convert.ToBase64String(segment.Array, segment.Offset, segment.Count);
-        if (P2PDebugConfig.LogOverheadEnabled)
+        if (P2PDebugConfig.TraceRealtimeTransport)
         {
             Debug.Log(
                 $"[P2PTransport] SendRelay protocol={FormatPacketProtocol(protocol)} bytes={segment.Count} senderActor={SessionContext.Instance?.MyActorId ?? 0} " +
