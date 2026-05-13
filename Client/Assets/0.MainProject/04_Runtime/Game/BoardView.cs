@@ -375,6 +375,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         if (action.ActionKind == (int)ActionKind.Move)
         {
+            bool hadPrediction = _recentPredictedMoves.TryGetValue(action.ActorId, out var predictedMove);
             _recentPredictedMoves.Remove(action.ActorId);
 
             Vector3 serverFromW = GridToWorld(action.FromX, action.FromY);
@@ -390,6 +391,16 @@ public class BoardView : MonoBehaviour, IClientWorldView
             float moveDuration = distanceTiles > 1 ? duration * 0.4f : duration;
 
             float snapThreshold = 0.5f;
+            if (hadPrediction
+                && predictedMove.predictedTile.x == action.ToX
+                && predictedMove.predictedTile.y == action.ToY
+                && Vector3.Distance(visual.transform.position, serverToW) <= snapThreshold)
+            {
+                visual.transform.position = serverToW;
+                visual.SetRotation(action.Rotation);
+                return;
+            }
+
             float distFromServer = Vector3.Distance(visual.transform.position, serverFromW);
             Vector3 moveStart = distFromServer <= snapThreshold
                 ? visual.transform.position
@@ -440,6 +451,18 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         visual.SetRotation(rotation);
         _recentInstantActions[actorId] = Time.time;
+    }
+
+    public bool TryGetPredictedMoveTile(int actorId, out Vector2Int tile)
+    {
+        if (_recentPredictedMoves.TryGetValue(actorId, out var predictedMove))
+        {
+            tile = predictedMove.predictedTile;
+            return true;
+        }
+
+        tile = default;
+        return false;
     }
 
     public void PlayMovePrediction(int actorId, int toX, int toY, float durationRatio)

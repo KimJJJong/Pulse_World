@@ -152,6 +152,33 @@ public sealed partial class P2PContentDirector : MonoBehaviour, IStageActionHost
         _bindingsDirty = true;
     }
 
+    public bool ShouldAutoSubmitClearOnMonsterWipe()
+    {
+        EnsureStageLoaded();
+        return !HasStageAction("ReturnToTown");
+    }
+
+    public void NotifyPlayerMoved(int actorId, int x, int y)
+    {
+        if (!ShouldDriveHostContent())
+            return;
+
+        EnsureStageLoaded();
+        if (!_stageLoaded)
+            return;
+
+        _stageEngine.NotifyEvent(new GameEventContext(
+            StageEventType.Move,
+            sourceActorId: actorId,
+            x: x,
+            y: y,
+            timeMs: TimeSync.ServerNowMs()),
+            this);
+
+        if (P2PDebugConfig.TraceContent)
+            Debug.Log($"[P2PContentDirector] StageMove actor={actorId} pos=({x},{y})");
+    }
+
     private void EnsureStageLoaded()
     {
         if (_stageLoaded)
@@ -166,5 +193,28 @@ public sealed partial class P2PContentDirector : MonoBehaviour, IStageActionHost
     {
         var bridge = P2PRelayClientBridge.Instance;
         return bridge != null && bridge.IsRelayMode && bridge.IsHostLocal;
+    }
+
+    private bool HasStageAction(string actionType)
+    {
+        if (string.IsNullOrWhiteSpace(actionType) || _stage?.Events == null)
+            return false;
+
+        foreach (var evt in _stage.Events)
+        {
+            if (evt?.Actions == null)
+                continue;
+
+            foreach (var action in evt.Actions)
+            {
+                if (action != null
+                    && string.Equals(action.Type, actionType, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

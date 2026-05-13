@@ -250,8 +250,6 @@ public class RhythmInputController : MonoBehaviour
 
         if (!PassCooldown(trueLocalNowMs)) return;
 
-        // [서버 권위] 현재 서버 확정 위치(me.X/Y)로만 목표 계산
-        // Prediction 비주얼 선행 제거 — 이동 결과는 SC_BeatActions(Move) 수신 시 처리
         if (!GS.TryGetMyEntity(out var me))
         {
             LogGuardFailure("Move", $"MyEntity missing myActorId={GS.MyActorId} entityCount={GS.EntityCount} {GetDebugState()}");
@@ -259,41 +257,46 @@ public class RhythmInputController : MonoBehaviour
         }
 
         var rdir = RotateDirByTarget(dir);
-        int tx = me.X + rdir.x;
-        int ty = me.Y + rdir.y;
+        TryGetLocalPredictedMoveOrigin(me, out int originX, out int originY, out bool usingPredictedOrigin);
+        int tx = originX + rdir.x;
+        int ty = originY + rdir.y;
 
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
-        BeatDebugUI_TMP.Instance?.MarkHitNow();
 
-        // 이동은 가장 가까운 비트로 양자화되므로 judge window 밖이어도
-        // 같은 비트로 중복 입력되는 요청은 클라이언트에서 먼저 막는다.
-        long nearestBeat = -1;
+        long actionBeat = -1;
         long diff = 0;
-        if (Rhythm != null)
+        if (!TryGetJudgeWindowInfo(serverNow, out actionBeat, out diff, out bool inJudgeWin))
         {
-            nearestBeat = Rhythm.GetNearestBeatIndex(serverNow);
-            long judgeTime = Rhythm.GetBeatTimeMs(nearestBeat);
-            diff = System.Math.Abs(serverNow - judgeTime);
-
-            if (_lastActionBeatIndex == nearestBeat)
-            {
-                if (P2PDebugConfig.TraceInput)
-                    Debug.Log($"[Input_Move] DUPLICATE beat={nearestBeat} diff={diff}ms BLOCKED");
-                return;
-            }
-
-            _lastActionBeatIndex = nearestBeat;
+            if (P2PDebugConfig.TraceInput)
+                Debug.Log($"[Input_Move] OUT_OF_WINDOW actor={me.EntityId} origin=({originX},{originY}) " +
+                          $"target=({tx},{ty}) serverNow={serverNow} beat={actionBeat} diff={diff}ms " +
+                          $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms blocked");
+            return;
         }
 
-        //Debug.Log($"[Input_Move] from=({me.X},{me.Y}) to=({tx},{ty}) dir=({rdir.x},{rdir.y}) " +
-        //          $"serverNow={serverNow} beat={nearestBeat} diff={diff}ms inWin={diff <= (Rhythm != null ? Rhythm.judgeWindowMs : 0)}");
+        if (_lastActionBeatIndex == actionBeat)
+        {
+            if (P2PDebugConfig.TraceInput)
+                Debug.Log($"[Input_Move] DUPLICATE beat={actionBeat} diff={diff}ms BLOCKED");
+            return;
+        }
+
+        _lastActionBeatIndex = actionBeat;
+        BeatDebugUI_TMP.Instance?.MarkHitNow();
+
+        bool shouldPredictMove = CanPlayLocalMovePrediction(me.EntityId, tx, ty);
 
         if (P2PDebugConfig.TraceRealtimeInputVerbose)
         {
             Debug.Log(
-                $"[P2PInputMove] actor={me.EntityId} from=({me.X},{me.Y}) to=({tx},{ty}) rawDir=({dir.x},{dir.y}) " +
-                $"rotDir=({rdir.x},{rdir.y}) beat={nearestBeat} diff={diff}ms serverNow={serverNow} {DescribeP2PRoute()}");
+                $"[P2PInputMove] actor={me.EntityId} from=({originX},{originY}) state=({me.X},{me.Y}) to=({tx},{ty}) " +
+                $"rawDir=({dir.x},{dir.y}) rotDir=({rdir.x},{rdir.y}) beat={actionBeat} diff={diff}ms " +
+                $"inWin={inJudgeWin} predictedOrigin={usingPredictedOrigin} localPrediction={shouldPredictMove} " +
+                $"serverNow={serverNow} {DescribeP2PRoute()}");
         }
+
+        if (shouldPredictMove)
+            BoardView.Instance.PlayMovePrediction(me.EntityId, tx, ty, BoardView.Instance.actionDurationRatio);
 
         SendActionRouted(ActionKind.Move, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;
@@ -745,6 +748,46 @@ public class RhythmInputController : MonoBehaviour
     {
         var bridge = P2PRelayClientBridge.Instance;
         return bridge != null && bridge.IsRelayMode && bridge.IsHostLocal;
+    }
+
+    private bool TryGetLocalPredictedMoveOrigin(
+        ClientEntityInfo me,
+        out int originX,
+        out int originY,
+        out bool usingPredictedOrigin)
+    {
+        originX = me.X;
+        originY = me.Y;
+        usingPredictedOrigin = false;
+
+        if (channel != InputChannel.Game || BoardView.Instance == null)
+            return false;
+
+        if (!BoardView.Instance.TryGetPredictedMoveTile(me.EntityId, out var predictedTile))
+            return false;
+
+        originX = predictedTile.x;
+        originY = predictedTile.y;
+        usingPredictedOrigin = true;
+        return true;
+    }
+
+    private bool CanPlayLocalMovePrediction(int actorId, int targetX, int targetY)
+    {
+        if (channel != InputChannel.Game || BoardView.Instance == null || GS == null)
+            return false;
+
+        var bridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
+        if (bridge == null || !bridge.IsRelayMode)
+            return false;
+
+        if (!GS.IsWalkable(targetX, targetY))
+            return false;
+
+        if (GS.IsOccupied(targetX, targetY, actorId))
+            return false;
+
+        return true;
     }
 
     public string GetDebugState()

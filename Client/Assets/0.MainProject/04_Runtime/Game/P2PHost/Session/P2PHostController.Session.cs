@@ -724,7 +724,10 @@ public sealed partial class P2PHostController
         }
 
         if (accepted)
+        {
             _hostPositions[scheduled.ActorId] = new Vector2Int(targetX, targetY);
+            NotifyStageMoveIfPlayer(actorInfo, scheduled.ActorId, targetX, targetY);
+        }
 
         var result = new SC_BeatActions.BeatActionResult
         {
@@ -744,8 +747,9 @@ public sealed partial class P2PHostController
 
     private void ProcessMoveAction(int actorId, CS_ActionRequest req, long beat, ClientEntityInfo actorInfo)
     {
-        int fromX = actorInfo.X;
-        int fromY = actorInfo.Y;
+        var origin = GetActorOrigin(actorId);
+        int fromX = origin.x;
+        int fromY = origin.y;
         int toX = req.TargetX;
         int toY = req.TargetY;
 
@@ -758,6 +762,7 @@ public sealed partial class P2PHostController
         else
         {
             _hostPositions[actorId] = new Vector2Int(toX, toY);
+            NotifyStageMoveIfPlayer(actorInfo, actorId, toX, toY);
         }
 
         if (P2PDebugConfig.LogOverheadEnabled && ShouldTraceHostPlayerActor(actorId))
@@ -791,6 +796,14 @@ public sealed partial class P2PHostController
         };
 
         _batchedBeatResults.Add(result);
+    }
+
+    private void NotifyStageMoveIfPlayer(ClientEntityInfo actorInfo, int actorId, int x, int y)
+    {
+        if (actorInfo.EntityType != (int)EntityType.Player || !P2PContentDirector.HasInstance)
+            return;
+
+        P2PContentDirector.Instance.NotifyPlayerMoved(actorId, x, y);
     }
 
     private void BroadcastBeatResult(
@@ -1347,10 +1360,24 @@ public sealed partial class P2PHostController
         if (ClientGameState.Instance == null || RhythmClient.Instance == null)
             return;
 
+        if (P2PContentDirector.HasInstance && !P2PContentDirector.Instance.ShouldAutoSubmitClearOnMonsterWipe())
+            return;
+
         bool anyMonstersAlive = ClientGameState.Instance.EnumerateEntities()
             .Any(e => e.EntityType == (int)EntityType.Monster && e.Hp > 0);
 
         if (anyMonstersAlive)
+            return;
+
+        SubmitStageClearResult("MonsterWipe:AutoClear");
+    }
+
+    public void SubmitStageClearResult(string source = "StageClear")
+    {
+        if (_resultSubmitted || !IsHost || P2PRelayClientBridge.Instance == null || !P2PRelayClientBridge.Instance.IsRelayMode)
+            return;
+
+        if (RhythmClient.Instance == null || NetworkManager.Instance == null)
             return;
 
         long songStartMs = SessionContext.Instance.LastInitMap != null && SessionContext.Instance.LastInitMap.SongStartServerTime > 0
@@ -1370,11 +1397,11 @@ public sealed partial class P2PHostController
             return;
 
         if (P2PDebugConfig.TraceHostFlow)
-            Debug.Log($"[P2PHostController] Clear detected, submitting result playTime={playTimeMs} damage={_totalDamageDealt}");
+            Debug.Log($"[P2PHostController] Clear detected source={source} playTime={playTimeMs} damage={_totalDamageDealt}");
         NetworkManager.Instance.Send(resultPkt.Write());
         _resultSubmitted = true;
         if (P2PDebugConfig.TraceHostFlow)
-            Debug.Log($"[P2PHostController] Game result submitted playTime={playTimeMs} damage={_totalDamageDealt}");
+            Debug.Log($"[P2PHostController] Game result submitted source={source} playTime={playTimeMs} damage={_totalDamageDealt}");
     }
 
     private bool TryConsumeActionBeat(int actorId, long beat)

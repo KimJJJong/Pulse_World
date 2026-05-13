@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using RhythmRPG.Visual;
 using UnityEngine;
 
@@ -11,6 +12,7 @@ public sealed class HomeAppearancePreviewController : MonoBehaviour
     private CharacterVisualController _sourceVisualController;
     private GameObject _spawnedPreview;
     private int _currentAppearanceId = int.MinValue;
+    private bool _fetchingInitialAppearance;
 
     private void Awake()
     {
@@ -24,15 +26,45 @@ public sealed class HomeAppearancePreviewController : MonoBehaviour
         ApplyAppearance(HomeAppearanceSelectorUI.LastAppliedAppearanceId);
     }
 
+    private async void Start()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        await RefreshInitialAppearanceAsync();
+    }
+
     private void OnDisable()
     {
         HomeAppearanceSelectorUI.AppearanceAppliedChanged -= HandleAppearanceChanged;
         DestroySpawnedPreview();
+        SetSourceVisible(true);
     }
 
     private void HandleAppearanceChanged(int savedAppearanceId, int appliedAppearanceId)
     {
         ApplyAppearance(appliedAppearanceId);
+    }
+
+    private async Task RefreshInitialAppearanceAsync()
+    {
+        if (_fetchingInitialAppearance)
+            return;
+
+        var uid = GetCurrentUid();
+        var api = AppBootstrap.Instance?.Root?.PlayerStateApi;
+        if (string.IsNullOrWhiteSpace(uid) || api == null)
+            return;
+
+        _fetchingInitialAppearance = true;
+        var res = await api.GetPlayerStateAsync(uid);
+        _fetchingInitialAppearance = false;
+
+        if (!this || !isActiveAndEnabled || !res.Ok || res.Data == null)
+            return;
+
+        HomeAppearanceSelectorUI.PublishAppearanceAppliedChanged(res.Data.SavedAppearanceId, res.Data.AppearanceId);
+        ApplyAppearance(res.Data.AppearanceId);
     }
 
     private void CacheSourceComponents()
@@ -162,6 +194,18 @@ public sealed class HomeAppearancePreviewController : MonoBehaviour
             Destroy(_spawnedPreview);
             _spawnedPreview = null;
         }
+    }
+
+    private static string GetCurrentUid()
+    {
+        if (SessionContext.Instance != null && !string.IsNullOrWhiteSpace(SessionContext.Instance.Uid))
+            return SessionContext.Instance.Uid;
+
+        var root = AppBootstrap.Instance?.Root;
+        if (root != null && !string.IsNullOrWhiteSpace(root.Tokens.Uid))
+            return root.Tokens.Uid;
+
+        return "";
     }
 
     [System.Serializable]

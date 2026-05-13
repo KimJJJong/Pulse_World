@@ -160,8 +160,8 @@
               "RotateWithCaster": true
             },
             "Amount": 50,
-            "HitPlayers": false,
-            "HitMonsters": true,
+            "HitPlayers": true,
+            "HitMonsters": false,
             "StunDurationTicks": 0,
             "KnockbackDistance": 0,
             "RecalculateTargets": false

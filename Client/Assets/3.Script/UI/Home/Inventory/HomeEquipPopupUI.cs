@@ -8,10 +8,15 @@ using UnityEngine.UI;
 
 public class HomeEquipPopupUI : MonoBehaviour
 {
+    private static readonly Color ResourceParchmentText = new Color(0.10f, 0.22f, 0.20f, 1f);
+    private static readonly Color ResourceParchmentMutedText = new Color(0.32f, 0.26f, 0.18f, 1f);
+    private static readonly Color ResourceButtonText = new Color(0.96f, 0.92f, 0.82f, 1f);
+
     [SerializeField] private Transform _content;
     [SerializeField] private GameObject _itemPrefab; // Should have HomeEquipPopupItemUI component
     [SerializeField] private TextMeshProUGUI _title;
     [SerializeField] private Button _closeBtn;
+    [SerializeField] private bool _useHomeDetailResourceLayout;
 
     private RectTransform _contentRect;
     private Text _titleLegacy;
@@ -21,12 +26,14 @@ public class HomeEquipPopupUI : MonoBehaviour
     private RectTransform _leftBodyRoot;
     private RectTransform _listViewport;
     private RectTransform _listContent;
+    private Text _ownedItemsTitle;
     private Text _listEmptyText;
     private Text _slotLabel;
     private Text _itemCountLabel;
     private RectTransform _rightPanel;
     private RectTransform _rightHeaderRoot;
     private RectTransform _rightBodyRoot;
+    private RectTransform _rightBodyScrollContent;
     private RectTransform _rightFooterRoot;
     private RectTransform _detailRoot;
     private Image _detailIcon;
@@ -38,18 +45,22 @@ public class HomeEquipPopupUI : MonoBehaviour
     private Button _actionButton;
     private Text _actionButtonText;
     private TMP_FontAsset _koreanFont;
+    private static Sprite _defaultUiSprite;
 
     private readonly List<HomeEquipPopupItemUI> _spawnedItems = new();
     private EquipmentSlot _currentSlot = EquipmentSlot.None;
     private long _selectedInstanceId = -1;
     private bool _uiBuilt;
+    private bool _isShowing;
+    private GameObject _sectionRootToRestore;
 
     private void Awake()
     {
         CacheSceneReferences();
         BuildLayout();
         HookInventoryEvents();
-        gameObject.SetActive(false);
+        if (!_isShowing)
+            gameObject.SetActive(false);
     }
 
     private void OnEnable()
@@ -66,9 +77,17 @@ public class HomeEquipPopupUI : MonoBehaviour
 
     public void Show(EquipmentSlot slot)
     {
+        Show(slot, null);
+    }
+
+    public void Show(EquipmentSlot slot, GameObject sectionRootToRestore)
+    {
+        _isShowing = true;
+        _sectionRootToRestore = sectionRootToRestore;
         _currentSlot = slot;
-        _selectedInstanceId = -1;
+        _selectedInstanceId = FindEquippedInstanceId(slot);
         var titleText = $"{GetSlotLabel(slot)} 장비";
+        CacheSceneReferences();
         BuildLayout();
         if (_title != null)
             _title.text = titleText;
@@ -76,13 +95,22 @@ public class HomeEquipPopupUI : MonoBehaviour
             _titleLegacy.text = titleText;
 
         gameObject.SetActive(true);
+        if (_sectionRootToRestore != null && _sectionRootToRestore.activeSelf)
+            _sectionRootToRestore.SetActive(false);
+
         EnsurePopupOrder();
         RefreshList(preserveSelection: false);
     }
 
     public void Hide()
     {
+        _isShowing = false;
         gameObject.SetActive(false);
+        if (_sectionRootToRestore != null)
+        {
+            _sectionRootToRestore.SetActive(true);
+            _sectionRootToRestore = null;
+        }
     }
 
     private void CacheSceneReferences()
@@ -140,6 +168,14 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (_contentRect == null)
         {
             Debug.LogWarning("[HomeEquipPopupUI] Content RectTransform not found.");
+            return;
+        }
+
+        if (_useHomeDetailResourceLayout && TryBindExistingResourceLayout())
+        {
+            _uiBuilt = true;
+            NormalizePopupTextColors();
+            EnsurePopupOrder();
             return;
         }
 
@@ -210,7 +246,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         _leftBodyRoot.offsetMin = new Vector2(10f, 12f);
         _leftBodyRoot.offsetMax = new Vector2(-10f, -72f);
 
-        CreateText("OwnedItemsTitle", _leftHeaderRoot, "보유 장비", 18, TextAnchor.MiddleLeft, new Vector2(10f, -8f), new Vector2(160f, 22f));
+        _ownedItemsTitle = CreateText("OwnedItemsTitle", _leftHeaderRoot, "보유 장비", 18, TextAnchor.MiddleLeft, new Vector2(10f, -8f), new Vector2(160f, 22f));
         _slotLabel = CreateText("SelectedSlotLabel", _leftHeaderRoot, "부위: -", 13, TextAnchor.MiddleLeft, new Vector2(10f, -32f), new Vector2(126f, 18f));
         _itemCountLabel = CreateText("ItemCountLabel", _leftHeaderRoot, "0개 보유", 13, TextAnchor.MiddleRight, new Vector2(138f, -32f), new Vector2(106f, 18f));
 
@@ -227,9 +263,11 @@ public class HomeEquipPopupUI : MonoBehaviour
         scrollImage.color = new Color(0.05f, 0.05f, 0.08f, 0.92f);
 
         var mask = _listViewport.GetComponent<Mask>();
-        if (mask == null)
-            mask = _listViewport.gameObject.AddComponent<Mask>();
-        mask.showMaskGraphic = false;
+        if (mask != null)
+            RemoveComponent(mask);
+
+        if (_listViewport.GetComponent<RectMask2D>() == null)
+            _listViewport.gameObject.AddComponent<RectMask2D>();
 
         var scrollRect = _listViewport.GetComponent<ScrollRect>();
         if (scrollRect == null)
@@ -297,6 +335,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         _rightBodyRoot.pivot = new Vector2(0.5f, 1f);
         _rightBodyRoot.offsetMin = new Vector2(12f, 66f);
         _rightBodyRoot.offsetMax = new Vector2(-12f, -144f);
+        ConfigureScrollViewport(_rightBodyRoot, "DetailBodyContent", new Vector2(300f, 390f), ref _rightBodyScrollContent);
 
         _rightFooterRoot = FindRect("DetailFooter") ?? CreateEmptyRect("DetailFooter", _detailRoot);
         _rightFooterRoot.anchorMin = new Vector2(0f, 0f);
@@ -324,8 +363,8 @@ public class HomeEquipPopupUI : MonoBehaviour
 
         _detailName = CreateText("DetailName", _rightHeaderRoot, "선택된 장비 없음", 16, TextAnchor.MiddleLeft, new Vector2(96f, -28f), new Vector2(224f, 22f));
         _detailMeta = CreateText("DetailMeta", _rightHeaderRoot, "-", 12, TextAnchor.MiddleLeft, new Vector2(96f, -50f), new Vector2(224f, 16f));
-        _detailStats = CreateText("DetailStats", _rightBodyRoot, "-", 14, TextAnchor.UpperLeft, new Vector2(4f, -8f), new Vector2(300f, 92f));
-        _detailDescription = CreateText("DetailDescription", _rightBodyRoot, "장비를 선택하면 상세 정보가 표시됩니다.", 13, TextAnchor.UpperLeft, new Vector2(4f, -104f), new Vector2(300f, 96f));
+        _detailStats = CreateText("DetailStats", _rightBodyScrollContent, "-", 14, TextAnchor.UpperLeft, new Vector2(4f, -8f), new Vector2(300f, 92f));
+        _detailDescription = CreateText("DetailDescription", _rightBodyScrollContent, "장비를 선택하면 상세 정보가 표시됩니다.", 13, TextAnchor.UpperLeft, new Vector2(4f, -104f), new Vector2(300f, 180f));
         _detailStatus = CreateText("DetailStatus", _rightFooterRoot, "대기 중", 13, TextAnchor.MiddleLeft, new Vector2(4f, 22f), new Vector2(192f, 18f));
 
         _actionButton = FindButton("DetailActionButton") ?? CreateButton(_rightFooterRoot, "DetailActionButton", "장착", new Vector2(198f, 16f), new Vector2(116f, 30f));
@@ -334,8 +373,401 @@ public class HomeEquipPopupUI : MonoBehaviour
         _actionButton.onClick.AddListener(OnActionButtonClicked);
 
         _uiBuilt = true;
+        ApplyHomeDetailResourceLayout();
         NormalizePopupTextColors();
         EnsurePopupOrder();
+    }
+
+    private void ApplyHomeDetailResourceLayout()
+    {
+        if (!_useHomeDetailResourceLayout)
+            return;
+
+        SetCenteredRect(_contentRect, new Vector2(1280f, 720f), Vector2.zero);
+        SetCenteredRect(_browserRoot, new Vector2(1280f, 720f), Vector2.zero);
+        SetImageColor(_contentRect, new Color(0f, 0f, 0f, 0f));
+        SetImageColor(_browserRoot, new Color(0f, 0f, 0f, 0f));
+        SetImageColor(_leftPanel, new Color(0f, 0f, 0f, 0f));
+        SetImageColor(_rightPanel, new Color(0f, 0f, 0f, 0f));
+        SetImageColor(_listViewport, new Color(0f, 0f, 0f, 0f));
+        ConfigureInputBlockers();
+
+        if (_title != null)
+        {
+            var titleRect = _title.rectTransform;
+            SetTopLeftRect(titleRect, new Rect(108f, 44f, 270f, 32f));
+            _title.alignment = TextAlignmentOptions.MidlineLeft;
+            _title.color = ResourceParchmentText;
+        }
+
+        if (_closeBtn != null)
+        {
+            var closeRect = _closeBtn.GetComponent<RectTransform>();
+            if (closeRect != null)
+                SetTopLeftRect(closeRect, new Rect(1120f, 14f, 148f, 48f));
+        }
+
+        SetTopLeftRect(_leftPanel, new Rect(28f, 94f, 350f, 520f));
+        SetTopLeftRect(_rightPanel, new Rect(895f, 80f, 356f, 568f));
+
+        if (_leftHeaderRoot != null)
+            SetTopLeftRect(_leftHeaderRoot, new Rect(0f, 0f, 350f, 62f));
+
+        if (_leftBodyRoot != null)
+            SetTopLeftRect(_leftBodyRoot, new Rect(0f, 66f, 350f, 444f));
+
+        SetTextRect(_ownedItemsTitle, new Rect(0f, 0f, 156f, 24f), 17, TextAnchor.MiddleLeft, ResourceParchmentText);
+        SetTextRect(_slotLabel, new Rect(0f, 28f, 132f, 18f), 12, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
+        SetTextRect(_itemCountLabel, new Rect(198f, 28f, 112f, 18f), 12, TextAnchor.MiddleRight, ResourceParchmentMutedText);
+
+        if (_listViewport != null)
+        {
+            SetTopLeftRect(_listViewport, new Rect(0f, 0f, 350f, 438f));
+
+            var scrollImage = _listViewport.GetComponent<Image>();
+            if (scrollImage != null)
+            {
+                ApplyDefaultSprite(scrollImage);
+                scrollImage.color = new Color(1f, 1f, 1f, 0.01f);
+                scrollImage.raycastTarget = false;
+            }
+        }
+
+        if (_listContent != null)
+        {
+            _listContent.anchorMin = new Vector2(0f, 1f);
+            _listContent.anchorMax = new Vector2(0f, 1f);
+            _listContent.pivot = new Vector2(0f, 1f);
+            _listContent.anchoredPosition = new Vector2(12f, -12f);
+            _listContent.sizeDelta = new Vector2(326f, 0f);
+
+            ConfigureEquipmentGrid();
+        }
+
+        if (_rightHeaderRoot != null)
+            SetTopLeftRect(_rightHeaderRoot, new Rect(0f, 0f, 356f, 150f));
+
+        if (_rightBodyRoot != null)
+        {
+            SetTopLeftRect(_rightBodyRoot, new Rect(0f, 150f, 356f, 330f));
+            ConfigureScrollViewport(_rightBodyRoot, "DetailBodyContent", new Vector2(356f, 480f), ref _rightBodyScrollContent);
+        }
+
+        if (_rightBodyScrollContent != null)
+        {
+            _rightBodyScrollContent.anchorMin = new Vector2(0f, 1f);
+            _rightBodyScrollContent.anchorMax = new Vector2(0f, 1f);
+            _rightBodyScrollContent.pivot = new Vector2(0f, 1f);
+            _rightBodyScrollContent.anchoredPosition = Vector2.zero;
+            _rightBodyScrollContent.sizeDelta = new Vector2(356f, 480f);
+        }
+
+        if (_rightFooterRoot != null)
+            SetTopLeftRect(_rightFooterRoot, new Rect(0f, 488f, 356f, 74f));
+
+        SetTextRect(FindText("DetailTitle"), new Rect(0f, 0f, 150f, 24f), 17, TextAnchor.MiddleLeft, ResourceParchmentText);
+
+        var iconPanel = FindRect("DetailIconPanel");
+        if (iconPanel != null)
+            SetTopLeftRect(iconPanel, new Rect(20f, 36f, 86f, 86f));
+
+        if (_detailIcon != null)
+            SetCenteredRect(_detailIcon.rectTransform, new Vector2(72f, 72f), Vector2.zero);
+
+        SetTextRect(_detailName, new Rect(132f, 38f, 202f, 26f), 16, TextAnchor.MiddleLeft, ResourceParchmentText);
+        SetTextRect(_detailMeta, new Rect(132f, 66f, 202f, 42f), 11, TextAnchor.UpperLeft, ResourceParchmentMutedText);
+
+        if (_detailStats != null)
+            SetTextRect(_detailStats, new Rect(18f, 10f, 318f, 112f), 13, TextAnchor.UpperLeft, ResourceParchmentText);
+
+        if (_detailDescription != null)
+            SetTextRect(_detailDescription, new Rect(18f, 142f, 318f, 260f), 12, TextAnchor.UpperLeft, ResourceParchmentMutedText);
+
+        SetTextRect(_detailStatus, new Rect(18f, 8f, 170f, 38f), 12, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
+
+        if (_actionButton != null)
+        {
+            var actionRect = _actionButton.GetComponent<RectTransform>();
+            if (actionRect != null)
+                SetTopLeftRect(actionRect, new Rect(4f, 8f, 160f, 56f));
+
+            var buttonImage = _actionButton.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                ApplyDefaultSprite(buttonImage);
+                buttonImage.color = new Color(0f, 0f, 0f, 0f);
+                buttonImage.raycastTarget = true;
+            }
+
+            var buttonText = _actionButton.GetComponentInChildren<Text>(true);
+            if (buttonText != null)
+                SetTextRect(buttonText, new Rect(0f, 0f, 160f, 56f), 16, TextAnchor.MiddleCenter, ResourceButtonText);
+        }
+
+        if (_listEmptyText != null)
+            SetTextRect(_listEmptyText, new Rect(18f, 120f, 280f, 48f), 14, TextAnchor.MiddleCenter, ResourceParchmentMutedText);
+
+        DisableStaleDetailButtons();
+    }
+
+    private bool TryBindExistingResourceLayout()
+    {
+        _contentRect.gameObject.SetActive(true);
+
+        _browserRoot = FindRect("EquipmentBrowserRoot");
+        _leftPanel = FindRect("OwnedItemsPanel");
+        _leftHeaderRoot = FindRect("OwnedItemsHeader");
+        _leftBodyRoot = FindRect("OwnedItemsBody");
+        _listViewport = FindRect("ItemListViewport");
+        _listContent = FindRect("ItemListContent");
+        _rightPanel = FindRect("DetailPanel");
+        _detailRoot = _rightPanel;
+        _rightHeaderRoot = FindRect("DetailHeader");
+        _rightBodyRoot = FindRect("DetailBody");
+        _rightBodyScrollContent = FindRect("DetailBodyContent");
+        _rightFooterRoot = FindRect("DetailFooter");
+
+        if (_browserRoot == null || _leftPanel == null || _listViewport == null || _listContent == null ||
+            _rightPanel == null || _rightHeaderRoot == null || _rightBodyRoot == null || _rightFooterRoot == null)
+        {
+            return false;
+        }
+
+        _ownedItemsTitle = FindText("OwnedItemsTitle");
+        _slotLabel = FindText("SelectedSlotLabel");
+        _itemCountLabel = FindText("ItemCountLabel");
+        _listEmptyText = FindText("ItemListEmptyText");
+        _detailName = FindText("DetailName");
+        _detailMeta = FindText("DetailMeta");
+        _detailStats = FindText("DetailStats");
+        _detailDescription = FindText("DetailDescription");
+        _detailStatus = FindText("DetailStatus");
+
+        var detailIconObject = FindGameObject("DetailIcon");
+        _detailIcon = detailIconObject != null ? detailIconObject.GetComponent<Image>() : null;
+        _actionButton = FindButton("DetailActionButton");
+        _actionButtonText = _actionButton != null ? _actionButton.GetComponentInChildren<Text>(true) : null;
+
+        if (_itemPrefab == null)
+            _itemPrefab = FindGameObject("Prefab_PopupItem");
+
+        if (_itemPrefab == null || _actionButton == null)
+            return false;
+
+        ConfigureInputBlockers();
+        ConfigureSceneScrollRect(_listViewport, _listContent);
+        if (_rightBodyScrollContent != null)
+            ConfigureSceneScrollRect(_rightBodyRoot, _rightBodyScrollContent);
+
+        ConfigureEquipmentGrid();
+        DisableStaleDetailButtons();
+
+        _closeBtn?.onClick.RemoveAllListeners();
+        _closeBtn?.onClick.AddListener(Hide);
+
+        _actionButton.onClick.RemoveAllListeners();
+        _actionButton.onClick.AddListener(OnActionButtonClicked);
+        SetButtonLabel(_actionButton, "장착");
+
+        if (_titleLegacy != null)
+            _titleLegacy.gameObject.SetActive(false);
+
+        if (_listEmptyText != null)
+            _listEmptyText.gameObject.SetActive(false);
+
+        return true;
+    }
+
+    private static void ConfigureSceneScrollRect(RectTransform viewport, RectTransform content)
+    {
+        if (viewport == null || content == null)
+            return;
+
+        if (viewport.GetComponent<RectMask2D>() == null)
+            viewport.gameObject.AddComponent<RectMask2D>();
+
+        var scrollRect = viewport.GetComponent<ScrollRect>();
+        if (scrollRect == null)
+            scrollRect = viewport.gameObject.AddComponent<ScrollRect>();
+
+        scrollRect.horizontal = false;
+        scrollRect.vertical = true;
+        scrollRect.movementType = ScrollRect.MovementType.Clamped;
+        scrollRect.inertia = true;
+        scrollRect.scrollSensitivity = 22f;
+        scrollRect.viewport = viewport;
+        scrollRect.content = content;
+    }
+
+    private void ConfigureInputBlockers()
+    {
+        var dimObject = FindGameObject("DimOverlay") ?? FindGameObject("SceneDim");
+        var dim = dimObject != null ? dimObject.GetComponent<Image>() : null;
+        if (dim != null)
+            dim.raycastTarget = true;
+
+        var blockers = new[] { _contentRect, _browserRoot };
+        foreach (var blocker in blockers)
+        {
+            if (blocker == null)
+                continue;
+
+            var image = blocker.GetComponent<Image>();
+            if (image == null)
+                image = blocker.gameObject.AddComponent<Image>();
+
+            ApplyDefaultSprite(image);
+            image.color = new Color(0f, 0f, 0f, 0f);
+            image.raycastTarget = true;
+        }
+    }
+
+    private void ConfigureEquipmentGrid()
+    {
+        if (_listContent == null)
+            return;
+
+        var vertical = _listContent.GetComponent<VerticalLayoutGroup>();
+        if (vertical != null)
+            RemoveComponent(vertical);
+
+        var grid = _listContent.GetComponent<GridLayoutGroup>();
+        if (grid != null)
+            RemoveComponent(grid);
+
+        var fitter = _listContent.GetComponent<ContentSizeFitter>();
+        if (fitter != null)
+            RemoveComponent(fitter);
+    }
+
+    private void DisableStaleDetailButtons()
+    {
+        var buttons = transform.GetComponentsInChildren<Button>(true);
+        foreach (var button in buttons)
+        {
+            if (button == null || button == _closeBtn || button == _actionButton)
+                continue;
+
+            if (button.GetComponentInParent<HomeEquipPopupItemUI>(true) != null)
+                continue;
+
+            button.onClick.RemoveAllListeners();
+            button.interactable = false;
+            button.enabled = false;
+
+            if (button.targetGraphic != null)
+                button.targetGraphic.raycastTarget = false;
+
+            var image = button.GetComponent<Image>();
+            if (image != null)
+                image.raycastTarget = false;
+        }
+    }
+
+    private static void SetCenteredRect(RectTransform rect, Vector2 size, Vector2 anchoredPosition)
+    {
+        if (rect == null)
+            return;
+
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.sizeDelta = size;
+        rect.anchoredPosition = anchoredPosition;
+    }
+
+    private static void SetImageColor(RectTransform rect, Color color)
+    {
+        if (rect == null)
+            return;
+
+        var image = rect.GetComponent<Image>();
+        if (image == null)
+            return;
+
+        image.color = color;
+        image.raycastTarget = false;
+    }
+
+    private void ConfigureScrollViewport(RectTransform viewport, string contentName, Vector2 contentSize, ref RectTransform content)
+    {
+        if (viewport == null)
+            return;
+
+        var viewportImage = viewport.GetComponent<Image>();
+        if (viewportImage == null)
+            viewportImage = viewport.gameObject.AddComponent<Image>();
+        ApplyDefaultSprite(viewportImage);
+        viewportImage.color = new Color(1f, 1f, 1f, 0.01f);
+        viewportImage.raycastTarget = true;
+
+        if (viewport.GetComponent<RectMask2D>() == null)
+            viewport.gameObject.AddComponent<RectMask2D>();
+
+        var scrollRect = viewport.GetComponent<ScrollRect>();
+        if (scrollRect == null)
+            scrollRect = viewport.gameObject.AddComponent<ScrollRect>();
+        scrollRect.horizontal = false;
+        scrollRect.vertical = true;
+        scrollRect.movementType = ScrollRect.MovementType.Clamped;
+        scrollRect.inertia = true;
+        scrollRect.scrollSensitivity = 22f;
+        scrollRect.viewport = viewport;
+
+        if (content == null)
+            content = FindRect(contentName);
+
+        if (content == null)
+            content = CreateEmptyRect(contentName, viewport);
+        else if (content.parent != viewport)
+            content.SetParent(viewport, false);
+
+        content.anchorMin = new Vector2(0f, 1f);
+        content.anchorMax = new Vector2(0f, 1f);
+        content.pivot = new Vector2(0f, 1f);
+        content.anchoredPosition = Vector2.zero;
+        content.sizeDelta = contentSize;
+        scrollRect.content = content;
+    }
+
+    private static void SetTopLeftRect(RectTransform rect, Rect rectFromTopLeft)
+    {
+        if (rect == null)
+            return;
+
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = new Vector2(rectFromTopLeft.x, -rectFromTopLeft.y);
+        rect.sizeDelta = new Vector2(rectFromTopLeft.width, rectFromTopLeft.height);
+    }
+
+    private static void SetTextRect(Text text, Rect rectFromTopLeft, int fontSize, TextAnchor anchor, Color color)
+    {
+        if (text == null)
+            return;
+
+        SetTopLeftRect(text.rectTransform, rectFromTopLeft);
+        text.fontSize = fontSize;
+        text.resizeTextForBestFit = true;
+        text.resizeTextMinSize = Mathf.Max(8, fontSize - 4);
+        text.resizeTextMaxSize = fontSize;
+        text.alignment = anchor;
+        text.horizontalOverflow = HorizontalWrapMode.Wrap;
+        text.verticalOverflow = VerticalWrapMode.Truncate;
+        text.color = color;
+        text.raycastTarget = false;
+    }
+
+    private static void RemoveComponent(Component component)
+    {
+        if (component == null)
+            return;
+
+        if (Application.isPlaying)
+            Destroy(component);
+        else
+            DestroyImmediate(component);
     }
 
     private void HookInventoryEvents()
@@ -389,32 +821,41 @@ public class HomeEquipPopupUI : MonoBehaviour
         }
 
         if (!preserveSelection)
-            _selectedInstanceId = filtered[0].InstanceId;
+            _selectedInstanceId = GetDefaultSelection(filtered);
         else if (_selectedInstanceId < 0 || !ContainsInstance(filtered, _selectedInstanceId))
-            _selectedInstanceId = filtered[0].InstanceId;
+            _selectedInstanceId = GetDefaultSelection(filtered);
 
         ClearItemWidgets();
         ShowListEmpty(false);
 
-        foreach (var item in filtered)
+        for (int i = 0; i < filtered.Count; i++)
         {
+            var item = filtered[i];
             var go = Instantiate(_itemPrefab, _listContent);
             go.SetActive(true);
             var itemRect = go.GetComponent<RectTransform>();
             if (itemRect != null)
             {
                 itemRect.anchorMin = new Vector2(0f, 1f);
-                itemRect.anchorMax = new Vector2(1f, 1f);
-                itemRect.pivot = new Vector2(0.5f, 1f);
-                itemRect.sizeDelta = new Vector2(0f, 50f);
+                itemRect.anchorMax = _useHomeDetailResourceLayout ? new Vector2(0f, 1f) : new Vector2(1f, 1f);
+                itemRect.pivot = _useHomeDetailResourceLayout ? new Vector2(0f, 1f) : new Vector2(0.5f, 1f);
+                itemRect.sizeDelta = _useHomeDetailResourceLayout ? new Vector2(84f, 85f) : new Vector2(0f, 68f);
+                if (_useHomeDetailResourceLayout)
+                    PositionResourceItem(itemRect, i);
             }
             var itemUI = go.GetComponent<HomeEquipPopupItemUI>();
             if (itemUI == null)
                 itemUI = go.AddComponent<HomeEquipPopupItemUI>();
 
             bool selected = item.InstanceId == _selectedInstanceId;
-            itemUI.Setup(item, () => SelectItem(item.InstanceId), selected);
+            itemUI.Setup(item, () => SelectItem(item.InstanceId), selected, _useHomeDetailResourceLayout);
             _spawnedItems.Add(itemUI);
+        }
+
+        if (_useHomeDetailResourceLayout && _listContent != null)
+        {
+            ResizeResourceListContent(filtered.Count);
+            Canvas.ForceUpdateCanvases();
         }
 
         UpdateCategoryHighlights();
@@ -426,6 +867,36 @@ public class HomeEquipPopupUI : MonoBehaviour
     {
         _selectedInstanceId = instanceId;
         RefreshList(preserveSelection: true);
+    }
+
+    private static void PositionResourceItem(RectTransform itemRect, int index)
+    {
+        if (itemRect == null)
+            return;
+
+        const int columns = 3;
+        const float cellWidth = 84f;
+        const float cellHeight = 85f;
+        const float gapX = 8f;
+        const float gapY = 10f;
+
+        int column = index % columns;
+        int row = index / columns;
+        itemRect.anchoredPosition = new Vector2(column * (cellWidth + gapX), -row * (cellHeight + gapY));
+    }
+
+    private void ResizeResourceListContent(int itemCount)
+    {
+        if (_listContent == null)
+            return;
+
+        const int columns = 3;
+        const float cellHeight = 85f;
+        const float gapY = 10f;
+
+        int rows = Mathf.Max(1, Mathf.CeilToInt(itemCount / (float)columns));
+        float height = rows * cellHeight + Mathf.Max(0, rows - 1) * gapY;
+        _listContent.sizeDelta = new Vector2(326f, height);
     }
 
     private void RefreshDetailPanel()
@@ -571,6 +1042,9 @@ public class HomeEquipPopupUI : MonoBehaviour
 
         result.Sort((a, b) =>
         {
+            int equippedCompare = b.IsEquipped.CompareTo(a.IsEquipped);
+            if (equippedCompare != 0) return equippedCompare;
+
             var tmplA = ItemDataManager.Instance != null ? ItemDataManager.Instance.GetEquipment(a.TemplateId) : null;
             var tmplB = ItemDataManager.Instance != null ? ItemDataManager.Instance.GetEquipment(b.TemplateId) : null;
             string nameA = tmplA != null ? tmplA.name : a.TemplateId.ToString();
@@ -581,6 +1055,39 @@ public class HomeEquipPopupUI : MonoBehaviour
         });
 
         return result;
+    }
+
+    private long GetDefaultSelection(List<SC_Inventory.Equipments> items)
+    {
+        if (items == null || items.Count == 0)
+            return -1;
+
+        foreach (var item in items)
+        {
+            if (item != null && item.IsEquipped)
+                return item.InstanceId;
+        }
+
+        return items[0].InstanceId;
+    }
+
+    private long FindEquippedInstanceId(EquipmentSlot slot)
+    {
+        var inv = InventoryManager.Instance;
+        if (inv == null || inv.Equipments == null)
+            return -1;
+
+        foreach (var item in inv.Equipments)
+        {
+            if (item == null || !item.IsEquipped)
+                continue;
+
+            var tmpl = ItemDataManager.Instance != null ? ItemDataManager.Instance.GetEquipment(item.TemplateId) : null;
+            if (tmpl != null && (slot == EquipmentSlot.None || tmpl.SlotEnum == slot))
+                return item.InstanceId;
+        }
+
+        return -1;
     }
 
     private bool ContainsInstance(List<SC_Inventory.Equipments> items, long instanceId)
@@ -611,7 +1118,10 @@ public class HomeEquipPopupUI : MonoBehaviour
     private void ClearItemWidgets()
     {
         foreach (Transform child in _listContent)
+        {
+            child.gameObject.SetActive(false);
             Destroy(child.gameObject);
+        }
 
         _spawnedItems.Clear();
     }
@@ -651,13 +1161,19 @@ public class HomeEquipPopupUI : MonoBehaviour
             transform.SetAsLastSibling();
 
         if (_contentRect != null)
+        {
             _contentRect.transform.SetAsFirstSibling();
+
+            var resourceChrome = _contentRect.Find("ResourceChrome");
+            if (resourceChrome != null)
+                resourceChrome.SetAsFirstSibling();
+        }
 
         if (_title != null)
             _title.transform.SetSiblingIndex(Mathf.Min(1, transform.childCount - 1));
 
         if (_browserRoot != null)
-            _browserRoot.transform.SetSiblingIndex(Mathf.Min(2, transform.childCount - 1));
+            _browserRoot.transform.SetAsLastSibling();
 
         if (_titleLegacy != null)
             _titleLegacy.transform.SetAsLastSibling();
@@ -687,6 +1203,14 @@ public class HomeEquipPopupUI : MonoBehaviour
                 continue;
             }
 
+            if (_useHomeDetailResourceLayout)
+            {
+                var inActionButton = _actionButton != null && text.transform.IsChildOf(_actionButton.transform);
+                text.color = inActionButton ? ResourceButtonText : ResourceParchmentText;
+                text.raycastTarget = false;
+                continue;
+            }
+
             text.color = Color.white;
         }
 
@@ -698,7 +1222,18 @@ public class HomeEquipPopupUI : MonoBehaviour
 
             if (tmp == _title)
             {
-                tmp.color = new Color(1f, 0.84f, 0f, 1f);
+                tmp.color = _useHomeDetailResourceLayout
+                    ? ResourceParchmentText
+                    : new Color(1f, 0.84f, 0f, 1f);
+                continue;
+            }
+
+            if (_useHomeDetailResourceLayout)
+            {
+                if (tmp.GetComponentInParent<HomeEquipPopupItemUI>(true) != null)
+                    continue;
+
+                tmp.color = ResourceParchmentText;
                 continue;
             }
 
@@ -706,10 +1241,14 @@ public class HomeEquipPopupUI : MonoBehaviour
         }
 
         if (_listEmptyText != null)
-            _listEmptyText.color = new Color(0.92f, 0.92f, 0.95f, 0.9f);
+            _listEmptyText.color = _useHomeDetailResourceLayout
+                ? ResourceParchmentMutedText
+                : new Color(0.92f, 0.92f, 0.95f, 0.9f);
 
         if (_detailStatus != null && !string.IsNullOrWhiteSpace(_detailStatus.text))
-            _detailStatus.color = new Color(0.95f, 0.95f, 0.98f, 1f);
+            _detailStatus.color = _useHomeDetailResourceLayout
+                ? ResourceParchmentMutedText
+                : new Color(0.95f, 0.95f, 0.98f, 1f);
     }
 
     private void ApplyKoreanFont(TextMeshProUGUI text)
@@ -750,7 +1289,10 @@ public class HomeEquipPopupUI : MonoBehaviour
         label.text = text;
         label.fontSize = fontSize;
         label.alignment = anchor;
-        label.horizontalOverflow = HorizontalWrapMode.Overflow;
+        label.resizeTextForBestFit = true;
+        label.resizeTextMinSize = Mathf.Max(8, fontSize - 4);
+        label.resizeTextMaxSize = fontSize;
+        label.horizontalOverflow = HorizontalWrapMode.Wrap;
         label.verticalOverflow = VerticalWrapMode.Truncate;
         label.color = Color.white;
         label.raycastTarget = false;
@@ -776,7 +1318,10 @@ public class HomeEquipPopupUI : MonoBehaviour
         label.fontSize = fontSize;
         label.color = Color.white;
         label.alignment = anchor;
-        label.horizontalOverflow = HorizontalWrapMode.Overflow;
+        label.resizeTextForBestFit = true;
+        label.resizeTextMinSize = Mathf.Max(8, fontSize - 4);
+        label.resizeTextMaxSize = fontSize;
+        label.horizontalOverflow = HorizontalWrapMode.Wrap;
         label.verticalOverflow = VerticalWrapMode.Truncate;
         label.raycastTarget = false;
 
@@ -796,6 +1341,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         rect.anchoredPosition = anchoredPosition;
 
         var img = go.GetComponent<Image>();
+        ApplyDefaultSprite(img);
         img.color = new Color(0.18f, 0.18f, 0.24f, 0.96f);
 
         var btn = go.GetComponent<Button>();
@@ -817,6 +1363,9 @@ public class HomeEquipPopupUI : MonoBehaviour
         text.alignment = TextAnchor.MiddleCenter;
         text.raycastTarget = false;
 
+        var feedback = go.AddComponent<HomeUIButtonFeedback>();
+        feedback.Configure(rect, img);
+
         return btn;
     }
 
@@ -833,6 +1382,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         rect.anchoredPosition = anchoredPosition;
 
         var img = go.GetComponent<Image>();
+        ApplyDefaultSprite(img);
         img.color = color;
         return rect;
     }
@@ -850,9 +1400,30 @@ public class HomeEquipPopupUI : MonoBehaviour
         rect.anchoredPosition = anchoredPosition;
 
         var img = go.GetComponent<Image>();
+        ApplyDefaultSprite(img);
         img.color = color;
         img.preserveAspect = true;
         return go;
+    }
+
+    private static void ApplyDefaultSprite(Image image)
+    {
+        if (image == null || image.sprite != null)
+            return;
+
+        if (_defaultUiSprite == null)
+        {
+            var texture = Texture2D.whiteTexture;
+            _defaultUiSprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            _defaultUiSprite.name = "RuntimeWhiteUISprite";
+        }
+
+        if (_defaultUiSprite != null)
+            image.sprite = _defaultUiSprite;
     }
 
     private RectTransform CreateEmptyRect(string name, RectTransform parent)

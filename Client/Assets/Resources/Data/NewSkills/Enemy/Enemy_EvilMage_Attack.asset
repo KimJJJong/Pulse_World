@@ -63,8 +63,8 @@ MonoBehaviour:
         Shape:
           rid: 879012390544605275
         Amount: 50
-        HitPlayers: 0
-        HitMonsters: 1
+        HitPlayers: 1
+        HitMonsters: 0
         StunDurationTicks: 0
         KnockbackDistance: 0
         RecalculateTargets: 0

@@ -8,6 +8,13 @@ using System.IO;
 
 public class HomeEquipPopupItemUI : MonoBehaviour
 {
+    private static readonly Color ListCard = new Color(0.78f, 0.64f, 0.44f, 0.92f);
+    private static readonly Color ListCardSelected = new Color(0.07f, 0.42f, 0.40f, 0.96f);
+    private static readonly Color ListText = new Color(0.10f, 0.22f, 0.20f, 1f);
+    private static readonly Color ListMutedText = new Color(0.32f, 0.26f, 0.18f, 1f);
+    private static Sprite _defaultCardSprite;
+    private static Sprite _selectedCardSprite;
+
     [SerializeField] private Image _icon;
     [SerializeField] private TextMeshProUGUI _nameText;
     [SerializeField] private TextMeshProUGUI _levelText; // +1, +2
@@ -17,6 +24,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
     private SC_Inventory.Equipments _data;
     private System.Action _onClick;
     private bool _isSelected;
+    private bool _forceResourceCardLayout;
     private static TMP_FontAsset _koreanFont;
 
     private void Awake()
@@ -26,6 +34,12 @@ public class HomeEquipPopupItemUI : MonoBehaviour
 
     public void Setup(SC_Inventory.Equipments data, System.Action onClick, bool isSelected)
     {
+        Setup(data, onClick, isSelected, false);
+    }
+
+    public void Setup(SC_Inventory.Equipments data, System.Action onClick, bool isSelected, bool useResourceCardLayout)
+    {
+        _forceResourceCardLayout = useResourceCardLayout;
         ResolveReferences();
         _data = data;
         _onClick = onClick;
@@ -34,16 +48,18 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         var tmpl = ItemDataManager.Instance != null ? ItemDataManager.Instance.GetEquipment(data.TemplateId) : null;
         if (tmpl != null)
         {
+            var gridCard = UseResourceCardLayout();
             if (_nameText != null)
             {
                 _nameText.text = tmpl.name;
+                _nameText.gameObject.SetActive(!gridCard);
                 ApplyKoreanFont(_nameText);
-                _nameText.fontSize = 16f;
+                _nameText.fontSize = gridCard ? 11f : 16f;
                 _nameText.enableAutoSizing = true;
-                _nameText.fontSizeMin = 11f;
-                _nameText.fontSizeMax = 16f;
+                _nameText.fontSizeMin = gridCard ? 8f : 11f;
+                _nameText.fontSizeMax = gridCard ? 11f : 16f;
                 _nameText.overflowMode = TextOverflowModes.Ellipsis;
-                _nameText.alignment = TextAlignmentOptions.MidlineLeft;
+                _nameText.alignment = gridCard ? TextAlignmentOptions.Center : TextAlignmentOptions.MidlineLeft;
             }
 
             if (_icon != null)
@@ -62,11 +78,11 @@ public class HomeEquipPopupItemUI : MonoBehaviour
                 var iconRect = _icon.rectTransform;
                 if (iconRect != null)
                 {
-                    iconRect.anchorMin = new Vector2(0f, 0.5f);
-                    iconRect.anchorMax = new Vector2(0f, 0.5f);
-                    iconRect.pivot = new Vector2(0f, 0.5f);
-                    iconRect.sizeDelta = new Vector2(40f, 40f);
-                    iconRect.anchoredPosition = new Vector2(8f, 0f);
+                    iconRect.anchorMin = gridCard ? new Vector2(0.5f, 1f) : new Vector2(0f, 0.5f);
+                    iconRect.anchorMax = gridCard ? new Vector2(0.5f, 1f) : new Vector2(0f, 0.5f);
+                    iconRect.pivot = gridCard ? new Vector2(0.5f, 1f) : new Vector2(0f, 0.5f);
+                    iconRect.sizeDelta = gridCard ? new Vector2(58f, 58f) : new Vector2(48f, 48f);
+                    iconRect.anchoredPosition = gridCard ? new Vector2(0f, -13f) : new Vector2(10f, 0f);
                 }
             }
         }
@@ -85,9 +101,10 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         if (_levelText != null)
         {
             _levelText.text = data.EnhancementLevel > 0 ? $"+{data.EnhancementLevel}" : "";
+            _levelText.gameObject.SetActive(!UseResourceCardLayout() && data.EnhancementLevel > 0);
             ApplyKoreanFont(_levelText);
-            _levelText.fontSize = 11f;
-            _levelText.alignment = TextAlignmentOptions.MidlineLeft;
+            _levelText.fontSize = UseResourceCardLayout() ? 10f : 11f;
+            _levelText.alignment = UseResourceCardLayout() ? TextAlignmentOptions.Center : TextAlignmentOptions.MidlineLeft;
         }
 
         if (_equippedMark != null)
@@ -123,20 +140,36 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         var bg = GetComponent<Image>();
         if (bg != null)
         {
-            bg.color = _isSelected
-                ? new Color(0.28f, 0.44f, 0.62f, 0.98f)
-                : new Color(0.18f, 0.18f, 0.24f, 0.96f);
+            if (UseResourceCardLayout())
+            {
+                bg.sprite = _isSelected ? SelectedCardSprite : DefaultCardSprite;
+                bg.type = Image.Type.Sliced;
+                bg.color = Color.white;
+            }
+            else
+            {
+                bg.color = _isSelected
+                    ? ListCardSelected
+                    : ListCard;
+            }
         }
 
         if (_nameText != null)
-            _nameText.color = _isSelected ? new Color(1f, 0.95f, 0.8f, 1f) : Color.white;
+            _nameText.color = _isSelected ? Color.white : ListText;
 
         if (_levelText != null)
-            _levelText.color = _isSelected ? new Color(0.95f, 0.95f, 1f, 1f) : new Color(0.85f, 0.85f, 0.92f, 1f);
+            _levelText.color = _isSelected ? new Color(0.94f, 0.97f, 0.94f, 1f) : ListMutedText;
+
+        var feedback = GetComponent<HomeUIButtonFeedback>();
+        if (feedback == null)
+            feedback = gameObject.AddComponent<HomeUIButtonFeedback>();
+        feedback.Configure(transform as RectTransform, bg);
     }
 
     private void ResolveReferences()
     {
+        var gridCard = UseResourceCardLayout();
+
         if (_icon == null)
             _icon = FindImage("Icon", "ItemIcon", "EquipmentIcon");
 
@@ -155,20 +188,20 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         var layout = GetComponent<LayoutElement>();
         if (layout == null)
             layout = gameObject.AddComponent<LayoutElement>();
-        layout.preferredHeight = 54f;
-        layout.minHeight = 50f;
-        layout.preferredWidth = 232f;
+        layout.preferredHeight = gridCard ? 85f : 68f;
+        layout.minHeight = gridCard ? 85f : 64f;
+        layout.preferredWidth = gridCard ? 84f : 300f;
 
         if (_nameText != null)
         {
             var nameRect = _nameText.rectTransform;
             if (nameRect != null)
             {
-                nameRect.anchorMin = new Vector2(0f, 0.5f);
-                nameRect.anchorMax = new Vector2(0f, 0.5f);
-                nameRect.pivot = new Vector2(0f, 0.5f);
-                nameRect.anchoredPosition = new Vector2(52f, 7f);
-                nameRect.sizeDelta = new Vector2(148f, 24f);
+                nameRect.anchorMin = gridCard ? new Vector2(0.5f, 0f) : new Vector2(0f, 0.5f);
+                nameRect.anchorMax = gridCard ? new Vector2(0.5f, 0f) : new Vector2(0f, 0.5f);
+                nameRect.pivot = gridCard ? new Vector2(0.5f, 0f) : new Vector2(0f, 0.5f);
+                nameRect.anchoredPosition = gridCard ? new Vector2(0f, 32f) : new Vector2(68f, 10f);
+                nameRect.sizeDelta = gridCard ? new Vector2(88f, 20f) : new Vector2(188f, 24f);
             }
         }
 
@@ -177,11 +210,11 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             var levelRect = _levelText.rectTransform;
             if (levelRect != null)
             {
-                levelRect.anchorMin = new Vector2(0f, 0.5f);
-                levelRect.anchorMax = new Vector2(0f, 0.5f);
-                levelRect.pivot = new Vector2(0f, 0.5f);
-                levelRect.anchoredPosition = new Vector2(52f, -12f);
-                levelRect.sizeDelta = new Vector2(88f, 18f);
+                levelRect.anchorMin = gridCard ? new Vector2(0.5f, 0f) : new Vector2(0f, 0.5f);
+                levelRect.anchorMax = gridCard ? new Vector2(0.5f, 0f) : new Vector2(0f, 0.5f);
+                levelRect.pivot = gridCard ? new Vector2(0.5f, 0f) : new Vector2(0f, 0.5f);
+                levelRect.anchoredPosition = gridCard ? new Vector2(0f, 12f) : new Vector2(68f, -14f);
+                levelRect.sizeDelta = gridCard ? new Vector2(82f, 18f) : new Vector2(150f, 18f);
             }
         }
 
@@ -190,11 +223,11 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             var markRect = _equippedMark.GetComponent<RectTransform>();
             if (markRect != null)
             {
-                markRect.anchorMin = new Vector2(1f, 0.5f);
-                markRect.anchorMax = new Vector2(1f, 0.5f);
-                markRect.pivot = new Vector2(1f, 0.5f);
-                markRect.anchoredPosition = new Vector2(-10f, 0f);
-                markRect.sizeDelta = new Vector2(26f, 18f);
+                markRect.anchorMin = new Vector2(1f, 1f);
+                markRect.anchorMax = new Vector2(1f, 1f);
+                markRect.pivot = new Vector2(1f, 1f);
+                markRect.anchoredPosition = gridCard ? new Vector2(-6f, -5f) : new Vector2(-10f, -25f);
+                markRect.sizeDelta = gridCard ? new Vector2(20f, 15f) : new Vector2(26f, 18f);
             }
             var markLabel = _equippedMark.GetComponent<TextMeshProUGUI>();
             if (markLabel != null)
@@ -202,6 +235,48 @@ public class HomeEquipPopupItemUI : MonoBehaviour
                 ApplyKoreanFont(markLabel);
                 markLabel.alignment = TextAlignmentOptions.Center;
             }
+        }
+
+        if (gridCard && _icon != null)
+        {
+            var iconRect = _icon.rectTransform;
+            iconRect.anchorMin = new Vector2(0.5f, 1f);
+            iconRect.anchorMax = new Vector2(0.5f, 1f);
+            iconRect.pivot = new Vector2(0.5f, 1f);
+            iconRect.sizeDelta = new Vector2(58f, 58f);
+            iconRect.anchoredPosition = new Vector2(0f, -13f);
+        }
+    }
+
+    private bool UseResourceCardLayout()
+    {
+        return _forceResourceCardLayout || IsGridCardLayout();
+    }
+
+    private bool IsGridCardLayout()
+    {
+        return GetComponentInParent<GridLayoutGroup>(true) != null;
+    }
+
+    private static Sprite DefaultCardSprite
+    {
+        get
+        {
+            if (_defaultCardSprite == null)
+                _defaultCardSprite = Resources.Load<Sprite>("UI/UI_Home_Equipment_Detail/UI_01_default");
+
+            return _defaultCardSprite;
+        }
+    }
+
+    private static Sprite SelectedCardSprite
+    {
+        get
+        {
+            if (_selectedCardSprite == null)
+                _selectedCardSprite = Resources.Load<Sprite>("UI/UI_Home_Equipment_Detail/UI_01_selected");
+
+            return _selectedCardSprite;
         }
     }
 

@@ -11,6 +11,13 @@ public sealed class HomeAppearanceSelectorUI : MonoBehaviour
     public static int LastSavedAppearanceId { get; private set; }
     public static int LastAppliedAppearanceId { get; private set; }
 
+    public static void PublishAppearanceAppliedChanged(int savedAppearanceId, int appliedAppearanceId)
+    {
+        LastSavedAppearanceId = savedAppearanceId;
+        LastAppliedAppearanceId = appliedAppearanceId;
+        AppearanceAppliedChanged?.Invoke(savedAppearanceId, appliedAppearanceId);
+    }
+
     private const float PanelWidth = 380f;
     private const float PanelHeight = 300f;
 
@@ -330,11 +337,9 @@ public sealed class HomeAppearanceSelectorUI : MonoBehaviour
 
         _savedAppearanceId = res.Data.SavedAppearanceId;
         _currentAppearanceId = res.Data.AppearanceId;
-        LastSavedAppearanceId = _savedAppearanceId;
-        LastAppliedAppearanceId = _currentAppearanceId;
+        PublishAppearanceAppliedChanged(_savedAppearanceId, _currentAppearanceId);
         UpdateCurrentLabel();
         UpdateOptionHighlights();
-        AppearanceAppliedChanged?.Invoke(_savedAppearanceId, _currentAppearanceId);
         SetStatus("외형 정보를 불러왔습니다.");
     }
 
@@ -371,11 +376,9 @@ public sealed class HomeAppearanceSelectorUI : MonoBehaviour
 
         _savedAppearanceId = res.Data.SavedAppearanceId;
         _currentAppearanceId = res.Data.AppearanceId;
-        LastSavedAppearanceId = _savedAppearanceId;
-        LastAppliedAppearanceId = _currentAppearanceId;
+        PublishAppearanceAppliedChanged(_savedAppearanceId, _currentAppearanceId);
         UpdateCurrentLabel();
         UpdateOptionHighlights();
-        AppearanceAppliedChanged?.Invoke(_savedAppearanceId, _currentAppearanceId);
         SetStatus($"저장 완료: {AppearanceCatalog.GetDisplayName(_savedAppearanceId)}");
 
         if (_popup != null)

@@ -1,0 +1,973 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using Client.Content.Item;
+using TMPro;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
+using UnityEngine.UI;
+
+public static class Home1SceneSpaceUiBuilder
+{
+    private const string ScenePath = "Assets/0.MainProject/Scenes/Home 1.unity";
+    private const string UiResourceSource = "../Resource/UI";
+    private const string UiResourceTarget = "Assets/Resources/UI";
+
+    private static readonly Vector2 LayoutSize = new(1280f, 720f);
+    private static readonly Color ParchmentText = new(0.10f, 0.22f, 0.20f, 1f);
+    private static readonly Color ParchmentMutedText = new(0.32f, 0.26f, 0.18f, 1f);
+    private static readonly Color GoldText = new(0.94f, 0.72f, 0.20f, 1f);
+    private static readonly Color ButtonLightText = new(0.96f, 0.92f, 0.82f, 1f);
+    private static Sprite _defaultUiSprite;
+
+    [MenuItem("RhythmRPG/Editors/UI/Rebuild Home1 Scene Space UI")]
+    public static void Build()
+    {
+        EnsureUiResources();
+        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+        RemoveExistingUi();
+        var camera = EnsureMainCamera();
+        EnsureEventSystem();
+
+        var canvas = CreateOverlayCanvas();
+        var cameraDirector = canvas.gameObject.AddComponent<HomeSceneCameraDirector>();
+        ConfigureCameraDirector(cameraDirector, camera);
+
+        var homeRoot = CreatePageRoot(canvas.transform, "UI_Home_Interface", true);
+        var equipmentRoot = CreatePageRoot(canvas.transform, "UI_Home_Equipment", false);
+        var inventoryRoot = CreatePageRoot(canvas.transform, "UI_Home_Inventory", false);
+        var appearanceRoot = CreatePageRoot(canvas.transform, "UI_Home_Appearance", false);
+        var mapRoot = CreatePageRoot(canvas.transform, "UI_Home_Map", false);
+        var detailRoot = CreatePageRoot(canvas.transform, "UI_Home_Equipment_Detail", false);
+
+        var homeButtons = BuildHomeInterface(homeRoot);
+        var equipmentBack = BuildEquipmentScreen(equipmentRoot, detailRoot, out var inventoryUi);
+        var inventoryBack = BuildInventoryScreen(inventoryRoot);
+        var appearanceBack = BuildAppearanceScreen(appearanceRoot);
+        var mapBack = BuildMapScreen(mapRoot);
+        BuildDetailScreen(detailRoot);
+
+        var navigator = canvas.gameObject.AddComponent<HomeUiPageNavigator>();
+        var navigatorSo = new SerializedObject(navigator);
+        navigatorSo.FindProperty("_homeRoot").objectReferenceValue = homeRoot.gameObject;
+        navigatorSo.FindProperty("_equipmentRoot").objectReferenceValue = equipmentRoot.gameObject;
+        navigatorSo.FindProperty("_inventoryRoot").objectReferenceValue = inventoryRoot.gameObject;
+        navigatorSo.FindProperty("_appearanceRoot").objectReferenceValue = appearanceRoot.gameObject;
+        navigatorSo.FindProperty("_mapRoot").objectReferenceValue = mapRoot.gameObject;
+        navigatorSo.FindProperty("_detailRoot").objectReferenceValue = detailRoot.gameObject;
+        navigatorSo.FindProperty("_equipmentButton").objectReferenceValue = homeButtons.Equipment;
+        navigatorSo.FindProperty("_inventoryButton").objectReferenceValue = homeButtons.Inventory;
+        navigatorSo.FindProperty("_appearanceButton").objectReferenceValue = homeButtons.Appearance;
+        navigatorSo.FindProperty("_mapButton").objectReferenceValue = homeButtons.Map;
+        navigatorSo.FindProperty("_equipmentBackButton").objectReferenceValue = equipmentBack;
+        navigatorSo.FindProperty("_cameraDirector").objectReferenceValue = cameraDirector;
+
+        var homeButtonsProperty = navigatorSo.FindProperty("_homeButtons");
+        homeButtonsProperty.arraySize = 3;
+        homeButtonsProperty.GetArrayElementAtIndex(0).objectReferenceValue = inventoryBack;
+        homeButtonsProperty.GetArrayElementAtIndex(1).objectReferenceValue = appearanceBack;
+        homeButtonsProperty.GetArrayElementAtIndex(2).objectReferenceValue = mapBack;
+        navigatorSo.ApplyModifiedPropertiesWithoutUndo();
+
+        if (inventoryUi != null)
+            EditorUtility.SetDirty(inventoryUi);
+
+        EnsureAppearancePreviewController();
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[Home1SceneSpaceUiBuilder] Rebuilt Home 1 with Screen Space Overlay resource UI.");
+    }
+
+    [MenuItem("RhythmRPG/Editors/UI/Verify Home1 Scene Space Flow")]
+    public static void VerifyFlow()
+    {
+        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+        Require(SceneNames.Home == "Home 1", $"SceneNames.Home must be 'Home 1' but was '{SceneNames.Home}'.");
+        RequireBuildScene("Assets/0.MainProject/Scenes/Home 1.unity", true);
+        RequireBuildScene("Assets/0.MainProject/Scenes/Home.unity", false);
+
+        var canvas = RequireComponent<Canvas>("Canvas_Home1_SceneSpace");
+        Require(canvas.renderMode == RenderMode.ScreenSpaceOverlay, "Canvas_Home1_SceneSpace must be Screen Space Overlay.");
+
+        var navigator = canvas.GetComponent<HomeUiPageNavigator>();
+        Require(navigator != null, "Canvas_Home1_SceneSpace is missing HomeUiPageNavigator.");
+        Require(canvas.GetComponent<HomeSceneCameraDirector>() != null, "Canvas_Home1_SceneSpace is missing HomeSceneCameraDirector.");
+
+        RequireSceneObject("UI_Home_Interface");
+        RequireSceneObject("UI_Home_Equipment");
+        RequireSceneObject("UI_Home_Inventory");
+        RequireSceneObject("UI_Home_Appearance");
+        RequireSceneObject("UI_Home_Map");
+        RequireSceneObject("UI_Home_Equipment_Detail");
+
+        RequireComponent<HomeInventoryUI>("UI_Home_Equipment");
+        var popup = RequireComponent<HomeEquipPopupUI>("UI_Home_Equipment_Detail");
+        RequireComponent<HomeAppearancePageUI>("UI_Home_Appearance");
+        RequireComponent<HomeMapRealmUI>("UI_Home_Map");
+        popup.Show(EquipmentSlot.Weapon);
+        RequireComponent<RectMask2D>("ItemListViewport");
+        popup.Hide();
+        RequireAllButtonsHaveFeedback();
+        RequireNoLoadingDependencies();
+
+        navigator.ShowHome();
+        Require(RequireSceneObject("UI_Home_Interface").activeSelf, "Home root should be active after ShowHome.");
+        navigator.ShowEquipment();
+        Require(RequireSceneObject("UI_Home_Equipment").activeSelf, "Equipment root should be active after ShowEquipment.");
+        navigator.ShowAppearance();
+        Require(RequireSceneObject("UI_Home_Appearance").activeSelf, "Appearance root should be active after ShowAppearance.");
+        navigator.ShowMap();
+        Require(RequireSceneObject("UI_Home_Map").activeSelf, "Map root should be active after ShowMap.");
+
+        Debug.Log("[Home1SceneSpaceUiBuilder] Home1 Overlay flow verification passed.");
+    }
+
+    private static void EnsureUiResources()
+    {
+        var projectRoot = Directory.GetParent(Application.dataPath)!.FullName;
+        var sourceRoot = Path.GetFullPath(Path.Combine(projectRoot, UiResourceSource));
+        var targetRoot = Path.Combine(Application.dataPath, "Resources", "UI");
+
+        if (!Directory.Exists(sourceRoot))
+        {
+            Debug.LogError($"[Home1SceneSpaceUiBuilder] Missing UI source root: {sourceRoot}");
+            return;
+        }
+
+        Directory.CreateDirectory(targetRoot);
+        foreach (var generatedExample in Directory.EnumerateFiles(targetRoot, "*example*.png", SearchOption.AllDirectories))
+        {
+            File.Delete(generatedExample);
+            var meta = $"{generatedExample}.meta";
+            if (File.Exists(meta))
+                File.Delete(meta);
+        }
+
+        foreach (var source in Directory.EnumerateFiles(sourceRoot, "*.png", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(sourceRoot, source).Replace("\\", "/");
+            if (relative.StartsWith("UI_Lodaing/", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (relative.IndexOf("_example", StringComparison.OrdinalIgnoreCase) >= 0)
+                continue;
+
+            var target = Path.Combine(targetRoot, relative.Replace("/", Path.DirectorySeparatorChar.ToString()));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            if (!File.Exists(target) || new FileInfo(source).Length != new FileInfo(target).Length)
+                File.Copy(source, target, true);
+
+            var assetPath = $"{UiResourceTarget}/{relative}";
+            AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
+            if (AssetImporter.GetAtPath(assetPath) is TextureImporter importer)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = false;
+                importer.maxTextureSize = 4096;
+                importer.SaveAndReimport();
+            }
+        }
+    }
+
+    private static void RemoveExistingUi()
+    {
+        foreach (var canvas in UnityEngine.Object.FindObjectsOfType<Canvas>(true))
+            UnityEngine.Object.DestroyImmediate(canvas.gameObject);
+
+        foreach (var eventSystem in UnityEngine.Object.FindObjectsOfType<EventSystem>(true))
+            UnityEngine.Object.DestroyImmediate(eventSystem.gameObject);
+    }
+
+    private static Camera EnsureMainCamera()
+    {
+        var camera = Camera.main ?? UnityEngine.Object.FindObjectOfType<Camera>(true);
+        if (camera != null)
+        {
+            camera.tag = "MainCamera";
+            return camera;
+        }
+
+        var cameraGo = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener));
+        cameraGo.tag = "MainCamera";
+        cameraGo.transform.SetPositionAndRotation(new Vector3(13.9f, 24.3f, -29.4f), Quaternion.Euler(6.2f, 331.4f, 0f));
+        camera = cameraGo.GetComponent<Camera>();
+        camera.fieldOfView = 60f;
+        camera.clearFlags = CameraClearFlags.Skybox;
+        return camera;
+    }
+
+    private static void EnsureEventSystem()
+    {
+        var eventSystemGo = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
+        eventSystemGo.transform.SetAsLastSibling();
+    }
+
+    private static Canvas CreateOverlayCanvas()
+    {
+        var canvasGo = new GameObject("Canvas_Home1_SceneSpace", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var canvasRect = canvasGo.GetComponent<RectTransform>();
+        canvasRect.sizeDelta = LayoutSize;
+        canvasRect.pivot = new Vector2(0.5f, 0.5f);
+
+        var canvas = canvasGo.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.worldCamera = null;
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = 100;
+
+        var scaler = canvasGo.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = LayoutSize;
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
+        scaler.dynamicPixelsPerUnit = 12f;
+        scaler.referencePixelsPerUnit = 100f;
+
+        return canvas;
+    }
+
+    private static void ConfigureCameraDirector(HomeSceneCameraDirector director, Camera camera)
+    {
+        var model = GameObject.Find("Barbarian");
+        var so = new SerializedObject(director);
+        so.FindProperty("_camera").objectReferenceValue = camera;
+        so.FindProperty("_modelRoot").objectReferenceValue = model != null ? model.transform : null;
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static RectTransform CreatePageRoot(Transform parent, string name, bool active)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        var rect = go.GetComponent<RectTransform>();
+        Stretch(rect);
+        go.SetActive(active);
+        return rect;
+    }
+
+    private static HomeMenuButtons BuildHomeInterface(RectTransform root)
+    {
+        CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.78f));
+        var referenceSize = new Vector2(1093f, 820f);
+        var reference = CreateDesignRoot(root, "HomeReference", referenceSize);
+
+        CreateTexture(reference, "NamePanel", "UI_Home_Interface/UI_Panel_NameSpace.png", new Rect(18f, 122f, 310f, 86f), referenceSize);
+        CreateTexture(reference, "NameDecoration", "UI_Home_Interface/UI_Decoration_NameSpace.png", new Rect(32f, 130f, 76f, 68f), referenceSize);
+        CreateText(reference, "ProfileName", "Arden", new Rect(120f, 138f, 170f, 24f), 23f, TextAlignmentOptions.MidlineLeft, ParchmentText, referenceSize);
+        CreateText(reference, "ProfileLevel", "Lv. 24", new Rect(120f, 170f, 86f, 17f), 14f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, referenceSize);
+        CreateText(reference, "ProfileExp", "2,480 / 4,500 XP", new Rect(214f, 170f, 100f, 17f), 12f, TextAlignmentOptions.MidlineRight, ParchmentMutedText, referenceSize);
+        var expFill = CreateSolid(reference, "ProfileExpFill", new Color(0f, 0.58f, 0.60f, 0.82f));
+        SetRectFromTopLeft(expFill.rectTransform, new Rect(120f, 190f, 120f, 5f), referenceSize);
+
+        var equipment = CreateHomeMenuCard(reference, "Button_Equipment", "UI_Home_Interface/UI_Decoration_Equipment.png", "EQUIPMENT", "Equip weapons, armor, and\naccessories.", "Manage Equipment", new Rect(88f, 242f, 300f, 176f), referenceSize);
+        var inventory = CreateHomeMenuCard(reference, "Button_Inventory", "UI_Home_Interface/UI_Decoration_Inventory.png", "INVENTORY", "View items, materials,\nand useful goods.", "Open Inventory", new Rect(88f, 464f, 300f, 176f), referenceSize);
+        var appearance = CreateHomeMenuCard(reference, "Button_Appearance", "UI_Home_Interface/UI_Decoration_Appear.png", "APPEARANCE", "Customize your look\nand outfit.", "Change Appearance", new Rect(750f, 242f, 300f, 176f), referenceSize);
+        var map = CreateHomeMenuCard(reference, "Button_Map", "UI_Home_Interface/UI_Decoration_Map.png", "MAP", "View the world map and\nplan your route to Town.", "Open World Map", new Rect(750f, 464f, 300f, 176f), referenceSize);
+
+        return new HomeMenuButtons
+        {
+            Equipment = equipment,
+            Inventory = inventory,
+            Appearance = appearance,
+            Map = map
+        };
+    }
+
+    private static Button BuildEquipmentScreen(RectTransform root, RectTransform detailRoot, out HomeInventoryUI inventoryUi)
+    {
+        var referenceSize = new Vector2(1672f, 941f);
+        CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.58f));
+        var reference = CreateDesignRoot(root, "EquipmentReference", referenceSize);
+        var back = CreateButtonTexture(reference, "Button_Back", "UI_Home_Equipment/UI_Button_BackfromEquipment.png", new Rect(0f, 18f, 500f, 78f), referenceSize);
+        CreateText(reference, "Title", "EQUIPMENT", new Rect(162f, 36f, 280f, 42f), 38f, TextAlignmentOptions.MidlineLeft, new Color(0.98f, 0.88f, 0.62f, 1f), referenceSize);
+
+        var slots = new List<HomeEquipSlotUI>
+        {
+            CreateEquipSlot(reference, "Slot_Weapon", EquipmentSlot.Weapon, "WEAPON", "UI_Home_Equipment/UI_Decoration_Weapon.png", new Rect(76f, 126f, 380f, 176f), referenceSize),
+            CreateEquipSlot(reference, "Slot_Accessory", EquipmentSlot.Accessory, "ACCESSORY", "UI_Home_Equipment/UI_Decoration_Line.png", new Rect(76f, 320f, 380f, 172f), referenceSize),
+            CreateEquipSlot(reference, "Slot_Pants", EquipmentSlot.Pants, "SKILL GEAR", "UI_Home_Equipment/UI_Decoration_Shose.png", new Rect(76f, 511f, 380f, 172f), referenceSize),
+            CreateEquipSlot(reference, "Slot_Head", EquipmentSlot.Head, "HELMET", "UI_Home_Equipment/UI_Decoration_Head.png", new Rect(1220f, 122f, 360f, 172f), referenceSize),
+            CreateEquipSlot(reference, "Slot_Armor", EquipmentSlot.Armor, "ARMOR", "UI_Home_Equipment/UI_Decoration_Armor.png", new Rect(1220f, 314f, 360f, 172f), referenceSize),
+            CreateEquipSlot(reference, "Slot_Shoes", EquipmentSlot.Shoes, "BOOTS", "UI_Home_Equipment/UI_Decoration_Shose.png", new Rect(1220f, 506f, 360f, 172f), referenceSize)
+        };
+
+        CreateTexture(reference, "SummaryPanel", "UI_Home_Equipment/UI_Panel_StateDeatil.png", new Rect(52f, 720f, 475f, 120f), referenceSize);
+        CreateText(reference, "SummaryTitle", "EQUIPMENT SUMMARY", new Rect(185f, 740f, 230f, 28f), 20f, TextAlignmentOptions.MidlineLeft, ParchmentText, referenceSize);
+        CreateText(reference, "SummaryValues", "Gear Score  2,485     ATK 368   DEF 284", new Rect(185f, 782f, 280f, 24f), 16f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, referenceSize);
+
+        CreateTexture(reference, "SelectedItemPanel", "UI_Home_Equipment/UI_Panle_CurrentSelected_Equipment.png", new Rect(590f, 770f, 500f, 118f), referenceSize);
+        CreateText(reference, "SelectedItemText", "SELECTED: TAP A SLOT", new Rect(730f, 806f, 260f, 28f), 20f, TextAlignmentOptions.Center, ParchmentText, referenceSize);
+        CreateTexture(reference, "Button_AutoEquip", "UI_Home_Equipment/UI_Button.png", new Rect(1240f, 708f, 320f, 70f), referenceSize);
+        CreateText(reference, "AutoEquipText", "AUTO EQUIP", new Rect(1280f, 726f, 230f, 28f), 21f, TextAlignmentOptions.Center, ButtonLightText, referenceSize);
+        CreateTexture(reference, "Button_ManageLoadout", "UI_Home_Equipment/UI_Button.png", new Rect(1240f, 800f, 320f, 70f), referenceSize);
+        CreateText(reference, "ManageLoadoutText", "MANAGE LOADOUT", new Rect(1262f, 818f, 270f, 28f), 21f, TextAlignmentOptions.Center, ButtonLightText, referenceSize);
+
+        inventoryUi = root.gameObject.AddComponent<HomeInventoryUI>();
+        var popup = detailRoot.GetComponent<HomeEquipPopupUI>() ?? detailRoot.gameObject.AddComponent<HomeEquipPopupUI>();
+        var so = new SerializedObject(inventoryUi);
+        var slotsProperty = so.FindProperty("_slots");
+        slotsProperty.arraySize = slots.Count;
+        for (var i = 0; i < slots.Count; i++)
+            slotsProperty.GetArrayElementAtIndex(i).objectReferenceValue = slots[i];
+        so.FindProperty("_popup").objectReferenceValue = popup;
+        so.FindProperty("_enableAppearanceSelector").boolValue = false;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        return back;
+    }
+
+    private static void BuildDetailScreen(RectTransform root)
+    {
+        var dim = CreateSolid(root, "DimOverlay", new Color(0f, 0f, 0f, 0.58f));
+        dim.raycastTarget = true;
+
+        var content = CreateRect(root, "Content");
+        Stretch(content);
+
+        var chrome = CreateRect(content, "ResourceChrome");
+        Stretch(chrome);
+        CreateTexture(chrome, "OwnedItemsFrame", "UI_Home_Equipment_Detail/UI_Panle_equipment_list.png", new Rect(12f, 42f, 386f, 640f));
+        CreateTexture(chrome, "DetailInfoFrame", "UI_Home_Equipment_Detail/UI_Panel_equipment_detail.png", new Rect(895f, 78f, 356f, 568f));
+        CreateTexture(chrome, "CategoryButtonA", "UI_Home_Equipment_Detail/UI_Button_Category.png", new Rect(38f, 650f, 150f, 46f));
+        CreateTexture(chrome, "CategoryButtonB", "UI_Home_Equipment_Detail/UI_Button_Category.png", new Rect(202f, 650f, 150f, 46f));
+        CreateTexture(chrome, "SwitchButtonFrame", "UI_Home_Equipment_Detail/UI_Button_equipment_switch.png", new Rect(900f, 646f, 168f, 56f));
+        CreateTexture(chrome, "EnhanceButtonFrame", "UI_Home_Equipment_Detail/UI_Button_Equipment_enhance.png", new Rect(1084f, 646f, 168f, 56f));
+        var close = CreateTransparentButton(root, "CloseBtn", new Rect(1120f, 14f, 148f, 48f));
+        CreateText(root, "Title", "MELEE WEAPONS", new Rect(120f, 36f, 260f, 34f), 24f, TextAlignmentOptions.MidlineLeft, ParchmentText);
+
+        var prefabGroup = CreateRect(root, "99_Prefabs");
+        Stretch(prefabGroup);
+        var itemPrefab = CreatePopupItemPrefab(prefabGroup);
+
+        var popup = root.GetComponent<HomeEquipPopupUI>() ?? root.gameObject.AddComponent<HomeEquipPopupUI>();
+        var so = new SerializedObject(popup);
+        so.FindProperty("_content").objectReferenceValue = content.transform;
+        so.FindProperty("_itemPrefab").objectReferenceValue = itemPrefab;
+        so.FindProperty("_title").objectReferenceValue = RequireTmp(root, "Title");
+        so.FindProperty("_closeBtn").objectReferenceValue = close;
+        so.FindProperty("_useHomeDetailResourceLayout").boolValue = true;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        popup.Show(EquipmentSlot.Weapon);
+        popup.Hide();
+    }
+
+    private static Button BuildInventoryScreen(RectTransform root)
+    {
+        CreateSolid(root, "SceneDim", new Color(0f, 0f, 0f, 0.24f));
+        var back = CreateBackButton(root, "Button_Back_Inventory");
+        CreateText(root, "Title", "INVENTORY", new Rect(148f, 36f, 260f, 34f), 28f, TextAlignmentOptions.MidlineLeft, GoldText);
+        CreateTexture(root, "InventoryPanel", "UI_Home_Interface/UI_Panel.png", new Rect(116f, 116f, 1048f, 516f));
+
+        var scroll = CreateScrollView(root, "InventoryScroll", new Rect(170f, 170f, 940f, 390f), new Vector2(900f, 820f));
+        for (var i = 0; i < 24; i++)
+        {
+            var row = CreateSolid(scroll.Content, $"InventoryRow_{i:00}", i % 2 == 0 ? new Color(0.78f, 0.64f, 0.44f, 0.46f) : new Color(0.64f, 0.48f, 0.30f, 0.42f));
+            var rowRect = row.rectTransform;
+            rowRect.anchorMin = new Vector2(0f, 1f);
+            rowRect.anchorMax = new Vector2(1f, 1f);
+            rowRect.pivot = new Vector2(0.5f, 1f);
+            rowRect.sizeDelta = new Vector2(0f, 54f);
+            rowRect.anchoredPosition = new Vector2(0f, -i * 60f);
+            CreateText(rowRect, "Name", $"ITEM SLOT {i + 1:00}", new Rect(18f, 12f, 220f, 22f), 15f, TextAlignmentOptions.MidlineLeft, ParchmentText);
+            CreateText(rowRect, "State", "EMPTY", new Rect(760f, 12f, 110f, 22f), 13f, TextAlignmentOptions.MidlineRight, ParchmentMutedText);
+        }
+
+        return back;
+    }
+
+    private static Button BuildAppearanceScreen(RectTransform root)
+    {
+        CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.18f));
+        CreateTexture(root, "AppearancePanel", "UI_Appear/UI_Panel.png", new Rect(622f, 30f, 548f, 670f));
+        CreateTexture(root, "AppearanceTitleFrame", "UI_Appear/UI_Title_Text.png", new Rect(708f, 42f, 368f, 86f));
+        CreateText(root, "Title", "외형 선택", new Rect(790f, 64f, 212f, 34f), 30f, TextAlignmentOptions.Center, GoldText);
+        var back = CreateButtonTexture(root, "Button_Back_Appearance", "UI_Appear/UI_Button_Close.png", new Rect(1088f, 44f, 64f, 64f));
+
+        CreateText(root, "CurrentText", "선택 외형: -", new Rect(692f, 588f, 236f, 24f), 16f, TextAlignmentOptions.MidlineLeft, ParchmentText);
+        CreateText(root, "AppliedText", "적용 외형: -", new Rect(692f, 616f, 236f, 22f), 14f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText);
+        CreateText(root, "StatusText", "준비 중", new Rect(692f, 642f, 236f, 28f), 12f, TextAlignmentOptions.TopLeft, ParchmentMutedText);
+
+        var scroll = CreateScrollView(root, "AppearanceScroll", new Rect(668f, 124f, 442f, 448f), new Vector2(442f, 610f));
+        var optionBindings = new List<HomeAppearancePageUI.OptionBinding>();
+        var options = AppearanceCatalog.Options;
+        var count = Mathf.Min(options.Count, 8);
+        for (var i = 0; i < count; i++)
+        {
+            var option = options[i];
+            var col = i % 2;
+            var row = i / 2;
+            var rect = new Rect(4f + col * 220f, 2f + row * 154f, 214f, 144f);
+            var button = CreateButtonTexture(scroll.Content, $"AppearanceOption_{option.Id}", "UI_Appear/UI_Panel_Character_Appear.png", rect, scroll.Content.sizeDelta);
+            var highlight = CreateSolid(button.transform as RectTransform, "SelectedHighlight", new Color(1f, 1f, 1f, 0f));
+            Stretch(highlight.rectTransform);
+            var label = CreateText(button.transform as RectTransform, "Label", option.DisplayName, new Rect(20f, 96f, 150f, 24f), 16f, TextAlignmentOptions.Center, ParchmentText, new Vector2(214f, 144f));
+            CreateTexture(button.transform, "HoldBadge", "UI_Appear/UI_Decoration_Appear_State_Hold.png", new Rect(150f, 8f, 54f, 26f), new Vector2(214f, 144f));
+            var equipped = CreateTexture(button.transform, "EquippedMark", "UI_Appear/UI_Decoration_Appear_State_Equip.png", new Rect(150f, 8f, 54f, 26f), new Vector2(214f, 144f));
+            equipped.gameObject.SetActive(false);
+
+            optionBindings.Add(new HomeAppearancePageUI.OptionBinding
+            {
+                AppearanceId = option.Id,
+                Button = button,
+                Label = label,
+                Highlight = highlight,
+                EquippedMark = equipped.gameObject
+            });
+        }
+
+        var apply = CreateButtonTexture(root, "Button_ApplyAppearance", "UI_Appear/UI_Button_Applay.png", new Rect(926f, 588f, 176f, 62f));
+        CreateText(apply.transform as RectTransform, "Label", "적용", new Rect(32f, 15f, 112f, 28f), 24f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(176f, 62f));
+
+        var ui = root.gameObject.AddComponent<HomeAppearancePageUI>();
+        var so = new SerializedObject(ui);
+        var optionsProperty = so.FindProperty("_options");
+        optionsProperty.arraySize = optionBindings.Count;
+        for (var i = 0; i < optionBindings.Count; i++)
+        {
+            var element = optionsProperty.GetArrayElementAtIndex(i);
+            element.FindPropertyRelative("AppearanceId").intValue = optionBindings[i].AppearanceId;
+            element.FindPropertyRelative("Button").objectReferenceValue = optionBindings[i].Button;
+            element.FindPropertyRelative("Label").objectReferenceValue = optionBindings[i].Label;
+            element.FindPropertyRelative("Highlight").objectReferenceValue = optionBindings[i].Highlight;
+            element.FindPropertyRelative("EquippedMark").objectReferenceValue = optionBindings[i].EquippedMark;
+        }
+        so.FindProperty("_currentText").objectReferenceValue = RequireTmp(root, "CurrentText");
+        so.FindProperty("_appliedText").objectReferenceValue = RequireTmp(root, "AppliedText");
+        so.FindProperty("_statusText").objectReferenceValue = RequireTmp(root, "StatusText");
+        so.FindProperty("_applyButton").objectReferenceValue = apply;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        return back;
+    }
+
+    private static Button BuildMapScreen(RectTransform root)
+    {
+        CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.22f));
+        CreateTexture(root, "MapPaper", "UI_Map/UI_Panel_MapPaper.png", new Rect(0f, 0f, 1280f, 720f));
+        CreateTexture(root, "MapFrame", "UI_Map/UI_Panel_MapFrame.png", new Rect(0f, 0f, 1280f, 720f));
+        var back = CreateButtonTexture(root, "Button_Back_Map", "UI_Map/UI_Button_Back.png", new Rect(42f, 48f, 140f, 66f));
+        CreateTexture(root, "MapTitleFrame", "UI_Map/UI_Title_Main.png", new Rect(424f, 18f, 430f, 104f));
+        CreateText(root, "MapTitleText", "WORLD MAP", new Rect(504f, 38f, 270f, 42f), 36f, TextAlignmentOptions.Center, ParchmentText);
+        var realms = new[]
+        {
+            CreateRealmButton(root, "Realm_Plains", "UI_Map/UI_Map_Location_Farm.png", new Rect(360f, 314f, 330f, 188f), "plains", "Golden Plains", "마을로 이동 가능한 중심 평야입니다. 현재 Town 입장 티켓 검증 흐름과 동일하게 동작합니다.", "Town Pass"),
+            CreateRealmButton(root, "Realm_Forest", "UI_Map/UI_Map_Location_Forest.png", new Rect(180f, 142f, 208f, 154f), "forest", "Whispering Forest", "울창한 숲과 작은 마을이 있는 초반 영역입니다. 리듬 왜곡이 가장 약해 입장 준비에 적합합니다.", "Town Pass"),
+            CreateRealmButton(root, "Realm_Snow", "UI_Map/UI_Map_Location_SnowMountain.png", new Rect(430f, 128f, 208f, 150f), "snow", "Frostpeak Mountains", "얼어붙은 박자와 지연 입력이 섞이는 설산 영역입니다. 방어 장비 확인을 권장합니다.", "Town Pass"),
+            CreateRealmButton(root, "Realm_Ruins", "UI_Map/UI_Map_Location_Ruins.png", new Rect(658f, 156f, 206f, 154f), "ruins", "Ancient Ruins", "무너진 유적과 잔향 패턴이 겹치는 고대 영역입니다. 복합 리듬 전투가 등장합니다.", "Town Pass"),
+            CreateRealmButton(root, "Realm_Lake", "UI_Map/UI_Map_Location_Seashore.png", new Rect(134f, 330f, 220f, 160f), "lake", "Sapphire Lake", "파도 리듬과 반향 전투가 만나는 수상 영역입니다. 긴 패턴을 안정적으로 처리해야 합니다.", "Town Pass"),
+            CreateRealmButton(root, "Realm_Desert", "UI_Map/UI_Map_Location_Descert.png", new Rect(384f, 500f, 230f, 142f), "desert", "Sandworn Wastes", "모래 위로 느린 박동이 흐르는 고열 영역입니다. 회피 타이밍이 느리게 흔들립니다.", "Town Pass"),
+            CreateRealmButton(root, "Realm_Volcano", "UI_Map/UI_Map_Location_Volcano.png", new Rect(680f, 390f, 226f, 168f), "volcano", "Ember Volcano", "과열된 박동이 빠르게 증폭되는 화산 영역입니다. 짧은 입력 판단이 중요합니다.", "Town Pass")
+        };
+        CreateTexture(root, "DetailPanel", "UI_Map/UI_Panel_MapLocation_Detail.png", new Rect(872f, 120f, 342f, 488f));
+        CreateText(root, "RealmTitle", "GOLDEN PLAINS", new Rect(920f, 192f, 262f, 36f), 27f, TextAlignmentOptions.Center, ParchmentText);
+        CreateText(root, "RealmTicket", "Ticket: -", new Rect(922f, 238f, 258f, 22f), 14f, TextAlignmentOptions.Center, ParchmentMutedText);
+
+        var detailScroll = CreateScrollView(root, "RealmDetailScroll", new Rect(916f, 282f, 270f, 224f), new Vector2(250f, 430f));
+        var detail = CreateText(detailScroll.Content, "RealmDescription", "숲의 균열과 리듬 왜곡이 시작된 첫 영역입니다.", new Rect(0f, 0f, 250f, 402f), 16f, TextAlignmentOptions.TopLeft, ParchmentText, detailScroll.Content.sizeDelta);
+        detail.enableWordWrapping = true;
+
+        var select = CreateButtonTexture(root, "Button_SelectRealm", "UI_Map/UI_Button_SelectLocation.png", new Rect(966f, 518f, 214f, 68f));
+        CreateText(select.transform as RectTransform, "Label", "TRAVEL HERE", new Rect(30f, 18f, 152f, 26f), 20f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(214f, 68f));
+        CreateText(root, "MapStatus", "지역을 선택하세요.", new Rect(908f, 526f, 296f, 38f), 13f, TextAlignmentOptions.Center, ParchmentMutedText);
+
+        var ui = root.gameObject.AddComponent<HomeMapRealmUI>();
+        var so = new SerializedObject(ui);
+        var realmsProperty = so.FindProperty("_realms");
+        realmsProperty.arraySize = realms.Length;
+        for (var i = 0; i < realms.Length; i++)
+        {
+            var element = realmsProperty.GetArrayElementAtIndex(i);
+            element.FindPropertyRelative("RealmId").stringValue = realms[i].RealmId;
+            element.FindPropertyRelative("DisplayName").stringValue = realms[i].DisplayName;
+            element.FindPropertyRelative("Description").stringValue = realms[i].Description;
+            element.FindPropertyRelative("RequiredTicket").stringValue = realms[i].RequiredTicket;
+            element.FindPropertyRelative("Button").objectReferenceValue = realms[i].Button;
+            element.FindPropertyRelative("Highlight").objectReferenceValue = realms[i].Highlight;
+        }
+        so.FindProperty("_title").objectReferenceValue = RequireTmp(root, "RealmTitle");
+        so.FindProperty("_description").objectReferenceValue = detail;
+        so.FindProperty("_ticketInfo").objectReferenceValue = RequireTmp(root, "RealmTicket");
+        so.FindProperty("_selectButton").objectReferenceValue = select;
+        so.FindProperty("_status").objectReferenceValue = RequireTmp(root, "MapStatus");
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        return back;
+    }
+
+    private static HomeEquipSlotUI CreateEquipSlot(RectTransform parent, string name, EquipmentSlot slot, string label, string iconPath, Rect rect)
+    {
+        return CreateEquipSlot(parent, name, slot, label, iconPath, rect, LayoutSize);
+    }
+
+    private static HomeEquipSlotUI CreateEquipSlot(RectTransform parent, string name, EquipmentSlot slot, string label, string iconPath, Rect rect, Vector2 sourceSize)
+    {
+        var button = CreateButtonTexture(parent, name, "UI_Home_Equipment/UI_Panel_EquipmentSlot.png", rect);
+        SetRectFromTopLeft(button.GetComponent<RectTransform>(), rect, sourceSize);
+        var slotSize = new Vector2(rect.width, rect.height);
+        CreateTexture(button.transform, "SlotIcon", iconPath, new Rect(26f, 28f, 76f, 76f), slotSize);
+        CreateText(button.transform as RectTransform, "SlotLabel", label, new Rect(118f, 40f, rect.width - 144f, 26f), 20f, TextAlignmentOptions.MidlineLeft, ParchmentText, slotSize);
+        CreateText(button.transform as RectTransform, "SlotHint", "Tap to view", new Rect(120f, 76f, rect.width - 146f, 20f), 13f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, slotSize);
+
+        var empty = CreateRect(button.transform, "Empty");
+        Stretch(empty);
+        CreateText(empty, "EmptyLabel", "EMPTY", new Rect(rect.width - 110f, rect.height - 34f, 78f, 18f), 13f, TextAlignmentOptions.MidlineRight, ParchmentMutedText, slotSize);
+
+        var filled = CreateRect(button.transform, "Filled");
+        Stretch(filled);
+        filled.gameObject.SetActive(false);
+        var icon = CreateImage(filled, "Icon", new Rect(28f, 26f, 76f, 76f), slotSize);
+
+        var slotUi = button.gameObject.AddComponent<HomeEquipSlotUI>();
+        var so = new SerializedObject(slotUi);
+        so.FindProperty("_targetSlot").enumValueIndex = (int)slot;
+        so.FindProperty("_icon").objectReferenceValue = icon;
+        so.FindProperty("_btn").objectReferenceValue = button;
+        so.FindProperty("_emptyVisual").objectReferenceValue = empty.gameObject;
+        so.FindProperty("_filledVisual").objectReferenceValue = filled.gameObject;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return slotUi;
+    }
+
+    private static HomeEquipSlotUI CreateEquipSlotHotspot(RectTransform parent, string name, EquipmentSlot slot, Rect rect, Vector2 sourceSize)
+    {
+        var button = CreateTransparentButton(parent, name, rect, sourceSize);
+        var slotSize = new Vector2(rect.width, rect.height);
+        var empty = CreateRect(button.transform, "Empty");
+        Stretch(empty);
+        empty.gameObject.SetActive(false);
+
+        var filled = CreateRect(button.transform, "Filled");
+        Stretch(filled);
+        filled.gameObject.SetActive(false);
+
+        var icon = CreateImage(filled, "Icon", new Rect(0f, 0f, rect.width, rect.height), slotSize);
+        icon.color = new Color(1f, 1f, 1f, 0f);
+
+        var slotUi = button.gameObject.AddComponent<HomeEquipSlotUI>();
+        var so = new SerializedObject(slotUi);
+        so.FindProperty("_targetSlot").enumValueIndex = (int)slot;
+        so.FindProperty("_icon").objectReferenceValue = icon;
+        so.FindProperty("_btn").objectReferenceValue = button;
+        so.FindProperty("_emptyVisual").objectReferenceValue = empty.gameObject;
+        so.FindProperty("_filledVisual").objectReferenceValue = filled.gameObject;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return slotUi;
+    }
+
+    private static RectTransform CreateDesignRoot(RectTransform parent, string name, Vector2 sourceSize)
+    {
+        var rect = CreateRect(parent, name);
+        SetRectFromTopLeft(rect, GetAspectFitRect(sourceSize), LayoutSize);
+        return rect;
+    }
+
+    private static Rect GetAspectFitRect(Vector2 sourceSize)
+    {
+        var scale = Mathf.Min(LayoutSize.x / sourceSize.x, LayoutSize.y / sourceSize.y);
+        var width = sourceSize.x * scale;
+        var height = sourceSize.y * scale;
+        return new Rect((LayoutSize.x - width) * 0.5f, (LayoutSize.y - height) * 0.5f, width, height);
+    }
+
+    private static Button CreateHomeMenuCard(RectTransform parent, string buttonName, string iconPath, string title, string subtitle, string actionText, Rect rect)
+    {
+        return CreateHomeMenuCard(parent, buttonName, iconPath, title, subtitle, actionText, rect, LayoutSize);
+    }
+
+    private static Button CreateHomeMenuCard(RectTransform parent, string buttonName, string iconPath, string title, string subtitle, string actionText, Rect rect, Vector2 sourceSize)
+    {
+        var card = CreateRect(parent, $"{buttonName}_Card");
+        SetRectFromTopLeft(card, rect, sourceSize);
+        var cardSize = new Vector2(rect.width, rect.height);
+        CreateTexture(card, "Frame", "UI_Home_Interface/UI_Panel.png", new Rect(0f, 0f, rect.width, rect.height), cardSize);
+        CreateTexture(card, "Icon", iconPath, new Rect(30f, 24f, 98f, 132f), cardSize);
+        CreateText(card, "Title", title, new Rect(146f, 36f, 136f, 30f), 23f, TextAlignmentOptions.MidlineLeft, ParchmentText, cardSize);
+        var divider = CreateSolid(card, "Divider", new Color(0f, 0.35f, 0.36f, 1f));
+        SetRectFromTopLeft(divider.rectTransform, new Rect(210f, 76f, 7f, 7f), cardSize);
+        divider.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        CreateText(card, "Subtitle", subtitle, new Rect(146f, 92f, 128f, 44f), 13f, TextAlignmentOptions.TopLeft, ParchmentMutedText, cardSize);
+        CreateTexture(card, "ActionFrame", "UI_Home_Interface/UI_Button.png", new Rect(142f, 132f, 142f, 38f), cardSize);
+        CreateText(card, "ActionLabel", actionText, new Rect(150f, 140f, 108f, 18f), 12f, TextAlignmentOptions.Center, ParchmentText, cardSize);
+        CreateText(card, "ActionArrow", "›", new Rect(260f, 134f, 18f, 28f), 22f, TextAlignmentOptions.Center, ParchmentText, cardSize);
+
+        var button = CreateTransparentButton(card, buttonName, new Rect(0f, 0f, rect.width, rect.height), new Vector2(rect.width, rect.height));
+        AddButtonFeedback(button, card, button.targetGraphic);
+        return button;
+    }
+
+    private static Button CreateMenuButton(RectTransform parent, string name, string buttonPath, string iconPath, string title, string subtitle, Rect rect)
+    {
+        var button = CreateButtonTexture(parent, name, buttonPath, rect);
+        CreateTexture(button.transform, "Icon", iconPath, new Rect(24f, 19f, 56f, 56f), new Vector2(rect.width, rect.height));
+        CreateText(button.transform as RectTransform, "Title", title, new Rect(96f, 24f, 178f, 24f), 20f, TextAlignmentOptions.MidlineLeft, ParchmentText, new Vector2(rect.width, rect.height));
+        CreateText(button.transform as RectTransform, "Subtitle", subtitle, new Rect(98f, 52f, 182f, 18f), 13f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, new Vector2(rect.width, rect.height));
+        return button;
+    }
+
+    private static RealmBuildBinding CreateRealmHotspot(RectTransform root, string name, Rect rect, string realmId, string displayName, string description, string ticket)
+    {
+        var button = CreateTransparentButton(root, name, rect);
+        var highlight = CreateSolid(button.transform as RectTransform, "SelectedHighlight", new Color(1f, 1f, 1f, 0f));
+        Stretch(highlight.rectTransform);
+        return new RealmBuildBinding
+        {
+            RealmId = realmId,
+            DisplayName = displayName,
+            Description = description,
+            RequiredTicket = ticket,
+            Button = button,
+            Highlight = highlight
+        };
+    }
+
+    private static RealmBuildBinding CreateRealmButton(RectTransform root, string name, string texturePath, Rect rect, string realmId, string displayName, string description, string ticket)
+    {
+        var button = CreateButtonTexture(root, name, texturePath, rect);
+        var highlight = CreateSolid(button.transform as RectTransform, "SelectedHighlight", new Color(1f, 1f, 1f, 0f));
+        Stretch(highlight.rectTransform);
+        return new RealmBuildBinding
+        {
+            RealmId = realmId,
+            DisplayName = displayName,
+            Description = description,
+            RequiredTicket = ticket,
+            Button = button,
+            Highlight = highlight
+        };
+    }
+
+    private static Button CreateBackButton(RectTransform root, string name)
+    {
+        return CreateButtonTexture(root, name, "UI_Map/UI_Button_Back.png", new Rect(28f, 24f, 76f, 58f));
+    }
+
+    private static GameObject CreatePopupItemPrefab(RectTransform parent)
+    {
+        var item = new GameObject("Prefab_PopupItem", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button), typeof(LayoutElement));
+        item.transform.SetParent(parent, false);
+        var itemRect = item.GetComponent<RectTransform>();
+        itemRect.anchorMin = new Vector2(0f, 1f);
+        itemRect.anchorMax = new Vector2(1f, 1f);
+        itemRect.pivot = new Vector2(0.5f, 1f);
+        itemRect.sizeDelta = new Vector2(0f, 68f);
+
+        var background = item.GetComponent<Image>();
+        ApplyDefaultSprite(background);
+        background.sprite = Resources.Load<Sprite>("UI/UI_Home_Equipment_Detail/UI_01_default");
+        background.type = Image.Type.Sliced;
+        background.color = Color.white;
+
+        var layout = item.GetComponent<LayoutElement>();
+        layout.minHeight = 64f;
+        layout.preferredHeight = 85f;
+        layout.preferredWidth = 84f;
+        layout.minHeight = 85f;
+        layout.minWidth = 84f;
+
+        var icon = CreateImage(item.transform, "Icon", new Rect(13f, 13f, 58f, 58f), new Vector2(84f, 85f));
+        var nameText = CreateText(itemRect, "NameText", "Item", new Rect(4f, 66f, 76f, 16f), 10f, TextAlignmentOptions.Center, ParchmentText, new Vector2(84f, 85f));
+        var levelText = CreateText(itemRect, "LevelText", "+0", new Rect(6f, 68f, 72f, 14f), 10f, TextAlignmentOptions.Center, ParchmentMutedText, new Vector2(84f, 85f));
+        var mark = CreateText(itemRect, "EquippedMark", "E", new Rect(58f, 5f, 20f, 15f), 10f, TextAlignmentOptions.Center, ParchmentText, new Vector2(84f, 85f));
+        mark.gameObject.SetActive(false);
+
+        var itemUi = item.AddComponent<HomeEquipPopupItemUI>();
+        var so = new SerializedObject(itemUi);
+        so.FindProperty("_icon").objectReferenceValue = icon;
+        so.FindProperty("_nameText").objectReferenceValue = nameText;
+        so.FindProperty("_levelText").objectReferenceValue = levelText;
+        so.FindProperty("_btn").objectReferenceValue = item.GetComponent<Button>();
+        so.FindProperty("_equippedMark").objectReferenceValue = mark.gameObject;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        AddButtonFeedback(item.GetComponent<Button>(), itemRect, background);
+        item.SetActive(false);
+        return item;
+    }
+
+    private static ScrollBuildBinding CreateScrollView(RectTransform parent, string name, Rect rect, Vector2 contentSize)
+    {
+        var viewport = CreateSolid(parent, name, new Color(1f, 1f, 1f, 0.01f));
+        SetRectFromTopLeft(viewport.rectTransform, rect, LayoutSize);
+        viewport.raycastTarget = true;
+        viewport.gameObject.AddComponent<RectMask2D>();
+        var scroll = viewport.gameObject.AddComponent<ScrollRect>();
+        scroll.horizontal = false;
+        scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.inertia = true;
+        scroll.scrollSensitivity = 22f;
+
+        var content = CreateRect(viewport.transform, "Content");
+        content.anchorMin = new Vector2(0f, 1f);
+        content.anchorMax = new Vector2(0f, 1f);
+        content.pivot = new Vector2(0f, 1f);
+        content.anchoredPosition = Vector2.zero;
+        content.sizeDelta = contentSize;
+        scroll.viewport = viewport.rectTransform;
+        scroll.content = content;
+
+        return new ScrollBuildBinding
+        {
+            Viewport = viewport.rectTransform,
+            Content = content
+        };
+    }
+
+    private static RawImage CreateTexture(Transform parent, string name, string relativePath, Rect rect)
+    {
+        return CreateTexture(parent, name, relativePath, rect, LayoutSize);
+    }
+
+    private static RawImage CreateTexture(Transform parent, string name, string relativePath, Rect rect, Vector2 sourceSize)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+        go.transform.SetParent(parent, false);
+        SetRectFromTopLeft(go.GetComponent<RectTransform>(), rect, sourceSize);
+        var image = go.GetComponent<RawImage>();
+        image.texture = AssetDatabase.LoadAssetAtPath<Texture2D>($"{UiResourceTarget}/{relativePath}");
+        image.color = Color.white;
+        image.raycastTarget = false;
+        return image;
+    }
+
+    private static Image CreateImage(Transform parent, string name, Rect rect, Vector2 sourceSize)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        go.transform.SetParent(parent, false);
+        SetRectFromTopLeft(go.GetComponent<RectTransform>(), rect, sourceSize);
+        var image = go.GetComponent<Image>();
+        ApplyDefaultSprite(image);
+        image.color = Color.white;
+        image.raycastTarget = false;
+        image.preserveAspect = true;
+        return image;
+    }
+
+    private static Button CreateButtonTexture(Transform parent, string name, string relativePath, Rect rect)
+    {
+        return CreateButtonTexture(parent, name, relativePath, rect, LayoutSize);
+    }
+
+    private static Button CreateButtonTexture(Transform parent, string name, string relativePath, Rect rect, Vector2 sourceSize)
+    {
+        var image = CreateTexture(parent, name, relativePath, rect, sourceSize);
+        image.raycastTarget = true;
+        var button = image.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        button.transition = Selectable.Transition.None;
+        button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
+        AddButtonFeedback(button, image.rectTransform, image);
+        return button;
+    }
+
+    private static Button CreateTransparentButton(RectTransform parent, string name, Rect rect)
+    {
+        return CreateTransparentButton(parent, name, rect, LayoutSize);
+    }
+
+    private static Button CreateTransparentButton(RectTransform parent, string name, Rect rect, Vector2 sourceSize)
+    {
+        var image = CreateSolid(parent, name, new Color(1f, 1f, 1f, 0.01f));
+        SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
+        image.raycastTarget = true;
+        var button = image.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        button.transition = Selectable.Transition.None;
+        button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
+        AddButtonFeedback(button, image.rectTransform, image);
+        return button;
+    }
+
+    private static Image CreateSolid(RectTransform parent, string name, Color color)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        go.transform.SetParent(parent, false);
+        Stretch(go.GetComponent<RectTransform>());
+        var image = go.GetComponent<Image>();
+        ApplyDefaultSprite(image);
+        image.color = color;
+        image.raycastTarget = false;
+        return image;
+    }
+
+    private static void ApplyDefaultSprite(Image image)
+    {
+        if (image == null || image.sprite != null)
+            return;
+
+        if (_defaultUiSprite == null)
+            _defaultUiSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+
+        if (_defaultUiSprite != null)
+            image.sprite = _defaultUiSprite;
+    }
+
+    private static TextMeshProUGUI CreateText(RectTransform parent, string name, string value, Rect rect, float fontSize, TextAlignmentOptions alignment, Color color)
+    {
+        return CreateText(parent, name, value, rect, fontSize, alignment, color, LayoutSize);
+    }
+
+    private static TextMeshProUGUI CreateText(RectTransform parent, string name, string value, Rect rect, float fontSize, TextAlignmentOptions alignment, Color color, Vector2 sourceSize)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        go.transform.SetParent(parent, false);
+        SetRectFromTopLeft(go.GetComponent<RectTransform>(), rect, sourceSize);
+
+        var text = go.GetComponent<TextMeshProUGUI>();
+        text.text = value;
+        text.fontSize = fontSize;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = Mathf.Max(8f, fontSize - 8f);
+        text.fontSizeMax = fontSize;
+        text.alignment = alignment;
+        text.color = color;
+        text.raycastTarget = false;
+        text.enableWordWrapping = true;
+        return text;
+    }
+
+    private static RectTransform CreateRect(Transform parent, string name)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        return go.GetComponent<RectTransform>();
+    }
+
+    private static void Stretch(RectTransform rect)
+    {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+    }
+
+    private static void SetRectFromTopLeft(RectTransform rect, Rect sourceRect, Vector2 sourceSize)
+    {
+        rect.anchorMin = new Vector2(sourceRect.xMin / sourceSize.x, 1f - sourceRect.yMax / sourceSize.y);
+        rect.anchorMax = new Vector2(sourceRect.xMax / sourceSize.x, 1f - sourceRect.yMin / sourceSize.y);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+    }
+
+    private static HomeUIButtonFeedback AddButtonFeedback(Button button, RectTransform scaleTarget = null, Graphic tintTarget = null)
+    {
+        if (button == null)
+            return null;
+
+        var feedback = button.GetComponent<HomeUIButtonFeedback>() ?? button.gameObject.AddComponent<HomeUIButtonFeedback>();
+        feedback.Configure(scaleTarget != null ? scaleTarget : button.transform as RectTransform, tintTarget != null ? tintTarget : button.targetGraphic);
+        EditorUtility.SetDirty(feedback);
+        return feedback;
+    }
+
+    private static TextMeshProUGUI RequireTmp(Transform root, string name)
+    {
+        foreach (var text in root.GetComponentsInChildren<TextMeshProUGUI>(true))
+        {
+            if (text != null && text.gameObject.name == name)
+                return text;
+        }
+
+        throw new InvalidOperationException($"TextMeshProUGUI not found: {name}");
+    }
+
+    private static T RequireComponent<T>(string gameObjectName) where T : Component
+    {
+        var go = RequireSceneObject(gameObjectName);
+        var component = go.GetComponent<T>();
+        Require(component != null, $"{gameObjectName} is missing {typeof(T).Name}.");
+        return component;
+    }
+
+    private static GameObject RequireSceneObject(string name)
+    {
+        foreach (var go in Resources.FindObjectsOfTypeAll<GameObject>())
+        {
+            if (go.name == name && go.scene.IsValid())
+                return go;
+        }
+
+        throw new InvalidOperationException($"Scene object not found: {name}");
+    }
+
+    private static void RequireBuildScene(string scenePath, bool shouldBeEnabled)
+    {
+        foreach (var scene in EditorBuildSettings.scenes)
+        {
+            if (scene.path != scenePath)
+            {
+                continue;
+            }
+
+            Require(scene.enabled == shouldBeEnabled, $"{scenePath} enabled state should be {shouldBeEnabled}.");
+            return;
+        }
+
+        Require(!shouldBeEnabled, $"{scenePath} is missing from build settings.");
+    }
+
+    private static void RequireAllButtonsHaveFeedback()
+    {
+        foreach (var button in Resources.FindObjectsOfTypeAll<Button>())
+        {
+            if (button == null || !button.gameObject.scene.IsValid())
+                continue;
+
+            Require(button.GetComponent<HomeUIButtonFeedback>() != null, $"{button.gameObject.name} is missing HomeUIButtonFeedback.");
+        }
+    }
+
+    private static void RequireNoLoadingDependencies()
+    {
+        foreach (var dependency in AssetDatabase.GetDependencies(ScenePath, true))
+            Require(dependency.IndexOf("UI_Lodaing", StringComparison.OrdinalIgnoreCase) < 0, $"Home 1 scene must not depend on Loading UI assets: {dependency}");
+    }
+
+    private static void Require(bool condition, string message)
+    {
+        if (!condition)
+            throw new InvalidOperationException(message);
+    }
+
+    private static void EnsureAppearancePreviewController()
+    {
+        var model = GameObject.Find("Barbarian");
+        if (model != null && model.GetComponent<HomeAppearancePreviewController>() == null)
+            model.AddComponent<HomeAppearancePreviewController>();
+    }
+
+    private struct HomeMenuButtons
+    {
+        public Button Equipment;
+        public Button Inventory;
+        public Button Appearance;
+        public Button Map;
+    }
+
+    private struct RealmBuildBinding
+    {
+        public string RealmId;
+        public string DisplayName;
+        public string Description;
+        public string RequiredTicket;
+        public Button Button;
+        public Graphic Highlight;
+    }
+
+    private struct ScrollBuildBinding
+    {
+        public RectTransform Viewport;
+        public RectTransform Content;
+    }
+}

@@ -18,13 +18,13 @@ MonoBehaviour:
     Tracks:
     - TrackName: Track 0
       Events:
-      - TriggerTick: 0
+      - TriggerTick: 480
         DurationTicks: 480
         Action:
           rid: 879012390544605264
     - TrackName: Track 1
       Events:
-      - TriggerTick: 480
+      - TriggerTick: 0
         DurationTicks: 480
         Action:
           rid: 879012390544605265
@@ -35,10 +35,10 @@ MonoBehaviour:
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 879012390544605266
+          rid: 879012390544605277
         Amount: 10
-        HitPlayers: 0
-        HitMonsters: 1
+        HitPlayers: 1
+        HitMonsters: 0
         StunDurationTicks: 0
         KnockbackDistance: 0
         RecalculateTargets: 0
@@ -48,12 +48,6 @@ MonoBehaviour:
         Shape:
           rid: 879012390544605267
         ColorSteps: []
-    - rid: 879012390544605266
-      type: {class: DiamondShape, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        CasterSize: 1
-        RotateWithCaster: 1
-        Radius: 1
     - rid: 879012390544605267
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
@@ -62,3 +56,9 @@ MonoBehaviour:
         Cells:
         - X: 0
           Y: -1
+    - rid: 879012390544605277
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells: []

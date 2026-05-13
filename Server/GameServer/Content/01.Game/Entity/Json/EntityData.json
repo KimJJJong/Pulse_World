@@ -39,7 +39,7 @@
             "EntityId": 1010,
             "Name": "Entity_1010_Monster_Bat",
             "EntityType": 2,
-            "MaxHp": 10,
+            "MaxHp": 30,
             "ResourcePath": "Data/Entity_1010_Monster_Bat"
         },
         {
@@ -53,7 +53,7 @@
             "EntityId": 1012,
             "Name": "Entity_1012_Monster_EvilMage",
             "EntityType": 2,
-            "MaxHp": 10,
+            "MaxHp": 100,
             "ResourcePath": "Data/Entity_1012_Monster_EvilMage"
         },
         {

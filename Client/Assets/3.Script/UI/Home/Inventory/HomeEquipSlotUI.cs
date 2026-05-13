@@ -16,8 +16,33 @@ public class HomeEquipSlotUI : MonoBehaviour
 
     private void Awake()
     {
-        _parent = GetComponentInParent<HomeInventoryUI>();
-        _btn.onClick.AddListener(()=> _parent.OnSlotClicked(_targetSlot));
+        _parent = GetComponentInParent<HomeInventoryUI>(true);
+        if (_btn == null)
+            _btn = GetComponent<Button>() ?? GetComponentInChildren<Button>(true);
+
+        if (_btn != null)
+        {
+            _btn.onClick.RemoveListener(HandleClick);
+            _btn.onClick.AddListener(HandleClick);
+        }
+        else
+        {
+            Debug.LogWarning($"[HomeEquipSlotUI] Button reference is missing on {name}.");
+        }
+    }
+
+    private void HandleClick()
+    {
+        if (_parent == null)
+            _parent = GetComponentInParent<HomeInventoryUI>(true);
+
+        if (_parent == null)
+        {
+            Debug.LogError($"[HomeEquipSlotUI] HomeInventoryUI parent is missing on {name}.");
+            return;
+        }
+
+        _parent.OnSlotClicked(_targetSlot);
     }
 
     public void Refresh(List<SC_Inventory.Equipments> currentEquips)

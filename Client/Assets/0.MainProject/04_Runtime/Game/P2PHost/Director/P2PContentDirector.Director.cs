@@ -285,7 +285,7 @@ public sealed partial class P2PContentDirector
         _stageEngine.NotifyEvent(new GameEventContext(StageEventType.Beat, timeMs: serverNow), this);
         _stageEngine.NotifyEvent(new GameEventContext(StageEventType.TimeTick, timeMs: serverNow), this);
 
-        if (P2PHostController.HasInstance)
+        if (P2PHostController.HasInstance && ShouldAutoSubmitClearOnMonsterWipe())
             P2PHostController.Instance.CheckAndSubmitGameResultIfCleared();
 
         if (P2PDebugConfig.TraceContent)
@@ -365,7 +365,14 @@ public sealed partial class P2PContentDirector
 
     public void ReturnToTown()
     {
-        P2PHostController.Instance.SendLocalAndRelay(new SC_ReturnToTown());
+        if (P2PHostController.HasInstance)
+        {
+            P2PHostController.Instance.SubmitStageClearResult("StageAction:ReturnToTown");
+            return;
+        }
+
+        if (P2PDebugConfig.TraceContent)
+            Debug.LogWarning("[P2PContentDirector] ReturnToTown requested without host controller instance.");
     }
 
     public void OpenGate(int x, int y)
