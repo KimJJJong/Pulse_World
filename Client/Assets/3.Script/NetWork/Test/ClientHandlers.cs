@@ -835,13 +835,24 @@ public class ClientHandlers : MonoBehaviour
             Debug.Log($"[ClientHandlers] SC_UpdateSkillSlots: NormalAttack={p.NormalAttackSkillId}, Skills={p.activeSkillSlotss.Count} | {tmpItemName} ]");
         }
 
+        var skillIds = new List<string>();
+        for (int i = 0; i < p.activeSkillSlotss.Count; i++)
+            skillIds.Add(p.activeSkillSlotss[i].SkillId ?? "");
+
         if (RhythmInputController.Instance != null)
         {
             RhythmInputController.Instance.SetNormalAttackSkill(p.NormalAttackSkillId);
-            for (int i = 0; i < p.activeSkillSlotss.Count; i++)
+            for (int i = 0; i < 4; i++)
             {
-                RhythmInputController.Instance.SetSkillSlot(i, p.activeSkillSlotss[i].SkillId);
+                string skillId = i < skillIds.Count ? skillIds[i] : "";
+                RhythmInputController.Instance.SetSkillSlot(i, skillId);
             }
         }
+
+        var hud = HudPresenter.Instance != null
+            ? HudPresenter.Instance
+            : FindFirstObjectByType<HudPresenter>();
+        if (hud != null)
+            hud.ApplyServerSkillSlots(p.NormalAttackSkillId, skillIds);
     }
 }

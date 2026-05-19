@@ -15,6 +15,9 @@ public class SkillSlotView : MonoBehaviour
 
     void Awake()
     {
+        if (icon == null)
+            icon = transform.Find("Icon")?.GetComponent<Image>() ?? GetComponentInChildren<Image>(true);
+
         if (cooldownText != null)
         {
             _idleLabel = cooldownText.text;
@@ -53,7 +56,23 @@ public class SkillSlotView : MonoBehaviour
 
     public void SetIcon(Sprite s)
     {
-        if (icon != null) icon.sprite = s;
+        if (icon == null)
+            return;
+
+        icon.sprite = s;
+        icon.enabled = s != null;
+        icon.gameObject.SetActive(true);
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
+
+        Color color = icon.color;
+        color.a = s != null ? 1f : 0f;
+        icon.color = color;
+    }
+
+    public void ClearIcon()
+    {
+        SetIcon(null);
     }
 
     public void StartCooldown(float duration)

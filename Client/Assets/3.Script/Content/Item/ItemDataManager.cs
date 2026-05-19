@@ -99,6 +99,26 @@ namespace Client.Content.Item
              return null;
         }
 
+        public EquipmentTemplate FindEquipmentBySkillId(string skillId)
+        {
+            if (string.IsNullOrWhiteSpace(skillId))
+                return null;
+
+            foreach (var equip in _equipments.Values)
+            {
+                if (equip == null)
+                    continue;
+
+                if (string.Equals(equip.skill_id, skillId, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(equip.normal_attack_skill_id, skillId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return equip;
+                }
+            }
+
+            return null;
+        }
+
         internal object GetTemplate(int templateId)
         {
             throw new NotImplementedException();

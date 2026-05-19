@@ -7,12 +7,34 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
     private BoardView _boardView;
     private MapAsset _mapAsset;
     private GameObject _tilePrefab;
+    private AppearanceAutoTilePalette _appearancePalette;
     private bool _repositionEvenIfExists = true;
+    private Material _tilePrefabBaseMaterial;
 
     [MenuItem("RhythmRPG/Editors/World/BoardView Map Baker")]
     public static void Open()
     {
         GetWindow<BoardViewMapBakerWindow>("BoardView Map Baker");
+    }
+
+    [MenuItem("RhythmRPG/Editors/World/Fix Baked Tile Top Surfaces")]
+    private static void FixBakedTileTopSurfaces()
+    {
+        int count = 0;
+        var visuals = Resources.FindObjectsOfTypeAll<BoardTileVisual>();
+        for (int i = 0; i < visuals.Length; i++)
+        {
+            var visual = visuals[i];
+            if (visual == null || !visual.gameObject.scene.IsValid())
+                continue;
+
+            UnityEditor.Undo.RegisterFullObjectHierarchyUndo(visual.gameObject, "Fix Tile Top Surface");
+            visual.RefreshTopSurfaceLayout();
+            EditorUtility.SetDirty(visual.gameObject);
+            count++;
+        }
+
+        Debug.Log($"[MapBaker] Fixed baked tile top surfaces: {count}");
     }
 
     private void OnGUI()
@@ -23,6 +45,11 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
         _boardView = (BoardView)EditorGUILayout.ObjectField("BoardView (in Scene)", _boardView, typeof(BoardView), true);
         _mapAsset = (MapAsset)EditorGUILayout.ObjectField("Map Asset", _mapAsset, typeof(MapAsset), false);
         _tilePrefab = (GameObject)EditorGUILayout.ObjectField("Tile Prefab", _tilePrefab, typeof(GameObject), false);
+        _appearancePalette = (AppearanceAutoTilePalette)EditorGUILayout.ObjectField(
+            "Appearance Palette",
+            ResolveAppearancePalette(),
+            typeof(AppearanceAutoTilePalette),
+            false);
 
         EditorGUILayout.Space(8);
         _repositionEvenIfExists = EditorGUILayout.ToggleLeft("Reposition tiles even if they exist", _repositionEvenIfExists);
@@ -59,6 +86,12 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
     {
         UnityEditor.Undo.RegisterFullObjectHierarchyUndo(_boardView.gameObject, "Bake Tiles");
 
+        _mapAsset.EnsureSize();
+        _mapAsset.RebuildAppearanceAutoTiles();
+        _boardView.tilePrefab = _tilePrefab;
+        _boardView.appearancePalette = ResolveAppearancePalette();
+        _tilePrefabBaseMaterial = null;
+
         int width = _mapAsset.Width;
         int height = _mapAsset.Height;
 
@@ -81,7 +114,7 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
             {
                 // 프리팹 인스턴스 생성
                 // (TileIndex 컴포넌트 추가 X)
-                go = (GameObject)PrefabUtility.InstantiatePrefab(_tilePrefab, _boardView.transform);
+                go = (GameObject)PrefabUtility.InstantiatePrefab(ResolveTilePrefab(x, y), _boardView.transform);
                 go.name = $"Tile_{x}_{y}";
                 go.transform.position = _boardView.GridToWorldPublic(x, y) + new Vector3(0, -2, 0);
 
@@ -99,24 +132,109 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
         }
 
         EditorUtility.SetDirty(_boardView.gameObject);
+        EditorUtility.SetDirty(_boardView);
+        EditorUtility.SetDirty(_mapAsset);
         Debug.Log($"[MapBaker] Baked/Updated tiles: {width}x{height} from {_mapAsset.name} (Scriptless)");
+    }
+
+    private GameObject ResolveTilePrefab(int x, int y)
+    {
+        var appearance = _mapAsset.GetAppearance(x, y);
+        var palette = ResolveAppearancePalette();
+        if (appearance.Kind != AppearanceTileKind.None
+            && palette != null
+            && palette.TryGetPrefab(appearance.Kind, appearance.Variant, out var prefab))
+        {
+            return prefab;
+        }
+
+        return _tilePrefab;
     }
 
     private void ApplyColor(GameObject go, int x, int y)
     {
-        if (go.TryGetComponent<Renderer>(out var rend))
+        var visual = GetOrAddTileVisual(go);
+        var rend = visual != null ? visual.BaseRenderer : null;
+
+        if (rend != null)
         {
+            visual.SetBaseMaterial(GetTilePrefabBaseMaterial());
+
             var cell = _mapAsset.Get(x, y);
             Color color = _boardView.GetTileColor((int)cell.Kind);
-            
-            // 에디터에서 머티리얼 인스턴스 관리
-            if (rend.sharedMaterial != null)
+            var appearance = _mapAsset.GetAppearance(x, y);
+            bool materialApplied = false;
+            if (appearance.Kind != AppearanceTileKind.None)
             {
-                var newMat = new Material(rend.sharedMaterial);
-                newMat.color = color;
-                rend.sharedMaterial = newMat;
+                var palette = ResolveAppearancePalette();
+                if (palette != null && palette.TryGetMaterial(appearance.Kind, appearance.Variant, out var material))
+                {
+                    visual.SetBaseColor(color);
+                    visual.SetTopMaterial(material);
+                    materialApplied = true;
+                }
+
+                Color appearanceColor = GetAppearancePreviewColor(palette, appearance);
+                color = Color.Lerp(color, appearanceColor, 0.75f);
             }
+
+            if (materialApplied)
+                return;
+
+            visual.HideTopSurface();
+            visual.SetBaseColor(color);
         }
+    }
+
+    private BoardTileVisual GetOrAddTileVisual(GameObject go)
+    {
+        if (go == null)
+            return null;
+
+        if (!go.TryGetComponent<BoardTileVisual>(out var visual))
+            visual = go.AddComponent<BoardTileVisual>();
+
+        return visual;
+    }
+
+    private Material GetTilePrefabBaseMaterial()
+    {
+        if (_tilePrefabBaseMaterial != null)
+            return _tilePrefabBaseMaterial;
+
+        var renderer = BoardTileVisual.FindBaseRenderer(_tilePrefab);
+        _tilePrefabBaseMaterial = renderer != null ? renderer.sharedMaterial : null;
+        return _tilePrefabBaseMaterial;
+    }
+
+    private AppearanceAutoTilePalette ResolveAppearancePalette()
+    {
+        if (_appearancePalette != null)
+            return _appearancePalette;
+
+        return _mapAsset != null ? _mapAsset.AppearancePalette : null;
+    }
+
+    private Color GetAppearancePreviewColor(AppearanceAutoTilePalette palette, AppearanceTileCell appearance)
+    {
+        Color baseColor = palette != null
+            ? palette.GetPreviewColor(appearance.Kind)
+            : AppearanceAutoTilePalette.GetBuiltInPreviewColor(appearance.Kind);
+
+        int connectionCount = CountBits(appearance.Variant);
+        return Color.Lerp(baseColor, Color.white, connectionCount / 8f * 0.12f);
+    }
+
+    private int CountBits(byte value)
+    {
+        int count = 0;
+        while (value != 0)
+        {
+            count += value & 1;
+            value >>= 1;
+        }
+
+        return count;
     }
 
     private void DeleteAllTiles()

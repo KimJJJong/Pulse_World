@@ -1,26 +1,30 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Client.Content.Item;
+using System.Collections.Generic;
+using System.IO;
 
 public class HudPresenter : MonoBehaviour
 {
+    public static HudPresenter Instance { get; private set; }
+
     [SerializeField] private HudConfig _config;
     [SerializeField] private HexHudView _view;
     [SerializeField] private SkillSlotView[] _skillSlots;
 
-    // 슬롯 0 = 일반공격(무기), 슬롯 1~N = 스킬 슬롯
+    // 슬롯 0~3 = H/J/K/L 스킬 슬롯. Space 일반공격은 입력 전용으로만 보관한다.
     // 현재 장비 기반으로 바인딩된 skillId 캐시
     private string[] _boundSkillIds;
 
     void Awake()
     {
+        if (Instance == null)
+            Instance = this;
+
         if (_view == null)
             _view = GetComponentInChildren<HexHudView>(true);
 
-        if (_skillSlots == null || _skillSlots.Length == 0)
-            _skillSlots = GetComponentsInChildren<SkillSlotView>(true);
-
-        _boundSkillIds = new string[_skillSlots != null ? _skillSlots.Length : 0];
+        EnsureSkillSlots();
     }
 
     void OnEnable()
@@ -35,6 +39,7 @@ public class HudPresenter : MonoBehaviour
 
         // 이미 인벤토리가 로드된 상태라면 즉시 반영
         OnInventoryUpdated();
+        ApplyCurrentInputSkillSlots();
     }
 
     void OnDisable()
@@ -45,6 +50,9 @@ public class HudPresenter : MonoBehaviour
 
         if (InventoryManager.Instance != null)
             InventoryManager.Instance.OnInventoryUpdated -= OnInventoryUpdated;
+
+        if (Instance == this)
+            Instance = null;
     }
 
     void Start()
@@ -59,6 +67,7 @@ public class HudPresenter : MonoBehaviour
         }
 
         OnInventoryUpdated();
+        ApplyCurrentInputSkillSlots();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -70,11 +79,12 @@ public class HudPresenter : MonoBehaviour
     /// 장착된 장비의 skill_id와 아이콘을 SkillSlot에 바인딩한다.
     ///
     /// 슬롯 배치 정책:
-    ///   Slot 0  = 무기의 normal_attack_skill_id  (Space키 일반공격)
-    ///   Slot 1~ = 장착 장비의 skill_id 순서대로 (H / J / K / L)
+    ///   Space   = 무기의 normal_attack_skill_id  (HUD 슬롯에는 표시하지 않음)
+    ///   Slot 0~ = 장착 장비의 skill_id 순서대로 (H / J / K / L)
     /// </summary>
     private void OnInventoryUpdated()
     {
+        EnsureSkillSlots();
         if (_skillSlots == null || _skillSlots.Length == 0) return;
 
         var inv = InventoryManager.Instance;
@@ -124,7 +134,7 @@ public class HudPresenter : MonoBehaviour
             var tmpl = itemData.GetEquipment(equipped.TemplateId);
             if (tmpl == null) continue;
 
-            Sprite icon = LoadIcon(tmpl.icon_path);
+            Sprite icon = LoadEquipmentIcon(tmpl);
 
             if (tmpl.SlotEnum == EquipmentSlot.Weapon)
             {
@@ -138,9 +148,9 @@ public class HudPresenter : MonoBehaviour
                 weaponSkillId = tmpl.skill_id ?? "";
                 skillSlotIds[0] = weaponSkillId;
 
-                // UI: Slot 0 = 일반공격 아이콘 (Space)
-                SetSlot(0, icon, normalAttackSkillId);
-                _boundSkillIds[0] = normalAttackSkillId;
+                // UI: Slot 0 = H키 무기 스킬. Space 일반공격은 입력에만 반영한다.
+                SetSlot(0, icon, weaponSkillId);
+                _boundSkillIds[0] = weaponSkillId;
             }
             else
             {
@@ -150,8 +160,8 @@ public class HudPresenter : MonoBehaviour
 
                 skillSlotIds[nonWeaponSlotIndex] = tmpl.skill_id;
 
-                // UI: 비무기 slot은 UI Slot 1부터 (무기 아이콘이 UI Slot 0)
-                int uiSlot = nonWeaponSlotIndex; // UI Slot 1 = H+1 = J
+                // UI: 비무기 slot은 UI Slot 1부터 (J/K/L)
+                int uiSlot = nonWeaponSlotIndex;
                 SetSlot(uiSlot, icon, tmpl.skill_id);
                 if (uiSlot < _boundSkillIds.Length)
                     _boundSkillIds[uiSlot] = tmpl.skill_id;
@@ -176,6 +186,82 @@ public class HudPresenter : MonoBehaviour
         Debug.Log($"[HudPresenter] SkillSlots bound: NormalAttack={normalAttackSkillId} Skills=[{string.Join(",", skillSlotIds)}]");
     }
 
+    public void ApplyServerSkillSlots(string normalAttackSkillId, IReadOnlyList<string> activeSkillIds)
+    {
+        EnsureSkillSlots();
+        if (_skillSlots == null || _skillSlots.Length == 0)
+            return;
+
+        normalAttackSkillId = string.IsNullOrWhiteSpace(normalAttackSkillId) ? "Attack" : normalAttackSkillId;
+        if (!HasAnyPlayableSkill(activeSkillIds))
+        {
+            Debug.LogWarning("[HudPresenter] Server SkillSlots are empty. Keeping existing HUD skill binding.");
+            return;
+        }
+
+        int maxInputSlots = 4;
+        for (int i = 0; i < maxInputSlots; i++)
+        {
+            string skillId = activeSkillIds != null && i < activeSkillIds.Count ? activeSkillIds[i] : "";
+            int uiSlot = i;
+            if (uiSlot >= _skillSlots.Length)
+                continue;
+
+            if (string.IsNullOrWhiteSpace(skillId))
+                ClearSlot(uiSlot);
+            else
+                SetSlot(uiSlot, ResolveSkillIcon(skillId, uiSlot), skillId);
+        }
+
+        for (int i = maxInputSlots; i < _skillSlots.Length; i++)
+            ClearSlot(i);
+
+        Debug.Log($"[HudPresenter] Server SkillSlots applied: NormalAttack={normalAttackSkillId} Skills=[{string.Join(",", ToArray(activeSkillIds))}]");
+    }
+
+    private void ApplyCurrentInputSkillSlots()
+    {
+        var input = RhythmInputController.Instance;
+        if (input == null)
+            return;
+
+        var skillIds = new List<string>();
+        bool hasAnySkill = false;
+        for (int i = 0; i < 4; i++)
+        {
+            string skillId = input.GetSkillSlotId(i) ?? "";
+            skillIds.Add(skillId);
+            if (!IsPlaceholderSkillId(skillId))
+                hasAnySkill = true;
+        }
+
+        string normalAttackSkillId = input.GetNormalAttackSkillId();
+        if (!hasAnySkill)
+            return;
+
+        ApplyServerSkillSlots(normalAttackSkillId, skillIds);
+    }
+
+    private static bool HasAnyPlayableSkill(IReadOnlyList<string> skillIds)
+    {
+        if (skillIds == null)
+            return false;
+
+        for (int i = 0; i < skillIds.Count; i++)
+        {
+            if (!IsPlaceholderSkillId(skillIds[i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsPlaceholderSkillId(string skillId)
+    {
+        return string.IsNullOrWhiteSpace(skillId)
+            || string.Equals(skillId.Trim(), "Attack", System.StringComparison.OrdinalIgnoreCase);
+    }
+
     private void SetSlot(int index, Sprite icon, string skillId)
     {
         if (index < 0 || index >= _skillSlots.Length) return;
@@ -184,10 +270,25 @@ public class HudPresenter : MonoBehaviour
 
         if (icon != null)
             slot.SetIcon(icon);
-        else
-            TrySetFallbackIcon(index, slot);
+        else if (!TrySetFallbackIcon(index, slot))
+        {
+            bool sameSkillAlreadyBound = _boundSkillIds != null
+                && index < _boundSkillIds.Length
+                && string.Equals(_boundSkillIds[index], skillId, System.StringComparison.OrdinalIgnoreCase);
+
+            if (!sameSkillAlreadyBound)
+                slot.ClearIcon();
+        }
 
         _boundSkillIds[index] = skillId;
+    }
+
+    private void ClearSlot(int index)
+    {
+        if (index < 0 || index >= _skillSlots.Length) return;
+        _skillSlots[index]?.ClearIcon();
+        if (_boundSkillIds != null && index < _boundSkillIds.Length)
+            _boundSkillIds[index] = "";
     }
 
     /// <summary>
@@ -196,22 +297,113 @@ public class HudPresenter : MonoBehaviour
     /// </summary>
     private Sprite LoadIcon(string iconPath)
     {
-        if (string.IsNullOrEmpty(iconPath)) return null;
+        if (string.IsNullOrWhiteSpace(iconPath)) return null;
 
-        // 확장자 제거
-        string path = iconPath;
-        if (path.EndsWith(".png") || path.EndsWith(".jpg"))
-            path = path.Substring(0, path.LastIndexOf('.'));
+        string path = iconPath.Trim().Replace("\\", "/");
+        const string assetsResourcesPrefix = "Assets/Resources/";
+        const string resourcesPrefix = "Resources/";
+        if (path.StartsWith(assetsResourcesPrefix, System.StringComparison.OrdinalIgnoreCase))
+            path = path.Substring(assetsResourcesPrefix.Length);
+        else if (path.StartsWith(resourcesPrefix, System.StringComparison.OrdinalIgnoreCase))
+            path = path.Substring(resourcesPrefix.Length);
+
+        path = Path.ChangeExtension(path, null);
 
         var sprite = Resources.Load<Sprite>(path);
+        if (sprite != null)
+            return sprite;
+
+        string fileName = Path.GetFileNameWithoutExtension(path);
+        if (!string.IsNullOrEmpty(fileName) && !path.StartsWith("Icons/", System.StringComparison.OrdinalIgnoreCase))
+            sprite = Resources.Load<Sprite>($"Icons/{fileName}");
+
         if (sprite == null)
-            Debug.LogWarning($"[HudPresenter] Icon not found: {path}");
+            Debug.LogWarning($"[HudPresenter] Icon not found: {iconPath}");
         return sprite;
+    }
+
+    private Sprite LoadEquipmentIcon(EquipmentTemplate tmpl)
+    {
+        if (tmpl == null)
+            return null;
+
+        var icon = RhythmRPG.Managers.GameResourceManager.Instance != null
+            ? RhythmRPG.Managers.GameResourceManager.Instance.GetIcon(tmpl.id)
+            : null;
+
+        return icon != null ? icon : LoadIcon(tmpl.icon_path);
+    }
+
+    private Sprite ResolveSkillIcon(string skillId, int slotIndex)
+    {
+        if (string.IsNullOrWhiteSpace(skillId))
+            return null;
+
+        string clean = skillId.Trim();
+        var equipmentIcon = ResolveEquipmentIconForSkill(clean);
+        if (equipmentIcon != null)
+            return equipmentIcon;
+
+        string[] candidates =
+        {
+            $"SkillIcons/{clean}",
+            $"Icons/{clean}",
+            $"UI/Skills/{clean}",
+            $"Data/NewSkills/Icons/{clean}"
+        };
+
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            var sprite = Resources.Load<Sprite>(candidates[i]);
+            if (sprite != null)
+                return sprite;
+        }
+
+        if (_config?.skillIcons != null && slotIndex >= 0 && slotIndex < _config.skillIcons.Length)
+            return _config.skillIcons[slotIndex];
+
+        return null;
+    }
+
+    private Sprite ResolveEquipmentIconForSkill(string skillId)
+    {
+        var inv = InventoryManager.Instance;
+        var itemData = ItemDataManager.Instance;
+        if (itemData == null)
+            return null;
+
+        if (inv?.Equipments != null)
+        {
+            for (int i = 0; i < inv.Equipments.Count; i++)
+            {
+                var equipped = inv.Equipments[i];
+                if (!equipped.IsEquipped)
+                    continue;
+
+                var tmpl = itemData.GetEquipment(equipped.TemplateId);
+                if (tmpl == null)
+                    continue;
+
+                bool matchesSkill = string.Equals(tmpl.skill_id, skillId, System.StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(tmpl.normal_attack_skill_id, skillId, System.StringComparison.OrdinalIgnoreCase);
+
+                if (!matchesSkill)
+                    continue;
+
+                var icon = LoadEquipmentIcon(tmpl);
+                if (icon != null)
+                    return icon;
+            }
+        }
+
+        var templateBySkill = itemData.FindEquipmentBySkillId(skillId);
+        return LoadEquipmentIcon(templateBySkill);
     }
 
     /// <summary>HudConfig 기본 아이콘 폴백</summary>
     private void ApplyFallbackIcons()
     {
+        EnsureSkillSlots();
         if (_config?.skillIcons == null) return;
         int n = Mathf.Min(_skillSlots.Length, _config.skillIcons.Length);
         for (int i = 0; i < n; i++)
@@ -221,11 +413,59 @@ public class HudPresenter : MonoBehaviour
         }
     }
 
-    private void TrySetFallbackIcon(int index, SkillSlotView slot)
+    private bool TrySetFallbackIcon(int index, SkillSlotView slot)
     {
-        if (_config?.skillIcons == null) return;
-        if (index >= _config.skillIcons.Length) return;
+        if (_config?.skillIcons == null) return false;
+        if (index >= _config.skillIcons.Length) return false;
+        if (_config.skillIcons[index] == null) return false;
+
         slot.SetIcon(_config.skillIcons[index]);
+        return true;
+    }
+
+    private void EnsureSkillSlots()
+    {
+        if (_skillSlots == null || _skillSlots.Length == 0)
+            _skillSlots = GetComponentsInChildren<SkillSlotView>(true);
+
+        if (_skillSlots != null && _skillSlots.Length > 1)
+            System.Array.Sort(_skillSlots, CompareSkillSlots);
+
+        int count = _skillSlots != null ? _skillSlots.Length : 0;
+        if (_boundSkillIds == null || _boundSkillIds.Length != count)
+            _boundSkillIds = new string[count];
+    }
+
+    private static int CompareSkillSlots(SkillSlotView a, SkillSlotView b)
+    {
+        return GetSlotIndex(a).CompareTo(GetSlotIndex(b));
+    }
+
+    private static int GetSlotIndex(SkillSlotView slot)
+    {
+        if (slot == null)
+            return int.MaxValue;
+
+        string name = slot.gameObject.name;
+        int underscore = name.LastIndexOf('_');
+        if (underscore >= 0 && underscore + 1 < name.Length
+            && int.TryParse(name.Substring(underscore + 1), out int parsed))
+        {
+            return parsed;
+        }
+
+        return int.MaxValue;
+    }
+
+    private static string[] ToArray(IReadOnlyList<string> list)
+    {
+        if (list == null)
+            return new string[0];
+
+        var result = new string[list.Count];
+        for (int i = 0; i < list.Count; i++)
+            result[i] = list[i];
+        return result;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

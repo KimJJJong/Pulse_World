@@ -13,6 +13,7 @@ public class ClientGameState : MonoBehaviour
 
     // 타일 정보 (TileKind int 그대로)
     private int[,] _tiles;
+    private AppearanceTileCell[,] _appearanceTiles;
 
     // ActorId 목록 & 내 ActorId
     public int[] PlayerActorIds { get; private set; } = new int[0];
@@ -67,6 +68,7 @@ public class ClientGameState : MonoBehaviour
         yield return null;
 
         CreateMap(asset.Width, asset.Height);
+        WorldView?.OnSetAppearancePalette(asset.AppearancePalette);
         yield return null;
 
         int totalTiles = asset.Width * asset.Height;
@@ -79,6 +81,8 @@ public class ClientGameState : MonoBehaviour
             {
                 var cell = asset.Get(x, y);
                 SetTile(x, y, (int)cell.Kind);
+                var appearance = asset.GetAppearance(x, y);
+                SetAppearanceTile(x, y, (int)appearance.Kind, appearance.Variant);
 
                 processedCount++;
                 if (processedCount % tilesPerFrame == 0)
@@ -111,6 +115,9 @@ public class ClientGameState : MonoBehaviour
         yield return null;
 
         CreateMap(mapJson.width, mapJson.height);
+        bool hasAppearanceData = HasAppearanceData(mapJson);
+        if (hasAppearanceData)
+            WorldView?.OnSetAppearancePalette(LoadAppearancePalette(mapJson.appearancePalette));
         yield return null;
 
         int totalTiles = mapJson.width * mapJson.height;
@@ -122,10 +129,15 @@ public class ClientGameState : MonoBehaviour
             for (int x = 0; x < mapJson.width; x++)
             {
                 int idx = y * mapJson.width + x;
-                int tileKind = mapJson.cells != null && idx >= 0 && idx < mapJson.cells.Length
-                    ? mapJson.cells[idx].k
-                    : (int)TileKind.None;
+                MapJson.Cell cell = default;
+                bool hasCell = mapJson.cells != null && idx >= 0 && idx < mapJson.cells.Length;
+                if (hasCell)
+                    cell = mapJson.cells[idx];
+
+                int tileKind = hasCell ? cell.k : (int)TileKind.None;
                 SetTile(x, y, tileKind);
+                if (hasAppearanceData)
+                    SetAppearanceTile(x, y, cell.a, cell.av);
 
                 processedCount++;
                 if (processedCount % tilesPerFrame == 0)
@@ -147,11 +159,44 @@ public class ClientGameState : MonoBehaviour
         MapWidth = width;
         MapHeight = height;
         _tiles = new int[width, height];
+        _appearanceTiles = new AppearanceTileCell[width, height];
 
         if (WorldView == null)
             Debug.LogWarning("[ClientGameState] WorldView is null during CreateMap!");
         else
             WorldView.OnCreateMap(width, height);
+    }
+
+    private AppearanceAutoTilePalette LoadAppearancePalette(string resourcePath)
+    {
+        if (string.IsNullOrEmpty(resourcePath))
+            return null;
+
+        var palette = Resources.Load<AppearanceAutoTilePalette>(resourcePath);
+        if (palette == null)
+            Debug.LogWarning($"[ClientGameState] Appearance palette not found: Resources/{resourcePath}");
+
+        return palette;
+    }
+
+    private bool HasAppearanceData(MapJson mapJson)
+    {
+        if (mapJson == null)
+            return false;
+
+        if (!string.IsNullOrEmpty(mapJson.appearancePalette))
+            return true;
+
+        if (mapJson.cells == null)
+            return false;
+
+        for (int i = 0; i < mapJson.cells.Length; i++)
+        {
+            if (mapJson.cells[i].a != 0 || mapJson.cells[i].av != 0)
+                return true;
+        }
+
+        return false;
     }
 
     public void SetTile(int x, int y, int tileKind)
@@ -161,6 +206,20 @@ public class ClientGameState : MonoBehaviour
 
         _tiles[x, y] = tileKind;
         WorldView?.OnSetTile(x, y, tileKind);
+    }
+
+    public void SetAppearanceTile(int x, int y, int appearanceKind, int appearanceVariant)
+    {
+        if (_appearanceTiles == null) return;
+        if (x < 0 || x >= MapWidth || y < 0 || y >= MapHeight) return;
+
+        _appearanceTiles[x, y] = new AppearanceTileCell
+        {
+            Kind = (AppearanceTileKind)appearanceKind,
+            Variant = (byte)appearanceVariant
+        };
+
+        WorldView?.OnSetAppearanceTile(x, y, appearanceKind, appearanceVariant);
     }
 
     public int GetTileKind(int x, int y)

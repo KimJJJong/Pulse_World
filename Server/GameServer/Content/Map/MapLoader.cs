@@ -40,11 +40,15 @@ public static class MapLoader
 
                 var kind = new TileKind[n];
                 var variant = new byte[n];
+                var appearanceKind = new byte[n];
+                var appearanceVariant = new byte[n];
 
                 for (int i = 0; i < n; i++)
                 {
                     kind[i] = (TileKind)dto.cells[i].k;
                     variant[i] = dto.cells[i].v;
+                    appearanceKind[i] = dto.cells[i].a;
+                    appearanceVariant[i] = dto.cells[i].av;
 
                 }
 
@@ -52,10 +56,13 @@ public static class MapLoader
                 maps[mapId] = new MapContent
                 {
                     MapId = mapId,
+                    AppearancePalette = dto.appearancePalette ?? "",
                     Width = dto.width,
                     Height = dto.height,
                     Kind = kind,
-                    Variant = variant
+                    Variant = variant,
+                    AppearanceKind = appearanceKind,
+                    AppearanceVariant = appearanceVariant
                 };
                 //for(int i=0; i<n; i++)
                 //{

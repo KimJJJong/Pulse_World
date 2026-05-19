@@ -10,6 +10,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
     public GameObject monsterPrefab;
 
     public GameObject tilePrefab;
+    public AppearanceAutoTilePalette appearancePalette;
     
     // Runtime Cache
     private Dictionary<int, GameObject> _entityPrefabCache = new Dictionary<int, GameObject>();
@@ -25,8 +26,11 @@ public class BoardView : MonoBehaviour, IClientWorldView
     private GameObject[,] _tiles;
 
     private Color[,] _baseTileColors;
+    private Color[,] _logicTileColors;
+    private AppearanceTileCell[,] _appearanceTiles;
+    private Material _defaultTileBaseMaterial;
 
-    private static readonly Color TELEGRAPH_COLOR = Color.red;
+    private static readonly Color TELEGRAPH_COLOR = new Color(1f, 0.08f, 0f, 0.45f);
 
     private Dictionary<int, float> _recentInstantActions = new();
     private Dictionary<int, (Vector2Int predictedTile, Vector3 fromWorld)> _recentPredictedMoves = new();
@@ -113,17 +117,27 @@ public class BoardView : MonoBehaviour, IClientWorldView
             return;
         }
 
-        Debug.LogWarning($"[BoardView] OnCreateMap: No baked tiles found. Fallback to Instantiate. ({width}x{height})");
-        ClearTiles(destroyGameObjects: true);
-
-        if (tilePrefab == null)
+        if (TryBindAvailableTilesFromScene(width, height, out int boundCount, out int missingCount))
         {
-            Debug.LogWarning("[BoardView] tilePrefab이 설정되지 않음. 타일을 생성하지 않습니다.");
+            Debug.LogWarning(
+                $"[BoardView] OnCreateMap: Baked tiles partially bound. " +
+                $"Bound={boundCount}, Missing={missingCount}, Expected={width}x{height}. Existing scene tiles were preserved.");
             return;
         }
 
+        Debug.LogWarning($"[BoardView] OnCreateMap: No baked tiles found. Fallback to Instantiate. ({width}x{height})");
+
+        if (tilePrefab == null)
+        {
+            Debug.LogWarning("[BoardView] tilePrefab이 설정되지 않음. 타일을 생성하지 않습니다. 기존 씬 타일은 유지합니다.");
+            return;
+        }
+
+        ClearTiles(destroyGameObjects: true);
         _tiles = new GameObject[width, height];
         _baseTileColors = new Color[width, height];
+        _logicTileColors = new Color[width, height];
+        _appearanceTiles = new AppearanceTileCell[width, height];
 
         for (int y = 0; y < height; y++)
         {
@@ -134,6 +148,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 tile.transform.position = GridToWorld(x, y) + new Vector3(0, -2, 0);
                 _tiles[x, y] = tile;
                 _baseTileColors[x, y] = Color.gray;
+                _logicTileColors[x, y] = Color.gray;
             }
         }
     }
@@ -149,11 +164,42 @@ public class BoardView : MonoBehaviour, IClientWorldView
         }
     }
 
+    public Color GetAppearanceTileColor(int appearanceKind, int appearanceVariant)
+    {
+        AppearanceTileKind kind = (AppearanceTileKind)appearanceKind;
+        Color baseColor = appearancePalette != null
+            ? appearancePalette.GetPreviewColor(kind)
+            : AppearanceAutoTilePalette.GetBuiltInPreviewColor(kind);
+
+        float connectionWeight = CountBits((byte)appearanceVariant) / 8f;
+        return Color.Lerp(baseColor, Color.white, connectionWeight * 0.12f);
+    }
+
     private Renderer GetTileRenderer(GameObject tile)
     {
-        if (tile == null) return null;
-        if (tile.TryGetComponent<Renderer>(out var r)) return r;
-        return tile.GetComponentInChildren<Renderer>();
+        var visual = GetTileVisual(tile);
+        return visual != null ? visual.BaseRenderer : null;
+    }
+
+    private BoardTileVisual GetTileVisual(GameObject tile)
+    {
+        if (tile == null)
+            return null;
+
+        if (!tile.TryGetComponent<BoardTileVisual>(out var visual))
+            visual = tile.AddComponent<BoardTileVisual>();
+
+        return visual;
+    }
+
+    private Material GetDefaultTileBaseMaterial()
+    {
+        if (_defaultTileBaseMaterial != null)
+            return _defaultTileBaseMaterial;
+
+        var renderer = BoardTileVisual.FindBaseRenderer(tilePrefab);
+        _defaultTileBaseMaterial = renderer != null ? renderer.sharedMaterial : null;
+        return _defaultTileBaseMaterial;
     }
 
     public void OnSetTile(int x, int y, int tileKind)
@@ -161,17 +207,110 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (_tiles == null) return;
         if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1)) return;
 
+        if (_logicTileColors != null)
+            _logicTileColors[x, y] = GetTileColor(tileKind);
+
+        ApplyTileVisual(x, y, updateTopSurface: false);
+    }
+
+    public void OnSetAppearancePalette(AppearanceAutoTilePalette palette)
+    {
+        if (palette == null)
+            return;
+
+        appearancePalette = palette;
+
+        if (_tiles == null)
+            return;
+
+        int width = _tiles.GetLength(0);
+        int height = _tiles.GetLength(1);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (_appearanceTiles != null && _appearanceTiles[x, y].Kind != AppearanceTileKind.None)
+                    ApplyTileVisual(x, y);
+            }
+        }
+    }
+
+    public void OnSetAppearanceTile(int x, int y, int appearanceKind, int appearanceVariant)
+    {
+        if (_tiles == null) return;
+        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1)) return;
+
+        if (_appearanceTiles != null)
+        {
+            _appearanceTiles[x, y] = new AppearanceTileCell
+            {
+                Kind = (AppearanceTileKind)appearanceKind,
+                Variant = (byte)appearanceVariant
+            };
+        }
+
+        ApplyTileVisual(x, y);
+    }
+
+    private void ApplyTileVisual(int x, int y, bool updateTopSurface = true)
+    {
         var tile = _tiles[x, y];
         if (tile == null) return;
 
-        var rend = GetTileRenderer(tile);
-        if (rend != null)
+        Color logicColor = _logicTileColors != null ? _logicTileColors[x, y] : Color.gray;
+        AppearanceTileCell appearance = _appearanceTiles != null ? _appearanceTiles[x, y] : default;
+        Color finalColor = ComposeTileColor(logicColor, appearance);
+
+        if (_baseTileColors != null)
+            _baseTileColors[x, y] = finalColor;
+
+        var visual = GetTileVisual(tile);
+        if (visual != null)
         {
-            Color baseColor = GetTileColor(tileKind);
-            if (_baseTileColors != null)
-                _baseTileColors[x, y] = baseColor;
-            rend.material.color = baseColor;
+            visual.SetBaseMaterial(GetDefaultTileBaseMaterial());
+
+            if (TryGetAppearanceMaterial(appearance, out var material))
+            {
+                visual.SetBaseColor(logicColor);
+                visual.SetTopMaterial(material);
+            }
+            else
+            {
+                if (updateTopSurface)
+                    visual.HideTopSurface();
+                visual.SetBaseColor(finalColor);
+            }
         }
+    }
+
+    private Color ComposeTileColor(Color logicColor, AppearanceTileCell appearance)
+    {
+        if (appearance.Kind == AppearanceTileKind.None)
+            return logicColor;
+
+        Color appearanceColor = GetAppearanceTileColor((int)appearance.Kind, appearance.Variant);
+        return Color.Lerp(logicColor, appearanceColor, 0.75f);
+    }
+
+    private bool TryGetAppearanceMaterial(AppearanceTileCell appearance, out Material material)
+    {
+        if (appearance.Kind != AppearanceTileKind.None && appearancePalette != null)
+            return appearancePalette.TryGetMaterial(appearance.Kind, appearance.Variant, out material);
+
+        material = null;
+        return false;
+    }
+
+    private int CountBits(byte value)
+    {
+        int count = 0;
+        while (value != 0)
+        {
+            count += value & 1;
+            value >>= 1;
+        }
+
+        return count;
     }
 
     public void SetTelegraphOverlay(int x, int y, bool on)
@@ -191,7 +330,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
             return;
         }
 
-        var rend = GetTileRenderer(tile);
+        var visual = GetTileVisual(tile);
+        var rend = visual != null ? visual.BaseRenderer : null;
         if (rend == null)
         {
             Debug.LogWarning($"[BoardView] SetTelegraphOverlay: Renderer missing at ({x},{y}) Obj={tile.name}");
@@ -199,9 +339,14 @@ public class BoardView : MonoBehaviour, IClientWorldView
         }
 
         if (on)
-            rend.material.color = TELEGRAPH_COLOR;
+        {
+            visual.ShowWarningOverlay(TELEGRAPH_COLOR);
+        }
         else
-            RestoreTileColor(x, y);
+        {
+            visual.HideWarningOverlay();
+            ApplyTileVisual(x, y, updateTopSurface: false);
+        }
     }
 
     public void SetTelegraphWithExpire(int x, int y, long expireBeat)
@@ -237,20 +382,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
         var tile = _tiles[x, y];
         if (tile == null) return;
 
-        var rend = GetTileRenderer(tile);
-        if (rend != null)
-            rend.material.color = _baseTileColors[x, y];
+        ApplyTileVisual(x, y);
     }
 
     public bool TryBindTilesFromScene(int width, int height)
     {
-        var map = new Dictionary<(int x, int y), GameObject>();
-
-        foreach (Transform child in transform)
-        {
-            if (ParseTileName(child.name, out int x, out int y))
-                map[(x, y)] = child.gameObject;
-        }
+        var map = CollectSceneTilesByName();
 
         for (int y = 0; y < height; y++)
         {
@@ -264,28 +401,92 @@ public class BoardView : MonoBehaviour, IClientWorldView
             }
         }
 
-        ClearTiles(destroyGameObjects: false);
-        _tiles = new GameObject[width, height];
-        _baseTileColors = new Color[width, height];
+        AllocateTileState(width, height);
 
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
             {
-                _tiles[x, y] = map[(x, y)];
-                var rend = GetTileRenderer(_tiles[x, y]);
-                if (rend != null)
-                    _baseTileColors[x, y] = rend.sharedMaterial != null ? rend.sharedMaterial.color : Color.gray;
-                else
-                {
-                    Debug.LogWarning($"[BoardView] Bound tile at ({x},{y}) has no renderer!");
-                    _baseTileColors[x, y] = Color.gray;
-                }
+                BindTileState(x, y, map[(x, y)]);
             }
         }
 
         Debug.Log($"[BoardView] Bind Success (NameBased): {width}x{height}");
         return true;
+    }
+
+    private bool TryBindAvailableTilesFromScene(int width, int height, out int boundCount, out int missingCount)
+    {
+        boundCount = 0;
+        missingCount = 0;
+
+        var map = CollectSceneTilesByName();
+        if (map.Count == 0)
+        {
+            missingCount = width * height;
+            return false;
+        }
+
+        AllocateTileState(width, height);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (map.TryGetValue((x, y), out var tile) && tile != null)
+                {
+                    BindTileState(x, y, tile);
+                    boundCount++;
+                }
+                else
+                {
+                    _baseTileColors[x, y] = Color.gray;
+                    _logicTileColors[x, y] = Color.gray;
+                    missingCount++;
+                }
+            }
+        }
+
+        return boundCount > 0;
+    }
+
+    private Dictionary<(int x, int y), GameObject> CollectSceneTilesByName()
+    {
+        var map = new Dictionary<(int x, int y), GameObject>();
+
+        foreach (Transform child in transform)
+        {
+            if (ParseTileName(child.name, out int x, out int y))
+                map[(x, y)] = child.gameObject;
+        }
+
+        return map;
+    }
+
+    private void AllocateTileState(int width, int height)
+    {
+        ClearTiles(destroyGameObjects: false);
+        _tiles = new GameObject[width, height];
+        _baseTileColors = new Color[width, height];
+        _logicTileColors = new Color[width, height];
+        _appearanceTiles = new AppearanceTileCell[width, height];
+    }
+
+    private void BindTileState(int x, int y, GameObject tile)
+    {
+        _tiles[x, y] = tile;
+        var rend = GetTileRenderer(tile);
+        if (rend != null)
+        {
+            _baseTileColors[x, y] = rend.sharedMaterial != null ? rend.sharedMaterial.color : Color.gray;
+            _logicTileColors[x, y] = _baseTileColors[x, y];
+        }
+        else
+        {
+            Debug.LogWarning($"[BoardView] Bound tile at ({x},{y}) has no renderer!");
+            _baseTileColors[x, y] = Color.gray;
+            _logicTileColors[x, y] = Color.gray;
+        }
     }
 
     public void OnClearEntities()
@@ -638,8 +839,35 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (Physics.Raycast(ray, out RaycastHit hit, 50f))
             return hit.point.y;
 
+        if (TryGetTileTopFromRendererBounds(x, z, out float tileTopY))
+            return tileTopY;
+
         Debug.LogWarning($"[GetGroundHeight] Miss! ({x}, {z}) -> Defaulting to 0");
         return 0f;
+    }
+
+    private bool TryGetTileTopFromRendererBounds(float x, float z, out float topY)
+    {
+        topY = 0f;
+
+        if (_tiles == null)
+            return false;
+
+        int tileX = Mathf.RoundToInt(x / cellSize);
+        int tileY = Mathf.RoundToInt(z / cellSize);
+        if (tileX < 0 || tileY < 0 || tileX >= _tiles.GetLength(0) || tileY >= _tiles.GetLength(1))
+            return false;
+
+        var tile = _tiles[tileX, tileY];
+        if (tile == null)
+            return false;
+
+        var renderer = GetTileRenderer(tile);
+        if (renderer == null)
+            return false;
+
+        topY = renderer.bounds.max.y;
+        return true;
     }
 
     private void ClearTiles(bool destroyGameObjects = true)
@@ -652,6 +880,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
                     if (_tiles[x, y] != null) Destroy(_tiles[x, y]);
         _tiles = null;
         _baseTileColors = null;
+        _logicTileColors = null;
+        _appearanceTiles = null;
     }
 
     #endregion
