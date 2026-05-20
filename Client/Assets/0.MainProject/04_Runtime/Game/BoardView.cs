@@ -32,8 +32,16 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     private static readonly Color TELEGRAPH_COLOR = new Color(1f, 0.08f, 0f, 0.45f);
 
+    private const int MaxPredictedMovesPerActor = 8;
+
+    private struct PredictedMove
+    {
+        public long BeatIndex;
+        public Vector2Int PredictedTile;
+    }
+
     private Dictionary<int, float> _recentInstantActions = new();
-    private Dictionary<int, (Vector2Int predictedTile, Vector3 fromWorld)> _recentPredictedMoves = new();
+    private Dictionary<int, List<PredictedMove>> _recentPredictedMoves = new();
     private Dictionary<int, ClientSkillRunner> _activeSkillRunners = new();
     private Dictionary<Vector2Int, long> _telegraphExpiration = new Dictionary<Vector2Int, long>();
 
@@ -576,14 +584,14 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         if (action.ActionKind == (int)ActionKind.Move)
         {
-            bool hadPrediction = _recentPredictedMoves.TryGetValue(action.ActorId, out var predictedMove);
-            _recentPredictedMoves.Remove(action.ActorId);
+            bool hadPrediction = TryConsumePredictedMove(action.ActorId, action, out var predictedMove);
 
             Vector3 serverFromW = GridToWorld(action.FromX, action.FromY);
             Vector3 serverToW   = GridToWorld(action.ToX,   action.ToY);
 
             if (!action.Accepted)
             {
+                ClearPredictedMoves(action.ActorId);
                 visual.PlayBumpBack(serverToW, serverFromW);
                 return;
             }
@@ -591,17 +599,20 @@ public class BoardView : MonoBehaviour, IClientWorldView
             int distanceTiles = Mathf.RoundToInt(Vector3.Distance(serverFromW, serverToW) / cellSize);
             float moveDuration = distanceTiles > 1 ? duration * 0.4f : duration;
 
-            float snapThreshold = 0.5f;
-            if (hadPrediction
-                && predictedMove.predictedTile.x == action.ToX
-                && predictedMove.predictedTile.y == action.ToY
-                && Vector3.Distance(visual.transform.position, serverToW) <= snapThreshold)
+            if (hadPrediction)
             {
-                visual.transform.position = serverToW;
-                visual.SetRotation(action.Rotation);
-                return;
+                bool predictedTargetMatched = predictedMove.PredictedTile.x == action.ToX
+                                           && predictedMove.PredictedTile.y == action.ToY;
+                if (predictedTargetMatched)
+                {
+                    visual.SetRotation(action.Rotation);
+                    return;
+                }
+
+                ClearPredictedMoves(action.ActorId);
             }
 
+            float snapThreshold = 0.5f;
             float distFromServer = Vector3.Distance(visual.transform.position, serverFromW);
             Vector3 moveStart = distFromServer <= snapThreshold
                 ? visual.transform.position
@@ -656,9 +667,10 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     public bool TryGetPredictedMoveTile(int actorId, out Vector2Int tile)
     {
-        if (_recentPredictedMoves.TryGetValue(actorId, out var predictedMove))
+        if (_recentPredictedMoves.TryGetValue(actorId, out var predictedMoves)
+            && predictedMoves.Count > 0)
         {
-            tile = predictedMove.predictedTile;
+            tile = predictedMoves[predictedMoves.Count - 1].PredictedTile;
             return true;
         }
 
@@ -666,7 +678,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         return false;
     }
 
-    public void PlayMovePrediction(int actorId, int toX, int toY, float durationRatio)
+    public void PlayMovePrediction(int actorId, int toX, int toY, float durationRatio, long beatIndex = -1)
     {
         if (!_entityViews.TryGetValue(actorId, out var visual) || visual == null) return;
 
@@ -677,7 +689,80 @@ public class BoardView : MonoBehaviour, IClientWorldView
         float  duration = (float)(beatMs / 1000.0) * durationRatio;
 
         visual.StartMove(curW, toW, duration);
-        _recentPredictedMoves[actorId] = (new Vector2Int(toX, toY), curW);
+        AddPredictedMove(actorId, beatIndex, new Vector2Int(toX, toY));
+    }
+
+    private void AddPredictedMove(int actorId, long beatIndex, Vector2Int predictedTile)
+    {
+        if (!_recentPredictedMoves.TryGetValue(actorId, out var predictedMoves))
+        {
+            predictedMoves = new List<PredictedMove>();
+            _recentPredictedMoves[actorId] = predictedMoves;
+        }
+
+        predictedMoves.Add(new PredictedMove
+        {
+            BeatIndex = beatIndex,
+            PredictedTile = predictedTile
+        });
+
+        while (predictedMoves.Count > MaxPredictedMovesPerActor)
+            predictedMoves.RemoveAt(0);
+    }
+
+    private bool TryConsumePredictedMove(
+        int actorId,
+        ClientBeatAction action,
+        out PredictedMove predictedMove)
+    {
+        predictedMove = default;
+
+        if (!_recentPredictedMoves.TryGetValue(actorId, out var predictedMoves)
+            || predictedMoves.Count == 0)
+            return false;
+
+        int matchIndex = -1;
+        if (action.BeatIndex >= 0)
+        {
+            for (int i = 0; i < predictedMoves.Count; i++)
+            {
+                if (predictedMoves[i].BeatIndex == action.BeatIndex)
+                {
+                    matchIndex = i;
+                    break;
+                }
+            }
+        }
+
+        if (matchIndex < 0)
+        {
+            for (int i = 0; i < predictedMoves.Count; i++)
+            {
+                var candidate = predictedMoves[i];
+                if (candidate.PredictedTile.x == action.ToX
+                    && candidate.PredictedTile.y == action.ToY)
+                {
+                    matchIndex = i;
+                    break;
+                }
+            }
+        }
+
+        if (matchIndex < 0)
+            return false;
+
+        predictedMove = predictedMoves[matchIndex];
+        predictedMoves.RemoveRange(0, matchIndex + 1);
+
+        if (predictedMoves.Count == 0)
+            _recentPredictedMoves.Remove(actorId);
+
+        return true;
+    }
+
+    private void ClearPredictedMoves(int actorId)
+    {
+        _recentPredictedMoves.Remove(actorId);
     }
 
     public void PlaySkillInstant(int actorId, string skillId, float rotation, long startTick)

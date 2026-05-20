@@ -252,10 +252,10 @@ MonoBehaviour:
     SetupRows: 8
     SetupTileWidth: 181
     SetupTileHeight: 181
-    SetupMarginX: 0
-    SetupMarginY: 0
-    SetupSpacingX: 0
-    SetupSpacingY: 0
+    SetupMarginX: 2
+    SetupMarginY: 2
+    SetupSpacingX: 2
+    SetupSpacingY: 2
     DefaultMaterial: {fileID: 2100000, guid: f7785fa07654ccd43a2f99fb5e44febc, type: 2}
     DefaultPrefab: {fileID: 0}
     Variants:

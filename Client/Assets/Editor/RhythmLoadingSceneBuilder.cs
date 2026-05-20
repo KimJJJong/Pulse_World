@@ -23,6 +23,8 @@ public static class RhythmLoadingSceneBuilder
         canvasObject.layer = LayerMask.NameToLayer("UI");
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.pixelPerfect = false;
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = 32767;
 
         CanvasScaler scaler = GetOrAdd<CanvasScaler>(canvasObject);
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -37,6 +39,9 @@ public static class RhythmLoadingSceneBuilder
         canvasGroup.blocksRaycasts = false;
 
         ClearChildren(canvasObject.transform);
+
+        Image backdrop = CreateSolidImage("LoadingOpaqueBackdrop", canvasObject.transform, Color.black);
+        Stretch(backdrop.rectTransform);
 
         Image background = CreateImage("LoadingExampleBackground", canvasObject.transform, "Loading_example", Vector2.zero, new Vector2(1280f, 720f));
         Stretch(background.rectTransform);

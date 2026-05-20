@@ -296,7 +296,7 @@ public class RhythmInputController : MonoBehaviour
         }
 
         if (shouldPredictMove)
-            BoardView.Instance.PlayMovePrediction(me.EntityId, tx, ty, BoardView.Instance.actionDurationRatio);
+            BoardView.Instance.PlayMovePrediction(me.EntityId, tx, ty, BoardView.Instance.actionDurationRatio, actionBeat);
 
         SendActionRouted(ActionKind.Move, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;

@@ -6,6 +6,9 @@ using TMPro;
 
 public class LoadingSceneController : MonoBehaviour
 {
+    private const int LoadingCanvasSortingOrder = 32767;
+    private const string LoadingBackdropName = "LoadingOpaqueBackdrop";
+
     public static string TargetSceneName = SceneNames.Game; // Default or set before loading
 
     [Header("UI References")]
@@ -45,13 +48,11 @@ public class LoadingSceneController : MonoBehaviour
     };
 
     private float _displayedProgress;
+    private bool _isExitFading;
 
     private void Awake()
     {
-        if (LoadingCanvasGroup != null)
-        {
-            LoadingCanvasGroup.alpha = 1f;
-        }
+        PrepareLoadingCanvas();
 
         SetDisplayedProgressImmediate(0f);
     }
@@ -208,6 +209,8 @@ public class LoadingSceneController : MonoBehaviour
     {
         value = Mathf.Clamp01(value);
 
+        KeepLoadingCanvasOpaque();
+
         if (ProgressBar != null) ProgressBar.value = value;
         if (ProgressText != null) ProgressText.text = $"{(int)(value * 100)}%";
         if (ProgressFillImage != null) ProgressFillImage.fillAmount = value;
@@ -226,6 +229,66 @@ public class LoadingSceneController : MonoBehaviour
         }
 
         SetStatus(GetStatus(value));
+    }
+
+    private void PrepareLoadingCanvas()
+    {
+        if (LoadingCanvasGroup == null) return;
+
+        KeepLoadingCanvasOpaque();
+
+        Canvas loadingCanvas = LoadingCanvasGroup.GetComponent<Canvas>();
+        if (loadingCanvas == null) return;
+
+        loadingCanvas.overrideSorting = true;
+        loadingCanvas.sortingOrder = LoadingCanvasSortingOrder;
+
+        EnsureOpaqueLoadingBackdrop();
+    }
+
+    private void KeepLoadingCanvasOpaque()
+    {
+        if (_isExitFading || LoadingCanvasGroup == null) return;
+
+        LoadingCanvasGroup.alpha = 1f;
+    }
+
+    private void EnsureOpaqueLoadingBackdrop()
+    {
+        RectTransform canvasRect = LoadingCanvasGroup.transform as RectTransform;
+        if (canvasRect == null) return;
+
+        Transform existingBackdrop = LoadingCanvasGroup.transform.Find(LoadingBackdropName);
+        GameObject backdropObject;
+        RectTransform backdropRect;
+        Image backdropImage;
+
+        if (existingBackdrop == null)
+        {
+            backdropObject = new GameObject(LoadingBackdropName, typeof(RectTransform), typeof(Image));
+            backdropObject.transform.SetParent(canvasRect, false);
+            backdropRect = backdropObject.GetComponent<RectTransform>();
+            backdropImage = backdropObject.GetComponent<Image>();
+        }
+        else
+        {
+            backdropObject = existingBackdrop.gameObject;
+            backdropRect = backdropObject.GetComponent<RectTransform>();
+            backdropImage = backdropObject.GetComponent<Image>();
+            if (backdropRect == null || backdropImage == null) return;
+        }
+
+        backdropObject.layer = LoadingCanvasGroup.gameObject.layer;
+        backdropImage.color = Color.black;
+        backdropImage.raycastTarget = false;
+        backdropRect.anchorMin = Vector2.zero;
+        backdropRect.anchorMax = Vector2.one;
+        backdropRect.pivot = new Vector2(0.5f, 0.5f);
+        backdropRect.offsetMin = Vector2.zero;
+        backdropRect.offsetMax = Vector2.zero;
+        backdropRect.anchoredPosition = Vector2.zero;
+        backdropRect.sizeDelta = Vector2.zero;
+        backdropRect.SetSiblingIndex(0);
     }
 
     private static string GetStatus(float value)
@@ -252,12 +315,14 @@ public class LoadingSceneController : MonoBehaviour
     {
         if (LoadingCanvasGroup == null) yield break;
 
+        _isExitFading = true;
         float duration = Mathf.Max(0.01f, ExitFadeDuration);
         float elapsed = 0f;
+        float startAlpha = LoadingCanvasGroup.alpha;
         while (elapsed < duration)
         {
             elapsed += Time.unscaledDeltaTime;
-            LoadingCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / duration);
+            LoadingCanvasGroup.alpha = Mathf.Lerp(startAlpha, 0f, elapsed / duration);
             yield return null;
         }
 

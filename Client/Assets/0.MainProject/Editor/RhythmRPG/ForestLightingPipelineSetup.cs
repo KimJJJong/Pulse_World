@@ -75,6 +75,26 @@ public static class ForestLightingPipelineSetup
             $"BakeRunning={Lightmapping.isRunning}.");
     }
 
+    [MenuItem("RhythmRPG/Editors/World/Apply Forest Skybox Only")]
+    public static void ApplySkyboxOnly()
+    {
+        EnsureTargetScene();
+        EnsureAssetFolder();
+
+        var skyboxMaterial = CreateOrUpdateForestSkyboxMaterial();
+        ConfigureForestNightRenderSettings(skyboxMaterial);
+
+        var scene = SceneManager.GetActiveScene();
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
+        Debug.Log(
+            "[ForestLightingPipelineSetup] Skybox only update complete. " +
+            $"Scene={scene.name}, Skybox={skyboxMaterial.name}, Texture={SkyboxPanoramicTexturePath}.");
+    }
+
     [MenuItem("RhythmRPG/Editors/World/Validate Forest Lighting Pipeline Showcase")]
     public static void Validate()
     {
@@ -607,6 +627,13 @@ public static class ForestLightingPipelineSetup
     private static string ResolveForestPanoramicSkyboxSource()
     {
         var downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        var latestMatches = Directory.GetFiles(downloads, "ChatGPT Image 2026*07_23_37.png");
+        if (latestMatches.Length > 0)
+        {
+            Array.Sort(latestMatches, StringComparer.OrdinalIgnoreCase);
+            return latestMatches[0];
+        }
+
         var preferredMatches = Directory.GetFiles(downloads, "ChatGPT Image 2026*03_15_45.png");
         if (preferredMatches.Length > 0)
         {
