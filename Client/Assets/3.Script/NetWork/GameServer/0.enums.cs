@@ -3,7 +3,7 @@ public enum ActionKind : byte
     None = 0,
 
     Move = 1,  // 칸 이동 (TargetCell 필요)
-    Attack = 2,  // 기본 공격 (Target: Cell or Unit)
+    Attack = 2,  // 하위 호환용. 일반공격도 Skill + SlotIndex=-1 경로를 사용한다.
     Skill = 3,  // 스킬 (SkillId + TargetType)
     Wait = 4,  // 아무 것도 안 함(리듬 입력만 소비)
 

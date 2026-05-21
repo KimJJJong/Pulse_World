@@ -18,8 +18,16 @@ public class HexHudView : MonoBehaviour
     {
         // Debug.Log($"[HexHudView] SetHp: {hp}/{maxHp}");
         float rate = (maxHp <= 0) ? 0f : (float)hp / maxHp;
-        hpFill.fillAmount = Mathf.Clamp01(rate);
-        hpFill.color = fillColor;
+        float fillRate = Mathf.Clamp01(rate);
+
+        if (hpFill != null)
+        {
+            hpFill.fillAmount = fillRate;
+            hpFill.color = fillColor;
+        }
+
+        if (hpGlow != null)
+            hpGlow.fillAmount = fillRate;
 
         if (hpText != null)
             hpText.text = $"{hp}/{maxHp}";

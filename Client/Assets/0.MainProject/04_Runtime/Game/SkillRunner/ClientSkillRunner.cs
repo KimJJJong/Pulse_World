@@ -343,6 +343,7 @@ public class ClientSkillRunner : MonoBehaviour
     {
         // 스킬이 도중에 파괴되어도 InputLock 반드시 해제
         ReleaseInputLock();
+        _boardView?.NotifySkillRunnerStopped(_actorId, this);
 
         if (_activeTelegraphs != null)
             _activeTelegraphs.Clear();

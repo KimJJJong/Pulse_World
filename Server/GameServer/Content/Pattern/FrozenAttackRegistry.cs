@@ -16,24 +16,14 @@ public sealed class FrozenAttackRegistry
 
     // (actorId, beat) -> frozen
     private readonly Dictionary<(int actorId, long beat), FrozenAttack> _map = new();
-
-    public void Put(int actorId, long beat, string skillId, List<GridPos> cells, bool hitPlayers = true, bool hitMonsters = false)
-    {
-        _map[(actorId, beat)] = new FrozenAttack
-        {
-            SkillId = skillId,
-            Cells = cells,
-            HitPlayers = hitPlayers,
-            HitMonsters = hitMonsters
-        };
-    }
+    private readonly List<(int actorId, long beat)> _removeBuffer = new();
 
     public void PutRaw(int actorId, long beat, int damage, List<GridPos> cells, int stunTicks = 0, int knockback = 0, bool hitPlayers = true, bool hitMonsters = false)
     {
         _map[(actorId, beat)] = new FrozenAttack
         {
             SkillId = string.Empty, // SkillId 없음
-            Cells = cells,
+            Cells = cells ?? new List<GridPos>(),
             CustomDamage = damage,
             StunDurationTicks = stunTicks,
             KnockbackDistance = knockback,
@@ -55,22 +45,22 @@ public sealed class FrozenAttackRegistry
 
     public void DropBefore(long beat)
     {
-        var remove = new List<(int, long)>();
+        _removeBuffer.Clear();
         foreach (var k in _map.Keys)
-            if (k.beat < beat) remove.Add(k);
+            if (k.beat < beat) _removeBuffer.Add(k);
 
-        foreach (var k in remove)
+        foreach (var k in _removeBuffer)
             _map.Remove(k);
     }
     public void RemoveByActor(int actorId)
     {
         if (_map.Count == 0) return;
 
-        var remove = new List<(int actorId, long beat)>();
+        _removeBuffer.Clear();
         foreach (var k in _map.Keys)
-            if (k.actorId == actorId) remove.Add(k);
+            if (k.actorId == actorId) _removeBuffer.Add(k);
 
-        foreach (var k in remove)
+        foreach (var k in _removeBuffer)
             _map.Remove(k);
     }
 

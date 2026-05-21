@@ -8,6 +8,7 @@ namespace GameServer.InGame.Manager.Beat;
 
         // beatIndex -> entries
         private readonly Dictionary<long, List<SC_BeatTelegraphs.Telegraphs>> _scheduled = new();
+        private readonly List<long> _removeBuffer = new();
 
         public TelegraphScheduler(IGameBroadcaster broadcaster)
         {
@@ -49,11 +50,11 @@ namespace GameServer.InGame.Manager.Beat;
             if (_scheduled.Count == 0) return;
 
             // 키 스캔(규모 커지면 SortedDictionary/MinHeap로 최적화 가능)
-            var removeKeys = new List<long>();
+            _removeBuffer.Clear();
             foreach (var k in _scheduled.Keys)
-                if (k < beatIndex) removeKeys.Add(k);
+                if (k < beatIndex) _removeBuffer.Add(k);
 
-            foreach (var k in removeKeys)
+            foreach (var k in _removeBuffer)
                 _scheduled.Remove(k);
         }
 
@@ -62,16 +63,16 @@ namespace GameServer.InGame.Manager.Beat;
     {
         if (_scheduled.Count == 0) return;
 
-        var emptyBeats = new List<long>();
+        _removeBuffer.Clear();
 
         foreach (var kv in _scheduled)
         {
             kv.Value.RemoveAll(t => t.CasterId == casterId);
             if (kv.Value.Count == 0)
-                emptyBeats.Add(kv.Key);
+                _removeBuffer.Add(kv.Key);
         }
 
-        foreach (var b in emptyBeats)
+        foreach (var b in _removeBuffer)
             _scheduled.Remove(b);
     }
 

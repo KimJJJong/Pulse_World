@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
 using System;
 
 namespace Client.Content.Item
@@ -117,11 +116,6 @@ namespace Client.Content.Item
             }
 
             return null;
-        }
-
-        internal object GetTemplate(int templateId)
-        {
-            throw new NotImplementedException();
         }
 
         [System.Serializable]

@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using Client.Content.Item;
 using System.Collections.Generic;
 using System.IO;
+using UnityEngine.SceneManagement;
 
 public class HudPresenter : MonoBehaviour
 {
@@ -11,10 +12,15 @@ public class HudPresenter : MonoBehaviour
     [SerializeField] private HudConfig _config;
     [SerializeField] private HexHudView _view;
     [SerializeField] private SkillSlotView[] _skillSlots;
+    [SerializeField] private PartyMemberPanelView[] _partyPanels;
+    [SerializeField] private StageInfoPanelView _stageInfo;
+    [SerializeField] private ComboCounterView _comboView;
 
     // 슬롯 0~3 = H/J/K/L 스킬 슬롯. Space 일반공격은 입력 전용으로만 보관한다.
     // 현재 장비 기반으로 바인딩된 skillId 캐시
     private string[] _boundSkillIds;
+    private RhythmInputController _inputController;
+    private int _comboCount;
 
     void Awake()
     {
@@ -24,6 +30,7 @@ public class HudPresenter : MonoBehaviour
         if (_view == null)
             _view = GetComponentInChildren<HexHudView>(true);
 
+        EnsureHudViews();
         EnsureSkillSlots();
     }
 
@@ -31,7 +38,10 @@ public class HudPresenter : MonoBehaviour
     {
         var gs = ClientGameState.Instance;
         if (gs != null)
+        {
             gs.MyEntityChanged += OnMyEntityChanged;
+            gs.PartyStateChanged += RefreshPartyPanels;
+        }
 
         // 인벤토리 업데이트 이벤트 구독
         if (InventoryManager.Instance != null)
@@ -40,16 +50,25 @@ public class HudPresenter : MonoBehaviour
         // 이미 인벤토리가 로드된 상태라면 즉시 반영
         OnInventoryUpdated();
         ApplyCurrentInputSkillSlots();
+        TryBindInputController();
+        RefreshPartyPanels();
+        RefreshStagePanel();
+        _comboView?.SetCombo(_comboCount);
     }
 
     void OnDisable()
     {
         var gs = ClientGameState.Instance;
         if (gs != null)
+        {
             gs.MyEntityChanged -= OnMyEntityChanged;
+            gs.PartyStateChanged -= RefreshPartyPanels;
+        }
 
         if (InventoryManager.Instance != null)
             InventoryManager.Instance.OnInventoryUpdated -= OnInventoryUpdated;
+
+        UnbindInputController();
 
         if (Instance == this)
             Instance = null;
@@ -61,6 +80,8 @@ public class HudPresenter : MonoBehaviour
         {
             ClientGameState.Instance.MyEntityChanged -= OnMyEntityChanged;
             ClientGameState.Instance.MyEntityChanged += OnMyEntityChanged;
+            ClientGameState.Instance.PartyStateChanged -= RefreshPartyPanels;
+            ClientGameState.Instance.PartyStateChanged += RefreshPartyPanels;
 
             if (ClientGameState.Instance.TryGetMyEntity(out var info))
                 OnMyEntityChanged(info);
@@ -68,6 +89,15 @@ public class HudPresenter : MonoBehaviour
 
         OnInventoryUpdated();
         ApplyCurrentInputSkillSlots();
+        TryBindInputController();
+        RefreshPartyPanels();
+        RefreshStagePanel();
+    }
+
+    void Update()
+    {
+        TryBindInputController();
+        RefreshStagePanel();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -111,6 +141,8 @@ public class HudPresenter : MonoBehaviour
             return 0;
         });
 
+        Sprite weaponIcon = ResolveWeaponIcon();
+
         // 슬롯 초기화
         // 서버 _activeSkillSlots 구조와 동일:
         //   [0] = 무기 skill_id (H키)
@@ -134,7 +166,7 @@ public class HudPresenter : MonoBehaviour
             var tmpl = itemData.GetEquipment(equipped.TemplateId);
             if (tmpl == null) continue;
 
-            Sprite icon = LoadEquipmentIcon(tmpl);
+            Sprite icon = weaponIcon != null ? weaponIcon : LoadEquipmentIcon(tmpl);
 
             if (tmpl.SlotEnum == EquipmentSlot.Weapon)
             {
@@ -170,6 +202,12 @@ public class HudPresenter : MonoBehaviour
             }
         }
 
+        for (int i = 0; i < skillSlotIds.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(skillSlotIds[i]))
+                ClearSlot(i);
+        }
+
         // RhythmInputController에 주입
         // skillSlotIds[i] → _skillSlotIds[i] (i=0:H, 1:J, 2:K, 3:L)
         var input = RhythmInputController.Instance;
@@ -200,6 +238,7 @@ public class HudPresenter : MonoBehaviour
         }
 
         int maxInputSlots = 4;
+        Sprite weaponIcon = ResolveWeaponIcon();
         for (int i = 0; i < maxInputSlots; i++)
         {
             string skillId = activeSkillIds != null && i < activeSkillIds.Count ? activeSkillIds[i] : "";
@@ -210,7 +249,7 @@ public class HudPresenter : MonoBehaviour
             if (string.IsNullOrWhiteSpace(skillId))
                 ClearSlot(uiSlot);
             else
-                SetSlot(uiSlot, ResolveSkillIcon(skillId, uiSlot), skillId);
+                SetSlot(uiSlot, weaponIcon != null ? weaponIcon : ResolveSkillIcon(skillId, uiSlot), skillId);
         }
 
         for (int i = maxInputSlots; i < _skillSlots.Length; i++)
@@ -334,6 +373,31 @@ public class HudPresenter : MonoBehaviour
         return icon != null ? icon : LoadIcon(tmpl.icon_path);
     }
 
+    private Sprite ResolveWeaponIcon()
+    {
+        var inv = InventoryManager.Instance;
+        var itemData = ItemDataManager.Instance;
+        if (inv?.Equipments == null || itemData == null)
+            return null;
+
+        for (int i = 0; i < inv.Equipments.Count; i++)
+        {
+            var equipped = inv.Equipments[i];
+            if (!equipped.IsEquipped)
+                continue;
+
+            var tmpl = itemData.GetEquipment(equipped.TemplateId);
+            if (tmpl == null || tmpl.SlotEnum != EquipmentSlot.Weapon)
+                continue;
+
+            var icon = LoadEquipmentIcon(tmpl);
+            if (icon != null)
+                return icon;
+        }
+
+        return null;
+    }
+
     private Sprite ResolveSkillIcon(string skillId, int slotIndex)
     {
         if (string.IsNullOrWhiteSpace(skillId))
@@ -436,6 +500,18 @@ public class HudPresenter : MonoBehaviour
             _boundSkillIds = new string[count];
     }
 
+    private void EnsureHudViews()
+    {
+        if (_partyPanels == null || _partyPanels.Length == 0)
+            _partyPanels = GetComponentsInChildren<PartyMemberPanelView>(true);
+
+        if (_stageInfo == null)
+            _stageInfo = GetComponentInChildren<StageInfoPanelView>(true);
+
+        if (_comboView == null)
+            _comboView = GetComponentInChildren<ComboCounterView>(true);
+    }
+
     private static int CompareSkillSlots(SkillSlotView a, SkillSlotView b)
     {
         return GetSlotIndex(a).CompareTo(GetSlotIndex(b));
@@ -470,6 +546,183 @@ public class HudPresenter : MonoBehaviour
 
     // ─────────────────────────────────────────────────────────────────────────
 
+    private void TryBindInputController()
+    {
+        var currentInput = RhythmInputController.Instance;
+        if (_inputController == currentInput)
+            return;
+
+        UnbindInputController();
+        _inputController = currentInput;
+        if (_inputController == null)
+            return;
+
+        _inputController.CombatInputAccepted += OnCombatInputAccepted;
+        _inputController.CombatInputMissed += OnCombatInputMissed;
+        _inputController.SkillSlotInputAccepted += OnSkillSlotInputAccepted;
+    }
+
+    private void UnbindInputController()
+    {
+        if (_inputController == null)
+            return;
+
+        _inputController.CombatInputAccepted -= OnCombatInputAccepted;
+        _inputController.CombatInputMissed -= OnCombatInputMissed;
+        _inputController.SkillSlotInputAccepted -= OnSkillSlotInputAccepted;
+        _inputController = null;
+    }
+
+    private void OnCombatInputAccepted()
+    {
+        _comboCount++;
+        _comboView?.SetCombo(_comboCount);
+    }
+
+    private void OnCombatInputMissed()
+    {
+        _comboCount = 0;
+        _comboView?.ResetCombo();
+    }
+
+    private void OnSkillSlotInputAccepted(int slotIndex, string skillId)
+    {
+        OnSkillUsed(slotIndex, ResolveVisualCooldownSeconds(skillId));
+    }
+
+    private float ResolveVisualCooldownSeconds(string skillId)
+    {
+        float beatSeconds = RhythmClient.Instance != null
+            ? Mathf.Max(0.1f, (float)RhythmClient.Instance.GetBeatDurationMs() / 1000f)
+            : 0.5f;
+
+        var skillDefinition = P2PCombatContentCache.GetSkillDefinition(skillId);
+        if (skillDefinition == null || skillDefinition.TotalDurationTicks <= 0)
+            return beatSeconds;
+
+        return Mathf.Max(0.1f, skillDefinition.TotalDurationTicks / 480f * beatSeconds);
+    }
+
+    private void RefreshPartyPanels()
+    {
+        EnsureHudViews();
+        if (_partyPanels == null || _partyPanels.Length == 0)
+            return;
+
+        var gs = ClientGameState.Instance;
+        if (gs == null)
+        {
+            HideAllPartyPanels();
+            return;
+        }
+
+        List<int> actorIds = CollectPartyActorIds(gs);
+        for (int i = 0; i < _partyPanels.Length; i++)
+        {
+            var panel = _partyPanels[i];
+            if (panel == null)
+                continue;
+
+            if (i >= actorIds.Count)
+            {
+                panel.HideMember();
+                continue;
+            }
+
+            int actorId = actorIds[i];
+            int hp = 0;
+            if (gs.TryGetEntity(actorId, out var info))
+                hp = info.Hp;
+
+            panel.SetMember(
+                ResolvePartyMemberName(gs, actorId),
+                hp,
+                100,
+                actorId == gs.MyActorId);
+        }
+    }
+
+    private List<int> CollectPartyActorIds(ClientGameState gs)
+    {
+        var actorIds = new List<int>();
+        var seen = new HashSet<int>();
+
+        AddPartyActor(gs.MyActorId, actorIds, seen);
+
+        if (gs.PlayerActorIds != null)
+        {
+            for (int i = 0; i < gs.PlayerActorIds.Length; i++)
+                AddPartyActor(gs.PlayerActorIds[i], actorIds, seen);
+        }
+
+        foreach (var roster in gs.EnumeratePlayerRoster())
+            AddPartyActor(roster.ActorId, actorIds, seen);
+
+        foreach (var entity in gs.EnumerateEntities())
+        {
+            if (entity.EntityType == (int)EntityType.Player)
+                AddPartyActor(entity.EntityId, actorIds, seen);
+        }
+
+        return actorIds;
+    }
+
+    private static void AddPartyActor(int actorId, List<int> actorIds, HashSet<int> seen)
+    {
+        if (actorId <= 0 || !seen.Add(actorId))
+            return;
+
+        actorIds.Add(actorId);
+    }
+
+    private static string ResolvePartyMemberName(ClientGameState gs, int actorId)
+    {
+        if (gs.TryGetPlayerUid(actorId, out var uid) && !string.IsNullOrWhiteSpace(uid))
+            return TrimHudLabel(uid);
+
+        if (actorId == gs.MyActorId
+            && SessionContext.Instance != null
+            && !string.IsNullOrWhiteSpace(SessionContext.Instance.Uid))
+        {
+            return TrimHudLabel(SessionContext.Instance.Uid);
+        }
+
+        return $"Player {actorId}";
+    }
+
+    private static string TrimHudLabel(string label)
+    {
+        string clean = label.Trim();
+        return clean.Length <= 15 ? clean : $"{clean.Substring(0, 13)}..";
+    }
+
+    private void HideAllPartyPanels()
+    {
+        for (int i = 0; i < _partyPanels.Length; i++)
+            _partyPanels[i]?.HideMember();
+    }
+
+    private void RefreshStagePanel()
+    {
+        EnsureHudViews();
+        if (_stageInfo == null)
+            return;
+
+        string stageName = SessionContext.Instance != null ? SessionContext.Instance.MapId : "";
+        if (string.IsNullOrWhiteSpace(stageName))
+            stageName = SceneManager.GetActiveScene().name;
+
+        _stageInfo.SetStage(FormatStageLabel(stageName), RhythmClient.Instance != null ? RhythmClient.Instance.Bpm : 0d);
+    }
+
+    private static string FormatStageLabel(string stageName)
+    {
+        if (string.IsNullOrWhiteSpace(stageName))
+            return "InGame";
+
+        return stageName.Trim().Replace("_", " ");
+    }
+
     public void OnSkillUsed(int slotIndex, float cooldownSec)
     {
         if (_skillSlots == null) return;
@@ -480,15 +733,16 @@ public class HudPresenter : MonoBehaviour
 
     private void OnMyEntityChanged(ClientEntityInfo me)
     {
-        if (_config == null || _view == null) return;
+        if (_view == null) return;
 
         int maxHp = 100;
         int hp = me.Hp;
         float hpRate = (maxHp <= 0) ? 0f : (float)hp / maxHp;
 
-        Color hpColor = hpRate <= _config.hpDangerRate
-            ? _config.hpDangerColor
-            : _config.hpColor;
+        // HP_UI already carries the blue fill color. A red tint turns that cyan sprite nearly black.
+        Color hpColor = Color.white;
+        if (_config != null && hpRate <= _config.hpDangerRate)
+            hpColor = _config.hpDangerColor;
 
         _view.SetHp(hp, maxHp, hpColor);
     }

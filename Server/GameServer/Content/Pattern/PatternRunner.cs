@@ -4,7 +4,6 @@ using GameServer.InGame.Manager.Beat;
 using GameServer.InGame.Manager.Entity;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 public sealed class PatternRunner
 {
@@ -86,16 +85,6 @@ public sealed class PatternRunner
                     }
                 }
             }
-        }
-
-        // 2. Active Skills Update (매 비트 실행)
-        for (int i = st.ActiveSkills.Count - 1; i >= 0; i--)
-        {
-            var skill = st.ActiveSkills[i];
-            long currentTick = beatIndex * 480;
-            skill.UpdateTick(currentTick);
-            if (!skill.IsRunning)
-                st.ActiveSkills.RemoveAt(i);
         }
     }
 
@@ -551,7 +540,7 @@ public sealed class PatternRunner
         if (_rt.TryGetValue(m.Id, out var rt))
             rt.ActiveSkills.Add(runner);
 
-        long endBeat = executeBeat + (skillDef.TotalDurationTicks / 480);
+        long endBeat = executeBeat + Math.Max(1, (skillDef.TotalDurationTicks + 479) / 480);
         last = Math.Max(last, endBeat);
     }
 

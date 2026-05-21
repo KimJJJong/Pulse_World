@@ -672,7 +672,7 @@ public sealed partial class P2PContentDirector
 
                         P2PHostController.Instance.EnqueueAiAction(
                             state.EntityId,
-                            action.Type == ActionType.Attack ? ActionKind.Attack : ActionKind.Skill,
+                            ActionKind.Skill,
                             targetPos.x,
                             targetPos.y,
                             rotation,

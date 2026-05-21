@@ -64,10 +64,7 @@ public class SkillSlotView : MonoBehaviour
         icon.gameObject.SetActive(true);
         icon.preserveAspect = true;
         icon.raycastTarget = false;
-
-        Color color = icon.color;
-        color.a = s != null ? 1f : 0f;
-        icon.color = color;
+        icon.color = s != null ? Color.white : new Color(1f, 1f, 1f, 0f);
     }
 
     public void ClearIcon()

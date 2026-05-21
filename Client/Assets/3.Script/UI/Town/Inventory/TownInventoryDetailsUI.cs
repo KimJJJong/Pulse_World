@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
@@ -7,6 +6,8 @@ using Client.Content.Item;
 
 public class TownInventoryDetailsUI : MonoBehaviour
 {
+    private static readonly Dictionary<string, Sprite> SpritePathCache = new Dictionary<string, Sprite>();
+
     [SerializeField] private Image _icon;
     [SerializeField] private TextMeshProUGUI _nameText;
     [SerializeField] private TextMeshProUGUI _descText;
@@ -118,10 +119,10 @@ public class TownInventoryDetailsUI : MonoBehaviour
                 var sprite = RhythmRPG.Managers.GameResourceManager.Instance.GetIcon(tid);
                 if (sprite == null && !string.IsNullOrEmpty(tmpl.icon_path))
                 {
-                    sprite = Resources.Load<Sprite>(tmpl.icon_path);
+                    sprite = GetSpriteByPath(tmpl.icon_path);
                 }
                 
-                if (sprite != null) _icon.sprite = sprite;
+                _icon.sprite = sprite;
             }
         }
         
@@ -137,5 +138,15 @@ public class TownInventoryDetailsUI : MonoBehaviour
         // Feature: Show Preview Character if available
         // Need reference to a "PreviewCharacter" in the UI Scene
         // Not implemented fully yet, but hook is here.
+    }
+
+    private static Sprite GetSpriteByPath(string path)
+    {
+        if (SpritePathCache.TryGetValue(path, out var cached))
+            return cached;
+
+        var sprite = Resources.Load<Sprite>(path);
+        SpritePathCache[path] = sprite;
+        return sprite;
     }
 }

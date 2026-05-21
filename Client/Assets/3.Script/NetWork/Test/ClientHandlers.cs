@@ -407,7 +407,7 @@ public class ClientHandlers : MonoBehaviour
                     if (P2PDebugConfig.TraceCombat)
                         Debug.Log($"[DamageRecv] HP_Change entity={u.EntityId} {oldHp}→{u.NewHp} (delta={u.NewHp - oldHp})");
 
-                    GS.UpdateEntityState(info);
+                    GS.UpdateEntityState(info, refreshWorldView: false);
                     if (info.EntityType == (int)EntityType.Monster)
                         P2PContentDirector.Instance?.MarkWorldDirty();
                 }

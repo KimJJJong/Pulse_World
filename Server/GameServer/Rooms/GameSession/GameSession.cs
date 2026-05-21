@@ -317,7 +317,6 @@ public sealed class GameSession : SessionBase
     {
         _rhythmManager?.UpdateMusicState(beatIndex);
         _monsterAI.UpdateAI(beatIndex, _monsters, _players);
-        _telegraph.OnBeat(beatIndex);
         BeatActions.OnBeat(beatIndex);
         
         Director.NotifyEvent(new GameEventContext { Type = EventType.Beat, TimeMs = AppRef.ServerTimeMs() });

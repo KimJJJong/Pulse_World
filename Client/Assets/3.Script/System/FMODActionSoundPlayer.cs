@@ -1,6 +1,5 @@
 using UnityEngine;
 using FMODUnity;
-using Shared.Data;
 
 public class FMODActionSoundPlayer : MonoBehaviour
 {
@@ -25,34 +24,7 @@ public class FMODActionSoundPlayer : MonoBehaviour
         EventReference targetSound = isMine ? myAttackSound : otherAttackSound;
         if (targetSound.IsNull) return;
 
-        // FMOD Event 인스턴스 생성
-        FMOD.Studio.EventInstance instance;
-        try
-        {
-            instance = RuntimeManager.CreateInstance(targetSound);
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"[FMODAction] Attack Sound Create Failed: {e.Message}");
-            return;
-        }
-
-        // 현재 재생 중인 음악(BGM)의 리듬/화성 정보를 가져옴
-        int currentPitchOffset = 0;
-        if (FMODDrumSequencer.Instance != null)
-        {
-            currentPitchOffset = FMODDrumSequencer.Instance.GetCurrentPitchOffset();
-        }
-
-        // FMOD 파라미터 적용 (FMOD Studio에서 'PitchOffset' 파라미터가 만들어져 있어야 함!)
-        instance.setParameterByName("PitchOffset", currentPitchOffset);
-
-        // 즉시 재생 후 메모리 반환 처리
-        instance.start();
-        instance.release();
-
-        string logStr = isMine ? "My Attack" : "Other Attack";
-        // Debug.Log($"[FMODAction] Played {logStr} with PitchOffset: {currentPitchOffset}");
+        PlayInstance(targetSound, 1.0f, "Attack Sound");
     }
 
     /// <summary>
@@ -63,18 +35,36 @@ public class FMODActionSoundPlayer : MonoBehaviour
     {
         if (string.IsNullOrEmpty(fmodEventPath)) return;
 
-        FMOD.Studio.EventInstance instance;
+        PlayInstance(fmodEventPath, volume, fmodEventPath);
+    }
+
+    private static void PlayInstance(EventReference eventReference, float volume, string logContext)
+    {
+        if (eventReference.IsNull) return;
         try
         {
-            instance = RuntimeManager.CreateInstance(fmodEventPath);
+            PlayCreatedInstance(RuntimeManager.CreateInstance(eventReference), volume);
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"[FMODAction] Sound create failed for '{fmodEventPath}': {e.Message}");
-            return;
+            Debug.LogError($"[FMODAction] Sound create failed for '{logContext}': {e.Message}");
         }
+    }
 
-        // PitchOffset(음악 맥락) 적용
+    private static void PlayInstance(string eventPath, float volume, string logContext)
+    {
+        try
+        {
+            PlayCreatedInstance(RuntimeManager.CreateInstance(eventPath), volume);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[FMODAction] Sound create failed for '{logContext}': {e.Message}");
+        }
+    }
+
+    private static void PlayCreatedInstance(FMOD.Studio.EventInstance instance, float volume)
+    {
         int currentPitchOffset = 0;
         if (FMODDrumSequencer.Instance != null)
             currentPitchOffset = FMODDrumSequencer.Instance.GetCurrentPitchOffset();

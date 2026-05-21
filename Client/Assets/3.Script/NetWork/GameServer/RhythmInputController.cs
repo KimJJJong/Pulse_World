@@ -42,6 +42,10 @@ public class RhythmInputController : MonoBehaviour
     public bool HoldAutoInputEnabled => holdAutoInput;
     public string CurrentTargetName => targetObject != null ? targetObject.name : "<null>";
 
+    public event Action CombatInputAccepted;
+    public event Action CombatInputMissed;
+    public event Action<int, string> SkillSlotInputAccepted;
+
     long _lastSendLocalMs = 0;
 
     bool _holdActive = false;
@@ -218,7 +222,7 @@ public class RhythmInputController : MonoBehaviour
     void OnAttackPerformed(InputAction.CallbackContext ctx)
     {
         if (holdAutoInput) return;
-        // Space = 일반공격. ActionKind.Attack으로 명시 전송 (SlotIndex -1 오해석 방지)
+        // Space = 일반공격. ActionKind.Skill + SlotIndex=-1 로 전송해 Skill 경로로 통일한다.
         HandleAttackInputEvent(_normalAttackSkillId);
     }
 
@@ -338,6 +342,7 @@ public class RhythmInputController : MonoBehaviour
                 Debug.Log($"[Input_Attack] OUT_OF_WINDOW skill={skillId} actor={me.EntityId} pos=({me.X},{me.Y}) " +
                           $"serverNow={serverNow} beat={predictionBeat} diff={diff}ms " +
                           $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → blocked");
+            NotifyCombatInputMissed();
             return;
         }
 
@@ -375,6 +380,7 @@ public class RhythmInputController : MonoBehaviour
         if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
 
         // [Fix] ActionKind.Skill + SlotIndex=-1 로 통일 전송 (서버 ResolveSkillId에서 normalAttack으로 처리)
+        NotifyCombatInputAccepted();
         SendActionRouted(ActionKind.Skill, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;
     }
@@ -414,6 +420,7 @@ public class RhythmInputController : MonoBehaviour
                 Debug.Log($"[Input_Skill] OUT_OF_WINDOW skill={skillId} slot={slotIndex} actor={me.EntityId} " +
                           $"pos=({me.X},{me.Y}) serverNow={serverNow} beat={predictionBeat} diff={diff}ms " +
                           $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms → blocked");
+            NotifyCombatInputMissed();
             return;
         }
 
@@ -448,6 +455,8 @@ public class RhythmInputController : MonoBehaviour
 
         if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
 
+        NotifyCombatInputAccepted();
+        NotifySkillSlotInputAccepted(slotIndex, skillId);
         SendActionRouted(ActionKind.Skill, tx, ty, serverNow, slotIndex);
         _lastSendLocalMs = trueLocalNowMs;
     }
@@ -508,6 +517,24 @@ public class RhythmInputController : MonoBehaviour
             return true;
 
         return (nowLocalMs - _lastSendLocalMs) >= inputCooldownMs;
+    }
+
+    void NotifyCombatInputAccepted()
+    {
+        if (channel == InputChannel.Game)
+            CombatInputAccepted?.Invoke();
+    }
+
+    void NotifyCombatInputMissed()
+    {
+        if (channel == InputChannel.Game)
+            CombatInputMissed?.Invoke();
+    }
+
+    void NotifySkillSlotInputAccepted(int slotIndex, string skillId)
+    {
+        if (channel == InputChannel.Game)
+            SkillSlotInputAccepted?.Invoke(slotIndex, skillId);
     }
 
     /// <summary>

@@ -28,6 +28,7 @@ public class ClientGameState : MonoBehaviour
 
     // UI
     public event System.Action<ClientEntityInfo> MyEntityChanged;
+    public event System.Action PartyStateChanged;
 
     void Awake()
     {
@@ -264,6 +265,8 @@ public class ClientGameState : MonoBehaviour
         PlayerActorIds = actorIds ?? new int[0];
         if (P2PDebugConfig.LogOverheadEnabled)
             Debug.Log($"[P2PPlayerSync] SetPlayerActorIds actors={string.Join(",", PlayerActorIds)}");
+
+        PartyStateChanged?.Invoke();
     }
 
     public void SetMyActorId(int actorId)
@@ -278,7 +281,10 @@ public class ClientGameState : MonoBehaviour
         _playerUids.Clear();
 
         if (roster == null)
+        {
+            PartyStateChanged?.Invoke();
             return;
+        }
 
         foreach (var (actorId, uid) in roster)
         {
@@ -306,9 +312,15 @@ public class ClientGameState : MonoBehaviour
                 $"[P2PPlayerSync] Duplicate uid mapped to multiple actors uid={duplicateUid.Key} " +
                 $"actors={string.Join(",", duplicateUid.Select(x => x.Key).OrderBy(x => x))}");
         }
+
+        PartyStateChanged?.Invoke();
     }
 
-    public void ClearPlayerRoster() => _playerUids.Clear();
+    public void ClearPlayerRoster()
+    {
+        _playerUids.Clear();
+        PartyStateChanged?.Invoke();
+    }
 
     public bool TryGetPlayerUid(int actorId, out string uid)
         => _playerUids.TryGetValue(actorId, out uid);
@@ -334,6 +346,7 @@ public class ClientGameState : MonoBehaviour
         Debug.Log($"[ClientGameState] ClearEntities. Count={_entities.Count}");
         _entities.Clear();
         WorldView?.OnClearEntities();
+        PartyStateChanged?.Invoke();
     }
 
     public void SpawnOrUpdateEntity(ClientEntityInfo info)
@@ -364,20 +377,23 @@ public class ClientGameState : MonoBehaviour
             WorldView.OnSpawnOrUpdateEntity(info);
 
         NotifyMyEntityChanged(info.EntityId);
+        PartyStateChanged?.Invoke();
     }
 
-    public void UpdateEntityState(ClientEntityInfo info)
+    public void UpdateEntityState(ClientEntityInfo info, bool refreshWorldView = true)
     {
-        Debug.Log($"[UpdateEntityState] IN");
         _entities[info.EntityId] = info;
-        WorldView?.OnSpawnOrUpdateEntity(info);
+        if (refreshWorldView)
+            WorldView?.OnSpawnOrUpdateEntity(info);
         NotifyMyEntityChanged(info.EntityId);
+        PartyStateChanged?.Invoke();
     }
 
     public bool RemoveEntity(int entityId)
     {
         if (!_entities.Remove(entityId)) return false;
         WorldView?.OnDespawnEntity(entityId);
+        PartyStateChanged?.Invoke();
         return true;
     }
 
@@ -428,6 +444,7 @@ public class ClientGameState : MonoBehaviour
         }
         WorldView?.OnBeatAction(action, entity);
         NotifyMyEntityChanged(action.ActorId);
+        PartyStateChanged?.Invoke();
     }
 
     private bool ShouldTracePlayerBeatAction(int actorId)

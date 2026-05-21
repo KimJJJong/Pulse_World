@@ -23,12 +23,12 @@ namespace GameServer.Content.Skill
             }
         }
 
-        private NewSkillDef _currentSkill;
+        private NewSkillDef? _currentSkill;
         private long _startTick;
         private bool _isRunning;
-        private HashSet<object> _executedEvents = new HashSet<object>();
+        private readonly List<TimedSkillEvent> _runtimeEvents = new(16);
+        private int _nextRuntimeEventIndex;
 
-        private List<GridPos> _cachedWarningCells;
         private float _casterRotationSnapshot;
 
         public bool IsRunning => _isRunning;
@@ -52,8 +52,8 @@ namespace GameServer.Content.Skill
             _currentSkill = skill;
             _startTick = currentTick;
             _isRunning = true;
-            _executedEvents.Clear();
-            _cachedWarningCells = null;
+            BuildSortedEvents(skill, _runtimeEvents, includeAllEvents: true, elapsedTick: 0);
+            _nextRuntimeEventIndex = 0;
             _casterRotationSnapshot = rotation;
 
             _beatActionManager.BroadcastActionInstant(_casterId, ActionKind.Skill, skill.SkillId, currentTick);
@@ -69,8 +69,8 @@ namespace GameServer.Content.Skill
             _currentSkill = skill;
             _startTick = currentTick;
             _isRunning = true;
-            _executedEvents.Clear();
-            _cachedWarningCells = null;
+            _runtimeEvents.Clear();
+            _nextRuntimeEventIndex = 0;
             _casterRotationSnapshot = rotation;
 
             long currentBeat = currentTick / 480;
@@ -199,15 +199,14 @@ namespace GameServer.Content.Skill
 
         private void ProcessEventsTick(long currentTick, long elapsedTick)
         {
-            var dueEvents = CollectSortedEvents(_currentSkill, includeAllEvents: false, elapsedTick: elapsedTick);
-
-            foreach (var entry in dueEvents)
+            while (_nextRuntimeEventIndex < _runtimeEvents.Count)
             {
+                var entry = _runtimeEvents[_nextRuntimeEventIndex];
                 var evt = entry.Event;
-                if (_executedEvents.Contains(evt))
-                    continue;
+                if (evt.TriggerTick > elapsedTick)
+                    break;
 
-                _executedEvents.Add(evt);
+                _nextRuntimeEventIndex++;
                 long currentBeat = currentTick / 480;
                 ExecuteAction(evt.Action, (int)currentBeat, evt.DurationTicks);
             }
@@ -267,13 +266,21 @@ namespace GameServer.Content.Skill
         {
             _isRunning = false;
             _currentSkill = null;
-            _cachedWarningCells = null;
+            _runtimeEvents.Clear();
+            _nextRuntimeEventIndex = 0;
         }
 
         private List<TimedSkillEvent> CollectSortedEvents(NewSkillDef skill, bool includeAllEvents, long elapsedTick)
         {
             var events = new List<TimedSkillEvent>();
-            if (skill == null) return events;
+            BuildSortedEvents(skill, events, includeAllEvents, elapsedTick);
+            return events;
+        }
+
+        private static void BuildSortedEvents(NewSkillDef skill, List<TimedSkillEvent> events, bool includeAllEvents, long elapsedTick)
+        {
+            events.Clear();
+            if (skill == null) return;
 
             for (int t = 0; t < skill.Tracks.Count; t++)
             {
@@ -299,8 +306,6 @@ namespace GameServer.Content.Skill
 
                 return a.EventIndex.CompareTo(b.EventIndex);
             });
-
-            return events;
         }
 
         private static int GetActionPriority(BaseAction action)
@@ -354,7 +359,6 @@ namespace GameServer.Content.Skill
         private void ProcessWarningAt(WarningAction action, int currentBeat, int durationTicks, GridPos casterPos)
         {
             List<GridPos> cells = CalculateShapeCells(action.Shape, casterPos);
-            _cachedWarningCells = cells;
 
             var tg = new SC_BeatTelegraphs.Telegraphs
             {

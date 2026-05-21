@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace GameServer.InGame.Manager.Beat
 {
@@ -10,6 +9,7 @@ namespace GameServer.InGame.Manager.Beat
     {
         // beatIndex -> (actorId -> cmd)
         private readonly Dictionary<long, Dictionary<int, PlayerActionCmd>> _byBeat = new();
+        private readonly List<long> _beatRemoveBuffer = new();
 
         /// <summary>
         /// 예약: (RequestedBeat, ActorId) 키로 저장.
@@ -56,13 +56,13 @@ namespace GameServer.InGame.Manager.Beat
             if (_byBeat.Count == 0) return;
 
             // Dictionary 순회 중 삭제 방지
-            var toRemove = new List<long>();
+            _beatRemoveBuffer.Clear();
             foreach (var kv in _byBeat)
             {
                 if (kv.Key < beatExclusive)
-                    toRemove.Add(kv.Key);
+                    _beatRemoveBuffer.Add(kv.Key);
             }
-            foreach (var b in toRemove)
+            foreach (var b in _beatRemoveBuffer)
                 _byBeat.Remove(b);
         }
 
@@ -71,15 +71,15 @@ namespace GameServer.InGame.Manager.Beat
         {
             if (_byBeat.Count == 0) return;
 
-            var emptyBeats = new List<long>();
+            _beatRemoveBuffer.Clear();
 
             foreach (var kv in _byBeat)
             {
                 if (kv.Value.Remove(actorId) && kv.Value.Count == 0)
-                    emptyBeats.Add(kv.Key);
+                    _beatRemoveBuffer.Add(kv.Key);
             }
 
-            foreach (var b in emptyBeats)
+            foreach (var b in _beatRemoveBuffer)
                 _byBeat.Remove(b);
         }
 

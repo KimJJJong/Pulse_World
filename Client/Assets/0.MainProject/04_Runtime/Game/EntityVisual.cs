@@ -3,6 +3,11 @@ using System.Collections;
 
 public class EntityVisual : MonoBehaviour
 {
+    private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
+    private static readonly int HitHash = Animator.StringToHash("Hit");
+    private static readonly int IsDeadHash = Animator.StringToHash("IsDead");
+
     [Header("Components")]
     [SerializeField] private Animator _animator;
     // [Fix] AudioSource/AudioClip 하드코딩 사운드 제거 — 사운드는 ClientSkillRunner의 SoundAction이 담당
@@ -40,7 +45,7 @@ public class EntityVisual : MonoBehaviour
         if (_animator != null)
         {
             _animator.speed = 1.0f / Mathf.Max(duration, 0.05f);
-            _animator.SetBool("IsMoving", true);
+            _animator.SetBool(IsMovingHash, true);
         }
 
         StartCoroutine(CoMove(start, end, duration));
@@ -62,7 +67,7 @@ public class EntityVisual : MonoBehaviour
         transform.position = end;
 
         if (_animator != null)
-            _animator.SetBool("IsMoving", false);
+            _animator.SetBool(IsMovingHash, false);
     }
 
     // -------------------------------------------------------------------------
@@ -86,7 +91,7 @@ public class EntityVisual : MonoBehaviour
         if (_animator != null)
         {
             _animator.speed = 1f;
-            _animator.SetBool("IsMoving", true);
+            _animator.SetBool(IsMovingHash, true);
         }
 
         const float bumpInDuration  = 0.07f;
@@ -115,7 +120,7 @@ public class EntityVisual : MonoBehaviour
         transform.position = returnPos;
 
         if (_animator != null)
-            _animator.SetBool("IsMoving", false);
+            _animator.SetBool(IsMovingHash, false);
     }
 
     // -------------------------------------------------------------------------
@@ -133,7 +138,7 @@ public class EntityVisual : MonoBehaviour
         if (_animator != null)
         {
             _animator.speed = 2f;
-            _animator.SetTrigger("Attack");
+            _animator.SetTrigger(AttackHash);
         }
         // [Fix] 하드코딩 AudioClip 재생 제거 — FMOD SoundAction에서 전담 처리
         LogTimingIfMine("Skill", isMine);
@@ -141,6 +146,7 @@ public class EntityVisual : MonoBehaviour
 
     private void LogTimingIfMine(string actionName, bool isMine)
     {
+        if (!isMine) return;
         if (RhythmClient.Instance == null) return;
         long serverNowMs = RhythmClient.Instance.GetCurrentServerTimeMs();
         long nearestBeat = RhythmClient.Instance.GetNearestBeatIndex(serverNowMs);
@@ -148,7 +154,7 @@ public class EntityVisual : MonoBehaviour
         long diff        = serverNowMs - beatTimeMs;
         //Debug.LogWarning($"[SFX Timing] {actionName} Diff to Peak: {diff}ms (Beat:{nearestBeat})");
 
-        if (isMine && RhythmInputController.Instance != null)
+        if (RhythmInputController.Instance != null)
         {
             long inputMs = RhythmInputController.LastAttackInputServerTimeMs;
             if (inputMs > 0)
@@ -158,11 +164,11 @@ public class EntityVisual : MonoBehaviour
 
     public void PlayHit()
     {
-        if (_animator != null) _animator.SetTrigger("Hit");
+        if (_animator != null) _animator.SetTrigger(HitHash);
     }
 
     public void SetDie()
     {
-        if (_animator != null) _animator.SetBool("IsDead", true);
+        if (_animator != null) _animator.SetBool(IsDeadHash, true);
     }
 }

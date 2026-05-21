@@ -1,10 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Client.Content.Item;
-using System.Linq;
 
 public class TownInventoryUI : MonoBehaviour
 {
@@ -19,31 +17,41 @@ public class TownInventoryUI : MonoBehaviour
     [Header("Filters")]
     [SerializeField] private TMP_Dropdown _sortDropdown;
     [SerializeField] private Button[] _categoryButtons; // 0=All, 1=Equip, ...
+    [SerializeField] private bool _logRefresh;
 
     private Category _currentCategory = Category.All;
     private SortType _currentSort = SortType.Recent;
 
-    private List<object> _displayItems = new List<object>(); // Mixed Items and Equipments
+    private readonly List<object> _displayItems = new List<object>(); // Mixed Items and Equipments
+    private readonly List<object> _filteredItems = new List<object>();
+    private readonly List<TownInventorySlotUI> _slotPool = new List<TownInventorySlotUI>();
+    private readonly Dictionary<int, ItemTemplate> _templateCache = new Dictionary<int, ItemTemplate>();
+    private Transform _panel;
 
     private void Start()
     {
+        _panel = transform.Find("Panel");
+
         // Setup Category Buttons (Index based mapping for simplicity)
-        for(int i=0; i<_categoryButtons.Length; i++)
+        for(int i=0; _categoryButtons != null && i<_categoryButtons.Length; i++)
         {
             int idx = i;
-            _categoryButtons[i].onClick.AddListener(() => SetCategory((Category)idx));
+            if (_categoryButtons[i] != null)
+                _categoryButtons[i].onClick.AddListener(() => SetCategory((Category)idx));
         }
 
         // Setup Sort Dropdown
-        _sortDropdown.ClearOptions();
-        var sortOptions = System.Enum.GetNames(typeof(SortType)).ToList();
-        _sortDropdown.AddOptions(sortOptions);
-
-        _sortDropdown.onValueChanged.AddListener((val) => 
+        if (_sortDropdown != null)
         {
-            _currentSort = (SortType)val;
-            RefreshGrid();
-        });
+            _sortDropdown.ClearOptions();
+            _sortDropdown.AddOptions(new List<string>(System.Enum.GetNames(typeof(SortType))));
+
+            _sortDropdown.onValueChanged.AddListener((val) =>
+            {
+                _currentSort = (SortType)val;
+                RefreshGrid();
+            });
+        }
 
         // Listen
         if (InventoryManager.Instance != null)
@@ -57,9 +65,8 @@ public class TownInventoryUI : MonoBehaviour
 
         RefreshAll();
 
-        Transform panel = transform.Find("Panel");
-            panel.gameObject.SetActive(false);
-      
+        if (_panel != null)
+            _panel.gameObject.SetActive(false);
     }
 
     private void Update()
@@ -83,11 +90,10 @@ public class TownInventoryUI : MonoBehaviour
         // Let's assume _gridContent parent is the Panel or we can find it.
         // Or finding 'Panel' child.
         
-        Transform panel = transform.Find("Panel");
-        if (panel != null)
+        if (_panel != null)
         {
-            bool nextState = !panel.gameObject.activeSelf;
-            panel.gameObject.SetActive(nextState);
+            bool nextState = !_panel.gameObject.activeSelf;
+            _panel.gameObject.SetActive(nextState);
             if (nextState) RefreshAll();
         }
     }
@@ -102,6 +108,7 @@ public class TownInventoryUI : MonoBehaviour
     {
         // Gather all items
         _displayItems.Clear();
+        _templateCache.Clear();
         var inv = InventoryManager.Instance;
         if (inv == null) return;
 
@@ -122,20 +129,30 @@ public class TownInventoryUI : MonoBehaviour
     private void RefreshGrid()
     {
         // 1. Filter
-        var filtered = _displayItems.Where(x => CheckCategory(x, _currentCategory)).ToList();
-        Debug.Log($"[TownInventoryUI] RefreshGrid: Total={_displayItems.Count}, Filtered={filtered.Count} (Category={_currentCategory})");
+        _filteredItems.Clear();
+        foreach (var item in _displayItems)
+        {
+            if (CheckCategory(item, _currentCategory))
+                _filteredItems.Add(item);
+        }
+
+        if (_logRefresh)
+            Debug.Log($"[TownInventoryUI] RefreshGrid: Total={_displayItems.Count}, Filtered={_filteredItems.Count} (Category={_currentCategory})");
 
         // 2. Sort
-        filtered.Sort((a, b) => CompareItems(a, b));
+        _filteredItems.Sort(CompareItems);
 
         // 3. Render
-        foreach(Transform t in _gridContent) Destroy(t.gameObject);
-
-        foreach(var item in filtered)
+        for (int i = 0; i < _filteredItems.Count; i++)
         {
-            var go = Instantiate(_slotPrefab, _gridContent);
-            go.gameObject.SetActive(true);
-            go.Setup(item, OnSlotCount);
+            var slot = GetOrCreateSlot(i);
+            slot.gameObject.SetActive(true);
+            slot.Setup(_filteredItems[i], OnSlotCount);
+        }
+
+        for (int i = _filteredItems.Count; i < _slotPool.Count; i++)
+        {
+            _slotPool[i].gameObject.SetActive(false);
         }
     }
 
@@ -144,7 +161,7 @@ public class TownInventoryUI : MonoBehaviour
         if (cat == Category.All) return true;
 
         int tid = GetTemplateId(item);
-        var tmpl = ItemDataManager.Instance.Get(tid);
+        var tmpl = GetTemplate(tid);
         if (tmpl == null) return false;
 
         switch(cat)
@@ -162,19 +179,17 @@ public class TownInventoryUI : MonoBehaviour
         // Currently we don't have AcquiredAt in SC_Inventory locally cached properly or it's difficult to mix.
         // Let's use ID for "Recent" approximation or SlotIndex.
         
-        if (Client.Content.Item.ItemDataManager.Instance == null) return 0;
-
         int tidA = GetTemplateId(a);
         int tidB = GetTemplateId(b);
-        var tmplA = Client.Content.Item.ItemDataManager.Instance.Get(tidA);
-        var tmplB = Client.Content.Item.ItemDataManager.Instance.Get(tidB);
+        var tmplA = GetTemplate(tidA);
+        var tmplB = GetTemplate(tidB);
 
         switch(_currentSort)
         {
             case SortType.Name:
                 string nameA = tmplA?.name ?? "";
                 string nameB = tmplB?.name ?? "";
-                return nameA.CompareTo(nameB);
+                return string.Compare(nameA, nameB, System.StringComparison.Ordinal);
             case SortType.Grade:
                 int gradeA = tmplA != null ? (int)tmplA.GradeEnum : 0;
                 int gradeB = tmplB != null ? (int)tmplB.GradeEnum : 0;
@@ -205,5 +220,27 @@ public class TownInventoryUI : MonoBehaviour
     private void OnSlotCount(object item)
     {
         _detailsUI.Show(item);
+    }
+
+    private TownInventorySlotUI GetOrCreateSlot(int index)
+    {
+        while (_slotPool.Count <= index)
+        {
+            var slot = Instantiate(_slotPrefab, _gridContent);
+            _slotPool.Add(slot);
+        }
+
+        return _slotPool[index];
+    }
+
+    private ItemTemplate GetTemplate(int templateId)
+    {
+        if (_templateCache.TryGetValue(templateId, out var cached))
+            return cached;
+
+        var manager = ItemDataManager.Instance;
+        var template = manager != null ? manager.Get(templateId) : null;
+        _templateCache[templateId] = template;
+        return template;
     }
 }

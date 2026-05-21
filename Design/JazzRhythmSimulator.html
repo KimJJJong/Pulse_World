@@ -35,6 +35,7 @@
             color: var(--text-color);
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
+            overflow-y: auto; /* 전체 페이지 세로 스크롤 허용 */
             overflow-x: hidden;
             display: flex;
             flex-direction: column;
@@ -274,6 +275,7 @@
         .sequencer-container {
             width: 100%;
             overflow-x: auto;
+            overflow-y: hidden; /* 시퀀서 내부 세로 스크롤 방지 */
             position: relative;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 12px;
@@ -284,6 +286,8 @@
         .sequencer-grid {
             display: grid;
             grid-template-columns: 180px 15360px; /* Expanded for instrument select */
+            width: 15540px; /* 180px + 15360px */
+            height: 400px; /* 5 tracks * 80px */
             position: relative;
         }
 
@@ -358,6 +362,7 @@
 
         .tracks-area {
             position: relative;
+            width: 15360px; /* 명시적 너비 지정 */
             height: 400px; /* 5 tracks * 80px */
             background-image: 
                 linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
@@ -726,6 +731,9 @@
                         <option value="fusion_rock">Fusion Jazz-Rock (퓨전 록)</option>
                         <option value="bossa_nova">Latin Bossa Nova (보사노바)</option>
                         <option value="chillhop">Lo-Fi Jazz-Hop (칠홉)</option>
+                        <option value="future_jazz">Future Jazz (퓨처 재즈)</option>
+                        <option value="chiptune_swing">Retro Chiptune Swing (칩튠 스윙)</option>
+                        <option value="space_ambient">Space Ambient Jazz (스페이스)</option>
                     </select>
                 </div>
                 <div class="control-group">
@@ -761,6 +769,7 @@
                                     <option value="electric_bass">🎸 Elec Bass</option>
                                     <option value="slap_bass">💥 Slap Bass</option>
                                     <option value="synth_bass">🎹 Synth Sub</option>
+                                    <option value="synth_acid_bass">⚡ Synth Acid</option>
                                 </select>
                                 <button class="btn-track" data-track="bass" data-action="mute">M</button>
                                 <button class="btn-track" data-track="bass" data-action="solo">S</button>
@@ -774,6 +783,7 @@
                                     <option value="grand_piano">🎼 Grand Piano</option>
                                     <option value="organ">🎶 Jazz Organ</option>
                                     <option value="synth_pad">🌌 Synth Pad</option>
+                                    <option value="synth_sweep">🛸 Space Sweep</option>
                                 </select>
                                 <button class="btn-track" data-track="piano" data-action="mute">M</button>
                                 <button class="btn-track" data-track="piano" data-action="solo">S</button>
@@ -787,6 +797,7 @@
                                     <option value="soprano_sax">🎷 Soprano Sax</option>
                                     <option value="flute">🌾 Concert Flute</option>
                                     <option value="muted_trumpet">🎺 Muted Tpt</option>
+                                    <option value="synth_chiptune">👾 Chiptune Ld</option>
                                 </select>
                                 <button class="btn-track" data-track="sax" data-action="mute">M</button>
                                 <button class="btn-track" data-track="sax" data-action="solo">S</button>
@@ -813,6 +824,7 @@
                                     <option value="vibraphone">🔔 Vibraphone</option>
                                     <option value="celeste">🎵 Celeste Chime</option>
                                     <option value="synth_pad">🌌 Synth Accent</option>
+                                    <option value="synth_fm_bell">🔔 FM Digi Bell</option>
                                 </select>
                                 <button class="btn-track" data-track="trumpet" data-action="mute">M</button>
                                 <button class="btn-track" data-track="trumpet" data-action="solo">S</button>
@@ -1109,6 +1121,30 @@
                 sax: "sax",
                 guitar: "nylon_guitar",
                 trumpet: "celeste"
+            },
+            "future_jazz": {
+                name: "Future Jazz (퓨처 재즈 - 신스 하이브리드)",
+                bass: "synth_acid_bass",
+                piano: "synth_pad",
+                sax: "synth_chiptune",
+                guitar: "vibraphone",
+                trumpet: "synth_fm_bell"
+            },
+            "chiptune_swing": {
+                name: "Retro Chiptune Swing (칩튠 스윙)",
+                bass: "synth_bass",
+                piano: "grand_piano",
+                sax: "synth_chiptune",
+                guitar: "marimba",
+                trumpet: "synth_fm_bell"
+            },
+            "space_ambient": {
+                name: "Space Ambient Jazz (스페이스 앰비언트)",
+                bass: "electric_bass",
+                piano: "synth_sweep",
+                sax: "flute",
+                guitar: "jazz_guitar",
+                trumpet: "celeste"
             }
         };
 
@@ -1298,6 +1334,126 @@
                 
                 osc.start(time);
                 osc.stop(time + 0.9);
+            }
+
+            // 4-1. Synth Acid Bass (Resonant Lowpass Filter Sweep)
+            synthAcidBass(freq, time, vol) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(freq, time);
+                
+                filter.type = 'lowpass';
+                filter.Q.setValueAtTime(9.0, time);
+                filter.frequency.setValueAtTime(freq * 6, time);
+                filter.frequency.exponentialRampToValueAtTime(freq * 0.9, time + 0.18); // quick resonant sweep
+                
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(vol * 0.95, time + 0.006);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.32);
+                
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+                
+                osc.start(time);
+                osc.stop(time + 0.35);
+            }
+
+            // 4-2. Synth Chiptune Lead (Retro square wave with fast vibrato LFO)
+            synthChiptuneLead(freq, time, vol) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const lfo = this.ctx.createOscillator();
+                const lfoGain = this.ctx.createGain();
+                
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(freq, time);
+                
+                lfo.frequency.setValueAtTime(8.5, time); // 8.5Hz pitch vibrato
+                lfoGain.gain.setValueAtTime(7.5, time);
+                
+                lfo.connect(lfoGain);
+                lfoGain.connect(osc.frequency);
+                
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(vol * 0.45, time + 0.002);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+                
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                
+                lfo.start(time);
+                osc.start(time);
+                lfo.stop(time + 0.4);
+                osc.stop(time + 0.4);
+            }
+
+            // 4-3. Synth FM Bell (FM digital tone modulator-carrier FM synthesis)
+            synthFMBell(freq, time, vol) {
+                const carrier = this.ctx.createOscillator();
+                const modulator = this.ctx.createOscillator();
+                const modGain = this.ctx.createGain();
+                const gain = this.ctx.createGain();
+                
+                carrier.type = 'sine';
+                carrier.frequency.setValueAtTime(freq, time);
+                
+                modulator.type = 'sine';
+                modulator.frequency.setValueAtTime(freq * 3.5, time); // non-harmonic ratio for metallic bell timbre
+                
+                modGain.gain.setValueAtTime(freq * 2.5, time);
+                modGain.gain.exponentialRampToValueAtTime(0.1, time + 0.35);
+                
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(vol * 0.95, time + 0.003);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 1.2);
+                
+                modulator.connect(modGain);
+                modGain.connect(carrier.frequency);
+                carrier.connect(gain);
+                gain.connect(this.masterGain);
+                
+                modulator.start(time);
+                carrier.start(time);
+                modulator.stop(time + 1.3);
+                carrier.stop(time + 1.3);
+            }
+
+            // 4-4. Synth Space Sweep (Dual detuned sawtooths with LFO sweep bandpass filter)
+            synthSpaceSweep(freq, time, vol) {
+                const osc1 = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const filter = this.ctx.createBiquadFilter();
+                const gain = this.ctx.createGain();
+                
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(freq * 0.993, time);
+                
+                osc2.type = 'sawtooth';
+                osc2.frequency.setValueAtTime(freq * 1.007, time);
+                
+                filter.type = 'bandpass';
+                filter.Q.setValueAtTime(2.2, time);
+                filter.frequency.setValueAtTime(freq * 0.6, time);
+                filter.frequency.exponentialRampToValueAtTime(freq * 4.5, time + 0.5);
+                filter.frequency.exponentialRampToValueAtTime(freq * 1.6, time + 1.5);
+                
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(vol * 0.75, time + 0.25); // slow attack pad
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 1.8);
+                
+                osc1.connect(filter);
+                osc2.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+                
+                osc1.start(time);
+                osc2.start(time);
+                osc1.stop(time + 1.9);
+                osc2.stop(time + 1.9);
             }
 
             // 5. Rhodes E.Piano
@@ -1727,16 +1883,19 @@
                     case 'electric_bass': this.synthElectricBass(freq, time, finalVolume); break;
                     case 'slap_bass': this.synthSlapBass(freq, time, finalVolume); break;
                     case 'synth_bass': this.synthSubBass(freq, time, finalVolume); break;
+                    case 'synth_acid_bass': this.synthAcidBass(freq, time, finalVolume); break;
                     // Harmony Group
                     case 'rhodes': this.synthRhodes(freq, time, finalVolume); break;
                     case 'grand_piano': this.synthGrandPiano(freq, time, finalVolume); break;
                     case 'organ': this.synthOrgan(freq, time, finalVolume); break;
                     case 'synth_pad': this.synthPad(freq, time, finalVolume); break;
+                    case 'synth_sweep': this.synthSpaceSweep(freq, time, finalVolume); break;
                     // Lead Group 1
                     case 'sax': this.synthSax(freq, time, finalVolume, 5.5, 800, 2.0, 'triangle'); break;
                     case 'soprano_sax': this.synthSax(freq, time, finalVolume * 0.75, 6.0, 1100, 1.8, 'sawtooth'); break;
                     case 'flute': this.synthFlute(freq, time, finalVolume); break;
                     case 'muted_trumpet': this.synthMutedTrumpet(freq, time, finalVolume * 0.6); break;
+                    case 'synth_chiptune': this.synthChiptuneLead(freq, time, finalVolume); break;
                     // Lead Group 2
                     case 'jazz_guitar': this.synthJazzGuitar(freq, time, finalVolume); break;
                     case 'nylon_guitar': this.synthNylonGuitar(freq, time, finalVolume); break;
@@ -1744,6 +1903,7 @@
                     case 'marimba': this.synthMarimba(freq, time, finalVolume); break;
                     // Accent Group
                     case 'celeste': this.synthCeleste(freq, time, finalVolume); break;
+                    case 'synth_fm_bell': this.synthFMBell(freq, time, finalVolume); break;
                     default: this.synthUprightBass(freq, time, finalVolume);
                 }
             }
@@ -1915,6 +2075,14 @@
 
         const TICK_SCALE = 1;
 
+        // User interaction states for auto-scroll override
+        let isUserInteracting = false;
+        let interactionTimeout = null;
+        
+        function resetUserInteraction() {
+            isUserInteracting = false;
+        }
+
         // SoundKey formatting utility for dynamic rendering
         function getDisplaySoundKey(originalKey, trackName) {
             const instrument = audio.tracks[trackName].instrument;
@@ -1925,23 +2093,27 @@
                 electric_bass: "ElecBass",
                 slap_bass: "SlapBass",
                 synth_bass: "SynthBass",
+                synth_acid_bass: "SynthAcidBass",
                 
                 rhodes: "RhodesEP",
                 grand_piano: "GrandPiano",
                 organ: "JazzOrgan",
                 synth_pad: "SynthPad",
+                synth_sweep: "SpaceSweep",
                 
                 sax: "TenorSax",
                 soprano_sax: "SopranoSax",
                 flute: "ConcertFlute",
                 muted_trumpet: "MutedTrumpet",
+                synth_chiptune: "ChiptuneLead",
                 
                 jazz_guitar: "JazzGuitar",
                 nylon_guitar: "NylonGuitar",
                 vibraphone: "Vibraphone",
                 marimba: "Marimba",
                 
-                celeste: "CelesteChime"
+                celeste: "CelesteChime",
+                synth_fm_bell: "FMBell"
             };
             
             const prefix = prefixMap[instrument] || originalKey.split('_')[0];
@@ -2054,13 +2226,13 @@
             
             // Derive track mapping
             let trackClass = 'bass';
-            if (note.SoundKey.startsWith("RhodesEP") || note.SoundKey.startsWith("GrandPiano") || note.SoundKey.startsWith("JazzOrgan") || note.SoundKey.startsWith("SynthPad")) {
+            if (note.SoundKey.startsWith("RhodesEP") || note.SoundKey.startsWith("GrandPiano") || note.SoundKey.startsWith("JazzOrgan") || note.SoundKey.startsWith("SynthPad") || note.SoundKey.startsWith("SpaceSweep")) {
                 trackClass = 'piano';
-            } else if (note.SoundKey.startsWith("TenorSax") || note.SoundKey.startsWith("SopranoSax") || note.SoundKey.startsWith("ConcertFlute") || note.SoundKey.startsWith("MutedTrumpet") && TRACK_MAPPING[originalPrefix] === 'sax') {
+            } else if (note.SoundKey.startsWith("TenorSax") || note.SoundKey.startsWith("SopranoSax") || note.SoundKey.startsWith("ConcertFlute") || note.SoundKey.startsWith("ChiptuneLead")) {
                 trackClass = 'sax';
             } else if (note.SoundKey.startsWith("JazzGuitar") || note.SoundKey.startsWith("NylonGuitar") || note.SoundKey.startsWith("Vibraphone") || note.SoundKey.startsWith("Marimba")) {
                 trackClass = 'guitar';
-            } else if (note.SoundKey.startsWith("CelesteChime") || note.SoundKey.startsWith("MutedTrumpet") || note.SoundKey.startsWith("Vibraphone") || note.SoundKey.startsWith("SynthAccent")) {
+            } else if (note.SoundKey.startsWith("CelesteChime") || note.SoundKey.startsWith("MutedTrumpet") || note.SoundKey.startsWith("FMBell")) {
                 trackClass = 'trumpet';
             }
             
@@ -2160,16 +2332,18 @@
                 const xPos = tick * TICK_SCALE;
                 playhead.style.left = `${xPos}px`;
                 
-                const containerWidth = notesTimeline.parentElement.clientWidth;
-                const scrollLeft = notesTimeline.parentElement.scrollLeft;
-                const labelWidth = 180;
-                
-                const playheadRelativeX = xPos + labelWidth - scrollLeft;
-                
-                if (playheadRelativeX > containerWidth - 200) {
-                    notesTimeline.parentElement.scrollLeft = xPos - (containerWidth / 2);
-                } else if (playheadRelativeX < labelWidth) {
-                    notesTimeline.parentElement.scrollLeft = 0;
+                // 사용자가 직접 스크롤하거나 드래그하는 중이 아닐 때만 자동 플레이헤드 추적 스크롤 실행
+                if (!isUserInteracting) {
+                    const containerWidth = gridContainer.clientWidth;
+                    const labelWidth = 180;
+                    
+                    // 플레이헤드가 화면 중심(halfWidth)을 지날 때 정중앙에 고정되도록 스크롤링
+                    const halfVisibleWidth = (containerWidth - labelWidth) / 2;
+                    if (xPos > halfVisibleWidth) {
+                        gridContainer.scrollLeft = xPos - halfVisibleWidth;
+                    } else {
+                        gridContainer.scrollLeft = 0;
+                    }
                 }
 
                 // Update Chord Display
@@ -2180,6 +2354,10 @@
                 }
             } else {
                 playhead.style.left = '0px';
+                // 정지 상태이고 사용자가 스크롤 중이 아니면 맨 앞으로 복귀
+                if (!isUserInteracting) {
+                    gridContainer.scrollLeft = 0;
+                }
             }
         }
 
@@ -2213,7 +2391,7 @@
         btnReset.addEventListener('click', () => {
             audio.stop();
             audio.songStartMs = audio.ctx ? audio.ctx.currentTime : 0;
-            notesTimeline.parentElement.scrollLeft = 0;
+            gridContainer.scrollLeft = 0;
             btnPlay.textContent = '▶ Play';
             btnPlay.classList.remove('btn-danger');
             btnPlay.classList.add('btn-primary');
@@ -2317,6 +2495,29 @@
 
             // Update JSON code block
             renderJSONViewer();
+        });
+
+        // Horizontal scroll via vertical mouse wheel
+        gridContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            gridContainer.scrollLeft += e.deltaY;
+            
+            isUserInteracting = true;
+            clearTimeout(interactionTimeout);
+            interactionTimeout = setTimeout(resetUserInteraction, 3000);
+        }, { passive: false });
+
+        // Pause auto-scroll when user drags the scrollbar or clicks on the timeline
+        gridContainer.addEventListener('mousedown', () => {
+            isUserInteracting = true;
+            clearTimeout(interactionTimeout);
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isUserInteracting) {
+                clearTimeout(interactionTimeout);
+                interactionTimeout = setTimeout(resetUserInteraction, 3000);
+            }
         });
 
         // Hook engine note triggers to UI animations

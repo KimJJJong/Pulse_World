@@ -26,11 +26,7 @@ public interface IGameWorld
     /// Blink의 비파괴 미리보기. 실제 엔티티 이동 없이 시작 위치 기준 목표 지점을 계산한다.
     /// </summary>
     bool TryPreviewBlink(GridPos from, int dirX, int dirY, int distance, out GridPos landedPos);
-    bool TryUseSkill(int actorId, string skillId ,int targetX, int targetY, List<HpUpdate> hpUpdate);
-    bool TryUseSkillArea(int actorId, string skillId, IReadOnlyList<GridPos> cells, List<HpUpdate> hpUpdates, bool? hitPlayers = null, bool? hitMonsters = null);
 
-    bool TryUseAttack(int actorId, /*나중에 직업별 일반공격 셋팅?*/int tartX, int tartY, List<HpUpdate> hpUpdates);
-    
-    // For Pattern Custom Damage
+    // SkillRunner가 확정한 셀/데미지 결과만 월드에 적용한다.
     bool TryUseCustomSkill(int actorId, long currentTick, FrozenAttackRegistry.FrozenAttack frozen, List<HpUpdate> hpUpdates);
 }

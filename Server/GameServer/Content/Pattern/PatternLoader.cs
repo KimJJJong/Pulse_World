@@ -188,13 +188,13 @@ public static class PatternLoader
                                 $"[Monster:{m.MonsterType}][{ph.Id}/{sel.Id}] TelegraphBeats({act.TelegraphBeats}) > AtBeatOffset({act.AtBeatOffset}) → telegraph may not appear");
                         }
 
-                        // Attack인데 SkillId 누락/미존재
-                        if (act.Type == ActionType.Attack)
+                        // Attack/CastSkill 모두 SkillId 기반 실행으로 통일
+                        if (act.Type == ActionType.Attack || act.Type == ActionType.CastSkill)
                         {
                             if (string.IsNullOrWhiteSpace(act.SkillId))
                             {
                                 Error(report,
-                                    $"[Monster:{m.MonsterType}][{ph.Id}/{sel.Id}] Attack action missing SkillId (AtOffset={act.AtBeatOffset})");
+                                    $"[Monster:{m.MonsterType}][{ph.Id}/{sel.Id}] {act.Type} action missing SkillId (AtOffset={act.AtBeatOffset})");
                             }
                             else if (!isValidSkillId(act.SkillId))
                             {

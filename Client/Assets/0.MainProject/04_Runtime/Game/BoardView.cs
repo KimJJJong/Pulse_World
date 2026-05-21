@@ -44,6 +44,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
     private Dictionary<int, List<PredictedMove>> _recentPredictedMoves = new();
     private Dictionary<int, ClientSkillRunner> _activeSkillRunners = new();
     private Dictionary<Vector2Int, long> _telegraphExpiration = new Dictionary<Vector2Int, long>();
+    private readonly List<Vector2Int> _expiredTelegraphBuffer = new List<Vector2Int>();
 
     #region Debug
     private const bool DBG_POS = false;
@@ -66,20 +67,17 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (RhythmClient.Instance != null && RhythmClient.Instance.ServerSongStartMs > 0 && _telegraphExpiration.Count > 0)
         {
             long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
-            List<Vector2Int> toRemove = null;
+            _expiredTelegraphBuffer.Clear();
 
             foreach (var kv in _telegraphExpiration)
             {
                 if (currentBeat >= kv.Value)
-                {
-                    if (toRemove == null) toRemove = new List<Vector2Int>();
-                    toRemove.Add(kv.Key);
-                }
+                    _expiredTelegraphBuffer.Add(kv.Key);
             }
 
-            if (toRemove != null)
+            if (_expiredTelegraphBuffer.Count > 0)
             {
-                foreach (var pos in toRemove)
+                foreach (var pos in _expiredTelegraphBuffer)
                 {
                     _telegraphExpiration.Remove(pos);
                     SetTelegraphOverlay(pos.x, pos.y, false);
@@ -815,6 +813,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (_activeSkillRunners.TryGetValue(actorId, out var runner))
             return runner != null;
         return false;
+    }
+
+    public void NotifySkillRunnerStopped(int actorId, ClientSkillRunner runner)
+    {
+        if (_activeSkillRunners.TryGetValue(actorId, out var activeRunner) && activeRunner == runner)
+            _activeSkillRunners.Remove(actorId);
     }
 
     public void OnInitGameCompleted()

@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,6 +6,8 @@ using Client.Content.Item;
 
 public class TownInventorySlotUI : MonoBehaviour
 {
+    private static readonly Dictionary<string, Sprite> SpritePathCache = new Dictionary<string, Sprite>();
+
     [SerializeField] private Image _icon;
     [SerializeField] private TextMeshProUGUI _amountText;
     [SerializeField] private Button _btn;
@@ -38,15 +39,21 @@ public class TownInventorySlotUI : MonoBehaviour
             isEquipped = e.IsEquipped;
         }
 
+        if (_icon != null)
+            _icon.sprite = null;
+
         if (Client.Content.Item.ItemDataManager.Instance != null)
         {
             var tmpl = Client.Content.Item.ItemDataManager.Instance.Get(tid);
             if (tmpl != null)
             {
-                if (!string.IsNullOrEmpty(tmpl.icon_path) && _icon != null)
+                if (_icon != null)
                 {
-                    var sprite = Resources.Load<Sprite>(tmpl.icon_path);
-                    if (sprite != null) _icon.sprite = sprite;
+                    var sprite = RhythmRPG.Managers.GameResourceManager.Instance.GetIcon(tid);
+                    if (sprite == null && !string.IsNullOrEmpty(tmpl.icon_path))
+                        sprite = GetSpriteByPath(tmpl.icon_path);
+
+                    _icon.sprite = sprite;
                 }
             }
         }
@@ -58,5 +65,15 @@ public class TownInventorySlotUI : MonoBehaviour
             _amountText.gameObject.SetActive(showCount);
         }
         if (_equipMark) _equipMark.SetActive(isEquipped);
+    }
+
+    private static Sprite GetSpriteByPath(string path)
+    {
+        if (SpritePathCache.TryGetValue(path, out var cached))
+            return cached;
+
+        var sprite = Resources.Load<Sprite>(path);
+        SpritePathCache[path] = sprite;
+        return sprite;
     }
 }

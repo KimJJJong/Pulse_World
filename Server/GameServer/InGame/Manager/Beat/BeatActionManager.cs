@@ -114,7 +114,7 @@ namespace GameServer.InGame.Manager.Beat
             {
                 ProcessImmediateMove(cmd, judge.ExecuteBeat);
             }
-            // --- Attack/Skill: 지연 실행 (OnJudgeWindowEnd) ---
+            // --- Skill: 지연 실행 (OnJudgeWindowEnd) ---
             else
             {
                 // [Fix] SlotIndex -1 (일반공격 Space키) 포함 SkillId 결정
@@ -150,7 +150,7 @@ namespace GameServer.InGame.Manager.Beat
 
         /// <summary>
         /// [Fix] SlotIndex 기반 SkillId 결정.
-        /// - Attack kind : "Attack" (무기별 공격은 추후 actor 상태에서 읽을 것)
+        /// - Attack kind : Skill 호환 경로로 변환
         /// - Skill kind, SlotIndex == -1 : 일반공격이므로 "Attack"으로 처리
         /// - Skill kind, SlotIndex >= 0  : "_activeSkillSlots" 참조
         /// </summary>
@@ -160,11 +160,14 @@ namespace GameServer.InGame.Manager.Beat
 
             if (cmd.Kind == ActionKind.Attack)
             {
-                cmd.SkillId = normalAttack;
+                cmd.SkillId = string.IsNullOrWhiteSpace(cmd.SkillId) ? normalAttack : cmd.SkillId;
                 cmd.Kind = ActionKind.Skill; // [Fix] Attack→Skill 통일
             }
             else if (cmd.Kind == ActionKind.Skill)
             {
+                if (!string.IsNullOrWhiteSpace(cmd.SkillId))
+                    return;
+
                 if (cmd.SlotIndex < 0)
                 {
                     // SlotIndex -1 = 일반 공격 (Space키)
@@ -249,9 +252,10 @@ namespace GameServer.InGame.Manager.Beat
             }
             else
             {
+                ResolveSkillId(cmd);
                 _delayedScheduler.Enqueue(cmd);
                 
-                if (cmd.Kind == ActionKind.Attack || cmd.Kind == ActionKind.Skill)
+                if (cmd.Kind == ActionKind.Skill)
                 {
                     _broadcaster.Broadcast(new SC_ActionInstantBroadcast
                     {
@@ -311,11 +315,12 @@ namespace GameServer.InGame.Manager.Beat
         /// <summary>
         /// 서버에서 직접 예약 (몬스터 AI 등).
         /// Move/Wait → _scheduler (OnBeat)
-        /// Attack/Skill → _delayedScheduler (OnJudgeWindowEnd)
+        /// Skill → _delayedScheduler (OnJudgeWindowEnd)
         /// </summary>
         public void ScheduleServerCommand(long beatIndex, PlayerActionCmd cmd)
         {
             cmd.ExecuteBeat = beatIndex;
+            ResolveSkillId(cmd);
 
             if (cmd.Kind == ActionKind.Move || cmd.Kind == ActionKind.Wait)
                 _scheduler.Enqueue(cmd);
@@ -417,42 +422,12 @@ namespace GameServer.InGame.Manager.Beat
                         if (!accepted) toPos = fromPos;
                         break;
 
-                    //case ActionKind.Attack:
-                    //{
-                    //    // [Fix] FrozenPop을 최우선으로 체크 (몬스터 AI 패턴이 미리 등록한 FrozenAttack 처리)
-                    //    if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
-                    //    {
-                    //        if (frozen.CustomDamage.HasValue)
-                    //            accepted = _world.TryUseCustomSkill(cmd.ActorId, beatIndex * 480, frozen, hpUpdates);
-                    //        else
-                    //            accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells, hpUpdates, frozen.HitPlayers, frozen.HitMonsters);
-                    //    }
-                    //    else if (!string.IsNullOrEmpty(cmd.SkillId)
-                    //        && NewSkillDatabase.TryGet(cmd.SkillId, out var attackSkillDef))
-                    //    {
-                    //        var runner = new SkillRunner(cmd.ActorId, _world, this, _frozen, _telegraph);
-                    //        runner.ExecuteInstant(attackSkillDef, beatIndex * 480, cmd.Rotation, hpUpdates);
-                    //        Console.WriteLine($"[BeatAction] Attack ExecuteInstant: actor={cmd.ActorId} skill={cmd.SkillId} rot={cmd.Rotation} hpUpdates={hpUpdates.Count}");
-                    //        accepted = true;
-                    //    }
-                    //    else
-                    //    {
-                    //        // 폴백: 기존 근접 공격
-                    //        accepted = _world.TryUseAttack(cmd.ActorId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
-                    //    }
-                    //    toPos = fromPos;
-                    //    break;
-                    //}
-
                     case ActionKind.Skill:
                     {
                         // [Fix] FrozenPop을 최우선으로 체크 (몬스터 AI 패턴Runner가 사전에 PutRaw 해둔 경우)
                         if (_frozen.TryPop(cmd.ActorId, beatIndex, out var frozen))
                         {
-                            if (frozen.CustomDamage.HasValue)
-                                accepted = _world.TryUseCustomSkill(cmd.ActorId, beatIndex * 480, frozen, hpUpdates);
-                            else
-                                accepted = _world.TryUseSkillArea(cmd.ActorId, frozen.SkillId, frozen.Cells, hpUpdates, frozen.HitPlayers, frozen.HitMonsters);
+                            accepted = _world.TryUseCustomSkill(cmd.ActorId, beatIndex * 480, frozen, hpUpdates);
                         }
                         else if (!string.IsNullOrEmpty(cmd.SkillId)
                             && NewSkillDatabase.TryGet(cmd.SkillId, out var skillDef))
@@ -464,7 +439,8 @@ namespace GameServer.InGame.Manager.Beat
                         }
                         else
                         {
-                            accepted = _world.TryUseSkill(cmd.ActorId, cmd.SkillId, cmd.TargetCell.X, cmd.TargetCell.Y, hpUpdates);
+                            Console.WriteLine($"[BeatAction] Skill not found: actor={cmd.ActorId} skill={cmd.SkillId}");
+                            accepted = false;
                         }
                         toPos = fromPos;
                         break;
