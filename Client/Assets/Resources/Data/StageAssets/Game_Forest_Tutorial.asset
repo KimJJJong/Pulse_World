@@ -17,7 +17,7 @@ MonoBehaviour:
   MapPrefab: {fileID: 0}
   Rhythm:
     SongKey: DefaultSong
-    Bpm: 60
+    Bpm: 100
     BaseBeatDivision: 1
     ActionWindowMs: 100
     StartDelayMs: 2000
