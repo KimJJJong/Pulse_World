@@ -7,16 +7,33 @@ using UnityEngine;
 
 public static class MapExportUtility
 {
+    public const string MenuPath = "RhythmRPG/Editors/World/Export MapAsset to JSON";
     private const string ServerMapJsonRelativePath = "../Server/GameServer/Content/01.Game/Map/Json";
 
-    [MenuItem("RhythmRPG/Editors/World/Export MapAsset to JSON", true)]
+    [MenuItem(MenuPath, true)]
     private static bool Validate()
         => Selection.activeObject is MapAsset;
 
-    [MenuItem("RhythmRPG/Editors/World/Export MapAsset to JSON")]
+    [MenuItem(MenuPath)]
     private static void ExportSelected()
     {
-        var asset = (MapAsset)Selection.activeObject;
+        if (!(Selection.activeObject is MapAsset asset))
+        {
+            Debug.LogWarning("[MapExport] Select a MapAsset in the Project window before exporting.");
+            return;
+        }
+
+        Export(asset);
+    }
+
+    public static void Export(MapAsset asset)
+    {
+        if (asset == null)
+        {
+            Debug.LogError("[MapExport] Export failed: MapAsset is null.");
+            return;
+        }
+
         string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
         string path = Path.GetFullPath(
             Path.Combine(projectRoot, ServerMapJsonRelativePath, $"{asset.name}.json"));
@@ -62,7 +79,7 @@ public static class MapExportUtility
 
         File.WriteAllText(path, json, Encoding.UTF8);
 
-        Debug.Log($"[MapExport] Exported: {path}");
+        Debug.Log($"[MapExport] Exported mapId='{asset.name}': {path}");
         AssetDatabase.Refresh();
     }
 

@@ -9,6 +9,7 @@ namespace RhythmRPG.Editor.StageBuilder
     {
         private const string ClientStageJsonFolder = "Resources/Data/Stage";
         private const string ServerStageJsonRelativePath = "../Server/GameServer/Content/01.Game/Stage/Json";
+        private const string ServerMapJsonRelativePath = "../Server/GameServer/Content/01.Game/Map/Json";
 
         public static void Export(StageDataSO stage)
         {
@@ -175,6 +176,7 @@ namespace RhythmRPG.Editor.StageBuilder
 
             ExportToFile(clientRuntimePath, finalJson);
             ExportToFile(serverPath, finalJson);
+            WarnIfMapJsonMissing(projectRoot, stage.MapId);
 
             AssetDatabase.Refresh();
             Debug.Log($"<b>[StageExporter]</b> Exported to runtime and server paths for '{stage.MapId}'.");
@@ -190,6 +192,19 @@ namespace RhythmRPG.Editor.StageBuilder
 
             File.WriteAllText(path, content);
             Debug.Log($"<b>[StageExporter]</b> Exported to {path}");
+        }
+
+        private static void WarnIfMapJsonMissing(string projectRoot, string mapId)
+        {
+            string serverMapPath = Path.GetFullPath(
+                Path.Combine(projectRoot, ServerMapJsonRelativePath, $"{mapId}.json"));
+
+            if (File.Exists(serverMapPath))
+                return;
+
+            Debug.LogWarning(
+                $"<b>[StageExporter]</b> Map JSON is missing for '{mapId}': {serverMapPath}. " +
+                "Export a MapAsset whose asset name matches this MapId.");
         }
         
         // --- DTO Definition (Mirrors Server) ---

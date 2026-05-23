@@ -8,25 +8,27 @@
     <!-- Include Three.js via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Lora:ital,wght@0,400;0,600;1,400&family=Rajdhani:wght@600;700&display=swap');
 
         :root {
-            /* Fantasy Color Palette */
-            --bg-color: #1a1515;
-            --fantasy-gold: #e6b955;
-            --fantasy-gold-glow: rgba(230, 185, 85, 0.4);
-            --fantasy-green: #4ade80;
-            --fantasy-red: #f87171;
-            --fantasy-blue: #60a5fa;
-            --magic-cyan: #22d3ee;
+            /* Mossy Ruins & Cyan Crystal Theme Colors */
+            --bg-color: #050807;
+            /* Mossy Dark Stone Plate Gradient */
+            --hud-bg-stone: linear-gradient(135deg, rgba(16, 22, 20, 0.97) 0%, rgba(10, 13, 11, 0.94) 100%);
+            --hud-border-stone: #2e3b33; /* Slate-moss dark border */
+            --hud-cyan: #00f3ff; /* Glowing cyan magic crystal color */
+            --hud-cyan-glow: rgba(0, 243, 255, 0.45);
+            --hud-amber: #ff9e22; /* Warm lantern glow color */
+            --hud-amber-glow: rgba(255, 158, 34, 0.4);
+            
+            --hud-gray-text: #8e9c94; /* Soft sage-green-gray for text */
+            --hud-white-text: #e6f3ed; /* Pale magic parchment white */
+            
+            --fantasy-red: #ff3b3b;
+            --fantasy-green: #00f3ff;
+            --fantasy-blue: #3b82f6;
 
-            --parchment-bg: rgba(40, 35, 30, 0.85);
-            --parchment-border: #6a5a4a;
-
-            --text-main: #fcf8e3;
-            --text-muted: #b8b0a0;
-
-            --bpm: 120;
+            --bpm: 128;
             --beat-duration: calc(60s / var(--bpm));
         }
 
@@ -35,21 +37,12 @@
             margin: 0;
             padding: 0;
             font-family: 'Lora', serif;
-            /* Fantasy readable font */
             user-select: none;
-        }
-
-        h1,
-        h2,
-        h3,
-        .fantasy-heading {
-            font-family: 'Cinzel', serif;
-            /* Classic Fantasy Display Font */
         }
 
         body {
             background-color: var(--bg-color);
-            color: var(--text-main);
+            color: var(--hud-white-text);
             height: 100vh;
             width: 100vw;
             overflow: hidden;
@@ -64,7 +57,6 @@
             width: 100%;
             height: 100%;
             z-index: 1;
-            /* Below UI */
         }
 
         /* UI Layer Overlay */
@@ -76,404 +68,568 @@
             height: 100%;
             z-index: 10;
             pointer-events: none;
-            /* Let clicks pass through empty space */
         }
 
         /* Enable pointer events on interactive elements */
-        .fantasy-panel,
-        .skill-slot,
-        .ui-element {
+        .party-member,
+        .top-center-timeline,
+        .hud-bottom-center,
+        .hud-panel {
             pointer-events: auto;
         }
-
-        /* Fantasy Panel Base */
-        .fantasy-panel {
-            background: var(--parchment-bg);
-            border: 2px solid var(--parchment-border);
-            border-radius: 6px;
-            box-shadow:
-                0 10px 25px rgba(0, 0, 0, 0.7),
-                inset 0 0 15px rgba(0, 0, 0, 0.5),
-                inset 0 0 5px var(--fantasy-gold-glow);
-            position: relative;
-        }
-
-        /* Ornate Corners */
-        .fantasy-panel::before,
-        .fantasy-panel::after {
-            content: '';
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            border: 1px solid var(--fantasy-gold);
-            pointer-events: none;
-        }
-
-        .fantasy-panel::before {
-            top: 2px;
-            left: 2px;
-            border-right: none;
-            border-bottom: none;
-        }
-
-        .fantasy-panel::after {
-            bottom: 2px;
-            right: 2px;
-            border-left: none;
-            border-top: none;
-        }
-
 
         /* Top Left: Party UI */
         .party-ui {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 30px;
+            left: 30px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 14px;
+            z-index: 10;
         }
 
         .party-member {
-            padding: 8px 15px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            min-width: 250px;
-            transform: scale(0.9);
-            transform-origin: left top;
-            opacity: 0.9;
-            transition: opacity 0.3s;
+            gap: 10px;
+            position: relative;
+            opacity: 0.95;
+            transition: opacity 0.2s, transform 0.2s;
         }
 
         .party-member:hover {
             opacity: 1;
+            transform: translateX(6px);
         }
 
-        .portrait {
-            width: 44px;
-            height: 44px;
-            border-radius: 4px;
-            border: 2px solid var(--fantasy-gold);
-            background: #2a2222;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+        /* Hexagonal Character Icon Badge: Dark Mossy Stone & Cyan Glow */
+        .party-hex-badge {
+            width: 52px;
+            height: 46px;
+            background: var(--hud-bg-stone);
+            border: 2px solid var(--hud-border-stone);
             position: relative;
-        }
-
-        .portrait::after {
-            content: '♚';
-            /* Placeholder icon */
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 24px;
-            color: var(--fantasy-gold);
-        }
-
-        .stats-container {
-            flex-grow: 1;
-        }
-
-        .name-level {
             display: flex;
-            justify-content: space-between;
-            font-size: 15px;
-            font-family: 'Cinzel', serif;
-            font-weight: bold;
-            color: var(--fantasy-gold);
-            margin-bottom: 5px;
-            text-shadow: 1px 1px 2px #000;
+            align-items: center;
+            justify-content: center;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7), inset 0 0 10px rgba(0, 0, 0, 0.9);
         }
 
-        .bars {
+        .party-hex-badge::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 1px solid var(--hud-cyan-glow);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            pointer-events: none;
+        }
+
+        .party-icon {
+            font-size: 20px;
+            z-index: 2;
+            filter: drop-shadow(0 0 5px var(--hud-cyan-glow));
+        }
+
+        /* Party Name Card: Mossy Slate and Glowing Cyan Edges */
+        .party-info-bar {
+            width: 190px;
+            height: 44px;
+            background: var(--hud-bg-stone);
+            border: 2px solid var(--hud-border-stone);
+            position: relative;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            justify-content: space-between;
+            padding: 6px 14px;
+            clip-path: polygon(0 0, 92% 0, 100% 25%, 100% 100%, 0 100%);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(0, 0, 0, 0.95);
         }
 
-        .bar-bg {
-            height: 8px;
-            background: #111;
-            border: 1px solid #443;
-            border-radius: 2px;
+        .party-info-bar::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 1px solid rgba(0, 243, 255, 0.15);
+            clip-path: polygon(0 0, 92% 0, 100% 25%, 100% 100%, 0 100%);
+            pointer-events: none;
+        }
+
+        .party-name-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Lora', serif;
+            font-weight: 600;
+            font-size: 13px;
+            line-height: 1;
+            color: var(--hud-white-text);
+        }
+
+        .party-level {
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            color: var(--hud-cyan);
+            font-weight: 700;
+            text-shadow: 0 0 5px var(--hud-cyan-glow);
+        }
+
+        .party-bar-container {
+            height: 5px;
+            background: #090c0a;
+            border: 1px solid #142018;
+            width: 100%;
+            border-radius: 1px;
             overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9);
         }
 
-        .bar-fill {
+        .party-bar-fill {
             height: 100%;
+            background: linear-gradient(90deg, #0f545a, var(--hud-cyan));
+            box-shadow: 0 0 8px var(--hud-cyan-glow);
             transition: width 0.3s ease;
         }
 
-        .hp-fill {
-            background: linear-gradient(90deg, #166534, var(--fantasy-green));
-            width: 100%;
-        }
-
-        .party-member .hp-fill.low {
-            background: linear-gradient(90deg, #7f1d1d, var(--fantasy-red));
-        }
-
-        /* Top Center: Objective & BPM */
+        /* Top Center: Objective & Timeline */
         .top-center-ui {
             position: absolute;
-            top: 20px;
+            top: 30px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        /* Timeline: Chiseled stone block with Cyan energy guide line */
+        .top-center-timeline {
+            background: var(--hud-bg-stone);
+            border: 2px solid var(--hud-border-stone);
+            border-radius: 4px;
+            padding: 8px 24px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            color: var(--hud-white-text);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75), inset 0 0 12px rgba(0, 0, 0, 0.9);
+            position: relative;
+        }
+
+        .top-center-timeline::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 1px solid var(--hud-cyan-glow);
+            border-radius: 2px;
+            pointer-events: none;
+        }
+
+        .location-name {
+            font-size: 15px;
+            letter-spacing: 1.5px;
+            color: var(--hud-white-text);
+            text-shadow: 0 0 6px var(--hud-cyan-glow);
+        }
+
+        .separator {
+            color: var(--hud-border-stone);
+            font-size: 16px;
+        }
+
+        .bpm-text {
+            font-size: 14px;
+            color: var(--hud-gray-text);
+            letter-spacing: 1px;
+        }
+
+        .beat-timeline {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            position: relative;
+            padding: 0 12px;
+            height: 22px;
+            width: 150px;
+        }
+
+        .timeline-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #193836; /* Dark crystal energy conduit */
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        .timeline-node {
+            width: 8px;
+            height: 8px;
+            background: #0d1a18;
+            border: 1px solid var(--hud-border-stone);
+            transform: rotate(45deg);
+            z-index: 2;
+        }
+
+        .timeline-cursor {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            width: 12px;
+            height: 12px;
+            background: var(--hud-cyan);
+            box-shadow: 0 0 12px var(--hud-cyan), 0 0 25px var(--hud-cyan);
+            border: 1px solid #fff;
+            transform: translate(-50%, -50%) rotate(45deg);
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        /* Generic Mossy Stone Frame Panel */
+        .hud-panel {
+            background: var(--hud-bg-stone);
+            border: 2px solid var(--hud-border-stone);
+            border-radius: 4px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75), inset 0 0 12px rgba(0, 0, 0, 0.9);
+            padding: 12px 24px;
+            color: var(--hud-white-text);
+            position: relative;
+        }
+
+        .hud-panel::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 1px solid rgba(0, 243, 255, 0.15);
+            pointer-events: none;
         }
 
         .objective-panel {
-            padding: 12px 30px;
             text-align: center;
-            background: rgba(30, 25, 20, 0.9);
-            border-color: var(--fantasy-gold);
+            width: 290px;
         }
 
         .objective-title {
-            color: var(--fantasy-gold);
             font-family: 'Cinzel', serif;
-            font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 4px;
-            text-shadow: 0 0 8px rgba(230, 185, 85, 0.5);
-            letter-spacing: 2px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--hud-cyan);
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 8px var(--hud-cyan-glow);
         }
 
-        .bpm-display {
-            padding: 6px 20px;
-            font-size: 14px;
+        .objective-desc {
+            font-family: 'Lora', serif;
+            font-size: 13px;
+            color: var(--hud-gray-text);
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .objective-warning {
             font-family: 'Cinzel', serif;
-            color: var(--magic-cyan);
-            letter-spacing: 2px;
-            text-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-radius: 20px;
-            border-color: var(--magic-cyan);
-            background: rgba(0, 20, 30, 0.6);
+            font-size: 11px;
+            color: var(--hud-amber);
+            font-weight: 700;
+            margin-top: 8px;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 6px var(--hud-amber-glow);
         }
 
-        .bpm-pulse-ring {
-            width: 8px;
-            height: 8px;
-            background: var(--magic-cyan);
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--magic-cyan);
-            animation: magicHeartbeat var(--beat-duration) infinite ease-out;
-        }
-
-        /* Bottom Center: Player HP/MP & Skill Deck */
-        .bottom-center-ui {
+        /* Glowing Runic Combo Display */
+        .hud-combo-container {
             position: absolute;
-            bottom: 30px;
+            right: 80px;
+            top: 50%;
+            transform: translateY(-50%) scale(0.9);
+            display: flex;
+            align-items: baseline;
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            color: var(--hud-white-text);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
+        }
+
+        .hud-combo-container.active {
+            opacity: 1;
+            transform: translateY(-50%) scale(1);
+        }
+
+        .hud-combo-container.pop {
+            animation: comboPop 0.2s ease-out;
+        }
+
+        @keyframes comboPop {
+            0% { transform: translateY(-50%) scale(1); }
+            50% { transform: translateY(-50%) scale(1.25); filter: brightness(1.4); }
+            100% { transform: translateY(-50%) scale(1); }
+        }
+
+        .combo-x {
+            font-size: 26px;
+            color: var(--hud-cyan);
+            margin-right: 4px;
+            text-shadow: 0 0 10px var(--hud-cyan-glow);
+        }
+
+        .combo-val {
+            font-size: 68px;
+            color: var(--hud-cyan);
+            line-height: 1;
+            text-shadow: 0 0 25px var(--hud-cyan-glow), 0 0 5px #000;
+        }
+
+        .combo-label {
+            font-size: 15px;
+            margin-left: 10px;
+            letter-spacing: 2px;
+            color: var(--hud-gray-text);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* Bottom Center: Player Status & Skill Deck (Exact Split layout) */
+        .hud-bottom-center {
+            position: absolute;
+            bottom: 35px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
+            align-items: center;
+            gap: 22px;
+            z-index: 10;
+            padding: 12px 24px;
+            background: linear-gradient(180deg, rgba(16, 22, 20, 0.98) 0%, rgba(6, 8, 7, 0.98) 100%);
+            border-radius: 6px;
+            border: 2px solid var(--hud-border-stone);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.95), inset 0 0 15px rgba(0,0,0,0.85);
+        }
+
+        .hud-bottom-center::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 1px solid rgba(0, 243, 255, 0.1);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .skill-container {
+            display: flex;
             flex-direction: column;
             align-items: center;
             gap: 10px;
-            width: 480px;
         }
 
-        /* Player HP/MP Overlay */
-        .player-status-hub {
-            width: 90%;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            padding: 15px 25px;
-            border-bottom: none;
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
-            background: linear-gradient(180deg, rgba(40, 35, 30, 0.9) 0%, rgba(20, 15, 10, 0.95) 100%);
-            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
-        }
-
-        .player-name-plate {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding-bottom: 5px;
-            border-bottom: 1px solid rgba(230, 185, 85, 0.3);
-        }
-
-        .player-hp-text {
-            font-size: 18px;
-            font-family: 'Cinzel', serif;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px #000;
-        }
-
-        .player-hp-bar-bg {
-            height: 20px;
-            background: #0a0a0a;
-            border: 2px solid #332;
-            border-radius: 4px;
+        /* Skill Slot styled in Mossy Stone and Cyan Runes */
+        .skill-slot {
+            width: 74px;
+            height: 74px;
+            background: var(--hud-bg-stone);
+            border: 2px solid var(--hud-border-stone);
+            border-radius: 4px; /* Low-poly square shape */
             position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.95), 0 5px 12px rgba(0, 0, 0, 0.7);
             overflow: hidden;
-            box-shadow: inset 0 2px 8px #000;
         }
 
-        .player-hp-fill {
-            height: 100%;
-            width: 100%;
-            background: linear-gradient(90deg, #15803d, #22c55e);
-            transition: width 0.2s;
+        /* Inner circular runic guide circle */
+        .skill-slot::before {
+            content: '';
+            position: absolute;
+            width: 82%;
+            height: 82%;
+            border: 1px solid rgba(0, 243, 255, 0.15);
+            border-radius: 50%;
+            pointer-events: none;
+            transition: border-color 0.2s;
+        }
+
+        /* 3D corner stone cuts */
+        .skill-slot::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            bottom: 4px;
+            border: 1px dashed rgba(0, 243, 255, 0.08);
+            pointer-events: none;
+        }
+
+        .skill-slot:hover {
+            transform: translateY(-5px) scale(1.04);
+            border-color: var(--hud-cyan);
+            box-shadow: 0 0 18px var(--hud-cyan-glow), inset 0 0 10px rgba(0, 243, 255, 0.15);
+        }
+
+        .skill-slot:hover::before {
+            border-color: rgba(0, 243, 255, 0.55);
+        }
+
+        .skill-icon {
+            font-size: 32px;
+            z-index: 2;
+            transition: transform 0.2s;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.6));
+        }
+
+        .skill-slot:active .skill-icon {
+            transform: scale(0.9);
+        }
+
+        /* Warm Amber Key Indicator (inheriting lantern glow) */
+        .key-indicator {
+            background: #161a18;
+            border: 1px solid var(--hud-border-stone);
+            color: var(--hud-amber);
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 13px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.6);
+            text-shadow: 0 0 6px var(--hud-amber-glow);
+        }
+
+        /* Central Hexagon Status Hub in Mossy Runic Stone */
+        .hud-center-hex {
+            width: 122px;
+            height: 140px;
             position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* BPM Pulse on HP Bar */
-        .player-hp-pulse-overlay {
+        .hex-border-svg-container {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            opacity: 0;
+            z-index: 1;
         }
 
-        .pulse-active .player-hp-pulse-overlay {
-            animation: hpBarPulse var(--beat-duration) ease-out;
-        }
-
-        @keyframes hpBarPulse {
-            0% {
-                transform: translateX(-100%);
-                opacity: 0;
-            }
-
-            30% {
-                opacity: 1;
-            }
-
-            100% {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
-
-        .player-mp-bar-bg {
-            height: 8px;
-            background: #0a0a0a;
-            border: 1px solid #334;
-            border-radius: 2px;
-            overflow: hidden;
-            width: 80%;
-            margin: 0 auto;
-        }
-
-        .player-mp-fill {
+        .hex-gauge-svg {
+            width: 100%;
             height: 100%;
-            width: 100%;
-            background: linear-gradient(90deg, #1d4ed8, #3b82f6);
         }
 
-        /* Skill Deck */
-        .skill-deck {
-            display: flex;
-            gap: 20px;
-            padding: 20px 30px;
-            border-top: 1px solid var(--parchment-border);
-            width: 100%;
-            justify-content: center;
-            background: rgba(20, 15, 10, 0.95);
+        .hex-bg-poly {
+            fill: #090c0b;
+            stroke: var(--hud-border-stone);
+            stroke-width: 4px;
         }
 
-        .skill-slot-container {
+        .hex-gauge-poly {
+            fill: none;
+            stroke: var(--hud-cyan);
+            stroke-width: 4px;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 10px var(--hud-cyan));
+            transition: stroke-dashoffset 0.3s ease;
+        }
+
+        .hex-content {
+            position: relative;
+            z-index: 2;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
-        }
-
-        .skill-label {
-            font-size: 12px;
-            color: var(--fantasy-gold);
-            font-family: 'Cinzel', serif;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .skill-slot {
-            width: 68px;
-            height: 68px;
-            background: #111;
-            border: 2px solid var(--parchment-border);
-            border-radius: 8px;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex;
             justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9), 0 5px 15px rgba(0, 0, 0, 0.7);
-        }
-
-        .skill-slot:hover {
-            transform: translateY(-5px) scale(1.05);
-            border-color: var(--fantasy-gold);
-            box-shadow: 0 0 20px rgba(230, 185, 85, 0.3), inset 0 0 10px rgba(230, 185, 85, 0.1);
-        }
-
-        .skill-slot:active {
-            transform: scale(0.95);
-        }
-
-        .skill-icon {
-            font-size: 32px;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-            z-index: 2;
-        }
-
-        .skill-key {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            background: #222;
-            border: 2px solid var(--fantasy-gold);
-            color: var(--fantasy-gold);
             font-family: 'Cinzel', serif;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 2px 6px;
-            border-radius: 4px;
-            box-shadow: 0 0 5px #000;
-            z-index: 3;
+            color: var(--hud-white-text);
+            text-align: center;
         }
 
-        /* Cooldown overlay */
+        .hex-bpm-label, .hex-hp-label {
+            font-size: 10px;
+            color: var(--hud-gray-text);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .hex-bpm-val {
+            font-size: 25px;
+            font-weight: 700;
+            color: var(--hud-white-text);
+            line-height: 1.1;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+
+        .hex-divider {
+            width: 64px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--hud-border-stone), transparent);
+            margin: 6px 0;
+        }
+
+        .hex-hp-val {
+            font-size: 21px;
+            font-weight: 900;
+            color: var(--hud-cyan);
+            line-height: 1.1;
+            text-shadow: 0 0 10px var(--hud-cyan-glow);
+        }
+
+        /* Cooldown Overlay */
         .cooldown-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.85);
             z-index: 4;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-weight: bold;
-            font-size: 22px;
+            font-weight: 700;
+            font-size: 24px;
             font-family: 'Cinzel', serif;
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-            transition: clip-path 0.1s linear;
+            color: var(--hud-cyan);
         }
 
         .cooldown-text {
-            color: #ccc;
-            text-shadow: 2px 2px 4px black;
+            color: var(--hud-cyan);
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
         }
 
-        /* Hit Text & Combo */
+        /* Judgment feedback texts */
         .combat-feedback {
             position: absolute;
             top: 40%;
@@ -487,7 +643,7 @@
         }
 
         .hit-text {
-            font-size: 52px;
+            font-size: 56px;
             font-family: 'Cinzel', serif;
             font-weight: 900;
             font-style: italic;
@@ -499,173 +655,54 @@
 
         .hit-text.perfect {
             color: #fff;
-            text-shadow: 0 0 15px var(--fantasy-gold), 0 0 30px #fff, 0 5px 10px rgba(0, 0, 0, 0.8);
-            /* Magical aura text */
-            animation: popTextFantasy 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            text-shadow: 0 0 15px var(--hud-cyan), 0 0 30px #fff, 0 5px 12px rgba(0, 0, 0, 0.9);
+            animation: popText 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
         .hit-text.good {
-            color: var(--magic-cyan);
-            text-shadow: 0 0 10px var(--magic-cyan), 0 5px 10px rgba(0, 0, 0, 0.8);
-            animation: popTextFantasy 0.5s ease-out forwards;
+            color: var(--hud-cyan);
+            text-shadow: 0 0 10px var(--hud-cyan), 0 5px 10px rgba(0, 0, 0, 0.9);
+            animation: popText 0.5s ease-out forwards;
         }
 
         .hit-text.miss {
             color: var(--fantasy-red);
-            text-shadow: 0 0 15px var(--fantasy-red), 0 5px 10px rgba(0, 0, 0, 0.8);
+            text-shadow: 0 0 15px var(--fantasy-red), 0 5px 10px rgba(0, 0, 0, 0.9);
             animation: popMissText 0.5s ease-out forwards;
         }
 
-        .combo-counter {
-            font-size: 28px;
-            color: var(--text-muted);
-            font-family: 'Cinzel', serif;
-            font-weight: bold;
-            text-shadow: 0 0 8px #000;
-            opacity: 0;
-            margin-top: 10px;
-            animation: slideUpFade 0.3s forwards;
-        }
-
-        .combo-counter span {
-            font-size: 60px;
-            color: var(--fantasy-gold);
-            text-shadow: 0 0 20px var(--fantasy-gold-glow);
-        }
-
-        /* Animations */
-        @keyframes popTextFantasy {
-            0% {
-                transform: scale(0.5) translateY(30px);
-                opacity: 0;
-                filter: brightness(2);
-            }
-
-            40% {
-                transform: scale(1.3) translateY(-15px);
-                opacity: 1;
-                filter: brightness(1.5);
-            }
-
-            70% {
-                transform: scale(0.95) translateY(0);
-                opacity: 1;
-                filter: brightness(1);
-            }
-
-            100% {
-                transform: scale(1) translateY(0);
-                opacity: 0;
-                filter: brightness(1);
-            }
+        @keyframes popText {
+            0% { transform: scale(0.5) translateY(30px); opacity: 0; filter: brightness(2); }
+            40% { transform: scale(1.2) translateY(-10px); opacity: 1; filter: brightness(1.3); }
+            70% { transform: scale(0.95) translateY(0); opacity: 1; filter: brightness(1); }
+            100% { transform: scale(1) translateY(0); opacity: 0; }
         }
 
         @keyframes popMissText {
-            0% {
-                transform: scale(0.5) translateX(-20px) rotate(-5deg);
-                opacity: 0;
-            }
-
-            50% {
-                transform: scale(1.1) translateX(20px) rotate(5deg);
-                opacity: 1;
-            }
-
-            80% {
-                transform: scale(0.9) translateX(-10px) rotate(-2deg);
-                opacity: 1;
-            }
-
-            100% {
-                transform: scale(1) translateX(0) rotate(0deg);
-                opacity: 0;
-            }
+            0% { transform: scale(0.5) translateX(-20px) rotate(-5deg); opacity: 0; }
+            50% { transform: scale(1.1) translateX(20px) rotate(5deg); opacity: 1; }
+            100% { transform: scale(1) translateX(0) rotate(0deg); opacity: 0; }
         }
 
-        @keyframes slideUpFade {
-            0% {
-                transform: translateY(20px);
-                opacity: 0;
-            }
-
-            100% {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes magicHeartbeat {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 0 10px var(--magic-cyan);
-                opacity: 0.8;
-            }
-
-            15% {
-                transform: scale(1.6);
-                box-shadow: 0 0 25px var(--magic-cyan);
-                opacity: 1;
-            }
-
-            35% {
-                transform: scale(1);
-                box-shadow: 0 0 10px var(--magic-cyan);
-                opacity: 0.8;
-            }
-
-            100% {
-                transform: scale(1);
-                box-shadow: 0 0 10px var(--magic-cyan);
-                opacity: 0.8;
-            }
-        }
-
-        /* Pulse Animation on Skill on Beat */
-        .skill-pulse-active {
-            animation: skillPulseFantasy var(--beat-duration) ease-out;
-        }
-
-        @keyframes skillPulseFantasy {
-            0% {
-                box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9), 0 0 0 0 rgba(230, 185, 85, 0.6);
-                border-color: var(--fantasy-gold);
-            }
-
-            40% {
-                box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9), 0 0 0 10px rgba(230, 185, 85, 0);
-                border-color: var(--parchment-border);
-            }
-
-            100% {
-                box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9), 0 0 0 0 rgba(230, 185, 85, 0);
-                border-color: var(--parchment-border);
-            }
-        }
-
-        /* Screen Beat Highlight - Softer for Fantasy */
+        /* Screen Beat Highlight */
         .screen-flash {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            box-shadow: inset 0 0 0px var(--fantasy-gold);
+            box-shadow: inset 0 0 0px var(--hud-cyan);
             pointer-events: none;
             z-index: 5;
         }
 
         .screen-flash.flash {
-            animation: screenBeatFantasy 0.6s ease-out;
+            animation: screenBeat 0.5s ease-out;
         }
 
-        @keyframes screenBeatFantasy {
-            0% {
-                box-shadow: inset 0 0 60px rgba(230, 185, 85, 0.15);
-            }
-
-            100% {
-                box-shadow: inset 0 0 0px rgba(230, 185, 85, 0);
-            }
+        @keyframes screenBeat {
+            0% { box-shadow: inset 0 0 50px rgba(0, 243, 255, 0.25); }
+            100% { box-shadow: inset 0 0 0px rgba(0, 243, 255, 0); }
         }
 
         .damage-flash {
@@ -674,11 +711,33 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle, transparent 40%, rgba(127, 29, 29, 0.6) 100%);
+            background: radial-gradient(circle, transparent 40%, rgba(255, 59, 59, 0.45) 100%);
             opacity: 0;
             pointer-events: none;
             z-index: 6;
             transition: opacity 0.1s;
+        }
+
+        /* Pulse Animation on Beat */
+        .pulse-active .hud-center-hex {
+            animation: hexPulse var(--beat-duration) ease-out;
+        }
+
+        @keyframes hexPulse {
+            0% { transform: scale(1); }
+            15% { transform: scale(1.05); filter: brightness(1.15); }
+            40% { transform: scale(1); }
+            100% { transform: scale(1); }
+        }
+
+        .skill-pulse-active {
+            animation: skillPulse var(--beat-duration) ease-out;
+        }
+
+        @keyframes skillPulse {
+            0% { border-color: var(--hud-cyan); }
+            40% { border-color: var(--hud-border-stone); }
+            100% { border-color: var(--hud-border-stone); }
         }
     </style>
 </head>
@@ -696,141 +755,179 @@
 
         <!-- Top Left: Party Info -->
         <div class="party-ui">
-            <!-- Party members only, Player moved to bottom -->
-            <div class="fantasy-panel party-member ui-element">
-                <div class="portrait"></div>
-                <div class="stats-container">
-                    <div class="name-level">
-                        <span>Sir Bastian</span>
-                        <span>Lv. 41</span>
+            <!-- Arden -->
+            <div class="party-member ui-element">
+                <div class="party-hex-badge">
+                    <div class="party-icon">🗡️</div>
+                </div>
+                <div class="party-info-bar">
+                    <div class="party-name-row">
+                        <span class="party-name">Arden</span>
+                        <span class="party-level">Lv.32</span>
                     </div>
-                    <div class="bars">
-                        <div class="bar-bg">
-                            <div class="bar-fill hp-fill" style="width: 60%"></div>
-                        </div>
+                    <div class="party-bar-container">
+                        <div class="party-bar-fill" style="width: 80%"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="fantasy-panel party-member ui-element">
-                <div class="portrait" style="border-color: var(--fantasy-red)"></div>
-                <div class="stats-container">
-                    <div class="name-level">
-                        <span>Mage Caelum</span>
-                        <span style="color: var(--fantasy-red)">Lv. 43</span>
+            <!-- Lyra -->
+            <div class="party-member ui-element">
+                <div class="party-hex-badge">
+                    <div class="party-icon">🏹</div>
+                </div>
+                <div class="party-info-bar">
+                    <div class="party-name-row">
+                        <span class="party-name">Lyra</span>
+                        <span class="party-level">Lv.31</span>
                     </div>
-                    <div class="bars">
-                        <div class="bar-bg">
-                            <div class="bar-fill hp-fill low" style="width: 25%;"></div>
-                        </div>
+                    <div class="party-bar-container">
+                        <div class="party-bar-fill" style="width: 70%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kael -->
+            <div class="party-member ui-element">
+                <div class="party-hex-badge">
+                    <div class="party-icon">🪄</div>
+                </div>
+                <div class="party-info-bar">
+                    <div class="party-name-row">
+                        <span class="party-name">Kael</span>
+                        <span class="party-level">Lv.30</span>
+                    </div>
+                    <div class="party-bar-container">
+                        <div class="party-bar-fill" style="width: 60%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mira -->
+            <div class="party-member ui-element">
+                <div class="party-hex-badge">
+                    <div class="party-icon">🛡️</div>
+                </div>
+                <div class="party-info-bar">
+                    <div class="party-name-row">
+                        <span class="party-name">Mira</span>
+                        <span class="party-level">Lv.29</span>
+                    </div>
+                    <div class="party-bar-container">
+                        <div class="party-bar-fill" style="width: 45%"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Top Center: Objective & Map Info -->
+        <!-- Top Center: Objective & Timeline -->
         <div class="top-center-ui">
-            <div class="fantasy-panel objective-panel ui-element">
-                <div class="objective-title">The Grand Citadel</div>
-                <div style="color: var(--text-main); font-size: 14px; font-style: italic;">Defeat the Corrupted Sentinel
+            <!-- Beat Timeline -->
+            <div class="top-center-timeline ui-element">
+                <span class="location-name">Crystal Cavern</span>
+                <span class="separator">|</span>
+                <span class="bpm-text">BPM 128</span>
+                <span class="separator">|</span>
+                <div class="beat-timeline" id="beatTimeline">
+                    <div class="timeline-line"></div>
+                    <div class="timeline-node"></div>
+                    <div class="timeline-node"></div>
+                    <div class="timeline-node"></div>
+                    <div class="timeline-node"></div>
+                    <div class="timeline-node"></div>
+                    <div class="timeline-cursor" id="timelineCursor"></div>
                 </div>
-                <div
-                    style="color: var(--fantasy-red); margin-top: 6px; font-weight: bold; font-size: 13px; font-family: 'Cinzel', serif;">
-                    ⚠️ BEWARE: TILE SHATTER PATTERN</div>
             </div>
 
-            <div class="fantasy-panel bpm-display ui-element" id="bpmDisplay">
-                <div class="bpm-pulse-ring"></div>
-                RHYTHM: 120 BPM
-                <div class="bpm-pulse-ring"></div>
+            <!-- Objective Details (Styled in theme) -->
+            <div class="hud-panel objective-panel ui-element">
+                <div class="objective-title">Dungeon Boss</div>
+                <div class="objective-desc">Defeat the Corrupted Sentinel</div>
+                <div class="objective-warning">⚠️ WARNING: TILE SHATTER PATTERN</div>
             </div>
         </div>
 
         <!-- Combat Feedback Overlay -->
         <div class="combat-feedback" id="combatFeedback">
-            <!-- Rendered via JS -->
+            <!-- Pop feedback via JS -->
         </div>
 
-        <!-- Bottom Center: Player HP & Skill Deck -->
-        <div class="bottom-center-ui" id="playerHub">
+        <!-- Combo Counter on the Right -->
+        <div class="hud-combo-container ui-element" id="hudCombo">
+            <span class="combo-x">x</span>
+            <span class="combo-val" id="comboVal">0</span>
+            <span class="combo-label">COMBO</span>
+        </div>
 
-            <!-- Player Status directly above skills -->
-            <div class="fantasy-panel player-status-hub ui-element">
-                <div class="player-name-plate">
-                    <span class="player-hp-text" style="color: var(--fantasy-gold);">Paladin Astra</span>
-                    <span class="player-hp-text" style="color: #4ade80;" id="hpText">8,450 / 8,450</span>
-                </div>
-                <!-- HP Bar -->
-                <div class="player-hp-bar-bg">
-                    <div class="player-hp-fill" id="playerHpBar">
-                        <!-- Pulse overlay for HP bar -->
-                        <div class="player-hp-pulse-overlay"></div>
+        <!-- Bottom Center: Player HP & Skill Deck (Exact Split layout) -->
+        <div class="hud-bottom-center ui-element" id="playerHub">
+            <!-- Q Skill -->
+            <div class="skill-container">
+                <div class="skill-slot" onclick="useSkill(0, this, 'Cleave')" data-key="Q">
+                    <div class="skill-icon">🗡️</div>
+                    <div class="cooldown-overlay" style="display: none;">
+                        <span class="cooldown-text"></span>
                     </div>
                 </div>
-                <!-- MP/Energy Bar -->
-                <div class="player-mp-bar-bg">
-                    <div class="player-mp-fill"></div>
+                <div class="key-indicator">Q</div>
+            </div>
+
+            <!-- W Skill -->
+            <div class="skill-container">
+                <div class="skill-slot" onclick="useSkill(1, this, 'Roll')" data-key="W">
+                    <div class="skill-icon">👢</div>
+                    <div class="cooldown-overlay" style="display: none;">
+                        <span class="cooldown-text"></span>
+                    </div>
+                </div>
+                <div class="key-indicator">W</div>
+            </div>
+
+            <!-- Central Hexagon Status Hub -->
+            <div class="hud-center-hex">
+                <div class="hex-border-svg-container">
+                    <svg class="hex-gauge-svg" viewBox="0 0 110 126">
+                        <path d="M 55 3 L 107 33 L 107 93 L 55 123 L 3 93 L 3 33 Z" class="hex-bg-poly" />
+                        <path d="M 55 3 L 107 33 L 107 93 L 55 123 L 3 93 L 3 33 Z" class="hex-gauge-poly" id="hexGauge" pathLength="100" style="stroke-dasharray: 100; stroke-dashoffset: 0;" />
+                    </svg>
+                </div>
+                <div class="hex-content">
+                    <div class="hex-bpm-label">BPM</div>
+                    <div class="hex-bpm-val" id="hexBpm">128</div>
+                    <div class="hex-divider"></div>
+                    <div class="hex-hp-label">HP</div>
+                    <div class="hex-hp-val" id="hpPercent">100%</div>
                 </div>
             </div>
 
-            <!-- Skill Deck -->
-            <div class="fantasy-panel skill-deck ui-element">
-                <!-- Weapon -->
-                <div class="skill-slot-container">
-                    <div class="skill-slot" onclick="useSkill(0, this, 'Cleave')" data-key="Q">
-                        <div class="skill-icon">🗡️</div>
-                        <div class="skill-key">Q</div>
-                        <div class="cooldown-overlay" style="display: none;">
-                            <span class="cooldown-text"></span>
-                        </div>
+            <!-- E Skill -->
+            <div class="skill-container">
+                <div class="skill-slot" onclick="useSkill(2, this, 'Aura')" data-key="E">
+                    <div class="skill-icon">💍</div>
+                    <div class="cooldown-overlay" style="display: none;">
+                        <span class="cooldown-text"></span>
                     </div>
-                    <div class="skill-label">Weapon</div>
                 </div>
-
-                <!-- Shoes -->
-                <div class="skill-slot-container">
-                    <div class="skill-slot" onclick="useSkill(1, this, 'Roll')" data-key="W">
-                        <div class="skill-icon">👢</div>
-                        <div class="skill-key">W</div>
-                        <div class="cooldown-overlay" style="display: none;">
-                            <span class="cooldown-text"></span>
-                        </div>
-                    </div>
-                    <div class="skill-label">Shoes</div>
-                </div>
-
-                <!-- Accessory -->
-                <div class="skill-slot-container">
-                    <div class="skill-slot" onclick="useSkill(2, this, 'Aura')" data-key="E">
-                        <div class="skill-icon">💍</div>
-                        <div class="skill-key">E</div>
-                        <div class="cooldown-overlay" style="display: none;">
-                            <span class="cooldown-text"></span>
-                        </div>
-                    </div>
-                    <div class="skill-label">Accessory</div>
-                </div>
-
-                <!-- Hat -->
-                <div class="skill-slot-container">
-                    <div class="skill-slot" onclick="useSkill(3, this, 'Prayer')" data-key="R">
-                        <div class="skill-icon">👑</div>
-                        <div class="skill-key">R</div>
-                        <div class="cooldown-overlay" style="display: none;">
-                            <span class="cooldown-text"></span>
-                        </div>
-                    </div>
-                    <div class="skill-label">Helm</div>
-                </div>
+                <div class="key-indicator">E</div>
             </div>
 
+            <!-- R Skill -->
+            <div class="skill-container">
+                <div class="skill-slot" onclick="useSkill(3, this, 'Prayer')" data-key="R">
+                    <div class="skill-icon">👑</div>
+                    <div class="cooldown-overlay" style="display: none;">
+                        <span class="cooldown-text"></span>
+                    </div>
+                </div>
+                <div class="key-indicator">R</div>
+            </div>
         </div>
     </div>
 
     <!-- MAIN SCRIPT: Logic and 3D Setup -->
     <script>
         // --- 1. GAME DATA & RHYTHM VARIABLES ---
-        const BPM = 120;
+        const BPM = 128;
         const beatInterval = (60 / BPM) * 1000;
         let lastBeatTime = performance.now();
         let comboCount = 0;
@@ -878,33 +975,33 @@
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
             scene = new THREE.Scene();
-            // Fantasy warm/misty fog
-            scene.background = new THREE.Color(0x1a1515);
-            scene.fog = new THREE.FogExp2(0x1a1515, 0.02);
+            // Basalt dark slate background & fog
+            scene.background = new THREE.Color(0x0b0d10);
+            scene.fog = new THREE.FogExp2(0x0b0d10, 0.02);
 
             // Angled top-down camera suited for grid
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 20, 25);
             camera.lookAt(0, 0, -2);
 
-            // --- FANTASY LIGHTING ---
-            const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.3); // Warm ambient
+            // --- AETHERPUNK LIGHTING ---
+            const ambientLight = new THREE.AmbientLight(0x1a2430, 0.5); // Cool cyan-blue ambient
             scene.add(ambientLight);
 
-            const moonLight = new THREE.DirectionalLight(0x9bd4e3, 0.6); // Cool moonlight
-            moonLight.position.set(-15, 20, -10);
-            scene.add(moonLight);
+            const neonLight = new THREE.DirectionalLight(0x06b6d4, 0.8); // Intense neon cyan light
+            neonLight.position.set(-15, 20, -10);
+            scene.add(neonLight);
 
-            const torchLight = new THREE.PointLight(0xffaa00, 1.2, 40); // Warm torchlight
-            torchLight.position.set(10, 15, 10);
-            torchLight.castShadow = true;
-            scene.add(torchLight);
+            const runeLight = new THREE.PointLight(0xe6b955, 1.5, 40); // Runic fantasy gold point light
+            runeLight.position.set(10, 15, 10);
+            runeLight.castShadow = true;
+            scene.add(runeLight);
 
             // --- 1. RIGID GRID TILES (FLOOR) ---
             const tileGeo = new THREE.BoxGeometry(GRID_CELL_SIZE - 0.1, 1, GRID_CELL_SIZE - 0.1);
-            // Stone texture materials
-            const darkStone = new THREE.MeshStandardMaterial({ color: 0x3a3530, roughness: 0.9 });
-            const lightStone = new THREE.MeshStandardMaterial({ color: 0x4a4540, roughness: 0.9 });
+            // Basalt dark slate materials
+            const darkStone = new THREE.MeshStandardMaterial({ color: 0x181c24, roughness: 0.8, metalness: 0.2 });
+            const lightStone = new THREE.MeshStandardMaterial({ color: 0x222834, roughness: 0.8, metalness: 0.2 });
 
             for (let r = 0; r < GRID_ROWS; r++) {
                 tiles[r] = [];
@@ -922,7 +1019,7 @@
 
             // Outer decorative borders
             const borderGeo = new THREE.BoxGeometry((GRID_COLS * GRID_CELL_SIZE) + 1, 1.2, (GRID_ROWS * GRID_CELL_SIZE) + 1);
-            const borderMat = new THREE.MeshStandardMaterial({ color: 0x221c17 });
+            const borderMat = new THREE.MeshStandardMaterial({ color: 0x0f1216, roughness: 0.7, metalness: 0.5 });
             const borderMesh = new THREE.Mesh(borderGeo, borderMat);
             borderMesh.position.set(0, -0.7, 0);
             scene.add(borderMesh);
@@ -952,20 +1049,20 @@
 
             const accGeo = new THREE.SphereGeometry(0.5, 16, 16);
             const accMat = new THREE.MeshStandardMaterial({
-                color: 0x22d3ee, // Magic cyan
-                emissive: 0x22d3ee,
+                color: 0x06b6d4, // Neon cyan
+                emissive: 0x06b6d4,
                 emissiveIntensity: 0.8
             });
             const accMesh = new THREE.Mesh(accGeo, accMat);
 
-            const accLight = new THREE.PointLight(0x22d3ee, 1.5, 8);
+            const accLight = new THREE.PointLight(0x06b6d4, 1.5, 8);
             accMesh.add(accLight);
             accessoryGroup.add(accMesh);
 
             // Add Shrinking Ring for Beat Guide effect
             const ringGeo = new THREE.RingGeometry(0.6, 0.7, 32);
             const ringMat = new THREE.MeshBasicMaterial({
-                color: 0x22d3ee,
+                color: 0x06b6d4,
                 transparent: true,
                 opacity: 0.8,
                 side: THREE.DoubleSide
@@ -1077,6 +1174,23 @@
                 }
             }
 
+            // Smooth Beat Timeline Cursor Animation
+            const timelineCursor = document.getElementById('timelineCursor');
+            if (timelineCursor) {
+                let timeSinceBeat = time - lastBeatTime;
+                let pct = (timeSinceBeat / beatInterval) * 100;
+                let leftPct = Math.min(100, pct);
+                timelineCursor.style.left = leftPct + "%";
+            }
+
+            // Party members' HP fluctuations (Dynamic UI feel)
+            const partyFills = document.querySelectorAll('.party-bar-fill');
+            partyFills.forEach((fill, index) => {
+                const basePct = [80, 70, 60, 45][index];
+                const fluctuation = Math.sin(time * 0.001 + index * 1.5) * 2;
+                fill.style.width = Math.max(0, Math.min(100, basePct + fluctuation)) + "%";
+            });
+
             // Rhythm Check
             if (time - lastBeatTime >= beatInterval) {
                 triggerBeat();
@@ -1093,7 +1207,7 @@
 
         // --- 4. RHYTHM AND UI LOGIC ---
         function triggerBeat() {
-            // Screen edge pulse UI (Fantasy Gold)
+            // Screen edge pulse UI (Cyan Glow)
             const flash = document.getElementById('screenFlash');
             flash.classList.remove('flash');
             void flash.offsetWidth;
@@ -1161,19 +1275,19 @@
             let timeToNextBeat = beatInterval - timeSinceBeat;
             let minDiff = Math.min(timeSinceBeat, timeToNextBeat);
 
-            // Tolerance window
+            // CHALLENGING & FAIR TIMING WINDOWS
             let rawScore = "";
             let moveSteps = 0;
 
-            if (minDiff < 100) {
+            if (minDiff < 60) {
                 rawScore = "Perfect";
                 comboCount++;
                 moveSteps = 2; // Perfect dash moves 2 tiles
 
                 // Heal player slightly on perfect
-                if (playerHp < maxHp) playerHp = Math.min(maxHp, playerHp + 50);
+                if (playerHp < maxHp) playerHp = Math.min(maxHp, playerHp + 250);
 
-            } else if (minDiff < 250) {
+            } else if (minDiff < 120) {
                 rawScore = "Good";
                 comboCount++;
                 moveSteps = 1; // Good dash moves 1 tile
@@ -1183,7 +1297,7 @@
                 moveSteps = 0; // Miss = fail to move
 
                 // Penalty damage on miss
-                playerHp -= 300;
+                playerHp -= 500;
                 flashDamage();
             }
 
@@ -1198,9 +1312,9 @@
                     playerMesh.position.y = startY + 2;
                     setTimeout(() => playerMesh.position.y = startY, 200);
 
-                    // Golden slash effect on boss
+                    // Glowing cyan slash effect on boss
                     if (enemyMesh) {
-                        enemyMesh.material.emissive.setHex(0xe6b955);
+                        enemyMesh.material.emissive.setHex(0x00f0ff);
                         setTimeout(() => enemyMesh.material.emissive.setHex(0x000000), 100);
                     }
                 }
@@ -1216,8 +1330,8 @@
                     highlightPattern(Math.max(0, playerPos.x - 1), 3, 3, 2, 0xaa2222);
                 }
                 else if (index === 2) { // Utility (Aura)
-                    // Emissive glow burst green
-                    playerMesh.material.emissive.setHex(0x4ade80);
+                    // Emissive glow burst cyan
+                    playerMesh.material.emissive.setHex(0x00f0ff);
                     setTimeout(() => playerMesh.material.emissive.setHex(0x000000), 500);
                 }
                 else if (index === 3) { // Buff (Helm/Prayer)
@@ -1236,20 +1350,29 @@
 
         function updateHpBar() {
             if (playerHp <= 0) playerHp = 0;
-            const hpText = document.getElementById('hpText');
-            const hpBar = document.getElementById('playerHpBar');
-
-            hpText.innerText = `${Math.floor(playerHp).toLocaleString()} / ${maxHp.toLocaleString()}`;
+            const hpPercent = document.getElementById('hpPercent');
+            const hexGauge = document.getElementById('hexGauge');
 
             const pct = (playerHp / maxHp) * 100;
-            hpBar.style.width = pct + "%";
+            
+            if (hpPercent) {
+                hpPercent.innerText = `${Math.floor(pct)}%`;
+                if (pct < 30) {
+                    hpPercent.style.color = "var(--fantasy-red)";
+                } else {
+                    hpPercent.style.color = "var(--hud-cyan)";
+                }
+            }
 
-            if (pct < 30) {
-                hpBar.style.background = "linear-gradient(90deg, #7f1d1d, #f87171)";
-                hpText.style.color = "var(--fantasy-red)";
-            } else {
-                hpBar.style.background = "linear-gradient(90deg, #15803d, #22c55e)";
-                hpText.style.color = "var(--fantasy-green)";
+            if (hexGauge) {
+                hexGauge.style.strokeDashoffset = 100 - pct;
+                if (pct < 30) {
+                    hexGauge.style.stroke = "var(--fantasy-red)";
+                    hexGauge.style.filter = "drop-shadow(0 0 6px rgba(255, 59, 59, 0.8))";
+                } else {
+                    hexGauge.style.stroke = "var(--hud-cyan)";
+                    hexGauge.style.filter = "drop-shadow(0 0 6px rgba(0, 240, 255, 0.8))";
+                }
             }
         }
 
@@ -1265,13 +1388,20 @@
 
             container.appendChild(textDiv);
 
-            if (comboCount > 1) {
-                const comboDiv = document.createElement('div');
-                comboDiv.className = 'combo-counter';
-                comboDiv.innerHTML = `<span>${comboCount}</span> COMBO`;
-
-                // clone and append to trigger animation
-                container.appendChild(comboDiv);
+            // Update Right Side Combo Panel
+            const hudCombo = document.getElementById('hudCombo');
+            const comboVal = document.getElementById('comboVal');
+            
+            if (hudCombo && comboVal) {
+                comboVal.innerText = comboCount;
+                if (comboCount > 0) {
+                    hudCombo.classList.add('active');
+                    hudCombo.classList.remove('pop');
+                    void hudCombo.offsetWidth; // trigger reflow
+                    hudCombo.classList.add('pop');
+                } else {
+                    hudCombo.classList.remove('active');
+                }
             }
 
             // Remove after animation

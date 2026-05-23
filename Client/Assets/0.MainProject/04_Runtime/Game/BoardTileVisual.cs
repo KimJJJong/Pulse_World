@@ -11,6 +11,7 @@ public sealed class BoardTileVisual : MonoBehaviour
     [SerializeField] private Renderer warningRenderer;
     [SerializeField] private float topSurfaceOffset = 0.01f;
     [SerializeField] private float warningSurfaceOffset = 0.025f;
+    [SerializeField] private Color topColor = Color.white;
 
     private static Mesh _topSurfaceMesh;
     private static Material _warningOverlayMaterial;
@@ -87,14 +88,21 @@ public sealed class BoardTileVisual : MonoBehaviour
 
     public void SetTopColor(Color color)
     {
-        if (topRenderer == null || !topRenderer.enabled)
+        topColor = color;
+        ApplyTopColor();
+    }
+
+    private void ApplyTopColor()
+    {
+        var renderer = ResolveTopRenderer();
+        if (renderer == null || !renderer.enabled)
             return;
 
         _topBlock ??= new MaterialPropertyBlock();
-        topRenderer.GetPropertyBlock(_topBlock);
-        _topBlock.SetColor("_BaseColor", color);
-        _topBlock.SetColor("_Color", color);
-        topRenderer.SetPropertyBlock(_topBlock);
+        renderer.GetPropertyBlock(_topBlock);
+        _topBlock.SetColor("_BaseColor", topColor);
+        _topBlock.SetColor("_Color", topColor);
+        renderer.SetPropertyBlock(_topBlock);
     }
 
     public void HideTopSurface()
@@ -138,14 +146,33 @@ public sealed class BoardTileVisual : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        ApplyTopColor();
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        ApplyTopColor();
+    }
+#endif
+
+    private Renderer ResolveTopRenderer()
+    {
+        if (topRenderer != null)
+            return topRenderer;
+
+        var existing = transform.Find(TopSurfaceName);
+        if (existing != null)
+            topRenderer = existing.GetComponent<Renderer>();
+
+        return topRenderer;
+    }
+
     private Renderer EnsureTopSurface()
     {
-        if (topRenderer == null)
-        {
-            var existing = transform.Find(TopSurfaceName);
-            if (existing != null)
-                topRenderer = existing.GetComponent<Renderer>();
-        }
+        ResolveTopRenderer();
 
         if (topRenderer == null)
         {

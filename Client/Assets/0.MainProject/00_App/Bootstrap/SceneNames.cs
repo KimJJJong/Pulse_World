@@ -6,6 +6,7 @@ public static class SceneNames
     public const string Game = "Game";
     public const string Game_01 = "Game_01";
     public const string Game_Forest_01 = "Game_Forest_01";
-        public const string TownMap = "TownMap";
+    public const string Game_Forest_Tutorial = "Game_Forest_Tutorial";
+    public const string TownMap = "TownMap";
 
 }

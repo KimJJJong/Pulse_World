@@ -21,6 +21,9 @@ public class HudPresenter : MonoBehaviour
     private string[] _boundSkillIds;
     private RhythmInputController _inputController;
     private int _comboCount;
+    private long _lastComboInputBeat = long.MinValue;
+
+    private const int ComboIdleResetBeats = 3;
 
     void Awake()
     {
@@ -97,6 +100,7 @@ public class HudPresenter : MonoBehaviour
     void Update()
     {
         TryBindInputController();
+        ResetIdleComboIfNeeded();
         RefreshStagePanel();
     }
 
@@ -141,8 +145,6 @@ public class HudPresenter : MonoBehaviour
             return 0;
         });
 
-        Sprite weaponIcon = ResolveWeaponIcon();
-
         // 슬롯 초기화
         // 서버 _activeSkillSlots 구조와 동일:
         //   [0] = 무기 skill_id (H키)
@@ -166,7 +168,7 @@ public class HudPresenter : MonoBehaviour
             var tmpl = itemData.GetEquipment(equipped.TemplateId);
             if (tmpl == null) continue;
 
-            Sprite icon = weaponIcon != null ? weaponIcon : LoadEquipmentIcon(tmpl);
+            Sprite icon = LoadEquipmentIcon(tmpl);
 
             if (tmpl.SlotEnum == EquipmentSlot.Weapon)
             {
@@ -238,7 +240,6 @@ public class HudPresenter : MonoBehaviour
         }
 
         int maxInputSlots = 4;
-        Sprite weaponIcon = ResolveWeaponIcon();
         for (int i = 0; i < maxInputSlots; i++)
         {
             string skillId = activeSkillIds != null && i < activeSkillIds.Count ? activeSkillIds[i] : "";
@@ -249,7 +250,7 @@ public class HudPresenter : MonoBehaviour
             if (string.IsNullOrWhiteSpace(skillId))
                 ClearSlot(uiSlot);
             else
-                SetSlot(uiSlot, weaponIcon != null ? weaponIcon : ResolveSkillIcon(skillId, uiSlot), skillId);
+                SetSlot(uiSlot, ResolveSkillIcon(skillId, uiSlot), skillId);
         }
 
         for (int i = maxInputSlots; i < _skillSlots.Length; i++)
@@ -573,16 +574,36 @@ public class HudPresenter : MonoBehaviour
         _inputController = null;
     }
 
-    private void OnCombatInputAccepted()
+    private void OnCombatInputAccepted(long inputBeat)
     {
+        _lastComboInputBeat = inputBeat;
         _comboCount++;
         _comboView?.SetCombo(_comboCount);
     }
 
     private void OnCombatInputMissed()
     {
+        _lastComboInputBeat = long.MinValue;
         _comboCount = 0;
         _comboView?.ResetCombo();
+    }
+
+    private void ResetIdleComboIfNeeded()
+    {
+        if (_comboCount <= 0 || _lastComboInputBeat == long.MinValue || RhythmClient.Instance == null)
+            return;
+
+        long currentBeat = RhythmClient.Instance.GetCurrentBeatIndex();
+        if (currentBeat < _lastComboInputBeat)
+            return;
+
+        if (currentBeat - _lastComboInputBeat >= ComboIdleResetBeats)
+            OnCombatInputMissed();
+    }
+
+    public void BreakCombo()
+    {
+        OnCombatInputMissed();
     }
 
     private void OnSkillSlotInputAccepted(int slotIndex, string skillId)
@@ -631,13 +652,17 @@ public class HudPresenter : MonoBehaviour
 
             int actorId = actorIds[i];
             int hp = 0;
+            int maxHp = 0;
             if (gs.TryGetEntity(actorId, out var info))
+            {
                 hp = info.Hp;
+                maxHp = info.MaxHp;
+            }
 
             panel.SetMember(
                 ResolvePartyMemberName(gs, actorId),
                 hp,
-                100,
+                maxHp,
                 actorId == gs.MyActorId);
         }
     }
@@ -735,7 +760,7 @@ public class HudPresenter : MonoBehaviour
     {
         if (_view == null) return;
 
-        int maxHp = 100;
+        int maxHp = me.MaxHp > 0 ? me.MaxHp : Mathf.Max(1, me.Hp);
         int hp = me.Hp;
         float hpRate = (maxHp <= 0) ? 0f : (float)hp / maxHp;
 

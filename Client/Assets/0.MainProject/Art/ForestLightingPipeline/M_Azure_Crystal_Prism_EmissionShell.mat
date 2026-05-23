@@ -30,7 +30,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Alpha: 0.52
+    - _Alpha: 0.49
     - _BaseStrength: 0.2
     - _FresnelPower: 1.28
     - _FresnelStrength: 1.05

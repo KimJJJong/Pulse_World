@@ -30,14 +30,14 @@ public class BeatPulse : MonoBehaviour
             float u = Mathf.Clamp01(_t / pulseDuration);
             // 빠르게 튀고 빠르게 돌아오는 곡선(간단한 ease-out/in)
             float pop = 1f + (pulseScale - 1f) * (1f - u) * (1f - u); // 초반 강, 후반 약
-            hud.SetFrameScale(pop);
+            hud.SetPulseScale(pop);
 
             float a = glowPeakAlpha * (1f - u);
             hud.SetGlowAlpha(a);
         }
         else
         {
-            hud.SetFrameScale(1f);
+            hud.SetPulseScale(1f);
             hud.SetGlowAlpha(0f);
         }
     }

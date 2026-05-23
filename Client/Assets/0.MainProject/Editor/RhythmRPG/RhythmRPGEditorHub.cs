@@ -85,7 +85,9 @@ public sealed class RhythmRPGEditorHub : EditorWindow
             if (GUILayout.Button(tool.Label, GUILayout.Height(28)))
             {
                 if (!EditorApplication.ExecuteMenuItem(tool.MenuPath))
-                    Debug.LogWarning($"[RhythmRPGEditorHub] Menu item not found: {tool.MenuPath}");
+                    Debug.LogWarning(
+                        $"[RhythmRPGEditorHub] Menu item unavailable or missing: {tool.MenuPath}. " +
+                        "Some tools require a valid current selection.");
             }
         }
 

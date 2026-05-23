@@ -4,8 +4,6 @@ using UnityEngine.UI;
 
 public class PartyMemberPanelView : MonoBehaviour
 {
-    private const int DefaultMaxHp = 100;
-
     [SerializeField] private Image hpFill;
     [SerializeField] private TextMeshProUGUI nameText;
     [SerializeField] private TextMeshProUGUI hpText;
@@ -14,7 +12,7 @@ public class PartyMemberPanelView : MonoBehaviour
     {
         gameObject.SetActive(true);
 
-        int safeMaxHp = maxHp > 0 ? maxHp : DefaultMaxHp;
+        int safeMaxHp = maxHp > 0 ? maxHp : Mathf.Max(1, hp);
         int safeHp = Mathf.Clamp(hp, 0, safeMaxHp);
 
         if (hpFill != null)

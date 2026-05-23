@@ -137,7 +137,7 @@ public static class TimeSync
         {
             // 지터가 30ms 이상 튀면 오프셋 반영 가중치를 1/10 로 대폭 줄여서 시간을 안정적으로 유지합니다.
             currentSmoothing *= 0.1f;
-            Debug.Log($"[TimeSync_SpikeFilter] Jitter detected! rtt={rttMs}ms (Est={EstimatedRttMs:F0}ms). Smoothing reduced to {currentSmoothing:F3}");
+            //Debug.Log($"[TimeSync_SpikeFilter] Jitter detected! rtt={rttMs}ms (Est={EstimatedRttMs:F0}ms). Smoothing reduced to {currentSmoothing:F3}");
         }
         else if (rttMs < EstimatedRttMs)
         {

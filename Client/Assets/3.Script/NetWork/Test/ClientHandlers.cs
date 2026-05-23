@@ -383,6 +383,14 @@ public class ClientHandlers : MonoBehaviour
             // 1) 이동/행동 반영
             GS.OnBeatAction(action);
 
+            if (a.ActorId == GS.MyActorId
+                && !a.Accepted
+                && (a.ActionKind == (int)ActionKind.Attack || a.ActionKind == (int)ActionKind.Skill)
+                && P2PDebugConfig.TraceCombat)
+            {
+                Debug.Log($"[ClientHandlers] Combat execution rejected after local rhythm input. kind={(ActionKind)a.ActionKind} beat={p.BeatIndex}");
+            }
+
             // 2) HP 업데이트 반영 및 데미지 타이밍 추적
             if (a.hpUpdates != null && a.hpUpdates.Count > 0)
             {

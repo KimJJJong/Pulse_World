@@ -18,13 +18,14 @@ MonoBehaviour:
     PreviewColor: {r: 0.42, g: 0.62, b: 0.16, a: 1}
     SetupSourceTexture: {fileID: 2800000, guid: 9be94ce2cee59d6489e2e13f2e063e41, type: 3}
     SetupColumns: 8
-    SetupRows: 8
+    SetupRows: 6
     SetupTileWidth: 256
     SetupTileHeight: 256
     SetupMarginX: 0
     SetupMarginY: 0
     SetupSpacingX: 0
     SetupSpacingY: 0
+    SetupSourceCellCrops: []
     DefaultMaterial: {fileID: 0}
     DefaultPrefab: {fileID: 0}
     Variants: []
@@ -40,6 +41,7 @@ MonoBehaviour:
     SetupMarginY: 0
     SetupSpacingX: 0
     SetupSpacingY: 0
+    SetupSourceCellCrops: []
     DefaultMaterial: {fileID: 0}
     DefaultPrefab: {fileID: 0}
     Variants: []
@@ -55,6 +57,7 @@ MonoBehaviour:
     SetupMarginY: 0
     SetupSpacingX: 0
     SetupSpacingY: 0
+    SetupSourceCellCrops: []
     DefaultMaterial: {fileID: 0}
     DefaultPrefab: {fileID: 0}
     Variants: []
@@ -70,6 +73,7 @@ MonoBehaviour:
     SetupMarginY: 0
     SetupSpacingX: 0
     SetupSpacingY: 0
+    SetupSourceCellCrops: []
     DefaultMaterial: {fileID: 0}
     DefaultPrefab: {fileID: 0}
     Variants: []
@@ -85,177 +89,385 @@ MonoBehaviour:
     SetupMarginY: 0
     SetupSpacingX: 0
     SetupSpacingY: 0
+    SetupSourceCellCrops: []
     DefaultMaterial: {fileID: 0}
     DefaultPrefab: {fileID: 0}
     Variants: []
   - Kind: 6
     DisplayName: Carpet
     PreviewColor: {r: 0.68, g: 0.18, b: 0.36, a: 1}
-    SetupSourceTexture: {fileID: 2800000, guid: dc1d4289cec9c6942b4219a6ec7d2bb7, type: 3}
+    SetupSourceTexture: {fileID: 2800000, guid: 1c629d2f72303f042bedb622eb8ec575, type: 3}
     SetupColumns: 8
-    SetupRows: 8
-    SetupTileWidth: 181
-    SetupTileHeight: 181
-    SetupMarginX: 0
-    SetupMarginY: 0
+    SetupRows: 6
+    SetupTileWidth: 256
+    SetupTileHeight: 256
+    SetupMarginX: 5
+    SetupMarginY: 5
     SetupSpacingX: 0
     SetupSpacingY: 0
+    SetupSourceCellCrops:
+    - SourceCell: 47
+      TrimLeft: 0
+      TrimRight: 0
+      TrimTop: 5
+      TrimBottom: 3
     DefaultMaterial: {fileID: 2100000, guid: 55746305a58629844adee51a848825cc, type: 2}
     DefaultPrefab: {fileID: 0}
     Variants:
     - Mask: 0
-      Material: {fileID: 2100000, guid: 1e8917754f5c3fb4a9d20a284c0a672a, type: 2}
+      Material: {fileID: 2100000, guid: ea55fa986ef342944afba494d130176b, type: 2}
       Prefab: {fileID: 0}
     - Mask: 1
-      Material: {fileID: 2100000, guid: 6c9ab44565058dd43bdc0e0a98aab74a, type: 2}
+      Material: {fileID: 2100000, guid: 9e4184bac50fc43438787aef678984bf, type: 2}
       Prefab: {fileID: 0}
     - Mask: 2
-      Material: {fileID: 2100000, guid: b75781f18ba26214b91402a5595bc98a, type: 2}
+      Material: {fileID: 2100000, guid: a8dd863affadc424bbaa61fa1bee2968, type: 2}
       Prefab: {fileID: 0}
     - Mask: 3
-      Material: {fileID: 2100000, guid: 92e27d9e56aafc34e9db48c565be74bb, type: 2}
+      Material: {fileID: 2100000, guid: 47b3509e691830f46b7c6e3cf55e232f, type: 2}
       Prefab: {fileID: 0}
     - Mask: 4
-      Material: {fileID: 2100000, guid: b146160f168eae54fb4d4fa3ceb47467, type: 2}
+      Material: {fileID: 2100000, guid: 79783cd415282ef4fb419d7845219575, type: 2}
       Prefab: {fileID: 0}
     - Mask: 5
-      Material: {fileID: 2100000, guid: 125b8f98001113a44b0fee14d3f1aa4e, type: 2}
+      Material: {fileID: 2100000, guid: e88d398b240e7454388a9367701ae6db, type: 2}
       Prefab: {fileID: 0}
     - Mask: 6
-      Material: {fileID: 2100000, guid: 55b46cdfdb057294bb94f09e92651e70, type: 2}
+      Material: {fileID: 2100000, guid: a7f610450d1a62841a07a2aab8b99046, type: 2}
       Prefab: {fileID: 0}
     - Mask: 7
-      Material: {fileID: 2100000, guid: fd17a7d4cdf835b41b7029f7fc18a9ab, type: 2}
+      Material: {fileID: 2100000, guid: d904a94469d595b4cb13dfbdf7f8deda, type: 2}
       Prefab: {fileID: 0}
     - Mask: 8
-      Material: {fileID: 2100000, guid: 23da71e8ec4e0cf4ba0e88d17565f61f, type: 2}
+      Material: {fileID: 2100000, guid: 5971ae0008dd6af4fa5bf4f9b8bc1e61, type: 2}
       Prefab: {fileID: 0}
     - Mask: 9
-      Material: {fileID: 2100000, guid: 848a1cf07d0bff74fa61ff47bb6c1d1c, type: 2}
+      Material: {fileID: 2100000, guid: d582c8ae9a5cef64eb8689265c804165, type: 2}
       Prefab: {fileID: 0}
     - Mask: 10
-      Material: {fileID: 2100000, guid: 3d175aed206480440a6527753d936a61, type: 2}
+      Material: {fileID: 2100000, guid: 70e11a1583ac4544dab1327b8e72813c, type: 2}
       Prefab: {fileID: 0}
     - Mask: 11
-      Material: {fileID: 2100000, guid: 26b512fc2bfef8a44ac11c29eac1faf7, type: 2}
+      Material: {fileID: 2100000, guid: a422fa03a86bcc742b0e1514d190255e, type: 2}
       Prefab: {fileID: 0}
     - Mask: 12
-      Material: {fileID: 2100000, guid: 213959a976f032d4dbc4ab34a84e9af0, type: 2}
+      Material: {fileID: 2100000, guid: 226a721bbff7b624b8aaabd62ce48375, type: 2}
       Prefab: {fileID: 0}
     - Mask: 13
-      Material: {fileID: 2100000, guid: fcefebb40e662384eb4a94f89e4d5619, type: 2}
+      Material: {fileID: 2100000, guid: 2e19cab7143859c4bb7a21c94245c15c, type: 2}
       Prefab: {fileID: 0}
     - Mask: 14
-      Material: {fileID: 2100000, guid: 4721017978e03ef45927306189ae0827, type: 2}
+      Material: {fileID: 2100000, guid: 87c8a4ba8295cd342b44bf448c723c5e, type: 2}
       Prefab: {fileID: 0}
     - Mask: 15
-      Material: {fileID: 2100000, guid: 051e82062340d054980c7f9617a2322a, type: 2}
+      Material: {fileID: 2100000, guid: 8fa33b0d69e41454b86485f8ed626ae3, type: 2}
       Prefab: {fileID: 0}
     - Mask: 19
-      Material: {fileID: 2100000, guid: 66be206d3cbbdea42b9f319c5c7c31aa, type: 2}
+      Material: {fileID: 2100000, guid: 976a7a26d1bb56447943bb45c39482f3, type: 2}
       Prefab: {fileID: 0}
     - Mask: 23
-      Material: {fileID: 2100000, guid: 3eb40d8fc6d4db5498f95579fee7980f, type: 2}
+      Material: {fileID: 2100000, guid: 7e4b0bdd107dd1c4dbedb21b5a31febb, type: 2}
       Prefab: {fileID: 0}
     - Mask: 27
-      Material: {fileID: 2100000, guid: ace12a6914f3f8b4196833cf092b3515, type: 2}
+      Material: {fileID: 2100000, guid: 694a1f2cd35c46c488de6eb6efe1902a, type: 2}
       Prefab: {fileID: 0}
     - Mask: 31
-      Material: {fileID: 2100000, guid: 53be0d20bdb96c54da5493b2a01a33a1, type: 2}
+      Material: {fileID: 2100000, guid: 3ec1c800ce7fd4746ac1fba0a3a90599, type: 2}
       Prefab: {fileID: 0}
     - Mask: 38
-      Material: {fileID: 2100000, guid: 190c78f8bc94a514390d491405b83b35, type: 2}
+      Material: {fileID: 2100000, guid: 36a5af6c77ab6ce4b89b69946ba35849, type: 2}
       Prefab: {fileID: 0}
     - Mask: 39
-      Material: {fileID: 2100000, guid: aeed907c99922a54e996cee8fb018cbd, type: 2}
+      Material: {fileID: 2100000, guid: 26646c7bf734eb34fb4b4cab0c54920c, type: 2}
       Prefab: {fileID: 0}
     - Mask: 46
-      Material: {fileID: 2100000, guid: 5802ee9005b2d0a48b320b87f00be40e, type: 2}
+      Material: {fileID: 2100000, guid: 90345d89815efc14693b53e6d4e896e2, type: 2}
       Prefab: {fileID: 0}
     - Mask: 47
-      Material: {fileID: 2100000, guid: bbbce61f99c469d47b50747f329dfa22, type: 2}
+      Material: {fileID: 2100000, guid: 7f54621af972fa145b14b16406bedead, type: 2}
       Prefab: {fileID: 0}
     - Mask: 55
-      Material: {fileID: 2100000, guid: b7ed09a4c1152154d8cb4deae960681c, type: 2}
+      Material: {fileID: 2100000, guid: 1ec6c81159397144ab739f0ea5178583, type: 2}
       Prefab: {fileID: 0}
     - Mask: 63
-      Material: {fileID: 2100000, guid: 385c0a62447439a4081bc38887eefed4, type: 2}
+      Material: {fileID: 2100000, guid: 46c52eb8f5b889f478f4d5f550e89ccf, type: 2}
       Prefab: {fileID: 0}
     - Mask: 76
-      Material: {fileID: 2100000, guid: 02bc50652be2ceb40b3b243db45d42ec, type: 2}
+      Material: {fileID: 2100000, guid: 61ce2bb75aaccdf478eed4931c538106, type: 2}
       Prefab: {fileID: 0}
     - Mask: 77
-      Material: {fileID: 2100000, guid: 1a46a037eacf3cb44ae81df26dd44b74, type: 2}
+      Material: {fileID: 2100000, guid: bac9f28592c49554e885fc19178123be, type: 2}
       Prefab: {fileID: 0}
     - Mask: 78
-      Material: {fileID: 2100000, guid: e081465e67f50a143a0d594ff7d702b4, type: 2}
+      Material: {fileID: 2100000, guid: 563a60e4fd6eb244b8a08fa98129d572, type: 2}
       Prefab: {fileID: 0}
     - Mask: 79
-      Material: {fileID: 2100000, guid: eecb7a7ff91ef814da6e0daeea716aca, type: 2}
+      Material: {fileID: 2100000, guid: 5eabdff53e14e1e4d8c56c68e9ea534f, type: 2}
       Prefab: {fileID: 0}
     - Mask: 95
-      Material: {fileID: 2100000, guid: e43198c8c23d1cc4db5482b3d694b94e, type: 2}
+      Material: {fileID: 2100000, guid: 0c488d2aa9022b8428c9b3739214e789, type: 2}
       Prefab: {fileID: 0}
     - Mask: 110
-      Material: {fileID: 2100000, guid: 13c517c8a748d4146b0cf2b794ec58d4, type: 2}
+      Material: {fileID: 2100000, guid: ceb06457a46f62244a6950c113b183c4, type: 2}
       Prefab: {fileID: 0}
     - Mask: 111
-      Material: {fileID: 2100000, guid: 654c38372e5561e4b93cd4ba4370944f, type: 2}
+      Material: {fileID: 2100000, guid: 4dc90ab0b7cc69d4b9ae2d3aaeeff54f, type: 2}
       Prefab: {fileID: 0}
     - Mask: 127
-      Material: {fileID: 2100000, guid: e25de2a31362bb14ca0a4fd35e08d954, type: 2}
+      Material: {fileID: 2100000, guid: c2bc5ec014cf08243968b5b2be316758, type: 2}
       Prefab: {fileID: 0}
     - Mask: 137
-      Material: {fileID: 2100000, guid: fa0571ec1796111478fdbe9927e0e0e1, type: 2}
+      Material: {fileID: 2100000, guid: 555f7e5e516f51c4bbc9d284a47ec859, type: 2}
       Prefab: {fileID: 0}
     - Mask: 139
-      Material: {fileID: 2100000, guid: 7c25f6fb18c8a6b45a1fd5b81ea0c6f4, type: 2}
+      Material: {fileID: 2100000, guid: 4a42010c99d0f4d4197388a5491d141b, type: 2}
       Prefab: {fileID: 0}
     - Mask: 141
-      Material: {fileID: 2100000, guid: f2fa804e154d99f4ab57123144087870, type: 2}
+      Material: {fileID: 2100000, guid: 6a4f8221ebbb15b4581ffe788191384f, type: 2}
       Prefab: {fileID: 0}
     - Mask: 143
-      Material: {fileID: 2100000, guid: f419cd1b4db024b4f83d47254548ce6e, type: 2}
+      Material: {fileID: 2100000, guid: 02dd593875781cb43925f83bf5ddfe9a, type: 2}
       Prefab: {fileID: 0}
     - Mask: 155
-      Material: {fileID: 2100000, guid: 625a54866b33b0e4fbade113abe0d98b, type: 2}
+      Material: {fileID: 2100000, guid: 764b4ce066bc8aa42a3061ddceece0b8, type: 2}
       Prefab: {fileID: 0}
     - Mask: 159
-      Material: {fileID: 2100000, guid: 6f48bf34b5adf6041880bee4c8ef6d43, type: 2}
+      Material: {fileID: 2100000, guid: b99aed9ab72c7e64aab5225be1f5f891, type: 2}
       Prefab: {fileID: 0}
     - Mask: 175
-      Material: {fileID: 2100000, guid: 1c0c8cafdae457f4a96f27d6d2fc56f0, type: 2}
+      Material: {fileID: 2100000, guid: b8328b66fe049e0409e6b9c88c63c103, type: 2}
       Prefab: {fileID: 0}
     - Mask: 191
-      Material: {fileID: 2100000, guid: fe510b8cb60e25648becc3ff28008767, type: 2}
+      Material: {fileID: 2100000, guid: 901cdd5d18ae74543986b31c8b9b558b, type: 2}
       Prefab: {fileID: 0}
     - Mask: 205
-      Material: {fileID: 2100000, guid: 87fff5f022a2ea54487f56bbf6b85e33, type: 2}
+      Material: {fileID: 2100000, guid: d9becff1f98ad5947943157bdaf3f4c2, type: 2}
       Prefab: {fileID: 0}
     - Mask: 207
-      Material: {fileID: 2100000, guid: c11457fc9ec785e47963407ad00309d0, type: 2}
+      Material: {fileID: 2100000, guid: bfa4f41be0bffb4488c8367b0d15334f, type: 2}
       Prefab: {fileID: 0}
     - Mask: 223
-      Material: {fileID: 2100000, guid: 784f33d1b72d00d419715069b8447b35, type: 2}
+      Material: {fileID: 2100000, guid: e5d5cf15387fe5c4b9f1c33bc26d427e, type: 2}
       Prefab: {fileID: 0}
     - Mask: 239
-      Material: {fileID: 2100000, guid: 0336fd6bbdb78d14ab060519a8b3c836, type: 2}
+      Material: {fileID: 2100000, guid: 8fbe3ed4e465e7649a7b5cd274b9b34d, type: 2}
       Prefab: {fileID: 0}
     - Mask: 255
-      Material: {fileID: 2100000, guid: a619d5932b424fe4cbb4ef53e0cf9f14, type: 2}
+      Material: {fileID: 2100000, guid: 1e1ffc596b2496f45bde571cc1833193, type: 2}
       Prefab: {fileID: 0}
   - Kind: 7
     DisplayName: Flower Bed
     PreviewColor: {r: 0.86, g: 0.52, b: 0.18, a: 1}
-    SetupSourceTexture: {fileID: 2800000, guid: dc1d4289cec9c6942b4219a6ec7d2bb7, type: 3}
+    SetupSourceTexture: {fileID: 2800000, guid: 398602ac33330c241aba173ed0fe9f09, type: 3}
     SetupColumns: 8
-    SetupRows: 8
-    SetupTileWidth: 181
-    SetupTileHeight: 181
-    SetupMarginX: 2
-    SetupMarginY: 2
-    SetupSpacingX: 2
-    SetupSpacingY: 2
+    SetupRows: 6
+    SetupTileWidth: 256
+    SetupTileHeight: 256
+    SetupMarginX: 0
+    SetupMarginY: 0
+    SetupSpacingX: 0
+    SetupSpacingY: 0
+    SetupSourceCellCrops:
+    - SourceCell: 2
+      TrimLeft: 4
+      TrimRight: 65
+      TrimTop: 0
+      TrimBottom: 0
+    - SourceCell: 3
+      TrimLeft: 0
+      TrimRight: 5
+      TrimTop: 0
+      TrimBottom: 0
+    - SourceCell: 4
+      TrimLeft: 3
+      TrimRight: 0
+      TrimTop: 0
+      TrimBottom: 0
+    - SourceCell: 8
+      TrimLeft: 0
+      TrimRight: 4
+      TrimTop: 0
+      TrimBottom: 0
+    - SourceCell: 9
+      TrimLeft: 0
+      TrimRight: 3
+      TrimTop: 0
+      TrimBottom: 0
+    - SourceCell: 12
+      TrimLeft: 0
+      TrimRight: 4
+      TrimTop: 4
+      TrimBottom: 0
+    - SourceCell: 13
+      TrimLeft: 0
+      TrimRight: 3
+      TrimTop: 0
+      TrimBottom: 0
+    - SourceCell: 14
+      TrimLeft: 0
+      TrimRight: 0
+      TrimTop: 5
+      TrimBottom: 0
+    - SourceCell: 16
+      TrimLeft: 0
+      TrimRight: 8
+      TrimTop: 10
+      TrimBottom: 0
+    - SourceCell: 17
+      TrimLeft: 3
+      TrimRight: 0
+      TrimTop: 11
+      TrimBottom: 0
+    - SourceCell: 18
+      TrimLeft: 11
+      TrimRight: 4
+      TrimTop: 8
+      TrimBottom: 5
+    - SourceCell: 19
+      TrimLeft: 9
+      TrimRight: 4
+      TrimTop: 7
+      TrimBottom: 0
+    - SourceCell: 20
+      TrimLeft: 6
+      TrimRight: 3
+      TrimTop: 9
+      TrimBottom: 7
+    - SourceCell: 21
+      TrimLeft: 9
+      TrimRight: 1
+      TrimTop: 4
+      TrimBottom: 2
+    - SourceCell: 22
+      TrimLeft: 7
+      TrimRight: 3
+      TrimTop: 10
+      TrimBottom: 4
+    - SourceCell: 23
+      TrimLeft: 2
+      TrimRight: 0
+      TrimTop: 0
+      TrimBottom: 0
+    - SourceCell: 24
+      TrimLeft: 5
+      TrimRight: 10
+      TrimTop: 10
+      TrimBottom: 5
+    - SourceCell: 25
+      TrimLeft: 6
+      TrimRight: 4
+      TrimTop: 10
+      TrimBottom: 0
+    - SourceCell: 26
+      TrimLeft: 3
+      TrimRight: 4
+      TrimTop: 2
+      TrimBottom: 0
+    - SourceCell: 27
+      TrimLeft: 7
+      TrimRight: 5
+      TrimTop: 2
+      TrimBottom: 0
+    - SourceCell: 28
+      TrimLeft: 12
+      TrimRight: 7
+      TrimTop: 11
+      TrimBottom: 3
+    - SourceCell: 29
+      TrimLeft: 6
+      TrimRight: 4
+      TrimTop: 8
+      TrimBottom: 4
+    - SourceCell: 30
+      TrimLeft: 0
+      TrimRight: 5
+      TrimTop: 4
+      TrimBottom: 0
+    - SourceCell: 31
+      TrimLeft: 5
+      TrimRight: 4
+      TrimTop: 8
+      TrimBottom: 2
+    - SourceCell: 32
+      TrimLeft: 9
+      TrimRight: 4
+      TrimTop: 12
+      TrimBottom: 0
+    - SourceCell: 33
+      TrimLeft: 0
+      TrimRight: 8
+      TrimTop: 0
+      TrimBottom: 5
+    - SourceCell: 34
+      TrimLeft: 8
+      TrimRight: 3
+      TrimTop: 1
+      TrimBottom: 5
+    - SourceCell: 35
+      TrimLeft: 4
+      TrimRight: 5
+      TrimTop: 3
+      TrimBottom: 5
+    - SourceCell: 36
+      TrimLeft: 3
+      TrimRight: 6
+      TrimTop: 3
+      TrimBottom: 4
+    - SourceCell: 37
+      TrimLeft: 4
+      TrimRight: 9
+      TrimTop: 3
+      TrimBottom: 3
+    - SourceCell: 38
+      TrimLeft: 2
+      TrimRight: 4
+      TrimTop: 6
+      TrimBottom: 0
+    - SourceCell: 39
+      TrimLeft: 5
+      TrimRight: 3
+      TrimTop: 3
+      TrimBottom: 5
+    - SourceCell: 40
+      TrimLeft: 4
+      TrimRight: 8
+      TrimTop: 6
+      TrimBottom: 2
+    - SourceCell: 41
+      TrimLeft: 5
+      TrimRight: 3
+      TrimTop: 2
+      TrimBottom: 0
+    - SourceCell: 42
+      TrimLeft: 0
+      TrimRight: 5
+      TrimTop: 8
+      TrimBottom: 4
+    - SourceCell: 43
+      TrimLeft: 4
+      TrimRight: 11
+      TrimTop: 11
+      TrimBottom: 2
+    - SourceCell: 44
+      TrimLeft: 5
+      TrimRight: 6
+      TrimTop: 9
+      TrimBottom: 0
+    - SourceCell: 45
+      TrimLeft: 2
+      TrimRight: 8
+      TrimTop: 9
+      TrimBottom: 3
+    - SourceCell: 46
+      TrimLeft: 4
+      TrimRight: 5
+      TrimTop: 6
+      TrimBottom: 6
+    - SourceCell: 47
+      TrimLeft: 6
+      TrimRight: 3
+      TrimTop: 7
+      TrimBottom: 6
     DefaultMaterial: {fileID: 2100000, guid: f7785fa07654ccd43a2f99fb5e44febc, type: 2}
     DefaultPrefab: {fileID: 0}
     Variants:
@@ -412,6 +624,7 @@ MonoBehaviour:
     SetupMarginY: 0
     SetupSpacingX: 0
     SetupSpacingY: 0
+    SetupSourceCellCrops: []
     DefaultMaterial: {fileID: 0}
     DefaultPrefab: {fileID: 0}
     Variants:
@@ -568,6 +781,7 @@ MonoBehaviour:
     SetupMarginY: 0
     SetupSpacingX: 0
     SetupSpacingY: 0
+    SetupSourceCellCrops: []
     DefaultMaterial: {fileID: 2100000, guid: f40b5173d23d4f846b795cff26384b04, type: 2}
     DefaultPrefab: {fileID: 0}
     Variants:

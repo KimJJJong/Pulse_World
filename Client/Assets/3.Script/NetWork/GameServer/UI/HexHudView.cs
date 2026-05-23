@@ -26,9 +26,6 @@ public class HexHudView : MonoBehaviour
             hpFill.color = fillColor;
         }
 
-        if (hpGlow != null)
-            hpGlow.fillAmount = fillRate;
-
         if (hpText != null)
             hpText.text = $"{hp}/{maxHp}";
     }
@@ -56,7 +53,11 @@ public class HexHudView : MonoBehaviour
     {
         if (hpFrame == null) return;
         hpFrame.rectTransform.localScale = Vector3.one * s;
-        if (hpGlow != null)
-            hpGlow.rectTransform.localScale = Vector3.one * s;
+    }
+
+    public void SetPulseScale(float s)
+    {
+        if (hpGlow == null) return;
+        hpGlow.rectTransform.localScale = Vector3.one * s;
     }
 }

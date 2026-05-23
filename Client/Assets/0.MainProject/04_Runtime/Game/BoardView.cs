@@ -27,10 +27,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     private Color[,] _baseTileColors;
     private Color[,] _logicTileColors;
+    private TileKind[,] _logicTileKinds;
     private AppearanceTileCell[,] _appearanceTiles;
     private Material _defaultTileBaseMaterial;
 
     private static readonly Color TELEGRAPH_COLOR = new Color(1f, 0.08f, 0f, 0.45f);
+    private static readonly Color WALL_APPEARANCE_TINT = new Color(1.25f, 1.25f, 1.25f, 1f);
 
     private const int MaxPredictedMovesPerActor = 8;
 
@@ -143,6 +145,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         _tiles = new GameObject[width, height];
         _baseTileColors = new Color[width, height];
         _logicTileColors = new Color[width, height];
+        _logicTileKinds = new TileKind[width, height];
         _appearanceTiles = new AppearanceTileCell[width, height];
 
         for (int y = 0; y < height; y++)
@@ -181,6 +184,13 @@ public class BoardView : MonoBehaviour, IClientWorldView
         return Color.Lerp(baseColor, Color.white, connectionWeight * 0.12f);
     }
 
+    public Color GetAppearanceTileTint(int tileKind)
+    {
+        return (TileKind)tileKind == TileKind.Wall
+            ? WALL_APPEARANCE_TINT
+            : Color.white;
+    }
+
     private Renderer GetTileRenderer(GameObject tile)
     {
         var visual = GetTileVisual(tile);
@@ -215,6 +225,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         if (_logicTileColors != null)
             _logicTileColors[x, y] = GetTileColor(tileKind);
+        if (_logicTileKinds != null)
+            _logicTileKinds[x, y] = (TileKind)tileKind;
 
         ApplyTileVisual(x, y, updateTopSurface: false);
     }
@@ -264,6 +276,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (tile == null) return;
 
         Color logicColor = _logicTileColors != null ? _logicTileColors[x, y] : Color.gray;
+        TileKind logicKind = _logicTileKinds != null ? _logicTileKinds[x, y] : TileKind.None;
         AppearanceTileCell appearance = _appearanceTiles != null ? _appearanceTiles[x, y] : default;
         Color finalColor = ComposeTileColor(logicColor, appearance);
 
@@ -279,6 +292,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
             {
                 visual.SetBaseColor(logicColor);
                 visual.SetTopMaterial(material);
+                visual.SetTopColor(GetAppearanceTileTint((int)logicKind));
             }
             else
             {
@@ -475,6 +489,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         _tiles = new GameObject[width, height];
         _baseTileColors = new Color[width, height];
         _logicTileColors = new Color[width, height];
+        _logicTileKinds = new TileKind[width, height];
         _appearanceTiles = new AppearanceTileCell[width, height];
     }
 
@@ -970,6 +985,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         _tiles = null;
         _baseTileColors = null;
         _logicTileColors = null;
+        _logicTileKinds = null;
         _appearanceTiles = null;
     }
 

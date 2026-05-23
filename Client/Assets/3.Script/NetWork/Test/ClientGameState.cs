@@ -361,6 +361,7 @@ public class ClientGameState : MonoBehaviour
             Debug.LogWarning($"[ClientGameState] Spawn Warning: Map size not set yet. ID={info.EntityId}");
         }
 
+        info = ResolveMaxHp(info);
         _entities[info.EntityId] = info;
 
         if (P2PDebugConfig.LogOverheadEnabled && info.EntityType == (int)EntityType.Player)
@@ -382,6 +383,7 @@ public class ClientGameState : MonoBehaviour
 
     public void UpdateEntityState(ClientEntityInfo info, bool refreshWorldView = true)
     {
+        info = ResolveMaxHp(info);
         _entities[info.EntityId] = info;
         if (refreshWorldView)
             WorldView?.OnSpawnOrUpdateEntity(info);
@@ -395,6 +397,22 @@ public class ClientGameState : MonoBehaviour
         WorldView?.OnDespawnEntity(entityId);
         PartyStateChanged?.Invoke();
         return true;
+    }
+
+    private ClientEntityInfo ResolveMaxHp(ClientEntityInfo info)
+    {
+        if (info.MaxHp > 0)
+            return info;
+
+        if (_entities.TryGetValue(info.EntityId, out var previous) && previous.MaxHp > 0)
+        {
+            info.MaxHp = previous.MaxHp;
+            return info;
+        }
+
+        // Current packets do not carry MaxHp. Keep the first positive HP snapshot as the HUD baseline.
+        info.MaxHp = Mathf.Max(0, info.Hp);
+        return info;
     }
 
     #endregion
@@ -489,6 +507,7 @@ public struct ClientEntityInfo
     public int Y;
     public float Rotation;
     public int Hp;
+    public int MaxHp;
 }
 
 public struct ClientBeatAction

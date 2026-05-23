@@ -117,6 +117,7 @@ public sealed class AppearanceAutoTileDefinition
     [Min(0)] public int SetupMarginY;
     [Min(0)] public int SetupSpacingX;
     [Min(0)] public int SetupSpacingY;
+    public AppearanceAutoTileSourceCellCrop[] SetupSourceCellCrops = Array.Empty<AppearanceAutoTileSourceCellCrop>();
     public Material DefaultMaterial;
     public GameObject DefaultPrefab;
     public AppearanceAutoTileVariant[] Variants = Array.Empty<AppearanceAutoTileVariant>();
@@ -150,6 +151,16 @@ public sealed class AppearanceAutoTileDefinition
 
         return DefaultPrefab;
     }
+}
+
+[Serializable]
+public sealed class AppearanceAutoTileSourceCellCrop
+{
+    [Min(0)] public int SourceCell;
+    [Min(0)] public int TrimLeft;
+    [Min(0)] public int TrimRight;
+    [Min(0)] public int TrimTop;
+    [Min(0)] public int TrimBottom;
 }
 
 [Serializable]

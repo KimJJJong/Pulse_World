@@ -719,11 +719,18 @@
         <div class="panel">
             <div class="panel-header">
                 <div class="panel-title"><span></span> 실시간 앙상블 리듬 그리드 (8마디, 4/4 박자)</div>
-                <div class="info-badge">STAGE: Game_Jazz_01</div>
+                <div class="info-badge" id="valStageBadge">STAGE: Game_Jazz_01_Lounge</div>
             </div>
 
             <!-- Controls row (BPM, Master volume, Preset selector) -->
             <div class="controls-row">
+                <div class="control-group">
+                    <label>STAGE SELECT (시나리오)</label>
+                    <select class="select-instrument" id="selectStage" style="width: 220px; color: var(--glow-cyan); border-color: rgba(0, 240, 255, 0.4);">
+                        <option value="lounge">Midnight Lounge (Game_Jazz_01)</option>
+                        <option value="climax">⚔️ Boss Battle Climax (Game_Jazz_02)</option>
+                    </select>
+                </div>
                 <div class="control-group">
                     <label>ENSEMBLE PRESET (장르)</label>
                     <select class="select-instrument" id="selectPreset" style="width: 200px; color: var(--glow-gold); border-color: rgba(255, 170, 0, 0.4);">
@@ -888,8 +895,8 @@
 
     <script>
         // --- 1. Stage Data JSON Definition ---
-        const STAGE_DATA = {
-            "StageId": "Game_Jazz_01",
+        const STAGE_DATA_LOUNGE = {
+            "StageId": "Game_Jazz_01_Lounge",
             "Bpm": 110,
             "TimeSignatureNum": 4,
             "TimeSignatureDenom": 4,
@@ -1043,34 +1050,310 @@
             ]
         };
 
+        const STAGE_DATA_CLIMAX = {
+            "StageId": "Game_Jazz_02_Climax",
+            "Bpm": 140,
+            "TimeSignatureNum": 4,
+            "TimeSignatureDenom": 4,
+            "TicksPerBeat": 480,
+            "Blocks": [
+                {
+                    "BlockId": "Jazz_Combat_Loop",
+                    "LengthMeasures": 8,
+                    "DefaultNextBlock": "Jazz_Combat_Loop",
+                    "OverrideBpm": 0,
+                    "ChordEvents": [
+                        { "MeasureIndex": 0, "Tick": 0, "RootNote": "C", "ChordType": "Minor9", "PitchOffset": 0 },
+                        { "MeasureIndex": 1, "Tick": 0, "RootNote": "Ab", "ChordType": "Dominant7#11", "PitchOffset": -4 },
+                        { "MeasureIndex": 2, "Tick": 0, "RootNote": "D", "ChordType": "HalfDiminished7", "PitchOffset": 2 },
+                        { "MeasureIndex": 3, "Tick": 0, "RootNote": "G", "ChordType": "Dominant7Alt", "PitchOffset": 7 },
+                        { "MeasureIndex": 4, "Tick": 0, "RootNote": "C", "ChordType": "Minor9", "PitchOffset": 0 },
+                        { "MeasureIndex": 5, "Tick": 0, "RootNote": "F", "ChordType": "Dominant7", "PitchOffset": 5 },
+                        { "MeasureIndex": 6, "Tick": 0, "RootNote": "F", "ChordType": "Minor7", "PitchOffset": 5 },
+                        { "MeasureIndex": 6, "Tick": 960, "RootNote": "Bb", "ChordType": "Dominant7", "PitchOffset": 10 },
+                        { "MeasureIndex": 7, "Tick": 0, "RootNote": "Db", "ChordType": "Major7", "PitchOffset": 1 },
+                        { "MeasureIndex": 7, "Tick": 960, "RootNote": "G", "ChordType": "Dominant7Alt", "PitchOffset": 7 }
+                    ],
+                    "BassPattern": [
+                        // Measure 0 (Cm9) - 격렬한 베이스 리프와 엇박
+                        { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Bass_C2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 0, "Tick": 240, "SoundKey": "Bass_C3", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 0, "Tick": 480, "SoundKey": "Bass_G2", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 720, "SoundKey": "Bass_Eb2", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 0, "Tick": 960, "SoundKey": "Bass_C2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 0, "Tick": 1200, "SoundKey": "Bass_Eb3", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "Bass_D3", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 0, "Tick": 1680, "SoundKey": "Bass_Db3", "VolumeMultiplier": 0.8 },
+                        
+                        { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Piano_Cm9", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 0, "Tick": 360, "SoundKey": "Piano_Cm9", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 0, "Tick": 720, "SoundKey": "Piano_Cm9", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "Piano_Cm9", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Sax_C5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 0, "Tick": 240, "SoundKey": "Sax_Bb4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 480, "SoundKey": "Sax_G4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 720, "SoundKey": "Sax_F4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 960, "SoundKey": "Sax_G4", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 0, "Tick": 1200, "SoundKey": "Sax_Bb4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "Sax_C5", "VolumeMultiplier": 1.0 },
+                        
+                        { "MeasureIndex": 0, "Tick": 120, "SoundKey": "Guitar_C4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 0, "Tick": 360, "SoundKey": "Guitar_Eb4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 0, "Tick": 600, "SoundKey": "Guitar_G4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 0, "Tick": 1080, "SoundKey": "Guitar_Bb4", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 0, "Tick": 1320, "SoundKey": "Guitar_C5", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Trumpet_C5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 720, "SoundKey": "Trumpet_Eb5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "Trumpet_G5", "VolumeMultiplier": 0.95 },
+
+                        // Measure 1 (Ab7#11)
+                        { "MeasureIndex": 1, "Tick": 0, "SoundKey": "Bass_Ab2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 1, "Tick": 240, "SoundKey": "Bass_Gb2", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 1, "Tick": 480, "SoundKey": "Bass_C3", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 1, "Tick": 720, "SoundKey": "Bass_Eb3", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 1, "Tick": 960, "SoundKey": "Bass_D3", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 1, "Tick": 1200, "SoundKey": "Bass_Db3", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 1, "Tick": 1440, "SoundKey": "Bass_C3", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 1, "Tick": 1680, "SoundKey": "Bass_Bb2", "VolumeMultiplier": 0.85 },
+                        
+                        { "MeasureIndex": 1, "Tick": 240, "SoundKey": "Piano_Ab7#11", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 1, "Tick": 960, "SoundKey": "Piano_Ab7#11", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 1, "Tick": 1440, "SoundKey": "Piano_Ab7#11", "VolumeMultiplier": 0.8 },
+                        
+                        { "MeasureIndex": 1, "Tick": 0, "SoundKey": "Sax_D5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 1, "Tick": 240, "SoundKey": "Sax_C5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 1, "Tick": 480, "SoundKey": "Sax_Bb4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 1, "Tick": 720, "SoundKey": "Sax_Ab4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 1, "Tick": 960, "SoundKey": "Sax_Gb4", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 1, "Tick": 1200, "SoundKey": "Sax_F4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 1, "Tick": 1440, "SoundKey": "Sax_D4", "VolumeMultiplier": 1.0 },
+                        
+                        { "MeasureIndex": 1, "Tick": 120, "SoundKey": "Guitar_D4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 1, "Tick": 360, "SoundKey": "Guitar_Gb4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 1, "Tick": 720, "SoundKey": "Guitar_Ab4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 1, "Tick": 1080, "SoundKey": "Guitar_C5", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 1, "Tick": 480, "SoundKey": "Trumpet_D5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 1, "Tick": 1200, "SoundKey": "Trumpet_Ab5", "VolumeMultiplier": 0.9 },
+
+                        // Measure 2 (Dm7b5)
+                        { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Bass_D2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 2, "Tick": 240, "SoundKey": "Bass_F2", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 2, "Tick": 480, "SoundKey": "Bass_Ab2", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 2, "Tick": 720, "SoundKey": "Bass_C3", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 2, "Tick": 960, "SoundKey": "Bass_D3", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 2, "Tick": 1200, "SoundKey": "Bass_F3", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 2, "Tick": 1440, "SoundKey": "Bass_Ab3", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 2, "Tick": 1680, "SoundKey": "Bass_G3", "VolumeMultiplier": 0.85 },
+                        
+                        { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Piano_Dm7b5", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 2, "Tick": 360, "SoundKey": "Piano_Dm7b5", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 2, "Tick": 720, "SoundKey": "Piano_Dm7b5", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 2, "Tick": 1080, "SoundKey": "Piano_Dm7b5", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Sax_F4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 2, "Tick": 240, "SoundKey": "Sax_Ab4", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 2, "Tick": 480, "SoundKey": "Sax_C5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 2, "Tick": 720, "SoundKey": "Sax_D5", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 2, "Tick": 960, "SoundKey": "Sax_F5", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 2, "Tick": 1200, "SoundKey": "Sax_D5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 2, "Tick": 1440, "SoundKey": "Sax_C5", "VolumeMultiplier": 0.9 },
+                        
+                        { "MeasureIndex": 2, "Tick": 120, "SoundKey": "Guitar_F4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 2, "Tick": 360, "SoundKey": "Guitar_Ab4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 2, "Tick": 600, "SoundKey": "Guitar_C5", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 2, "Tick": 1200, "SoundKey": "Guitar_D5", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Trumpet_F5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 2, "Tick": 960, "SoundKey": "Trumpet_Ab5", "VolumeMultiplier": 0.95 },
+
+                        // Measure 3 (G7alt)
+                        { "MeasureIndex": 3, "Tick": 0, "SoundKey": "Bass_G2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 3, "Tick": 240, "SoundKey": "Bass_B2", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 3, "Tick": 480, "SoundKey": "Bass_D3", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 3, "Tick": 720, "SoundKey": "Bass_F3", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 3, "Tick": 960, "SoundKey": "Bass_Ab3", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 3, "Tick": 1200, "SoundKey": "Bass_G3", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 3, "Tick": 1440, "SoundKey": "Bass_F3", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 3, "Tick": 1680, "SoundKey": "Bass_Eb3", "VolumeMultiplier": 0.85 },
+                        
+                        { "MeasureIndex": 3, "Tick": 240, "SoundKey": "Piano_G7alt", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 3, "Tick": 720, "SoundKey": "Piano_G7alt", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 3, "Tick": 1440, "SoundKey": "Piano_G7alt", "VolumeMultiplier": 0.8 },
+                        
+                        { "MeasureIndex": 3, "Tick": 0, "SoundKey": "Sax_Ab5", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 3, "Tick": 240, "SoundKey": "Sax_G5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 3, "Tick": 480, "SoundKey": "Sax_F5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 3, "Tick": 720, "SoundKey": "Sax_Eb5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 3, "Tick": 960, "SoundKey": "Sax_D5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 3, "Tick": 1200, "SoundKey": "Sax_B4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 3, "Tick": 1440, "SoundKey": "Sax_Ab4", "VolumeMultiplier": 0.85 },
+                        
+                        { "MeasureIndex": 3, "Tick": 120, "SoundKey": "Guitar_B3", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 3, "Tick": 360, "SoundKey": "Guitar_D4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 3, "Tick": 600, "SoundKey": "Guitar_F4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 3, "Tick": 1080, "SoundKey": "Guitar_Ab4", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 3, "Tick": 480, "SoundKey": "Trumpet_Ab5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 3, "Tick": 720, "SoundKey": "Trumpet_G5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 3, "Tick": 1440, "SoundKey": "Trumpet_F5", "VolumeMultiplier": 0.9 },
+
+                        // Measure 4 (Cm9 Climax)
+                        { "MeasureIndex": 4, "Tick": 0, "SoundKey": "Bass_C2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 4, "Tick": 240, "SoundKey": "Bass_Eb2", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 4, "Tick": 480, "SoundKey": "Bass_G2", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 4, "Tick": 720, "SoundKey": "Bass_Bb2", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 4, "Tick": 960, "SoundKey": "Bass_C3", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 4, "Tick": 1200, "SoundKey": "Bass_Eb3", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 4, "Tick": 1440, "SoundKey": "Bass_G3", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 4, "Tick": 1680, "SoundKey": "Bass_Gb3", "VolumeMultiplier": 0.85 },
+                        
+                        { "MeasureIndex": 4, "Tick": 0, "SoundKey": "Piano_Cm9", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 4, "Tick": 360, "SoundKey": "Piano_Cm9", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 4, "Tick": 720, "SoundKey": "Piano_Cm9", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 4, "Tick": 1440, "SoundKey": "Piano_Cm9", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 4, "Tick": 0, "SoundKey": "Sax_C5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 4, "Tick": 240, "SoundKey": "Sax_D5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 4, "Tick": 480, "SoundKey": "Sax_Eb5", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 4, "Tick": 720, "SoundKey": "Sax_G5", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 4, "Tick": 960, "SoundKey": "Sax_C6", "VolumeMultiplier": 1.05 },
+                        { "MeasureIndex": 4, "Tick": 1440, "SoundKey": "Sax_Bb5", "VolumeMultiplier": 0.95 },
+                        
+                        { "MeasureIndex": 4, "Tick": 120, "SoundKey": "Guitar_Eb4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 4, "Tick": 480, "SoundKey": "Guitar_G4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 4, "Tick": 960, "SoundKey": "Guitar_Bb4", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 4, "Tick": 1440, "SoundKey": "Guitar_Eb5", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 4, "Tick": 0, "SoundKey": "Trumpet_C5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 4, "Tick": 480, "SoundKey": "Trumpet_Eb5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 4, "Tick": 960, "SoundKey": "Trumpet_G5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 4, "Tick": 1440, "SoundKey": "Trumpet_C6", "VolumeMultiplier": 1.0 },
+
+                        // Measure 5 (F7 Alt)
+                        { "MeasureIndex": 5, "Tick": 0, "SoundKey": "Bass_F2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 5, "Tick": 240, "SoundKey": "Bass_A2", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 5, "Tick": 480, "SoundKey": "Bass_C3", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 5, "Tick": 720, "SoundKey": "Bass_Eb3", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 5, "Tick": 960, "SoundKey": "Bass_F3", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 5, "Tick": 1200, "SoundKey": "Bass_A3", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 5, "Tick": 1440, "SoundKey": "Bass_C4", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 5, "Tick": 1680, "SoundKey": "Bass_B3", "VolumeMultiplier": 0.85 },
+                        
+                        { "MeasureIndex": 5, "Tick": 240, "SoundKey": "Piano_F7", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 5, "Tick": 960, "SoundKey": "Piano_F7", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 5, "Tick": 1440, "SoundKey": "Piano_F7", "VolumeMultiplier": 0.8 },
+                        
+                        { "MeasureIndex": 5, "Tick": 0, "SoundKey": "Sax_A5", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 5, "Tick": 240, "SoundKey": "Sax_G5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 5, "Tick": 480, "SoundKey": "Sax_F5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 5, "Tick": 720, "SoundKey": "Sax_Eb5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 5, "Tick": 960, "SoundKey": "Sax_C5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 5, "Tick": 1440, "SoundKey": "Sax_A4", "VolumeMultiplier": 0.85 },
+                        
+                        { "MeasureIndex": 5, "Tick": 120, "SoundKey": "Guitar_C4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 5, "Tick": 480, "SoundKey": "Guitar_Eb4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 5, "Tick": 960, "SoundKey": "Guitar_F4", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 5, "Tick": 1440, "SoundKey": "Guitar_A4", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 5, "Tick": 480, "SoundKey": "Trumpet_A5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 5, "Tick": 1200, "SoundKey": "Trumpet_Eb5", "VolumeMultiplier": 0.9 },
+
+                        // Measure 6 (Fm7 -> Bb7) - 2박씩 빠르게 코드 전환
+                        { "MeasureIndex": 6, "Tick": 0, "SoundKey": "Bass_F2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 6, "Tick": 480, "SoundKey": "Bass_Ab2", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 6, "Tick": 960, "SoundKey": "Bass_Bb2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 6, "Tick": 1440, "SoundKey": "Bass_D3", "VolumeMultiplier": 0.9 },
+                        
+                        { "MeasureIndex": 6, "Tick": 0, "SoundKey": "Piano_Fm7", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 6, "Tick": 480, "SoundKey": "Piano_Fm7", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 6, "Tick": 960, "SoundKey": "Piano_Bb7", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 6, "Tick": 1440, "SoundKey": "Piano_Bb7", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 6, "Tick": 0, "SoundKey": "Sax_Ab5", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 6, "Tick": 480, "SoundKey": "Sax_F5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 6, "Tick": 960, "SoundKey": "Sax_D5", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 6, "Tick": 1440, "SoundKey": "Sax_C5", "VolumeMultiplier": 0.95 },
+                        
+                        { "MeasureIndex": 6, "Tick": 240, "SoundKey": "Guitar_Ab4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 6, "Tick": 720, "SoundKey": "Guitar_F4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 6, "Tick": 1200, "SoundKey": "Guitar_D4", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 6, "Tick": 0, "SoundKey": "Trumpet_F5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 6, "Tick": 960, "SoundKey": "Trumpet_D5", "VolumeMultiplier": 0.9 },
+
+                        // Measure 7 (Dbmaj7 -> G7alt)
+                        { "MeasureIndex": 7, "Tick": 0, "SoundKey": "Bass_Db3", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 7, "Tick": 480, "SoundKey": "Bass_F3", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 7, "Tick": 960, "SoundKey": "Bass_G2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 7, "Tick": 1440, "SoundKey": "Bass_Ab2", "VolumeMultiplier": 0.9 },
+                        
+                        { "MeasureIndex": 7, "Tick": 0, "SoundKey": "Piano_Dbmaj7", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 7, "Tick": 480, "SoundKey": "Piano_Dbmaj7", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 7, "Tick": 960, "SoundKey": "Piano_G7alt", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 7, "Tick": 1440, "SoundKey": "Piano_G7alt", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 7, "Tick": 0, "SoundKey": "Sax_F5", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 7, "Tick": 480, "SoundKey": "Sax_Db5", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 7, "Tick": 960, "SoundKey": "Sax_B4", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 7, "Tick": 1440, "SoundKey": "Sax_Ab4", "VolumeMultiplier": 0.95 },
+                        
+                        { "MeasureIndex": 7, "Tick": 240, "SoundKey": "Guitar_F4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 7, "Tick": 720, "SoundKey": "Guitar_Db4", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 7, "Tick": 1200, "SoundKey": "Guitar_B3", "VolumeMultiplier": 0.75 },
+                        
+                        { "MeasureIndex": 7, "Tick": 0, "SoundKey": "Trumpet_Db5", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 7, "Tick": 960, "SoundKey": "Trumpet_G5", "VolumeMultiplier": 0.95 }
+                    ]
+                }
+            ]
+        };
+
+        let STAGE_DATA = STAGE_DATA_LOUNGE;
+
         // --- 2. Frequency Tables & Chord Maps ---
         const FREQ_MAP = {
             "Bass_C2": 65.41, "Bass_D2": 73.42, "Bass_Eb2": 77.78, "Bass_F2": 87.31,
             "Bass_G2": 98.00, "Bass_Gb2": 92.50, "Bass_Ab2": 103.83, "Bass_A2": 110.00,
             "Bass_Bb2": 116.54, "Bass_B2": 123.47, "Bass_C3": 130.81, "Bass_Db3": 138.59,
             "Bass_D3": 146.83, "Bass_Eb3": 155.56, "Bass_E3": 164.81, "Bass_F3": 174.61,
+            "Bass_Gb3": 185.00, "Bass_G3": 196.00, "Bass_Ab3": 207.65, "Bass_A3": 220.00,
+            "Bass_Bb3": 233.08, "Bass_B3": 246.94, "Bass_C4": 261.63,
 
             "Sax_C4": 261.63, "Sax_D4": 293.66, "Sax_Eb4": 311.13, "Sax_F4": 349.23,
-            "Sax_G4": 392.00, "Sax_A4": 440.00, "Sax_Bb4": 466.16, "Sax_B4": 493.88,
-            "Sax_C5": 523.25, "Sax_D5": 587.33,
+            "Sax_Gb4": 369.99, "Sax_G4": 392.00, "Sax_Ab4": 415.30, "Sax_A4": 440.00,
+            "Sax_Bb4": 466.16, "Sax_B4": 493.88, "Sax_C5": 523.25, "Sax_Db5": 554.37,
+            "Sax_D5": 587.33, "Sax_Eb5": 622.25, "Sax_F5": 698.46, "Sax_Gb5": 739.99,
+            "Sax_G5": 783.99, "Sax_Ab5": 830.61, "Sax_A5": 880.00, "Sax_Bb5": 932.33,
+            "Sax_C6": 1046.50,
 
-            "Guitar_Bb3": 233.08, "Guitar_C4": 261.63, "Guitar_D4": 293.66, "Guitar_Eb4": 311.13,
-            "Guitar_F4": 349.23, "Guitar_G4": 392.00, "Guitar_Ab4": 415.30, "Guitar_A4": 440.00,
-            "Guitar_Bb4": 466.16,
+            "Guitar_Bb3": 233.08, "Guitar_B3": 246.94, "Guitar_C4": 261.63, "Guitar_Db4": 277.18,
+            "Guitar_D4": 293.66, "Guitar_Eb4": 311.13, "Guitar_F4": 349.23, "Guitar_Gb4": 369.99,
+            "Guitar_G4": 392.00, "Guitar_Ab4": 415.30, "Guitar_A4": 440.00, "Guitar_Bb4": 466.16,
+            "Guitar_C5": 523.25, "Guitar_D5": 587.33, "Guitar_Eb5": 622.25,
 
-            "Trumpet_Bb4": 466.16, "Trumpet_C5": 523.25, "Trumpet_D5": 587.33,
-            "Trumpet_Eb5": 622.25, "Trumpet_F5": 698.46, "Trumpet_G5": 783.99, "Trumpet_Ab5": 830.61
+            "Trumpet_Bb4": 466.16, "Trumpet_C5": 523.25, "Trumpet_Db5": 554.37, "Trumpet_D5": 587.33,
+            "Trumpet_Eb5": 622.25, "Trumpet_F5": 698.46, "Trumpet_G5": 783.99, "Trumpet_Ab5": 830.61,
+            "Trumpet_A5": 880.00, "Trumpet_C6": 1046.50
         };
 
         const CHORD_NOTES = {
             "Piano_Cm7": [130.81, 155.56, 196.00, 233.08], // C3, Eb3, G3, Bb3
+            "Piano_Cm9": [130.81, 155.56, 196.00, 233.08, 293.66], // C3, Eb3, G3, Bb3, D4
             "Piano_F7": [174.61, 220.00, 261.63, 311.13],  // F3, A3, C4, Eb4
+            "Piano_Fm7": [174.61, 207.65, 261.63, 311.13], // F3, Ab3, C4, Eb4
+            "Piano_Bb7": [233.08, 293.66, 349.23, 415.30], // Bb3, D4, F4, Ab4
             "Piano_Bbmaj7": [116.54, 146.83, 174.61, 220.00], // Bb2, D3, F3, A3
             "Piano_Ebmaj7": [155.56, 196.00, 233.08, 293.66], // Eb3, G3, Bb3, D4
             "Piano_Abmaj7": [207.65, 261.63, 311.13, 392.00], // Ab3, C4, Eb4, G4
+            "Piano_Ab7#11": [207.65, 246.94, 311.13, 349.23], // Ab3, C4, Eb4, F4
             "Piano_Dm7b5": [146.83, 174.61, 207.65, 261.63],  // D3, F3, Ab3, C4
+            "Piano_Dbmaj7": [138.59, 174.61, 207.65, 261.63], // Db3, F3, Ab3, C4
             "Piano_G7alt": [196.00, 246.94, 349.23, 415.30]   // G3, B3, F4, Ab4 (b9)
         };
+
 
         const TRACK_MAPPING = {
             "Bass": "bass",
@@ -1176,6 +1459,17 @@
 
                 // Visual callback
                 this.onNoteTriggered = null;
+            }
+
+            updateStageSettings() {
+                this.bpm = STAGE_DATA.Bpm;
+                this.ticksPerBeat = STAGE_DATA.TicksPerBeat;
+                this.timeSignatureNum = STAGE_DATA.TimeSignatureNum;
+                this.lengthMeasures = STAGE_DATA.Blocks[0].LengthMeasures;
+                this.lastScheduledTick = -1;
+                if (this.scheduledNotes) {
+                    this.scheduledNotes.clear();
+                }
             }
 
             init() {
@@ -2057,6 +2351,8 @@
         const sliderVolume = document.getElementById('sliderVolume');
         const valVolume = document.getElementById('valVolume');
         const selectPreset = document.getElementById('selectPreset');
+        const selectStage = document.getElementById('selectStage');
+        const valStageBadge = document.getElementById('valStageBadge');
         
         const playhead = document.getElementById('playhead');
         const measureBars = document.getElementById('measureBars');
@@ -2073,7 +2369,7 @@
         const trackButtons = document.querySelectorAll('.btn-track');
         const instrumentDropdowns = document.querySelectorAll('.track-labels select');
 
-        const TICK_SCALE = 1;
+        const TICK_SCALE = 0.1;
 
         // User interaction states for auto-scroll override
         let isUserInteracting = false;
@@ -2137,6 +2433,22 @@
             const beatsPerMeasure = STAGE_DATA.TimeSignatureNum;
             const ticksPerBeat = STAGE_DATA.TicksPerBeat;
             const totalMeasures = STAGE_DATA.Blocks[0].LengthMeasures;
+
+            const totalTicks = totalMeasures * beatsPerMeasure * ticksPerBeat;
+            const tracksWidth = totalTicks * TICK_SCALE;
+
+            const tracksArea = document.getElementById('notesTimeline');
+            const sequencerGrid = document.querySelector('.sequencer-grid');
+
+            if (tracksArea) {
+                tracksArea.style.width = `${tracksWidth}px`;
+                const beatPx = ticksPerBeat * TICK_SCALE;
+                tracksArea.style.backgroundSize = `100% 80px, ${beatPx}px 100%`;
+            }
+            if (sequencerGrid) {
+                sequencerGrid.style.width = `${180 + tracksWidth}px`;
+                sequencerGrid.style.gridTemplateColumns = `180px ${tracksWidth}px`;
+            }
 
             for (let i = 0; i < totalMeasures; i++) {
                 const bar = document.createElement('div');
@@ -2271,7 +2583,14 @@
             const lineEl = document.getElementById(`json-note-line-${index}`);
             if (lineEl) {
                 lineEl.classList.add('highlight');
-                lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Calculate position relative to container and scroll container internally
+                const containerRect = jsonViewer.getBoundingClientRect();
+                const elemRect = lineEl.getBoundingClientRect();
+                const relativeTop = elemRect.top - containerRect.top + jsonViewer.scrollTop;
+                jsonViewer.scrollTo({
+                    top: relativeTop - (containerRect.height / 2) + (elemRect.height / 2),
+                    behavior: 'smooth'
+                });
                 setTimeout(() => lineEl.classList.remove('highlight'), 800);
             }
         }
@@ -2354,10 +2673,6 @@
                 }
             } else {
                 playhead.style.left = '0px';
-                // 정지 상태이고 사용자가 스크롤 중이 아니면 맨 앞으로 복귀
-                if (!isUserInteracting) {
-                    gridContainer.scrollLeft = 0;
-                }
             }
         }
 
@@ -2497,14 +2812,42 @@
             renderJSONViewer();
         });
 
-        // Horizontal scroll via vertical mouse wheel
-        gridContainer.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            gridContainer.scrollLeft += e.deltaY;
+        // Dropdown: Stage (Scenario) selector
+        selectStage.addEventListener('change', () => {
+            audio.stop();
+            btnPlay.textContent = '▶ Play';
+            btnPlay.classList.remove('btn-danger');
+            btnPlay.classList.add('btn-primary');
+
+            STAGE_DATA = (selectStage.value === 'climax') ? STAGE_DATA_CLIMAX : STAGE_DATA_LOUNGE;
+            valStageBadge.textContent = selectStage.value === 'climax' ? "STAGE: Game_Jazz_02_Climax" : "STAGE: Game_Jazz_01_Lounge";
+            audio.updateStageSettings();
+
+            sliderBpm.value = STAGE_DATA.Bpm;
+            valBpm.textContent = STAGE_DATA.Bpm;
             
-            isUserInteracting = true;
-            clearTimeout(interactionTimeout);
-            interactionTimeout = setTimeout(resetUserInteraction, 3000);
+            buildGrid();
+            renderJSONViewer();
+
+            // Log
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.style.borderLeft = "3px solid var(--glow-cyan)";
+            logEntry.innerHTML = `<span class="log-time">[System]</span><span class="log-msg" style="color: var(--glow-cyan); font-weight: bold;">스테이지 변경 완료: ${STAGE_DATA.StageId} (BPM: ${STAGE_DATA.Bpm})</span>`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        });
+
+        // Horizontal scroll via Shift + vertical wheel, or horizontal trackpad scroll
+        gridContainer.addEventListener('wheel', (e) => {
+            if (e.deltaX !== 0 || e.shiftKey) {
+                e.preventDefault();
+                gridContainer.scrollLeft += (e.deltaX !== 0 ? e.deltaX : e.deltaY);
+                
+                isUserInteracting = true;
+                clearTimeout(interactionTimeout);
+                interactionTimeout = setTimeout(resetUserInteraction, 3000);
+            }
         }, { passive: false });
 
         // Pause auto-scroll when user drags the scrollbar or clicks on the timeline

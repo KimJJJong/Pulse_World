@@ -1,0 +1,14 @@
+{
+    "MapId": "Game_Forest_Tutorial",
+    "Description": "for Tutorial \n - Forest - ",
+    "RhythmSettings": {
+        "SongKey": "DefaultSong",
+        "Bpm": 60,
+        "BaseBeatDivision": 1,
+        "ActionWindowMs": 100,
+        "StartDelayMs": 2000
+    },
+    "InitialSpawns": [],
+    "InitialObjects": [],
+    "Events": []
+}

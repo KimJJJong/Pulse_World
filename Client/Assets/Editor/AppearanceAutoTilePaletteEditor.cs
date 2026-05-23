@@ -11,6 +11,7 @@ public sealed class AppearanceAutoTilePaletteEditor : Editor
     private const float SourceCellSize = 48f;
     private const float SlotWidth = 112f;
     private const float SlotHeight = 122f;
+    private const float CropPreviewSize = 88f;
 
     private static readonly int[] Blob47Masks = CreateBlob47Masks();
     private static readonly Color SlotEmptyColor = new Color(0.16f, 0.16f, 0.16f, 1f);
@@ -253,6 +254,90 @@ public sealed class AppearanceAutoTilePaletteEditor : Editor
                         MessageType.None);
                 }
             }
+
+            EditorGUILayout.Space(6f);
+            DrawSelectedSourceCropEditor(palette, definition);
+        }
+    }
+
+    private void DrawSelectedSourceCropEditor(AppearanceAutoTilePalette palette, AppearanceAutoTileDefinition definition)
+    {
+        Rect baseCellRect = GetBaseCellPixelRect(definition, _selectedSourceCell);
+        int cellWidth = Mathf.Max(1, Mathf.FloorToInt(baseCellRect.width));
+        int cellHeight = Mathf.Max(1, Mathf.FloorToInt(baseCellRect.height));
+        var crop = GetSourceCellCrop(definition, _selectedSourceCell);
+
+        int left = crop != null ? crop.TrimLeft : 0;
+        int right = crop != null ? crop.TrimRight : 0;
+        int top = crop != null ? crop.TrimTop : 0;
+        int bottom = crop != null ? crop.TrimBottom : 0;
+        ClampCropInsets(ref left, ref right, ref top, ref bottom, cellWidth, cellHeight);
+
+        EditorGUILayout.LabelField("Selected Cell Crop", EditorStyles.miniBoldLabel);
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            DrawCellCropPreview("Original", definition, _selectedSourceCell, false);
+            GUILayout.Space(8f);
+            DrawCellCropPreview("Cropped", definition, _selectedSourceCell, true);
+            GUILayout.Space(12f);
+
+            using (new EditorGUILayout.VerticalScope())
+            {
+                EditorGUILayout.LabelField($"Cell Pixels: {cellWidth} x {cellHeight}", EditorStyles.miniLabel);
+
+                EditorGUI.BeginChangeCheck();
+                left = EditorGUILayout.IntSlider("Trim Left", left, 0, cellWidth - 1);
+                right = EditorGUILayout.IntSlider("Trim Right", right, 0, cellWidth - 1);
+                top = EditorGUILayout.IntSlider("Trim Top", top, 0, cellHeight - 1);
+                bottom = EditorGUILayout.IntSlider("Trim Bottom", bottom, 0, cellHeight - 1);
+
+                ClampCropInsets(ref left, ref right, ref top, ref bottom, cellWidth, cellHeight);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(palette, "Crop Appearance Source Cell");
+                    SetSourceCellCrop(definition, _selectedSourceCell, left, right, top, bottom);
+                    RefreshGeneratedMaterialsForSourceCell(definition, _selectedSourceCell);
+                    MarkPaletteDirty(palette);
+                    Repaint();
+                }
+
+                using (new EditorGUI.DisabledScope(crop == null))
+                {
+                    if (GUILayout.Button("Reset Selected Cell Crop"))
+                    {
+                        Undo.RecordObject(palette, "Reset Appearance Source Cell Crop");
+                        SetSourceCellCrop(definition, _selectedSourceCell, 0, 0, 0, 0);
+                        RefreshGeneratedMaterialsForSourceCell(definition, _selectedSourceCell);
+                        MarkPaletteDirty(palette);
+                        Repaint();
+                    }
+                }
+
+                EditorGUILayout.HelpBox(
+                    "선택한 칸만 가장자리 픽셀을 덜어냅니다. 크롭 결과가 Assign과 Auto Fill에서 생성되는 UV에 적용됩니다.",
+                    MessageType.None);
+            }
+        }
+    }
+
+    private static void DrawCellCropPreview(
+        string label,
+        AppearanceAutoTileDefinition definition,
+        int sourceCell,
+        bool applyCellCrop)
+    {
+        using (new EditorGUILayout.VerticalScope(GUILayout.Width(CropPreviewSize)))
+        {
+            EditorGUILayout.LabelField(label, EditorStyles.miniLabel, GUILayout.Width(CropPreviewSize));
+            Rect previewRect = GUILayoutUtility.GetRect(
+                CropPreviewSize,
+                CropPreviewSize,
+                GUILayout.Width(CropPreviewSize),
+                GUILayout.Height(CropPreviewSize));
+            DrawTextureCell(previewRect, definition, sourceCell, 1f, applyCellCrop);
+            GUI.Box(previewRect, GUIContent.none);
+            if (!applyCellCrop)
+                DrawCellCropOverlay(previewRect, definition, sourceCell);
         }
     }
 
@@ -549,10 +634,15 @@ public sealed class AppearanceAutoTilePaletteEditor : Editor
             material.SetColor("_Color", Color.white);
     }
 
-    private static void DrawTextureCell(Rect rect, AppearanceAutoTileDefinition definition, int sourceCell, float alpha)
+    private static void DrawTextureCell(
+        Rect rect,
+        AppearanceAutoTileDefinition definition,
+        int sourceCell,
+        float alpha,
+        bool applyCellCrop = true)
     {
         Texture texture = definition.SetupSourceTexture;
-        Rect texCoords = GetCellTexCoords(definition, sourceCell);
+        Rect texCoords = GetCellTexCoords(definition, sourceCell, applyCellCrop);
         Color previous = GUI.color;
         GUI.color = new Color(1f, 1f, 1f, alpha);
         GUI.DrawTextureWithTexCoords(rect, texture, texCoords, true);
@@ -607,7 +697,23 @@ public sealed class AppearanceAutoTilePaletteEditor : Editor
         EditorGUI.DrawRect(center, strong);
     }
 
-    private static Rect GetCellTexCoords(AppearanceAutoTileDefinition definition, int sourceCell)
+    private static Rect GetCellTexCoords(AppearanceAutoTileDefinition definition, int sourceCell, bool applyCellCrop = true)
+    {
+        Texture2D texture = definition.SetupSourceTexture;
+        Rect pixelRect = applyCellCrop
+            ? GetCroppedCellPixelRect(definition, sourceCell)
+            : GetBaseCellPixelRect(definition, sourceCell);
+        if (texture == null || texture.width <= 0 || texture.height <= 0)
+            return new Rect(0f, 0f, 1f, 1f);
+
+        return new Rect(
+            pixelRect.x / texture.width,
+            pixelRect.y / texture.height,
+            pixelRect.width / texture.width,
+            pixelRect.height / texture.height);
+    }
+
+    private static Rect GetBaseCellPixelRect(AppearanceAutoTileDefinition definition, int sourceCell)
     {
         Texture2D texture = definition.SetupSourceTexture;
         int columns = Mathf.Max(1, definition.SetupColumns);
@@ -638,11 +744,151 @@ public sealed class AppearanceAutoTilePaletteEditor : Editor
         cellW = Mathf.Clamp(cellW, 1f, texture.width - x);
         cellH = Mathf.Clamp(cellH, 1f, texture.height - y);
 
-        return new Rect(
-            x / texture.width,
-            y / texture.height,
-            cellW / texture.width,
-            cellH / texture.height);
+        return new Rect(x, y, cellW, cellH);
+    }
+
+    private static Rect GetCroppedCellPixelRect(AppearanceAutoTileDefinition definition, int sourceCell)
+    {
+        Rect rect = GetBaseCellPixelRect(definition, sourceCell);
+        int cellWidth = Mathf.Max(1, Mathf.FloorToInt(rect.width));
+        int cellHeight = Mathf.Max(1, Mathf.FloorToInt(rect.height));
+        var crop = GetSourceCellCrop(definition, sourceCell);
+        if (crop == null)
+            return rect;
+
+        int left = crop.TrimLeft;
+        int right = crop.TrimRight;
+        int top = crop.TrimTop;
+        int bottom = crop.TrimBottom;
+        ClampCropInsets(ref left, ref right, ref top, ref bottom, cellWidth, cellHeight);
+
+        rect.x += left;
+        rect.y += bottom;
+        rect.width -= left + right;
+        rect.height -= top + bottom;
+        return rect;
+    }
+
+    private static void DrawCellCropOverlay(Rect previewRect, AppearanceAutoTileDefinition definition, int sourceCell)
+    {
+        Rect baseCellRect = GetBaseCellPixelRect(definition, sourceCell);
+        Rect croppedRect = GetCroppedCellPixelRect(definition, sourceCell);
+        if (Mathf.Approximately(baseCellRect.width, croppedRect.width)
+            && Mathf.Approximately(baseCellRect.height, croppedRect.height))
+        {
+            return;
+        }
+
+        float cropX = Mathf.InverseLerp(baseCellRect.x, baseCellRect.xMax, croppedRect.x);
+        float cropXMax = Mathf.InverseLerp(baseCellRect.x, baseCellRect.xMax, croppedRect.xMax);
+        float cropY = Mathf.InverseLerp(baseCellRect.y, baseCellRect.yMax, croppedRect.y);
+        float cropYMax = Mathf.InverseLerp(baseCellRect.y, baseCellRect.yMax, croppedRect.yMax);
+        Rect cropPreviewRect = new Rect(
+            previewRect.x + previewRect.width * cropX,
+            previewRect.y + previewRect.height * (1f - cropYMax),
+            previewRect.width * (cropXMax - cropX),
+            previewRect.height * (cropYMax - cropY));
+
+        Color trimmed = new Color(0f, 0f, 0f, 0.42f);
+        EditorGUI.DrawRect(new Rect(previewRect.x, previewRect.y, previewRect.width, cropPreviewRect.y - previewRect.y), trimmed);
+        EditorGUI.DrawRect(new Rect(previewRect.x, cropPreviewRect.yMax, previewRect.width, previewRect.yMax - cropPreviewRect.yMax), trimmed);
+        EditorGUI.DrawRect(new Rect(previewRect.x, cropPreviewRect.y, cropPreviewRect.x - previewRect.x, cropPreviewRect.height), trimmed);
+        EditorGUI.DrawRect(new Rect(cropPreviewRect.xMax, cropPreviewRect.y, previewRect.xMax - cropPreviewRect.xMax, cropPreviewRect.height), trimmed);
+        DrawSelectionFrame(cropPreviewRect, SelectedColor, 2f);
+    }
+
+    private static AppearanceAutoTileSourceCellCrop GetSourceCellCrop(AppearanceAutoTileDefinition definition, int sourceCell)
+    {
+        if (definition.SetupSourceCellCrops == null)
+            return null;
+
+        for (int i = 0; i < definition.SetupSourceCellCrops.Length; i++)
+        {
+            var crop = definition.SetupSourceCellCrops[i];
+            if (crop != null && crop.SourceCell == sourceCell)
+                return crop;
+        }
+
+        return null;
+    }
+
+    private static void SetSourceCellCrop(
+        AppearanceAutoTileDefinition definition,
+        int sourceCell,
+        int left,
+        int right,
+        int top,
+        int bottom)
+    {
+        var crops = new List<AppearanceAutoTileSourceCellCrop>(
+            definition.SetupSourceCellCrops ?? Array.Empty<AppearanceAutoTileSourceCellCrop>());
+        crops.RemoveAll(crop => crop == null);
+
+        var crop = GetSourceCellCrop(definition, sourceCell);
+        if (left == 0 && right == 0 && top == 0 && bottom == 0)
+        {
+            crops.RemoveAll(item => item.SourceCell == sourceCell);
+            definition.SetupSourceCellCrops = crops.ToArray();
+            return;
+        }
+
+        if (crop == null)
+        {
+            crop = new AppearanceAutoTileSourceCellCrop
+            {
+                SourceCell = sourceCell
+            };
+            crops.Add(crop);
+        }
+
+        crop.TrimLeft = left;
+        crop.TrimRight = right;
+        crop.TrimTop = top;
+        crop.TrimBottom = bottom;
+        crops.Sort((a, b) => a.SourceCell.CompareTo(b.SourceCell));
+        definition.SetupSourceCellCrops = crops.ToArray();
+    }
+
+    private static void ClampCropInsets(
+        ref int left,
+        ref int right,
+        ref int top,
+        ref int bottom,
+        int cellWidth,
+        int cellHeight)
+    {
+        cellWidth = Mathf.Max(1, cellWidth);
+        cellHeight = Mathf.Max(1, cellHeight);
+        left = Mathf.Clamp(left, 0, cellWidth - 1);
+        right = Mathf.Clamp(right, 0, cellWidth - 1 - left);
+        top = Mathf.Clamp(top, 0, cellHeight - 1);
+        bottom = Mathf.Clamp(bottom, 0, cellHeight - 1 - top);
+    }
+
+    private static void RefreshGeneratedMaterialsForSourceCell(AppearanceAutoTileDefinition definition, int sourceCell)
+    {
+        RefreshGeneratedMaterialForSourceCell(definition.DefaultMaterial, definition, sourceCell);
+        if (definition.Variants == null)
+            return;
+
+        for (int i = 0; i < definition.Variants.Length; i++)
+        {
+            var variant = definition.Variants[i];
+            if (variant != null)
+                RefreshGeneratedMaterialForSourceCell(variant.Material, definition, sourceCell);
+        }
+    }
+
+    private static void RefreshGeneratedMaterialForSourceCell(
+        Material material,
+        AppearanceAutoTileDefinition definition,
+        int sourceCell)
+    {
+        if (material == null || !material.name.EndsWith($"_cell_{sourceCell:000}", StringComparison.Ordinal))
+            return;
+
+        ConfigureMaterialTexture(material, definition, sourceCell);
+        EditorUtility.SetDirty(material);
     }
 
     private static Texture GetMaterialTexture(Material material)

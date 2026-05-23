@@ -42,7 +42,7 @@ public class RhythmInputController : MonoBehaviour
     public bool HoldAutoInputEnabled => holdAutoInput;
     public string CurrentTargetName => targetObject != null ? targetObject.name : "<null>";
 
-    public event Action CombatInputAccepted;
+    public event Action<long> CombatInputAccepted;
     public event Action CombatInputMissed;
     public event Action<int, string> SkillSlotInputAccepted;
 
@@ -353,6 +353,7 @@ public class RhythmInputController : MonoBehaviour
         {
             if (P2PDebugConfig.TraceInput)
                 Debug.Log($"[Input_Attack] DUPLICATE predictionBeat={predictionBeat} BLOCKED");
+            NotifyCombatInputMissed();
             return;
         }
         _lastAttackPredictionBeat = predictionBeat;
@@ -380,7 +381,7 @@ public class RhythmInputController : MonoBehaviour
         if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
 
         // [Fix] ActionKind.Skill + SlotIndex=-1 로 통일 전송 (서버 ResolveSkillId에서 normalAttack으로 처리)
-        NotifyCombatInputAccepted();
+        NotifyCombatInputAccepted(predictionBeat);
         SendActionRouted(ActionKind.Skill, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;
     }
@@ -430,6 +431,7 @@ public class RhythmInputController : MonoBehaviour
         {
             if (P2PDebugConfig.TraceInput)
                 Debug.Log($"[Input_Skill] DUPLICATE predictionBeat={predictionBeat} slot={slotIndex} BLOCKED");
+            NotifyCombatInputMissed();
             return;
         }
         _lastAttackPredictionBeat = predictionBeat;
@@ -455,7 +457,7 @@ public class RhythmInputController : MonoBehaviour
 
         if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
 
-        NotifyCombatInputAccepted();
+        NotifyCombatInputAccepted(predictionBeat);
         NotifySkillSlotInputAccepted(slotIndex, skillId);
         SendActionRouted(ActionKind.Skill, tx, ty, serverNow, slotIndex);
         _lastSendLocalMs = trueLocalNowMs;
@@ -519,10 +521,10 @@ public class RhythmInputController : MonoBehaviour
         return (nowLocalMs - _lastSendLocalMs) >= inputCooldownMs;
     }
 
-    void NotifyCombatInputAccepted()
+    void NotifyCombatInputAccepted(long acceptedBeat)
     {
         if (channel == InputChannel.Game)
-            CombatInputAccepted?.Invoke();
+            CombatInputAccepted?.Invoke(acceptedBeat);
     }
 
     void NotifyCombatInputMissed()

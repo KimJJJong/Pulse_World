@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 public sealed class BoardViewMapBakerWindow : EditorWindow
@@ -134,6 +135,7 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
         EditorUtility.SetDirty(_boardView.gameObject);
         EditorUtility.SetDirty(_boardView);
         EditorUtility.SetDirty(_mapAsset);
+        EditorSceneManager.MarkSceneDirty(_boardView.gameObject.scene);
         Debug.Log($"[MapBaker] Baked/Updated tiles: {width}x{height} from {_mapAsset.name} (Scriptless)");
     }
 
@@ -171,6 +173,7 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
                 {
                     visual.SetBaseColor(color);
                     visual.SetTopMaterial(material);
+                    visual.SetTopColor(_boardView.GetAppearanceTileTint((int)cell.Kind));
                     materialApplied = true;
                 }
 
@@ -179,10 +182,14 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
             }
 
             if (materialApplied)
+            {
+                EditorUtility.SetDirty(visual);
                 return;
+            }
 
             visual.HideTopSurface();
             visual.SetBaseColor(color);
+            EditorUtility.SetDirty(visual);
         }
     }
 

@@ -215,6 +215,11 @@ public static class InGameHudSetBuilder
 
         HexHudView view = hex.gameObject.AddComponent<HexHudView>();
 
+        RectTransform pulse = CreateImage("HP_Pulse", hex, sprites.HpFill);
+        Stretch(pulse);
+        Image pulseImage = pulse.GetComponent<Image>();
+        pulseImage.color = new Color(0.3f, 1f, 1f, 0f);
+
         RectTransform body = CreateImage("HP_Body", hex, sprites.HpBody);
         Stretch(body);
 
@@ -227,17 +232,6 @@ public static class InGameHudSetBuilder
         fillImage.fillClockwise = false;
         fillImage.fillAmount = 1f;
 
-        RectTransform glow = CreateImage("HP_Glow", hex, sprites.HpFill);
-        Stretch(glow);
-        glow.localScale = Vector3.one * 1.025f;
-        Image glowImage = glow.GetComponent<Image>();
-        glowImage.color = new Color(0.25f, 1f, 1f, 0.22f);
-        glowImage.type = Image.Type.Filled;
-        glowImage.fillMethod = Image.FillMethod.Radial360;
-        glowImage.fillOrigin = (int)Image.Origin360.Top;
-        glowImage.fillClockwise = false;
-        glowImage.fillAmount = 1f;
-
         RectTransform frame = CreateImage("HP_Frame", hex, sprites.HpFrame);
         Stretch(frame);
 
@@ -248,9 +242,17 @@ public static class InGameHudSetBuilder
         SerializedObject serializedView = new SerializedObject(view);
         serializedView.FindProperty("hpFill").objectReferenceValue = fillImage;
         serializedView.FindProperty("hpFrame").objectReferenceValue = frame.GetComponent<Image>();
-        serializedView.FindProperty("hpGlow").objectReferenceValue = glowImage;
+        serializedView.FindProperty("hpGlow").objectReferenceValue = pulseImage;
         serializedView.FindProperty("hpText").objectReferenceValue = hpText;
         serializedView.ApplyModifiedPropertiesWithoutUndo();
+
+        BeatPulse beatPulse = hex.gameObject.AddComponent<BeatPulse>();
+        SerializedObject serializedPulse = new SerializedObject(beatPulse);
+        serializedPulse.FindProperty("hud").objectReferenceValue = view;
+        serializedPulse.FindProperty("pulseScale").floatValue = 1.12f;
+        serializedPulse.FindProperty("pulseDuration").floatValue = 0.18f;
+        serializedPulse.FindProperty("glowPeakAlpha").floatValue = 0.68f;
+        serializedPulse.ApplyModifiedPropertiesWithoutUndo();
         return view;
     }
 
@@ -358,6 +360,7 @@ public static class InGameHudSetBuilder
         SliceSingle("Player_Info.png", "Player_Info_Frame");
         SliceSingle("Stage_Info.png", "Stage_Info_Frame");
         SliceSingle("Fill_Bar.png", "Fill_Bar");
+        SliceSingle("Skill_Fill.png", "Skill_Fill");
         SliceSingle("Combo_UnderBar.png", "Combo_UnderBar");
         SliceSingle("Combo_Effect.png", "Combo_Effect");
         SliceColumns("HP_UI.png", "HP_Frame", "HP_Body", "HP_Fill");
@@ -379,7 +382,7 @@ public static class InGameHudSetBuilder
             HpFill = LoadSprite("HP_UI.png", "HP_Fill"),
             SkillFrame = LoadSprite("Skill_Slot.png", "Skill_Frame"),
             SkillRing = LoadSprite("Skill_Slot.png", "Skill_Ring"),
-            SkillCooldown = LoadSprite("Skill_Slot.png", "Skill_Cooldown"),
+            SkillCooldown = LoadSprite("Skill_Fill.png", "Skill_Fill"),
             SkillKeyCap = LoadSprite("Skill_Slot.png", "Skill_KeyCap"),
             DecorationActive = LoadSprite("UI_Decoration.png", "Decoration_Active")
         };
