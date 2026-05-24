@@ -18,6 +18,7 @@ public sealed class MapPainterWindow : EditorWindow
         Paint = 0,
         Erase = 1,
         Pick = 2,
+        Paste = 3,
     }
 
     private enum TextureSheetMaskOrder
@@ -64,10 +65,14 @@ public sealed class MapPainterWindow : EditorWindow
     private const float MinViewHeight = 160f;
     private const float ControlPanelMinWidth = 420f;
     private const float ControlPanelMaxWidth = 480f;
+    private const float DefaultScrollbarSize = 16f;
+    private const float MapScrollWheelStep = 24f;
+    private const float MapScrollbarButtonSize = 18f;
+    private const float MapViewportRightPadding = 8f;
     private const int MaxBrushSize = 8;
 
     private static readonly string[] LayerTabLabels = { "Logic", "Appearance Auto Tile" };
-    private static readonly string[] ToolLabels = { "Paint", "Erase", "Pick" };
+    private static readonly string[] ToolLabels = { "Paint", "Erase", "Pick", "Paste" };
     private static readonly int[] Blob47Masks = CreateBlob47Masks();
 
     private static readonly Color GridLineColor = new Color(0, 0, 0, 0.15f);
@@ -138,11 +143,28 @@ public sealed class MapPainterWindow : EditorWindow
     private Vector2 _scroll;
     private Vector2 _controlScroll;
     private float _controlPanelWidth = ControlPanelMinWidth;
+    private float _lastMapViewportWidth = 1f;
+    private float _lastMapContentWidth = 1f;
     private bool _dragPainting;
     private int _lastPaintIndex = -1;
     private bool _hasHoveredCell;
     private int _hoveredX;
     private int _hoveredY;
+    private bool _dragPasteActive;
+    private bool _dragPasteHasPayload;
+    private PaintLayer _dragPasteLayer;
+    private TileCell[] _dragPasteLogicCells;
+    private AppearanceTileCell[] _dragPasteAppearanceCells;
+    private int _dragPasteWidth;
+    private int _dragPasteHeight;
+    private int _dragPasteSourceX;
+    private int _dragPasteSourceY;
+    private int _dragPasteSelectionStartX;
+    private int _dragPasteSelectionStartY;
+    private int _dragPasteSelectionEndX;
+    private int _dragPasteSelectionEndY;
+    private int _dragPasteTargetX;
+    private int _dragPasteTargetY;
 
     [MenuItem("RhythmRPG/Editors/World/Map Painter")]
     public static void Open() => GetWindow<MapPainterWindow>("Map Painter");
@@ -275,12 +297,21 @@ public sealed class MapPainterWindow : EditorWindow
             EditorGUI.BeginChangeCheck();
             int nextLayer = GUILayout.Toolbar((int)_paintLayer, LayerTabLabels, GUILayout.Height(28));
             if (EditorGUI.EndChangeCheck())
+            {
                 _paintLayer = (PaintLayer)nextLayer;
+                CancelDragPaste();
+            }
 
             EditorGUILayout.Space(4);
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Tool", GUILayout.Width(70));
-            _brushTool = (BrushTool)GUILayout.Toolbar((int)_brushTool, ToolLabels);
+            EditorGUI.BeginChangeCheck();
+            int nextTool = GUILayout.Toolbar((int)_brushTool, ToolLabels);
+            if (EditorGUI.EndChangeCheck())
+            {
+                _brushTool = (BrushTool)nextTool;
+                CancelDragPaste();
+            }
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
@@ -294,6 +325,16 @@ public sealed class MapPainterWindow : EditorWindow
             if (GUILayout.Button("Fit", GUILayout.Width(42)))
                 FitCellSizeToVisibleMap();
             EditorGUILayout.EndHorizontal();
+
+            DrawHorizontalMapScrollControls();
+
+            if (_brushTool == BrushTool.Paste)
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Move Area", GUILayout.Width(70));
+                EditorGUILayout.LabelField(GetDragPasteStatusText(), EditorStyles.miniLabel);
+                EditorGUILayout.EndHorizontal();
+            }
 
             EditorGUILayout.BeginHorizontal();
             _showAppearanceLayer = EditorGUILayout.ToggleLeft("Show Appearance", _showAppearanceLayer);
@@ -316,26 +357,137 @@ public sealed class MapPainterWindow : EditorWindow
         Repaint();
     }
 
+    private void DrawHorizontalMapScrollControls()
+    {
+        float maxScrollX = GetHorizontalMapScrollMax();
+        _scroll.x = Mathf.Clamp(_scroll.x, 0f, maxScrollX);
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField("Map X", GUILayout.Width(70));
+        using (new EditorGUI.DisabledScope(maxScrollX <= 0f))
+        {
+            if (GUILayout.Button("<<", GUILayout.Width(32)))
+                SetHorizontalMapScroll(0f);
+
+            if (GUILayout.Button("<", GUILayout.Width(28)))
+                SetHorizontalMapScroll(_scroll.x - GetHorizontalMapPageStep());
+
+            EditorGUI.BeginChangeCheck();
+            float nextScrollX = GUILayout.HorizontalSlider(
+                _scroll.x,
+                0f,
+                Mathf.Max(1f, maxScrollX),
+                GUILayout.MinWidth(70f));
+            if (EditorGUI.EndChangeCheck())
+                SetHorizontalMapScroll(nextScrollX);
+
+            if (GUILayout.Button(">", GUILayout.Width(28)))
+                SetHorizontalMapScroll(_scroll.x + GetHorizontalMapPageStep());
+
+            if (GUILayout.Button(">>", GUILayout.Width(32)))
+                SetHorizontalMapScroll(maxScrollX);
+        }
+        EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.LabelField(
+            maxScrollX > 0f
+                ? $"X Scroll: {_scroll.x:0} / {maxScrollX:0}"
+                : "X Scroll: map fits current view",
+            EditorStyles.miniLabel);
+    }
+
+    private float GetHorizontalMapScrollMax()
+    {
+        if (_map == null)
+            return 0f;
+
+        float cellSize = Mathf.Clamp(_cellSize, MinCellSize, MaxCellSize);
+        float contentWidth = _lastMapContentWidth > 1f
+            ? _lastMapContentWidth
+            : _map.Width * cellSize;
+        float viewportWidth = _lastMapViewportWidth > 1f
+            ? _lastMapViewportWidth
+            : GetVisibleMapAreaWidth(GetControlPanelWidth() + 12f) - GetVerticalScrollbarWidth();
+        return Mathf.Max(0f, contentWidth - viewportWidth);
+    }
+
+    private float GetVisibleMapAreaWidth(float mapAreaX)
+    {
+        return Mathf.Max(1f, position.width - mapAreaX - MapViewportRightPadding);
+    }
+
+    private float GetHorizontalMapPageStep()
+    {
+        return Mathf.Max(MapScrollWheelStep, _lastMapViewportWidth * 0.5f);
+    }
+
+    private void SetHorizontalMapScroll(float scrollX)
+    {
+        _scroll.x = Mathf.Clamp(scrollX, 0f, GetHorizontalMapScrollMax());
+        Repaint();
+    }
+
+    private void SetHorizontalMapScroll(float scrollX, float maxScrollX)
+    {
+        _scroll.x = Mathf.Clamp(scrollX, 0f, maxScrollX);
+        Repaint();
+    }
+
+    private string GetDragPasteStatusText()
+    {
+        if (_dragPasteActive)
+            return "Selecting";
+        if (_dragPasteHasPayload)
+            return $"{_dragPasteWidth}x{_dragPasteHeight} Ready - click destination";
+        return "Drag source rectangle";
+    }
+
     private void DrawGridOptimized(float availableHeight)
     {
         float cellSize = Mathf.Clamp(_cellSize, MinCellSize, MaxCellSize);
         int gridW = Mathf.RoundToInt(_map.Width * cellSize);
         int gridH = Mathf.RoundToInt(_map.Height * cellSize);
-        float viewHeight = Mathf.Max(MinViewHeight, availableHeight);
+        float scrollbarWidth = GetVerticalScrollbarWidth();
+        float scrollbarHeight = GetHorizontalScrollbarHeight();
 
-        Rect viewportRect = GUILayoutUtility.GetRect(
-            0f,
-            viewHeight,
+        Rect outerRect = GUILayoutUtility.GetRect(
+            1f,
+            Mathf.Max(1f, position.width),
+            availableHeight,
+            availableHeight,
             GUILayout.ExpandWidth(true),
-            GUILayout.Height(viewHeight));
+            GUILayout.Height(availableHeight));
+        outerRect.width = GetVisibleMapAreaWidth(outerRect.x);
+        Rect viewportRect = new Rect(
+            outerRect.x,
+            outerRect.y + scrollbarHeight,
+            Mathf.Max(1f, outerRect.width - scrollbarWidth),
+            Mathf.Max(1f, outerRect.height - scrollbarHeight));
         Rect contentRect = new Rect(0f, 0f, gridW, gridH);
-        _scroll = GUI.BeginScrollView(viewportRect, _scroll, contentRect, true, true);
+        _lastMapViewportWidth = viewportRect.width;
+        _lastMapContentWidth = contentRect.width;
 
-        Rect gridRect = contentRect;
+        _scroll = ClampMapScroll(_scroll, contentRect, viewportRect.width, viewportRect.height);
+        HandleMapScrollWheelInput(viewportRect, contentRect, viewportRect.width, viewportRect.height);
+        Rect horizontalScrollbarRect = new Rect(
+            outerRect.x,
+            outerRect.y,
+            viewportRect.width,
+            scrollbarHeight);
+        bool canHandleGridInput = IsMouseOverMapContentViewport(viewportRect);
+        if (canHandleGridInput)
+        {
+            UpdateHoveredCell(viewportRect);
+            HandlePaintOptimized(viewportRect);
+        }
+        else
+        {
+            ClearGridInteractionStateForNonContentInput();
+        }
+
+        Rect gridRect = new Rect(-_scroll.x, -_scroll.y, contentRect.width, contentRect.height);
+        GUI.BeginGroup(viewportRect);
         GUI.Box(gridRect, GUIContent.none);
-
-        UpdateHoveredCell(gridRect);
-        HandlePaintOptimized(gridRect);
 
         Rect viewRect = new Rect(_scroll.x, _scroll.y, viewportRect.width, viewportRect.height);
 
@@ -384,38 +536,205 @@ public sealed class MapPainterWindow : EditorWindow
             }
 
             DrawBrushPreview(gridRect);
+            DrawDragPastePreview(gridRect);
             Handles.EndGUI();
         }
 
-        GUI.EndScrollView();
+        GUI.EndGroup();
+        DrawMapHorizontalControls(horizontalScrollbarRect, contentRect.width, viewportRect.width);
+        DrawMapVerticalScrollbar(outerRect, viewportRect, contentRect, scrollbarWidth, scrollbarHeight);
+        _scroll = ClampMapScroll(_scroll, contentRect, viewportRect.width, viewportRect.height);
     }
 
-    private void UpdateHoveredCell(Rect gridRect)
+    private static float GetHorizontalScrollbarHeight()
+    {
+        float height = GUI.skin.horizontalScrollbar.fixedHeight;
+        return height > 0f ? height : DefaultScrollbarSize;
+    }
+
+    private static float GetVerticalScrollbarWidth()
+    {
+        float width = GUI.skin.verticalScrollbar.fixedWidth;
+        return width > 0f ? width : DefaultScrollbarSize;
+    }
+
+    private static Vector2 ClampMapScroll(Vector2 scroll, Rect contentRect, float viewportWidth, float viewportHeight)
+    {
+        scroll.x = Mathf.Clamp(scroll.x, 0f, Mathf.Max(0f, contentRect.width - viewportWidth));
+        scroll.y = Mathf.Clamp(scroll.y, 0f, Mathf.Max(0f, contentRect.height - viewportHeight));
+        return scroll;
+    }
+
+    private static bool IsMouseOverMapContentViewport(Rect viewportRect)
+    {
+        Event e = Event.current;
+        return e != null && viewportRect.Contains(e.mousePosition);
+    }
+
+    private void ClearGridInteractionStateForNonContentInput()
     {
         _hasHoveredCell = false;
 
         Event e = Event.current;
-        if (e == null || !gridRect.Contains(e.mousePosition))
+        if (e == null || e.type != EventType.MouseUp)
             return;
 
-        float cellSize = Mathf.Clamp(_cellSize, MinCellSize, MaxCellSize);
-        int x = Mathf.FloorToInt((e.mousePosition.x - gridRect.x) / cellSize);
-        int y = Mathf.FloorToInt((e.mousePosition.y - gridRect.y) / cellSize);
-        if (!_map.InBounds(x, y))
+        _dragPainting = false;
+        _lastPaintIndex = -1;
+
+        if (_brushTool == BrushTool.Paste && _dragPasteActive)
+        {
+            CaptureDragPasteArea();
+            Repaint();
+        }
+    }
+
+    private void HandleMapScrollWheelInput(Rect viewportRect, Rect contentRect, float viewportWidth, float viewportHeight)
+    {
+        Event e = Event.current;
+        if (e == null || e.type != EventType.ScrollWheel || !viewportRect.Contains(e.mousePosition))
+            return;
+
+        float maxScrollX = Mathf.Max(0f, contentRect.width - viewportWidth);
+        float maxScrollY = Mathf.Max(0f, contentRect.height - viewportHeight);
+
+        bool hasTrackpadHorizontalDelta = Mathf.Abs(e.delta.x) > 0.01f;
+        bool useHorizontal = (e.shift || hasTrackpadHorizontalDelta) && maxScrollX > 0f;
+        bool useVertical = !useHorizontal && maxScrollY > 0f;
+        if (!useHorizontal && !useVertical)
+            return;
+
+        if (useHorizontal)
+        {
+            float delta = hasTrackpadHorizontalDelta ? e.delta.x : e.delta.y;
+            _scroll.x = Mathf.Clamp(_scroll.x + delta * MapScrollWheelStep, 0f, maxScrollX);
+        }
+        else
+        {
+            _scroll.y = Mathf.Clamp(_scroll.y + e.delta.y * MapScrollWheelStep, 0f, maxScrollY);
+        }
+
+        e.Use();
+        Repaint();
+    }
+
+    private void DrawMapVerticalScrollbar(
+        Rect outerRect,
+        Rect viewportRect,
+        Rect contentRect,
+        float scrollbarWidth,
+        float scrollbarHeight)
+    {
+        Rect verticalRect = new Rect(
+            outerRect.xMax - scrollbarWidth,
+            viewportRect.y,
+            scrollbarWidth,
+            viewportRect.height);
+        Rect cornerRect = new Rect(
+            outerRect.xMax - scrollbarWidth,
+            outerRect.y,
+            scrollbarWidth,
+            scrollbarHeight);
+
+        if (contentRect.height > viewportRect.height)
+        {
+            _scroll.y = GUI.VerticalScrollbar(verticalRect, _scroll.y, viewportRect.height, 0f, contentRect.height);
+        }
+        else
+        {
+            _scroll.y = 0f;
+            using (new EditorGUI.DisabledScope(true))
+                GUI.VerticalScrollbar(verticalRect, 0f, viewportRect.height, 0f, viewportRect.height);
+        }
+
+        EditorGUI.DrawRect(cornerRect, new Color(0.16f, 0.16f, 0.16f, 1f));
+    }
+
+    private void DrawMapHorizontalControls(Rect rect, float contentWidth, float viewportWidth)
+    {
+        float maxScrollX = Mathf.Max(0f, contentWidth - viewportWidth);
+        float buttonWidth = Mathf.Min(MapScrollbarButtonSize, rect.width * 0.12f);
+        Rect jumpStartRect = new Rect(rect.x, rect.y, buttonWidth, rect.height);
+        Rect pageLeftRect = new Rect(jumpStartRect.xMax + 2f, rect.y, buttonWidth, rect.height);
+        Rect jumpEndRect = new Rect(rect.xMax - buttonWidth, rect.y, buttonWidth, rect.height);
+        Rect pageRightRect = new Rect(jumpEndRect.xMin - buttonWidth - 2f, rect.y, buttonWidth, rect.height);
+        Rect sliderRect = new Rect(
+            pageLeftRect.xMax + 2f,
+            rect.y,
+            Mathf.Max(1f, pageRightRect.xMin - pageLeftRect.xMax - 4f),
+            rect.height);
+
+        if (maxScrollX <= 0f)
+        {
+            _scroll.x = 0f;
+            DrawDisabledMapHorizontalControls(rect, jumpStartRect, pageLeftRect, sliderRect, pageRightRect, jumpEndRect);
+            return;
+        }
+
+        EditorGUI.DrawRect(rect, new Color(0.18f, 0.18f, 0.18f, 1f));
+
+        float pageStep = Mathf.Max(MapScrollWheelStep, viewportWidth * 0.85f);
+        if (GUI.Button(jumpStartRect, "<<", EditorStyles.miniButton))
+            SetHorizontalMapScroll(0f, maxScrollX);
+        if (GUI.RepeatButton(pageLeftRect, "<", EditorStyles.miniButton))
+            SetHorizontalMapScroll(_scroll.x - pageStep, maxScrollX);
+
+        EditorGUI.BeginChangeCheck();
+        float nextScrollX = GUI.HorizontalScrollbar(sliderRect, _scroll.x, viewportWidth, 0f, contentWidth);
+        if (EditorGUI.EndChangeCheck())
+            SetHorizontalMapScroll(nextScrollX, maxScrollX);
+
+        if (GUI.RepeatButton(pageRightRect, ">", EditorStyles.miniButton))
+            SetHorizontalMapScroll(_scroll.x + pageStep, maxScrollX);
+        if (GUI.Button(jumpEndRect, ">>", EditorStyles.miniButton))
+            SetHorizontalMapScroll(maxScrollX, maxScrollX);
+    }
+
+    private static void DrawDisabledMapHorizontalControls(
+        Rect rect,
+        Rect jumpStartRect,
+        Rect pageLeftRect,
+        Rect sliderRect,
+        Rect pageRightRect,
+        Rect jumpEndRect)
+    {
+        EditorGUI.DrawRect(rect, new Color(0.18f, 0.18f, 0.18f, 1f));
+        using (new EditorGUI.DisabledScope(true))
+        {
+            GUI.Button(jumpStartRect, "<<", EditorStyles.miniButton);
+            GUI.Button(pageLeftRect, "<", EditorStyles.miniButton);
+            GUI.HorizontalScrollbar(sliderRect, 0f, 1f, 0f, 1f);
+            GUI.Button(pageRightRect, ">", EditorStyles.miniButton);
+            GUI.Button(jumpEndRect, ">>", EditorStyles.miniButton);
+        }
+    }
+
+    private void UpdateHoveredCell(Rect viewportRect)
+    {
+        _hasHoveredCell = false;
+
+        if (!TryGetCellAtMouse(viewportRect, out int x, out int y))
             return;
 
         _hasHoveredCell = true;
         _hoveredX = x;
         _hoveredY = y;
 
+        Event e = Event.current;
         if (e.type == EventType.MouseMove)
             Repaint();
     }
 
-    private void HandlePaintOptimized(Rect gridRect)
+    private void HandlePaintOptimized(Rect viewportRect)
     {
         Event e = Event.current;
         if (e == null) return;
+
+        if (_brushTool == BrushTool.Paste)
+        {
+            HandleDragPaste(viewportRect);
+            return;
+        }
 
         if (e.type == EventType.MouseUp)
         {
@@ -427,12 +746,7 @@ public sealed class MapPainterWindow : EditorWindow
         bool isPaintEvent = e.type == EventType.MouseDown || e.type == EventType.MouseDrag;
         if (!isPaintEvent) return;
         if (e.button != 0 && e.button != 1) return;
-        if (!gridRect.Contains(e.mousePosition)) return;
-
-        float cellSize = Mathf.Clamp(_cellSize, MinCellSize, MaxCellSize);
-        int x = Mathf.FloorToInt((e.mousePosition.x - gridRect.x) / cellSize);
-        int y = Mathf.FloorToInt((e.mousePosition.y - gridRect.y) / cellSize);
-        if (!_map.InBounds(x, y)) return;
+        if (!TryGetCellAtMouse(viewportRect, out int x, out int y)) return;
 
         int index = y * _map.Width + x;
         if (index == _lastPaintIndex && e.type == EventType.MouseDrag)
@@ -460,6 +774,314 @@ public sealed class MapPainterWindow : EditorWindow
 
         e.Use();
         Repaint();
+    }
+
+    private bool TryGetCellAtMouse(Rect viewportRect, out int x, out int y)
+    {
+        x = 0;
+        y = 0;
+
+        Event e = Event.current;
+        if (e == null || !viewportRect.Contains(e.mousePosition))
+            return false;
+
+        float cellSize = Mathf.Clamp(_cellSize, MinCellSize, MaxCellSize);
+        float mapX = e.mousePosition.x - viewportRect.x + _scroll.x;
+        float mapY = e.mousePosition.y - viewportRect.y + _scroll.y;
+        x = Mathf.FloorToInt(mapX / cellSize);
+        y = Mathf.FloorToInt(mapY / cellSize);
+        return _map.InBounds(x, y);
+    }
+
+    private void HandleDragPaste(Rect viewportRect)
+    {
+        Event e = Event.current;
+        if (e == null)
+            return;
+
+        if (e.type == EventType.MouseDown && e.button == 1)
+        {
+            CancelDragPaste();
+            e.Use();
+            Repaint();
+            return;
+        }
+
+        bool hasCell = TryGetCellAtMouse(viewportRect, out int x, out int y);
+
+        if (_dragPasteHasPayload && hasCell)
+        {
+            _dragPasteTargetX = x;
+            _dragPasteTargetY = y;
+
+            if (e.type == EventType.MouseMove)
+                Repaint();
+        }
+
+        if (e.button != 0)
+            return;
+
+        if (_dragPasteHasPayload)
+        {
+            if (e.type == EventType.MouseDown && hasCell)
+            {
+                UnityEditor.Undo.RecordObject(_map, GetDragPasteUndoName());
+                bool changed = ApplyDragPasteAt(x, y);
+                if (changed)
+                    EditorUtility.SetDirty(_map);
+
+                CancelDragPaste();
+                e.Use();
+                Repaint();
+            }
+
+            return;
+        }
+
+        if (e.type == EventType.MouseDown && hasCell)
+        {
+            BeginDragPasteSelection(x, y);
+            e.Use();
+            Repaint();
+            return;
+        }
+
+        if (e.type == EventType.MouseDrag && _dragPasteActive)
+        {
+            if (hasCell)
+                UpdateDragPasteSelection(x, y);
+
+            e.Use();
+            Repaint();
+            return;
+        }
+
+        if (e.type == EventType.MouseUp && _dragPasteActive)
+        {
+            if (hasCell)
+                UpdateDragPasteSelection(x, y);
+
+            bool changed = CaptureDragPasteArea();
+            if (changed)
+                EditorUtility.SetDirty(_map);
+
+            e.Use();
+            Repaint();
+        }
+    }
+
+    private void BeginDragPasteSelection(int sourceX, int sourceY)
+    {
+        _dragPasteActive = true;
+        _dragPasteHasPayload = false;
+        _dragPasteLayer = _paintLayer;
+        _dragPasteSelectionStartX = sourceX;
+        _dragPasteSelectionStartY = sourceY;
+        _dragPasteSelectionEndX = sourceX;
+        _dragPasteSelectionEndY = sourceY;
+        _dragPasteTargetX = sourceX;
+        _dragPasteTargetY = sourceY;
+    }
+
+    private void UpdateDragPasteSelection(int x, int y)
+    {
+        _dragPasteSelectionEndX = x;
+        _dragPasteSelectionEndY = y;
+    }
+
+    private void CancelDragPaste()
+    {
+        _dragPasteActive = false;
+        _dragPasteHasPayload = false;
+        _dragPasteLogicCells = null;
+        _dragPasteAppearanceCells = null;
+        _dragPasteWidth = 0;
+        _dragPasteHeight = 0;
+    }
+
+    private string GetDragPasteUndoName()
+    {
+        return "Move Map Tile Area";
+    }
+
+    private bool ApplyDragPasteAt(int targetX, int targetY)
+    {
+        if (!_dragPasteHasPayload || _dragPasteWidth <= 0 || _dragPasteHeight <= 0)
+            return false;
+
+        return MoveCapturedAreaTo(targetX, targetY);
+    }
+
+    private bool CaptureDragPasteArea()
+    {
+        GetNormalizedDragPasteSelection(out int minX, out int minY, out int maxX, out int maxY);
+
+        _dragPasteActive = false;
+        _dragPasteHasPayload = true;
+        _dragPasteLayer = _paintLayer;
+        _dragPasteSourceX = minX;
+        _dragPasteSourceY = minY;
+        _dragPasteTargetX = minX;
+        _dragPasteTargetY = minY;
+        _dragPasteWidth = maxX - minX + 1;
+        _dragPasteHeight = maxY - minY + 1;
+
+        int count = _dragPasteWidth * _dragPasteHeight;
+        _dragPasteLogicCells = new TileCell[count];
+        _dragPasteAppearanceCells = new AppearanceTileCell[count];
+        for (int yy = 0; yy < _dragPasteHeight; yy++)
+        {
+            for (int xx = 0; xx < _dragPasteWidth; xx++)
+            {
+                _dragPasteLogicCells[yy * _dragPasteWidth + xx] = _map.Get(minX + xx, minY + yy);
+                _dragPasteAppearanceCells[yy * _dragPasteWidth + xx] = _map.GetAppearance(minX + xx, minY + yy);
+            }
+        }
+
+        return false;
+    }
+
+    private void GetNormalizedDragPasteSelection(out int minX, out int minY, out int maxX, out int maxY)
+    {
+        minX = Mathf.Min(_dragPasteSelectionStartX, _dragPasteSelectionEndX);
+        minY = Mathf.Min(_dragPasteSelectionStartY, _dragPasteSelectionEndY);
+        maxX = Mathf.Max(_dragPasteSelectionStartX, _dragPasteSelectionEndX);
+        maxY = Mathf.Max(_dragPasteSelectionStartY, _dragPasteSelectionEndY);
+    }
+
+    private bool MoveCapturedAreaTo(int targetX, int targetY)
+    {
+        if (_dragPasteLogicCells == null || _dragPasteAppearanceCells == null)
+            return false;
+
+        int sourceMinX = _dragPasteSourceX;
+        int sourceMinY = _dragPasteSourceY;
+        int sourceMaxX = _dragPasteSourceX + _dragPasteWidth - 1;
+        int sourceMaxY = _dragPasteSourceY + _dragPasteHeight - 1;
+
+        bool changed = ClearLogicArea(sourceMinX, sourceMinY, sourceMaxX, sourceMaxY);
+        changed |= ClearAppearanceArea(sourceMinX, sourceMinY, sourceMaxX, sourceMaxY);
+        changed |= ApplyLogicPasteArea(targetX, targetY);
+        changed |= ApplyAppearancePasteArea(targetX, targetY);
+        return changed;
+    }
+
+    private bool ApplyLogicPasteArea(int targetX, int targetY)
+    {
+        if (_dragPasteLogicCells == null)
+            return false;
+
+        bool changed = false;
+        for (int yy = 0; yy < _dragPasteHeight; yy++)
+        {
+            for (int xx = 0; xx < _dragPasteWidth; xx++)
+            {
+                int x = targetX + xx;
+                int y = targetY + yy;
+                if (!_map.InBounds(x, y))
+                    continue;
+
+                var next = _dragPasteLogicCells[yy * _dragPasteWidth + xx];
+                var current = _map.Get(x, y);
+                if (current.Kind == next.Kind && current.Variant == next.Variant)
+                    continue;
+
+                _map.Set(x, y, next);
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
+    private bool ApplyAppearancePasteArea(int targetX, int targetY)
+    {
+        if (_dragPasteAppearanceCells == null)
+            return false;
+
+        bool changed = false;
+        int minChangedX = int.MaxValue;
+        int minChangedY = int.MaxValue;
+        int maxChangedX = int.MinValue;
+        int maxChangedY = int.MinValue;
+
+        for (int yy = 0; yy < _dragPasteHeight; yy++)
+        {
+            for (int xx = 0; xx < _dragPasteWidth; xx++)
+            {
+                int x = targetX + xx;
+                int y = targetY + yy;
+                if (!_map.InBounds(x, y))
+                    continue;
+
+                var next = _dragPasteAppearanceCells[yy * _dragPasteWidth + xx];
+                var current = _map.GetAppearance(x, y);
+                if (current.Kind == next.Kind && current.Variant == next.Variant)
+                    continue;
+
+                _map.SetAppearance(x, y, next);
+                changed = true;
+                minChangedX = Mathf.Min(minChangedX, x);
+                minChangedY = Mathf.Min(minChangedY, y);
+                maxChangedX = Mathf.Max(maxChangedX, x);
+                maxChangedY = Mathf.Max(maxChangedY, y);
+            }
+        }
+
+        if (changed)
+            RefreshAppearanceAutoTilesInBounds(minChangedX, minChangedY, maxChangedX, maxChangedY);
+
+        return changed;
+    }
+
+    private bool ClearLogicArea(int minX, int minY, int maxX, int maxY)
+    {
+        bool changed = false;
+        for (int y = minY; y <= maxY; y++)
+        {
+            for (int x = minX; x <= maxX; x++)
+            {
+                var current = _map.Get(x, y);
+                if (current.Kind == TileKind.None && current.Variant == 0)
+                    continue;
+
+                _map.Set(x, y, default);
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
+    private bool ClearAppearanceArea(int minX, int minY, int maxX, int maxY)
+    {
+        bool changed = false;
+        for (int y = minY; y <= maxY; y++)
+        {
+            for (int x = minX; x <= maxX; x++)
+            {
+                var current = _map.GetAppearance(x, y);
+                if (current.Kind == AppearanceTileKind.None && current.Variant == 0)
+                    continue;
+
+                _map.SetAppearance(x, y, default);
+                changed = true;
+            }
+        }
+
+        if (changed)
+            RefreshAppearanceAutoTilesInBounds(minX, minY, maxX, maxY);
+
+        return changed;
+    }
+
+    private void RefreshAppearanceAutoTilesInBounds(int minX, int minY, int maxX, int maxY)
+    {
+        for (int y = minY - 1; y <= maxY + 1; y++)
+        {
+            for (int x = minX - 1; x <= maxX + 1; x++)
+                _map.RefreshAppearanceAutoTileAt(x, y);
+        }
     }
 
     private string GetUndoName(int mouseButton)
@@ -617,7 +1239,7 @@ public sealed class MapPainterWindow : EditorWindow
 
     private void DrawBrushPreview(Rect gridRect)
     {
-        if (!_hasHoveredCell)
+        if (!_hasHoveredCell || _brushTool == BrushTool.Paste)
             return;
 
         GetBrushBounds(_hoveredX, _hoveredY, out int minX, out int minY, out int maxX, out int maxY);
@@ -643,6 +1265,73 @@ public sealed class MapPainterWindow : EditorWindow
             new Vector3(brushRect.xMax, brushRect.yMax),
             new Vector3(brushRect.xMin, brushRect.yMax),
             new Vector3(brushRect.xMin, brushRect.yMin)
+        );
+    }
+
+    private void DrawDragPastePreview(Rect gridRect)
+    {
+        if (!_dragPasteActive && !_dragPasteHasPayload)
+            return;
+
+        float cellSize = Mathf.Clamp(_cellSize, MinCellSize, MaxCellSize);
+        Color previewColor = _dragPasteLayer == PaintLayer.Appearance ? BrushAppearanceColor : BrushLogicColor;
+
+        if (_dragPasteActive)
+        {
+            GetNormalizedDragPasteSelection(out int minX, out int minY, out int maxX, out int maxY);
+            Rect selectionRect = GetCellAreaRect(
+                gridRect,
+                minX,
+                minY,
+                maxX - minX + 1,
+                maxY - minY + 1,
+                cellSize);
+            Handles.DrawSolidRectangleWithOutline(selectionRect, WithAlpha(previewColor, 0.12f), previewColor);
+            return;
+        }
+
+        Rect sourceRect = GetCellAreaRect(
+            gridRect,
+            _dragPasteSourceX,
+            _dragPasteSourceY,
+            _dragPasteWidth,
+            _dragPasteHeight,
+            cellSize);
+        Rect targetRect = GetCellAreaRect(
+            gridRect,
+            _dragPasteTargetX,
+            _dragPasteTargetY,
+            _dragPasteWidth,
+            _dragPasteHeight,
+            cellSize);
+
+        Handles.DrawSolidRectangleWithOutline(sourceRect, Color.clear, WithAlpha(Color.white, 0.95f));
+        Handles.DrawSolidRectangleWithOutline(targetRect, WithAlpha(previewColor, 0.18f), previewColor);
+        Handles.color = previewColor;
+        Handles.DrawAAPolyLine(
+            2f,
+            new Vector3(sourceRect.center.x, sourceRect.center.y),
+            new Vector3(targetRect.center.x, targetRect.center.y)
+        );
+    }
+
+    private static Rect GetCellRect(Rect gridRect, int x, int y, float cellSize)
+    {
+        return new Rect(
+            gridRect.x + x * cellSize,
+            gridRect.y + y * cellSize,
+            cellSize,
+            cellSize
+        );
+    }
+
+    private static Rect GetCellAreaRect(Rect gridRect, int x, int y, int width, int height, float cellSize)
+    {
+        return new Rect(
+            gridRect.x + x * cellSize,
+            gridRect.y + y * cellSize,
+            Mathf.Max(1, width) * cellSize,
+            Mathf.Max(1, height) * cellSize
         );
     }
 
@@ -1104,6 +1793,7 @@ public sealed class MapPainterWindow : EditorWindow
         {
             _appearanceKind = kind;
             _brushTool = BrushTool.Paint;
+            CancelDragPaste();
         }
 
         bool selected = _appearanceKind == kind;
