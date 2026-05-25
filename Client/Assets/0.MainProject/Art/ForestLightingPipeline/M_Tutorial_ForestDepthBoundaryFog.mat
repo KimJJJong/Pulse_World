@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_Tutorial_ForestDepthBoundaryFog
+  m_Shader: {fileID: 4800000, guid: 8851b0ca8495d994892c64ab9015aa90, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _BlendDistance: 5.2
+    - _Density: 0.0601
+    - _FogEnabled: 1
+    - _FogZoneCount: 4
+    - _NoiseScale: 0.045
+    - _NoiseStrength: 1
+    m_Colors:
+    - _FogColor: {r: 0.1739943, g: 0.21112098, b: 0.3207547, a: 1}
+    - _FogDirection: {r: -1, g: 0, b: -0.000000119209275, a: 0}
+    - _FogOrigin: {r: 19.6, g: 0.05, b: 15.5, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
