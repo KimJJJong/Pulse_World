@@ -100,8 +100,9 @@ public sealed class BoardTileVisual : MonoBehaviour
 
         _topBlock ??= new MaterialPropertyBlock();
         renderer.GetPropertyBlock(_topBlock);
-        _topBlock.SetColor("_BaseColor", topColor);
-        _topBlock.SetColor("_Color", topColor);
+        Color appliedColor = Application.isPlaying ? Color.white : topColor;
+        _topBlock.SetColor("_BaseColor", appliedColor);
+        _topBlock.SetColor("_Color", appliedColor);
         renderer.SetPropertyBlock(_topBlock);
     }
 

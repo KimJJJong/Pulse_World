@@ -11,6 +11,7 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
     private AppearanceAutoTilePalette _appearancePalette;
     private bool _repositionEvenIfExists = true;
     private Material _tilePrefabBaseMaterial;
+    private static readonly Color WallAppearanceEditorTint = new Color(1.25f, 1.25f, 1.25f, 1f);
 
     [MenuItem("RhythmRPG/Editors/World/BoardView Map Baker")]
     public static void Open()
@@ -173,7 +174,7 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
                 {
                     visual.SetBaseColor(color);
                     visual.SetTopMaterial(material);
-                    visual.SetTopColor(_boardView.GetAppearanceTileTint((int)cell.Kind));
+                    visual.SetTopColor(GetEditorAppearanceTileTint(cell.Kind));
                     materialApplied = true;
                 }
 
@@ -202,6 +203,11 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
             visual = go.AddComponent<BoardTileVisual>();
 
         return visual;
+    }
+
+    private static Color GetEditorAppearanceTileTint(TileKind kind)
+    {
+        return kind == TileKind.Wall ? WallAppearanceEditorTint : Color.white;
     }
 
     private Material GetTilePrefabBaseMaterial()

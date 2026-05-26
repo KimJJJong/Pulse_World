@@ -19,6 +19,22 @@ public class BoardView : MonoBehaviour, IClientWorldView
     public float cellSize = 1.0f;
     public float moveLerpTime = 0.1f;
 
+    [Header("Walkable Grid")]
+    [SerializeField] private bool showWalkableGrid = true;
+    [SerializeField] private bool walkableGridBeatPulse = true;
+    [SerializeField] private bool playWalkableGridWaveOnCombat = true;
+    [SerializeField, Range(0.005f, 0.08f)] private float walkableGridLineWidth = 0.018f;
+    [SerializeField, Range(0f, 0.2f)] private float walkableGridHeightOffset = 0.045f;
+    [SerializeField] private Color walkableGridColor = new Color(0.42f, 0.92f, 1f, 0.22f);
+    [SerializeField] private Color walkableGridBeatFlashColor = new Color(0.88f, 1f, 1f, 0.42f);
+    [SerializeField, Range(0f, 1f)] private float walkableGridBeatFlashStrength = 0.22f;
+    [SerializeField, Min(0.1f)] private float walkableGridBeatFlashSharpness = 4.5f;
+    [SerializeField, Min(0.25f)] private float walkableGridPlayerPulseRadiusTiles = 3f;
+    [SerializeField] private Color walkableGridWaveColor = new Color(0.78f, 1f, 1f, 0.95f);
+    [SerializeField, Min(0.05f)] private float walkableGridWaveDuration = 0.55f;
+    [SerializeField, Min(0.25f)] private float walkableGridWaveRadiusTiles = 5f;
+    [SerializeField, Min(0.05f)] private float walkableGridWaveWidthTiles = 0.7f;
+
     // entityId -> EntityVisual
     private readonly Dictionary<int, EntityVisual> _entityViews = new();
 
@@ -32,7 +48,6 @@ public class BoardView : MonoBehaviour, IClientWorldView
     private Material _defaultTileBaseMaterial;
 
     private static readonly Color TELEGRAPH_COLOR = new Color(1f, 0.08f, 0f, 0.45f);
-    private static readonly Color WALL_APPEARANCE_TINT = new Color(1.25f, 1.25f, 1.25f, 1f);
 
     private const int MaxPredictedMovesPerActor = 8;
 
@@ -42,11 +57,42 @@ public class BoardView : MonoBehaviour, IClientWorldView
         public Vector2Int PredictedTile;
     }
 
+    private struct WalkableGridTile
+    {
+        public Vector2 Coord;
+        public int VertexStart;
+        public int VertexCount;
+    }
+
+    private struct WalkableGridWave
+    {
+        public Vector2 Origin;
+        public float StartTime;
+        public float Duration;
+        public float RadiusTiles;
+        public float WidthTiles;
+        public Color Color;
+    }
+
     private Dictionary<int, float> _recentInstantActions = new();
     private Dictionary<int, List<PredictedMove>> _recentPredictedMoves = new();
     private Dictionary<int, ClientSkillRunner> _activeSkillRunners = new();
     private Dictionary<Vector2Int, long> _telegraphExpiration = new Dictionary<Vector2Int, long>();
     private readonly List<Vector2Int> _expiredTelegraphBuffer = new List<Vector2Int>();
+    private const string WalkableGridObjectName = "__WalkableGridOutline";
+    private GameObject _walkableGridObject;
+    private MeshFilter _walkableGridMeshFilter;
+    private MeshRenderer _walkableGridRenderer;
+    private Mesh _walkableGridMesh;
+    private Material _walkableGridMaterial;
+    private Color32[] _walkableGridColors;
+    private bool _walkableGridDirty;
+    private bool _walkableGridTintActive;
+    private float _walkableGridTintStartTime;
+    private float _walkableGridTintDuration;
+    private Color _walkableGridTintColor;
+    private readonly List<WalkableGridTile> _walkableGridTiles = new List<WalkableGridTile>();
+    private readonly List<WalkableGridWave> _walkableGridWaves = new List<WalkableGridWave>();
 
     #region Debug
     private const bool DBG_POS = false;
@@ -86,6 +132,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 }
             }
         }
+
+        UpdateWalkableGridEffects();
     }
 
     private void LoadEntityMapping()
@@ -184,13 +232,6 @@ public class BoardView : MonoBehaviour, IClientWorldView
         return Color.Lerp(baseColor, Color.white, connectionWeight * 0.12f);
     }
 
-    public Color GetAppearanceTileTint(int tileKind)
-    {
-        return (TileKind)tileKind == TileKind.Wall
-            ? WALL_APPEARANCE_TINT
-            : Color.white;
-    }
-
     private Renderer GetTileRenderer(GameObject tile)
     {
         var visual = GetTileVisual(tile);
@@ -229,6 +270,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
             _logicTileKinds[x, y] = (TileKind)tileKind;
 
         ApplyTileVisual(x, y, updateTopSurface: false);
+        MarkWalkableGridDirty();
     }
 
     public void OnSetAppearancePalette(AppearanceAutoTilePalette palette)
@@ -276,7 +318,6 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (tile == null) return;
 
         Color logicColor = _logicTileColors != null ? _logicTileColors[x, y] : Color.gray;
-        TileKind logicKind = _logicTileKinds != null ? _logicTileKinds[x, y] : TileKind.None;
         AppearanceTileCell appearance = _appearanceTiles != null ? _appearanceTiles[x, y] : default;
         Color finalColor = ComposeTileColor(logicColor, appearance);
 
@@ -292,7 +333,6 @@ public class BoardView : MonoBehaviour, IClientWorldView
             {
                 visual.SetBaseColor(logicColor);
                 visual.SetTopMaterial(material);
-                visual.SetTopColor(GetAppearanceTileTint((int)logicKind));
             }
             else
             {
@@ -405,6 +445,460 @@ public class BoardView : MonoBehaviour, IClientWorldView
         ApplyTileVisual(x, y);
     }
 
+    public void SetWalkableGridVisible(bool visible)
+    {
+        showWalkableGrid = visible;
+
+        if (_walkableGridRenderer != null)
+            _walkableGridRenderer.enabled = visible && _walkableGridMesh != null && _walkableGridMesh.vertexCount > 0;
+
+        if (visible)
+            MarkWalkableGridDirty();
+    }
+
+    public void PlayWalkableGridWave(int originX, int originY)
+    {
+        PlayWalkableGridWave(originX, originY, walkableGridWaveColor, walkableGridWaveRadiusTiles, walkableGridWaveDuration);
+    }
+
+    public void PlayWalkableGridWave(int originX, int originY, Color color)
+    {
+        PlayWalkableGridWave(originX, originY, color, walkableGridWaveRadiusTiles, walkableGridWaveDuration);
+    }
+
+    public void PlayWalkableGridWave(int originX, int originY, Color color, float radiusTiles, float duration)
+    {
+        if (!showWalkableGrid)
+            return;
+
+        _walkableGridWaves.Add(new WalkableGridWave
+        {
+            Origin = GetGridTileCenter(originX, originY),
+            StartTime = Time.time,
+            Duration = Mathf.Max(0.05f, duration),
+            RadiusTiles = Mathf.Max(0.25f, radiusTiles),
+            WidthTiles = Mathf.Max(0.05f, walkableGridWaveWidthTiles),
+            Color = color
+        });
+    }
+
+    public void FlashWalkableGrid(Color color, float duration)
+    {
+        if (!showWalkableGrid)
+            return;
+
+        _walkableGridTintActive = true;
+        _walkableGridTintStartTime = Time.time;
+        _walkableGridTintDuration = Mathf.Max(0.05f, duration);
+        _walkableGridTintColor = color;
+    }
+
+    private void MarkWalkableGridDirty()
+    {
+        _walkableGridDirty = true;
+    }
+
+    private void UpdateWalkableGridEffects()
+    {
+        if (_walkableGridDirty)
+            RebuildWalkableGridMesh();
+
+        if (!showWalkableGrid || _walkableGridMesh == null || _walkableGridColors == null || _walkableGridTiles.Count == 0)
+            return;
+
+        bool hadWaves = _walkableGridWaves.Count > 0;
+        bool hadTint = _walkableGridTintActive;
+        RemoveExpiredWalkableGridWaves();
+
+        Vector2 playerPulseCenter = default;
+        bool hasBeatPulse = walkableGridBeatPulse
+                            && RhythmClient.Instance != null
+                            && RhythmClient.Instance.ServerSongStartMs > 0
+                            && TryGetLocalPlayerGridPosition(out playerPulseCenter);
+        bool hasTint = IsWalkableGridTintActive();
+
+        if (!hasBeatPulse && !hasTint && _walkableGridWaves.Count == 0 && !hadWaves && !hadTint)
+            return;
+
+        Color baseColor = EvaluateWalkableGridBaseColor(hasTint);
+        for (int i = 0; i < _walkableGridTiles.Count; i++)
+        {
+            WalkableGridTile tile = _walkableGridTiles[i];
+            Color color = EvaluateWalkableGridTileColor(tile.Coord, baseColor, hasBeatPulse, playerPulseCenter);
+            ApplyWalkableGridTileColor(tile, color);
+        }
+
+        _walkableGridMesh.colors32 = _walkableGridColors;
+    }
+
+    private void RebuildWalkableGridMesh()
+    {
+        _walkableGridDirty = false;
+        _walkableGridTiles.Clear();
+
+        if (!showWalkableGrid || _tiles == null || _logicTileKinds == null)
+        {
+            ClearWalkableGridMesh();
+            return;
+        }
+
+        EnsureWalkableGridRenderer();
+
+        var vertices = new List<Vector3>();
+        var triangles = new List<int>();
+        var colors = new List<Color32>();
+        var drawnEdges = new HashSet<Vector3Int>();
+        Color baseColor = EvaluateWalkableGridBaseColor(IsWalkableGridTintActive());
+
+        int width = _tiles.GetLength(0);
+        int height = _tiles.GetLength(1);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (!IsWalkableTileKind(_logicTileKinds[x, y]))
+                    continue;
+
+                GameObject tile = _tiles[x, y];
+                Renderer renderer = GetTileRenderer(tile);
+                if (renderer == null)
+                    continue;
+
+                AddWalkableGridEdgesForTile(x, y, renderer.bounds, drawnEdges, vertices, triangles, colors, baseColor);
+            }
+        }
+
+        if (_walkableGridMesh == null)
+            _walkableGridMesh = new Mesh { name = "BoardWalkableGridOutlineMesh" };
+
+        _walkableGridMesh.Clear();
+        _walkableGridMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        _walkableGridMesh.SetVertices(vertices);
+        _walkableGridMesh.SetTriangles(triangles, 0);
+        _walkableGridMesh.SetColors(colors);
+        _walkableGridMesh.RecalculateBounds();
+        _walkableGridMeshFilter.sharedMesh = _walkableGridMesh;
+        _walkableGridColors = colors.ToArray();
+
+        if (_walkableGridRenderer != null)
+            _walkableGridRenderer.enabled = showWalkableGrid && vertices.Count > 0;
+    }
+
+    private void AddWalkableGridEdgesForTile(
+        int x,
+        int y,
+        Bounds bounds,
+        HashSet<Vector3Int> drawnEdges,
+        List<Vector3> vertices,
+        List<int> triangles,
+        List<Color32> colors,
+        Color color)
+    {
+        float minSize = Mathf.Min(bounds.size.x, bounds.size.z);
+        float lineWidth = Mathf.Min(Mathf.Max(0.001f, walkableGridLineWidth), minSize * 0.35f);
+        float halfLine = lineWidth * 0.5f;
+        float minX = bounds.min.x;
+        float maxX = bounds.max.x;
+        float minZ = bounds.min.z;
+        float maxZ = bounds.max.z;
+        float yTop = bounds.max.y + walkableGridHeightOffset;
+
+        if (maxX <= minX || maxZ <= minZ)
+            return;
+
+        halfLine = Mathf.Min(halfLine, (maxX - minX) * 0.225f, (maxZ - minZ) * 0.225f);
+
+        AddWalkableGridEdge(
+            new Vector3Int(x, y, 0),
+            new Vector2(x + 0.5f, y),
+            minX,
+            minZ - halfLine,
+            maxX,
+            minZ + halfLine,
+            yTop,
+            drawnEdges,
+            vertices,
+            triangles,
+            colors,
+            color);
+
+        AddWalkableGridEdge(
+            new Vector3Int(x, y + 1, 0),
+            new Vector2(x + 0.5f, y + 1f),
+            minX,
+            maxZ - halfLine,
+            maxX,
+            maxZ + halfLine,
+            yTop,
+            drawnEdges,
+            vertices,
+            triangles,
+            colors,
+            color);
+
+        AddWalkableGridEdge(
+            new Vector3Int(x, y, 1),
+            new Vector2(x, y + 0.5f),
+            minX - halfLine,
+            minZ,
+            minX + halfLine,
+            maxZ,
+            yTop,
+            drawnEdges,
+            vertices,
+            triangles,
+            colors,
+            color);
+
+        AddWalkableGridEdge(
+            new Vector3Int(x + 1, y, 1),
+            new Vector2(x + 1f, y + 0.5f),
+            maxX - halfLine,
+            minZ,
+            maxX + halfLine,
+            maxZ,
+            yTop,
+            drawnEdges,
+            vertices,
+            triangles,
+            colors,
+            color);
+    }
+
+    private void AddWalkableGridEdge(
+        Vector3Int key,
+        Vector2 coord,
+        float minX,
+        float minZ,
+        float maxX,
+        float maxZ,
+        float y,
+        HashSet<Vector3Int> drawnEdges,
+        List<Vector3> vertices,
+        List<int> triangles,
+        List<Color32> colors,
+        Color color)
+    {
+        if (!drawnEdges.Add(key))
+            return;
+
+        int vertexStart = vertices.Count;
+        AddWalkableGridQuad(minX, minZ, maxX, maxZ, y, vertices, triangles, colors, color);
+
+        int vertexCount = vertices.Count - vertexStart;
+        if (vertexCount > 0)
+        {
+            _walkableGridTiles.Add(new WalkableGridTile
+            {
+                Coord = coord,
+                VertexStart = vertexStart,
+                VertexCount = vertexCount
+            });
+        }
+    }
+
+    private void AddWalkableGridQuad(
+        float minX,
+        float minZ,
+        float maxX,
+        float maxZ,
+        float y,
+        List<Vector3> vertices,
+        List<int> triangles,
+        List<Color32> colors,
+        Color color)
+    {
+        int start = vertices.Count;
+        vertices.Add(transform.InverseTransformPoint(new Vector3(minX, y, minZ)));
+        vertices.Add(transform.InverseTransformPoint(new Vector3(maxX, y, minZ)));
+        vertices.Add(transform.InverseTransformPoint(new Vector3(maxX, y, maxZ)));
+        vertices.Add(transform.InverseTransformPoint(new Vector3(minX, y, maxZ)));
+
+        triangles.Add(start + 0);
+        triangles.Add(start + 2);
+        triangles.Add(start + 1);
+        triangles.Add(start + 0);
+        triangles.Add(start + 3);
+        triangles.Add(start + 2);
+
+        Color32 color32 = color;
+        colors.Add(color32);
+        colors.Add(color32);
+        colors.Add(color32);
+        colors.Add(color32);
+    }
+
+    private void EnsureWalkableGridRenderer()
+    {
+        if (_walkableGridObject == null)
+        {
+            Transform existing = transform.Find(WalkableGridObjectName);
+            _walkableGridObject = existing != null ? existing.gameObject : new GameObject(WalkableGridObjectName);
+            _walkableGridObject.transform.SetParent(transform, false);
+            _walkableGridObject.transform.localPosition = Vector3.zero;
+            _walkableGridObject.transform.localRotation = Quaternion.identity;
+            _walkableGridObject.transform.localScale = Vector3.one;
+        }
+
+        if (!_walkableGridObject.TryGetComponent(out _walkableGridMeshFilter))
+            _walkableGridMeshFilter = _walkableGridObject.AddComponent<MeshFilter>();
+
+        if (!_walkableGridObject.TryGetComponent(out _walkableGridRenderer))
+            _walkableGridRenderer = _walkableGridObject.AddComponent<MeshRenderer>();
+
+        if (_walkableGridMesh == null)
+            _walkableGridMesh = new Mesh { name = "BoardWalkableGridOutlineMesh" };
+
+        _walkableGridMeshFilter.sharedMesh = _walkableGridMesh;
+        _walkableGridRenderer.sharedMaterial = GetWalkableGridMaterial();
+        _walkableGridRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        _walkableGridRenderer.receiveShadows = false;
+    }
+
+    private Material GetWalkableGridMaterial()
+    {
+        if (_walkableGridMaterial != null)
+            return _walkableGridMaterial;
+
+        Shader shader = Shader.Find("Sprites/Default");
+        if (shader == null)
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader == null)
+            shader = Shader.Find("Unlit/Color");
+        if (shader == null)
+            shader = Shader.Find("Standard");
+
+        _walkableGridMaterial = new Material(shader)
+        {
+            name = "BoardWalkableGrid_Runtime",
+            renderQueue = 3050,
+            color = Color.white
+        };
+
+        _walkableGridMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        _walkableGridMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        _walkableGridMaterial.SetInt("_ZWrite", 0);
+        _walkableGridMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+        _walkableGridMaterial.SetFloat("_Surface", 1f);
+        _walkableGridMaterial.EnableKeyword("_ALPHABLEND_ON");
+        _walkableGridMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        return _walkableGridMaterial;
+    }
+
+    private void ClearWalkableGridMesh()
+    {
+        _walkableGridTiles.Clear();
+        _walkableGridColors = null;
+
+        if (_walkableGridMesh != null)
+            _walkableGridMesh.Clear();
+
+        if (_walkableGridRenderer != null)
+            _walkableGridRenderer.enabled = false;
+    }
+
+    private void RemoveExpiredWalkableGridWaves()
+    {
+        float now = Time.time;
+        for (int i = _walkableGridWaves.Count - 1; i >= 0; i--)
+        {
+            WalkableGridWave wave = _walkableGridWaves[i];
+            if (now - wave.StartTime >= wave.Duration)
+                _walkableGridWaves.RemoveAt(i);
+        }
+    }
+
+    private bool IsWalkableGridTintActive()
+    {
+        if (!_walkableGridTintActive)
+            return false;
+
+        if (Time.time - _walkableGridTintStartTime <= _walkableGridTintDuration)
+            return true;
+
+        _walkableGridTintActive = false;
+        return false;
+    }
+
+    private Color EvaluateWalkableGridBaseColor(bool hasTint)
+    {
+        Color color = walkableGridColor;
+
+        if (hasTint)
+        {
+            float elapsed = Time.time - _walkableGridTintStartTime;
+            float fade = 1f - Mathf.Clamp01(elapsed / _walkableGridTintDuration);
+            color = BlendWalkableGridColor(color, _walkableGridTintColor, fade);
+        }
+
+        return color;
+    }
+
+    private Color EvaluateWalkableGridTileColor(
+        Vector2 coord,
+        Color baseColor,
+        bool hasBeatPulse,
+        Vector2 playerPulseCenter)
+    {
+        Color color = baseColor;
+        float now = Time.time;
+
+        if (hasBeatPulse)
+        {
+            float distance = Vector2.Distance(coord, playerPulseCenter);
+            float radius = Mathf.Max(0.25f, walkableGridPlayerPulseRadiusTiles);
+            float falloff = 1f - Mathf.Clamp01(distance / radius);
+
+            if (falloff > 0f)
+            {
+                float progress = (float)RhythmClient.Instance.GetCurrentBeatProgress01();
+                float pulse = Mathf.Pow(1f - progress, walkableGridBeatFlashSharpness)
+                              * walkableGridBeatFlashStrength
+                              * Mathf.SmoothStep(0f, 1f, falloff);
+                color = BlendWalkableGridColor(color, walkableGridBeatFlashColor, pulse);
+            }
+        }
+
+        for (int i = 0; i < _walkableGridWaves.Count; i++)
+        {
+            WalkableGridWave wave = _walkableGridWaves[i];
+            float progress = Mathf.Clamp01((now - wave.StartTime) / wave.Duration);
+            float radius = progress * wave.RadiusTiles;
+            float distance = Vector2.Distance(coord, wave.Origin);
+            float band = 1f - Mathf.Abs(distance - radius) / wave.WidthTiles;
+            if (band <= 0f)
+                continue;
+
+            float intensity = Mathf.SmoothStep(0f, 1f, band) * (1f - progress);
+            color = BlendWalkableGridColor(color, wave.Color, intensity);
+        }
+
+        return color;
+    }
+
+    private void ApplyWalkableGridTileColor(WalkableGridTile tile, Color color)
+    {
+        Color32 color32 = color;
+        int end = Mathf.Min(tile.VertexStart + tile.VertexCount, _walkableGridColors.Length);
+        for (int i = tile.VertexStart; i < end; i++)
+            _walkableGridColors[i] = color32;
+    }
+
+    private Color BlendWalkableGridColor(Color baseColor, Color overlayColor, float amount)
+    {
+        amount = Mathf.Clamp01(amount);
+        return new Color(
+            Mathf.Lerp(baseColor.r, overlayColor.r, amount),
+            Mathf.Lerp(baseColor.g, overlayColor.g, amount),
+            Mathf.Lerp(baseColor.b, overlayColor.b, amount),
+            Mathf.Clamp01(baseColor.a + overlayColor.a * amount));
+    }
+
+    private bool IsWalkableTileKind(TileKind kind)
+    {
+        return kind == TileKind.Floor || kind == TileKind.Spawn;
+    }
+
     public bool TryBindTilesFromScene(int width, int height)
     {
         var map = CollectSceneTilesByName();
@@ -491,6 +985,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         _logicTileColors = new Color[width, height];
         _logicTileKinds = new TileKind[width, height];
         _appearanceTiles = new AppearanceTileCell[width, height];
+        MarkWalkableGridDirty();
     }
 
     private void BindTileState(int x, int y, GameObject tile)
@@ -656,6 +1151,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         if (isAttackOrSkill)
         {
+            if (playWalkableGridWaveOnCombat)
+                PlayWalkableGridWave(entity.X, entity.Y);
+
             bool isMine = ClientGameState.Instance != null
                        && action.ActorId == ClientGameState.Instance.MyActorId;
             visual.PlaySkill(duration, isMine);
@@ -672,7 +1170,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
         bool isMine = (ClientGameState.Instance != null && actorId == ClientGameState.Instance.MyActorId);
 
         if (kind == ActionKind.Attack || kind == ActionKind.Skill)
+        {
             visual.PlaySkill(duration, isMine);
+
+            if (playWalkableGridWaveOnCombat && TryGetEntityGridPosition(actorId, out Vector2Int origin))
+                PlayWalkableGridWave(origin.x, origin.y);
+        }
 
         visual.SetRotation(rotation);
         _recentInstantActions[actorId] = Time.time;
@@ -806,6 +1309,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         visual.SetRotation(rotation);
 
+        if (playWalkableGridWaveOnCombat && TryGetEntityGridPosition(actorId, out Vector2Int origin))
+            PlayWalkableGridWave(origin.x, origin.y);
+
         long curTick = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentServerTick() : 0;
         long tickGap = curTick - startTick;
         if (P2PDebugConfig.TraceCombat)
@@ -861,6 +1367,49 @@ public class BoardView : MonoBehaviour, IClientWorldView
     #region Helper
 
     private Dictionary<int, string> _entityPathMap = new Dictionary<int, string>();
+
+    private bool TryGetEntityGridPosition(int actorId, out Vector2Int position)
+    {
+        position = default;
+
+        if (ClientGameState.Instance == null)
+            return false;
+
+        if (!ClientGameState.Instance.TryGetEntity(actorId, out var info))
+            return false;
+
+        position = new Vector2Int(info.X, info.Y);
+        return true;
+    }
+
+    private bool TryGetLocalPlayerGridPosition(out Vector2 position)
+    {
+        position = default;
+
+        if (ClientGameState.Instance == null)
+            return false;
+
+        int actorId = ClientGameState.Instance.MyActorId;
+        if (actorId <= 0)
+            return false;
+
+        if (TryGetPredictedMoveTile(actorId, out Vector2Int predictedTile))
+        {
+            position = GetGridTileCenter(predictedTile.x, predictedTile.y);
+            return true;
+        }
+
+        if (!TryGetEntityGridPosition(actorId, out Vector2Int tile))
+            return false;
+
+        position = GetGridTileCenter(tile.x, tile.y);
+        return true;
+    }
+
+    private Vector2 GetGridTileCenter(int x, int y)
+    {
+        return new Vector2(x + 0.5f, y + 0.5f);
+    }
 
     /// <summary>
     /// AppearanceId로 프리팹을 결정합니다.
@@ -987,6 +1536,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
         _logicTileColors = null;
         _logicTileKinds = null;
         _appearanceTiles = null;
+        ClearWalkableGridMesh();
+        MarkWalkableGridDirty();
     }
 
     #endregion
