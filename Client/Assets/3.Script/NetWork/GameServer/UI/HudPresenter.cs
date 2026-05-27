@@ -15,6 +15,7 @@ public class HudPresenter : MonoBehaviour
     [SerializeField] private PartyMemberPanelView[] _partyPanels;
     [SerializeField] private StageInfoPanelView _stageInfo;
     [SerializeField] private ComboCounterView _comboView;
+    [SerializeField] private MinimapHudView _minimapView;
 
     // 슬롯 0~3 = H/J/K/L 스킬 슬롯. Space 일반공격은 입력 전용으로만 보관한다.
     // 현재 장비 기반으로 바인딩된 skillId 캐시
@@ -35,10 +36,13 @@ public class HudPresenter : MonoBehaviour
 
         EnsureHudViews();
         EnsureSkillSlots();
+        EnsureMinimapView();
     }
 
     void OnEnable()
     {
+        EnsureMinimapView();
+
         var gs = ClientGameState.Instance;
         if (gs != null)
         {
@@ -79,6 +83,8 @@ public class HudPresenter : MonoBehaviour
 
     void Start()
     {
+        EnsureMinimapView();
+
         if (ClientGameState.Instance != null)
         {
             ClientGameState.Instance.MyEntityChanged -= OnMyEntityChanged;
@@ -511,6 +517,49 @@ public class HudPresenter : MonoBehaviour
 
         if (_comboView == null)
             _comboView = GetComponentInChildren<ComboCounterView>(true);
+    }
+
+    private void EnsureMinimapView()
+    {
+        if (_minimapView == null)
+        {
+            Canvas canvas = GetComponentInParent<Canvas>();
+            if (canvas != null)
+                _minimapView = canvas.GetComponentInChildren<MinimapHudView>(true);
+        }
+
+        if (_minimapView == null)
+        {
+            RectTransform parent = FindHudRootRect();
+            if (parent == null)
+                return;
+
+            GameObject minimapObject = new GameObject("MinimapPanel", typeof(RectTransform));
+            RectTransform minimapRect = minimapObject.GetComponent<RectTransform>();
+            minimapRect.SetParent(parent, false);
+            minimapRect.localScale = Vector3.one;
+            _minimapView = minimapObject.AddComponent<MinimapHudView>();
+        }
+
+        _minimapView.EnsureRuntimeUi();
+    }
+
+    private RectTransform FindHudRootRect()
+    {
+        Transform current = transform;
+        while (current != null)
+        {
+            if (current.name == "HUDRoot" && current is RectTransform hudRoot)
+                return hudRoot;
+
+            current = current.parent;
+        }
+
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas != null)
+            return canvas.transform as RectTransform;
+
+        return transform.parent as RectTransform;
     }
 
     private static int CompareSkillSlots(SkillSlotView a, SkillSlotView b)

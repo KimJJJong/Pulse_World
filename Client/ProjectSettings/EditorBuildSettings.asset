@@ -18,7 +18,7 @@ EditorBuildSettings:
     path: Assets/0.MainProject/Scenes/Home 1.unity
     guid: 13d3b1515e7e3ef4495cd456b25b2200
   - enabled: 1
-    path: Assets/0.MainProject/Scenes/TownMap.unity
+    path: Assets/0.MainProject/Scenes/Town/TownMap.unity
     guid: 0387cf06f874f3349bdda5ccbcd1cb25
   - enabled: 1
     path: Assets/0.MainProject/Scenes/Game/Game.unity

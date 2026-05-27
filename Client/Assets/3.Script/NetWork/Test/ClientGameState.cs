@@ -29,6 +29,11 @@ public class ClientGameState : MonoBehaviour
     // UI
     public event System.Action<ClientEntityInfo> MyEntityChanged;
     public event System.Action PartyStateChanged;
+    public event System.Action<int, int> MapCreated;
+    public event System.Action<int, int, int> TileChanged;
+    public event System.Action<ClientEntityInfo> EntityChanged;
+    public event System.Action<int> EntityRemoved;
+    public event System.Action EntitiesCleared;
 
     void Awake()
     {
@@ -166,6 +171,8 @@ public class ClientGameState : MonoBehaviour
             Debug.LogWarning("[ClientGameState] WorldView is null during CreateMap!");
         else
             WorldView.OnCreateMap(width, height);
+
+        MapCreated?.Invoke(width, height);
     }
 
     private AppearanceAutoTilePalette LoadAppearancePalette(string resourcePath)
@@ -207,6 +214,7 @@ public class ClientGameState : MonoBehaviour
 
         _tiles[x, y] = tileKind;
         WorldView?.OnSetTile(x, y, tileKind);
+        TileChanged?.Invoke(x, y, tileKind);
     }
 
     public void SetAppearanceTile(int x, int y, int appearanceKind, int appearanceVariant)
@@ -274,6 +282,7 @@ public class ClientGameState : MonoBehaviour
         MyActorId = actorId;
         string uid = TryGetPlayerUid(actorId, out var resolvedUid) ? resolvedUid : "-";
         Debug.Log($"[P2PPlayerSync] SetMyActorId actor={actorId} uid={uid}");
+        PartyStateChanged?.Invoke();
     }
 
     public void SetPlayerRoster(IEnumerable<(int ActorId, string Uid)> roster)
@@ -346,6 +355,7 @@ public class ClientGameState : MonoBehaviour
         Debug.Log($"[ClientGameState] ClearEntities. Count={_entities.Count}");
         _entities.Clear();
         WorldView?.OnClearEntities();
+        EntitiesCleared?.Invoke();
         PartyStateChanged?.Invoke();
     }
 
@@ -377,6 +387,7 @@ public class ClientGameState : MonoBehaviour
         else
             WorldView.OnSpawnOrUpdateEntity(info);
 
+        EntityChanged?.Invoke(info);
         NotifyMyEntityChanged(info.EntityId);
         PartyStateChanged?.Invoke();
     }
@@ -387,6 +398,7 @@ public class ClientGameState : MonoBehaviour
         _entities[info.EntityId] = info;
         if (refreshWorldView)
             WorldView?.OnSpawnOrUpdateEntity(info);
+        EntityChanged?.Invoke(info);
         NotifyMyEntityChanged(info.EntityId);
         PartyStateChanged?.Invoke();
     }
@@ -395,6 +407,7 @@ public class ClientGameState : MonoBehaviour
     {
         if (!_entities.Remove(entityId)) return false;
         WorldView?.OnDespawnEntity(entityId);
+        EntityRemoved?.Invoke(entityId);
         PartyStateChanged?.Invoke();
         return true;
     }
@@ -461,6 +474,7 @@ public class ClientGameState : MonoBehaviour
                 $"from=({action.FromX},{action.FromY}) to=({action.ToX},{action.ToY}) now=({entity.X},{entity.Y}) myActor={MyActorId}");
         }
         WorldView?.OnBeatAction(action, entity);
+        EntityChanged?.Invoke(entity);
         NotifyMyEntityChanged(action.ActorId);
         PartyStateChanged?.Invoke();
     }

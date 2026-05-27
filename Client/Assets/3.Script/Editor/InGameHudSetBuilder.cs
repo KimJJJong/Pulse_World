@@ -50,13 +50,14 @@ public static class InGameHudSetBuilder
             PartyMemberPanelView[] partyPanels = BuildPartyPanels(hudRoot, sprites);
             StageInfoPanelView stageInfo = BuildStagePanel(hudRoot, sprites);
             ComboCounterView comboView = BuildComboFlourish(hudRoot, sprites);
+            MinimapHudView minimapView = BuildMinimap(hudRoot);
 
             RectTransform combatDock = CreateRect("CombatDock", hudRoot);
             Anchor(combatDock, new Vector2(0.5f, 0f), new Vector2(0f, 74f), new Vector2(1120f, 320f), new Vector2(0.5f, 0f));
 
             HexHudView hexHud = BuildHexHud(combatDock, sprites);
             SkillSlotView[] skillSlots = BuildSkillBar(combatDock, sprites);
-            BuildPresenter(combatDock, previousConfig, hexHud, skillSlots, partyPanels, stageInfo, comboView);
+            BuildPresenter(combatDock, previousConfig, hexHud, skillSlots, partyPanels, stageInfo, comboView, minimapView);
 
             SetLayerRecursively(root, LayerMask.NameToLayer("UI"));
             PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
@@ -208,6 +209,16 @@ public static class InGameHudSetBuilder
         return view;
     }
 
+    private static MinimapHudView BuildMinimap(RectTransform parent)
+    {
+        RectTransform minimap = CreateRect("MinimapPanel", parent);
+        Anchor(minimap, new Vector2(1f, 1f), new Vector2(-56f, -52f), new Vector2(304f, 304f), new Vector2(1f, 1f));
+
+        MinimapHudView view = minimap.gameObject.AddComponent<MinimapHudView>();
+        view.EnsureRuntimeUi();
+        return view;
+    }
+
     private static HexHudView BuildHexHud(RectTransform parent, HudSprites sprites)
     {
         RectTransform hex = CreateRect("HexHud", parent);
@@ -320,7 +331,8 @@ public static class InGameHudSetBuilder
         SkillSlotView[] skillSlots,
         PartyMemberPanelView[] partyPanels,
         StageInfoPanelView stageInfo,
-        ComboCounterView comboView)
+        ComboCounterView comboView,
+        MinimapHudView minimapView)
     {
         RectTransform presenterRect = CreateRect("HudPresenter", parent);
         Anchor(presenterRect, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f));
@@ -342,6 +354,7 @@ public static class InGameHudSetBuilder
 
         serializedPresenter.FindProperty("_stageInfo").objectReferenceValue = stageInfo;
         serializedPresenter.FindProperty("_comboView").objectReferenceValue = comboView;
+        serializedPresenter.FindProperty("_minimapView").objectReferenceValue = minimapView;
         serializedPresenter.ApplyModifiedPropertiesWithoutUndo();
     }
 

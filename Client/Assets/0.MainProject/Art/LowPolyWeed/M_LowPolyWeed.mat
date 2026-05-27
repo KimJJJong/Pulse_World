@@ -7,14 +7,14 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: M_Tutorial_ForestDepthBoundaryFog
-  m_Shader: {fileID: 4800000, guid: 8851b0ca8495d994892c64ab9015aa90, type: 3}
+  m_Name: M_LowPolyWeed
+  m_Shader: {fileID: 4800000, guid: 6c445cadeb2e31d42b9d59fce61be408, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
+  m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
@@ -25,15 +25,20 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _BlendDistance: 5.2
-    - _Density: 0.0601
-    - _FogEnabled: 1
-    - _FogZoneCount: 5
-    - _NoiseScale: 0.045
-    - _NoiseStrength: 1
+    - _AmbientStrength: 0.38
+    - _BendHeight: 1
+    - _GradientSteps: 3
+    - _HeightVariation: 0.12
+    - _HueVariation: 0.16
+    - _LightSteps: 3
+    - _ValueVariation: 0.1
+    - _WindFrequency: 2.25
+    - _WindNoise: 0.28
+    - _WindSpeed: 0.34
+    - _WindStrength: 0.26
     m_Colors:
-    - _FogColor: {r: 0.1739943, g: 0.21112098, b: 0.3207547, a: 1}
-    - _FogDirection: {r: -1, g: 0, b: -0.000000119209275, a: 0}
-    - _FogOrigin: {r: 19.6, g: 0.05, b: 15.5, a: 0}
+    - _BottomColor: {r: 0.13, g: 0.27, b: 0.09, a: 1}
+    - _MiddleColor: {r: 0.34, g: 0.52, b: 0.14, a: 1}
+    - _TopColor: {r: 0.74, g: 0.82, b: 0.27, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
