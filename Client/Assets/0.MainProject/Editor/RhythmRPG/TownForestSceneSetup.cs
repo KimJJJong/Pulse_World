@@ -176,6 +176,86 @@ public static class TownForestSceneSetup
         }
     }
 
+    [MenuItem("RhythmRPG/Editors/Town/Organize Town Forest Hierarchy")]
+    public static void OrganizeHierarchyOnly()
+    {
+        var scene = SceneManager.GetActiveScene();
+        if (!scene.IsValid() || scene.path != ScenePath)
+        {
+            scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        }
+
+        var gameplayRoot = EnsureRoot(GameplayRootName);
+        var appearanceRoot = EnsureRoot(AppearanceRootName);
+        var lightingRoot = EnsureRoot(LightingRootName);
+
+        var lightingPropsRoot = FindOrCreateChild(appearanceRoot.transform, LightingPropsRootName);
+        var waterRoot = FindOrCreateChild(appearanceRoot.transform, "Water");
+        var structuresRoot = FindOrCreateChild(appearanceRoot.transform, "Structures");
+        var decorationsRoot = FindOrCreateChild(appearanceRoot.transform, "Decorations");
+        var blacksmithRoot = FindOrCreateChild(structuresRoot, "Blacksmith_Area");
+        var stonePathRoot = FindOrCreateChild(decorationsRoot, "Stone_Path");
+        var natureRoot = FindOrCreateChild(decorationsRoot, "Nature");
+        var propsRoot = FindOrCreateChild(decorationsRoot, "Props");
+        var miscRoot = FindOrCreateChild(decorationsRoot, "Misc");
+        var lanternsRoot = FindOrCreateChild(lightingPropsRoot, "Lanterns");
+        var crystalsRoot = FindOrCreateChild(lightingPropsRoot, "Crystals");
+
+        var movedRoots = 0;
+        var preservedRoots = new HashSet<string>(StringComparer.Ordinal)
+        {
+            gameplayRoot.name,
+            appearanceRoot.name,
+            lightingRoot.name
+        };
+
+        foreach (var root in scene.GetRootGameObjects().ToArray())
+        {
+            if (root == null || preservedRoots.Contains(root.name))
+            {
+                continue;
+            }
+
+            var parent = ResolveTownForestParent(
+                root.name,
+                blacksmithRoot,
+                stonePathRoot,
+                natureRoot,
+                propsRoot,
+                miscRoot,
+                lanternsRoot,
+                crystalsRoot,
+                waterRoot,
+                structuresRoot);
+
+            root.transform.SetParent(parent, true);
+            movedRoots++;
+        }
+
+        var movedWaterChildren = MoveDirectChildrenByRule(
+            appearanceRoot.transform,
+            waterRoot,
+            child => IsWaterName(child.name),
+            waterRoot.name);
+
+        SortOrganizedHierarchy(
+            gameplayRoot.transform,
+            appearanceRoot.transform,
+            lightingRoot.transform,
+            lightingPropsRoot,
+            waterRoot,
+            structuresRoot,
+            decorationsRoot);
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
+        Selection.activeGameObject = appearanceRoot;
+        Debug.Log($"[TownForestSceneSetup] Organized Town_Forest hierarchy. MovedRoots={movedRoots}, MovedWaterChildren={movedWaterChildren}.");
+    }
+
     private static void RemoveGeneratedAndRuntimeRoots()
     {
         var reset = new HashSet<string>(ResetRootNames, StringComparer.Ordinal);
@@ -192,6 +272,21 @@ public static class TownForestSceneSetup
     private static GameObject CreateRoot(string name)
     {
         var root = new GameObject(name);
+        root.transform.position = Vector3.zero;
+        root.transform.rotation = Quaternion.identity;
+        root.transform.localScale = Vector3.one;
+        return root;
+    }
+
+    private static GameObject EnsureRoot(string name)
+    {
+        var root = GameObject.Find(name);
+        if (root != null && root.transform.parent == null)
+        {
+            return root;
+        }
+
+        root = new GameObject(name);
         root.transform.position = Vector3.zero;
         root.transform.rotation = Quaternion.identity;
         root.transform.localScale = Vector3.one;
@@ -222,6 +317,125 @@ public static class TownForestSceneSetup
         }
 
         return null;
+    }
+
+    private static Transform ResolveTownForestParent(
+        string objectName,
+        Transform blacksmithRoot,
+        Transform stonePathRoot,
+        Transform natureRoot,
+        Transform propsRoot,
+        Transform miscRoot,
+        Transform lanternsRoot,
+        Transform crystalsRoot,
+        Transform waterRoot,
+        Transform structuresRoot)
+    {
+        var name = objectName ?? string.Empty;
+
+        if (IsWaterName(name))
+            return waterRoot;
+
+        if (ContainsAny(name, "Lantern", "Torch", "Lamp"))
+            return lanternsRoot;
+
+        if (ContainsAny(name, "Crystal", "Azure_Crystal"))
+            return crystalsRoot;
+
+        if (ContainsAny(name, "Blacksmith", "Anvil", "Workbench", "Pegboard", "Shield", "Barrel", "Furnace", "Forge"))
+            return blacksmithRoot;
+
+        if (ContainsAny(name, "Stone_Steps", "Stone_Staircase", "Staircase", "Steps"))
+            return stonePathRoot;
+
+        if (ContainsAny(name, "Tree", "Pine", "Boulder", "Rock", "Moss", "Weed", "Grass", "Flower", "Bush"))
+            return natureRoot;
+
+        if (ContainsAny(name, "House", "Cottage", "Fence", "Gate", "Bridge", "Footbridge", "Signpost"))
+            return structuresRoot;
+
+        if (ContainsAny(name, "Meshy_AI"))
+            return propsRoot;
+
+        return miscRoot;
+    }
+
+    private static int MoveDirectChildrenByRule(Transform source, Transform destination, Func<Transform, bool> predicate, params string[] excludedNames)
+    {
+        if (source == null || destination == null || predicate == null)
+        {
+            return 0;
+        }
+
+        var excluded = new HashSet<string>(excludedNames ?? Array.Empty<string>(), StringComparer.Ordinal);
+        var children = source.Cast<Transform>().ToArray();
+        var moved = 0;
+
+        foreach (var child in children)
+        {
+            if (child == null || child == destination || excluded.Contains(child.name) || !predicate(child))
+            {
+                continue;
+            }
+
+            child.SetParent(destination, true);
+            moved++;
+        }
+
+        return moved;
+    }
+
+    private static bool IsWaterName(string name)
+        => ContainsAny(name, "Water", "Ocean", "River", "Stream", "Pond");
+
+    private static bool ContainsAny(string value, params string[] tokens)
+    {
+        if (string.IsNullOrEmpty(value) || tokens == null)
+        {
+            return false;
+        }
+
+        foreach (var token in tokens)
+        {
+            if (!string.IsNullOrEmpty(token) &&
+                value.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void SortOrganizedHierarchy(
+        Transform gameplayRoot,
+        Transform appearanceRoot,
+        Transform lightingRoot,
+        Transform lightingPropsRoot,
+        Transform waterRoot,
+        Transform structuresRoot,
+        Transform decorationsRoot)
+    {
+        SortHierarchy();
+
+        SetChildSibling(appearanceRoot, LightingPropsRootName, 0);
+        SetChildSibling(appearanceRoot, "Water", 1);
+        SetChildSibling(appearanceRoot, "Structures", 2);
+        SetChildSibling(appearanceRoot, "Decorations", 3);
+
+        SetChildSibling(lightingPropsRoot, "Lanterns", 0);
+        SetChildSibling(lightingPropsRoot, "Crystals", 1);
+
+        SetChildSibling(structuresRoot, "Blacksmith_Area", 0);
+
+        SetChildSibling(decorationsRoot, "Stone_Path", 0);
+        SetChildSibling(decorationsRoot, "Nature", 1);
+        SetChildSibling(decorationsRoot, "Props", 2);
+        SetChildSibling(decorationsRoot, "Misc", 3);
+
+        gameplayRoot.SetSiblingIndex(0);
+        appearanceRoot.SetSiblingIndex(1);
+        lightingRoot.SetSiblingIndex(2);
     }
 
     private static void InstantiateRuntimePrefabs(Transform parent)

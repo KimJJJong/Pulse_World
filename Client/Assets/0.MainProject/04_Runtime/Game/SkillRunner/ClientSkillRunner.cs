@@ -215,10 +215,12 @@ public class ClientSkillRunner : MonoBehaviour
                 // 내 캐릭터만 입력 잠금
                 if (_isMine)
                 {
-                    long lockEndTick = _startTick + ev.TriggerTick + ev.DurationTicks;
+                    long lockStartTick = _startTick + ev.TriggerTick;
+                    long rawLockEndTick = lockStartTick + ev.DurationTicks;
+                    long lockEndTick = AdjustInputLockEndTickForAcceptWindow(lockStartTick, rawLockEndTick);
                     ApplyInputLock(lockEndTick);
                     if (P2PDebugConfig.TraceCombat)
-                        Debug.Log($"[ClientSkillRunner] InputLock applied for actor {_actorId}: EndTick={lockEndTick}");
+                        Debug.Log($"[ClientSkillRunner] InputLock applied for actor {_actorId}: EndTick={lockEndTick} RawEndTick={rawLockEndTick}");
                 }
                 break;
 
@@ -230,6 +232,9 @@ public class ClientSkillRunner : MonoBehaviour
                         FMODActionSoundPlayer.Instance?.PlayByEventPath(sound.FmodEventPath, sound.Volume);
                     else
                         FMODActionSoundPlayer.Instance?.PlayAttackSound(isMine);
+
+                    if (_isMine)
+                        CombatImpactFeedback.Instance.PlayLocalAttackImpact();
                 }
                 break;
         }
@@ -237,8 +242,34 @@ public class ClientSkillRunner : MonoBehaviour
 
     // ── InputLock 헬퍼 ────────────────────────────────────────────────────────
 
+    private long AdjustInputLockEndTickForAcceptWindow(long lockStartTick, long lockEndTick)
+    {
+        var rhythm = RhythmClient.Instance;
+        if (rhythm == null || rhythm.judgeWindowMs <= 0f)
+            return lockEndTick;
+
+        double beatDurationMs = rhythm.GetBeatDurationMs();
+        if (beatDurationMs <= 0d)
+            return lockEndTick;
+
+        long acceptWindowTicks = (long)System.Math.Ceiling(rhythm.judgeWindowMs * 480.0d / beatDurationMs);
+        return System.Math.Max(lockStartTick, lockEndTick - acceptWindowTicks);
+    }
+
     private void ApplyInputLock(long endTick)
     {
+        var rhythm = RhythmClient.Instance;
+        if (rhythm != null)
+        {
+            long currentTick = rhythm.GetCurrentServerTick();
+            if (currentTick >= endTick)
+            {
+                if (_isInputLocked && currentTick >= _inputLockEndTick)
+                    ReleaseInputLock();
+                return;
+            }
+        }
+
         // 더 늦게 끝나는 Lock이 들어오면 갱신
         if (endTick > _inputLockEndTick)
             _inputLockEndTick = endTick;

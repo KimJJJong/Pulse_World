@@ -15,6 +15,12 @@ public sealed class ClientFlow : MonoBehaviour
 
     string _mapId = "";
     int _maxPlayers = 2;
+    string _targetTownScene = SceneNames.TownMap;
+
+    public void SetTargetTownScene(string sceneName)
+    {
+        _targetTownScene = string.IsNullOrEmpty(sceneName) ? SceneNames.TownMap : sceneName;
+    }
 
     void Awake()
     {
@@ -97,7 +103,7 @@ public sealed class ClientFlow : MonoBehaviour
             switch (_target)
             {
                 case Target.TownMap:
-                    await EnterSceneAsync(SceneNames.TownMap, async () =>
+                    await EnterSceneAsync(_targetTownScene, async () =>
                     {
                         var ctx = UnityEngine.Object.FindFirstObjectByType<TownSceneContext>();
                         if (ctx == null) { Debug.LogError("[ClientFlow] TownSceneContext not found"); return; }

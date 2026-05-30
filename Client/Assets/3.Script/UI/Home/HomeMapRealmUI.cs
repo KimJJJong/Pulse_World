@@ -6,6 +6,9 @@ using UnityEngine.UI;
 
 public sealed class HomeMapRealmUI : MonoBehaviour
 {
+    private const string MissingMapMessage = "없는 맵입니다.";
+    private const string ReadyMessage = "지역을 선택한 뒤 입장 버튼을 누르세요.";
+
     [Serializable]
     public sealed class RealmBinding
     {
@@ -13,6 +16,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         public string DisplayName;
         public string Description;
         public string RequiredTicket;
+        public string SceneName;
         public Button Button;
         public Graphic Highlight;
     }
@@ -74,10 +78,16 @@ public sealed class HomeMapRealmUI : MonoBehaviour
             _title.text = selected.DisplayName;
         if (_description != null)
             _description.text = selected.Description;
+
+        var hasScene = TryGetSceneName(selected, out _);
         if (_ticketInfo != null)
-            _ticketInfo.text = $"Ticket: {selected.RequiredTicket}";
+            _ticketInfo.text = hasScene
+                ? $"Ticket: {selected.RequiredTicket}"
+                : "Ticket: 없음";
         if (_status != null && !_busy)
-            _status.text = "지역을 선택한 뒤 입장 버튼을 누르세요.";
+            _status.text = hasScene ? ReadyMessage : MissingMapMessage;
+
+        RefreshSelectButton();
 
         for (var i = 0; i < _realms.Length; i++)
         {
@@ -102,6 +112,14 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         if (_realms == null || _realms.Length == 0)
             return;
 
+        var realm = _realms[_selectedIndex];
+        if (!TryGetSceneName(realm, out var sceneName))
+        {
+            SetStatus(MissingMapMessage);
+            RefreshSelectButton();
+            return;
+        }
+
         var root = AppBootstrap.Instance?.Root;
         if (root?.SessionApi == null)
         {
@@ -111,7 +129,6 @@ public sealed class HomeMapRealmUI : MonoBehaviour
 
         _busy = true;
         SetButtonInteractable(false);
-        var realm = _realms[_selectedIndex];
         SetStatus($"{realm.DisplayName} 티켓 확인 중...");
 
         var result = await root.SessionApi.IssueTownTicketAsync("");
@@ -119,15 +136,16 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         {
             SetStatus($"티켓 발급 실패: {result.Error}");
             _busy = false;
-            SetButtonInteractable(true);
+            RefreshSelectButton();
             return;
         }
 
         SetStatus("티켓 확인 완료. 이동 중...");
         var nonce = $"town-{realm.RealmId}-{Guid.NewGuid():N}";
+        ClientFlow.Instance.SetTargetTownScene(sceneName);
         await ClientFlow.Instance.ConnectTown(result.Data, nonce);
         _busy = false;
-        SetButtonInteractable(true);
+        RefreshSelectButton();
     }
 
     private void SetStatus(string message)
@@ -142,5 +160,40 @@ public sealed class HomeMapRealmUI : MonoBehaviour
     {
         if (_selectButton != null)
             _selectButton.interactable = interactable;
+    }
+
+    private void RefreshSelectButton()
+    {
+        if (_selectButton == null)
+            return;
+
+        _selectButton.interactable = !_busy
+            && _realms != null
+            && _realms.Length > 0
+            && _selectedIndex >= 0
+            && _selectedIndex < _realms.Length
+            && TryGetSceneName(_realms[_selectedIndex], out _);
+    }
+
+    private static bool TryGetSceneName(RealmBinding realm, out string sceneName)
+    {
+        sceneName = string.Empty;
+
+        if (realm == null)
+            return false;
+
+        if (string.Equals(realm.RealmId, "plains", StringComparison.OrdinalIgnoreCase))
+        {
+            sceneName = SceneNames.TownMap;
+            return true;
+        }
+
+        if (string.Equals(realm.RealmId, "forest", StringComparison.OrdinalIgnoreCase))
+        {
+            sceneName = SceneNames.Town_Forest;
+            return true;
+        }
+
+        return false;
     }
 }

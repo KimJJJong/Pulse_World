@@ -32,6 +32,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/0.MainProject/Scenes/Game/Game_Forest_Tutorial.unity
     guid: dbd8e36a0873e1b4ebbc854ce7742b14
+  - enabled: 1
+    path: Assets/0.MainProject/Scenes/Town/Town_Forest.unity
+    guid: cdee9d24f755055438140a0bba1ec76f
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings: {fileID: 11400000, guid: 1de988f634094fd45ae2fec8ef182e88, type: 2}

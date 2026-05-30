@@ -15,6 +15,8 @@ public static class Home1SceneSpaceUiBuilder
     private const string ScenePath = "Assets/0.MainProject/Scenes/Home 1.unity";
     private const string UiResourceSource = "../Resource/UI";
     private const string UiResourceTarget = "Assets/Resources/UI";
+    private const string TownPassTicket = "Town Pass";
+    private const string MissingMapTicket = "없음";
 
     private static readonly Vector2 LayoutSize = new(1280f, 720f);
     private static readonly Color ParchmentText = new(0.10f, 0.22f, 0.20f, 1f);
@@ -127,6 +129,22 @@ public static class Home1SceneSpaceUiBuilder
         Require(RequireSceneObject("UI_Home_Map").activeSelf, "Map root should be active after ShowMap.");
 
         Debug.Log("[Home1SceneSpaceUiBuilder] Home1 Overlay flow verification passed.");
+    }
+
+    [MenuItem("RhythmRPG/Editors/UI/Configure Home1 Map Realm Routes")]
+    public static void ConfigureMapRealmRoutes()
+    {
+        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        var mapUi = FindMapRealmUiInScene(scene.path);
+        if (mapUi == null)
+            throw new InvalidOperationException("UI_Home_Map is missing HomeMapRealmUI.");
+
+        ApplyMapRealmRoutes(mapUi);
+        EditorUtility.SetDirty(mapUi);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[Home1SceneSpaceUiBuilder] Configured Home 1 map routes: plains=TownMap, forest=Town_Forest, others=missing.");
     }
 
     private static void EnsureUiResources()
@@ -459,13 +477,13 @@ public static class Home1SceneSpaceUiBuilder
         CreateText(root, "MapTitleText", "WORLD MAP", new Rect(504f, 38f, 270f, 42f), 36f, TextAlignmentOptions.Center, ParchmentText);
         var realms = new[]
         {
-            CreateRealmButton(root, "Realm_Plains", "UI_Map/UI_Map_Location_Farm.png", new Rect(360f, 314f, 330f, 188f), "plains", "Golden Plains", "마을로 이동 가능한 중심 평야입니다. 현재 Town 입장 티켓 검증 흐름과 동일하게 동작합니다.", "Town Pass"),
-            CreateRealmButton(root, "Realm_Forest", "UI_Map/UI_Map_Location_Forest.png", new Rect(180f, 142f, 208f, 154f), "forest", "Whispering Forest", "울창한 숲과 작은 마을이 있는 초반 영역입니다. 리듬 왜곡이 가장 약해 입장 준비에 적합합니다.", "Town Pass"),
-            CreateRealmButton(root, "Realm_Snow", "UI_Map/UI_Map_Location_SnowMountain.png", new Rect(430f, 128f, 208f, 150f), "snow", "Frostpeak Mountains", "얼어붙은 박자와 지연 입력이 섞이는 설산 영역입니다. 방어 장비 확인을 권장합니다.", "Town Pass"),
-            CreateRealmButton(root, "Realm_Ruins", "UI_Map/UI_Map_Location_Ruins.png", new Rect(658f, 156f, 206f, 154f), "ruins", "Ancient Ruins", "무너진 유적과 잔향 패턴이 겹치는 고대 영역입니다. 복합 리듬 전투가 등장합니다.", "Town Pass"),
-            CreateRealmButton(root, "Realm_Lake", "UI_Map/UI_Map_Location_Seashore.png", new Rect(134f, 330f, 220f, 160f), "lake", "Sapphire Lake", "파도 리듬과 반향 전투가 만나는 수상 영역입니다. 긴 패턴을 안정적으로 처리해야 합니다.", "Town Pass"),
-            CreateRealmButton(root, "Realm_Desert", "UI_Map/UI_Map_Location_Descert.png", new Rect(384f, 500f, 230f, 142f), "desert", "Sandworn Wastes", "모래 위로 느린 박동이 흐르는 고열 영역입니다. 회피 타이밍이 느리게 흔들립니다.", "Town Pass"),
-            CreateRealmButton(root, "Realm_Volcano", "UI_Map/UI_Map_Location_Volcano.png", new Rect(680f, 390f, 226f, 168f), "volcano", "Ember Volcano", "과열된 박동이 빠르게 증폭되는 화산 영역입니다. 짧은 입력 판단이 중요합니다.", "Town Pass")
+            CreateRealmButton(root, "Realm_Plains", "UI_Map/UI_Map_Location_Farm.png", new Rect(360f, 314f, 330f, 188f), "plains", "Golden Plains", "마을로 이동 가능한 중심 평야입니다. 현재 Town 입장 티켓 검증 흐름과 동일하게 동작합니다.", TownPassTicket, SceneNames.TownMap),
+            CreateRealmButton(root, "Realm_Forest", "UI_Map/UI_Map_Location_Forest.png", new Rect(180f, 142f, 208f, 154f), "forest", "Whispering Forest", "울창한 숲과 작은 마을이 있는 초반 영역입니다. 리듬 왜곡이 가장 약해 입장 준비에 적합합니다.", TownPassTicket, SceneNames.Town_Forest),
+            CreateRealmButton(root, "Realm_Snow", "UI_Map/UI_Map_Location_SnowMountain.png", new Rect(430f, 128f, 208f, 150f), "snow", "Frostpeak Mountains", "얼어붙은 박자와 지연 입력이 섞이는 설산 영역입니다. 방어 장비 확인을 권장합니다.", MissingMapTicket, string.Empty),
+            CreateRealmButton(root, "Realm_Ruins", "UI_Map/UI_Map_Location_Ruins.png", new Rect(658f, 156f, 206f, 154f), "ruins", "Ancient Ruins", "무너진 유적과 잔향 패턴이 겹치는 고대 영역입니다. 복합 리듬 전투가 등장합니다.", MissingMapTicket, string.Empty),
+            CreateRealmButton(root, "Realm_Lake", "UI_Map/UI_Map_Location_Seashore.png", new Rect(134f, 330f, 220f, 160f), "lake", "Sapphire Lake", "파도 리듬과 반향 전투가 만나는 수상 영역입니다. 긴 패턴을 안정적으로 처리해야 합니다.", MissingMapTicket, string.Empty),
+            CreateRealmButton(root, "Realm_Desert", "UI_Map/UI_Map_Location_Descert.png", new Rect(384f, 500f, 230f, 142f), "desert", "Sandworn Wastes", "모래 위로 느린 박동이 흐르는 고열 영역입니다. 회피 타이밍이 느리게 흔들립니다.", MissingMapTicket, string.Empty),
+            CreateRealmButton(root, "Realm_Volcano", "UI_Map/UI_Map_Location_Volcano.png", new Rect(680f, 390f, 226f, 168f), "volcano", "Ember Volcano", "과열된 박동이 빠르게 증폭되는 화산 영역입니다. 짧은 입력 판단이 중요합니다.", MissingMapTicket, string.Empty)
         };
         CreateTexture(root, "DetailPanel", "UI_Map/UI_Panel_MapLocation_Detail.png", new Rect(872f, 120f, 342f, 488f));
         CreateText(root, "RealmTitle", "GOLDEN PLAINS", new Rect(920f, 192f, 262f, 36f), 27f, TextAlignmentOptions.Center, ParchmentText);
@@ -490,6 +508,7 @@ public static class Home1SceneSpaceUiBuilder
             element.FindPropertyRelative("DisplayName").stringValue = realms[i].DisplayName;
             element.FindPropertyRelative("Description").stringValue = realms[i].Description;
             element.FindPropertyRelative("RequiredTicket").stringValue = realms[i].RequiredTicket;
+            element.FindPropertyRelative("SceneName").stringValue = realms[i].SceneName;
             element.FindPropertyRelative("Button").objectReferenceValue = realms[i].Button;
             element.FindPropertyRelative("Highlight").objectReferenceValue = realms[i].Highlight;
         }
@@ -501,6 +520,52 @@ public static class Home1SceneSpaceUiBuilder
         so.ApplyModifiedPropertiesWithoutUndo();
 
         return back;
+    }
+
+    private static void ApplyMapRealmRoutes(HomeMapRealmUI mapUi)
+    {
+        var so = new SerializedObject(mapUi);
+        var realmsProperty = so.FindProperty("_realms");
+        if (realmsProperty == null || !realmsProperty.isArray)
+            throw new InvalidOperationException("HomeMapRealmUI._realms is missing or not an array.");
+
+        for (var i = 0; i < realmsProperty.arraySize; i++)
+        {
+            var element = realmsProperty.GetArrayElementAtIndex(i);
+            var realmId = element.FindPropertyRelative("RealmId").stringValue;
+            var sceneName = ResolveHomeMapSceneName(realmId);
+
+            element.FindPropertyRelative("SceneName").stringValue = sceneName;
+            element.FindPropertyRelative("RequiredTicket").stringValue =
+                string.IsNullOrEmpty(sceneName) ? MissingMapTicket : TownPassTicket;
+        }
+
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static HomeMapRealmUI FindMapRealmUiInScene(string scenePath)
+    {
+        foreach (var candidate in Resources.FindObjectsOfTypeAll<HomeMapRealmUI>())
+        {
+            if (candidate == null || candidate.gameObject == null)
+                continue;
+
+            if (candidate.gameObject.scene.path == scenePath)
+                return candidate;
+        }
+
+        return null;
+    }
+
+    private static string ResolveHomeMapSceneName(string realmId)
+    {
+        if (string.Equals(realmId, "plains", StringComparison.OrdinalIgnoreCase))
+            return SceneNames.TownMap;
+
+        if (string.Equals(realmId, "forest", StringComparison.OrdinalIgnoreCase))
+            return SceneNames.Town_Forest;
+
+        return string.Empty;
     }
 
     private static HomeEquipSlotUI CreateEquipSlot(RectTransform parent, string name, EquipmentSlot slot, string label, string iconPath, Rect rect)
@@ -613,7 +678,7 @@ public static class Home1SceneSpaceUiBuilder
         return button;
     }
 
-    private static RealmBuildBinding CreateRealmHotspot(RectTransform root, string name, Rect rect, string realmId, string displayName, string description, string ticket)
+    private static RealmBuildBinding CreateRealmHotspot(RectTransform root, string name, Rect rect, string realmId, string displayName, string description, string ticket, string sceneName)
     {
         var button = CreateTransparentButton(root, name, rect);
         var highlight = CreateSolid(button.transform as RectTransform, "SelectedHighlight", new Color(1f, 1f, 1f, 0f));
@@ -624,12 +689,13 @@ public static class Home1SceneSpaceUiBuilder
             DisplayName = displayName,
             Description = description,
             RequiredTicket = ticket,
+            SceneName = sceneName,
             Button = button,
             Highlight = highlight
         };
     }
 
-    private static RealmBuildBinding CreateRealmButton(RectTransform root, string name, string texturePath, Rect rect, string realmId, string displayName, string description, string ticket)
+    private static RealmBuildBinding CreateRealmButton(RectTransform root, string name, string texturePath, Rect rect, string realmId, string displayName, string description, string ticket, string sceneName)
     {
         var button = CreateButtonTexture(root, name, texturePath, rect);
         var highlight = CreateSolid(button.transform as RectTransform, "SelectedHighlight", new Color(1f, 1f, 1f, 0f));
@@ -640,6 +706,7 @@ public static class Home1SceneSpaceUiBuilder
             DisplayName = displayName,
             Description = description,
             RequiredTicket = ticket,
+            SceneName = sceneName,
             Button = button,
             Highlight = highlight
         };
@@ -961,6 +1028,7 @@ public static class Home1SceneSpaceUiBuilder
         public string DisplayName;
         public string Description;
         public string RequiredTicket;
+        public string SceneName;
         public Button Button;
         public Graphic Highlight;
     }
