@@ -11,6 +11,11 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     public GameObject tilePrefab;
     public AppearanceAutoTilePalette appearancePalette;
+
+    [Header("Scene Hierarchy Roots")]
+    [SerializeField] private Transform bakedTileRoot;
+    [SerializeField] private Transform entityRoot;
+    [SerializeField] private Transform skillRunnerRoot;
     
     // Runtime Cache
     private Dictionary<int, GameObject> _entityPrefabCache = new Dictionary<int, GameObject>();
@@ -200,7 +205,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         {
             for (int x = 0; x < width; x++)
             {
-                var tile = Instantiate(tilePrefab, transform);
+                var tile = Instantiate(tilePrefab, GetTileRoot());
                 tile.name = $"Tile_{x}_{y}";
                 tile.transform.position = GridToWorld(x, y) + new Vector3(0, -2, 0);
                 _tiles[x, y] = tile;
@@ -231,6 +236,19 @@ public class BoardView : MonoBehaviour, IClientWorldView
         float connectionWeight = CountBits((byte)appearanceVariant) / 8f;
         return Color.Lerp(baseColor, Color.white, connectionWeight * 0.12f);
     }
+
+    public void ConfigureSceneRoots(Transform tilesRoot, Transform entitiesRoot, Transform skillsRoot)
+    {
+        bakedTileRoot = tilesRoot;
+        entityRoot = entitiesRoot;
+        skillRunnerRoot = skillsRoot;
+    }
+
+    private Transform GetTileRoot() => bakedTileRoot != null ? bakedTileRoot : transform;
+
+    private Transform GetEntityRoot() => entityRoot != null ? entityRoot : transform;
+
+    private Transform GetSkillRunnerRoot() => skillRunnerRoot != null ? skillRunnerRoot : transform;
 
     private Renderer GetTileRenderer(GameObject tile)
     {
@@ -968,7 +986,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
     {
         var map = new Dictionary<(int x, int y), GameObject>();
 
-        foreach (Transform child in transform)
+        foreach (Transform child in GetTileRoot())
         {
             if (ParseTileName(child.name, out int x, out int y))
                 map[(x, y)] = child.gameObject;
@@ -1029,7 +1047,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 return;
             }
 
-            GameObject go = Instantiate(prefab, transform);
+            GameObject go = Instantiate(prefab, GetEntityRoot());
             go.name = $"Entity_{info.EntityId}";
 
             if (!go.TryGetComponent<EntityVisual>(out visual))
@@ -1296,7 +1314,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (!_activeSkillRunners.TryGetValue(actorId, out var runner) || runner == null)
         {
             GameObject go = new GameObject($"SkillRunner_{actorId}_{skillId}");
-            go.transform.SetParent(this.transform);
+            go.transform.SetParent(GetSkillRunnerRoot());
             runner = go.AddComponent<ClientSkillRunner>();
             _activeSkillRunners[actorId] = runner;
         }

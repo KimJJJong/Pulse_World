@@ -84,8 +84,9 @@ namespace SynapticPro
             if (_autoStartAttempted) return;
             _autoStartAttempted = true;
 
-            // Auto-start if enabled
-            if (AutoStartEnabled && !Instance.IsRunning)
+            // Force auto-start on domain reload for tool connection
+            AutoStartEnabled = true;
+            if (!Instance.IsRunning)
             {
                 Instance.Start(SavedPort);
                 Debug.Log("[Synaptic HTTP] Auto-started on domain reload");
@@ -159,6 +160,7 @@ namespace SynapticPro
             {
                 _listener = new HttpListener();
                 _listener.Prefixes.Add($"http://localhost:{port}/");
+                _listener.Prefixes.Add($"http://127.0.0.1:{port}/");
                 _listener.Start();
 
                 _listenerThread = new Thread(ListenForRequests)

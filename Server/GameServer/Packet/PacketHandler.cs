@@ -164,7 +164,7 @@ partial class PacketHandler
         // 2) Town Mode (Key empty)
         else
         {
-            var townId = "Town_01"; // Default Town
+            var townId = NormalizeTownMapId(req.MapId);
             LogManager.Instance.LogInfo("TownRoom", $"Enter townId={townId}");
             var room = TownManager.GetOrCreate(townId);
 
@@ -178,6 +178,18 @@ partial class PacketHandler
             // Town은 즉시 InitMap 전송 (BindOrReattach 내부에서 처리됨)
         }
     }
+
+    private static string NormalizeTownMapId(string mapId)
+    {
+        if (string.IsNullOrWhiteSpace(mapId))
+            return "Town_01";
+
+        var trimmed = mapId.Trim();
+        return string.Equals(trimmed, "town", StringComparison.OrdinalIgnoreCase)
+            ? "Town_01"
+            : trimmed;
+    }
+
     public static void CS_ReadyHandler(PacketSession session, IPacket packet)
     {
         ClientSession _session = (ClientSession)session;

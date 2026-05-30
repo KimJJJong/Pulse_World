@@ -175,7 +175,7 @@ public sealed class TownSession : SessionBase
 
         packet.MapWidth = _map.Width;
         packet.MapHeight = _map.Height;
-        packet.MapId = "Town_01"; // TODO
+        packet.MapId = _map.MapId;
 
         packet.playerss.Clear();
         foreach (var p in _players)

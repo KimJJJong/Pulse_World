@@ -3,6 +3,7 @@ using GameServer.InGame.Manager.Entity;
 using GameServer.InGame.System.Rhythm;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Shared;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -10,6 +11,8 @@ using Util;
 
 public sealed class TownRoom : RoomBase
 {
+    private const string DefaultTownId = "Town_01";
+
     public string TownId { get; }
 
     enum RoomPhase { Waiting, Running, Ended }
@@ -53,7 +56,7 @@ public sealed class TownRoom : RoomBase
             _phase = RoomPhase.Running;
         }
 
-        _map = MapDatabase.Get("Town_01");
+        _map = ResolveTownMap();
 
         _rhythmConfig = new RhythmConfig
         {
@@ -93,7 +96,23 @@ public sealed class TownRoom : RoomBase
             BeatIndex = _rhythm.GetCurrentBeatIndex(time.NowMs),
         });
 
-        _logger.LogInformation("TownRoom {TownId} started", TownId);
+        _logger.LogInformation("TownRoom {TownId} started mapId={MapId}", TownId, _map.MapId);
+    }
+
+    private Map2D ResolveTownMap()
+    {
+        if (MapDatabase.TryGet(TownId, out var map) && map != null)
+            return map;
+
+        if (!string.Equals(TownId, DefaultTownId, StringComparison.OrdinalIgnoreCase) &&
+            MapDatabase.TryGet(DefaultTownId, out var fallback) &&
+            fallback != null)
+        {
+            LogManager.Instance.LogWarning("TownRoom", $"Map not found townId={TownId}. Falling back to {DefaultTownId}.");
+            return fallback;
+        }
+
+        throw new InvalidOperationException($"Town map not found. townId={TownId}");
     }
 
     private List<MapEntity> BuildPlayerEntities()

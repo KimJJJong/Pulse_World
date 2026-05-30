@@ -5,7 +5,7 @@
         "SongKey": "DefaultSong",
         "Bpm": 100,
         "BaseBeatDivision": 1,
-        "ActionWindowMs": 100,
+        "ActionWindowMs": 150,
         "StartDelayMs": 2000
     },
     "InitialSpawns": [],

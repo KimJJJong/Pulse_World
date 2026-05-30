@@ -275,6 +275,7 @@ public class RhythmInputController : MonoBehaviour
                 Debug.Log($"[Input_Move] OUT_OF_WINDOW actor={me.EntityId} origin=({originX},{originY}) " +
                           $"target=({tx},{ty}) serverNow={serverNow} beat={actionBeat} diff={diff}ms " +
                           $"rtt={TimeSync.EstimatedRttMs:F0}ms offset={TimeSync.OffsetMs:F0}ms blocked");
+            NotifyCombatInputMissed();
             return;
         }
 
@@ -282,6 +283,7 @@ public class RhythmInputController : MonoBehaviour
         {
             if (P2PDebugConfig.TraceInput)
                 Debug.Log($"[Input_Move] DUPLICATE beat={actionBeat} diff={diff}ms BLOCKED");
+            NotifyCombatInputMissed();
             return;
         }
 
@@ -302,6 +304,7 @@ public class RhythmInputController : MonoBehaviour
         if (shouldPredictMove)
             BoardView.Instance.PlayMovePrediction(me.EntityId, tx, ty, BoardView.Instance.actionDurationRatio, actionBeat);
 
+        NotifyCombatInputAccepted(actionBeat);
         SendActionRouted(ActionKind.Move, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;
     }

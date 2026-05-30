@@ -14,6 +14,7 @@ public class HudPresenter : MonoBehaviour
     [SerializeField] private SkillSlotView[] _skillSlots;
     [SerializeField] private PartyMemberPanelView[] _partyPanels;
     [SerializeField] private StageInfoPanelView _stageInfo;
+    [SerializeField] private BeatGuideView _beatGuide;
     [SerializeField] private ComboCounterView _comboView;
     [SerializeField] private MinimapHudView _minimapView;
 
@@ -515,6 +516,9 @@ public class HudPresenter : MonoBehaviour
         if (_stageInfo == null)
             _stageInfo = GetComponentInChildren<StageInfoPanelView>(true);
 
+        if (_beatGuide == null)
+            _beatGuide = GetComponentInChildren<BeatGuideView>(true);
+
         if (_comboView == null)
             _comboView = GetComponentInChildren<ComboCounterView>(true);
     }
@@ -628,13 +632,22 @@ public class HudPresenter : MonoBehaviour
         _lastComboInputBeat = inputBeat;
         _comboCount++;
         _comboView?.SetCombo(_comboCount);
+        _beatGuide?.NotifyInputAccepted(inputBeat);
     }
 
     private void OnCombatInputMissed()
     {
+        HandleCombatInputMissed(true);
+    }
+
+    private void HandleCombatInputMissed(bool revealBeatGuide)
+    {
         _lastComboInputBeat = long.MinValue;
         _comboCount = 0;
         _comboView?.ResetCombo();
+
+        if (revealBeatGuide)
+            _beatGuide?.NotifyInputMissed();
     }
 
     private void ResetIdleComboIfNeeded()
@@ -647,12 +660,12 @@ public class HudPresenter : MonoBehaviour
             return;
 
         if (currentBeat - _lastComboInputBeat >= ComboIdleResetBeats)
-            OnCombatInputMissed();
+            HandleCombatInputMissed(true);
     }
 
     public void BreakCombo()
     {
-        OnCombatInputMissed();
+        HandleCombatInputMissed(true);
     }
 
     private void OnSkillSlotInputAccepted(int slotIndex, string skillId)

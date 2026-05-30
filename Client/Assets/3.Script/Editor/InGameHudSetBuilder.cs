@@ -49,6 +49,7 @@ public static class InGameHudSetBuilder
 
             PartyMemberPanelView[] partyPanels = BuildPartyPanels(hudRoot, sprites);
             StageInfoPanelView stageInfo = BuildStagePanel(hudRoot, sprites);
+            BeatGuideView beatGuide = BuildBeatGuide(hudRoot);
             ComboCounterView comboView = BuildComboFlourish(hudRoot, sprites);
             MinimapHudView minimapView = BuildMinimap(hudRoot);
 
@@ -57,7 +58,7 @@ public static class InGameHudSetBuilder
 
             HexHudView hexHud = BuildHexHud(combatDock, sprites);
             SkillSlotView[] skillSlots = BuildSkillBar(combatDock, sprites);
-            BuildPresenter(combatDock, previousConfig, hexHud, skillSlots, partyPanels, stageInfo, comboView, minimapView);
+            BuildPresenter(combatDock, previousConfig, hexHud, skillSlots, partyPanels, stageInfo, beatGuide, comboView, minimapView);
 
             SetLayerRecursively(root, LayerMask.NameToLayer("UI"));
             PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
@@ -164,9 +165,11 @@ public static class InGameHudSetBuilder
         Anchor(bpmText.rectTransform, new Vector2(0f, 0.5f), new Vector2(244f, 0f), new Vector2(94f, 24f), new Vector2(0f, 0.5f));
         bpmText.alignment = TextAlignmentOptions.Left;
         bpmText.color = new Color(0.84f, 0.96f, 1f, 1f);
+        bpmText.gameObject.SetActive(false);
 
         RectTransform marker = CreateImage("BeatMarker", stage, sprites.DecorationActive);
         Anchor(marker, new Vector2(0.5f, 0.5f), new Vector2(94f, -1f), new Vector2(24f, 24f), new Vector2(0.5f, 0.5f));
+        marker.gameObject.SetActive(false);
 
         StageInfoPanelView view = stage.gameObject.AddComponent<StageInfoPanelView>();
         SerializedObject serializedView = new SerializedObject(view);
@@ -175,6 +178,82 @@ public static class InGameHudSetBuilder
         serializedView.FindProperty("beatMarker").objectReferenceValue = marker;
         serializedView.ApplyModifiedPropertiesWithoutUndo();
         return view;
+    }
+
+    private static BeatGuideView BuildBeatGuide(RectTransform parent)
+    {
+        RectTransform root = CreateRect("BeatGuide", parent);
+        Anchor(root, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 170f), new Vector2(0.5f, 0.5f));
+
+        CanvasGroup canvasGroup = root.gameObject.AddComponent<CanvasGroup>();
+        canvasGroup.blocksRaycasts = false;
+        canvasGroup.interactable = false;
+
+        TextMeshProUGUI[] leftGuides = BuildGuideTexts(root, "LeftGuide", "<", -310f);
+        TextMeshProUGUI[] rightGuides = BuildGuideTexts(root, "RightGuide", ">", 310f);
+        TextMeshProUGUI[] inputPositionGuides = BuildInputPositionGuides(root);
+
+        BeatGuideView view = root.gameObject.AddComponent<BeatGuideView>();
+        SerializedObject serializedView = new SerializedObject(view);
+        serializedView.FindProperty("canvasGroup").objectReferenceValue = canvasGroup;
+
+        SerializedProperty left = serializedView.FindProperty("leftGuides");
+        left.arraySize = leftGuides.Length;
+        for (int i = 0; i < leftGuides.Length; i++)
+            left.GetArrayElementAtIndex(i).objectReferenceValue = leftGuides[i];
+
+        SerializedProperty right = serializedView.FindProperty("rightGuides");
+        right.arraySize = rightGuides.Length;
+        for (int i = 0; i < rightGuides.Length; i++)
+            right.GetArrayElementAtIndex(i).objectReferenceValue = rightGuides[i];
+
+        SerializedProperty inputPosition = serializedView.FindProperty("inputPositionGuides");
+        inputPosition.arraySize = inputPositionGuides.Length;
+        for (int i = 0; i < inputPositionGuides.Length; i++)
+            inputPosition.GetArrayElementAtIndex(i).objectReferenceValue = inputPositionGuides[i];
+
+        serializedView.ApplyModifiedPropertiesWithoutUndo();
+        return view;
+    }
+
+    private static TextMeshProUGUI[] BuildGuideTexts(RectTransform parent, string prefix, string glyph, float anchoredX)
+    {
+        const int guideCount = 4;
+        var guides = new TextMeshProUGUI[guideCount];
+        for (int i = 0; i < guideCount; i++)
+        {
+            TextMeshProUGUI guide = CreateText($"{prefix}_{i}", parent, glyph, 56f);
+            Anchor(guide.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(anchoredX, 0f), new Vector2(66f, 78f), new Vector2(0.5f, 0.5f));
+            guide.alignment = TextAlignmentOptions.Center;
+            guide.fontStyle = FontStyles.Bold;
+            guide.color = new Color(0.88f, 0.98f, 0.92f, 0.82f);
+            guides[i] = guide;
+        }
+
+        return guides;
+    }
+
+    private static TextMeshProUGUI[] BuildInputPositionGuides(RectTransform parent)
+    {
+        TextMeshProUGUI left = CreateText("InputPositionLeft", parent, "<", 56f);
+        Anchor(left.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(-62f, 0f), new Vector2(66f, 78f), new Vector2(0.5f, 0.5f));
+        ConfigureInputPositionGuide(left);
+
+        TextMeshProUGUI right = CreateText("InputPositionRight", parent, ">", 56f);
+        Anchor(right.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(62f, 0f), new Vector2(66f, 78f), new Vector2(0.5f, 0.5f));
+        ConfigureInputPositionGuide(right);
+
+        return new[] { left, right };
+    }
+
+    private static void ConfigureInputPositionGuide(TextMeshProUGUI guide)
+    {
+        guide.alignment = TextAlignmentOptions.Center;
+        guide.fontStyle = FontStyles.Bold;
+        guide.color = new Color(0.88f, 0.98f, 0.92f, 1f);
+        guide.faceColor = new Color(0.88f, 0.98f, 0.92f, 0f);
+        guide.outlineColor = new Color(0.88f, 0.98f, 0.92f, 0.42f);
+        guide.outlineWidth = 0.24f;
     }
 
     private static ComboCounterView BuildComboFlourish(RectTransform parent, HudSprites sprites)
@@ -202,6 +281,7 @@ public static class InGameHudSetBuilder
         CanvasGroup canvasGroup = combo.gameObject.AddComponent<CanvasGroup>();
         ComboCounterView view = combo.gameObject.AddComponent<ComboCounterView>();
         SerializedObject serializedView = new SerializedObject(view);
+        serializedView.FindProperty("rootTransform").objectReferenceValue = combo;
         serializedView.FindProperty("canvasGroup").objectReferenceValue = canvasGroup;
         serializedView.FindProperty("comboCountText").objectReferenceValue = countText;
         serializedView.FindProperty("comboLabelText").objectReferenceValue = labelText;
@@ -331,6 +411,7 @@ public static class InGameHudSetBuilder
         SkillSlotView[] skillSlots,
         PartyMemberPanelView[] partyPanels,
         StageInfoPanelView stageInfo,
+        BeatGuideView beatGuide,
         ComboCounterView comboView,
         MinimapHudView minimapView)
     {
@@ -353,6 +434,7 @@ public static class InGameHudSetBuilder
             party.GetArrayElementAtIndex(i).objectReferenceValue = partyPanels[i];
 
         serializedPresenter.FindProperty("_stageInfo").objectReferenceValue = stageInfo;
+        serializedPresenter.FindProperty("_beatGuide").objectReferenceValue = beatGuide;
         serializedPresenter.FindProperty("_comboView").objectReferenceValue = comboView;
         serializedPresenter.FindProperty("_minimapView").objectReferenceValue = minimapView;
         serializedPresenter.ApplyModifiedPropertiesWithoutUndo();
