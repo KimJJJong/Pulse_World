@@ -12,9 +12,12 @@ public static class P2PServerContentResolver
     };
 
     public static bool TryLoadMapJson(string mapId, out MapJson mapJson)
+        => TryLoadMapJson(mapId, 0, out mapJson);
+
+    public static bool TryLoadMapJson(string mapId, int mode, out MapJson mapJson)
     {
         mapJson = null;
-        if (!TryReadServerText($"Server/GameServer/Content/01.Game/Map/Json/{mapId}.json", out var json))
+        if (!TryReadServerMapText(mapId, mode, out var json))
             return false;
 
         try
@@ -80,6 +83,26 @@ public static class P2PServerContentResolver
             json = string.Empty;
             return false;
         }
+    }
+
+    private static bool TryReadServerMapText(string mapId, int mode, out string json)
+    {
+        json = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(mapId))
+            return false;
+
+        var mapFolderOrder = mode == 1
+            ? new[] { "02.Town", "01.Game" }
+            : new[] { "01.Game", "02.Town" };
+
+        foreach (var folder in mapFolderOrder)
+        {
+            if (TryReadServerText($"Server/GameServer/Content/{folder}/Map/Json/{mapId}.json", out json))
+                return true;
+        }
+
+        return false;
     }
 
     private static string GetServerPath(string relativePath)

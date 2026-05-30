@@ -79,7 +79,7 @@ public class ClientHandlers : MonoBehaviour
         MapJson serverMapJson = null;
         MapAsset mapAsset = null;
 
-        if (P2PServerContentResolver.TryLoadMapJson(mapName, out var loadedMapJson))
+        if (P2PServerContentResolver.TryLoadMapJson(mapName, p.Mode, out var loadedMapJson))
         {
             serverMapJson = loadedMapJson;
 
