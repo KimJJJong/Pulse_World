@@ -2458,6 +2458,7 @@ public sealed class MapPainterWindow : EditorWindow
             EditorGUILayout.LabelField("Next Step", EditorStyles.boldLabel);
             EditorGUILayout.LabelField("Export 시 로직(k/v)과 외관 Auto Tile(a/av)이 함께 JSON으로 저장됩니다.");
             EditorGUILayout.LabelField($"Server map id/file name: {_map.name}");
+            EditorGUILayout.LabelField($"Export target(s): {MapExportUtility.GetExportTargetDescription(_map)}");
 
             if (GUILayout.Button("Export Current Map JSON", GUILayout.Height(24)))
                 MapExportUtility.Export(_map);

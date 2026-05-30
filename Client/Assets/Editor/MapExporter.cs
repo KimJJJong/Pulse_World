@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using UnityEditor;
@@ -8,7 +9,8 @@ using UnityEngine;
 public static class MapExportUtility
 {
     public const string MenuPath = "RhythmRPG/Editors/World/Export MapAsset to JSON";
-    private const string ServerMapJsonRelativePath = "../Server/GameServer/Content/01.Game/Map/Json";
+    private const string GameServerMapJsonRelativePath = "../Server/GameServer/Content/01.Game/Map/Json";
+    private const string TownServerMapJsonRelativePath = "../Server/GameServer/Content/02.Town/Map/Json";
 
     [MenuItem(MenuPath, true)]
     private static bool Validate()
@@ -35,13 +37,7 @@ public static class MapExportUtility
         }
 
         string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-        string path = Path.GetFullPath(
-            Path.Combine(projectRoot, ServerMapJsonRelativePath, $"{asset.name}.json"));
-        string dir = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-        {
-            Directory.CreateDirectory(dir);
-        }
+        var exportPaths = GetExportPaths(projectRoot, asset.name);
 
         var jsonObj = new MapJson
         {
@@ -77,11 +73,60 @@ public static class MapExportUtility
         // pretty print(사람이 보기 좋게)
         var json = JsonUtility.ToJson(jsonObj, prettyPrint: true);
 
-        File.WriteAllText(path, json, Encoding.UTF8);
+        foreach (string path in exportPaths)
+        {
+            string dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
 
-        Debug.Log($"[MapExport] Exported mapId='{asset.name}': {path}");
+            File.WriteAllText(path, json, Encoding.UTF8);
+        }
+
+        Debug.Log(
+            $"[MapExport] Exported mapId='{asset.name}' to {exportPaths.Count} target(s):\n" +
+            string.Join("\n", exportPaths.ToArray()));
         AssetDatabase.Refresh();
     }
+
+    public static string GetExportTargetDescription(MapAsset asset)
+    {
+        if (asset == null)
+            return "None";
+
+        var relativePaths = GetExportRelativePaths(asset.name);
+        return string.Join(", ", relativePaths.ToArray());
+    }
+
+    private static List<string> GetExportPaths(string projectRoot, string mapId)
+    {
+        var paths = new List<string>();
+        var relativePaths = GetExportRelativePaths(mapId);
+
+        foreach (string relativePath in relativePaths)
+        {
+            paths.Add(Path.GetFullPath(Path.Combine(projectRoot, relativePath, $"{mapId}.json")));
+        }
+
+        return paths;
+    }
+
+    private static List<string> GetExportRelativePaths(string mapId)
+    {
+        var paths = new List<string> { GameServerMapJsonRelativePath };
+
+        if (IsTownMapId(mapId))
+        {
+            paths.Add(TownServerMapJsonRelativePath);
+        }
+
+        return paths;
+    }
+
+    private static bool IsTownMapId(string mapId)
+        => !string.IsNullOrEmpty(mapId)
+           && mapId.StartsWith("Town_", StringComparison.OrdinalIgnoreCase);
 
     private static string GetResourcesPath(UnityEngine.Object asset)
     {
