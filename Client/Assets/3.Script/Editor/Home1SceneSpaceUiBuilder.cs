@@ -161,12 +161,29 @@ public static class Home1SceneSpaceUiBuilder
 
         ApplyMapRealmRoutes(mapUi);
         BuildTownEntryChoicePanel(mapUi.transform as RectTransform, mapUi);
+        ApplyMapPieceHighlights(mapUi);
         ApplyNanumGothicFontToChildren(mapUi.transform as RectTransform);
         EditorUtility.SetDirty(mapUi);
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
         Debug.Log("[Home1SceneSpaceUiBuilder] Configured Home 1 map Town entry UI object references.");
+    }
+
+    [MenuItem("RhythmRPG/Editors/UI/Configure Home1 Map Piece Highlights")]
+    public static void ConfigureHome1MapPieceHighlights()
+    {
+        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        var mapUi = FindMapRealmUiInScene(scene.path);
+        if (mapUi == null)
+            throw new InvalidOperationException("UI_Home_Map is missing HomeMapRealmUI.");
+
+        ApplyMapPieceHighlights(mapUi);
+        EditorUtility.SetDirty(mapUi);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[Home1SceneSpaceUiBuilder] Configured Home 1 map piece-shaped highlights.");
     }
 
     private static void EnsureUiResources()
@@ -210,6 +227,8 @@ public static class Home1SceneSpaceUiBuilder
                 importer.textureType = TextureImporterType.Sprite;
                 importer.spriteImportMode = SpriteImportMode.Single;
                 importer.alphaIsTransparency = true;
+                if (IsMapPieceTexturePath(relative))
+                    importer.isReadable = true;
                 importer.mipmapEnabled = false;
                 importer.maxTextureSize = 4096;
                 importer.SaveAndReimport();
@@ -568,6 +587,147 @@ public static class Home1SceneSpaceUiBuilder
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
+    private static void ApplyMapPieceHighlights(HomeMapRealmUI mapUi)
+    {
+        var so = new SerializedObject(mapUi);
+        var realmsProperty = so.FindProperty("_realms");
+        if (realmsProperty == null || !realmsProperty.isArray)
+            throw new InvalidOperationException("HomeMapRealmUI._realms is missing or not an array.");
+
+        for (var i = 0; i < realmsProperty.arraySize; i++)
+        {
+            var element = realmsProperty.GetArrayElementAtIndex(i);
+            var button = element.FindPropertyRelative("Button").objectReferenceValue as Button;
+            if (button == null)
+                continue;
+
+            var buttonTexture = ResolveMapButtonTexture(button);
+            EnsureMapPieceTextureReadable(buttonTexture);
+
+            var sprite = ResolveMapButtonSprite(button);
+            if (sprite == null)
+            {
+                Debug.LogWarning($"[Home1SceneSpaceUiBuilder] Map button '{button.name}' has no sprite-backed texture for shaped highlight.");
+                continue;
+            }
+
+            ConfigureMapPieceHitArea(button);
+
+            var highlightProperty = element.FindPropertyRelative("Highlight");
+            var highlight = highlightProperty.objectReferenceValue as Image;
+            if (highlight == null)
+                highlight = FindOrCreateMapPieceHighlight(button.transform as RectTransform);
+
+            ConfigureMapPieceHighlight(highlight, sprite);
+            highlightProperty.objectReferenceValue = highlight;
+            EditorUtility.SetDirty(highlight);
+        }
+
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static bool IsMapPieceTexturePath(string relativePath)
+    {
+        return relativePath != null
+               && relativePath.StartsWith("UI_Map/UI_Map_Location_", StringComparison.OrdinalIgnoreCase)
+               && relativePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void EnsureMapPieceTextureReadable(Texture2D texture)
+    {
+        if (texture == null)
+            return;
+
+        var path = AssetDatabase.GetAssetPath(texture);
+        if (string.IsNullOrEmpty(path))
+            return;
+
+        var relativePath = path.StartsWith($"{UiResourceTarget}/", StringComparison.OrdinalIgnoreCase)
+            ? path.Substring(UiResourceTarget.Length + 1)
+            : path;
+        if (!IsMapPieceTexturePath(relativePath))
+            return;
+
+        if (AssetImporter.GetAtPath(path) is not TextureImporter importer || importer.isReadable)
+            return;
+
+        importer.isReadable = true;
+        importer.SaveAndReimport();
+    }
+
+    private static void ConfigureMapPieceHitArea(Button button)
+    {
+        if (button == null)
+            return;
+
+        var hitArea = button.GetComponent<HomeMapPieceHitArea>() ?? button.gameObject.AddComponent<HomeMapPieceHitArea>();
+        hitArea.Configure();
+        EditorUtility.SetDirty(hitArea);
+    }
+
+    private static Image FindOrCreateMapPieceHighlight(RectTransform buttonRect)
+    {
+        if (buttonRect == null)
+            throw new InvalidOperationException("Map realm button RectTransform is missing.");
+
+        var existing = buttonRect.Find("SelectedHighlight");
+        if (existing != null && existing.TryGetComponent<Image>(out var image))
+            return image;
+
+        var go = new GameObject("SelectedHighlight", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(HomeMapPieceHighlight));
+        go.transform.SetParent(buttonRect, false);
+        Stretch(go.GetComponent<RectTransform>());
+        return go.GetComponent<Image>();
+    }
+
+    private static Sprite ResolveMapButtonSprite(Button button)
+    {
+        if (button == null)
+            return null;
+
+        if (button.targetGraphic is Image targetImage && targetImage.sprite != null)
+            return targetImage.sprite;
+
+        var texture = ResolveMapButtonTexture(button);
+        if (texture == null)
+            return null;
+
+        var path = AssetDatabase.GetAssetPath(texture);
+        return string.IsNullOrEmpty(path) ? null : AssetDatabase.LoadAssetAtPath<Sprite>(path);
+    }
+
+    private static Texture2D ResolveMapButtonTexture(Button button)
+    {
+        if (button == null)
+            return null;
+
+        if (button.targetGraphic is RawImage targetRawImage && targetRawImage.texture is Texture2D targetTexture)
+            return targetTexture;
+
+        var rawImage = button.GetComponent<RawImage>();
+        return rawImage != null ? rawImage.texture as Texture2D : null;
+    }
+
+    private static void ConfigureMapPieceHighlight(Image image, Sprite sprite)
+    {
+        if (image == null || sprite == null)
+            return;
+
+        Stretch(image.rectTransform);
+        image.sprite = sprite;
+        image.type = Image.Type.Simple;
+        image.preserveAspect = false;
+        image.useSpriteMesh = false;
+        image.raycastTarget = false;
+        image.color = new Color(1f, 0.78f, 0.18f, 0f);
+        image.enabled = false;
+
+        var highlight = image.GetComponent<HomeMapPieceHighlight>() ?? image.gameObject.AddComponent<HomeMapPieceHighlight>();
+        highlight.Configure(sprite);
+        highlight.SetSelected(false);
+        EditorUtility.SetDirty(highlight);
+    }
+
     private static HomeMapRealmUI FindMapRealmUiInScene(string scenePath)
     {
         foreach (var candidate in Resources.FindObjectsOfTypeAll<HomeMapRealmUI>())
@@ -858,8 +1018,8 @@ public static class Home1SceneSpaceUiBuilder
     private static RealmBuildBinding CreateRealmButton(RectTransform root, string name, string texturePath, Rect rect, string realmId, string displayName, string description, string ticket, string sceneName)
     {
         var button = CreateButtonTexture(root, name, texturePath, rect);
-        var highlight = CreateSolid(button.transform as RectTransform, "SelectedHighlight", new Color(1f, 1f, 1f, 0f));
-        Stretch(highlight.rectTransform);
+        ConfigureMapPieceHitArea(button);
+        var highlight = CreateMapPieceHighlight(button.transform as RectTransform, "SelectedHighlight", texturePath);
         return new RealmBuildBinding
         {
             RealmId = realmId,
@@ -870,6 +1030,22 @@ public static class Home1SceneSpaceUiBuilder
             Button = button,
             Highlight = highlight
         };
+    }
+
+    private static Image CreateMapPieceHighlight(RectTransform parent, string name, string texturePath)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(HomeMapPieceHighlight));
+        go.transform.SetParent(parent, false);
+        Stretch(go.GetComponent<RectTransform>());
+
+        var image = go.GetComponent<Image>();
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{UiResourceTarget}/{texturePath}");
+        if (sprite != null)
+            ConfigureMapPieceHighlight(image, sprite);
+        else
+            image.color = new Color(1f, 1f, 1f, 0f);
+
+        return image;
     }
 
     private static Button CreateBackButton(RectTransform root, string name)

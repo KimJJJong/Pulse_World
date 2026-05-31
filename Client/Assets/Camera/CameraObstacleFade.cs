@@ -21,12 +21,19 @@ public class CameraObstacleFade : MonoBehaviour
 
     // Internal
     private Dictionary<Renderer, float> _fadingRenderers = new Dictionary<Renderer, float>();
+    private HashSet<Renderer> _ditherReadyRenderers = new HashSet<Renderer>();
     private List<Renderer> _hitRenderers = new List<Renderer>();
     private Collider[] _hitColliders = new Collider[50]; // Changed from RaycastHit to Collider
     
     // Cache
     private MaterialPropertyBlock _propBlock;
+    private Shader _ditherShader;
     private static readonly int DitherPropID = Shader.PropertyToID("_DitherInternal");
+    private static readonly int BaseMapPropID = Shader.PropertyToID("_BaseMap");
+    private static readonly int MainTexPropID = Shader.PropertyToID("_MainTex");
+    private static readonly int BaseColorPropID = Shader.PropertyToID("_BaseColor");
+    private static readonly int ColorPropID = Shader.PropertyToID("_Color");
+    private const string DitherShaderName = "RhythmRPG/TopDown/DitherTransparentPBR";
 
     void Awake()
     {
@@ -159,9 +166,82 @@ public class CameraObstacleFade : MonoBehaviour
 
     private void SetDitherValue(Renderer r, float val)
     {
+        EnsureDitherReady(r);
         r.GetPropertyBlock(_propBlock);
         _propBlock.SetFloat(DitherPropID, val);
         r.SetPropertyBlock(_propBlock);
+    }
+
+    private void EnsureDitherReady(Renderer r)
+    {
+        if (r == null || _ditherReadyRenderers.Contains(r))
+        {
+            return;
+        }
+
+        _ditherReadyRenderers.Add(r);
+
+        var sharedMaterials = r.sharedMaterials;
+        bool allMaterialsSupportDither = true;
+        foreach (var material in sharedMaterials)
+        {
+            if (material != null && !material.HasProperty(DitherPropID))
+            {
+                allMaterialsSupportDither = false;
+                break;
+            }
+        }
+
+        if (allMaterialsSupportDither)
+        {
+            return;
+        }
+
+        if (_ditherShader == null)
+        {
+            _ditherShader = Shader.Find(DitherShaderName);
+        }
+
+        if (_ditherShader == null)
+        {
+            Debug.LogWarning($"[CameraObstacleFade] Missing dither shader: {DitherShaderName}");
+            return;
+        }
+
+        var materials = r.materials;
+        foreach (var material in materials)
+        {
+            if (material == null || material.HasProperty(DitherPropID))
+            {
+                continue;
+            }
+
+            var baseTexture = material.HasProperty(BaseMapPropID)
+                ? material.GetTexture(BaseMapPropID)
+                : material.HasProperty(MainTexPropID)
+                    ? material.GetTexture(MainTexPropID)
+                    : null;
+
+            var baseColor = material.HasProperty(BaseColorPropID)
+                ? material.GetColor(BaseColorPropID)
+                : material.HasProperty(ColorPropID)
+                    ? material.GetColor(ColorPropID)
+                    : Color.white;
+
+            material.shader = _ditherShader;
+
+            if (baseTexture != null && material.HasProperty(BaseMapPropID))
+            {
+                material.SetTexture(BaseMapPropID, baseTexture);
+            }
+
+            if (material.HasProperty(BaseColorPropID))
+            {
+                material.SetColor(BaseColorPropID, baseColor);
+            }
+
+            material.SetFloat(DitherPropID, 1.0f);
+        }
     }
     
     // Helper to draw wire capsule

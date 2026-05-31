@@ -45,6 +45,10 @@ public class RhythmVisualDebugger : MonoBehaviour
 
     private void OnGUI()
     {
+        P2PDebugViewConfig.HandleRuntimeToggleEvent(Event.current);
+        if (!P2PDebugViewConfig.ShowNetworkSyncOverlay)
+            return;
+
         // 1. 기초 환경 검사
         if (RhythmClient.Instance == null || RhythmClient.Instance.ServerSongStartMs == 0)
         {

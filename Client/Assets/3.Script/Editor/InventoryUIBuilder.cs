@@ -173,10 +173,14 @@ public class InventoryUIBuilder : EditorWindow
         // EquipMark
         GameObject pMarkObj = CreateChild(itemPrefab, "EquipMark");
         RectTransform pMarkRt = pMarkObj.GetComponent<RectTransform>();
-        pMarkRt.anchorMin = new Vector2(0.25f, 0);
-        pMarkRt.anchorMax = new Vector2(0.5f, 0.5f);
         TextMeshProUGUI markText = CreateText(pMarkObj, "[E]", 18, Color.cyan);
         markText.alignment = TextAlignmentOptions.MidlineLeft;
+        pMarkRt.anchorMin = new Vector2(1f, 1f);
+        pMarkRt.anchorMax = new Vector2(1f, 1f);
+        pMarkRt.pivot = new Vector2(1f, 1f);
+        pMarkRt.anchoredPosition = new Vector2(-10f, -25f);
+        pMarkRt.sizeDelta = new Vector2(26f, 18f);
+        pMarkObj.SetActive(false);
 
         HomeEquipPopupItemUI itemUI = itemPrefab.AddComponent<HomeEquipPopupItemUI>();
         SerializedObject itemSo = new SerializedObject(itemUI);
@@ -527,9 +531,15 @@ public class InventoryUIBuilder : EditorWindow
 
         GameObject eqMark = CreateChild(slotPrefab, "EquipMark");
         RectTransform eqRt = eqMark.GetComponent<RectTransform>();
-        eqRt.anchorMin = new Vector2(0, 0.7f);
-        eqRt.anchorMax = new Vector2(0.3f, 1);
-        eqMark.AddComponent<Image>().color = Color.yellow;
+        eqRt.anchorMin = new Vector2(1f, 1f);
+        eqRt.anchorMax = new Vector2(1f, 1f);
+        eqRt.pivot = new Vector2(1f, 1f);
+        eqRt.anchoredPosition = new Vector2(-6f, -6f);
+        eqRt.sizeDelta = new Vector2(22f, 18f);
+        var eqImage = eqMark.AddComponent<Image>();
+        eqImage.color = new Color(1f, 0.86f, 0.12f, 0.95f);
+        eqImage.raycastTarget = false;
+        eqMark.SetActive(false);
         
         TownInventorySlotUI slotUI = slotPrefab.AddComponent<TownInventorySlotUI>();
         SerializedObject slotSo = new SerializedObject(slotUI);

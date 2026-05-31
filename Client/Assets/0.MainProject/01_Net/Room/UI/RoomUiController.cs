@@ -83,6 +83,7 @@ namespace NetClient.Room.UI
         string _lastWarn = "";
         string _lastStatus = "";
         bool _openedExplicitly = false;
+        bool _transitioningToGame = false;
 
         const string RelayKeyPrefix = "p2p:";
 
@@ -231,6 +232,7 @@ namespace NetClient.Room.UI
         {
             // UI 창 끄기 = 루트 비활성
             // (원하면 dispose하고 상태 초기화)
+            _transitioningToGame = false;
             NotifyRoomSessionClosed();
             AppBootstrap.Instance.Root.SteamPlatform.LeaveLobby();
             ResetDebugState();
@@ -275,19 +277,32 @@ namespace NetClient.Room.UI
             }
         }
 
-        public Task JoinRoomByIdAsync(string roomId)
+        public Task JoinRoomByIdAsync(string roomId, bool showUi = true)
         {
             _openedExplicitly = true;
             if (!gameObject.activeSelf)
                 gameObject.SetActive(true);
 
-            return JoinRoomAsync(roomId);
+            return JoinRoomAsync(roomId, showUi);
         }
 
-        async Task JoinRoomAsync(string roomId)
+        async Task JoinRoomAsync(string roomId, bool showUi = true)
         {
             if (!EnsureApiClients())
                 return;
+
+            _transitioningToGame = false;
+
+            if (_roomWs != null
+                && string.Equals(_currentRoomId, roomId, StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(_currentRoomId))
+            {
+                if (showUi)
+                    ShowWaitingRoom();
+                else
+                    HideAllPanels();
+                return;
+            }
 
             await DisposeWsIfAny();
 
@@ -323,7 +338,10 @@ namespace NetClient.Room.UI
             var wsUrl = apiProvider.BuildRoomWsUrl(roomId);
             SetWarn("Connecting...");
             
-            ShowWaitingRoom();
+            if (showUi)
+                ShowWaitingRoom();
+            else
+                HideAllPanels();
 
             await SafeCall(async () => await _roomWs.ConnectAsync(wsUrl, _cts.Token));
         }
@@ -472,11 +490,13 @@ namespace NetClient.Room.UI
 
         public async void UI_LeaveRoom()
         {
+            _transitioningToGame = false;
             await LeaveCurrentRoomAsync(showListAfter: true);
         }
 
         public async Task LeaveCurrentRoomAsync(bool showListAfter = false, bool closeRootAfter = false)
         {
+            _transitioningToGame = false;
             if (_roomWs != null)
                 await SafeCall(async () => await _roomWs.LeaveAsync(_cts.Token));
 
@@ -663,11 +683,11 @@ namespace NetClient.Room.UI
 
             ws.OnGameStart += (endpoint, ticket, mapId, maxPlayers, relayMode, matchManifest) =>
             {
+                _transitioningToGame = true;
                 _currentRoomUseP2PRelay = relayMode;
                 var clientManifest = ConvertMatchManifest(matchManifest);
                 var hostUid = clientManifest != null ? clientManifest.HostUid : "";
                 SetWarn($"GameStart: {endpoint.host}:{endpoint.port} Map:{mapId} Max:{maxPlayers} Relay:{relayMode} Host:{hostUid}");
-                NotifyRoomSessionClosed();
                 _ = DisposeWsIfAny();
 
                 // DTO 변환 (Global EndpointDto -> SessionDtos.EndpointDto)
@@ -697,6 +717,9 @@ namespace NetClient.Room.UI
             ws.OnWarn += msg => SetWarn(msg);
             ws.OnClosed += reason =>
             {
+                if (_transitioningToGame)
+                    return;
+
                 SetWarn($"Closed: {reason}");
                 NotifyRoomSessionClosed();
                 AppBootstrap.Instance.Root.SteamPlatform.LeaveLobby();
@@ -984,6 +1007,13 @@ namespace NetClient.Room.UI
             if (!t) return;
             for (int i = t.childCount - 1; i >= 0; i--)
                 Destroy(t.GetChild(i).gameObject);
+        }
+
+        void HideAllPanels()
+        {
+            if (panelRoomList) panelRoomList.SetActive(false);
+            if (panelCreateModal) panelCreateModal.SetActive(false);
+            if (panelWaitingRoom) panelWaitingRoom.SetActive(false);
         }
 
         void SetStatus(string s)

@@ -11,6 +11,8 @@ using System.Threading.Tasks;
         event Action<string> OnClosed;
         event Action<Exception> OnError;
 
+        bool IsOpen { get; }
+
         Task ConnectAsync(string url, IDictionary<string, string> headers = null, CancellationToken ct = default);
         Task SendTextAsync(string text, CancellationToken ct = default);
         Task CloseAsync(string reason = null, CancellationToken ct = default);

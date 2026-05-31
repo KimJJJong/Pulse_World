@@ -425,7 +425,25 @@ public sealed class RoomWebSocketHandler
                                 useP2PRelay = room.UseP2PRelay,
                                 matchManifest
                             };
-                            await _conns.SendToAsync(roomId, memberUid, payload);
+                            var sent = await _conns.SendToAsync(roomId, memberUid, payload);
+                            if (sent)
+                            {
+                                _logger.LogInformation(
+                                    "[WaitingRoom] GameStart sent room={RoomId} uid={Uid} map={MapId} relay={Relay} host={HostUid}",
+                                    roomId,
+                                    memberUid,
+                                    room.MapId,
+                                    room.UseP2PRelay,
+                                    matchManifest.HostUid);
+                            }
+                            else
+                            {
+                                _logger.LogWarning(
+                                    "[WaitingRoom] GameStart send skipped - no active websocket room={RoomId} uid={Uid} map={MapId}",
+                                    roomId,
+                                    memberUid,
+                                    room.MapId);
+                            }
                         }
                         catch (Exception ticketEx)
                         {

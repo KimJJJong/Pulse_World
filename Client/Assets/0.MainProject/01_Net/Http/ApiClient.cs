@@ -7,6 +7,8 @@ using UnityEngine.Networking;
 
 public sealed class ApiClient
 {
+    public static bool VerboseLogging { get; set; } = false;
+
     readonly string _baseUrl;
     readonly int _timeoutSeconds;
     readonly TokenStore _tokens;
@@ -67,11 +69,11 @@ public sealed class ApiClient
             var json = JsonConvert.SerializeObject(body);
             req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
             req.SetRequestHeader("Content-Type", "application/json");
-            Debug.Log($"[HTTP][REQ] {method} {url}\nBody: {json}\nIdemKey: {idempotencyKey}");
+            LogVerbose($"[HTTP][REQ] {method} {url}\nBody: {json}\nIdemKey: {idempotencyKey}");
         }
         else 
         {
-            Debug.Log($"[HTTP][REQ] {method} {url}\nIdemKey: {idempotencyKey}");
+            LogVerbose($"[HTTP][REQ] {method} {url}\nIdemKey: {idempotencyKey}");
         }
 
         req.downloadHandler = new DownloadHandlerBuffer();
@@ -94,11 +96,14 @@ public sealed class ApiClient
         // 304 Handling
         if (code == 304)
         {
-            Debug.Log($"[HTTP][RESP] {method} {url} -> 304 Not Modified");
+            LogVerbose($"[HTTP][RESP] {method} {url} -> 304 Not Modified");
             return new ApiResult<T>(true, code, "Not Modified", default);
         }
 
-        Debug.Log($"[HTTP][RESP] {method} {url} -> {code} result={req.result}\nBody: {respText}");
+        if (req.result == UnityWebRequest.Result.Success && code >= 200 && code < 300)
+            LogVerbose($"[HTTP][RESP] {method} {url} -> {code} result={req.result}\nBody: {respText}");
+        else
+            Debug.LogWarning($"[HTTP][RESP] {method} {url} -> {code} result={req.result}\nBody: {respText}");
 
         if (req.result != UnityWebRequest.Result.Success)
         {
@@ -135,6 +140,12 @@ public sealed class ApiClient
         {
             return new ApiResult<T>(false, code, "서버 응답 형식이 예상과 달라요.", default);
         }
+    }
+
+    static void LogVerbose(string message)
+    {
+        if (VerboseLogging)
+            Debug.Log(message);
     }
 
 

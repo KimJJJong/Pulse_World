@@ -44,7 +44,7 @@ public sealed class ConnectionManager
         await Task.WhenAll(tasks);
     }
 
-    public async Task SendToAsync(string roomId, string uid, object message)
+    public async Task<bool> SendToAsync(string roomId, string uid, object message)
     {
         if (_rooms.TryGetValue(roomId, out var room) && room.TryGetValue(uid, out var ws))
         {
@@ -53,7 +53,10 @@ public sealed class ConnectionManager
                 var json = JsonSerializer.Serialize(message, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
                 var bytes = Encoding.UTF8.GetBytes(json);
                 await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                return true;
             }
         }
+
+        return false;
     }
 }

@@ -17,6 +17,8 @@ using UnityEngine;
         public event Action<string> OnClosed;
         public event Action<Exception> OnError;
 
+        public bool IsOpen => _ws != null && _ws.State == WebSocketState.Open;
+
         public async Task ConnectAsync(string url, IDictionary<string, string> headers = null, CancellationToken ct = default)
         {
             Debug.Log($"[StdWebSocketClient] Connecting to: {url}");
@@ -41,6 +43,9 @@ using UnityEngine;
 
         public async Task SendTextAsync(string text, CancellationToken ct = default)
         {
+            if (!IsOpen)
+                throw new InvalidOperationException($"WebSocket is not open. State={_ws?.State.ToString() ?? "None"}");
+
             var buf = Encoding.UTF8.GetBytes(text);
             await _ws.SendAsync(new ArraySegment<byte>(buf), WebSocketMessageType.Text, true, ct);
         }

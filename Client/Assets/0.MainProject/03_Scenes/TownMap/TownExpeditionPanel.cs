@@ -58,6 +58,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     private bool _openingReadyWindow;
     private bool _startingGameRoom;
     private bool _cancelingGameRoom;
+    private bool _autoJoiningGameRoom;
+    private string _lastAutoJoinRoomId = "";
     private TMP_FontAsset _koreanFont;
     private RoomUiController _subscribedRoomUi;
     private bool _warnedMissingEventSystem;
@@ -182,7 +184,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         if (_readyWindowButton)
         {
             _readyWindowButton.onClick.RemoveAllListeners();
-            _readyWindowButton.onClick.AddListener(() => _ = OpenReadyWindowForActiveGameAsync());
+            _readyWindowButton.onClick.AddListener(() => _ = HandleReadyButtonAsync());
         }
 
         if (_hostStartGameButton)
@@ -232,6 +234,10 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         var hasRoom = _townRoom != null && !string.IsNullOrWhiteSpace(_townRoom.roomId);
         var isHost = IsTownHost(_townRoom);
         var hasActiveGame = hasRoom && !string.IsNullOrWhiteSpace(_townRoom.activeGameRoomId);
+        var activeGameRoomId = hasActiveGame ? _townRoom.activeGameRoomId : "";
+        if (hasActiveGame)
+            RequestAutoJoinActiveGameRoom(activeGameRoomId);
+
         var activeRoomUi = hasActiveGame ? FindActiveGameRoomUi(_townRoom.activeGameRoomId) : null;
         var hasReadySnapshot = activeRoomUi != null && activeRoomUi.IsConnectedToRoom;
 
@@ -299,7 +305,12 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         {
             _readyWindowButton.gameObject.SetActive(hasActiveGame);
             _readyWindowButton.interactable = hasActiveGame && !_openingReadyWindow;
-            SetButtonLabel(_readyWindowButton, isHost ? "대기방 보기" : "준비하기");
+            var readyLabel = isHost
+                ? "대기방 보기"
+                : (hasReadySnapshot && activeRoomUi.AmIReady ? "준비 취소" : "준비하기");
+            if (_openingReadyWindow)
+                readyLabel = "연결 중";
+            SetButtonLabel(_readyWindowButton, readyLabel);
         }
 
         if (_hostStartGameButton)
@@ -385,7 +396,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
     }
 
-    private async Task OpenReadyWindowForActiveGameAsync()
+    private async Task HandleReadyButtonAsync()
     {
         if (_openingReadyWindow)
             return;
@@ -405,13 +416,18 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
 
         _openingReadyWindow = true;
-        UpdateView("준비창을 여는 중...");
+        UpdateView(IsTownHost(_townRoom) ? "대기방을 여는 중..." : "준비 상태 적용 중...");
 
         try
         {
-            roomUi.OpenRoot(showList: false);
-            if (!string.Equals(roomUi.CurrentRoomId, activeGameRoomId, StringComparison.OrdinalIgnoreCase))
-                await roomUi.JoinRoomByIdAsync(activeGameRoomId);
+            var isHost = IsTownHost(_townRoom);
+            await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: isHost);
+            if (!isHost)
+            {
+                var nextReady = !roomUi.AmIReady;
+                await roomUi.SetReadyAsync(nextReady);
+                UpdateView(nextReady ? "준비 완료를 전송했습니다." : "준비 취소를 전송했습니다.");
+            }
         }
         finally
         {
@@ -454,11 +470,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         try
         {
             roomUi.OpenRoot(showList: false);
-            if (!string.Equals(roomUi.CurrentRoomId, activeGameRoomId, StringComparison.OrdinalIgnoreCase))
-            {
-                await roomUi.JoinRoomByIdAsync(activeGameRoomId);
-                await WaitForRoomUiSnapshotAsync(roomUi, activeGameRoomId);
-            }
+            await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: true);
 
             if (!roomUi.CanOwnerStartGame)
             {
@@ -613,6 +625,78 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         UpdateView();
     }
 
+    private void RequestAutoJoinActiveGameRoom(string activeGameRoomId)
+    {
+        if (string.IsNullOrWhiteSpace(activeGameRoomId) || _autoJoiningGameRoom)
+            return;
+
+        var roomUi = RoomUiController.ActiveInstance ?? FindSceneObject<RoomUiController>();
+        if (roomUi != null
+            && roomUi.IsConnectedToRoom
+            && string.Equals(roomUi.CurrentRoomId, activeGameRoomId, StringComparison.OrdinalIgnoreCase))
+        {
+            _lastAutoJoinRoomId = activeGameRoomId;
+            SubscribeRoomUi(roomUi);
+            return;
+        }
+
+        if (string.Equals(_lastAutoJoinRoomId, activeGameRoomId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _autoJoiningGameRoom = true;
+        _lastAutoJoinRoomId = activeGameRoomId;
+        _ = AutoJoinActiveGameRoomAsync(activeGameRoomId);
+    }
+
+    private async Task AutoJoinActiveGameRoomAsync(string activeGameRoomId)
+    {
+        try
+        {
+            var roomUi = EnsureRoomUiController();
+            if (roomUi == null)
+                return;
+
+            await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: false);
+        }
+        finally
+        {
+            if (this)
+            {
+                var roomUi = RoomUiController.ActiveInstance ?? FindSceneObject<RoomUiController>();
+                if (roomUi == null
+                    || !roomUi.IsConnectedToRoom
+                    || !string.Equals(roomUi.CurrentRoomId, activeGameRoomId, StringComparison.OrdinalIgnoreCase))
+                {
+                    _lastAutoJoinRoomId = "";
+                }
+
+                _autoJoiningGameRoom = false;
+                UpdateView();
+            }
+        }
+    }
+
+    private async Task EnsureJoinedActiveGameRoomAsync(RoomUiController roomUi, string activeGameRoomId, bool showUi)
+    {
+        if (roomUi == null || string.IsNullOrWhiteSpace(activeGameRoomId))
+            return;
+
+        if (showUi)
+            roomUi.OpenRoot(showList: false);
+
+        if (!string.Equals(roomUi.CurrentRoomId, activeGameRoomId, StringComparison.OrdinalIgnoreCase)
+            || !roomUi.IsConnectedToRoom)
+        {
+            await roomUi.JoinRoomByIdAsync(activeGameRoomId, showUi);
+        }
+        else if (showUi)
+        {
+            roomUi.OpenRoot(showList: false);
+        }
+
+        await WaitForRoomUiSnapshotAsync(roomUi, activeGameRoomId);
+    }
+
     private string ResolveTownRoomId()
     {
         var manifestRoomId = SessionContext.Instance?.LastMatchManifest?.RoomId ?? "";
@@ -735,7 +819,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         var deadline = Time.realtimeSinceStartup + 1.5f;
         while (this
                && Time.realtimeSinceStartup < deadline
-               && !string.Equals(roomUi.CurrentRoomId, roomId, StringComparison.OrdinalIgnoreCase))
+               && (!roomUi.IsConnectedToRoom || !string.Equals(roomUi.CurrentRoomId, roomId, StringComparison.OrdinalIgnoreCase)))
         {
             await Task.Delay(100);
         }

@@ -59,6 +59,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
     {
         BindButtons();
         BindChoiceButtons();
+        PrepareRealmHighlights();
         Select(0);
 
         if (_selectButton != null)
@@ -72,6 +73,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
     {
         BindButtons();
         BindChoiceButtons();
+        PrepareRealmHighlights();
         Select(Mathf.Clamp(_selectedIndex, 0, Mathf.Max(0, (_realms?.Length ?? 1) - 1)));
     }
 
@@ -114,13 +116,111 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         RefreshSelectButton();
 
         for (var i = 0; i < _realms.Length; i++)
+            ApplyRealmHighlight(_realms[i], i == _selectedIndex);
+
+        BringSelectedRealmToFront();
+    }
+
+    private void BringSelectedRealmToFront()
+    {
+        if (_realms == null || _realms.Length == 0)
+            return;
+
+        var selectedButton = _realms[_selectedIndex]?.Button;
+        if (selectedButton == null || selectedButton.transform.parent == null)
+            return;
+
+        var parent = selectedButton.transform.parent;
+        var maxRealmSiblingIndex = selectedButton.transform.GetSiblingIndex();
+        for (var i = 0; i < _realms.Length; i++)
         {
-            var highlight = _realms[i]?.Highlight;
-            if (highlight != null)
-                highlight.color = i == _selectedIndex
-                    ? new Color(1f, 0.86f, 0.32f, 0.36f)
-                    : new Color(1f, 1f, 1f, 0f);
+            var button = _realms[i]?.Button;
+            if (button == null || button.transform.parent != parent)
+                continue;
+
+            maxRealmSiblingIndex = Mathf.Max(maxRealmSiblingIndex, button.transform.GetSiblingIndex());
         }
+
+        selectedButton.transform.SetSiblingIndex(maxRealmSiblingIndex);
+    }
+
+    private void PrepareRealmHighlights()
+    {
+        if (_realms == null)
+            return;
+
+        foreach (var realm in _realms)
+            PrepareRealmHighlight(realm);
+    }
+
+    private static void PrepareRealmHighlight(RealmBinding realm)
+    {
+        if (realm?.Highlight == null)
+            return;
+
+        var pieceHighlight = realm.Highlight.GetComponent<HomeMapPieceHighlight>();
+        if (pieceHighlight == null)
+            pieceHighlight = realm.Highlight.gameObject.AddComponent<HomeMapPieceHighlight>();
+
+        if (realm.Highlight is Image highlightImage && highlightImage.sprite != null)
+        {
+            pieceHighlight.Configure(highlightImage.sprite);
+            return;
+        }
+
+        var buttonSprite = ResolveButtonSprite(realm.Button);
+        if (buttonSprite != null)
+        {
+            pieceHighlight.Configure(buttonSprite);
+            return;
+        }
+
+        var buttonTexture = ResolveButtonTexture(realm.Button);
+        if (buttonTexture != null)
+            pieceHighlight.Configure(buttonTexture);
+    }
+
+    private static void ApplyRealmHighlight(RealmBinding realm, bool selected)
+    {
+        var highlight = realm?.Highlight;
+        if (highlight == null)
+            return;
+
+        var pieceHighlight = highlight.GetComponent<HomeMapPieceHighlight>();
+        if (pieceHighlight != null)
+        {
+            pieceHighlight.SetSelected(selected);
+            return;
+        }
+
+        highlight.enabled = true;
+        highlight.color = selected
+            ? new Color(1f, 0.86f, 0.32f, 0.36f)
+            : new Color(1f, 1f, 1f, 0f);
+    }
+
+    private static Sprite ResolveButtonSprite(Button button)
+    {
+        if (button == null)
+            return null;
+
+        if (button.targetGraphic is Image targetImage && targetImage.sprite != null)
+            return targetImage.sprite;
+
+        var image = button.GetComponent<Image>();
+        return image != null ? image.sprite : null;
+    }
+
+    private static Texture2D ResolveButtonTexture(Button button)
+    {
+        if (button == null)
+            return null;
+
+        if (button.targetGraphic is RawImage targetRawImage && targetRawImage.texture is Texture2D targetTexture)
+            return targetTexture;
+
+        var rawImage = button.GetComponent<RawImage>();
+        return rawImage != null ? rawImage.texture as Texture2D : null;
     }
 
     private void HandleSelectClicked()

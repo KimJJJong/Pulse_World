@@ -12,6 +12,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
     private static readonly Color ListCardSelected = new Color(0.07f, 0.42f, 0.40f, 0.96f);
     private static readonly Color ListText = new Color(0.10f, 0.22f, 0.20f, 1f);
     private static readonly Color ListMutedText = new Color(0.32f, 0.26f, 0.18f, 1f);
+    private static readonly Color EquippedMarkText = new Color(1f, 0.88f, 0.36f, 1f);
     private static Sprite _defaultCardSprite;
     private static Sprite _selectedCardSprite;
 
@@ -109,14 +110,8 @@ public class HomeEquipPopupItemUI : MonoBehaviour
 
         if (_equippedMark != null)
         {
+            ConfigureEquippedMark();
             _equippedMark.SetActive(data.IsEquipped);
-            var markText = _equippedMark.GetComponent<TextMeshProUGUI>();
-            if (markText != null)
-            {
-                ApplyKoreanFont(markText);
-                markText.fontSize = 11f;
-                markText.alignment = TextAlignmentOptions.Center;
-            }
         }
 
         if (_btn != null)
@@ -218,24 +213,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             }
         }
 
-        if (_equippedMark != null)
-        {
-            var markRect = _equippedMark.GetComponent<RectTransform>();
-            if (markRect != null)
-            {
-                markRect.anchorMin = new Vector2(1f, 1f);
-                markRect.anchorMax = new Vector2(1f, 1f);
-                markRect.pivot = new Vector2(1f, 1f);
-                markRect.anchoredPosition = gridCard ? new Vector2(-6f, -5f) : new Vector2(-10f, -25f);
-                markRect.sizeDelta = gridCard ? new Vector2(20f, 15f) : new Vector2(26f, 18f);
-            }
-            var markLabel = _equippedMark.GetComponent<TextMeshProUGUI>();
-            if (markLabel != null)
-            {
-                ApplyKoreanFont(markLabel);
-                markLabel.alignment = TextAlignmentOptions.Center;
-            }
-        }
+        ConfigureEquippedMark();
 
         if (gridCard && _icon != null)
         {
@@ -256,6 +234,61 @@ public class HomeEquipPopupItemUI : MonoBehaviour
     private bool IsGridCardLayout()
     {
         return GetComponentInParent<GridLayoutGroup>(true) != null;
+    }
+
+    private void ConfigureEquippedMark()
+    {
+        if (_equippedMark == null)
+            return;
+
+        var gridCard = UseResourceCardLayout();
+        var markRect = _equippedMark.GetComponent<RectTransform>();
+        if (markRect != null)
+        {
+            markRect.anchorMin = new Vector2(1f, 1f);
+            markRect.anchorMax = new Vector2(1f, 1f);
+            markRect.pivot = new Vector2(1f, 1f);
+            markRect.localScale = Vector3.one;
+            markRect.anchoredPosition = gridCard ? new Vector2(-6f, -5f) : new Vector2(-10f, -25f);
+            markRect.sizeDelta = gridCard ? new Vector2(20f, 15f) : new Vector2(26f, 18f);
+        }
+
+        var markImage = _equippedMark.GetComponent<Image>();
+        if (markImage != null)
+        {
+            markImage.raycastTarget = false;
+            markImage.preserveAspect = false;
+            if (markImage.sprite == null)
+                markImage.enabled = false;
+            else
+                markImage.color = Color.white;
+        }
+
+        var markLabel = _equippedMark.GetComponent<TextMeshProUGUI>()
+            ?? _equippedMark.GetComponentInChildren<TextMeshProUGUI>(true);
+
+        if (markLabel == null)
+            markLabel = _equippedMark.AddComponent<TextMeshProUGUI>();
+
+        markLabel.text = "E";
+        ApplyKoreanFont(markLabel);
+        markLabel.fontSize = gridCard ? 10f : 11f;
+        markLabel.enableAutoSizing = true;
+        markLabel.fontSizeMin = 8f;
+        markLabel.fontSizeMax = gridCard ? 10f : 11f;
+        markLabel.alignment = TextAlignmentOptions.Center;
+        markLabel.color = EquippedMarkText;
+        markLabel.raycastTarget = false;
+
+        if (markLabel.gameObject != _equippedMark)
+        {
+            var labelRect = markLabel.rectTransform;
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            labelRect.localScale = Vector3.one;
+        }
     }
 
     private static Sprite DefaultCardSprite
@@ -379,6 +412,19 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             var tr = transform.Find(name);
             if (tr != null)
                 return tr.gameObject;
+        }
+
+        var children = GetComponentsInChildren<Transform>(true);
+        foreach (var child in children)
+        {
+            if (child == null || child == transform)
+                continue;
+
+            foreach (var name in names)
+            {
+                if (child.name == name)
+                    return child.gameObject;
+            }
         }
 
         return null;

@@ -51,9 +51,16 @@ using UnityEngine;
             {
                 StopHostSelectionReportLoop();
                 _pairProbe.Stop();
+                LastHostProbeStatus = "Closed";
                 OnClosed?.Invoke(reason);
             };
-            _onError = ex => OnWarn?.Invoke(ex.Message);
+            _onError = ex =>
+            {
+                if (ex is OperationCanceledException || IsExpectedClosedSocketException(ex))
+                    return;
+
+                OnWarn?.Invoke(ex.Message);
+            };
         }
 
         private void Subscribe()
@@ -90,7 +97,8 @@ using UnityEngine;
             await _ws.ConnectAsync(wsUrl, headers, ct);
             Debug.Log($"ws connected: {wsUrl}");
             await SendHostProbePingAsync(ct);
-            StartHostSelectionReportLoop();
+            if (_ws.IsOpen)
+                StartHostSelectionReportLoop();
         }
 
         public Task ToggleReadyAsync(bool v, CancellationToken ct = default)
@@ -114,6 +122,8 @@ using UnityEngine;
 
         public Task LeaveAsync(CancellationToken ct = default)
         {
+            StopHostSelectionReportLoop();
+            _pairProbe.Stop();
             // Just close connection or send specific message?
             // Server handles close as leave.
             return _ws.CloseAsync("leave", ct);
@@ -121,15 +131,21 @@ using UnityEngine;
 
         private Task SendHostProbePingAsync(CancellationToken ct = default)
         {
+            if (!CanSend(ct))
+                return Task.CompletedTask;
+
             _pendingProbeNonce = Guid.NewGuid().ToString("N");
             _pendingProbeSentAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             LastHostProbeStatus = "Waiting Pong";
             var req = new HostProbePingRequest { nonce = _pendingProbeNonce };
-            return _ws.SendTextAsync(JsonUtility.ToJson(req), ct);
+            return CanSend(ct) ? _ws.SendTextAsync(JsonUtility.ToJson(req), ct) : Task.CompletedTask;
         }
 
         private Task SendHostProbeReportAsync(int rttMs, CancellationToken ct = default)
         {
+            if (!CanSend(ct))
+                return Task.CompletedTask;
+
             LastHostProbeRttMs = Mathf.Max(0, rttMs);
             LastHostProbeStatus = $"Reported {LastHostProbeRttMs} ms";
             var req = new HostProbeReportRequest
@@ -137,11 +153,14 @@ using UnityEngine;
                 rttMs = LastHostProbeRttMs,
                 reportedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
-            return _ws.SendTextAsync(JsonUtility.ToJson(req), ct);
+            return CanSend(ct) ? _ws.SendTextAsync(JsonUtility.ToJson(req), ct) : Task.CompletedTask;
         }
 
         private Task SendHostSelectionReportAsync(CancellationToken ct = default)
         {
+            if (!CanSend(ct))
+                return Task.CompletedTask;
+
             var room = RoomUiController.ActiveInstance;
             var steam = AppBootstrap.Instance != null && AppBootstrap.Instance.Root != null
                 ? AppBootstrap.Instance.Root.SteamPlatform
@@ -171,7 +190,7 @@ using UnityEngine;
                 measuredSteamPairs = BuildMeasuredSteamPairs(),
                 reportedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
-            return _ws.SendTextAsync(JsonUtility.ToJson(req), ct);
+            return CanSend(ct) ? _ws.SendTextAsync(JsonUtility.ToJson(req), ct) : Task.CompletedTask;
         }
 
         public void Tick()
@@ -212,11 +231,26 @@ using UnityEngine;
         {
             while (!ct.IsCancellationRequested)
             {
+                if (!CanSend(ct))
+                    break;
+
                 try
                 {
                     await SendHostSelectionReportAsync(ct);
                 }
                 catch (TaskCanceledException)
+                {
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (ObjectDisposedException)
+                {
+                    break;
+                }
+                catch (InvalidOperationException ex) when (IsExpectedClosedSocketException(ex))
                 {
                     break;
                 }
@@ -234,6 +268,32 @@ using UnityEngine;
                     break;
                 }
             }
+        }
+
+        private bool CanSend(CancellationToken ct = default)
+        {
+            return !ct.IsCancellationRequested && _ws != null && _ws.IsOpen;
+        }
+
+        private static bool IsExpectedClosedSocketException(Exception ex)
+        {
+            if (ex == null)
+                return false;
+
+            if (ex is ObjectDisposedException)
+                return true;
+
+            if (ex is InvalidOperationException)
+            {
+                var message = ex.Message ?? "";
+                bool mentionsSocket = message.IndexOf("WebSocket", StringComparison.OrdinalIgnoreCase) >= 0;
+                bool closed = message.IndexOf("Closed", StringComparison.OrdinalIgnoreCase) >= 0
+                              || message.IndexOf("CloseReceived", StringComparison.OrdinalIgnoreCase) >= 0
+                              || message.IndexOf("not open", StringComparison.OrdinalIgnoreCase) >= 0;
+                return mentionsSocket && closed;
+            }
+
+            return false;
         }
 
         private void HandleMessage(string json)

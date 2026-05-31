@@ -49,6 +49,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
     private Image _centerLineRight;
 
     private Sprite _defaultSprite;
+    private bool _lastDebugOverlayVisible = true;
 
     private RhythmClient Rhythm => RhythmClient.Instance;
 
@@ -79,10 +80,16 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
         if (_canvas == null)
             CreateCanvasAndUI();
+
+        ApplyDebugOverlayVisibility(force: true);
     }
 
     void Update()
     {
+        P2PDebugViewConfig.PollRuntimeToggles();
+        if (!ApplyDebugOverlayVisibility())
+            return;
+
         if (Rhythm == null) return;
 
         if (_bgm == null)
@@ -177,6 +184,16 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
         UpdateWindowBand(beatMs);
         UpdateHitMarkers();
+    }
+
+    private bool ApplyDebugOverlayVisibility(bool force = false)
+    {
+        bool visible = P2PDebugViewConfig.ShowNetworkSyncOverlay;
+        if (_canvas != null && (force || _lastDebugOverlayVisible != visible || _canvas.enabled != visible))
+            _canvas.enabled = visible;
+
+        _lastDebugOverlayVisible = visible;
+        return visible;
     }
 
     /// <summary>
