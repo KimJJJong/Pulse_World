@@ -103,6 +103,7 @@ partial class PacketHandler
                                 "SessionLifecycle",
                                 $"event=lease_invalid_route action=remove roomType=TownP2P world={s.CurrentWorldId} uid={res.Uid} epoch={res.Epoch} conn={s.ConnId}");
                             townRelay.RemovePlayer(res.Uid, res.Epoch);
+                            ClientSession.NotifyTownRoomDisconnected(s.CurrentWorldId, res.Uid, res.Epoch, s.ConnId, $"lease_invalid:{reason}");
                         }
                         else if (P2PRelayManager.TryGet(s.CurrentWorldId, out var relay))
                         {

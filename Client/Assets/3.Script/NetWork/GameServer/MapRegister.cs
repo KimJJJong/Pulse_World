@@ -13,6 +13,8 @@ using UnityEngine;
 public sealed class MapRegistry : MonoBehaviour
 {
     private const string MapResourcesPath = "Data/Map";
+    private const string GameInitPrefabPath = "GameInit/MapData";
+    private const string LegacyPrefabPath = "MapData";
 
     public static MapRegistry Instance { get; private set; }
 
@@ -21,18 +23,63 @@ public sealed class MapRegistry : MonoBehaviour
     public MapAsset[] Maps = Array.Empty<MapAsset>();
 
     private readonly Dictionary<string, MapAsset> _byName = new();
+    private bool _initialized;
 
     private void Awake()
+    {
+        InitializeSingleton();
+    }
+
+    public static MapRegistry EnsureInstance()
+    {
+        if (Instance != null)
+            return Instance;
+
+        var existing = FindFirstObjectByType<MapRegistry>();
+        if (existing != null)
+        {
+            existing.InitializeSingleton();
+            return existing;
+        }
+
+        var prefab = Resources.Load<GameObject>(GameInitPrefabPath);
+        if (prefab == null)
+            prefab = Resources.Load<GameObject>(LegacyPrefabPath);
+
+        MapRegistry registry = null;
+        if (prefab != null)
+        {
+            var instance = Instantiate(prefab);
+            registry = instance.GetComponent<MapRegistry>();
+            if (registry == null)
+                registry = instance.AddComponent<MapRegistry>();
+        }
+        else
+        {
+            var go = new GameObject("MapData");
+            registry = go.AddComponent<MapRegistry>();
+        }
+
+        registry.InitializeSingleton();
+        return registry;
+    }
+
+    private void InitializeSingleton()
     {
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
+
+        if (_initialized)
+            return;
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
         Rebuild();
+        _initialized = true;
     }
 
     /// <summary>

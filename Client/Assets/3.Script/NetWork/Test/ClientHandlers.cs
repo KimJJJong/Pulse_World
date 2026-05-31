@@ -97,7 +97,7 @@ public class ClientHandlers : MonoBehaviour
         }
         else
         {
-            var reg = MapRegistry.Instance;
+            var reg = MapRegistry.EnsureInstance();
             if (reg == null)
             {
                 Debug.LogError("[InitMap] MapRegistry.Instance is null. MapRegistry가 씬에 배치되어 있어야 합니다.");

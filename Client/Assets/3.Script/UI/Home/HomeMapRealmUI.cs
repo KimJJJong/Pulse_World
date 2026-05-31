@@ -164,6 +164,8 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         }
 
         SetBusy(true);
+        SetChoiceStatus("이전 Town 정보 정리 중...");
+        await LeaveStaleTownContextAsync("home_create_town");
         SetChoiceStatus("Town 방 생성 중...");
 
         var steam = root.SteamPlatform;
@@ -211,6 +213,8 @@ public sealed class HomeMapRealmUI : MonoBehaviour
 
         SetBusy(true);
         ResetRoomRows();
+        SetChoiceStatus("이전 Town 정보 정리 중...");
+        await LeaveStaleTownContextAsync("home_find_town");
         SetChoiceStatus("기존 Town 검색 중...");
 
         var result = await root.TownRoomApi.ListAsync(mapId);
@@ -447,6 +451,14 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         return !string.IsNullOrWhiteSpace(uid)
                && !string.IsNullOrWhiteSpace(room.ownerUid)
                && string.Equals(room.ownerUid, uid, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task LeaveStaleTownContextAsync(string reason)
+    {
+        if (ClientFlow.Instance == null)
+            return;
+
+        await ClientFlow.Instance.LeaveRememberedTownAsync(reason);
     }
 
     private void AddInfoRow(string message)

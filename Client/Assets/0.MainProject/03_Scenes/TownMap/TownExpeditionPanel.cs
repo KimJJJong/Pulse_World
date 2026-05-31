@@ -20,6 +20,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     [SerializeField] private TMP_Text _titleText;
     [SerializeField] private TMP_Text _statusText;
     [SerializeField] private TMP_Text _detailText;
+    [SerializeField] private TMP_Text _readySummaryText;
     [SerializeField] private Button _inventoryButton;
     [SerializeField] private Button _gameSelectButton;
     [SerializeField] private Button _readyWindowButton;
@@ -101,7 +102,10 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     private void OnDestroy()
     {
         if (_subscribedRoomUi != null)
+        {
             _subscribedRoomUi.RoomSessionClosed -= HandleRoomSessionClosed;
+            _subscribedRoomUi.WaitingRoomStateChanged -= HandleWaitingRoomStateChanged;
+        }
 
         try
         {
@@ -228,6 +232,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         var hasRoom = _townRoom != null && !string.IsNullOrWhiteSpace(_townRoom.roomId);
         var isHost = IsTownHost(_townRoom);
         var hasActiveGame = hasRoom && !string.IsNullOrWhiteSpace(_townRoom.activeGameRoomId);
+        var activeRoomUi = hasActiveGame ? FindActiveGameRoomUi(_townRoom.activeGameRoomId) : null;
+        var hasReadySnapshot = activeRoomUi != null && activeRoomUi.IsConnectedToRoom;
 
         if (_titleText)
             _titleText.text = isHost ? "Town Host" : "Town Party";
@@ -239,9 +245,16 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             else if (!hasRoom)
                 _statusText.text = "Town Room 정보를 기다리는 중...";
             else if (hasActiveGame)
-                _statusText.text = isHost
-                    ? $"{SafeTitle(_townRoom.activeGameTitle, _townRoom.activeGameMapId)} 시작 대기 중"
-                    : $"{SafeTitle(_townRoom.activeGameTitle, _townRoom.activeGameMapId)} 준비 가능";
+            {
+                if (hasReadySnapshot && isHost)
+                    _statusText.text = activeRoomUi.CanOwnerStartGame ? "모두 준비됨 - 시작 가능" : "참가자 Ready 대기 중";
+                else if (hasReadySnapshot)
+                    _statusText.text = activeRoomUi.AmIReady ? "준비 완료 - Host 시작 대기" : "준비가 필요합니다.";
+                else
+                    _statusText.text = isHost
+                        ? $"{SafeTitle(_townRoom.activeGameTitle, _townRoom.activeGameMapId)} 시작 대기 중"
+                        : $"{SafeTitle(_townRoom.activeGameTitle, _townRoom.activeGameMapId)} 준비 가능";
+            }
             else if (isHost)
                 _statusText.text = "Game을 선택해 대기방을 만들 수 있습니다.";
             else
@@ -270,6 +283,12 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             }
         }
 
+        if (_readySummaryText)
+        {
+            _readySummaryText.gameObject.SetActive(hasActiveGame);
+            _readySummaryText.text = BuildReadySummary(activeRoomUi, hasActiveGame, isHost);
+        }
+
         if (_gameSelectButton)
         {
             _gameSelectButton.gameObject.SetActive(isHost);
@@ -286,7 +305,13 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         if (_hostStartGameButton)
         {
             _hostStartGameButton.gameObject.SetActive(isHost && hasActiveGame);
-            _hostStartGameButton.interactable = isHost && hasActiveGame && !_startingGameRoom && !_cancelingGameRoom;
+            _hostStartGameButton.interactable = isHost
+                                               && hasActiveGame
+                                               && hasReadySnapshot
+                                               && activeRoomUi.CanOwnerStartGame
+                                               && !_startingGameRoom
+                                               && !_cancelingGameRoom;
+            SetButtonLabel(_hostStartGameButton, hasReadySnapshot && activeRoomUi.CanOwnerStartGame ? "게임 시작" : "Ready 대기");
         }
 
         if (_hostCancelGameButton)
@@ -430,7 +455,16 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         {
             roomUi.OpenRoot(showList: false);
             if (!string.Equals(roomUi.CurrentRoomId, activeGameRoomId, StringComparison.OrdinalIgnoreCase))
+            {
                 await roomUi.JoinRoomByIdAsync(activeGameRoomId);
+                await WaitForRoomUiSnapshotAsync(roomUi, activeGameRoomId);
+            }
+
+            if (!roomUi.CanOwnerStartGame)
+            {
+                UpdateView(roomUi.ReadySummaryText);
+                return;
+            }
 
             await roomUi.StartGameAsync();
             UpdateView("Game 시작 요청을 보냈습니다.");
@@ -535,10 +569,20 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             return;
 
         if (_subscribedRoomUi != null)
+        {
             _subscribedRoomUi.RoomSessionClosed -= HandleRoomSessionClosed;
+            _subscribedRoomUi.WaitingRoomStateChanged -= HandleWaitingRoomStateChanged;
+        }
 
         _subscribedRoomUi = roomUi;
         _subscribedRoomUi.RoomSessionClosed += HandleRoomSessionClosed;
+        _subscribedRoomUi.WaitingRoomStateChanged += HandleWaitingRoomStateChanged;
+    }
+
+    private void HandleWaitingRoomStateChanged()
+    {
+        if (this)
+            UpdateView();
     }
 
     private void HandleRoomSessionClosed(string roomId)
@@ -629,6 +673,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _statusText = FindChild<TMP_Text>("Status");
         if (_detailText == null)
             _detailText = FindChild<TMP_Text>("Detail");
+        if (_readySummaryText == null)
+            _readySummaryText = FindChild<TMP_Text>("ReadySummary");
         if (_inventoryButton == null)
             _inventoryButton = FindChild<Button>("InventoryButton");
         if (_gameSelectButton == null)
@@ -652,6 +698,46 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         {
             _warnedMissingUiReferences = true;
             Debug.LogError("[TownExpeditionPanel] Scene UI references are incomplete. Rebuild Canvas_TownExpeditionOverlay in the hierarchy.");
+        }
+    }
+
+    private RoomUiController FindActiveGameRoomUi(string gameRoomId)
+    {
+        if (string.IsNullOrWhiteSpace(gameRoomId))
+            return null;
+
+        var roomUi = RoomUiController.ActiveInstance ?? FindSceneObject<RoomUiController>();
+        if (roomUi == null)
+            return null;
+
+        SubscribeRoomUi(roomUi);
+        return string.Equals(roomUi.CurrentRoomId, gameRoomId, StringComparison.OrdinalIgnoreCase) ? roomUi : null;
+    }
+
+    private static string BuildReadySummary(RoomUiController roomUi, bool hasActiveGame, bool isHost)
+    {
+        if (!hasActiveGame)
+            return "";
+
+        if (roomUi == null || !roomUi.IsConnectedToRoom)
+            return isHost
+                ? "참가자 준비: 대기방 연결 필요\n대기방 보기로 상태를 확인하세요."
+                : "참가자 준비: 대기방 연결 필요\n준비하기를 눌러 상태를 확인하세요.";
+
+        return roomUi.ReadySummaryText;
+    }
+
+    private async Task WaitForRoomUiSnapshotAsync(RoomUiController roomUi, string roomId)
+    {
+        if (roomUi == null || string.IsNullOrWhiteSpace(roomId))
+            return;
+
+        var deadline = Time.realtimeSinceStartup + 1.5f;
+        while (this
+               && Time.realtimeSinceStartup < deadline
+               && !string.Equals(roomUi.CurrentRoomId, roomId, StringComparison.OrdinalIgnoreCase))
+        {
+            await Task.Delay(100);
         }
     }
 

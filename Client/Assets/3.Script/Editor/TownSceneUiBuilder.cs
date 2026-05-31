@@ -71,7 +71,7 @@ public static class TownSceneUiBuilder
 
         var font = LoadKoreanFont();
         var root = CreateImagePanel("TownExpeditionInfo", canvasGo.transform, new Color32(226, 202, 148, 235), false);
-        SetRect(root, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(304f, 216f), new Vector2(-56f, -376f));
+        SetRect(root, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(304f, 254f), new Vector2(-56f, -376f));
 
         var header = CreateImagePanel("Header", root, new Color32(19, 68, 75, 245), false);
         SetStretchTop(header, 34f);
@@ -82,7 +82,11 @@ public static class TownSceneUiBuilder
         SetRect(statusText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(276f, 24f), new Vector2(14f, -44f));
 
         var detailText = CreateText("Detail", root, "", 14, TextAlignmentOptions.TopLeft, new Color32(43, 50, 49, 255), font);
-        SetRect(detailText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(276f, 64f), new Vector2(14f, -72f));
+        SetRect(detailText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(276f, 52f), new Vector2(14f, -72f));
+
+        var readySummaryText = CreateText("ReadySummary", root, "참가자 준비: 대기방 연결 전", 14, TextAlignmentOptions.TopLeft, new Color32(43, 50, 49, 255), font);
+        SetRect(readySummaryText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(276f, 40f), new Vector2(14f, -130f));
+        readySummaryText.gameObject.SetActive(false);
 
         var hostStartButton = CreateButton("HostStartGameButton", root, "게임 시작", new Vector2(132f, 30f), new Vector2(14f, 48f), new Vector2(0f, 0f), font);
         var hostCancelButton = CreateButton("HostCancelGameButton", root, "대기 취소", new Vector2(132f, 30f), new Vector2(158f, 48f), new Vector2(0f, 0f), font);
@@ -114,7 +118,7 @@ public static class TownSceneUiBuilder
         }
 
         gameWindow.gameObject.SetActive(false);
-        BindPanel(panel, canvas, root, titleText, statusText, detailText, inventoryButton, gameSelectButton, readyButton, hostStartButton, hostCancelButton, gameWindow, closeButton, optionButtons);
+        BindPanel(panel, canvas, root, titleText, statusText, detailText, readySummaryText, inventoryButton, gameSelectButton, readyButton, hostStartButton, hostCancelButton, gameWindow, closeButton, optionButtons);
         EditorUtility.SetDirty(canvasGo);
     }
 
@@ -125,6 +129,7 @@ public static class TownSceneUiBuilder
         TMP_Text titleText,
         TMP_Text statusText,
         TMP_Text detailText,
+        TMP_Text readySummaryText,
         Button inventoryButton,
         Button gameSelectButton,
         Button readyButton,
@@ -140,6 +145,7 @@ public static class TownSceneUiBuilder
         serialized.FindProperty("_titleText").objectReferenceValue = titleText;
         serialized.FindProperty("_statusText").objectReferenceValue = statusText;
         serialized.FindProperty("_detailText").objectReferenceValue = detailText;
+        serialized.FindProperty("_readySummaryText").objectReferenceValue = readySummaryText;
         serialized.FindProperty("_inventoryButton").objectReferenceValue = inventoryButton;
         serialized.FindProperty("_gameSelectButton").objectReferenceValue = gameSelectButton;
         serialized.FindProperty("_readyWindowButton").objectReferenceValue = readyButton;

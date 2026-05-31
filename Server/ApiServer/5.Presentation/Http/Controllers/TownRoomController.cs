@@ -89,7 +89,20 @@ public sealed class TownRoomController : ControllerBase
     public async Task<IActionResult> Leave(string roomId)
     {
         var uid = HttpContext.RequireUid();
-        await _townRooms.LeaveAsync(roomId, uid);
+        await _townRooms.LeaveAsync(roomId, uid, "client_leave");
+        return NoContent();
+    }
+
+    [HttpPost("{roomId}/leave-internal")]
+    public async Task<IActionResult> LeaveInternal(string roomId, [FromBody] InternalTownRoomLeaveRequest req)
+    {
+        if (!IsSystemRequest())
+            return Unauthorized();
+
+        if (req == null || string.IsNullOrWhiteSpace(req.uid))
+            return BadRequest("UidRequired");
+
+        await _townRooms.LeaveAsync(roomId, req.uid, string.IsNullOrWhiteSpace(req.reason) ? "server_disconnect" : req.reason);
         return NoContent();
     }
 
@@ -153,6 +166,9 @@ public sealed class TownRoomController : ControllerBase
         };
     }
 
+    private bool IsSystemRequest()
+        => string.Equals(HttpContext.Items["uid"]?.ToString(), "SYSTEM", StringComparison.OrdinalIgnoreCase);
+
     public sealed class CreateTownRoomRequest
     {
         public string title { get; set; } = "";
@@ -171,6 +187,12 @@ public sealed class TownRoomController : ControllerBase
     public sealed class BindTownSteamLobbyRequest
     {
         public string steamLobbyId { get; set; } = "";
+    }
+
+    public sealed class InternalTownRoomLeaveRequest
+    {
+        public string uid { get; set; } = "";
+        public string reason { get; set; } = "";
     }
 
     public sealed class SetTownGameRoomRequest

@@ -53,7 +53,7 @@ public abstract class BaseSceneContext : MonoBehaviour
     {
         if (_gs == null) _gs = FindFirstObjectByType<ClientGameState>();
         if (_handlers == null) _handlers = FindFirstObjectByType<ClientHandlers>();
-        if (_mapRegistry == null) _mapRegistry = FindFirstObjectByType<MapRegistry>();
+        if (_mapRegistry == null) _mapRegistry = MapRegistry.EnsureInstance();
         if (_boardView == null) _boardView = FindFirstObjectByType<BoardView>();
 
         if (_inputBinder == null) _inputBinder = FindFirstObjectByType<RhythmInputControllerBinder>();

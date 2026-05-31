@@ -62,6 +62,14 @@ namespace NetClient.Town
                 attachAuth: true);
         }
 
+        public Task<ApiResult<object>> LeaveAsync(string roomId)
+        {
+            return _api.PostJsonAsync<object>(
+                $"/townRooms/{UnityWebRequest.EscapeURL(roomId ?? "")}/leave",
+                new object(),
+                attachAuth: true);
+        }
+
         public Task<ApiResult<object>> BindSteamLobbyAsync(string roomId, string steamLobbyId)
         {
             return _api.PostJsonAsync<object>(

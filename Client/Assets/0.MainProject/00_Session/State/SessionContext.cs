@@ -38,6 +38,11 @@
             Key = key ?? "";
         }
 
+        public void ClearSessionKey()
+        {
+            Key = "";
+        }
+
         public void ClearInitMap()
         {
             InitMapReceived = false;
@@ -63,6 +68,11 @@
         public void ApplyMatchManifest(SessionDtos.MatchManifestDto manifest)
         {
             LastMatchManifest = manifest;
+        }
+
+        public void ClearMatchManifest()
+        {
+            LastMatchManifest = null;
         }
 
         public void ResetForReconnect()

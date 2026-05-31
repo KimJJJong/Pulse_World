@@ -363,7 +363,7 @@ public sealed class RoomWebSocketHandler
                         string.Join(",", room.MemberReady.Select(kv => $"{kv.Key}:{kv.Value}")));
 
                     var allReady = room.MemberUids
-                        .Where(m => m != room.OwnerUid)
+                        .Where(m => !string.Equals(m, room.OwnerUid, StringComparison.OrdinalIgnoreCase))
                         .All(m => room.MemberReady.TryGetValue(m, out var isReady) && isReady);
 
                     if(!allReady) 

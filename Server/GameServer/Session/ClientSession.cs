@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 
 public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
 {
+    private const string TownRelayKeyPrefix = "townp2p:";
 
     // ---- ITcpConnection ----
     public string ConnId { get; } = Guid.NewGuid().ToString("N");
@@ -110,8 +111,9 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
                 LogManager.Instance.LogInfo("ClientSession", $"Detach from TownP2PRelay worldId={CurrentWorldId}");
                 LogManager.Instance.LogInfo(
                     "SessionLifecycle",
-                    $"event=disconnect_route action=detach roomType=TownP2P world={CurrentWorldId} uid={UidOrDash()} epoch={Epoch} conn={ConnId}");
-                townRelay.DetachIfMatch(Uid, Epoch, ConnId);
+                    $"event=disconnect_route action=remove roomType=TownP2P world={CurrentWorldId} uid={UidOrDash()} epoch={Epoch} conn={ConnId}");
+                townRelay.RemovePlayer(Uid, Epoch);
+                NotifyTownRoomDisconnected(CurrentWorldId, Uid, Epoch, ConnId, "tcp_disconnect");
             }
             else if (P2PRelayManager.TryGet(CurrentWorldId, out var relay))
             {
@@ -194,9 +196,50 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
         Disconnect();
     }
 
+    public static void NotifyTownRoomDisconnected(string worldId, string uid, long epoch, string connId, string reason)
+    {
+        var roomId = ExtractTownRoomId(worldId);
+        if (string.IsNullOrWhiteSpace(roomId) || string.IsNullOrWhiteSpace(uid))
+        {
+            LogManager.Instance.LogWarning(
+                "SessionLifecycle",
+                $"event=town_room_cleanup_skip reason=missing_context cleanupReason={reason ?? "-"} world={WorldOrDash(worldId)} uid={UidOrDashStatic(uid)} epoch={epoch} conn={ConnOrDash(connId)}");
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var ok = await ServerServices.ApiClient.LeaveTownRoomAsync(roomId, uid, reason ?? "server_disconnect");
+                LogManager.Instance.LogInfo(
+                    "SessionLifecycle",
+                    $"event=town_room_cleanup result={(ok ? "ok" : "fail")} reason={reason ?? "-"} room={roomId} world={WorldOrDash(worldId)} uid={UidOrDashStatic(uid)} epoch={epoch} conn={ConnOrDash(connId)}");
+            }
+            catch (Exception ex)
+            {
+                LogManager.Instance.LogError(
+                    "SessionLifecycle",
+                    $"event=town_room_cleanup result=exception reason={reason ?? "-"} room={roomId} world={WorldOrDash(worldId)} uid={UidOrDashStatic(uid)} epoch={epoch} conn={ConnOrDash(connId)} err={ex.Message}");
+            }
+        });
+    }
+
+    private static string ExtractTownRoomId(string worldId)
+    {
+        if (string.IsNullOrWhiteSpace(worldId))
+            return "";
+
+        return worldId.StartsWith(TownRelayKeyPrefix, StringComparison.OrdinalIgnoreCase)
+            ? worldId.Substring(TownRelayKeyPrefix.Length)
+            : "";
+    }
+
     private string UidOrDash() => string.IsNullOrWhiteSpace(Uid) ? "-" : Uid;
     private string KeyOrDash() => string.IsNullOrWhiteSpace(Key) ? "-" : Key;
     private static string WorldOrDash(string worldId) => string.IsNullOrWhiteSpace(worldId) ? "-" : worldId;
+    private static string UidOrDashStatic(string uid) => string.IsNullOrWhiteSpace(uid) ? "-" : uid;
+    private static string ConnOrDash(string connId) => string.IsNullOrWhiteSpace(connId) ? "-" : connId;
 
     // -----------------------------
     // Send helper (★ 여기만 네 코드에 맞게 연결)

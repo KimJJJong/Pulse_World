@@ -89,6 +89,7 @@ namespace NetClient.Room.UI
         // 멤버 UI 부분갱신용
         readonly Dictionary<string, MemberItemView> _memberViews = new();
         readonly Dictionary<string, string> _uidToName = new();
+        readonly Dictionary<string, bool> _memberReady = new(StringComparer.OrdinalIgnoreCase);
 
         public string CurrentRoomId => _currentRoomId ?? "";
         public bool CurrentRoomUseP2PRelay => _currentRoomUseP2PRelay;
@@ -111,11 +112,20 @@ namespace NetClient.Room.UI
         public string SteamLobbyStatus => _steamLobbyStatus ?? "Idle";
         public string LastWarningText => _lastWarn ?? "";
         public string LastStatusText => _lastStatus ?? "";
-        public int MemberCount => _memberViews.Count;
+        public int MemberCount => _memberReady.Count > 0 ? _memberReady.Count : _memberViews.Count;
         public bool IsUiOpen => gameObject.activeInHierarchy;
         public bool IsConnectedToRoom => _roomWs != null && !string.IsNullOrWhiteSpace(_currentRoomId);
         public bool AmIReady => _amIReady;
+        public bool IsLocalRoomOwner => string.Equals(_currentOwnerUid, apiProvider != null ? apiProvider.Uid : "", StringComparison.OrdinalIgnoreCase);
+        public int ReadyTargetCount => CountReadyTargets();
+        public int ReadyTargetDoneCount => CountReadyTargets(doneOnly: true);
+        public bool AllReadyForStart => IsConnectedToRoom
+                                       && !string.IsNullOrWhiteSpace(_currentOwnerUid)
+                                       && ReadyTargetDoneCount >= ReadyTargetCount;
+        public bool CanOwnerStartGame => IsLocalRoomOwner && AllReadyForStart;
+        public string ReadySummaryText => BuildReadySummaryText();
         public event Action<string> RoomSessionClosed;
+        public event Action WaitingRoomStateChanged;
 
         void Awake()
         {
@@ -283,6 +293,7 @@ namespace NetClient.Room.UI
 
             _memberViews.Clear();
             _uidToName.Clear();
+            _memberReady.Clear();
             _amIReady = false;
             _currentOwnerUid = "";
             _preferredHostUid = "";
@@ -524,6 +535,7 @@ namespace NetClient.Room.UI
 
                 ClearChildren(memberListContent);
                 _memberViews.Clear();
+                _memberReady.Clear();
 
                 if (room.memberTransport != null)
                 {
@@ -540,6 +552,7 @@ namespace NetClient.Room.UI
                     {
                         var display = _uidToName.TryGetValue(uid, out var n) ? n : uid;
                         var ready = FindReady(room, uid);
+                        _memberReady[uid] = ready;
                         if (uid == apiProvider.Uid) _amIReady = ready;
 
                         if (memberListContent && memberItemPrefab)
@@ -557,24 +570,30 @@ namespace NetClient.Room.UI
                 }
 
                 RefreshReadyButton();
-                RefreshStartButton(ownerUid: room.ownerUid);
+                RefreshStartButton();
+                NotifyWaitingRoomStateChanged();
                 _ = SyncSteamLobbyAsync(room);
             };
 
             ws.OnMemberJoin += (uid, name) =>
             {
                 _uidToName[uid] = name;
+                _memberReady[uid] = false;
 
                 if (_memberViews.TryGetValue(uid, out var existing) && existing)
                 {
                     existing.SetName(name);
                     existing.SetReady(false);
+                    RefreshStartButton();
+                    NotifyWaitingRoomStateChanged();
                     return;
                 }
 
                 var view = Instantiate(memberItemPrefab, memberListContent);
                 view.Bind(uid, name, false);
                 _memberViews[uid] = view;
+                RefreshStartButton();
+                NotifyWaitingRoomStateChanged();
             };
 
             ws.OnMemberLeave += uid =>
@@ -586,14 +605,18 @@ namespace NetClient.Room.UI
                 }
 
                 RemoveSelectionSnapshot(uid);
+                _memberReady.Remove(uid);
                 if (uid == apiProvider.Uid)
                     _amIReady = false;
 
                 RefreshReadyButton();
+                RefreshStartButton();
+                NotifyWaitingRoomStateChanged();
             };
 
             ws.OnMemberUpdate += (uid, ready) =>
             {
+                _memberReady[uid] = ready;
                 if (_memberViews.TryGetValue(uid, out var view) && view)
                     view.SetReady(ready);
 
@@ -601,6 +624,8 @@ namespace NetClient.Room.UI
                     _amIReady = ready;
 
                 RefreshReadyButton();
+                RefreshStartButton();
+                NotifyWaitingRoomStateChanged();
             };
 
             ws.OnHostCandidateUpdate += (preferredHostUid, hostEpoch) =>
@@ -608,6 +633,7 @@ namespace NetClient.Room.UI
                 _preferredHostUid = preferredHostUid ?? "";
                 _preferredHostEpoch = hostEpoch;
                 Debug.Log($"[RoomUiController] Host candidate updated. uid={preferredHostUid}, epoch={hostEpoch}");
+                NotifyWaitingRoomStateChanged();
             };
 
             ws.OnHostSelectionUpdated += update =>
@@ -622,6 +648,7 @@ namespace NetClient.Room.UI
                     update?.hostCandidateOrder,
                     update?.hostSelectionCandidates,
                     update?.memberTransport);
+                NotifyWaitingRoomStateChanged();
             };
 
             ws.OnSteamLobbyBound += steamLobbyId =>
@@ -683,14 +710,61 @@ namespace NetClient.Room.UI
         {
             if (!btnReady) return;
             var label = btnReady.GetComponentInChildren<TMP_Text>();
-            if (label) label.text = _amIReady ? "READY (ON)" : "READY (OFF)";
+            if (label)
+                label.text = _amIReady ? "준비 완료" : "준비하기";
         }
 
-        void RefreshStartButton(string ownerUid)
+        void RefreshStartButton()
         {
             if (!btnStart) return;
-            var isOwner = string.Equals(ownerUid, apiProvider != null ? apiProvider.Uid : "", StringComparison.Ordinal);
-            btnStart.interactable = isOwner;
+            btnStart.interactable = CanOwnerStartGame;
+
+            var label = btnStart.GetComponentInChildren<TMP_Text>();
+            if (label)
+                label.text = CanOwnerStartGame ? "게임 시작" : "Ready 대기";
+        }
+
+        int CountReadyTargets(bool doneOnly = false)
+        {
+            if (_memberReady.Count <= 0 || string.IsNullOrWhiteSpace(_currentOwnerUid))
+                return 0;
+
+            int count = 0;
+            foreach (var pair in _memberReady)
+            {
+                if (string.Equals(pair.Key, _currentOwnerUid, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (!doneOnly || pair.Value)
+                    count++;
+            }
+
+            return count;
+        }
+
+        string BuildReadySummaryText()
+        {
+            if (!IsConnectedToRoom)
+                return "준비 상태: 대기방 연결 전";
+
+            var target = ReadyTargetCount;
+            var done = ReadyTargetDoneCount;
+            var local = IsLocalRoomOwner
+                ? "내 역할: Host"
+                : (_amIReady ? "내 상태: 준비 완료" : "내 상태: 준비 필요");
+            var gate = IsLocalRoomOwner
+                ? (AllReadyForStart ? "시작 가능" : "참가자 준비 대기")
+                : (AllReadyForStart ? "Host 시작 대기" : "준비 진행 중");
+
+            if (IsLocalRoomOwner && target == 0)
+                gate = "Solo 시작 가능";
+
+            return $"참가자 준비 {done}/{target}\n{local} / {gate}";
+        }
+
+        void NotifyWaitingRoomStateChanged()
+        {
+            WaitingRoomStateChanged?.Invoke();
         }
 
         bool EnsureApiClients()
@@ -1133,6 +1207,8 @@ namespace NetClient.Room.UI
             _lastWaitingProbeRttMs = -1;
             _lastWaitingProbeStatus = "Idle";
             _steamLobbyStatus = "Idle";
+            _memberReady.Clear();
+            NotifyWaitingRoomStateChanged();
         }
 
         void NotifyRoomSessionClosed()

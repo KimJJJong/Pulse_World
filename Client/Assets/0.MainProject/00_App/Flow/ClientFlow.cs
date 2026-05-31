@@ -20,6 +20,8 @@ public sealed class ClientFlow : MonoBehaviour
     string _lastTownMapId = "";
     string _lastTownScene = "";
     int _lastTownMaxPlayers = 16;
+    bool _suppressTownCleanupForReturn;
+    bool _suppressTownCleanupForGameTransition;
 
     public void SetTargetTownScene(string sceneName)
     {
@@ -67,6 +69,7 @@ public sealed class ClientFlow : MonoBehaviour
     public async Task ConnectGame(SessionDtos.IssueGameTicketResponse ticket, string clientNonce)
     {
         _target = Target.Game;
+        _suppressTownCleanupForGameTransition = !string.IsNullOrWhiteSpace(_lastTownRoomId);
         _mapId = ticket.MapId;
         _maxPlayers = ticket.MaxPlayers;
 
@@ -95,9 +98,61 @@ public sealed class ClientFlow : MonoBehaviour
     public void ReturnToTown()
     {
         Debug.Log("[ClientFlow] ReturnToTown");
+        _suppressTownCleanupForReturn = true;
         P2PRelayClientBridge.Instance?.Reset();
         NetworkManager.Instance.Disconnect("");
         _ = ReturnToTownAsync();
+    }
+
+    public async Task LeaveRememberedTownAsync(string reason = "manual")
+    {
+        var roomId = ResolveRememberedTownRoomId();
+        if (string.IsNullOrWhiteSpace(roomId))
+        {
+            ClearRememberedTownContext(reason);
+            return;
+        }
+
+        ClearRememberedTownContext(reason);
+        AppBootstrap.Instance?.Root?.SteamPlatform?.LeaveLobby();
+
+        var api = AppBootstrap.Instance?.Root?.TownRoomApi;
+        if (api == null)
+        {
+            Debug.LogWarning($"[ClientFlow] Town leave skipped. TownRoomApi missing room={roomId} reason={reason}");
+            return;
+        }
+
+        try
+        {
+            var result = await api.LeaveAsync(roomId);
+            if (result.Ok)
+                Debug.Log($"[ClientFlow] Town leave ok room={roomId} reason={reason}");
+            else
+                Debug.LogWarning($"[ClientFlow] Town leave failed room={roomId} reason={reason} err={result.Error}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[ClientFlow] Town leave exception room={roomId} reason={reason} err={ex.Message}");
+        }
+    }
+
+    public void ClearRememberedTownContext(string reason = "manual")
+    {
+        var roomId = ResolveRememberedTownRoomId();
+        if (!string.IsNullOrWhiteSpace(roomId))
+            Debug.Log($"[ClientFlow] Clear remembered Town room={roomId} reason={reason}");
+
+        _lastTownRoomId = "";
+        _lastTownMapId = "";
+        _lastTownScene = "";
+        _lastTownMaxPlayers = 16;
+
+        var ctx = SessionContext.Instance;
+        if (IsTownSessionKey(ctx.Key))
+            ctx.ClearSessionKey();
+        if (IsTownManifest(ctx.LastMatchManifest))
+            ctx.ClearMatchManifest();
     }
 
     // ──────────────────────────────────────────
@@ -143,6 +198,10 @@ public sealed class ClientFlow : MonoBehaviour
         }
         finally
         {
+            if (_target == Target.TownMap)
+                _suppressTownCleanupForReturn = false;
+            if (_target == Target.Game)
+                _suppressTownCleanupForGameTransition = false;
             _entering = false;
         }
     }
@@ -150,6 +209,9 @@ public sealed class ClientFlow : MonoBehaviour
     void OnNetFailed(string reason)
     {
         Debug.LogWarning($"[ClientFlow] Net failed: {reason}");
+        _suppressTownCleanupForReturn = false;
+        _suppressTownCleanupForGameTransition = false;
+        _ = LeaveRememberedTownAsync($"network_failed:{reason}");
         P2PRelayClientBridge.Instance?.Reset();
         SessionContext.Instance.ResetForReconnect();
         _ = SceneRouter.LoadAsync(SceneNames.Login);
@@ -160,6 +222,19 @@ public sealed class ClientFlow : MonoBehaviour
         // TODO: 정책 결정 — 재접속 UI 표시 or 로그인 화면 복귀
         Debug.LogWarning("[ClientFlow] Disconnected — 재접속 정책 미구현");
         P2PRelayClientBridge.Instance?.Reset();
+        if (_suppressTownCleanupForReturn)
+        {
+            Debug.Log("[ClientFlow] Town cleanup suppressed for ReturnToTown flow.");
+            return;
+        }
+
+        if (_suppressTownCleanupForGameTransition)
+        {
+            Debug.Log("[ClientFlow] Town cleanup suppressed for Game transition.");
+            return;
+        }
+
+        _ = LeaveRememberedTownAsync("network_disconnected");
     }
 
     // ──────────────────────────────────────────
@@ -273,6 +348,8 @@ public sealed class ClientFlow : MonoBehaviour
         if (!r.Ok)
         {
             Debug.LogError($"[ClientFlow] Failed to issue town ticket: {r.Error}");
+            _suppressTownCleanupForReturn = false;
+            await LeaveRememberedTownAsync("return_to_town_ticket_failed");
             OnNetFailed(r.Error);
             return;
         }
@@ -314,5 +391,33 @@ public sealed class ClientFlow : MonoBehaviour
         _lastTownMaxPlayers = ticket.MaxPlayers > 0 ? ticket.MaxPlayers : _maxPlayers;
 
         Debug.Log($"[ClientFlow] RememberTown room={_lastTownRoomId} map={_lastTownMapId} scene={_lastTownScene} max={_lastTownMaxPlayers}");
+    }
+
+    string ResolveRememberedTownRoomId()
+    {
+        if (!string.IsNullOrWhiteSpace(_lastTownRoomId))
+            return _lastTownRoomId;
+
+        var ctx = SessionContext.Instance;
+        if (IsTownManifest(ctx.LastMatchManifest) && !string.IsNullOrWhiteSpace(ctx.LastMatchManifest.RoomId))
+            return ctx.LastMatchManifest.RoomId;
+
+        var key = ctx.Key ?? "";
+        return IsTownSessionKey(key) ? key.Substring("townp2p:".Length) : "";
+    }
+
+    static bool IsTownSessionKey(string key)
+    {
+        return !string.IsNullOrWhiteSpace(key)
+               && key.StartsWith("townp2p:", StringComparison.OrdinalIgnoreCase);
+    }
+
+    static bool IsTownManifest(SessionDtos.MatchManifestDto manifest)
+    {
+        if (manifest == null)
+            return false;
+
+        return !string.IsNullOrWhiteSpace(manifest.NetworkMode)
+               && manifest.NetworkMode.IndexOf("town", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }

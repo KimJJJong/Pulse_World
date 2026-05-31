@@ -240,24 +240,35 @@ public sealed class TownRoomService
         return (true, "");
     }
 
-    public async Task<bool> LeaveAsync(string roomId, string uid)
+    public async Task<bool> LeaveAsync(string roomId, string uid, string reason = "client_leave")
     {
         if (string.IsNullOrWhiteSpace(roomId) || string.IsNullOrWhiteSpace(uid))
             return false;
 
+        reason = string.IsNullOrWhiteSpace(reason) ? "client_leave" : reason.Trim();
         var room = await GetAsync(roomId);
         if (room == null)
         {
             _logger.LogWarning(
-                "[TownRoomLifecycle] event=participant_leave_skip reason=room_not_found room={RoomId} uid={Uid}",
+                "[TownRoomLifecycle] event=participant_leave_skip reason=room_not_found leaveReason={LeaveReason} room={RoomId} uid={Uid}",
+                reason,
                 roomId,
                 uid);
             return false;
         }
 
+        _logger.LogInformation(
+            "[TownRoomLifecycle] event=participant_leave_request reason={Reason} room={RoomId} map={MapId} uid={Uid} owner={OwnerUid} participants={Participants}",
+            reason,
+            roomId,
+            room.MapId,
+            uid,
+            room.OwnerUid,
+            room.Participants.Count);
+
         if (string.Equals(room.OwnerUid, uid, StringComparison.OrdinalIgnoreCase))
         {
-            await DeleteAsync(roomId, "owner_leave");
+            await DeleteAsync(roomId, $"owner_leave:{reason}");
             return true;
         }
 
@@ -265,7 +276,8 @@ public sealed class TownRoomService
         await _redis.Db.HashDeleteAsync(MembersKey(key), uid);
         var remaining = await _redis.Db.HashLengthAsync(MembersKey(key));
         _logger.LogInformation(
-            "[TownRoomLifecycle] event=participant_leave room={RoomId} uid={Uid} remaining={Remaining}",
+            "[TownRoomLifecycle] event=participant_leave reason={Reason} room={RoomId} uid={Uid} remaining={Remaining}",
+            reason,
             roomId,
             uid,
             remaining);

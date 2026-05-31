@@ -23,6 +23,7 @@ public interface IApiServerClient
     Task<GameServer.Infrastructure.Api.Dto.PlayerStateResponse?> GetPlayerStateAsync(string uid);
     Task<GameServer.Infrastructure.Api.Dto.GameMatchManifestResponse?> GetGameMatchManifestAsync(string roomId);
     Task<GameServer.Infrastructure.Api.Dto.GameMatchManifestResponse?> GetTownMatchManifestAsync(string roomId);
+    Task<bool> LeaveTownRoomAsync(string roomId, string uid, string reason);
 }
 
 public class ApiServerClient : IApiServerClient
@@ -126,5 +127,26 @@ public class ApiServerClient : IApiServerClient
 
         var encodedRoomId = Uri.EscapeDataString(roomId);
         return await GetAsync<GameServer.Infrastructure.Api.Dto.GameMatchManifestResponse>($"/api/town/match-manifest/{encodedRoomId}");
+    }
+
+    public async Task<bool> LeaveTownRoomAsync(string roomId, string uid, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(roomId) || string.IsNullOrWhiteSpace(uid))
+            return false;
+
+        var encodedRoomId = Uri.EscapeDataString(roomId);
+        return await PostAsync(
+            $"/townRooms/{encodedRoomId}/leave-internal",
+            new TownRoomLeaveInternalRequest
+            {
+                uid = uid,
+                reason = string.IsNullOrWhiteSpace(reason) ? "server_disconnect" : reason
+            });
+    }
+
+    private sealed class TownRoomLeaveInternalRequest
+    {
+        public string uid { get; set; } = "";
+        public string reason { get; set; } = "";
     }
 }
