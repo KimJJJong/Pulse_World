@@ -9,7 +9,7 @@ public static class RhythmLoadingSceneBuilder
 {
     private const string ScenePath = "Assets/0.MainProject/Scenes/LoadingScene.unity";
     private const string UiRoot = "Assets/Resources/UI/UI_Lodaing";
-    private const string FontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
+    private const string FontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/NanumGothic SDF.asset";
 
     [MenuItem("Tools/RhythmRPG/Build Loading Scene UI")]
     public static void Build()
@@ -43,7 +43,7 @@ public static class RhythmLoadingSceneBuilder
         Image backdrop = CreateSolidImage("LoadingOpaqueBackdrop", canvasObject.transform, Color.black);
         Stretch(backdrop.rectTransform);
 
-        Image background = CreateImage("LoadingExampleBackground", canvasObject.transform, "Loading_example", Vector2.zero, new Vector2(1280f, 720f));
+        Image background = CreateImage("LoadingBackground", canvasObject.transform, "Loading", Vector2.zero, new Vector2(1280f, 720f));
         Stretch(background.rectTransform);
         background.preserveAspect = false;
         background.color = new Color(1f, 1f, 1f, 0.92f);
@@ -116,10 +116,13 @@ public static class RhythmLoadingSceneBuilder
         controller.ProgressFillImage = fill;
         controller.ProgressMarker = marker.rectTransform;
         controller.ProgressTrack = track;
+        controller.OpaqueBackdrop = backdrop;
         controller.MinimumLoadingTime = 1f;
         controller.ExitFadeDuration = 0.65f;
         controller.ProgressDisplaySpeed = 0.8f;
-        controller.MapGenerationTimeout = 30f;
+        controller.InitMapTimeout = 15f;
+        controller.MapGenerationTimeout = 12f;
+        controller.PlayerEntityTimeout = 5f;
 
         Camera mainCamera = Object.FindFirstObjectByType<Camera>();
         if (mainCamera != null)
@@ -150,7 +153,7 @@ public static class RhythmLoadingSceneBuilder
             importer.alphaIsTransparency = true;
             importer.wrapMode = TextureWrapMode.Clamp;
             importer.filterMode = FilterMode.Bilinear;
-            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.textureCompression = TextureImporterCompression.Compressed;
             importer.SaveAndReimport();
         }
     }
@@ -217,7 +220,7 @@ public static class RhythmLoadingSceneBuilder
         label.text = text;
         label.fontSize = fontSize;
         label.alignment = alignment;
-        label.enableWordWrapping = true;
+        label.textWrappingMode = TextWrappingModes.Normal;
         label.raycastTarget = false;
 
         Shadow shadow = rect.gameObject.AddComponent<Shadow>();

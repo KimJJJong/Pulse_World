@@ -16,6 +16,10 @@ public sealed class ClientFlow : MonoBehaviour
     string _mapId = "";
     int _maxPlayers = 2;
     string _targetTownScene = SceneNames.TownMap;
+    string _lastTownRoomId = "";
+    string _lastTownMapId = "";
+    string _lastTownScene = "";
+    int _lastTownMaxPlayers = 16;
 
     public void SetTargetTownScene(string sceneName)
     {
@@ -40,17 +44,24 @@ public sealed class ClientFlow : MonoBehaviour
     public async Task ConnectTown(SessionDtos.IssueTownTicketResponse ticket, string clientNonce)
     {
         _target = Target.TownMap;
+        _mapId = !string.IsNullOrWhiteSpace(ticket.MapId) ? ticket.MapId : _targetTownScene;
+        _maxPlayers = ticket.MaxPlayers > 0 ? ticket.MaxPlayers : 16;
         SessionContext.Instance.ClearInitMap();
-        SessionContext.Instance.ApplySessionKey("");
-        SessionContext.Instance.ApplyMatchManifest(null);
+        SessionContext.Instance.ApplySessionKey(ticket.Key ?? "");
+        SessionContext.Instance.ApplyMatchManifest(ticket.MatchManifest);
+
+        RememberTownContext(ticket);
+
+        if (!string.IsNullOrWhiteSpace(ticket.Key) && P2PRelayClientBridge.Instance != null)
+            P2PRelayClientBridge.Instance.ConfigureSession(ticket.Key, ticket.MatchManifest);
 
         var endpoint = ResolveClientEndpoint(ticket.Endpoint);
         if (endpoint == null) { Debug.LogError("[ClientFlow] ConnectTown: endpoint is missing."); return; }
         var ep = await ResolveEndpointAsync(endpoint.Host, endpoint.Port);
         if (ep == null) return;
 
-        Debug.Log($"[ClientFlow] ConnectTown → {ep} Ticket={ticket.TicketId}");
-        NetworkManager.Instance.ConnectAndHandshake(ep, ticket.TicketId, clientNonce);
+        Debug.Log($"[ClientFlow] ConnectTown → {ep} Ticket={ticket.TicketId} Key={ticket.Key ?? ""} Map={_mapId}");
+        NetworkManager.Instance.ConnectAndHandshake(ep, ticket.TicketId, clientNonce, ticket.Key ?? "");
     }
 
     public async Task ConnectGame(SessionDtos.IssueGameTicketResponse ticket, string clientNonce)
@@ -85,7 +96,7 @@ public sealed class ClientFlow : MonoBehaviour
     {
         Debug.Log("[ClientFlow] ReturnToTown");
         P2PRelayClientBridge.Instance?.Reset();
-        NetworkManager.Instance.Disconnect("ReturnToTown");
+        NetworkManager.Instance.Disconnect("");
         _ = ReturnToTownAsync();
     }
 
@@ -107,8 +118,10 @@ public sealed class ClientFlow : MonoBehaviour
                     {
                         var ctx = UnityEngine.Object.FindFirstObjectByType<TownSceneContext>();
                         if (ctx == null) { Debug.LogError("[ClientFlow] TownSceneContext not found"); return; }
+                        ctx.SetMapId(_mapId);
+                        ctx.SetMaxPlayers(_maxPlayers);
                         await ctx.EnterTownAsync();
-                    });
+                    }, waitForPlayerEntity: true);
                     break;
 
                 case Target.Game:
@@ -120,7 +133,7 @@ public sealed class ClientFlow : MonoBehaviour
                         ctx.SetMapId(_mapId);
                         ctx.SetMaxPlayers(_maxPlayers);
                         await ctx.EnterGameAsync();
-                    });
+                    }, waitForPlayerEntity: true);
                     break;
 
                 default:
@@ -215,10 +228,11 @@ public sealed class ClientFlow : MonoBehaviour
     /// <summary>
     /// LoadingScene을 통해 targetScene을 로드한 뒤 onLoaded 콜백을 실행.
     /// </summary>
-    static async Task EnterSceneAsync(string targetScene, Func<Task> onLoaded)
+    static async Task EnterSceneAsync(string targetScene, Func<Task> onLoaded, bool waitForPlayerEntity = false)
     {
         Debug.Log($"[ClientFlow] Loading scene: {targetScene}");
         LoadingSceneController.TargetSceneName = targetScene;
+        LoadingSceneController.WaitForPlayerEntity = waitForPlayerEntity;
         SceneManager.LoadScene("LoadingScene");
 
         while (!SceneManager.GetSceneByName(targetScene).isLoaded)
@@ -238,7 +252,23 @@ public sealed class ClientFlow : MonoBehaviour
     async Task ReturnToTownAsync()
     {
         var root = AppBootstrap.Instance.Root;
-        var r = await root.SessionApi.IssueTownTicketAsync("");
+        var steam = root.SteamPlatform;
+        ApiResult<SessionDtos.IssueTownTicketResponse> r;
+        if (!string.IsNullOrWhiteSpace(_lastTownRoomId))
+        {
+            Debug.Log($"[ClientFlow] ReturnToTown re-enter room={_lastTownRoomId} map={_lastTownMapId}");
+            r = await root.SessionApi.IssueTownTicketAsync(
+                "",
+                _lastTownRoomId,
+                _lastTownMapId,
+                _lastTownMaxPlayers,
+                steam?.SteamId64 ?? "",
+                root.Config?.ClientVersion ?? "");
+        }
+        else
+        {
+            r = await root.SessionApi.IssueTownTicketAsync("");
+        }
 
         if (!r.Ok)
         {
@@ -248,6 +278,41 @@ public sealed class ClientFlow : MonoBehaviour
         }
 
         var nonce = "town-ret-" + Guid.NewGuid().ToString("N");
+        if (!string.IsNullOrWhiteSpace(_lastTownScene))
+            SetTargetTownScene(_lastTownScene);
+
         await ConnectTown(r.Data, nonce);
+    }
+
+    void RememberTownContext(SessionDtos.IssueTownTicketResponse ticket)
+    {
+        var key = ticket.Key ?? "";
+        var roomId = ticket.TownRoomId ?? "";
+        var manifestRoomId = ticket.MatchManifest?.RoomId ?? "";
+        var isTownP2P = !string.IsNullOrWhiteSpace(roomId)
+                        || !string.IsNullOrWhiteSpace(manifestRoomId)
+                        || key.StartsWith("townp2p:", StringComparison.OrdinalIgnoreCase);
+
+        if (!isTownP2P)
+        {
+            _lastTownRoomId = "";
+            _lastTownMapId = "";
+            _lastTownScene = "";
+            _lastTownMaxPlayers = 16;
+            return;
+        }
+
+        _lastTownRoomId = !string.IsNullOrWhiteSpace(roomId)
+            ? roomId
+            : (!string.IsNullOrWhiteSpace(manifestRoomId)
+                ? manifestRoomId
+                : key.Substring("townp2p:".Length));
+        _lastTownMapId = !string.IsNullOrWhiteSpace(ticket.MapId)
+            ? ticket.MapId
+            : (ticket.MatchManifest?.MapId ?? _mapId);
+        _lastTownScene = _targetTownScene;
+        _lastTownMaxPlayers = ticket.MaxPlayers > 0 ? ticket.MaxPlayers : _maxPlayers;
+
+        Debug.Log($"[ClientFlow] RememberTown room={_lastTownRoomId} map={_lastTownMapId} scene={_lastTownScene} max={_lastTownMaxPlayers}");
     }
 }

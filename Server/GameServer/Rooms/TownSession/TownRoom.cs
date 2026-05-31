@@ -37,6 +37,8 @@ public sealed class TownRoom : RoomBase
     protected override SessionBase? GetSession() => _session;
     protected override bool IsRoomRunning() => _phase == RoomPhase.Running;
     protected override bool CheckRoomEnded() => _phase == RoomPhase.Ended;
+    protected override string RoomLogKind => "Town";
+    protected override string RoomLogId => TownId;
 
     protected override void UpdateSessionWorldId(ClientSession s)
     {
@@ -211,6 +213,9 @@ public sealed class TownRoom : RoomBase
         if (!empty) return;
 
         Console.WriteLine($"[RoomEnd] Town {TownId} is empty but keeping open for now.");
+        LogManager.Instance.LogInfo(
+            "RoomLifecycle",
+            $"event=room_keep_open reason=empty roomType=Town world={TownId}");
         // lock (_lock) _phase = RoomPhase.Ended;
         // TownManager.Remove(TownId);
     }

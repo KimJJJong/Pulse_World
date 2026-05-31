@@ -28,6 +28,9 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
     public bool IsP2PMode => _transportMode != P2PTransportMode.Disabled;
     public bool IsRelayMode => IsP2PMode; // Legacy compatibility for existing gameplay systems.
+    public bool IsTownRelayMode => IsP2PMode && (RelayKey.StartsWith("townp2p:", StringComparison.OrdinalIgnoreCase)
+        || (_matchManifest != null && !string.IsNullOrWhiteSpace(_matchManifest.NetworkMode)
+            && _matchManifest.NetworkMode.IndexOf("town", StringComparison.OrdinalIgnoreCase) >= 0));
     public bool IsServerRelayTransport => _transportMode == P2PTransportMode.ServerRelay;
     public bool IsSteamTransport => _transportMode == P2PTransportMode.SteamP2P;
     public bool IsHostLocal { get; private set; }
@@ -339,6 +342,8 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
         if (P2PHostController.HasInstance)
             P2PHostController.Instance.ResetForMatchEnd();
+        if (TownP2PHostController.HasInstance)
+            TownP2PHostController.Instance.ResetForTownEnd();
 
         UpdateHostLogWindow();
 
@@ -379,6 +384,8 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
 
         if (P2PHostController.HasInstance)
             P2PHostController.Instance.ResetForMatchEnd();
+        if (TownP2PHostController.HasInstance)
+            TownP2PHostController.Instance.ResetForTownEnd();
 
         if (P2PContentDirector.HasInstance)
             P2PContentDirector.Instance.ResetMatchState();
@@ -631,6 +638,8 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             ResetGameplayTelemetry();
             if (P2PHostController.HasInstance)
                 P2PHostController.Instance.SetHostMode(false);
+            if (TownP2PHostController.HasInstance)
+                TownP2PHostController.Instance.SetHostMode(false);
 
             UpdateHostLogWindow();
             return;
@@ -649,9 +658,17 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
         bool hostAuthorityReady = string.Equals(hostAuthorityState, "Ready", StringComparison.Ordinal);
 
         P2PHostController.Instance.SetHostActorId(HostActorId);
-        P2PHostController.Instance.SetHostMode(hostAuthorityReady);
-        if (P2PContentDirector.HasInstance)
-            P2PContentDirector.Instance.OnHostLocalChanged(hostAuthorityReady);
+        P2PHostController.Instance.SetHostMode(hostAuthorityReady && !IsTownRelayMode);
+        TownP2PHostController.Instance.SetHostMode(hostAuthorityReady && IsTownRelayMode);
+        if (!IsTownRelayMode)
+        {
+            if (P2PContentDirector.HasInstance || hostAuthorityReady)
+                P2PContentDirector.Instance.OnHostLocalChanged(hostAuthorityReady);
+        }
+        else if (P2PContentDirector.HasInstance)
+        {
+            P2PContentDirector.Instance.ResetMatchState();
+        }
 
         if (IsSteamTransport)
             SyncSteamTransport();
@@ -1038,6 +1055,16 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
                 $"bytes={payloadBytes.Length} {FormatBridgeContext()}");
         }
 
+        if (protocol == (ushort)PacketID.CS_TownActionRequest)
+        {
+            TownP2PHostController.Instance.EnqueueGuestActionRequest(new CS_P2PPayload
+            {
+                SenderActorId = senderActorId,
+                Payload = Convert.ToBase64String(payloadBytes)
+            });
+            return;
+        }
+
         P2PHostController.Instance.EnqueueGuestActionRequest(new CS_P2PPayload
         {
             SenderActorId = senderActorId,
@@ -1052,14 +1079,23 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             return false;
 
         ushort protocol = PeekPacketProtocol(payloadBytes);
-        if (protocol != (ushort)PacketID.CS_ActionRequest)
+        if (protocol != (ushort)PacketID.CS_ActionRequest && protocol != (ushort)PacketID.CS_TownActionRequest)
             return false;
 
         try
         {
-            var request = new CS_ActionRequest();
-            request.Read(new ArraySegment<byte>(payloadBytes));
-            actorId = request.ActorId;
+            if (protocol == (ushort)PacketID.CS_TownActionRequest)
+            {
+                var request = new CS_TownActionRequest();
+                request.Read(new ArraySegment<byte>(payloadBytes));
+                actorId = request.ActorId;
+            }
+            else
+            {
+                var request = new CS_ActionRequest();
+                request.Read(new ArraySegment<byte>(payloadBytes));
+                actorId = request.ActorId;
+            }
             return actorId > 0;
         }
         catch (Exception ex)
@@ -1365,7 +1401,8 @@ public sealed class P2PRelayClientBridge : MonoBehaviour
             return P2PTransportMode.SteamP2P;
 
         bool relayTicket = !string.IsNullOrWhiteSpace(ticketKey)
-                           && ticketKey.StartsWith("p2p:", StringComparison.OrdinalIgnoreCase);
+                           && (ticketKey.StartsWith("p2p:", StringComparison.OrdinalIgnoreCase)
+                               || ticketKey.StartsWith("townp2p:", StringComparison.OrdinalIgnoreCase));
         return relayTicket ? P2PTransportMode.ServerRelay : P2PTransportMode.Disabled;
     }
 

@@ -10,6 +10,7 @@ public class LoadingSceneController : MonoBehaviour
     private const string LoadingBackdropName = "LoadingOpaqueBackdrop";
 
     public static string TargetSceneName = SceneNames.Game; // Default or set before loading
+    public static bool WaitForPlayerEntity = false;
 
     [Header("UI References")]
     public Slider ProgressBar;
@@ -21,6 +22,7 @@ public class LoadingSceneController : MonoBehaviour
     public Image ProgressFillImage;
     public RectTransform ProgressMarker;
     public RectTransform ProgressTrack;
+    public Image OpaqueBackdrop;
 
     [Header("Settings")]
     public float MinimumLoadingTime = 1.0f; // 최소 로딩 시간 (너무 빨라서 깜빡임 방지)
@@ -28,7 +30,9 @@ public class LoadingSceneController : MonoBehaviour
     public float IntroProgressDuration = 0.6f; // 실제 로딩 시작 전 0%부터 보여주는 연출 시간
     public float IntroProgressTarget = 0.2f; // 인트로 연출이 도달할 진행률
     public float ProgressDisplaySpeed = 0.8f; // 실제 로딩 값으로 UI가 따라가는 속도
-    public float MapGenerationTimeout = 30f; // 무한 로딩 방지
+    public float InitMapTimeout = 15f; // 서버 InitMap 수신 대기
+    public float MapGenerationTimeout = 12f; // 무한 로딩 방지
+    public float PlayerEntityTimeout = 5f; // 맵만 보이고 캐릭터가 늦게 붙는 흐름 방지
 
     private static readonly string[] StatusMessages =
     {
@@ -85,6 +89,7 @@ public class LoadingSceneController : MonoBehaviour
             Debug.LogError($"[LoadingSceneController] Failed to load target scene: {TargetSceneName}");
             SetStatus("Scene not found.");
             SetDisplayedProgressImmediate(1f);
+            WaitForPlayerEntity = false;
             yield break;
         }
 
@@ -119,11 +124,9 @@ public class LoadingSceneController : MonoBehaviour
         
         if (ClientGameState.Instance != null)
         {
-            // 아직 맵 생성 시작 전일 수 있으므로 잠시 대기하거나 플래그 확인
-            // 네트워킹 게임이라면 서버에서 InitMap 패킷이 와야 생성이 시작됨.
-            // 즉, "서버 연결 & 맵 패킷 수신 & 맵 생성 완료" 까지 기다려야 함.
-            
-            // 타임아웃 설정 (무한 로딩 방지, 예: 30초)
+            if (WaitForPlayerEntity)
+                yield return Co_WaitForInitMapReceived();
+
             float waitMapStartTime = Time.time;
             
             while (!ClientGameState.Instance.IsMapGenerationComplete)
@@ -143,6 +146,9 @@ public class LoadingSceneController : MonoBehaviour
                     break;
                 }
             }
+
+            if (WaitForPlayerEntity)
+                yield return Co_WaitForLocalPlayerEntity();
         }
         
         // 5. 완료 및 마무리
@@ -158,7 +164,64 @@ public class LoadingSceneController : MonoBehaviour
 
         // 6. 로딩 씬 종료 (언로드 또는 UI 숨김)
         // Additive로 로드했으니 LoadingScene을 언로드해야 GameScene만 남음
+        WaitForPlayerEntity = false;
         SceneManager.UnloadSceneAsync("LoadingScene");
+    }
+
+    private IEnumerator Co_WaitForLocalPlayerEntity()
+    {
+        var state = ClientGameState.Instance;
+        if (state == null)
+            yield break;
+
+        var startTime = Time.time;
+        while (!IsLocalPlayerReady(state))
+        {
+            MoveDisplayedProgress(0.98f);
+            yield return null;
+
+            if (Time.time - startTime > PlayerEntityTimeout)
+            {
+                Debug.LogWarning(
+                    $"[LoadingSceneController] Local player wait timed out. actor={state.MyActorId} " +
+                    $"entities={state.EntityCount} hasEntity={state.TryGetMyEntity(out _)} hasVisual={HasLocalPlayerVisual(state)}");
+                break;
+            }
+        }
+    }
+
+    private IEnumerator Co_WaitForInitMapReceived()
+    {
+        var startTime = Time.time;
+        while (!SessionContext.Instance.InitMapReceived)
+        {
+            MoveDisplayedProgress(0.55f);
+            yield return null;
+
+            if (Time.time - startTime > InitMapTimeout)
+            {
+                Debug.LogWarning(
+                    $"[LoadingSceneController] InitMap wait timed out. target={TargetSceneName} role={SessionContext.Instance.Role}");
+                break;
+            }
+        }
+    }
+
+    private static bool IsLocalPlayerReady(ClientGameState state)
+    {
+        if (state == null || !state.TryGetMyEntity(out _))
+            return false;
+
+        return HasLocalPlayerVisual(state);
+    }
+
+    private static bool HasLocalPlayerVisual(ClientGameState state)
+    {
+        if (state == null || state.MyActorId <= 0)
+            return false;
+
+        var boardView = BoardView.Instance;
+        return boardView == null || boardView.HasEntityView(state.MyActorId);
     }
 
     private void SetDisplayedProgressImmediate(float value)
@@ -243,7 +306,7 @@ public class LoadingSceneController : MonoBehaviour
         loadingCanvas.overrideSorting = true;
         loadingCanvas.sortingOrder = LoadingCanvasSortingOrder;
 
-        EnsureOpaqueLoadingBackdrop();
+        ConfigureOpaqueLoadingBackdrop();
     }
 
     private void KeepLoadingCanvasOpaque()
@@ -253,30 +316,28 @@ public class LoadingSceneController : MonoBehaviour
         LoadingCanvasGroup.alpha = 1f;
     }
 
-    private void EnsureOpaqueLoadingBackdrop()
+    private void ConfigureOpaqueLoadingBackdrop()
     {
         RectTransform canvasRect = LoadingCanvasGroup.transform as RectTransform;
         if (canvasRect == null) return;
 
-        Transform existingBackdrop = LoadingCanvasGroup.transform.Find(LoadingBackdropName);
-        GameObject backdropObject;
-        RectTransform backdropRect;
-        Image backdropImage;
+        var backdropImage = OpaqueBackdrop;
+        if (backdropImage == null)
+        {
+            Transform existingBackdrop = LoadingCanvasGroup.transform.Find(LoadingBackdropName);
+            if (existingBackdrop != null)
+                backdropImage = existingBackdrop.GetComponent<Image>();
+        }
 
-        if (existingBackdrop == null)
+        if (backdropImage == null)
         {
-            backdropObject = new GameObject(LoadingBackdropName, typeof(RectTransform), typeof(Image));
-            backdropObject.transform.SetParent(canvasRect, false);
-            backdropRect = backdropObject.GetComponent<RectTransform>();
-            backdropImage = backdropObject.GetComponent<Image>();
+            Debug.LogWarning("[LoadingSceneController] Opaque backdrop object is not assigned in LoadingScene.");
+            return;
         }
-        else
-        {
-            backdropObject = existingBackdrop.gameObject;
-            backdropRect = backdropObject.GetComponent<RectTransform>();
-            backdropImage = backdropObject.GetComponent<Image>();
-            if (backdropRect == null || backdropImage == null) return;
-        }
+
+        var backdropObject = backdropImage.gameObject;
+        var backdropRect = backdropImage.rectTransform;
+        if (backdropRect == null) return;
 
         backdropObject.layer = LoadingCanvasGroup.gameObject.layer;
         backdropImage.color = Color.black;

@@ -47,6 +47,8 @@ public sealed class P2PRelayRoom : RoomBase
     protected override SessionBase? GetSession() => null;
     protected override bool IsRoomRunning() => _phase == RoomPhase.Running;
     protected override bool CheckRoomEnded() => _phase == RoomPhase.Ended;
+    protected override string RoomLogKind => "GameP2P";
+    protected override string RoomLogId => RelayId;
 
     public override void Update()
     {
@@ -77,6 +79,9 @@ public sealed class P2PRelayRoom : RoomBase
             _phase = RoomPhase.Ended;
         }
 
+        LogManager.Instance.LogInfo(
+            "RoomLifecycle",
+            $"event=room_end reason=empty roomType=GameP2P world={RelayId} map={MapId}");
         _logger.LogInformation("[P2PRelayRoom] Destroyed (empty) relayId={RelayId}", RelayId);
         P2PRelayManager.Remove(RelayId);
     }
@@ -136,17 +141,30 @@ public sealed class P2PRelayRoom : RoomBase
     public override bool BindOrReattach(ClientSession s, out int actorId)
     {
         actorId = -1;
-        if (s == null || !s.HasAuth || string.IsNullOrEmpty(s.Uid))
+        if (s == null)
+        {
+            LogRoomBindFail(null, "null_session");
             return false;
+        }
+
+        if (!s.HasAuth || string.IsNullOrEmpty(s.Uid))
+        {
+            LogRoomBindFail(s, "not_authenticated");
+            return false;
+        }
 
         bool isNew = false;
         int seat = -1;
+        int playerCount = -1;
         RoomPlayer? p = null;
 
         lock (_lock)
         {
             if (CheckRoomEnded())
+            {
+                LogRoomBindFail(s, "room_ended", _players.Count);
                 return false;
+            }
 
             var key = (s.Uid, s.Epoch);
             if (_players.TryGetValue(key, out var existing))
@@ -164,21 +182,29 @@ public sealed class P2PRelayRoom : RoomBase
 
                 _broadcastDirty = true;
                 isNew = false;
+                playerCount = _players.Count;
             }
             else
             {
                 if (_players.Count >= _maxPlayers)
+                {
+                    LogRoomBindFail(s, "room_full", _players.Count);
                     return false;
+                }
 
                 if (_freeSeats.Count == 0 && _players.Count < _maxPlayers)
                 {
                     LogManager.Instance.LogError("P2PRelayRoom",
                         $"FreeSeats empty but room not full. players={_players.Count} max={_maxPlayers}");
+                    LogRoomBindFail(s, "seat_pool_corrupt", _players.Count);
                     return false;
                 }
 
                 if (_freeSeats.Count == 0)
+                {
+                    LogRoomBindFail(s, "no_free_seat", _players.Count);
                     return false;
+                }
 
                 actorId = ResolvePreferredActorIdUnsafe(s.Uid);
                 if (actorId <= 0 || _byActor.ContainsKey(actorId))
@@ -188,7 +214,10 @@ public sealed class P2PRelayRoom : RoomBase
 
                 int preferredSeat = ResolvePreferredSeatIndexUnsafe(s.Uid);
                 if (!TryReserveSeatUnsafe(preferredSeat, out seat))
+                {
+                    LogRoomBindFail(s, "preferred_seat_unavailable", _players.Count);
                     return false;
+                }
 
                 p = new RoomPlayer(s.Uid, s.Epoch, actorId, seat);
                 p.Attach(s);
@@ -202,9 +231,11 @@ public sealed class P2PRelayRoom : RoomBase
 
                 _broadcastDirty = true;
                 isNew = true;
+                playerCount = _players.Count;
             }
         }
 
+        LogRoomBind(s, actorId, seat, isNew, playerCount);
         OnPlayerBound(p, isNew);
         return true;
     }

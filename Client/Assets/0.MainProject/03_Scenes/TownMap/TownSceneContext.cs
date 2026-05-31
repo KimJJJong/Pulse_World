@@ -5,6 +5,7 @@ public sealed class TownSceneContext : BaseSceneContext
 {
     [Header("Net enter")]
     [SerializeField] private string _mapId = "town";
+    [SerializeField] private int _maxPlayers = 16;
     [SerializeField] private bool _wantSnapshot = true;
 
     protected override void Awake()
@@ -14,6 +15,7 @@ public sealed class TownSceneContext : BaseSceneContext
 
     private void Start()
     {
+        TownExpeditionPanel.EnsureInScene();
         TryApplyInitMapIfAlreadyReceived();
     }
 
@@ -24,6 +26,18 @@ public sealed class TownSceneContext : BaseSceneContext
     }
 
     public void OnInitMap(SC_InitMap p) => ApplyInitMapOnce(p);
+
+    public void SetMapId(string mapId)
+    {
+        if (!string.IsNullOrWhiteSpace(mapId))
+            _mapId = mapId;
+    }
+
+    public void SetMaxPlayers(int maxPlayers)
+    {
+        if (maxPlayers > 0)
+            _maxPlayers = maxPlayers;
+    }
 
     /// <summary>ClientFlow가 TownMap 씬 로드 후 호출.</summary>
     public async Task EnterTownAsync()
@@ -43,6 +57,7 @@ public sealed class TownSceneContext : BaseSceneContext
         {
             ClientTimeMs = NowLocalMs(),
             MapId = _mapId,
+            MaxPlayers = _maxPlayers,
             LastKnownRevision = 0,
             WantSnapshot = _wantSnapshot
         };

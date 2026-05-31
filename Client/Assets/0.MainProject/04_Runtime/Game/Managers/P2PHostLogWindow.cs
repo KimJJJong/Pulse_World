@@ -414,14 +414,14 @@ internal static class RuntimeHotkey
         if (!Input.GetKeyDown(key))
             return false;
 
-        return IsExactMatch(requireCtrl, IsCtrlHeld())
-            && IsExactMatch(requireAlt, IsAltHeld())
-            && IsExactMatch(requireShift, IsShiftHeld());
+        return IsModifierSatisfied(requireCtrl, IsCtrlHeld())
+            && IsModifierSatisfied(requireAlt, IsAltHeld())
+            && IsModifierSatisfied(requireShift, IsShiftHeld());
     }
 
-    private static bool IsExactMatch(bool required, bool actual)
+    private static bool IsModifierSatisfied(bool required, bool actual)
     {
-        return required == actual;
+        return !required || actual;
     }
 
     private static bool IsCtrlHeld()
@@ -552,24 +552,64 @@ internal static class P2PDebugViewConfig
     internal static void PollRuntimeToggles()
     {
         if (RuntimeHotkey.WasPressed(ToggleNetworkOverlayKey, requireCtrl: true, requireAlt: true))
-        {
-            int frame = Time.frameCount;
-            if (_lastOverlayToggleFrame != frame)
-            {
-                _lastOverlayToggleFrame = frame;
-                ShowNetworkSyncOverlay = !ShowNetworkSyncOverlay;
-            }
-        }
+            ToggleNetworkOverlayOnce();
 
         if (RuntimeHotkey.WasPressed(ToggleSteamSectionKey, requireCtrl: true, requireAlt: true))
+            ToggleSteamSectionOnce();
+    }
+
+    internal static bool HandleRuntimeToggleEvent(Event evt)
+    {
+        if (evt == null || evt.type != EventType.KeyDown)
+            return false;
+
+        var handled = false;
+        if (evt.keyCode == ToggleNetworkOverlayKey && IsEventModifierSatisfied(evt, requireCtrl: true, requireAlt: true))
         {
-            int frame = Time.frameCount;
-            if (_lastSteamToggleFrame != frame)
-            {
-                _lastSteamToggleFrame = frame;
-                ShowSteamSections = !ShowSteamSections;
-            }
+            ToggleNetworkOverlayOnce();
+            evt.Use();
+            handled = true;
         }
+
+        if (evt.keyCode == ToggleSteamSectionKey && IsEventModifierSatisfied(evt, requireCtrl: true, requireAlt: true))
+        {
+            ToggleSteamSectionOnce();
+            evt.Use();
+            handled = true;
+        }
+
+        return handled;
+    }
+
+    private static bool IsEventModifierSatisfied(
+        Event evt,
+        bool requireCtrl = false,
+        bool requireAlt = false,
+        bool requireShift = false)
+    {
+        return (!requireCtrl || evt.control || evt.command)
+            && (!requireAlt || evt.alt)
+            && (!requireShift || evt.shift);
+    }
+
+    private static void ToggleNetworkOverlayOnce()
+    {
+        int frame = Time.frameCount;
+        if (_lastOverlayToggleFrame == frame)
+            return;
+
+        _lastOverlayToggleFrame = frame;
+        ShowNetworkSyncOverlay = !ShowNetworkSyncOverlay;
+    }
+
+    private static void ToggleSteamSectionOnce()
+    {
+        int frame = Time.frameCount;
+        if (_lastSteamToggleFrame == frame)
+            return;
+
+        _lastSteamToggleFrame = frame;
+        ShowSteamSections = !ShowSteamSections;
     }
 }
 

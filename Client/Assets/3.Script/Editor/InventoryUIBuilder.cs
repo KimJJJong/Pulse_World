@@ -13,6 +13,12 @@ public class InventoryUIBuilder : EditorWindow
         GetWindow<InventoryUIBuilder>("Inventory UI Builder");
     }
 
+    [MenuItem("RhythmRPG/Editors/UI/Create Town Inventory (ScreenSpace)")]
+    public static void CreateTownInventoryMenu()
+    {
+        CreateTownInventory();
+    }
+
     private void OnGUI()
     {
         GUILayout.Label("Create Inventory UIs", EditorStyles.boldLabel);
@@ -197,18 +203,31 @@ public class InventoryUIBuilder : EditorWindow
         Debug.Log("Created Home Inventory");
     }
 
-    private void CreateTownInventory()
+    private static void CreateTownInventory()
     {
+        var existing = GameObject.Find("TownInventory_UI");
+        if (existing != null)
+        {
+            ConfigureTownInventoryRoot(existing);
+            Selection.activeGameObject = existing;
+            Debug.Log("Town Inventory already exists in this scene.");
+            return;
+        }
+
         GameObject root = new GameObject("TownInventory_UI");
         Canvas canvas = root.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        root.AddComponent<CanvasScaler>();
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = 8000;
+        var scaler = root.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
         root.AddComponent<GraphicRaycaster>();
 
         GameObject panel = CreateChild(root, "Panel", true);
         RectTransform panelRt = panel.GetComponent<RectTransform>();
-        panelRt.anchorMin = new Vector2(0.1f, 0.1f);
-        panelRt.anchorMax = new Vector2(0.9f, 0.9f);
+        panelRt.anchorMin = new Vector2(0.04f, 0.08f);
+        panelRt.anchorMax = new Vector2(0.62f, 0.92f);
         panelRt.offsetMin = Vector2.zero;
         panelRt.offsetMax = Vector2.zero;
         
@@ -535,12 +554,53 @@ public class InventoryUIBuilder : EditorWindow
         mainSo.ApplyModifiedProperties();
 
         detailsObj.SetActive(false); // Hide details default
+        ConfigureTownInventoryRoot(root);
 
         Selection.activeGameObject = root;
         Debug.Log("Created Town Inventory");
     }
 
-    private GameObject CreateChild(GameObject parent, string name, bool stretch = false)
+    private static void ConfigureTownInventoryRoot(GameObject root)
+    {
+        if (root == null)
+            return;
+
+        var canvas = root.GetComponent<Canvas>();
+        if (canvas != null)
+        {
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = 8000;
+        }
+
+        var scaler = root.GetComponent<CanvasScaler>();
+        if (scaler != null)
+        {
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+        }
+
+        if (root.GetComponent<GraphicRaycaster>() == null)
+            root.AddComponent<GraphicRaycaster>();
+
+        var panel = root.transform.Find("Panel");
+        if (panel != null)
+        {
+            if (panel is RectTransform panelRect)
+            {
+                panelRect.anchorMin = new Vector2(0.04f, 0.08f);
+                panelRect.anchorMax = new Vector2(0.62f, 0.92f);
+                panelRect.offsetMin = Vector2.zero;
+                panelRect.offsetMax = Vector2.zero;
+            }
+
+            panel.gameObject.SetActive(false);
+        }
+
+        EditorUtility.SetDirty(root);
+    }
+
+    private static GameObject CreateChild(GameObject parent, string name, bool stretch = false)
     {
         GameObject go = new GameObject(name, typeof(RectTransform));
         go.transform.SetParent(parent.transform, false);
@@ -555,7 +615,7 @@ public class InventoryUIBuilder : EditorWindow
         return go;
     }
 
-    private TextMeshProUGUI CreateText(GameObject go, string content, int fontSize = 20, Color? color = null)
+    private static TextMeshProUGUI CreateText(GameObject go, string content, int fontSize = 20, Color? color = null)
     {
         TextMeshProUGUI txt = go.AddComponent<TextMeshProUGUI>();
         txt.text = content;
@@ -576,7 +636,7 @@ public class InventoryUIBuilder : EditorWindow
     }
     
     // Creates a new child with an Image component
-    private Image CreateImage(GameObject parent, string name)
+    private static Image CreateImage(GameObject parent, string name)
     {
         GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image));
         go.transform.SetParent(parent.transform, false);

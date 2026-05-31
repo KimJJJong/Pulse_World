@@ -16,8 +16,8 @@ public class InventoryManager
     private readonly IApiServerClient _apiClient;
     private readonly IItemTemplateManager _templates;
 
-    // Changed version to v4 to force clear incompatbile cache (Offset removal)
     private const string InventoryKeyPrefix = "user:{0}:inventory:v4";
+    private const long EquipmentRuntimeIdOffset = 2_000_000_000L;
 
 
     public InventoryManager(
@@ -107,8 +107,7 @@ public class InventoryManager
             {
                 loadedItems.Add(new ItemInstance
                 {
-                    // RAW ID (No Offset)
-                    InstanceId = e.Id,
+                    InstanceId = ToRuntimeEquipmentId(e.Id),
                     TemplateId = e.TemplateId,
                     SlotIndex = e.SlotIndex,
                     EnhancementLevel = e.EnhancementLevel,
@@ -152,8 +151,7 @@ public class InventoryManager
 
         var equipDtos = items.Where(x => IsEquipment(x.TemplateId)).Select(x => new EquipmentDto
         {
-            // RAW ID (No Offset Subtraction)
-            Id = x.InstanceId,
+            Id = ToStorageEquipmentId(x.InstanceId),
             OwnerUid = uid,
             TemplateId = x.TemplateId,
             SlotIndex = x.SlotIndex,
@@ -172,7 +170,7 @@ public class InventoryManager
             Equipments = equipDtos
         };
 
-        if (!await _apiClient.PostAsync($"api/inventory/{uid}", request))
+        if (!await _apiClient.PostAsync<object>($"api/inventory/{uid}", request))
         {
             _logger.LogError("Failed to save inventory for {Uid}", uid);
             // Retry logic or queueing needed here in production
@@ -188,7 +186,8 @@ public class InventoryManager
 
     public async Task DeleteItemAsync(string uid, ItemInstance item)
     {
-        if (await _apiClient.DeleteAsync($"api/inventory/{uid}/items/{item.InstanceId}"))
+        var storageId = IsEquipment(item.TemplateId) ? ToStorageEquipmentId(item.InstanceId) : item.InstanceId;
+        if (await _apiClient.DeleteAsync($"api/inventory/{uid}/items/{storageId}"))
         {
              _logger.LogInformation($"[DeleteItem] Successfully deleted item {item.InstanceId} for {uid}");
              var db = _redis.GetDatabase();
@@ -276,12 +275,37 @@ public class InventoryManager
 
     private bool IsEquipment(int tid)
     {
+        var template = _templates.Get(tid);
+        if (template != null)
+        {
+            return template.Type == ItemType.Equipment || template is EquipmentTemplate;
+        }
+
+        if (_templates.GetEquipment(tid) != null)
+            return true;
+
         // Weapon: 100,000 ~ 199,999
         // Armor/Gear: 200,000 ~ 299,999
         // Accessory: 300,000 ~ 399,999
         if (tid >= 100000 && tid <= 399999) return true;
         
         return false;
+    }
+
+    private static long ToRuntimeEquipmentId(long storageId)
+    {
+        if (storageId <= 0 || storageId >= EquipmentRuntimeIdOffset)
+            return storageId;
+
+        return storageId + EquipmentRuntimeIdOffset;
+    }
+
+    private static long ToStorageEquipmentId(long runtimeId)
+    {
+        if (runtimeId >= EquipmentRuntimeIdOffset)
+            return runtimeId - EquipmentRuntimeIdOffset;
+
+        return runtimeId;
     }
 
     /// <summary>

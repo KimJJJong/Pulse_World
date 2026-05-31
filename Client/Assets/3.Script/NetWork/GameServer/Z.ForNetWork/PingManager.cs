@@ -681,6 +681,7 @@ public sealed class PingManager : MonoBehaviour
 
     void OnGUI()
     {
+        P2PDebugViewConfig.HandleRuntimeToggleEvent(Event.current);
         if (!running || !P2PDebugViewConfig.ShowNetworkSyncOverlay) return;
 
         var relayBridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;

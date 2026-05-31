@@ -47,7 +47,27 @@ public static class SessionDtos
     public sealed class IssueTownTicketRequest
     {
         [JsonProperty("preferredRegion")] public string PreferredRegion;
-        public IssueTownTicketRequest(string preferredRegion) => PreferredRegion = preferredRegion;
+        [JsonProperty("townRoomId")] public string TownRoomId;
+        [JsonProperty("mapId")] public string MapId;
+        [JsonProperty("maxPlayers")] public int MaxPlayers;
+        [JsonProperty("steamId64")] public string SteamId64;
+        [JsonProperty("clientVersion")] public string ClientVersion;
+
+        public IssueTownTicketRequest(
+            string preferredRegion,
+            string townRoomId = "",
+            string mapId = "",
+            int maxPlayers = 16,
+            string steamId64 = "",
+            string clientVersion = "")
+        {
+            PreferredRegion = preferredRegion;
+            TownRoomId = townRoomId;
+            MapId = mapId;
+            MaxPlayers = maxPlayers;
+            SteamId64 = steamId64;
+            ClientVersion = clientVersion;
+        }
     }
 
     public sealed class IssueTownTicketResponse
@@ -55,6 +75,11 @@ public static class SessionDtos
         [JsonProperty("ticketId")] public string TicketId;
         [JsonProperty("expireAtMs")] public long ExpireAtMs;
         [JsonProperty("endpoint")] public EndpointDto Endpoint;
+        [JsonProperty("key")] public string Key;
+        [JsonProperty("townRoomId")] public string TownRoomId;
+        [JsonProperty("mapId")] public string MapId;
+        [JsonProperty("maxPlayers")] public int MaxPlayers;
+        [JsonProperty("matchManifest")] public MatchManifestDto MatchManifest;
     }
 
     public sealed class IssueGameTicketRequest

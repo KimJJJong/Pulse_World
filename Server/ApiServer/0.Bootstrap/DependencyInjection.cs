@@ -8,6 +8,7 @@ using ApiServer.Application.Session.IssueGameTicket;
 using ApiServer.Application.Session.IssueTownTicket;
 using ApiServer.Domain.GameMatch;
 using ApiServer.Domain.GameResult;
+using ApiServer.Domain.Town;
 using ApiServer.Domain.WaitingRoom;
 using ApiServer.Infrastructure.Auth;
 using ApiServer.Infrastructure.ControlPlaneClient;
@@ -72,6 +73,7 @@ public static class DependencyInjection
         services.Configure<RedisOptions>(config.GetSection("Redis"));
         services.AddSingleton<RedisStore>();
         services.AddScoped<WaitingRoomService>();
+        services.AddScoped<TownRoomService>();
         services.AddScoped<GameResultService>();
         services.AddScoped<GameMatchService>();
 

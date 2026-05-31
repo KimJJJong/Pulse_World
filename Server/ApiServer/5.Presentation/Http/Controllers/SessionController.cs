@@ -1,7 +1,8 @@
-﻿using ApiServer.Application.Session.IssueGameTicket;
+using ApiServer.Application.Session.IssueGameTicket;
 using ApiServer.Application.Session.IssueTownTicket;
-using ApiServer.Presentation.Http.Contracts;
+using ApiServer.Domain.Town;
 using ApiServer.Presentation.Http;
+using ApiServer.Presentation.Http.Contracts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiServer.Presentation.Http.Controllers;
@@ -19,13 +20,25 @@ public sealed class SessionController : ControllerBase
         var uid = HttpContext.RequireUid();
 
         var result = await handler.HandleAsync(
-            new IssueTownTicketCommand(uid, req.PreferredRegion),
+            new IssueTownTicketCommand(
+                uid,
+                req.PreferredRegion,
+                req.TownRoomId,
+                req.MapId,
+                req.MaxPlayers,
+                req.SteamId64,
+                req.ClientVersion),
             ct);
 
         return Ok(new SessionDtos.IssueTownTicketResponse(
             TicketId: result.TicketId,
             ExpireAtMs: result.ExpireAtMs,
-            Endpoint: new SessionDtos.EndpointDto(result.Endpoint.Host, result.Endpoint.Port)
+            Endpoint: new SessionDtos.EndpointDto(result.Endpoint.Host, result.Endpoint.Port),
+            Key: result.Key,
+            TownRoomId: result.TownRoomId,
+            MapId: result.MapId,
+            MaxPlayers: result.MaxPlayers,
+            MatchManifest: ToMatchManifestDto(result.MatchManifest)
         ));
     }
 
@@ -36,7 +49,6 @@ public sealed class SessionController : ControllerBase
         CancellationToken ct)
     {
         var uid = HttpContext.RequireUid();
-        //Console.WriteLine($" roomID : {req.RoomId} || Map :{req.Map} || Player : {req.MaxPlayers} || Uid : {uid}");
 
         var result = await handler.HandleAsync(
             new IssueGameTicketCommand(uid, req.RoomId, req.Map, req.MaxPlayers, req.PreferredRegion, req.UseP2PRelay),
@@ -52,5 +64,36 @@ public sealed class SessionController : ControllerBase
             MapId: result.MapId,
             MaxPlayers: result.MaxPlayers
         ));
+    }
+
+    private static SessionDtos.MatchManifestDto? ToMatchManifestDto(TownMatchManifest? manifest)
+    {
+        if (manifest == null)
+            return null;
+
+        return new SessionDtos.MatchManifestDto(
+            MatchId: manifest.MatchId,
+            RoomId: manifest.RoomId,
+            NetworkMode: manifest.NetworkMode,
+            ProtocolVersion: manifest.ProtocolVersion,
+            MapId: manifest.MapId,
+            StageSeed: manifest.StageSeed,
+            SongStartDelayMs: manifest.SongStartDelayMs,
+            HostUid: manifest.HostUid,
+            HostSteamId64: manifest.HostSteamId64,
+            HostEpoch: manifest.HostEpoch,
+            PreferredHostRttMs: manifest.PreferredHostRttMs,
+            HostSelectionMode: manifest.HostSelectionMode,
+            HostSelectionMetricVersion: manifest.HostSelectionMetricVersion,
+            HostSelectionEpoch: manifest.HostSelectionEpoch,
+            HostSelectionScore: manifest.HostSelectionScore,
+            HostSelectionUpdatedAtMs: manifest.HostSelectionUpdatedAtMs,
+            HostCandidateOrder: manifest.HostCandidateOrder,
+            CreatedAtMs: manifest.CreatedAtMs,
+            Participants: manifest.Participants.Select(x => new SessionDtos.MatchParticipantDto(
+                Uid: x.Uid,
+                SteamId64: x.SteamId64,
+                ActorId: x.ActorId,
+                LoadoutHash: x.LoadoutHash)).ToList());
     }
 }

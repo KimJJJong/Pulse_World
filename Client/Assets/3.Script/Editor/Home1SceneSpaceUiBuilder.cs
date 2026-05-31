@@ -15,6 +15,8 @@ public static class Home1SceneSpaceUiBuilder
     private const string ScenePath = "Assets/0.MainProject/Scenes/Home 1.unity";
     private const string UiResourceSource = "../Resource/UI";
     private const string UiResourceTarget = "Assets/Resources/UI";
+    private const string NanumGothicFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/NanumGothic SDF.asset";
+    private const string NanumGothicFontFallbackPath = "Assets/TextMesh Pro/Resources/NanumGothic SDF.asset";
     private const string TownPassTicket = "Town Pass";
     private const string MissingMapTicket = "없음";
 
@@ -24,6 +26,7 @@ public static class Home1SceneSpaceUiBuilder
     private static readonly Color GoldText = new(0.94f, 0.72f, 0.20f, 1f);
     private static readonly Color ButtonLightText = new(0.96f, 0.92f, 0.82f, 1f);
     private static Sprite _defaultUiSprite;
+    private static TMP_FontAsset _nanumGothicFont;
 
     [MenuItem("RhythmRPG/Editors/UI/Rebuild Home1 Scene Space UI")]
     public static void Build()
@@ -108,6 +111,7 @@ public static class Home1SceneSpaceUiBuilder
         RequireSceneObject("UI_Home_Appearance");
         RequireSceneObject("UI_Home_Map");
         RequireSceneObject("UI_Home_Equipment_Detail");
+        RequireSceneObject("TownEntryChoicePanel");
 
         RequireComponent<HomeInventoryUI>("UI_Home_Equipment");
         var popup = RequireComponent<HomeEquipPopupUI>("UI_Home_Equipment_Detail");
@@ -145,6 +149,24 @@ public static class Home1SceneSpaceUiBuilder
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
         Debug.Log("[Home1SceneSpaceUiBuilder] Configured Home 1 map routes: plains=TownMap, forest=Town_Forest, others=missing.");
+    }
+
+    [MenuItem("RhythmRPG/Editors/UI/Configure Home1 Map Town Entry UI")]
+    public static void ConfigureHome1MapTownEntryUi()
+    {
+        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        var mapUi = FindMapRealmUiInScene(scene.path);
+        if (mapUi == null)
+            throw new InvalidOperationException("UI_Home_Map is missing HomeMapRealmUI.");
+
+        ApplyMapRealmRoutes(mapUi);
+        BuildTownEntryChoicePanel(mapUi.transform as RectTransform, mapUi);
+        ApplyNanumGothicFontToChildren(mapUi.transform as RectTransform);
+        EditorUtility.SetDirty(mapUi);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[Home1SceneSpaceUiBuilder] Configured Home 1 map Town entry UI object references.");
     }
 
     private static void EnsureUiResources()
@@ -491,7 +513,7 @@ public static class Home1SceneSpaceUiBuilder
 
         var detailScroll = CreateScrollView(root, "RealmDetailScroll", new Rect(916f, 282f, 270f, 224f), new Vector2(250f, 430f));
         var detail = CreateText(detailScroll.Content, "RealmDescription", "숲의 균열과 리듬 왜곡이 시작된 첫 영역입니다.", new Rect(0f, 0f, 250f, 402f), 16f, TextAlignmentOptions.TopLeft, ParchmentText, detailScroll.Content.sizeDelta);
-        detail.enableWordWrapping = true;
+        detail.textWrappingMode = TextWrappingModes.Normal;
 
         var select = CreateButtonTexture(root, "Button_SelectRealm", "UI_Map/UI_Button_SelectLocation.png", new Rect(966f, 518f, 214f, 68f));
         CreateText(select.transform as RectTransform, "Label", "TRAVEL HERE", new Rect(30f, 18f, 152f, 26f), 20f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(214f, 68f));
@@ -518,6 +540,9 @@ public static class Home1SceneSpaceUiBuilder
         so.FindProperty("_selectButton").objectReferenceValue = select;
         so.FindProperty("_status").objectReferenceValue = RequireTmp(root, "MapStatus");
         so.ApplyModifiedPropertiesWithoutUndo();
+
+        BuildTownEntryChoicePanel(root, ui);
+        ApplyNanumGothicFontToChildren(root);
 
         return back;
     }
@@ -566,6 +591,141 @@ public static class Home1SceneSpaceUiBuilder
             return SceneNames.Town_Forest;
 
         return string.Empty;
+    }
+
+    private static void BuildTownEntryChoicePanel(RectTransform mapRoot, HomeMapRealmUI mapUi)
+    {
+        if (mapRoot == null)
+            throw new InvalidOperationException("UI_Home_Map RectTransform is missing.");
+        if (mapUi == null)
+            throw new InvalidOperationException("HomeMapRealmUI is missing.");
+
+        var existing = mapRoot.Find("TownEntryChoicePanel");
+        if (existing != null)
+            UnityEngine.Object.DestroyImmediate(existing.gameObject);
+
+        var panelSize = new Vector2(500f, 424f);
+        var panelImage = CreateSolid(mapRoot, "TownEntryChoicePanel", new Color(0.16f, 0.11f, 0.06f, 0.98f));
+        SetRectFromTopLeft(panelImage.rectTransform, new Rect(390f, 128f, panelSize.x, panelSize.y), LayoutSize);
+        panelImage.raycastTarget = true;
+
+        var panelRect = panelImage.rectTransform;
+        var windowBody = CreateSolid(panelRect, "WindowBody", new Color(0.91f, 0.79f, 0.57f, 0.99f));
+        SetRectFromTopLeft(windowBody.rectTransform, new Rect(8f, 8f, 484f, 408f), panelSize);
+        windowBody.raycastTarget = false;
+
+        var titleBar = CreateSolid(panelRect, "WindowTitleBar", new Color(0.09f, 0.25f, 0.28f, 1f));
+        SetRectFromTopLeft(titleBar.rectTransform, new Rect(8f, 8f, 484f, 56f), panelSize);
+        titleBar.raycastTarget = false;
+
+        var titleTopLine = CreateSolid(panelRect, "WindowTopLine", new Color(0.94f, 0.74f, 0.36f, 1f));
+        SetRectFromTopLeft(titleTopLine.rectTransform, new Rect(16f, 14f, 468f, 2f), panelSize);
+        titleTopLine.raycastTarget = false;
+
+        var titleBottomLine = CreateSolid(panelRect, "WindowTitleDivider", new Color(0.50f, 0.32f, 0.12f, 1f));
+        SetRectFromTopLeft(titleBottomLine.rectTransform, new Rect(16f, 62f, 468f, 2f), panelSize);
+        titleBottomLine.raycastTarget = false;
+
+        var title = CreateText(panelRect, "TownEntryTitle", "Golden Plains Town", new Rect(28f, 18f, 398f, 36f), 24f, TextAlignmentOptions.MidlineLeft, new Color(1f, 0.91f, 0.66f, 1f), panelSize);
+        var closeButton = CreateTownChoiceButton(panelRect, "Button_CloseTownChoice", "X", new Rect(444f, 18f, 32f, 32f), panelSize);
+
+        var status = CreateText(panelRect, "TownEntryStatus", "새 Town을 만들거나 기존 Town을 찾아 참여하세요.", new Rect(30f, 76f, 440f, 42f), 15f, TextAlignmentOptions.Center, new Color(0.18f, 0.20f, 0.17f, 1f), panelSize);
+
+        var listFrame = CreateSolid(panelRect, "TownRoomListFrame", new Color(0.70f, 0.55f, 0.34f, 0.55f));
+        SetRectFromTopLeft(listFrame.rectTransform, new Rect(26f, 126f, 448f, 212f), panelSize);
+        listFrame.raycastTarget = false;
+
+        var roomList = CreateRect(panelRect, "TownRoomList");
+        SetRectFromTopLeft(roomList, new Rect(26f, 126f, 448f, 212f), panelSize);
+        var listSize = new Vector2(448f, 212f);
+
+        var rows = new List<TownEntryRowBuildBinding>();
+        for (var i = 0; i < 6; i++)
+        {
+            var row = CreateTownRoomRow(roomList, $"TownRoomRow_{i:00}", new Rect(8f, 8f + i * 34f, 432f, 28f), listSize);
+            rows.Add(row);
+        }
+
+        var emptyText = CreateText(roomList, "EmptyRoomText", "열려 있는 Town이 없습니다.", new Rect(0f, 84f, 448f, 44f), 16f, TextAlignmentOptions.Center, new Color(0.22f, 0.19f, 0.13f, 1f), listSize);
+        emptyText.gameObject.SetActive(false);
+
+        var createButton = CreateTownChoiceButton(panelRect, "Button_CreateTown", "새 Town 만들기", new Rect(54f, 360f, 178f, 42f), panelSize);
+        var refreshButton = CreateTownChoiceButton(panelRect, "Button_FindTown", "기존 Town 찾기", new Rect(268f, 360f, 178f, 42f), panelSize);
+
+        var so = new SerializedObject(mapUi);
+        so.FindProperty("_choicePanel").objectReferenceValue = panelImage.gameObject;
+        so.FindProperty("_choiceTitle").objectReferenceValue = title;
+        so.FindProperty("_choiceStatus").objectReferenceValue = status;
+        so.FindProperty("_createTownButton").objectReferenceValue = createButton;
+        so.FindProperty("_refreshTownRoomsButton").objectReferenceValue = refreshButton;
+        so.FindProperty("_closeChoiceButton").objectReferenceValue = closeButton;
+        so.FindProperty("_emptyRoomText").objectReferenceValue = emptyText;
+
+        var rowProperty = so.FindProperty("_roomRows");
+        rowProperty.arraySize = rows.Count;
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var element = rowProperty.GetArrayElementAtIndex(i);
+            element.FindPropertyRelative("Root").objectReferenceValue = rows[i].Root;
+            element.FindPropertyRelative("Button").objectReferenceValue = rows[i].Button;
+            element.FindPropertyRelative("Title").objectReferenceValue = rows[i].Title;
+            element.FindPropertyRelative("Meta").objectReferenceValue = rows[i].Meta;
+            element.FindPropertyRelative("SteamBadge").objectReferenceValue = rows[i].SteamBadge;
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        panelImage.gameObject.SetActive(false);
+        ApplyNanumGothicFontToChildren(panelRect);
+        EditorUtility.SetDirty(mapUi);
+    }
+
+    private static Button CreateTownChoiceButton(RectTransform parent, string name, string label, Rect rect, Vector2 sourceSize)
+    {
+        var image = CreateSolid(parent, name, new Color(0.10f, 0.26f, 0.30f, 1f));
+        SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
+        image.raycastTarget = true;
+        var button = image.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        button.transition = Selectable.Transition.None;
+        button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
+        var border = CreateSolid(image.rectTransform, "Border", new Color(0.91f, 0.72f, 0.38f, 0.9f));
+        Stretch(border.rectTransform);
+        border.raycastTarget = false;
+        var face = CreateSolid(image.rectTransform, "Face", new Color(0.10f, 0.26f, 0.30f, 1f));
+        SetRectFromTopLeft(face.rectTransform, new Rect(2f, 2f, rect.width - 4f, rect.height - 4f), new Vector2(rect.width, rect.height));
+        face.raycastTarget = false;
+        CreateText(image.rectTransform, "Label", label, new Rect(6f, 0f, rect.width - 12f, rect.height), 15f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(rect.width, rect.height));
+        AddButtonFeedback(button, image.rectTransform, image);
+        return button;
+    }
+
+    private static TownEntryRowBuildBinding CreateTownRoomRow(RectTransform parent, string name, Rect rect, Vector2 sourceSize)
+    {
+        var image = CreateSolid(parent, name, new Color(0.96f, 0.88f, 0.68f, 0.98f));
+        SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
+        image.raycastTarget = true;
+
+        var button = image.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        button.transition = Selectable.Transition.None;
+        button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
+        AddButtonFeedback(button, image.rectTransform, image);
+
+        var rowSize = new Vector2(rect.width, rect.height);
+        var title = CreateText(image.rectTransform, "Title", "Town", new Rect(12f, 3f, 244f, 22f), 13f, TextAlignmentOptions.MidlineLeft, new Color(0.11f, 0.20f, 0.18f, 1f), rowSize);
+        var meta = CreateText(image.rectTransform, "Meta", "0/0", new Rect(264f, 3f, 88f, 22f), 12f, TextAlignmentOptions.MidlineRight, new Color(0.32f, 0.28f, 0.20f, 1f), rowSize);
+        var steamBadge = CreateText(image.rectTransform, "SteamBadge", "Steam", new Rect(364f, 3f, 56f, 22f), 11f, TextAlignmentOptions.Center, new Color(0.04f, 0.38f, 0.58f, 1f), rowSize);
+        steamBadge.gameObject.SetActive(false);
+
+        image.gameObject.SetActive(false);
+        return new TownEntryRowBuildBinding
+        {
+            Root = image.gameObject,
+            Button = button,
+            Title = title,
+            Meta = meta,
+            SteamBadge = steamBadge
+        };
     }
 
     private static HomeEquipSlotUI CreateEquipSlot(RectTransform parent, string name, EquipmentSlot slot, string label, string iconPath, Rect rect)
@@ -891,6 +1051,9 @@ public static class Home1SceneSpaceUiBuilder
 
         var text = go.GetComponent<TextMeshProUGUI>();
         text.text = value;
+        var font = GetNanumGothicFont();
+        if (font != null)
+            text.font = font;
         text.fontSize = fontSize;
         text.enableAutoSizing = true;
         text.fontSizeMin = Mathf.Max(8f, fontSize - 8f);
@@ -898,8 +1061,42 @@ public static class Home1SceneSpaceUiBuilder
         text.alignment = alignment;
         text.color = color;
         text.raycastTarget = false;
-        text.enableWordWrapping = true;
+        text.textWrappingMode = TextWrappingModes.Normal;
         return text;
+    }
+
+    private static TMP_FontAsset GetNanumGothicFont()
+    {
+        if (_nanumGothicFont != null)
+            return _nanumGothicFont;
+
+        _nanumGothicFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(NanumGothicFontPath);
+        if (_nanumGothicFont == null)
+            _nanumGothicFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(NanumGothicFontFallbackPath);
+
+        if (_nanumGothicFont == null)
+            Debug.LogWarning("[Home1SceneSpaceUiBuilder] NanumGothic SDF font asset was not found.");
+
+        return _nanumGothicFont;
+    }
+
+    private static void ApplyNanumGothicFontToChildren(RectTransform root)
+    {
+        if (root == null)
+            return;
+
+        var font = GetNanumGothicFont();
+        if (font == null)
+            return;
+
+        foreach (var text in root.GetComponentsInChildren<TextMeshProUGUI>(true))
+        {
+            if (text == null)
+                continue;
+
+            text.font = font;
+            EditorUtility.SetDirty(text);
+        }
     }
 
     private static RectTransform CreateRect(Transform parent, string name)
@@ -1037,5 +1234,14 @@ public static class Home1SceneSpaceUiBuilder
     {
         public RectTransform Viewport;
         public RectTransform Content;
+    }
+
+    private struct TownEntryRowBuildBinding
+    {
+        public GameObject Root;
+        public Button Button;
+        public TextMeshProUGUI Title;
+        public TextMeshProUGUI Meta;
+        public TextMeshProUGUI SteamBadge;
     }
 }

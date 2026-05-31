@@ -8,13 +8,23 @@ public static class SessionDtos
 
     public sealed record IssueTownTicketRequest(
         string? PreferredRegion,
-        string? ClientNonce
+        string? ClientNonce,
+        string? TownRoomId = null,
+        string? MapId = null,
+        int MaxPlayers = 16,
+        string? SteamId64 = null,
+        string? ClientVersion = null
     );
 
     public sealed record IssueTownTicketResponse(
         string TicketId,
         long ExpireAtMs,
-        EndpointDto Endpoint
+        EndpointDto Endpoint,
+        [property: JsonPropertyName("key")] string Key = "",
+        [property: JsonPropertyName("townRoomId")] string TownRoomId = "",
+        [property: JsonPropertyName("mapId")] string MapId = "",
+        [property: JsonPropertyName("maxPlayers")] int MaxPlayers = 0,
+        [property: JsonPropertyName("matchManifest")] MatchManifestDto? MatchManifest = null
     );
 
     public sealed record IssueGameTicketRequest(

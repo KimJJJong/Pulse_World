@@ -192,7 +192,7 @@ public sealed partial class P2PContentDirector : MonoBehaviour, IStageActionHost
     private bool ShouldDriveHostContent()
     {
         var bridge = P2PRelayClientBridge.Instance;
-        return bridge != null && bridge.IsRelayMode && bridge.IsHostLocal;
+        return bridge != null && bridge.IsRelayMode && bridge.IsHostLocal && !bridge.IsTownRelayMode;
     }
 
     private bool HasStageAction(string actionType)

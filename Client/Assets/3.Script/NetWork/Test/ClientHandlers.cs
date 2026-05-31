@@ -1,5 +1,6 @@
 using ServerCore;
 using System;
+using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem.HID;
@@ -19,6 +20,7 @@ public class ClientHandlers : MonoBehaviour
     // [REMOVED] Local tracking is now centralized in BoardView
     private long _lastTelegraphCleanupBeat = long.MinValue;
     private bool _initMapApplied;
+    private Coroutine _applyInitMapCoroutine;
     private readonly List<PendingEntitySpawn> _pendingEntitySpawnsBeforeInit = new();
 
     private BoardView BV => BoardView.Instance;
@@ -155,8 +157,40 @@ public class ClientHandlers : MonoBehaviour
         else
             GS.StartMapGeneration(mapAsset);
 
+        if (_applyInitMapCoroutine != null)
+            StopCoroutine(_applyInitMapCoroutine);
+
+        _applyInitMapCoroutine = StartCoroutine(CoApplyInitMapAfterMapReady(p, mapName));
+    }
+
+    private IEnumerator CoApplyInitMapAfterMapReady(SC_InitMap p, string mapName)
+    {
+        const float MapReadyApplyTimeoutSeconds = 12f;
+        var startTime = Time.time;
+
+        while (GS != null && !GS.IsMapGenerationComplete)
+        {
+            if (Time.time - startTime > MapReadyApplyTimeoutSeconds)
+            {
+                Debug.LogWarning(
+                    $"[InitMap] Map generation wait timed out before applying entities. map={mapName} progress={GS.MapGenProgress:0.00}");
+                break;
+            }
+
+            yield return null;
+        }
+
+        ApplyInitMapRuntimeState(p, mapName);
+        _applyInitMapCoroutine = null;
+    }
+
+    private void ApplyInitMapRuntimeState(SC_InitMap p, string mapName)
+    {
+        var players = p.playerss ?? new List<SC_InitMap.Players>();
+        var entities = p.entitiess ?? new List<SC_InitMap.Entities>();
+
         // 2) 플레이어 Actor 정보
-        ApplyRosterSnapshot(p.playerss.Select(pa => (pa.ActorId, pa.Uid)));
+        ApplyRosterSnapshot(players.Select(pa => (pa.ActorId, pa.Uid)));
         GS.SetMyActorId(p.MyActorId);
         LogInitMapPlayerSnapshot(p);
         string myUid = GS.TryGetPlayerUid(p.MyActorId, out var resolvedMyUid) ? resolvedMyUid : "-";
@@ -164,11 +198,11 @@ public class ClientHandlers : MonoBehaviour
             $"[P2PPlayerSync] InitMap identity sessionUid={SessionContext.Instance?.Uid ?? "-"} myActor={p.MyActorId} rosterUid={myUid} " +
             $"manifestHostUid={SessionContext.Instance?.LastMatchManifest?.HostUid ?? "-"}");
         if (P2PDebugConfig.TraceCombat)
-            Debug.Log($"[InitMap] MyActorId: {GS.MyActorId}, TotalEntities: {p.entitiess.Count}");
+            Debug.Log($"[InitMap] MyActorId: {GS.MyActorId}, TotalEntities: {entities.Count}");
 
         // 3) 엔티티 스폰
         GS.ClearEntities();
-        foreach (var e in p.entitiess)
+        foreach (var e in entities)
         {
             if (P2PDebugConfig.TraceCombat)
                 Debug.Log($"Spawn Entity: ID={e.EntityId} Type={(EntityType)e.EntityType} Pos=({e.X},{e.Y}) HP={e.Hp}");
@@ -239,7 +273,7 @@ public class ClientHandlers : MonoBehaviour
         var relayBridge = P2PRelayClientBridge.Instance;
         relayBridge?.SyncHostState();
 
-        if (relayBridge != null && relayBridge.IsRelayMode)
+        if (relayBridge != null && relayBridge.IsRelayMode && !relayBridge.IsTownRelayMode)
         {
             P2PContentDirector.Instance?.ConfigureStage(mapName);
         }

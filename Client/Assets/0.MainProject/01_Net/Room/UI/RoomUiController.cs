@@ -82,6 +82,7 @@ namespace NetClient.Room.UI
         string _steamLobbyStatus = "Idle";
         string _lastWarn = "";
         string _lastStatus = "";
+        bool _openedExplicitly = false;
 
         const string RelayKeyPrefix = "p2p:";
 
@@ -112,17 +113,17 @@ namespace NetClient.Room.UI
         public string LastStatusText => _lastStatus ?? "";
         public int MemberCount => _memberViews.Count;
         public bool IsUiOpen => gameObject.activeInHierarchy;
+        public bool IsConnectedToRoom => _roomWs != null && !string.IsNullOrWhiteSpace(_currentRoomId);
+        public bool AmIReady => _amIReady;
+        public event Action<string> RoomSessionClosed;
 
         void Awake()
         {
             ActiveInstance = this;
             _cts = new CancellationTokenSource();
 
-            _roomListApi = new RoomListApiClient(apiProvider.Api);
-            _roomCreateApi = new RoomCreateApiClient(apiProvider.Api);
-
-            _roomListApi.OnRoomsUpdated += OnRoomsUpdated;
-            _roomListApi.OnWarn += msg => SetStatus($"[RoomList] {msg}");
+            var apiReady = EnsureApiClients();
+            ApplyKoreanFontToChildren();
 
             // 버튼 바인딩
             btnRefresh?.onClick.AddListener(() => UI_Refresh());
@@ -137,7 +138,10 @@ namespace NetClient.Room.UI
             btnStart?.onClick.AddListener(() => UI_StartGame());
 
             ShowRoomList();
-            UI_Refresh();
+            if (apiReady)
+                UI_Refresh();
+            else
+                SetStatus("API Provider 준비 중...");
 
             // [Request] MapId Dropdown 초기화
             if (inputMapIds != null)
@@ -149,8 +153,8 @@ namespace NetClient.Room.UI
 
         private void Start()
         {
-            gameObject.SetActive(false);
-
+            if (!_openedExplicitly)
+                gameObject.SetActive(false);
         }
 
         private void Update()
@@ -199,10 +203,25 @@ namespace NetClient.Room.UI
             SetWarn("");
         }
 
+        public void OpenRoot(bool showList = true)
+        {
+            _openedExplicitly = true;
+            if (!gameObject.activeSelf)
+                gameObject.SetActive(true);
+
+            ApplyKoreanFontToChildren();
+            if (showList)
+            {
+                ShowRoomList();
+                UI_Refresh();
+            }
+        }
+
         public void UI_Close()
         {
             // UI 창 끄기 = 루트 비활성
             // (원하면 dispose하고 상태 초기화)
+            NotifyRoomSessionClosed();
             AppBootstrap.Instance.Root.SteamPlatform.LeaveLobby();
             ResetDebugState();
             _ = DisposeWsIfAny();
@@ -214,6 +233,9 @@ namespace NetClient.Room.UI
         // -----------------------
         public async void UI_Refresh()
         {
+            if (!EnsureApiClients())
+                return;
+
             _cursor = "";
             _isLoadMore = false;
             SetStatus("Loading rooms...");
@@ -243,8 +265,20 @@ namespace NetClient.Room.UI
             }
         }
 
+        public Task JoinRoomByIdAsync(string roomId)
+        {
+            _openedExplicitly = true;
+            if (!gameObject.activeSelf)
+                gameObject.SetActive(true);
+
+            return JoinRoomAsync(roomId);
+        }
+
         async Task JoinRoomAsync(string roomId)
         {
+            if (!EnsureApiClients())
+                return;
+
             await DisposeWsIfAny();
 
             _memberViews.Clear();
@@ -327,15 +361,49 @@ namespace NetClient.Room.UI
                 return;
             }
 
+            var createdId = await CreateAndJoinRoomAsync(
+                roomId,
+                string.IsNullOrEmpty(roomId) ? "New Room" : roomId,
+                mapId,
+                maxPlayers,
+                useP2PRelay);
+
+            if (!string.IsNullOrWhiteSpace(createdId))
+                ShowCreateModal(false);
+        }
+
+        public async Task<string> CreateAndJoinRoomAsync(
+            string roomId,
+            string title,
+            string mapId,
+            int maxPlayers,
+            bool relayMode)
+        {
+            if (!EnsureApiClients())
+                return "";
+
+            if (string.IsNullOrEmpty(mapId))
+            {
+                SetStatus("MapId is required.");
+                return "";
+            }
+
+            if (maxPlayers <= 0 || maxPlayers > 50)
+            {
+                SetStatus("MaxPlayers invalid (1~50).");
+                return "";
+            }
+
             var req = new RoomCreateApiClient.CreateRoomRequest
             {
-                roomId = roomId,         // 빈 문자열이면 서버 생성 방식도 가능
-                title = string.IsNullOrEmpty(roomId) ? "New Room" : roomId,
+                roomId = roomId ?? "",
+                title = string.IsNullOrWhiteSpace(title) ? "New Room" : title,
                 mapId = mapId,
                 maxPlayers = maxPlayers,
-                useP2PRelay = useP2PRelay
+                useP2PRelay = relayMode
             };
 
+            string createdId = "";
             SetStatus("Creating room...");
             await SafeCall(async () =>
             {
@@ -346,7 +414,7 @@ namespace NetClient.Room.UI
                     return;
                 }
 
-                var createdId = r.Data?.roomId;
+                createdId = r.Data?.roomId ?? "";
                 if (string.IsNullOrEmpty(createdId))
                 {
                     SetStatus("Create ok but roomId missing in response.");
@@ -354,12 +422,11 @@ namespace NetClient.Room.UI
                 }
 
                 SetStatus($"Created: {createdId}");
-                ShowCreateModal(false);
-
-                // 생성 후: 목록 갱신 + 자동 입장(요구사항에 가장 자연스러움)
                 UI_Refresh();
                 await JoinRoomAsync(createdId);
             });
+
+            return createdId;
         }
 
         // -----------------------
@@ -367,28 +434,57 @@ namespace NetClient.Room.UI
         // -----------------------
         public async void UI_ToggleReady()
         {
+            await SetReadyAsync(!_amIReady);
+        }
+
+        public async Task SetReadyAsync(bool ready)
+        {
             if (_roomWs == null) return;
-            var next = !_amIReady;
-            await SafeCall(async () => await _roomWs.ToggleReadyAsync(next, _cts.Token));
+            await SafeCall(async () => await _roomWs.ToggleReadyAsync(ready, _cts.Token));
         }
 
         public async void UI_StartGame()
         {
-            if (_roomWs == null) return;
+            await StartGameAsync();
+        }
+
+        public async Task StartGameAsync()
+        {
+            if (_roomWs == null)
+            {
+                SetWarn("Room WebSocket is not connected.");
+                return;
+            }
+
             await SafeCall(async () => await _roomWs.StartGameAsync(_cts.Token));
         }
 
         public async void UI_LeaveRoom()
         {
-            // Option B: Close = Leave
+            await LeaveCurrentRoomAsync(showListAfter: true);
+        }
+
+        public async Task LeaveCurrentRoomAsync(bool showListAfter = false, bool closeRootAfter = false)
+        {
             if (_roomWs != null)
                 await SafeCall(async () => await _roomWs.LeaveAsync(_cts.Token));
 
-            AppBootstrap.Instance.Root.SteamPlatform.LeaveLobby();
+            NotifyRoomSessionClosed();
+            AppBootstrap.Instance?.Root?.SteamPlatform?.LeaveLobby();
             ResetDebugState();
             await DisposeWsIfAny();
-            ShowRoomList();
-            UI_Refresh();
+
+            if (closeRootAfter)
+            {
+                gameObject.SetActive(false);
+                return;
+            }
+
+            if (showListAfter)
+            {
+                ShowRoomList();
+                UI_Refresh();
+            }
         }
 
         void BindWsEvents(RoomWsClient ws)
@@ -544,6 +640,7 @@ namespace NetClient.Room.UI
                 var clientManifest = ConvertMatchManifest(matchManifest);
                 var hostUid = clientManifest != null ? clientManifest.HostUid : "";
                 SetWarn($"GameStart: {endpoint.host}:{endpoint.port} Map:{mapId} Max:{maxPlayers} Relay:{relayMode} Host:{hostUid}");
+                NotifyRoomSessionClosed();
                 _ = DisposeWsIfAny();
 
                 // DTO 변환 (Global EndpointDto -> SessionDtos.EndpointDto)
@@ -574,6 +671,7 @@ namespace NetClient.Room.UI
             ws.OnClosed += reason =>
             {
                 SetWarn($"Closed: {reason}");
+                NotifyRoomSessionClosed();
                 AppBootstrap.Instance.Root.SteamPlatform.LeaveLobby();
                 _ = DisposeWsIfAny();
                 ShowRoomList();
@@ -591,8 +689,64 @@ namespace NetClient.Room.UI
         void RefreshStartButton(string ownerUid)
         {
             if (!btnStart) return;
-            var isOwner = string.Equals(ownerUid, apiProvider.Uid, StringComparison.Ordinal);
+            var isOwner = string.Equals(ownerUid, apiProvider != null ? apiProvider.Uid : "", StringComparison.Ordinal);
             btnStart.interactable = isOwner;
+        }
+
+        bool EnsureApiClients()
+        {
+            if (_roomListApi != null && _roomCreateApi != null && apiProvider != null)
+                return true;
+
+            apiProvider = ResolveApiClientProvider();
+            if (apiProvider == null)
+            {
+                Debug.LogError("[RoomUiController] ApiClientProvider is missing. Add it to the scene hierarchy or bind it on RoomUIRoot.");
+                return false;
+            }
+
+            ApiClient api;
+            try
+            {
+                api = apiProvider.Api;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[RoomUiController] ApiClientProvider failed: {ex.Message}");
+                return false;
+            }
+
+            if (api == null)
+            {
+                Debug.LogError("[RoomUiController] ApiClientProvider.Api is null.");
+                return false;
+            }
+
+            _roomListApi = new RoomListApiClient(api);
+            _roomCreateApi = new RoomCreateApiClient(api);
+            _roomListApi.OnRoomsUpdated += OnRoomsUpdated;
+            _roomListApi.OnWarn += msg => SetStatus($"[RoomList] {msg}");
+            return true;
+        }
+
+        ApiClientProvider ResolveApiClientProvider()
+        {
+            if (apiProvider != null)
+                return apiProvider;
+
+            var provider = GetComponent<ApiClientProvider>();
+            if (provider != null)
+                return provider;
+
+            provider = GetComponentInParent<ApiClientProvider>(true);
+            if (provider != null)
+                return provider;
+
+            provider = FindFirstObjectByType<ApiClientProvider>(FindObjectsInactive.Include);
+            if (provider != null)
+                return provider;
+
+            return gameObject.AddComponent<ApiClientProvider>();
         }
 
         static bool FindReady(WaitingRoomDto room, string uid)
@@ -715,6 +869,24 @@ namespace NetClient.Room.UI
                 CreatedAtMs = src.createdAtMs,
                 Participants = participants
             };
+        }
+
+        void ApplyKoreanFontToChildren()
+        {
+            var font = Resources.Load<TMP_FontAsset>("Fonts & Materials/NanumGothic SDF");
+            if (font == null)
+                font = Resources.Load<TMP_FontAsset>("NanumGothic SDF");
+            if (font == null)
+                return;
+
+            var texts = GetComponentsInChildren<TMP_Text>(true);
+            for (int i = 0; i < texts.Length; i++)
+            {
+                var text = texts[i];
+                if (!text) continue;
+                text.font = font;
+                text.fontSharedMaterial = font.material;
+            }
         }
 
         // -----------------------
@@ -961,6 +1133,13 @@ namespace NetClient.Room.UI
             _lastWaitingProbeRttMs = -1;
             _lastWaitingProbeStatus = "Idle";
             _steamLobbyStatus = "Idle";
+        }
+
+        void NotifyRoomSessionClosed()
+        {
+            var roomId = _currentRoomId ?? "";
+            if (!string.IsNullOrWhiteSpace(roomId))
+                RoomSessionClosed?.Invoke(roomId);
         }
     }
 

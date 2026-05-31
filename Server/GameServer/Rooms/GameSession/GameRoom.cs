@@ -50,6 +50,8 @@ public sealed class GameRoom : RoomBase
     protected override SessionBase? GetSession() => _session;
     protected override bool IsRoomRunning() => _phase == RoomPhase.Running;
     protected override bool CheckRoomEnded() => _phase == RoomPhase.Ended;
+    protected override string RoomLogKind => "Game";
+    protected override string RoomLogId => MatchId;
 
     protected override void UpdateSessionWorldId(ClientSession s)
     {
@@ -74,6 +76,9 @@ public sealed class GameRoom : RoomBase
         }
 
         LogManager.Instance.LogInfo("GameRoom", $"Destroyed (empty) matchId={MatchId}");
+        LogManager.Instance.LogInfo(
+            "RoomLifecycle",
+            $"event=room_end reason=empty roomType=Game world={MatchId} map={MapId}");
         GameManager.Remove(MatchId);
     }
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 public interface ISteamPlatformService
@@ -16,10 +17,24 @@ public interface ISteamPlatformService
     void RunCallbacks();
     void Shutdown();
     Task<SteamWebApiTicketResult> CreateWebApiTicketAsync(string identity, double timeoutSeconds = 10d);
-    Task<string> CreateLobbyAsync(string roomId, string title, string mapId, int maxMembers);
+    Task<string> CreateLobbyAsync(string roomId, string title, string mapId, int maxMembers, string roomType = "game");
     Task<bool> JoinLobbyAsync(string lobbyId, string roomId = "");
-    bool UpdateLobbyMetadata(string roomId, string title, string mapId, int maxMembers, string ownerUid = "");
+    bool UpdateLobbyMetadata(string roomId, string title, string mapId, int maxMembers, string ownerUid = "", string roomType = "game");
+    Task<List<SteamLobbyInfo>> FindLobbiesAsync(string roomType, string mapId, int maxResults = 20);
     void LeaveLobby();
+}
+
+public sealed class SteamLobbyInfo
+{
+    public string LobbyId { get; set; } = "";
+    public string RoomId { get; set; } = "";
+    public string RoomType { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string MapId { get; set; } = "";
+    public string OwnerUid { get; set; } = "";
+    public string HostSteamId64 { get; set; } = "";
+    public int MemberCount { get; set; }
+    public int MaxMembers { get; set; }
 }
 
 public sealed class SteamWebApiTicketResult
@@ -90,7 +105,7 @@ public sealed class NullSteamPlatformService : ISteamPlatformService
         });
     }
 
-    public Task<string> CreateLobbyAsync(string roomId, string title, string mapId, int maxMembers)
+    public Task<string> CreateLobbyAsync(string roomId, string title, string mapId, int maxMembers, string roomType = "game")
     {
         return Task.FromResult(string.Empty);
     }
@@ -100,9 +115,14 @@ public sealed class NullSteamPlatformService : ISteamPlatformService
         return Task.FromResult(false);
     }
 
-    public bool UpdateLobbyMetadata(string roomId, string title, string mapId, int maxMembers, string ownerUid = "")
+    public bool UpdateLobbyMetadata(string roomId, string title, string mapId, int maxMembers, string ownerUid = "", string roomType = "game")
     {
         return false;
+    }
+
+    public Task<List<SteamLobbyInfo>> FindLobbiesAsync(string roomType, string mapId, int maxResults = 20)
+    {
+        return Task.FromResult(new List<SteamLobbyInfo>());
     }
 
     public void LeaveLobby()

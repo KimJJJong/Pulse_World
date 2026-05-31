@@ -22,6 +22,7 @@ public interface IApiServerClient
     Task<bool> DeleteAsync(string endpoint);
     Task<GameServer.Infrastructure.Api.Dto.PlayerStateResponse?> GetPlayerStateAsync(string uid);
     Task<GameServer.Infrastructure.Api.Dto.GameMatchManifestResponse?> GetGameMatchManifestAsync(string roomId);
+    Task<GameServer.Infrastructure.Api.Dto.GameMatchManifestResponse?> GetTownMatchManifestAsync(string roomId);
 }
 
 public class ApiServerClient : IApiServerClient
@@ -116,5 +117,14 @@ public class ApiServerClient : IApiServerClient
 
         var encodedRoomId = Uri.EscapeDataString(roomId);
         return await GetAsync<GameServer.Infrastructure.Api.Dto.GameMatchManifestResponse>($"/api/game/match-manifest/{encodedRoomId}");
+    }
+
+    public async Task<GameServer.Infrastructure.Api.Dto.GameMatchManifestResponse?> GetTownMatchManifestAsync(string roomId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId))
+            return null;
+
+        var encodedRoomId = Uri.EscapeDataString(roomId);
+        return await GetAsync<GameServer.Infrastructure.Api.Dto.GameMatchManifestResponse>($"/api/town/match-manifest/{encodedRoomId}");
     }
 }

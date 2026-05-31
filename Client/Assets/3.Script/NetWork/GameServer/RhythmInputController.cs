@@ -713,7 +713,19 @@ public class RhythmInputController : MonoBehaviour
             Rotation         = targetObject != null ? targetObject.transform.eulerAngles.y : 0f,
             ClientSendTimeMs = serverNowMs,
         };
-        NetworkManager.Instance.Send(pkt.Write());
+
+        var bridge = P2PRelayClientBridge.Instance;
+        if (bridge.IsRelayMode && bridge.IsTownRelayMode)
+        {
+            if (bridge.IsHostLocal)
+                TownP2PHostController.Instance.EnqueueLocalActionRequest(pkt);
+            else
+                bridge.SendWrappedPacket(pkt);
+        }
+        else
+        {
+            NetworkManager.Instance.Send(pkt.Write());
+        }
     }
 
     void SendGameAction(ActionKind kind, int targetX, int targetY, long serverNowMs, int slotIndex = -1)

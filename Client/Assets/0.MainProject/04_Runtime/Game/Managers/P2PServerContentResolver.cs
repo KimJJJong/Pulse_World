@@ -92,7 +92,7 @@ public static class P2PServerContentResolver
         if (string.IsNullOrWhiteSpace(mapId))
             return false;
 
-        var mapFolderOrder = mode == 1
+        var mapFolderOrder = mode == 1 || mode == 3
             ? new[] { "02.Town", "01.Game" }
             : new[] { "01.Game", "02.Town" };
 

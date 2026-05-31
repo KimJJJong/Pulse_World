@@ -1,5 +1,6 @@
 #if RHYTHM_USE_FACEPUNCH_STEAMWORKS
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Steamworks;
 using Steamworks.Data;
@@ -133,7 +134,7 @@ public sealed class FacepunchSteamPlatformService : ISteamPlatformService
         }
     }
 
-    public async Task<string> CreateLobbyAsync(string roomId, string title, string mapId, int maxMembers)
+    public async Task<string> CreateLobbyAsync(string roomId, string title, string mapId, int maxMembers, string roomType = "game")
     {
         if (!IsInitialized)
         {
@@ -153,7 +154,7 @@ public sealed class FacepunchSteamPlatformService : ISteamPlatformService
             }
 
             _currentLobby = created.Value;
-            ApplyLobbyMetadata(_currentLobby.Value, roomId, title, mapId, maxMembers, SessionContext.Instance != null ? SessionContext.Instance.Uid : "");
+            ApplyLobbyMetadata(_currentLobby.Value, roomId, title, mapId, maxMembers, SessionContext.Instance != null ? SessionContext.Instance.Uid : "", roomType);
             _currentLobby.Value.SetJoinable(true);
 
             return _currentLobby.Value.Id.ToString();
@@ -207,14 +208,14 @@ public sealed class FacepunchSteamPlatformService : ISteamPlatformService
         }
     }
 
-    public bool UpdateLobbyMetadata(string roomId, string title, string mapId, int maxMembers, string ownerUid = "")
+    public bool UpdateLobbyMetadata(string roomId, string title, string mapId, int maxMembers, string ownerUid = "", string roomType = "game")
     {
         if (!_currentLobby.HasValue)
             return false;
 
         try
         {
-            return ApplyLobbyMetadata(_currentLobby.Value, roomId, title, mapId, maxMembers, ownerUid);
+            return ApplyLobbyMetadata(_currentLobby.Value, roomId, title, mapId, maxMembers, ownerUid, roomType);
         }
         catch (Exception ex)
         {
@@ -222,6 +223,51 @@ public sealed class FacepunchSteamPlatformService : ISteamPlatformService
             Debug.LogWarning($"[Steam] Failed to update lobby metadata: {ex.Message}");
             return false;
         }
+    }
+
+    public async Task<List<SteamLobbyInfo>> FindLobbiesAsync(string roomType, string mapId, int maxResults = 20)
+    {
+        var list = new List<SteamLobbyInfo>();
+        if (!IsInitialized)
+            return list;
+
+        try
+        {
+            var query = SteamMatchmaking.LobbyList
+                .WithMaxResults(Mathf.Clamp(maxResults, 1, 50));
+
+            if (!string.IsNullOrWhiteSpace(roomType))
+                query = query.WithKeyValue("roomType", roomType);
+            if (!string.IsNullOrWhiteSpace(mapId))
+                query = query.WithKeyValue("mapId", mapId);
+
+            var lobbies = await query.RequestAsync();
+            if (lobbies == null)
+                return list;
+
+            foreach (var lobby in lobbies)
+            {
+                list.Add(new SteamLobbyInfo
+                {
+                    LobbyId = lobby.Id.ToString(),
+                    RoomId = lobby.GetData("roomId") ?? "",
+                    RoomType = lobby.GetData("roomType") ?? "",
+                    Title = lobby.GetData("title") ?? "",
+                    MapId = lobby.GetData("mapId") ?? "",
+                    OwnerUid = lobby.GetData("ownerUid") ?? "",
+                    HostSteamId64 = lobby.GetData("hostSteamId64") ?? "",
+                    MemberCount = lobby.MemberCount,
+                    MaxMembers = lobby.MaxMembers
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Debug.LogWarning($"[Steam] Failed to find lobbies: {ex.Message}");
+        }
+
+        return list;
     }
 
     public void LeaveLobby()
@@ -243,9 +289,10 @@ public sealed class FacepunchSteamPlatformService : ISteamPlatformService
         }
     }
 
-    private bool ApplyLobbyMetadata(Lobby lobby, string roomId, string title, string mapId, int maxMembers, string ownerUid)
+    private bool ApplyLobbyMetadata(Lobby lobby, string roomId, string title, string mapId, int maxMembers, string ownerUid, string roomType)
     {
         bool ok = true;
+        ok &= lobby.SetData("roomType", string.IsNullOrWhiteSpace(roomType) ? "game" : roomType);
         ok &= lobby.SetData("roomId", roomId ?? "");
         ok &= lobby.SetData("title", title ?? "");
         ok &= lobby.SetData("mapId", mapId ?? "");

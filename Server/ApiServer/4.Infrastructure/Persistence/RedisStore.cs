@@ -43,6 +43,9 @@ public sealed class RedisStore
 
     public string KeyWaitingRoom(string roomId) => $"{Prefix}waiting_room:{roomId}";
     public string KeyWaitingRoomIndex() => $"{Prefix}waiting_rooms:index";
+    public string KeyTownRoom(string roomId) => $"{Prefix}town_room:{roomId}";
+    public string KeyTownRoomIndex() => $"{Prefix}town_rooms:index";
+    public string KeyTownMatchManifest(string roomId) => $"{Prefix}town_match_manifest:{roomId}";
     public string KeyGameMatchManifest(string roomId) => $"{Prefix}game_match_manifest:{roomId}";
     public string KeyGameMatchManifestByMatchId(string matchId) => $"{Prefix}game_match_manifest_by_match:{matchId}";
     public string KeyGameResult(string roomId) => $"{Prefix}game_result:{roomId}";

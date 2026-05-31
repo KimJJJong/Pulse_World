@@ -29,7 +29,22 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
 
 
     public int ActorId { get; set; } = -1;
-    public override string CurrentWorldId { get; set; } = "";
+    private string _currentWorldId = "";
+    public override string CurrentWorldId
+    {
+        get => _currentWorldId;
+        set
+        {
+            var next = value ?? "";
+            if (string.Equals(_currentWorldId, next, StringComparison.Ordinal))
+                return;
+
+            LogManager.Instance.LogInfo(
+                "SessionLifecycle",
+                $"event=world_change uid={UidOrDash()} epoch={Epoch} conn={ConnId} actor={ActorId} seat={SeatIndex} key={KeyOrDash()} from={WorldOrDash(_currentWorldId)} to={WorldOrDash(next)}");
+            _currentWorldId = next;
+        }
+    }
     public int SeatIndex {  get; set; } = -1;
 
   
@@ -44,6 +59,7 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
         IsConnected = true;
         // [ping-fix] Console.WriteLine → LogManager
         LogManager.Instance.LogInfo("ClientSession", $"Connected ep={endPoint} connId={ConnId}");
+        LogManager.Instance.LogInfo("SessionLifecycle", $"event=connect conn={ConnId} endpoint={endPoint}");
     }
 
     public override void OnRecvPacket(ArraySegment<byte> buffer)
@@ -57,10 +73,16 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
         try { _cts.Cancel(); } catch { }
         // [ping-fix] Console.WriteLine → LogManager
         LogManager.Instance.LogInfo("ClientSession", $"OnDisconnected ep={endPoint} connId={ConnId}");
+        LogManager.Instance.LogInfo(
+            "SessionLifecycle",
+            $"event=disconnect uid={UidOrDash()} epoch={Epoch} conn={ConnId} actor={ActorId} seat={SeatIndex} key={KeyOrDash()} world={WorldOrDash(CurrentWorldId)} endpoint={endPoint}");
 
         // registry정리
         if (HasAuth)
         {
+            LogManager.Instance.LogInfo(
+                "SessionLifecycle",
+                $"event=registry_unbind reason=disconnect uid={UidOrDash()} epoch={Epoch} conn={ConnId} key={KeyOrDash()} world={WorldOrDash(CurrentWorldId)}");
             ServerServices.Registry.UnbindIfMatch(Uid, ConnId, Epoch);
         }
 
@@ -68,6 +90,9 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
         {
             if (TownManager.TryGet(CurrentWorldId, out var world))
             {
+                LogManager.Instance.LogInfo(
+                    "SessionLifecycle",
+                    $"event=disconnect_route action=remove roomType=Town world={CurrentWorldId} uid={UidOrDash()} epoch={Epoch} conn={ConnId}");
                 world.RemovePlayer(Uid, Epoch);
             }
             else if (GameManager.TryGet(CurrentWorldId, out var game))
@@ -75,7 +100,32 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
                  // GameRoom은 재접속을 위해 Detach만 수행
                  // [ping-fix] Console.WriteLine → LogManager
                  LogManager.Instance.LogInfo("ClientSession", $"Detach from GameRoom matchId={game.MatchId}");
+                 LogManager.Instance.LogInfo(
+                    "SessionLifecycle",
+                    $"event=disconnect_route action=detach roomType=Game world={game.MatchId} uid={UidOrDash()} epoch={Epoch} conn={ConnId}");
                  game.DetachIfMatch(Uid, Epoch, ConnId);
+            }
+            else if (TownP2PRelayManager.TryGet(CurrentWorldId, out var townRelay))
+            {
+                LogManager.Instance.LogInfo("ClientSession", $"Detach from TownP2PRelay worldId={CurrentWorldId}");
+                LogManager.Instance.LogInfo(
+                    "SessionLifecycle",
+                    $"event=disconnect_route action=detach roomType=TownP2P world={CurrentWorldId} uid={UidOrDash()} epoch={Epoch} conn={ConnId}");
+                townRelay.DetachIfMatch(Uid, Epoch, ConnId);
+            }
+            else if (P2PRelayManager.TryGet(CurrentWorldId, out var relay))
+            {
+                LogManager.Instance.LogInfo("ClientSession", $"Detach from P2PRelay worldId={CurrentWorldId}");
+                LogManager.Instance.LogInfo(
+                    "SessionLifecycle",
+                    $"event=disconnect_route action=detach roomType=GameP2P world={CurrentWorldId} uid={UidOrDash()} epoch={Epoch} conn={ConnId}");
+                relay.DetachIfMatch(Uid, Epoch, ConnId);
+            }
+            else
+            {
+                LogManager.Instance.LogWarning(
+                    "SessionLifecycle",
+                    $"event=disconnect_route action=missing_world world={CurrentWorldId} uid={UidOrDash()} epoch={Epoch} conn={ConnId}");
             }
         }
 
@@ -93,6 +143,9 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
         Uid = uid;
         Epoch = epoch;
         Key = key ?? "";
+        LogManager.Instance.LogInfo(
+            "SessionLifecycle",
+            $"event=auth_bind uid={UidOrDash()} epoch={Epoch} conn={ConnId} key={KeyOrDash()} world={WorldOrDash(CurrentWorldId)}");
     }
 
     // -----------------------------
@@ -133,10 +186,17 @@ public class ClientSession : PacketSession, ITcpConnection, IAuthedTcpConnection
         // 네 Session 종료 방식에 맞게 정리
         // [ping-fix] Console.WriteLine → LogManager
         LogManager.Instance.LogInfo("ClientSession", $"Close connId={ConnId} reason={reason}");
+        LogManager.Instance.LogInfo(
+            "SessionLifecycle",
+            $"event=close reason={reason ?? "-"} uid={UidOrDash()} epoch={Epoch} conn={ConnId} actor={ActorId} seat={SeatIndex} key={KeyOrDash()} world={WorldOrDash(CurrentWorldId)}");
         try { _cts.Cancel(); } catch { }
 
         Disconnect();
     }
+
+    private string UidOrDash() => string.IsNullOrWhiteSpace(Uid) ? "-" : Uid;
+    private string KeyOrDash() => string.IsNullOrWhiteSpace(Key) ? "-" : Key;
+    private static string WorldOrDash(string worldId) => string.IsNullOrWhiteSpace(worldId) ? "-" : worldId;
 
     // -----------------------------
     // Send helper (★ 여기만 네 코드에 맞게 연결)

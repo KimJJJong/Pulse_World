@@ -3,6 +3,10 @@ using UnityEngine;
 
 class PacketHandler
 {
+    private const int InitMapModeTown = 1;
+    private const int InitMapModeGame = 2;
+    private const int InitMapModeTownP2P = 3;
+
     public static void SC_ErrorHandler(PacketSession session, IPacket packet)
     {
         SC_Error e = (SC_Error)packet;
@@ -123,7 +127,7 @@ class PacketHandler
             map: p
 
         );
-        if (p.Mode == 1)
+        if (p.Mode == InitMapModeTown || p.Mode == InitMapModeTownP2P)
         {
             var townCtx = UnityEngine.Object.FindFirstObjectByType<TownSceneContext>();
             if (townCtx != null)
@@ -134,11 +138,11 @@ class PacketHandler
             {
                 // 씬 아직 준비 전이면 세션 컨텍스트만 저장된 상태.
                 // TownSceneContext.EnterTownAsync()에서 SessionContext.InitMapReceived 체크하고 처리 가능.
-                Debug.LogWarning("[SC_InitMap] TownSceneContext not found (scene not ready yet?)");
+                Debug.LogWarning($"[SC_InitMap] TownSceneContext not found (scene not ready yet?). mode={p.Mode}");
             }
 
         }
-        else if (p.Mode == 2)
+        else if (p.Mode == InitMapModeGame)
         {
             var gameCtx = UnityEngine.Object.FindFirstObjectByType<GameSceneContext>();
             if (gameCtx != null)
@@ -148,10 +152,14 @@ class PacketHandler
             else
             {
                 // 씬 아직 준비 전이면 세션 컨텍스트만 저장된 상태.
-                // TownSceneContext.EnterTownAsync()에서 SessionContext.InitMapReceived 체크하고 처리 가능.
-                Debug.LogWarning("[SC_InitMap] TownSceneContext not found (scene not ready yet?)");
+                // GameSceneContext.EnterGameAsync()에서 SessionContext.InitMapReceived 체크하고 처리 가능.
+                Debug.LogWarning("[SC_InitMap] GameSceneContext not found (scene not ready yet?)");
             }
 
+        }
+        else
+        {
+            Debug.LogWarning($"[SC_InitMap] Unsupported init map mode={p.Mode}. MapId={p.MapId}");
         }
 
     }

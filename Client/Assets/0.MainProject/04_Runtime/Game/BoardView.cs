@@ -1089,6 +1089,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
         visual.transform.position = GridToWorld(info.X, info.Y);
     }
 
+    public bool HasEntityView(int entityId)
+        => _entityViews.TryGetValue(entityId, out var visual) && visual != null;
+
     public void OnDespawnEntity(int entityId)
     {
         if (_entityViews.TryGetValue(entityId, out var visual) && visual != null)
@@ -1438,6 +1441,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
     /// </summary>
     private GameObject ChoosePrefab(int entityType, int modelId)
     {
+        if (entityType == (int)EntityType.Player && modelId <= 0)
+            modelId = 10;
+
         if (_entityPrefabCache.TryGetValue(modelId, out var cached))
             return cached;
 

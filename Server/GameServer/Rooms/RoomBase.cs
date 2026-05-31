@@ -23,6 +23,8 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
     // Abstract Session Access for children
     protected abstract SessionBase? GetSession();
     protected abstract bool IsRoomRunning();
+    protected virtual string RoomLogKind => GetType().Name;
+    protected virtual string RoomLogId => "";
 
     protected readonly int _maxPlayers;
     protected int _nextActorId;
@@ -38,16 +40,30 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
     public virtual bool BindOrReattach(ClientSession s, out int actorId)
     {
         actorId = -1;
-        if (s == null || !s.HasAuth || string.IsNullOrEmpty(s.Uid))
+        if (s == null)
+        {
+            LogRoomBindFail(null, "null_session");
             return false;
+        }
+
+        if (!s.HasAuth || string.IsNullOrEmpty(s.Uid))
+        {
+            LogRoomBindFail(s, "not_authenticated");
+            return false;
+        }
 
         bool isNew = false;
         int seat = -1;
+        int playerCount = -1;
         RoomPlayer? p = null;
 
         lock (_lock)
         {
-            if (CheckRoomEnded()) return false;
+            if (CheckRoomEnded())
+            {
+                LogRoomBindFail(s, "room_ended", _players.Count);
+                return false;
+            }
 
             var key = (s.Uid, s.Epoch);
 
@@ -67,20 +83,30 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
 
                 _broadcastDirty = true;
                 isNew = false;
+                playerCount = _players.Count;
             }
             else
             {
                 // New Join
-                if (_players.Count >= _maxPlayers) return false;
+                if (_players.Count >= _maxPlayers)
+                {
+                    LogRoomBindFail(s, "room_full", _players.Count);
+                    return false;
+                }
                 if (_freeSeats.Count == 0 && _players.Count < _maxPlayers)
                 {
                     // Should not happen if logic is correct, but safety
                     // [ping-fix] Console.WriteLine → LogManager
                     LogManager.Instance.LogError("RoomBase",
                         $"FreeSeats empty but room not full. players={_players.Count} max={_maxPlayers}");
+                    LogRoomBindFail(s, "seat_pool_corrupt", _players.Count);
                     return false;
                 }
-                if (_freeSeats.Count == 0) return false;
+                if (_freeSeats.Count == 0)
+                {
+                    LogRoomBindFail(s, "no_free_seat", _players.Count);
+                    return false;
+                }
 
                 actorId = _nextActorId++;
                 seat = _freeSeats.Dequeue();
@@ -97,9 +123,11 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
 
                 _broadcastDirty = true;
                 isNew = true;
+                playerCount = _players.Count;
             }
         }
 
+        LogRoomBind(s, actorId, seat, isNew, playerCount);
         OnPlayerBound(p, isNew);
         return true;
     }
@@ -109,16 +137,23 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
         lock (_lock)
         {
             if (!_players.TryGetValue((uid, epoch), out var p))
+            {
+                LogRoomDetachSkip(uid, epoch, connId, "player_not_found", -1, -1, "-");
                 return;
+            }
 
             var cur = p.Conn;
             if (cur == null || cur.ConnId != connId)
+            {
+                LogRoomDetachSkip(uid, epoch, connId, cur == null ? "already_detached" : "conn_mismatch", p.ActorId, p.SeatIndex, cur?.ConnId ?? "-");
                 return;
+            }
 
             _byActor[p.ActorId] = null;
             p.Detach();
 
             _broadcastDirty = true;
+            LogRoomDetach(uid, epoch, connId, p.ActorId, p.SeatIndex, _players.Count);
         }
     }
 
@@ -127,21 +162,28 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
         lock (_lock)
         {
             if (!_players.TryGetValue((uid, epoch), out var p))
+            {
+                LogRoomRemoveSkip(uid, epoch, "player_not_found");
                 return;
+            }
 
+            var actorId = p.ActorId;
+            var seatIndex = p.SeatIndex;
+            var connId = p.Conn?.ConnId ?? "-";
             _players.Remove((uid, epoch));
-            _byActor.Remove(p.ActorId);
+            _byActor.Remove(actorId);
 
-            _freeSeats.Enqueue(p.SeatIndex);
+            _freeSeats.Enqueue(seatIndex);
 
             _broadcastDirty = true;
 
             // [ping-fix] Console.WriteLine → LogManager
             LogManager.Instance.LogInfo("RoomBase",
                 $"RemovePlayer uid={uid} epoch={epoch} remaining={_players.Count}");
+            LogRoomRemove(uid, epoch, connId, actorId, seatIndex, _players.Count);
 
             // Call Session OnPlayerLeft via Queue
-            Enqueue(() => GetSession()?.OnPlayerLeft(p.ActorId));
+            Enqueue(() => GetSession()?.OnPlayerLeft(actorId));
         }
 
         MaybeEndIfEmpty();
@@ -262,4 +304,58 @@ public abstract class RoomBase : IGameBroadcaster, IUpdatable
         if (IsRoomRunning())
             GetSession()?.Update();
     }
+
+    protected void LogRoomBind(ClientSession s, int actorId, int seat, bool isNew, int playerCount)
+    {
+        var action = isNew ? "join" : "reattach";
+        LogManager.Instance.LogInfo(
+            "SessionLifecycle",
+            $"event=room_bind action={action} roomType={RoomLogKind} world={RoomLogWorld()} uid={SessionUid(s)} epoch={s.Epoch} conn={SessionConn(s)} actor={actorId} seat={seat} players={PlayerCountText(playerCount)} key={SessionKey(s)}");
+    }
+
+    protected void LogRoomBindFail(ClientSession? s, string reason, int playerCount = -1)
+    {
+        LogManager.Instance.LogWarning(
+            "SessionLifecycle",
+            $"event=room_bind_fail reason={reason} roomType={RoomLogKind} world={RoomLogWorld()} uid={SessionUid(s)} epoch={SessionEpoch(s)} conn={SessionConn(s)} actor={SessionActor(s)} seat={SessionSeat(s)} players={PlayerCountText(playerCount)} key={SessionKey(s)}");
+    }
+
+    private void LogRoomDetach(string uid, long epoch, string connId, int actorId, int seat, int playerCount)
+    {
+        LogManager.Instance.LogInfo(
+            "SessionLifecycle",
+            $"event=room_detach reason=disconnect roomType={RoomLogKind} world={RoomLogWorld()} uid={UidOrDash(uid)} epoch={epoch} conn={ConnOrDash(connId)} actor={actorId} seat={seat} players={PlayerCountText(playerCount)}");
+    }
+
+    private void LogRoomDetachSkip(string uid, long epoch, string connId, string reason, int actorId, int seat, string currentConnId)
+    {
+        LogManager.Instance.LogWarning(
+            "SessionLifecycle",
+            $"event=room_detach_skip reason={reason} roomType={RoomLogKind} world={RoomLogWorld()} uid={UidOrDash(uid)} epoch={epoch} conn={ConnOrDash(connId)} currentConn={ConnOrDash(currentConnId)} actor={actorId} seat={seat}");
+    }
+
+    private void LogRoomRemove(string uid, long epoch, string connId, int actorId, int seat, int playerCount)
+    {
+        LogManager.Instance.LogInfo(
+            "SessionLifecycle",
+            $"event=room_remove_player roomType={RoomLogKind} world={RoomLogWorld()} uid={UidOrDash(uid)} epoch={epoch} conn={ConnOrDash(connId)} actor={actorId} seat={seat} players={PlayerCountText(playerCount)}");
+    }
+
+    private void LogRoomRemoveSkip(string uid, long epoch, string reason)
+    {
+        LogManager.Instance.LogWarning(
+            "SessionLifecycle",
+            $"event=room_remove_skip reason={reason} roomType={RoomLogKind} world={RoomLogWorld()} uid={UidOrDash(uid)} epoch={epoch}");
+    }
+
+    protected string RoomLogWorld() => string.IsNullOrWhiteSpace(RoomLogId) ? "-" : RoomLogId;
+    protected string PlayerCountText(int playerCount) => playerCount < 0 ? $"?/{_maxPlayers}" : $"{playerCount}/{_maxPlayers}";
+    private static string SessionUid(ClientSession? s) => UidOrDash(s?.Uid);
+    private static string SessionConn(ClientSession? s) => ConnOrDash(s?.ConnId);
+    private static string SessionKey(ClientSession? s) => string.IsNullOrWhiteSpace(s?.Key) ? "-" : s.Key;
+    private static long SessionEpoch(ClientSession? s) => s?.Epoch ?? 0;
+    private static int SessionActor(ClientSession? s) => s?.ActorId ?? -1;
+    private static int SessionSeat(ClientSession? s) => s?.SeatIndex ?? -1;
+    private static string UidOrDash(string? uid) => string.IsNullOrWhiteSpace(uid) ? "-" : uid;
+    private static string ConnOrDash(string? connId) => string.IsNullOrWhiteSpace(connId) ? "-" : connId;
 }

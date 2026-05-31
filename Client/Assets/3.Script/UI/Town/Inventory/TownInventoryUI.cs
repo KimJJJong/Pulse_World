@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using TMPro;
 using Client.Content.Item;
 
@@ -27,10 +29,13 @@ public class TownInventoryUI : MonoBehaviour
     private readonly List<TownInventorySlotUI> _slotPool = new List<TownInventorySlotUI>();
     private readonly Dictionary<int, ItemTemplate> _templateCache = new Dictionary<int, ItemTemplate>();
     private Transform _panel;
+    private bool _openRequested;
+    private bool _warnedMissingEventSystem;
+    private bool _warnedMissingRaycaster;
 
     private void Start()
     {
-        _panel = transform.Find("Panel");
+        EnsurePanelRef();
 
         // Setup Category Buttons (Index based mapping for simplicity)
         for(int i=0; _categoryButtons != null && i<_categoryButtons.Length; i++)
@@ -66,7 +71,7 @@ public class TownInventoryUI : MonoBehaviour
         RefreshAll();
 
         if (_panel != null)
-            _panel.gameObject.SetActive(false);
+            _panel.gameObject.SetActive(_openRequested);
     }
 
     private void Update()
@@ -77,25 +82,121 @@ public class TownInventoryUI : MonoBehaviour
         }
     }
 
-    private void ToggleInventory()
+    public bool IsOpen => gameObject.activeInHierarchy && EnsurePanelRef() != null && _panel.gameObject.activeSelf;
+
+    public void OpenInventory()
     {
-        bool isActive = _gridContent.gameObject.activeInHierarchy; // Using grid as proxy or check root canvas/panel
-        // But if this script is on the Root, and we disable Root, Update stops.
-        // So we should have a 'Panel' child to toggle, OR use a separate input manager.
-        // For simplicity, let's assume the UI Builder made a "Panel" child.
-        
-        // In UI Builder: GameObject panel = CreateChild(root, "Panel", true);
-        // We should explicitly reference the main Panel if possible.
-        
-        // Let's assume _gridContent parent is the Panel or we can find it.
-        // Or finding 'Panel' child.
-        
-        if (_panel != null)
+        _openRequested = true;
+        if (!gameObject.activeSelf)
+            gameObject.SetActive(true);
+
+        if (EnsurePanelRef() == null)
+            return;
+
+        EnsureUiReady();
+        _panel.gameObject.SetActive(true);
+        _panel.SetAsLastSibling();
+        RefreshAll();
+    }
+
+    public void CloseInventory()
+    {
+        _openRequested = false;
+        if (EnsurePanelRef() == null)
+            return;
+
+        _panel.gameObject.SetActive(false);
+    }
+
+    public void ToggleInventory()
+    {
+        if (IsOpen)
+            CloseInventory();
+        else
+            OpenInventory();
+    }
+
+    private Transform EnsurePanelRef()
+    {
+        if (_panel == null)
+            _panel = transform.Find("Panel");
+        return _panel;
+    }
+
+    private void EnsureUiReady()
+    {
+        var canvas = GetComponentInParent<Canvas>(true);
+        if (canvas != null)
         {
-            bool nextState = !_panel.gameObject.activeSelf;
-            _panel.gameObject.SetActive(nextState);
-            if (nextState) RefreshAll();
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = Mathf.Max(canvas.sortingOrder, 8000);
+            if (canvas.GetComponent<GraphicRaycaster>() == null)
+            {
+                if (!_warnedMissingRaycaster)
+                {
+                    _warnedMissingRaycaster = true;
+                    Debug.LogError("[TownInventoryUI] GraphicRaycaster is missing from the inventory Canvas hierarchy object.");
+                }
+            }
         }
+
+        EnsureEventSystem();
+    }
+
+    private void EnsureEventSystem()
+    {
+        var systems = Resources.FindObjectsOfTypeAll<EventSystem>();
+        for (int i = 0; i < systems.Length; i++)
+        {
+            var system = systems[i];
+            if (system == null || !system.gameObject.scene.IsValid())
+                continue;
+
+            if (!system.gameObject.activeSelf)
+                system.gameObject.SetActive(true);
+            system.enabled = true;
+            EnsureInputModule(system.gameObject);
+            return;
+        }
+
+        if (!_warnedMissingEventSystem)
+        {
+            _warnedMissingEventSystem = true;
+            Debug.LogError("[TownInventoryUI] EventSystem is missing from the scene hierarchy.");
+        }
+    }
+
+    private static void EnsureInputModule(GameObject eventSystemGo)
+    {
+        if (eventSystemGo == null)
+            return;
+
+        var inputSystemModule = eventSystemGo.GetComponent<InputSystemUIInputModule>();
+        if (inputSystemModule != null)
+            inputSystemModule.enabled = true;
+
+        var standaloneModule = eventSystemGo.GetComponent<StandaloneInputModule>();
+        if (standaloneModule != null && inputSystemModule != null)
+            standaloneModule.enabled = false;
+    }
+
+    private static T FindSceneObject<T>() where T : UnityEngine.Object
+    {
+        var objects = Resources.FindObjectsOfTypeAll<T>();
+        for (int i = 0; i < objects.Length; i++)
+        {
+            var obj = objects[i];
+            if (obj == null)
+                continue;
+
+            if (obj is Component component && component.gameObject.scene.IsValid())
+                return obj;
+
+            if (obj is GameObject go && go.scene.IsValid())
+                return obj;
+        }
+
+        return null;
     }
 
     private void OnDestroy()
