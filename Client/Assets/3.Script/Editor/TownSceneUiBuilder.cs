@@ -709,6 +709,7 @@ public static class TownSceneUiBuilder
         so.FindProperty("_hostStartGameButton").objectReferenceValue = hostStartButton;
         so.FindProperty("_hostCancelGameButton").objectReferenceValue = hostCancelButton;
         so.FindProperty("_partyManageButton").objectReferenceValue = partyManageButton;
+        so.FindProperty("_pollIntervalMs").intValue = 500;
         so.ApplyModifiedPropertiesWithoutUndo();
         EditorUtility.SetDirty(panel);
     }

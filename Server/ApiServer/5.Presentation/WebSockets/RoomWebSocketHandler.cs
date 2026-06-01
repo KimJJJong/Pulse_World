@@ -121,6 +121,7 @@ public sealed class RoomWebSocketHandler
                     p95FrameMs = x.P95FrameMs,
                     disqualifiedReasons = x.DisqualifiedReasons
                 }).ToList(),
+                requiredMemberUids = room.RequiredMemberUids,
                 memberUids = room.MemberUids,
                 memberReady = room.MemberReady.Select(kv => new { uid = kv.Key, ready = kv.Value }).ToList(),
                 memberTransport = room.MemberTransport.Select(x => new
@@ -362,7 +363,23 @@ public sealed class RoomWebSocketHandler
                         string.Join(",", room.MemberUids), 
                         string.Join(",", room.MemberReady.Select(kv => $"{kv.Key}:{kv.Value}")));
 
-                    var allReady = room.MemberUids
+                    var requiredMemberUids = room.RequiredMemberUids.Count > 0
+                        ? room.RequiredMemberUids
+                        : room.MemberUids;
+                    var joinedMembers = new HashSet<string>(room.MemberUids, StringComparer.OrdinalIgnoreCase);
+                    var missingRequiredMembers = requiredMemberUids
+                        .Where(m => !joinedMembers.Contains(m))
+                        .ToList();
+                    if (missingRequiredMembers.Count > 0)
+                    {
+                        _logger.LogWarning(
+                            "Start Fail: Missing required members. Room={roomId}, Missing={missing}",
+                            roomId,
+                            string.Join(",", missingRequiredMembers));
+                        throw new Exception("파티원이 모두 Game 대기방에 입장해야 시작할 수 있습니다.");
+                    }
+
+                    var allReady = requiredMemberUids
                         .Where(m => !string.Equals(m, room.OwnerUid, StringComparison.OrdinalIgnoreCase))
                         .All(m => room.MemberReady.TryGetValue(m, out var isReady) && isReady);
 

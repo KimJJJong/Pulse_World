@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,6 +28,7 @@ namespace NetClient.Room
             public int maxPlayers;
             public string title;      
             public bool useP2PRelay = true;
+            public List<string> requiredMemberUids;
         }
 
         [Serializable]

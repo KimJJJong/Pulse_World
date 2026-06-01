@@ -92,6 +92,7 @@ using System.Collections.Generic;
         public long hostSelectionUpdatedAtMs;
         public List<string> hostCandidateOrder;
         public List<HostSelectionCandidateState> hostSelectionCandidates;
+        public List<string> requiredMemberUids;
         public List<string> memberUids; // JsonUtility supports List<string>
         public List<MemberReadyState> memberReady; // Changed from Dictionary for JsonUtility compatibility
         public List<MemberTransportState> memberTransport;

@@ -23,6 +23,7 @@ public class WaitingRoomDto
     public long HostSelectionUpdatedAtMs { get; set; }
     public List<string> HostCandidateOrder { get; set; } = new();
     public List<WaitingRoomHostSelectionCandidateDto> HostSelectionCandidates { get; set; } = new();
+    public List<string> RequiredMemberUids { get; set; } = new();
     public List<string> MemberUids { get; set; } = new();
     public Dictionary<string, bool> MemberReady { get; set; } = new();
     public List<WaitingRoomMemberTransportDto> MemberTransport { get; set; } = new();
@@ -101,7 +102,14 @@ public sealed class WaitingRoomService
         _redis = redis;
     }
 
-    public async Task<string?> CreateAsync(string title, string mapId, int maxPlayers, string ownerUid, string ownerName, bool useP2PRelay = false)
+    public async Task<string?> CreateAsync(
+        string title,
+        string mapId,
+        int maxPlayers,
+        string ownerUid,
+        string ownerName,
+        bool useP2PRelay = false,
+        IReadOnlyList<string>? requiredMemberUids = null)
     {
         var roomId = Guid.NewGuid().ToString("N")[..8];
         var key = _redis.KeyWaitingRoom(roomId);
@@ -109,6 +117,7 @@ public sealed class WaitingRoomService
         // Check collision
         if (await _redis.Db.KeyExistsAsync(key)) return null; 
 
+        var requiredMembers = NormalizeRequiredMemberUids(ownerUid, requiredMemberUids);
         var entries = new HashEntry[]
         {
             new("title", title),
@@ -121,6 +130,7 @@ public sealed class WaitingRoomService
             new("preferredHostUid", ownerUid),
             new("hostEpoch", 0),
             new("hostSelectionEpoch", 0),
+            new("requiredMemberUids", JsonSerializer.Serialize(requiredMembers, JsonOptions)),
             new("createdAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
         };
 
@@ -336,6 +346,7 @@ public sealed class WaitingRoomService
             PreferredHostUid = dict.GetValueOrDefault("preferredHostUid") ?? "",
             HostEpoch = int.TryParse(dict.GetValueOrDefault("hostEpoch") ?? "0", out var hostEpoch) ? hostEpoch : 0,
             HostSelectionEpoch = int.TryParse(dict.GetValueOrDefault("hostSelectionEpoch") ?? "0", out var selectionEpoch) ? selectionEpoch : 0,
+            RequiredMemberUids = DeserializeRequiredMemberUids(dict.GetValueOrDefault("requiredMemberUids") ?? ""),
             MemberUids = new List<string>(),
             MemberReady = new Dictionary<string, bool>(),
             MemberTransport = new List<WaitingRoomMemberTransportDto>(),
@@ -382,6 +393,44 @@ public sealed class WaitingRoomService
         dto.HostSelectionCandidates = selection.Candidates ?? new List<WaitingRoomHostSelectionCandidateDto>();
         
         return (true, dto);
+    }
+
+    private static List<string> NormalizeRequiredMemberUids(string ownerUid, IReadOnlyList<string>? requiredMemberUids)
+    {
+        var result = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (requiredMemberUids == null || requiredMemberUids.Count <= 0)
+            return result;
+
+        if (!string.IsNullOrWhiteSpace(ownerUid) && seen.Add(ownerUid))
+            result.Add(ownerUid);
+
+        foreach (var uid in requiredMemberUids)
+        {
+            if (!string.IsNullOrWhiteSpace(uid) && seen.Add(uid))
+                result.Add(uid);
+        }
+
+        return result;
+    }
+
+    private static List<string> DeserializeRequiredMemberUids(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new List<string>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json, JsonOptions)?
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? new List<string>();
+        }
+        catch
+        {
+            return new List<string>();
+        }
     }
 
     public async Task<(List<WaitingRoomDto> rooms, string nextCursor)> GetListAsync(int limit, string cursor)

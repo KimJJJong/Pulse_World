@@ -91,6 +91,7 @@ namespace NetClient.Room.UI
         readonly Dictionary<string, MemberItemView> _memberViews = new();
         readonly Dictionary<string, string> _uidToName = new();
         readonly Dictionary<string, bool> _memberReady = new(StringComparer.OrdinalIgnoreCase);
+        readonly HashSet<string> _requiredStartMemberUids = new(StringComparer.OrdinalIgnoreCase);
 
         public sealed class MemberSnapshot
         {
@@ -129,8 +130,10 @@ namespace NetClient.Room.UI
         public bool IsLocalRoomOwner => string.Equals(_currentOwnerUid, apiProvider != null ? apiProvider.Uid : "", StringComparison.OrdinalIgnoreCase);
         public int ReadyTargetCount => CountReadyTargets();
         public int ReadyTargetDoneCount => CountReadyTargets(doneOnly: true);
+        public bool AllRequiredStartMembersPresent => AreRequiredStartMembersPresent();
         public bool AllReadyForStart => IsConnectedToRoom
                                        && !string.IsNullOrWhiteSpace(_currentOwnerUid)
+                                       && AllRequiredStartMembersPresent
                                        && ReadyTargetDoneCount >= ReadyTargetCount;
         public bool CanOwnerStartGame => IsLocalRoomOwner && AllReadyForStart;
         public string ReadySummaryText => BuildReadySummaryText();
@@ -147,6 +150,29 @@ namespace NetClient.Room.UI
         {
             displayName = "";
             return !string.IsNullOrWhiteSpace(uid) && _uidToName.TryGetValue(uid, out displayName);
+        }
+
+        public void SetRequiredStartMembers(IEnumerable<string> uids)
+        {
+            var next = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (uids != null)
+            {
+                foreach (var uid in uids)
+                {
+                    if (!string.IsNullOrWhiteSpace(uid))
+                        next.Add(uid);
+                }
+            }
+
+            if (_requiredStartMemberUids.SetEquals(next))
+                return;
+
+            _requiredStartMemberUids.Clear();
+            foreach (var uid in next)
+                _requiredStartMemberUids.Add(uid);
+
+            RefreshStartButton();
+            NotifyWaitingRoomStateChanged();
         }
 
         public IReadOnlyList<MemberSnapshot> GetMemberSnapshots()
@@ -357,6 +383,7 @@ namespace NetClient.Room.UI
             _memberViews.Clear();
             _uidToName.Clear();
             _memberReady.Clear();
+            _requiredStartMemberUids.Clear();
             _amIReady = false;
             _currentOwnerUid = "";
             _preferredHostUid = "";
@@ -455,7 +482,8 @@ namespace NetClient.Room.UI
             string mapId,
             int maxPlayers,
             bool relayMode,
-            bool showUi = true)
+            bool showUi = true,
+            IReadOnlyList<string> requiredMemberUids = null)
         {
             if (!EnsureApiClients())
                 return "";
@@ -478,7 +506,10 @@ namespace NetClient.Room.UI
                 title = string.IsNullOrWhiteSpace(title) ? "New Room" : title,
                 mapId = mapId,
                 maxPlayers = maxPlayers,
-                useP2PRelay = relayMode
+                useP2PRelay = relayMode,
+                requiredMemberUids = requiredMemberUids != null
+                    ? requiredMemberUids.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+                    : null
             };
 
             string createdId = "";
@@ -502,6 +533,7 @@ namespace NetClient.Room.UI
                 SetStatus($"Created: {createdId}");
                 UI_Refresh();
                 await JoinRoomAsync(createdId, showUi);
+                SetRequiredStartMembers(req.requiredMemberUids);
             });
 
             return createdId;
@@ -606,6 +638,7 @@ namespace NetClient.Room.UI
                 _memberViews.Clear();
                 _uidToName.Clear();
                 _memberReady.Clear();
+                SetRequiredStartMembers(room.requiredMemberUids);
 
                 if (room.memberTransport != null)
                 {
@@ -802,6 +835,27 @@ namespace NetClient.Room.UI
             if (_memberReady.Count <= 0 || string.IsNullOrWhiteSpace(_currentOwnerUid))
                 return 0;
 
+            if (_requiredStartMemberUids.Count > 0)
+            {
+                int requiredCount = 0;
+                foreach (var uid in _requiredStartMemberUids)
+                {
+                    if (string.Equals(uid, _currentOwnerUid, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    if (!doneOnly)
+                    {
+                        requiredCount++;
+                        continue;
+                    }
+
+                    if (_memberReady.TryGetValue(uid, out var ready) && ready)
+                        requiredCount++;
+                }
+
+                return requiredCount;
+            }
+
             int count = 0;
             foreach (var pair in _memberReady)
             {
@@ -813,6 +867,35 @@ namespace NetClient.Room.UI
             }
 
             return count;
+        }
+
+        bool AreRequiredStartMembersPresent()
+        {
+            if (_requiredStartMemberUids.Count <= 0)
+                return true;
+
+            foreach (var uid in _requiredStartMemberUids)
+            {
+                if (!_memberReady.ContainsKey(uid))
+                    return false;
+            }
+
+            return true;
+        }
+
+        int CountMissingRequiredStartMembers()
+        {
+            if (_requiredStartMemberUids.Count <= 0)
+                return 0;
+
+            int missing = 0;
+            foreach (var uid in _requiredStartMemberUids)
+            {
+                if (!_memberReady.ContainsKey(uid))
+                    missing++;
+            }
+
+            return missing;
         }
 
         string BuildReadySummaryText()
@@ -828,6 +911,9 @@ namespace NetClient.Room.UI
             var gate = IsLocalRoomOwner
                 ? (AllReadyForStart ? "시작 가능" : "참가자 준비 대기")
                 : (AllReadyForStart ? "Host 시작 대기" : "준비 진행 중");
+            var missing = CountMissingRequiredStartMembers();
+            if (missing > 0)
+                gate = $"참가자 입장 대기 {missing}명";
 
             if (IsLocalRoomOwner && target == 0)
                 gate = "Solo 시작 가능";
