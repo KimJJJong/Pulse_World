@@ -23,6 +23,7 @@ public class WaitingRoomDto
     public long HostSelectionUpdatedAtMs { get; set; }
     public List<string> HostCandidateOrder { get; set; } = new();
     public List<WaitingRoomHostSelectionCandidateDto> HostSelectionCandidates { get; set; } = new();
+    public string SourceTownRoomId { get; set; } = "";
     public List<string> RequiredMemberUids { get; set; } = new();
     public List<string> MemberUids { get; set; } = new();
     public Dictionary<string, bool> MemberReady { get; set; } = new();
@@ -109,7 +110,8 @@ public sealed class WaitingRoomService
         string ownerUid,
         string ownerName,
         bool useP2PRelay = false,
-        IReadOnlyList<string>? requiredMemberUids = null)
+        IReadOnlyList<string>? requiredMemberUids = null,
+        string sourceTownRoomId = "")
     {
         var roomId = Guid.NewGuid().ToString("N")[..8];
         var key = _redis.KeyWaitingRoom(roomId);
@@ -130,6 +132,7 @@ public sealed class WaitingRoomService
             new("preferredHostUid", ownerUid),
             new("hostEpoch", 0),
             new("hostSelectionEpoch", 0),
+            new("sourceTownRoomId", sourceTownRoomId ?? ""),
             new("requiredMemberUids", JsonSerializer.Serialize(requiredMembers, JsonOptions)),
             new("createdAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
         };
@@ -346,6 +349,7 @@ public sealed class WaitingRoomService
             PreferredHostUid = dict.GetValueOrDefault("preferredHostUid") ?? "",
             HostEpoch = int.TryParse(dict.GetValueOrDefault("hostEpoch") ?? "0", out var hostEpoch) ? hostEpoch : 0,
             HostSelectionEpoch = int.TryParse(dict.GetValueOrDefault("hostSelectionEpoch") ?? "0", out var selectionEpoch) ? selectionEpoch : 0,
+            SourceTownRoomId = dict.GetValueOrDefault("sourceTownRoomId") ?? "",
             RequiredMemberUids = DeserializeRequiredMemberUids(dict.GetValueOrDefault("requiredMemberUids") ?? ""),
             MemberUids = new List<string>(),
             MemberReady = new Dictionary<string, bool>(),

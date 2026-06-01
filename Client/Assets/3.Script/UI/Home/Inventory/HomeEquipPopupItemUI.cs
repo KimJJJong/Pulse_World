@@ -177,6 +177,19 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         if (_btn == null)
             _btn = GetComponent<Button>() ?? GetComponentInChildren<Button>(true);
 
+        if (_btn != null)
+        {
+            var graphic = GetComponent<Graphic>();
+            if (_btn.targetGraphic == null && graphic != null)
+                _btn.targetGraphic = graphic;
+
+            if (_btn.targetGraphic != null)
+                _btn.targetGraphic.raycastTarget = true;
+
+            _btn.enabled = true;
+            _btn.interactable = true;
+        }
+
         if (_equippedMark == null)
             _equippedMark = FindGameObject("EquippedMark", "Equipped", "Mark");
 

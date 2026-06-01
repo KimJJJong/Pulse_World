@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NetClient.Room.UI;
+using RhythmRPG.Game.Visual.SceneEffects;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -57,6 +58,7 @@ public static class TownSceneUiBuilder
         EnsureRoomUiRoot(apiProvider);
         EnsureTownExpeditionOverlay();
         DisableTownCombatRhythmHud();
+        ConfigureTownLightPulses();
         InventoryUIBuilder.CreateTownInventoryMenu();
         ConfigureTownInventory();
         var scene = EditorSceneManager.GetActiveScene();
@@ -211,6 +213,19 @@ public static class TownSceneUiBuilder
 
         target.SetActive(active);
         EditorUtility.SetDirty(target);
+    }
+
+    private static void ConfigureTownLightPulses()
+    {
+        foreach (var pulse in Object.FindObjectsByType<ForestBeatLightPulse>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (pulse == null || !pulse.gameObject.scene.IsValid() || !pulse.gameObject.scene.isLoaded)
+                continue;
+
+            pulse.ConfigureTiming(TownLightPulseProfile.UseRhythmClient, TownLightPulseProfile.Bpm);
+            EditorUtility.SetDirty(pulse);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(pulse);
+        }
     }
 
     private static PartySlotBuildBinding[] BuildLeftPartyHud(RectTransform root)

@@ -19,6 +19,7 @@ public class TownInventoryUI : MonoBehaviour
     [Header("Filters")]
     [SerializeField] private TMP_Dropdown _sortDropdown;
     [SerializeField] private Button[] _categoryButtons; // 0=All, 1=Equip, ...
+    [SerializeField] private bool _handleHotkey = true;
     [SerializeField] private bool _logRefresh;
 
     private Category _currentCategory = Category.All;
@@ -76,6 +77,9 @@ public class TownInventoryUI : MonoBehaviour
 
     private void Update()
     {
+        if (!_handleHotkey || IsHotkeyOwnedByTownPanel())
+            return;
+
         if (Input.GetKeyDown(KeyCode.I))
         {
             ToggleInventory();
@@ -197,6 +201,12 @@ public class TownInventoryUI : MonoBehaviour
         }
 
         return null;
+    }
+
+    private static bool IsHotkeyOwnedByTownPanel()
+    {
+        var panel = FindSceneObject<TownExpeditionPanel>();
+        return panel != null && panel.isActiveAndEnabled;
     }
 
     private void OnDestroy()

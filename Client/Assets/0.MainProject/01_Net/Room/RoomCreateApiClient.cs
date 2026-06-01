@@ -29,6 +29,7 @@ namespace NetClient.Room
             public string title;      
             public bool useP2PRelay = true;
             public List<string> requiredMemberUids;
+            public string sourceTownRoomId;
         }
 
         [Serializable]

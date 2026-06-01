@@ -395,7 +395,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (_title != null)
         {
             var titleRect = _title.rectTransform;
-            SetTopLeftRect(titleRect, new Rect(108f, 44f, 270f, 32f));
+            SetTopLeftRect(titleRect, new Rect(118f, 54f, 270f, 30f));
             _title.alignment = TextAlignmentOptions.MidlineLeft;
             _title.color = ResourceParchmentText;
         }
@@ -407,22 +407,22 @@ public class HomeEquipPopupUI : MonoBehaviour
                 SetTopLeftRect(closeRect, new Rect(1120f, 14f, 148f, 48f));
         }
 
-        SetTopLeftRect(_leftPanel, new Rect(28f, 94f, 350f, 520f));
+        SetTopLeftRect(_leftPanel, new Rect(34f, 108f, 344f, 500f));
         SetTopLeftRect(_rightPanel, new Rect(895f, 80f, 356f, 568f));
 
         if (_leftHeaderRoot != null)
-            SetTopLeftRect(_leftHeaderRoot, new Rect(0f, 0f, 350f, 62f));
+            SetTopLeftRect(_leftHeaderRoot, new Rect(12f, 8f, 316f, 58f));
 
         if (_leftBodyRoot != null)
-            SetTopLeftRect(_leftBodyRoot, new Rect(0f, 66f, 350f, 444f));
+            SetTopLeftRect(_leftBodyRoot, new Rect(10f, 74f, 324f, 410f));
 
-        SetTextRect(_ownedItemsTitle, new Rect(0f, 0f, 156f, 24f), 17, TextAnchor.MiddleLeft, ResourceParchmentText);
-        SetTextRect(_slotLabel, new Rect(0f, 28f, 132f, 18f), 12, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
-        SetTextRect(_itemCountLabel, new Rect(198f, 28f, 112f, 18f), 12, TextAnchor.MiddleRight, ResourceParchmentMutedText);
+        SetTextRect(_ownedItemsTitle, new Rect(0f, 0f, 156f, 24f), 16, TextAnchor.MiddleLeft, ResourceParchmentText);
+        SetTextRect(_slotLabel, new Rect(0f, 27f, 132f, 18f), 12, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
+        SetTextRect(_itemCountLabel, new Rect(188f, 27f, 112f, 18f), 12, TextAnchor.MiddleRight, ResourceParchmentMutedText);
 
         if (_listViewport != null)
         {
-            SetTopLeftRect(_listViewport, new Rect(0f, 0f, 350f, 438f));
+            SetTopLeftRect(_listViewport, new Rect(0f, 0f, 324f, 406f));
 
             var scrollImage = _listViewport.GetComponent<Image>();
             if (scrollImage != null)
@@ -438,8 +438,8 @@ public class HomeEquipPopupUI : MonoBehaviour
             _listContent.anchorMin = new Vector2(0f, 1f);
             _listContent.anchorMax = new Vector2(0f, 1f);
             _listContent.pivot = new Vector2(0f, 1f);
-            _listContent.anchoredPosition = new Vector2(12f, -12f);
-            _listContent.sizeDelta = new Vector2(326f, 0f);
+            _listContent.anchoredPosition = new Vector2(10f, -10f);
+            _listContent.sizeDelta = new Vector2(304f, 0f);
 
             ConfigureEquipmentGrid();
         }
@@ -463,7 +463,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         }
 
         if (_rightFooterRoot != null)
-            SetTopLeftRect(_rightFooterRoot, new Rect(0f, 488f, 356f, 74f));
+            SetTopLeftRect(_rightFooterRoot, new Rect(0f, 566f, 356f, 64f));
 
         SetTextRect(FindText("DetailTitle"), new Rect(0f, 0f, 150f, 24f), 17, TextAnchor.MiddleLeft, ResourceParchmentText);
 
@@ -483,13 +483,13 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (_detailDescription != null)
             SetTextRect(_detailDescription, new Rect(18f, 142f, 318f, 260f), 12, TextAnchor.UpperLeft, ResourceParchmentMutedText);
 
-        SetTextRect(_detailStatus, new Rect(18f, 8f, 170f, 38f), 12, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
+        SetTextRect(_detailStatus, new Rect(18f, -54f, 300f, 42f), 12, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
 
         if (_actionButton != null)
         {
             var actionRect = _actionButton.GetComponent<RectTransform>();
             if (actionRect != null)
-                SetTopLeftRect(actionRect, new Rect(4f, 8f, 160f, 56f));
+                SetTopLeftRect(actionRect, new Rect(4f, 0f, 160f, 56f));
 
             var buttonImage = _actionButton.GetComponent<Image>();
             if (buttonImage != null)
@@ -604,7 +604,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         var dimObject = FindGameObject("DimOverlay") ?? FindGameObject("SceneDim");
         var dim = dimObject != null ? dimObject.GetComponent<Image>() : null;
         if (dim != null)
-            dim.raycastTarget = true;
+            dim.raycastTarget = dim.color.a > 0.01f;
 
         var blockers = new[] { _contentRect, _browserRoot };
         foreach (var blocker in blockers)
@@ -896,7 +896,7 @@ public class HomeEquipPopupUI : MonoBehaviour
 
         int rows = Mathf.Max(1, Mathf.CeilToInt(itemCount / (float)columns));
         float height = rows * cellHeight + Mathf.Max(0, rows - 1) * gapY;
-        _listContent.sizeDelta = new Vector2(326f, height);
+        _listContent.sizeDelta = new Vector2(304f, height);
     }
 
     private void RefreshDetailPanel()

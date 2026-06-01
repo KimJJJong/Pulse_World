@@ -1,5 +1,6 @@
 using ApiServer.Application.Ports;
 using ApiServer.Domain.GameMatch;
+using ApiServer.Domain.Town;
 using ApiServer.Domain.WaitingRoom;
 using System.Net.WebSockets;
 using System.Text;
@@ -11,6 +12,7 @@ public sealed class RoomWebSocketHandler
 {
     private readonly IControlPlanePort _cp;
     private readonly GameMatchService _gameMatch;
+    private readonly TownRoomService _townRooms;
     private readonly WaitingRoomService _waitingRoom;
     private readonly ConnectionManager _conns;
     private readonly ILogger<RoomWebSocketHandler> _logger;
@@ -18,12 +20,14 @@ public sealed class RoomWebSocketHandler
     public RoomWebSocketHandler(
         IControlPlanePort cp,
         GameMatchService gameMatch,
+        TownRoomService townRooms,
         WaitingRoomService waitingRoom,
         ConnectionManager conns,
         ILogger<RoomWebSocketHandler> logger)
     {
         _cp = cp;
         _gameMatch = gameMatch;
+        _townRooms = townRooms;
         _waitingRoom = waitingRoom;
         _conns = conns;
         _logger = logger;
@@ -121,6 +125,7 @@ public sealed class RoomWebSocketHandler
                     p95FrameMs = x.P95FrameMs,
                     disqualifiedReasons = x.DisqualifiedReasons
                 }).ToList(),
+                sourceTownRoomId = room.SourceTownRoomId,
                 requiredMemberUids = room.RequiredMemberUids,
                 memberUids = room.MemberUids,
                 memberReady = room.MemberReady.Select(kv => new { uid = kv.Key, ready = kv.Value }).ToList(),
@@ -357,15 +362,14 @@ public sealed class RoomWebSocketHandler
                         throw new Exception("Only owner can start");
 
                     // 2. Ready Check
-                    _logger.LogInformation("Start Check Room={roomId} Owner={owner} Members={members} Ready={ready}", 
-                        roomId, 
-                        room.OwnerUid, 
-                        string.Join(",", room.MemberUids), 
+                    var requiredMemberUids = await ResolveRequiredMemberUidsForStartAsync(room);
+                    _logger.LogInformation("Start Check Room={roomId} Owner={owner} Members={members} Required={required} Ready={ready}",
+                        roomId,
+                        room.OwnerUid,
+                        string.Join(",", room.MemberUids),
+                        string.Join(",", requiredMemberUids),
                         string.Join(",", room.MemberReady.Select(kv => $"{kv.Key}:{kv.Value}")));
 
-                    var requiredMemberUids = room.RequiredMemberUids.Count > 0
-                        ? room.RequiredMemberUids
-                        : room.MemberUids;
                     var joinedMembers = new HashSet<string>(room.MemberUids, StringComparer.OrdinalIgnoreCase);
                     var missingRequiredMembers = requiredMemberUids
                         .Where(m => !joinedMembers.Contains(m))
@@ -478,6 +482,54 @@ public sealed class RoomWebSocketHandler
         {
              _logger.LogError(ex, "Msg Process Fail");
         }
+    }
+
+    private async Task<List<string>> ResolveRequiredMemberUidsForStartAsync(WaitingRoomDto room)
+    {
+        if (room == null)
+            return new List<string>();
+
+        if (string.IsNullOrWhiteSpace(room.SourceTownRoomId))
+        {
+            var configuredMembers = room.RequiredMemberUids.Count > 0
+                ? room.RequiredMemberUids
+                : room.MemberUids;
+            return NormalizeRequiredStartMembers(configuredMembers, room.OwnerUid);
+        }
+
+        var townRoom = await _townRooms.GetAsync(room.SourceTownRoomId);
+        if (townRoom == null)
+            throw new Exception("Town Room 정보를 찾을 수 없습니다.");
+
+        if (!string.Equals(townRoom.OwnerUid, room.OwnerUid, StringComparison.OrdinalIgnoreCase))
+            throw new Exception("Town Host와 Game 대기방 Host가 일치하지 않습니다.");
+
+        if (!string.Equals(townRoom.ActiveGameRoomId, room.RoomId, StringComparison.OrdinalIgnoreCase))
+            throw new Exception("Town에 공유된 Game 대기방이 아닙니다.");
+
+        return NormalizeRequiredStartMembers(
+            townRoom.Participants.Select(x => x.Uid),
+            room.OwnerUid);
+    }
+
+    private static List<string> NormalizeRequiredStartMembers(IEnumerable<string>? uids, string ownerUid)
+    {
+        var result = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (!string.IsNullOrWhiteSpace(ownerUid) && seen.Add(ownerUid))
+            result.Add(ownerUid);
+
+        if (uids == null)
+            return result;
+
+        foreach (var uid in uids)
+        {
+            if (!string.IsNullOrWhiteSpace(uid) && seen.Add(uid))
+                result.Add(uid);
+        }
+
+        return result;
     }
 
     private async Task CloseAsync(WebSocket ws, string reason)

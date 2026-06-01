@@ -92,6 +92,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     [SerializeField] private Button _hostStartGameButton;
     [SerializeField] private Button _hostCancelGameButton;
     [SerializeField] private Button _partyManageButton;
+    [SerializeField] private TownHomeUiController _homeUiController;
 
     [Header("Game Options")]
     [SerializeField] private string[] _gameMapIds =
@@ -202,7 +203,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.I))
-            ToggleInventory();
+            ToggleHomeUiOrInventory();
 
         if (Input.GetKeyDown(KeyCode.G))
             ShowGameSelectWindow(true);
@@ -262,30 +263,30 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
     }
 
-    private async Task RefreshTownRoomAsync()
+    private async Task<bool> RefreshTownRoomAsync()
     {
         _townApi ??= AppBootstrap.Instance?.Root?.TownRoomApi;
         if (_townApi == null)
         {
             UpdateView("Town API 준비 중...");
-            return;
+            return false;
         }
 
         _townRoomId = ResolveTownRoomId();
         if (string.IsNullOrWhiteSpace(_townRoomId))
         {
             UpdateView("Town Room 정보를 기다리는 중...");
-            return;
+            return false;
         }
 
         var result = await _townApi.GetAsync(_townRoomId);
         if (!this)
-            return;
+            return false;
 
         if (!result.Ok || result.Data == null)
         {
             UpdateView($"Town Room 조회 실패 ({result.StatusCode})");
-            return;
+            return false;
         }
 
         _townRoom = result.Data;
@@ -293,6 +294,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _selectedGameMapIndex = ResolveMapIndex(_townRoom.activeGameMapId);
 
         UpdateView();
+        return true;
     }
 
     private void BindButtons()
@@ -497,7 +499,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
                                                 && !_creatingGameRoom
                                                 && !_startingGameRoom
                                                 && !_cancelingGameRoom
-                                                && (!hasActiveGame || hasReadySnapshot);
+                                                && (!hasActiveGame || (hasReadySnapshot && !hasStartBlocker));
             var startLabel = !hasActiveGame ? "대기방 생성" : (hasStartBlocker ? "준비 대기" : "시작");
             if (_creatingGameRoom || _startingGameRoom)
                 startLabel = "처리 중";
@@ -796,7 +798,9 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         if (_creatingGameRoom)
             return "";
 
-        _townRoomId = ResolveTownRoomId();
+        if (!await RefreshTownRoomAsync())
+            return "";
+
         if (string.IsNullOrWhiteSpace(_townRoomId) || !IsTownHost(_townRoom))
         {
             ShowGameSelectWindow(false);
@@ -813,6 +817,13 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
         var mapId = GetMapId(_selectedGameMapIndex);
         var title = GetMapTitle(_selectedGameMapIndex);
+        var existingActiveGameRoomId = _townRoom?.activeGameRoomId ?? "";
+        if (!string.IsNullOrWhiteSpace(existingActiveGameRoomId))
+        {
+            UpdateView("이미 열린 Game 대기방이 있습니다.");
+            return existingActiveGameRoomId;
+        }
+
         _creatingGameRoom = true;
         UpdateView("Game 대기방 생성 중...");
 
@@ -824,9 +835,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
             var requiredMemberUids = GetTownParticipantUids();
             ConfigureTownRequiredStartMembers(roomUi, requiredMemberUids);
-            var maxPlayers = Mathf.Clamp(requiredMemberUids.Count > 0
-                ? requiredMemberUids.Count
-                : (_townRoom != null && _townRoom.maxPlayers > 0 ? _townRoom.maxPlayers : 4), 1, 50);
+            var townMaxPlayers = _townRoom != null && _townRoom.maxPlayers > 0 ? _townRoom.maxPlayers : 4;
+            var maxPlayers = Mathf.Clamp(Mathf.Max(townMaxPlayers, requiredMemberUids.Count), 1, 50);
             var roomId = await roomUi.CreateAndJoinRoomAsync(
                 "",
                 title,
@@ -834,7 +844,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
                 maxPlayers,
                 relayMode: true,
                 showUi: showRoomUi,
-                requiredMemberUids: requiredMemberUids);
+                requiredMemberUids: requiredMemberUids,
+                sourceTownRoomId: _townRoomId);
             if (!this)
                 return "";
 
@@ -936,6 +947,9 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
         try
         {
+            if (!await RefreshTownRoomAsync())
+                return;
+
             var activeGameRoomId = _townRoom?.activeGameRoomId ?? "";
             if (string.IsNullOrWhiteSpace(activeGameRoomId))
             {
@@ -1037,6 +1051,21 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
 
         inventory.ToggleInventory();
+    }
+
+    private void ToggleHomeUiOrInventory()
+    {
+        BindSceneReferencesIfNeeded();
+        if (_homeUiController != null)
+        {
+            if (_homeUiController.ConsumedToggleThisFrame)
+                return;
+
+            _homeUiController.ToggleHomeUi();
+            return;
+        }
+
+        ToggleInventory();
     }
 
     private void CopyInviteCode()
@@ -1335,6 +1364,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _hostCancelGameButton = FindChild<Button>("HostCancelGameButton");
         if (_partyManageButton == null)
             _partyManageButton = FindChild<Button>("PartyManageButton");
+        if (_homeUiController == null)
+            _homeUiController = FindSceneObject<TownHomeUiController>();
 
         ApplyFontToChildren();
 
@@ -1538,6 +1569,9 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
     private async Task ConfirmSelectedMapSelectionAsync()
     {
+        if (!await RefreshTownRoomAsync())
+            return;
+
         if (!IsTownHost(_townRoom))
         {
             UpdateView("Host만 맵을 변경할 수 있습니다.");

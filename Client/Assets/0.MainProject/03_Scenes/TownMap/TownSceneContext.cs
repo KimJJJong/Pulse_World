@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using RhythmRPG.Game.Visual.SceneEffects;
 using UnityEngine;
 
 public sealed class TownSceneContext : BaseSceneContext
@@ -17,6 +18,7 @@ public sealed class TownSceneContext : BaseSceneContext
     {
         TownExpeditionPanel.EnsureInScene();
         HideTownCombatRhythmHud();
+        ConfigureTownLightPulses();
         TryApplyInitMapIfAlreadyReceived();
     }
 
@@ -54,6 +56,17 @@ public sealed class TownSceneContext : BaseSceneContext
             return;
 
         target.SetActive(active);
+    }
+
+    private static void ConfigureTownLightPulses()
+    {
+        foreach (var pulse in FindObjectsByType<ForestBeatLightPulse>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (pulse == null || !pulse.gameObject.scene.IsValid() || !pulse.gameObject.scene.isLoaded)
+                continue;
+
+            pulse.ConfigureTiming(TownLightPulseProfile.UseRhythmClient, TownLightPulseProfile.Bpm);
+        }
     }
 
     public void OnInitMap(SC_InitMap p) => ApplyInitMapOnce(p);

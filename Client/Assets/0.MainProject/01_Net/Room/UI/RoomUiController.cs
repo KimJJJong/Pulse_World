@@ -483,7 +483,8 @@ namespace NetClient.Room.UI
             int maxPlayers,
             bool relayMode,
             bool showUi = true,
-            IReadOnlyList<string> requiredMemberUids = null)
+            IReadOnlyList<string> requiredMemberUids = null,
+            string sourceTownRoomId = "")
         {
             if (!EnsureApiClients())
                 return "";
@@ -509,7 +510,8 @@ namespace NetClient.Room.UI
                 useP2PRelay = relayMode,
                 requiredMemberUids = requiredMemberUids != null
                     ? requiredMemberUids.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
-                    : null
+                    : null,
+                sourceTownRoomId = sourceTownRoomId ?? ""
             };
 
             string createdId = "";

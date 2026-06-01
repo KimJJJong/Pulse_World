@@ -93,6 +93,17 @@ namespace RhythmRPG.Visual
             }
         }
 
+        public void RefreshLocalPlayerEquipmentNow()
+        {
+            if (!_isLocalPlayer)
+            {
+                SetLocalPlayer(true);
+                return;
+            }
+
+            RefreshFromInventory();
+        }
+
         private void RefreshFromInventory()
         {
             if (!_isLocalPlayer) return;

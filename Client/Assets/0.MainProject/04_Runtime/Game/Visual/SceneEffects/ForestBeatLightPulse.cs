@@ -40,6 +40,8 @@ namespace RhythmRPG.Game.Visual.SceneEffects
         public int LightTargetCount => targetLights?.Length ?? 0;
         public int RendererTargetCount => targetRenderers?.Length ?? 0;
         public int ParticleTargetCount => targetParticles?.Length ?? 0;
+        public bool UseRhythmClient => useRhythmClient;
+        public float FallbackBpm => fallbackBpm;
 
         public void Configure(
             Light[] lights,
@@ -111,6 +113,12 @@ namespace RhythmRPG.Game.Visual.SceneEffects
             targetRenderers = renderers.ToArray();
             targetParticles = particles.ToArray();
             RebuildCaches();
+        }
+
+        public void ConfigureTiming(bool rhythmClientEnabled, float bpm)
+        {
+            useRhythmClient = rhythmClientEnabled;
+            fallbackBpm = Mathf.Max(1f, bpm);
         }
 
         private void Reset()

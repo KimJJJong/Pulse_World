@@ -867,6 +867,7 @@ public static class TownForestSceneSetup
             lightBase: lightBase,
             rendererBase: rendererBase,
             particleBase: particleBase);
+        pulse.ConfigureTiming(TownLightPulseProfile.UseRhythmClient, TownLightPulseProfile.Bpm);
         EditorUtility.SetDirty(pulse);
     }
 

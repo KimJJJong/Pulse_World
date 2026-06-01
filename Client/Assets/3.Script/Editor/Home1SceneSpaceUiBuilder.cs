@@ -8,11 +8,17 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public static class Home1SceneSpaceUiBuilder
 {
     private const string ScenePath = "Assets/0.MainProject/Scenes/Home 1.unity";
+    private const string TownMapScenePath = "Assets/0.MainProject/Scenes/Town/TownMap.unity";
+    private const string TownForestScenePath = "Assets/0.MainProject/Scenes/Town/Town_Forest.unity";
+    private const string TownHomeControllerName = "TownHomeUiController";
+    private const string TownHomeOverlayCanvasName = "Canvas_TownHomeOverlay";
+    private const int TownHomeOverlaySortingOrder = 30000;
     private const string UiResourceSource = "../Resource/UI";
     private const string UiResourceTarget = "Assets/Resources/UI";
     private const string NanumGothicFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/NanumGothic SDF.asset";
@@ -42,44 +48,9 @@ public static class Home1SceneSpaceUiBuilder
         var cameraDirector = canvas.gameObject.AddComponent<HomeSceneCameraDirector>();
         ConfigureCameraDirector(cameraDirector, camera);
 
-        var homeRoot = CreatePageRoot(canvas.transform, "UI_Home_Interface", true);
-        var equipmentRoot = CreatePageRoot(canvas.transform, "UI_Home_Equipment", false);
-        var inventoryRoot = CreatePageRoot(canvas.transform, "UI_Home_Inventory", false);
-        var appearanceRoot = CreatePageRoot(canvas.transform, "UI_Home_Appearance", false);
-        var mapRoot = CreatePageRoot(canvas.transform, "UI_Home_Map", false);
-        var detailRoot = CreatePageRoot(canvas.transform, "UI_Home_Equipment_Detail", false);
-
-        var homeButtons = BuildHomeInterface(homeRoot);
-        var equipmentBack = BuildEquipmentScreen(equipmentRoot, detailRoot, out var inventoryUi);
-        var inventoryBack = BuildInventoryScreen(inventoryRoot);
-        var appearanceBack = BuildAppearanceScreen(appearanceRoot);
-        var mapBack = BuildMapScreen(mapRoot);
-        BuildDetailScreen(detailRoot);
-
-        var navigator = canvas.gameObject.AddComponent<HomeUiPageNavigator>();
-        var navigatorSo = new SerializedObject(navigator);
-        navigatorSo.FindProperty("_homeRoot").objectReferenceValue = homeRoot.gameObject;
-        navigatorSo.FindProperty("_equipmentRoot").objectReferenceValue = equipmentRoot.gameObject;
-        navigatorSo.FindProperty("_inventoryRoot").objectReferenceValue = inventoryRoot.gameObject;
-        navigatorSo.FindProperty("_appearanceRoot").objectReferenceValue = appearanceRoot.gameObject;
-        navigatorSo.FindProperty("_mapRoot").objectReferenceValue = mapRoot.gameObject;
-        navigatorSo.FindProperty("_detailRoot").objectReferenceValue = detailRoot.gameObject;
-        navigatorSo.FindProperty("_equipmentButton").objectReferenceValue = homeButtons.Equipment;
-        navigatorSo.FindProperty("_inventoryButton").objectReferenceValue = homeButtons.Inventory;
-        navigatorSo.FindProperty("_appearanceButton").objectReferenceValue = homeButtons.Appearance;
-        navigatorSo.FindProperty("_mapButton").objectReferenceValue = homeButtons.Map;
-        navigatorSo.FindProperty("_equipmentBackButton").objectReferenceValue = equipmentBack;
-        navigatorSo.FindProperty("_cameraDirector").objectReferenceValue = cameraDirector;
-
-        var homeButtonsProperty = navigatorSo.FindProperty("_homeButtons");
-        homeButtonsProperty.arraySize = 3;
-        homeButtonsProperty.GetArrayElementAtIndex(0).objectReferenceValue = inventoryBack;
-        homeButtonsProperty.GetArrayElementAtIndex(1).objectReferenceValue = appearanceBack;
-        homeButtonsProperty.GetArrayElementAtIndex(2).objectReferenceValue = mapBack;
-        navigatorSo.ApplyModifiedPropertiesWithoutUndo();
-
-        if (inventoryUi != null)
-            EditorUtility.SetDirty(inventoryUi);
+        var built = BuildHomeOverlay(canvas.transform, cameraDirector);
+        if (built.InventoryUi != null)
+            EditorUtility.SetDirty(built.InventoryUi);
 
         EnsureAppearancePreviewController();
 
@@ -87,6 +58,58 @@ public static class Home1SceneSpaceUiBuilder
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
         Debug.Log("[Home1SceneSpaceUiBuilder] Rebuilt Home 1 with Screen Space Overlay resource UI.");
+    }
+
+    [MenuItem("RhythmRPG/Editors/UI/Ensure Town Home Overlay In Active Scene")]
+    public static void EnsureTownHomeOverlayInActiveScene()
+    {
+        EnsureUiResources();
+        var scene = EditorSceneManager.GetActiveScene();
+        EnsureTownHomeOverlay(scene);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log($"[Home1SceneSpaceUiBuilder] Ensured Town Home overlay in {scene.name}.");
+    }
+
+    [MenuItem("RhythmRPG/Editors/UI/Ensure Town Home Overlay In Town Scenes")]
+    public static void EnsureTownHomeOverlayInTownScenes()
+    {
+        EnsureUiResources();
+        var originalScenePath = EditorSceneManager.GetActiveScene().path;
+        var scenePaths = new[] { TownMapScenePath, TownForestScenePath };
+
+        foreach (var scenePath in scenePaths)
+        {
+            var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            EnsureTownHomeOverlay(scene);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+        }
+
+        if (!string.IsNullOrWhiteSpace(originalScenePath) && Array.IndexOf(scenePaths, originalScenePath) < 0)
+            EditorSceneManager.OpenScene(originalScenePath, OpenSceneMode.Single);
+
+        AssetDatabase.SaveAssets();
+        Debug.Log("[Home1SceneSpaceUiBuilder] Ensured Town Home overlays in TownMap and Town_Forest.");
+    }
+
+    [MenuItem("RhythmRPG/Editors/UI/Verify Town Home Overlay In Town Scenes")]
+    public static void VerifyTownHomeOverlayInTownScenes()
+    {
+        var originalScenePath = EditorSceneManager.GetActiveScene().path;
+        var scenePaths = new[] { TownMapScenePath, TownForestScenePath };
+
+        foreach (var scenePath in scenePaths)
+        {
+            var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            VerifyTownHomeOverlay(scene);
+        }
+
+        if (!string.IsNullOrWhiteSpace(originalScenePath) && Array.IndexOf(scenePaths, originalScenePath) < 0)
+            EditorSceneManager.OpenScene(originalScenePath, OpenSceneMode.Single);
+
+        Debug.Log("[Home1SceneSpaceUiBuilder] Town Home overlay verification passed in TownMap and Town_Forest.");
     }
 
     [MenuItem("RhythmRPG/Editors/UI/Verify Home1 Scene Space Flow")]
@@ -201,6 +224,10 @@ public static class Home1SceneSpaceUiBuilder
         Directory.CreateDirectory(targetRoot);
         foreach (var generatedExample in Directory.EnumerateFiles(targetRoot, "*example*.png", SearchOption.AllDirectories))
         {
+            var relativeGenerated = Path.GetRelativePath(targetRoot, generatedExample).Replace("\\", "/");
+            if (relativeGenerated.StartsWith("UI_Lodaing/", StringComparison.OrdinalIgnoreCase))
+                continue;
+
             File.Delete(generatedExample);
             var meta = $"{generatedExample}.meta";
             if (File.Exists(meta))
@@ -269,10 +296,26 @@ public static class Home1SceneSpaceUiBuilder
         eventSystemGo.transform.SetAsLastSibling();
     }
 
+    private static void EnsureEventSystemIfMissing()
+    {
+        if (UnityEngine.Object.FindObjectOfType<EventSystem>(true) != null)
+            return;
+
+        EnsureEventSystem();
+    }
+
     private static Canvas CreateOverlayCanvas()
     {
-        var canvasGo = new GameObject("Canvas_Home1_SceneSpace", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        return CreateOverlayCanvas("Canvas_Home1_SceneSpace", 100);
+    }
+
+    private static Canvas CreateOverlayCanvas(string name, int sortingOrder)
+    {
+        var canvasGo = new GameObject(name, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         var canvasRect = canvasGo.GetComponent<RectTransform>();
+        canvasRect.localPosition = Vector3.zero;
+        canvasRect.localRotation = Quaternion.identity;
+        canvasRect.localScale = Vector3.one;
         canvasRect.sizeDelta = LayoutSize;
         canvasRect.pivot = new Vector2(0.5f, 0.5f);
 
@@ -280,7 +323,7 @@ public static class Home1SceneSpaceUiBuilder
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.worldCamera = null;
         canvas.overrideSorting = true;
-        canvas.sortingOrder = 100;
+        canvas.sortingOrder = sortingOrder;
 
         var scaler = canvasGo.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -302,6 +345,220 @@ public static class Home1SceneSpaceUiBuilder
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
+    private static BuiltHomeOverlay BuildHomeOverlay(Transform parent, HomeSceneCameraDirector cameraDirector, bool isTownOverlay = false)
+    {
+        var homeRoot = CreatePageRoot(parent, "UI_Home_Interface", true);
+        var equipmentRoot = CreatePageRoot(parent, "UI_Home_Equipment", false);
+        var inventoryRoot = CreatePageRoot(parent, "UI_Home_Inventory", false);
+        var appearanceRoot = CreatePageRoot(parent, "UI_Home_Appearance", false);
+        var mapRoot = CreatePageRoot(parent, "UI_Home_Map", false);
+        var detailRoot = CreatePageRoot(parent, "UI_Home_Equipment_Detail", false);
+
+        var homeButtons = BuildHomeInterface(homeRoot, isTownOverlay);
+        var equipmentBack = BuildEquipmentScreen(equipmentRoot, detailRoot, out var inventoryUi, isTownOverlay);
+        var inventoryBack = BuildInventoryScreen(inventoryRoot, isTownOverlay);
+        var appearanceBack = BuildAppearanceScreen(appearanceRoot, isTownOverlay);
+        var mapBack = BuildMapScreen(mapRoot, isTownOverlay);
+        BuildDetailScreen(detailRoot, isTownOverlay);
+
+        var navigator = parent.gameObject.AddComponent<HomeUiPageNavigator>();
+        var navigatorSo = new SerializedObject(navigator);
+        navigatorSo.FindProperty("_homeRoot").objectReferenceValue = homeRoot.gameObject;
+        navigatorSo.FindProperty("_equipmentRoot").objectReferenceValue = equipmentRoot.gameObject;
+        navigatorSo.FindProperty("_inventoryRoot").objectReferenceValue = inventoryRoot.gameObject;
+        navigatorSo.FindProperty("_appearanceRoot").objectReferenceValue = appearanceRoot.gameObject;
+        navigatorSo.FindProperty("_mapRoot").objectReferenceValue = mapRoot.gameObject;
+        navigatorSo.FindProperty("_detailRoot").objectReferenceValue = detailRoot.gameObject;
+        navigatorSo.FindProperty("_equipmentButton").objectReferenceValue = homeButtons.Equipment;
+        navigatorSo.FindProperty("_inventoryButton").objectReferenceValue = homeButtons.Inventory;
+        navigatorSo.FindProperty("_appearanceButton").objectReferenceValue = homeButtons.Appearance;
+        navigatorSo.FindProperty("_mapButton").objectReferenceValue = homeButtons.Map;
+        navigatorSo.FindProperty("_equipmentBackButton").objectReferenceValue = equipmentBack;
+        navigatorSo.FindProperty("_cameraDirector").objectReferenceValue = cameraDirector;
+        navigatorSo.FindProperty("_forcedPresentationScreenLeftOffset").floatValue = isTownOverlay ? 0f : 1.65f;
+        navigatorSo.FindProperty("_appearancePresentationScreenLeftOffset").floatValue = isTownOverlay ? 2.35f : 1.65f;
+
+        var homeButtonsProperty = navigatorSo.FindProperty("_homeButtons");
+        homeButtonsProperty.arraySize = 3;
+        homeButtonsProperty.GetArrayElementAtIndex(0).objectReferenceValue = inventoryBack;
+        homeButtonsProperty.GetArrayElementAtIndex(1).objectReferenceValue = appearanceBack;
+        homeButtonsProperty.GetArrayElementAtIndex(2).objectReferenceValue = mapBack;
+        navigatorSo.ApplyModifiedPropertiesWithoutUndo();
+
+        return new BuiltHomeOverlay
+        {
+            Navigator = navigator,
+            InventoryUi = inventoryUi
+        };
+    }
+
+    private static void EnsureTownHomeOverlay(Scene scene)
+    {
+        if (!scene.IsValid())
+            throw new InvalidOperationException("Active scene is invalid.");
+
+        DestroySceneObject(scene, TownHomeControllerName);
+        DestroySceneObject(scene, TownHomeOverlayCanvasName);
+        EnsureEventSystemIfMissing();
+
+        var camera = EnsureMainCamera();
+        var controllerGo = new GameObject(TownHomeControllerName);
+        var cameraDirector = controllerGo.AddComponent<HomeSceneCameraDirector>();
+        ConfigureCameraDirector(cameraDirector, camera);
+        cameraDirector.enabled = false;
+
+        var directorSo = new SerializedObject(cameraDirector);
+        directorSo.FindProperty("_modelRoot").objectReferenceValue = null;
+        directorSo.FindProperty("_blendSpeed").floatValue = 2.7f;
+        directorSo.FindProperty("_modelScreenLeftOffset").floatValue = 0f;
+        directorSo.FindProperty("_appearanceDistance").floatValue = 5.2f;
+        directorSo.FindProperty("_appearanceHeightOffset").floatValue = 0.48f;
+        directorSo.FindProperty("_presentationCameraHeightOffset").floatValue = 0.65f;
+        directorSo.FindProperty("_useModelFacingForPresentation").boolValue = true;
+        directorSo.FindProperty("_invertModelFacingForPresentation").boolValue = true;
+        directorSo.FindProperty("_useCurrentCameraOppositeForPresentation").boolValue = true;
+        directorSo.FindProperty("_useStagedPresentationEnter").boolValue = true;
+        directorSo.FindProperty("_entryApproachDuration").floatValue = 0.32f;
+        directorSo.FindProperty("_entryRotateDuration").floatValue = 0.78f;
+        directorSo.FindProperty("_entryApproachDistanceMultiplier").floatValue = 0.78f;
+        directorSo.ApplyModifiedPropertiesWithoutUndo();
+
+        var canvas = CreateOverlayCanvas(TownHomeOverlayCanvasName, TownHomeOverlaySortingOrder);
+        var uiLayer = LayerMask.NameToLayer("UI");
+        if (uiLayer >= 0)
+            canvas.gameObject.layer = uiLayer;
+
+        var built = BuildHomeOverlay(canvas.transform, cameraDirector, true);
+        var controller = controllerGo.AddComponent<TownHomeUiController>();
+        var controllerSo = new SerializedObject(controller);
+        controllerSo.FindProperty("_root").objectReferenceValue = canvas.gameObject;
+        controllerSo.FindProperty("_navigator").objectReferenceValue = built.Navigator;
+        controllerSo.FindProperty("_cameraDirector").objectReferenceValue = cameraDirector;
+        controllerSo.ApplyModifiedPropertiesWithoutUndo();
+
+        canvas.gameObject.SetActive(false);
+
+        EditorUtility.SetDirty(controllerGo);
+        EditorUtility.SetDirty(canvas.gameObject);
+        if (built.InventoryUi != null)
+            EditorUtility.SetDirty(built.InventoryUi);
+    }
+
+    private static void VerifyTownHomeOverlay(Scene scene)
+    {
+        Require(scene.IsValid(), "Town scene is invalid.");
+
+        var controllerGo = RequireSceneObject(TownHomeControllerName);
+        Require(controllerGo.scene == scene, $"{TownHomeControllerName} must live in {scene.name}.");
+        Require(controllerGo.activeSelf, $"{TownHomeControllerName} must stay active so the I hotkey can open the overlay.");
+        Require(controllerGo.GetComponent<TownHomeUiController>() != null, $"{TownHomeControllerName} is missing TownHomeUiController.");
+
+        var cameraDirector = controllerGo.GetComponent<HomeSceneCameraDirector>();
+        Require(cameraDirector != null, $"{TownHomeControllerName} is missing HomeSceneCameraDirector.");
+        Require(!cameraDirector.enabled, "Town Home camera director must be disabled by default so Town entry camera stays unchanged.");
+        var directorSo = new SerializedObject(cameraDirector);
+        Require(Mathf.Abs(directorSo.FindProperty("_blendSpeed").floatValue - 2.7f) <= 0.01f, "Town Home camera blend speed must stay smooth.");
+        Require(Mathf.Abs(directorSo.FindProperty("_modelScreenLeftOffset").floatValue) <= 0.01f, "Town Home camera must keep the character near center.");
+        Require(Mathf.Abs(directorSo.FindProperty("_appearanceHeightOffset").floatValue - 0.48f) <= 0.01f, "Town Home camera must keep the character vertically centered.");
+        Require(directorSo.FindProperty("_invertModelFacingForPresentation").boolValue, "Town Home camera fallback must face the character front.");
+        Require(directorSo.FindProperty("_useCurrentCameraOppositeForPresentation").boolValue, "Town Home camera must move to the front from the current Town camera pose.");
+        Require(directorSo.FindProperty("_useStagedPresentationEnter").boolValue, "Town Home camera must approach the character before rotating.");
+        Require(Mathf.Abs(directorSo.FindProperty("_entryApproachDuration").floatValue - 0.32f) <= 0.01f, "Town Home camera approach duration must stay readable.");
+        Require(Mathf.Abs(directorSo.FindProperty("_entryRotateDuration").floatValue - 0.78f) <= 0.01f, "Town Home camera rotation duration must stay comfortable.");
+        Require(Mathf.Abs(directorSo.FindProperty("_entryApproachDistanceMultiplier").floatValue - 0.78f) <= 0.01f, "Town Home camera approach distance must keep the character close before rotation.");
+
+        var overlayGo = RequireSceneObject(TownHomeOverlayCanvasName);
+        Require(overlayGo.scene == scene, $"{TownHomeOverlayCanvasName} must live in {scene.name}.");
+        Require(overlayGo.transform.parent == null, $"{TownHomeOverlayCanvasName} must be a scene-root canvas to keep its UI layout stable.");
+        Require(!overlayGo.activeSelf, $"{TownHomeOverlayCanvasName} must be inactive until I opens the Home overlay.");
+
+        var canvas = overlayGo.GetComponent<Canvas>();
+        Require(canvas != null, $"{TownHomeOverlayCanvasName} is missing Canvas.");
+        Require(canvas.renderMode == RenderMode.ScreenSpaceOverlay, $"{TownHomeOverlayCanvasName} must be Screen Space Overlay.");
+        Require(canvas.sortingOrder == TownHomeOverlaySortingOrder, $"{TownHomeOverlayCanvasName} sorting order must be {TownHomeOverlaySortingOrder}.");
+        Require(overlayGo.GetComponent<GraphicRaycaster>() != null, $"{TownHomeOverlayCanvasName} is missing GraphicRaycaster.");
+        var navigator = overlayGo.GetComponent<HomeUiPageNavigator>();
+        Require(navigator != null, $"{TownHomeOverlayCanvasName} is missing HomeUiPageNavigator.");
+        var navigatorSo = new SerializedObject(navigator);
+        Require(Mathf.Abs(navigatorSo.FindProperty("_forcedPresentationScreenLeftOffset").floatValue) <= 0.01f, "Town Home page camera offset must keep the character near center.");
+        Require(Mathf.Abs(navigatorSo.FindProperty("_appearancePresentationScreenLeftOffset").floatValue - 2.35f) <= 0.01f, "Town Appearance page camera offset must place the character on the left.");
+
+        var homeRoot = RequireSceneObject("UI_Home_Interface");
+        var equipmentRoot = RequireSceneObject("UI_Home_Equipment");
+        var appearanceRoot = RequireSceneObject("UI_Home_Appearance");
+        var mapRoot = RequireSceneObject("UI_Home_Map");
+        var detailRoot = RequireSceneObject("UI_Home_Equipment_Detail");
+        Require(homeRoot.transform.Find("OverlayDim") == null, "Town Home root must not show the Home dim panel.");
+        Require(homeRoot.transform.Find("HomeReference/NamePanel") == null, "Town Home root must not show the Arden profile panel.");
+        RequireComponent<HomeInventoryUI>("UI_Home_Equipment");
+        var equipPopup = RequireComponent<HomeEquipPopupUI>("UI_Home_Equipment_Detail");
+        RequireComponent<HomeAppearancePageUI>("UI_Home_Appearance");
+        RequireComponent<HomeMapRealmUI>("UI_Home_Map");
+
+        var detailDim = detailRoot.transform.Find("DimOverlay")?.GetComponent<Image>();
+        Require(detailDim != null, "Town equipment detail screen must include DimOverlay for Home parity.");
+        Require(detailDim.color.a <= 0.01f, "Town equipment detail DimOverlay must be invisible.");
+        Require(!detailDim.raycastTarget, "Town invisible DimOverlay must not block equipment item clicks.");
+
+        var itemPrefab = detailRoot.transform.Find("99_Prefabs/Prefab_PopupItem");
+        var itemButton = itemPrefab != null ? itemPrefab.GetComponent<Button>() : null;
+        Require(itemButton != null, "Town equipment popup item prefab must have a Button.");
+        Require(itemButton.enabled && itemButton.interactable, "Town equipment popup item Button must be clickable.");
+        Require(itemButton.targetGraphic != null && itemButton.targetGraphic.raycastTarget, "Town equipment popup item Button must have a raycast target.");
+
+        var equipSlots = equipmentRoot.GetComponentsInChildren<HomeEquipSlotUI>(true);
+        Require(equipSlots.Length >= 6, "Town Equipment page must expose all Home equipment slot buttons.");
+        foreach (var slot in equipSlots)
+        {
+            var button = slot != null ? slot.GetComponent<Button>() : null;
+            Require(button != null, $"{slot?.name ?? "Equipment slot"} is missing Button.");
+            Require(button.enabled && button.interactable, $"{slot.name} Button must be clickable.");
+            Require(button.targetGraphic != null && button.targetGraphic.raycastTarget, $"{slot.name} Button must have a raycast target.");
+        }
+
+        var wasOverlayActive = overlayGo.activeSelf;
+        try
+        {
+            overlayGo.SetActive(true);
+            navigator.ShowHome();
+            Require(homeRoot.activeSelf, "Town Home overlay should show Home root.");
+            navigator.ShowEquipment();
+            Require(equipmentRoot.activeSelf, "Town Home overlay should show Equipment root.");
+            equipPopup.Show(EquipmentSlot.Weapon);
+            Require(detailRoot.activeSelf, "Town Home overlay should open equipment popup.");
+            equipPopup.Hide();
+            navigator.ShowAppearance();
+            Require(appearanceRoot.activeSelf, "Town Home overlay should show Appearance root.");
+            navigator.ShowMap();
+            Require(mapRoot.activeSelf, "Town Home overlay should show Map root.");
+            navigator.ShowHome();
+        }
+        finally
+        {
+            if (equipPopup != null)
+                equipPopup.Hide();
+            overlayGo.SetActive(wasOverlayActive);
+        }
+
+        var mainCamera = Camera.main;
+        Require(mainCamera != null, $"{scene.name} is missing a Main Camera.");
+        var cameraFollow = mainCamera.GetComponent<CameraFollow>();
+        Require(cameraFollow != null, $"{scene.name} Main Camera is missing CameraFollow.");
+        Require(cameraFollow.enabled, $"{scene.name} CameraFollow must be enabled by default.");
+    }
+
+    private static void DestroySceneObject(Scene scene, string objectName)
+    {
+        var objects = Resources.FindObjectsOfTypeAll<GameObject>();
+        foreach (var go in objects)
+        {
+            if (go == null || go.scene != scene || go.name != objectName)
+                continue;
+
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+    }
+
     private static RectTransform CreatePageRoot(Transform parent, string name, bool active)
     {
         var go = new GameObject(name, typeof(RectTransform));
@@ -312,19 +569,24 @@ public static class Home1SceneSpaceUiBuilder
         return rect;
     }
 
-    private static HomeMenuButtons BuildHomeInterface(RectTransform root)
+    private static HomeMenuButtons BuildHomeInterface(RectTransform root, bool isTownOverlay = false)
     {
-        CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.78f));
+        if (!isTownOverlay)
+            CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.78f));
+
         var referenceSize = new Vector2(1093f, 820f);
         var reference = CreateDesignRoot(root, "HomeReference", referenceSize);
 
-        CreateTexture(reference, "NamePanel", "UI_Home_Interface/UI_Panel_NameSpace.png", new Rect(18f, 122f, 310f, 86f), referenceSize);
-        CreateTexture(reference, "NameDecoration", "UI_Home_Interface/UI_Decoration_NameSpace.png", new Rect(32f, 130f, 76f, 68f), referenceSize);
-        CreateText(reference, "ProfileName", "Arden", new Rect(120f, 138f, 170f, 24f), 23f, TextAlignmentOptions.MidlineLeft, ParchmentText, referenceSize);
-        CreateText(reference, "ProfileLevel", "Lv. 24", new Rect(120f, 170f, 86f, 17f), 14f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, referenceSize);
-        CreateText(reference, "ProfileExp", "2,480 / 4,500 XP", new Rect(214f, 170f, 100f, 17f), 12f, TextAlignmentOptions.MidlineRight, ParchmentMutedText, referenceSize);
-        var expFill = CreateSolid(reference, "ProfileExpFill", new Color(0f, 0.58f, 0.60f, 0.82f));
-        SetRectFromTopLeft(expFill.rectTransform, new Rect(120f, 190f, 120f, 5f), referenceSize);
+        if (!isTownOverlay)
+        {
+            CreateTexture(reference, "NamePanel", "UI_Home_Interface/UI_Panel_NameSpace.png", new Rect(18f, 122f, 310f, 86f), referenceSize);
+            CreateTexture(reference, "NameDecoration", "UI_Home_Interface/UI_Decoration_NameSpace.png", new Rect(32f, 130f, 76f, 68f), referenceSize);
+            CreateText(reference, "ProfileName", "Arden", new Rect(120f, 138f, 170f, 24f), 23f, TextAlignmentOptions.MidlineLeft, ParchmentText, referenceSize);
+            CreateText(reference, "ProfileLevel", "Lv. 24", new Rect(120f, 170f, 86f, 17f), 14f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, referenceSize);
+            CreateText(reference, "ProfileExp", "2,480 / 4,500 XP", new Rect(214f, 170f, 100f, 17f), 12f, TextAlignmentOptions.MidlineRight, ParchmentMutedText, referenceSize);
+            var expFill = CreateSolid(reference, "ProfileExpFill", new Color(0f, 0.58f, 0.60f, 0.82f));
+            SetRectFromTopLeft(expFill.rectTransform, new Rect(120f, 190f, 120f, 5f), referenceSize);
+        }
 
         var equipment = CreateHomeMenuCard(reference, "Button_Equipment", "UI_Home_Interface/UI_Decoration_Equipment.png", "EQUIPMENT", "Equip weapons, armor, and\naccessories.", "Manage Equipment", new Rect(88f, 242f, 300f, 176f), referenceSize);
         var inventory = CreateHomeMenuCard(reference, "Button_Inventory", "UI_Home_Interface/UI_Decoration_Inventory.png", "INVENTORY", "View items, materials,\nand useful goods.", "Open Inventory", new Rect(88f, 464f, 300f, 176f), referenceSize);
@@ -340,10 +602,12 @@ public static class Home1SceneSpaceUiBuilder
         };
     }
 
-    private static Button BuildEquipmentScreen(RectTransform root, RectTransform detailRoot, out HomeInventoryUI inventoryUi)
+    private static Button BuildEquipmentScreen(RectTransform root, RectTransform detailRoot, out HomeInventoryUI inventoryUi, bool isTownOverlay = false)
     {
         var referenceSize = new Vector2(1672f, 941f);
-        CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.58f));
+        if (!isTownOverlay)
+            CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.58f));
+
         var reference = CreateDesignRoot(root, "EquipmentReference", referenceSize);
         var back = CreateButtonTexture(reference, "Button_Back", "UI_Home_Equipment/UI_Button_BackfromEquipment.png", new Rect(0f, 18f, 500f, 78f), referenceSize);
         CreateText(reference, "Title", "EQUIPMENT", new Rect(162f, 36f, 280f, 42f), 38f, TextAlignmentOptions.MidlineLeft, new Color(0.98f, 0.88f, 0.62f, 1f), referenceSize);
@@ -383,10 +647,10 @@ public static class Home1SceneSpaceUiBuilder
         return back;
     }
 
-    private static void BuildDetailScreen(RectTransform root)
+    private static void BuildDetailScreen(RectTransform root, bool isTownOverlay = false)
     {
-        var dim = CreateSolid(root, "DimOverlay", new Color(0f, 0f, 0f, 0.58f));
-        dim.raycastTarget = true;
+        var dim = CreateSolid(root, "DimOverlay", isTownOverlay ? new Color(0f, 0f, 0f, 0f) : new Color(0f, 0f, 0f, 0.58f));
+        dim.raycastTarget = !isTownOverlay;
 
         var content = CreateRect(root, "Content");
         Stretch(content);
@@ -419,9 +683,11 @@ public static class Home1SceneSpaceUiBuilder
         popup.Hide();
     }
 
-    private static Button BuildInventoryScreen(RectTransform root)
+    private static Button BuildInventoryScreen(RectTransform root, bool isTownOverlay = false)
     {
-        CreateSolid(root, "SceneDim", new Color(0f, 0f, 0f, 0.24f));
+        if (!isTownOverlay)
+            CreateSolid(root, "SceneDim", new Color(0f, 0f, 0f, 0.24f));
+
         var back = CreateBackButton(root, "Button_Back_Inventory");
         CreateText(root, "Title", "INVENTORY", new Rect(148f, 36f, 260f, 34f), 28f, TextAlignmentOptions.MidlineLeft, GoldText);
         CreateTexture(root, "InventoryPanel", "UI_Home_Interface/UI_Panel.png", new Rect(116f, 116f, 1048f, 516f));
@@ -443,9 +709,11 @@ public static class Home1SceneSpaceUiBuilder
         return back;
     }
 
-    private static Button BuildAppearanceScreen(RectTransform root)
+    private static Button BuildAppearanceScreen(RectTransform root, bool isTownOverlay = false)
     {
-        CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.18f));
+        if (!isTownOverlay)
+            CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.18f));
+
         CreateTexture(root, "AppearancePanel", "UI_Appear/UI_Panel.png", new Rect(622f, 30f, 548f, 670f));
         CreateTexture(root, "AppearanceTitleFrame", "UI_Appear/UI_Title_Text.png", new Rect(708f, 42f, 368f, 86f));
         CreateText(root, "Title", "외형 선택", new Rect(790f, 64f, 212f, 34f), 30f, TextAlignmentOptions.Center, GoldText);
@@ -508,9 +776,11 @@ public static class Home1SceneSpaceUiBuilder
         return back;
     }
 
-    private static Button BuildMapScreen(RectTransform root)
+    private static Button BuildMapScreen(RectTransform root, bool isTownOverlay = false)
     {
-        CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.22f));
+        if (!isTownOverlay)
+            CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.22f));
+
         CreateTexture(root, "MapPaper", "UI_Map/UI_Panel_MapPaper.png", new Rect(0f, 0f, 1280f, 720f));
         CreateTexture(root, "MapFrame", "UI_Map/UI_Panel_MapFrame.png", new Rect(0f, 0f, 1280f, 720f));
         var back = CreateButtonTexture(root, "Button_Back_Map", "UI_Map/UI_Button_Back.png", new Rect(42f, 48f, 140f, 66f));
@@ -1420,6 +1690,12 @@ public static class Home1SceneSpaceUiBuilder
         public Button Inventory;
         public Button Appearance;
         public Button Map;
+    }
+
+    private struct BuiltHomeOverlay
+    {
+        public HomeUiPageNavigator Navigator;
+        public HomeInventoryUI InventoryUi;
     }
 
     private struct RealmBuildBinding
