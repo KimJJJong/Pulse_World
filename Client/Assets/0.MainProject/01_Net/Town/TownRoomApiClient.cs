@@ -178,6 +178,17 @@ namespace NetClient.Town
             public string activeGameHostUid;
             public long activeGameCreatedAtMs;
             public long createdAtMs;
+            public List<TownRoomParticipantDto> participants;
+        }
+
+        [Serializable]
+        public sealed class TownRoomParticipantDto
+        {
+            public string uid;
+            public string name;
+            public string steamId64;
+            public string clientVersion;
+            public long joinedAtMs;
         }
     }
 }

@@ -764,14 +764,14 @@ public static class Home1SceneSpaceUiBuilder
         if (existing != null)
             UnityEngine.Object.DestroyImmediate(existing.gameObject);
 
-        var panelSize = new Vector2(500f, 424f);
+        var panelSize = new Vector2(500f, 480f);
         var panelImage = CreateSolid(mapRoot, "TownEntryChoicePanel", new Color(0.16f, 0.11f, 0.06f, 0.98f));
         SetRectFromTopLeft(panelImage.rectTransform, new Rect(390f, 128f, panelSize.x, panelSize.y), LayoutSize);
         panelImage.raycastTarget = true;
 
         var panelRect = panelImage.rectTransform;
         var windowBody = CreateSolid(panelRect, "WindowBody", new Color(0.91f, 0.79f, 0.57f, 0.99f));
-        SetRectFromTopLeft(windowBody.rectTransform, new Rect(8f, 8f, 484f, 408f), panelSize);
+        SetRectFromTopLeft(windowBody.rectTransform, new Rect(8f, 8f, 484f, 464f), panelSize);
         windowBody.raycastTarget = false;
 
         var titleBar = CreateSolid(panelRect, "WindowTitleBar", new Color(0.09f, 0.25f, 0.28f, 1f));
@@ -789,28 +789,31 @@ public static class Home1SceneSpaceUiBuilder
         var title = CreateText(panelRect, "TownEntryTitle", "Golden Plains Town", new Rect(28f, 18f, 398f, 36f), 24f, TextAlignmentOptions.MidlineLeft, new Color(1f, 0.91f, 0.66f, 1f), panelSize);
         var closeButton = CreateTownChoiceButton(panelRect, "Button_CloseTownChoice", "X", new Rect(444f, 18f, 32f, 32f), panelSize);
 
-        var status = CreateText(panelRect, "TownEntryStatus", "새 Town을 만들거나 기존 Town을 찾아 참여하세요.", new Rect(30f, 76f, 440f, 42f), 15f, TextAlignmentOptions.Center, new Color(0.18f, 0.20f, 0.17f, 1f), panelSize);
+        var status = CreateText(panelRect, "TownEntryStatus", "새 Town을 만들거나 기존 Town을 찾아 참여하세요.", new Rect(30f, 74f, 440f, 38f), 15f, TextAlignmentOptions.Center, new Color(0.18f, 0.20f, 0.17f, 1f), panelSize);
 
         var listFrame = CreateSolid(panelRect, "TownRoomListFrame", new Color(0.70f, 0.55f, 0.34f, 0.55f));
-        SetRectFromTopLeft(listFrame.rectTransform, new Rect(26f, 126f, 448f, 212f), panelSize);
+        SetRectFromTopLeft(listFrame.rectTransform, new Rect(26f, 118f, 448f, 204f), panelSize);
         listFrame.raycastTarget = false;
 
         var roomList = CreateRect(panelRect, "TownRoomList");
-        SetRectFromTopLeft(roomList, new Rect(26f, 126f, 448f, 212f), panelSize);
-        var listSize = new Vector2(448f, 212f);
+        SetRectFromTopLeft(roomList, new Rect(26f, 118f, 448f, 204f), panelSize);
+        var listSize = new Vector2(448f, 204f);
 
         var rows = new List<TownEntryRowBuildBinding>();
         for (var i = 0; i < 6; i++)
         {
-            var row = CreateTownRoomRow(roomList, $"TownRoomRow_{i:00}", new Rect(8f, 8f + i * 34f, 432f, 28f), listSize);
+            var row = CreateTownRoomRow(roomList, $"TownRoomRow_{i:00}", new Rect(8f, 8f + i * 32f, 432f, 28f), listSize);
             rows.Add(row);
         }
 
-        var emptyText = CreateText(roomList, "EmptyRoomText", "열려 있는 Town이 없습니다.", new Rect(0f, 84f, 448f, 44f), 16f, TextAlignmentOptions.Center, new Color(0.22f, 0.19f, 0.13f, 1f), listSize);
+        var emptyText = CreateText(roomList, "EmptyRoomText", "열려 있는 Town이 없습니다.", new Rect(0f, 80f, 448f, 44f), 16f, TextAlignmentOptions.Center, new Color(0.22f, 0.19f, 0.13f, 1f), listSize);
         emptyText.gameObject.SetActive(false);
 
-        var createButton = CreateTownChoiceButton(panelRect, "Button_CreateTown", "새 Town 만들기", new Rect(54f, 360f, 178f, 42f), panelSize);
-        var refreshButton = CreateTownChoiceButton(panelRect, "Button_FindTown", "기존 Town 찾기", new Rect(268f, 360f, 178f, 42f), panelSize);
+        CreateText(panelRect, "InviteCodeLabel", "초대 코드 직접 입장", new Rect(30f, 332f, 220f, 22f), 14f, TextAlignmentOptions.MidlineLeft, new Color(0.18f, 0.20f, 0.17f, 1f), panelSize);
+        var inviteInput = CreateTownChoiceInput(panelRect, "Input_InviteCode", "예: 7F3K-G2M9", new Rect(30f, 358f, 292f, 36f), panelSize);
+        var joinInviteButton = CreateTownChoiceButton(panelRect, "Button_JoinInvite", "코드 입장", new Rect(334f, 358f, 136f, 36f), panelSize);
+        var createButton = CreateTownChoiceButton(panelRect, "Button_CreateTown", "새 Town 만들기", new Rect(54f, 416f, 178f, 42f), panelSize);
+        var refreshButton = CreateTownChoiceButton(panelRect, "Button_FindTown", "기존 Town 찾기", new Rect(268f, 416f, 178f, 42f), panelSize);
 
         var so = new SerializedObject(mapUi);
         so.FindProperty("_choicePanel").objectReferenceValue = panelImage.gameObject;
@@ -819,6 +822,8 @@ public static class Home1SceneSpaceUiBuilder
         so.FindProperty("_createTownButton").objectReferenceValue = createButton;
         so.FindProperty("_refreshTownRoomsButton").objectReferenceValue = refreshButton;
         so.FindProperty("_closeChoiceButton").objectReferenceValue = closeButton;
+        so.FindProperty("_inviteCodeInput").objectReferenceValue = inviteInput;
+        so.FindProperty("_joinInviteButton").objectReferenceValue = joinInviteButton;
         so.FindProperty("_emptyRoomText").objectReferenceValue = emptyText;
 
         var rowProperty = so.FindProperty("_roomRows");
@@ -837,6 +842,28 @@ public static class Home1SceneSpaceUiBuilder
         panelImage.gameObject.SetActive(false);
         ApplyNanumGothicFontToChildren(panelRect);
         EditorUtility.SetDirty(mapUi);
+    }
+
+    private static TMP_InputField CreateTownChoiceInput(RectTransform parent, string name, string placeholderValue, Rect rect, Vector2 sourceSize)
+    {
+        var image = CreateSolid(parent, name, new Color(0.08f, 0.13f, 0.12f, 0.96f));
+        SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
+        image.raycastTarget = true;
+
+        var input = image.gameObject.AddComponent<TMP_InputField>();
+        input.targetGraphic = image;
+        input.characterLimit = 24;
+        input.contentType = TMP_InputField.ContentType.Alphanumeric;
+        input.lineType = TMP_InputField.LineType.SingleLine;
+        input.transition = Selectable.Transition.ColorTint;
+
+        var inputSize = new Vector2(rect.width, rect.height);
+        var text = CreateText(image.rectTransform, "Text", "", new Rect(12f, 2f, rect.width - 24f, rect.height - 4f), 15f, TextAlignmentOptions.MidlineLeft, ButtonLightText, inputSize);
+        var placeholder = CreateText(image.rectTransform, "Placeholder", placeholderValue, new Rect(12f, 2f, rect.width - 24f, rect.height - 4f), 14f, TextAlignmentOptions.MidlineLeft, new Color(0.64f, 0.72f, 0.68f, 0.74f), inputSize);
+        input.textComponent = text;
+        input.placeholder = placeholder;
+
+        return input;
     }
 
     private static Button CreateTownChoiceButton(RectTransform parent, string name, string label, Rect rect, Vector2 sourceSize)

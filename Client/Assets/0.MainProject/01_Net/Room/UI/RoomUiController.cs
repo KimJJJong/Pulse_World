@@ -92,6 +92,15 @@ namespace NetClient.Room.UI
         readonly Dictionary<string, string> _uidToName = new();
         readonly Dictionary<string, bool> _memberReady = new(StringComparer.OrdinalIgnoreCase);
 
+        public sealed class MemberSnapshot
+        {
+            public string Uid;
+            public string DisplayName;
+            public bool Ready;
+            public bool IsOwner;
+            public bool IsLocal;
+        }
+
         public string CurrentRoomId => _currentRoomId ?? "";
         public bool CurrentRoomUseP2PRelay => _currentRoomUseP2PRelay;
         public string CurrentSteamLobbyId => _currentSteamLobbyId ?? "";
@@ -127,6 +136,45 @@ namespace NetClient.Room.UI
         public string ReadySummaryText => BuildReadySummaryText();
         public event Action<string> RoomSessionClosed;
         public event Action WaitingRoomStateChanged;
+
+        public bool TryGetMemberReady(string uid, out bool ready)
+        {
+            ready = false;
+            return !string.IsNullOrWhiteSpace(uid) && _memberReady.TryGetValue(uid, out ready);
+        }
+
+        public bool TryGetMemberName(string uid, out string displayName)
+        {
+            displayName = "";
+            return !string.IsNullOrWhiteSpace(uid) && _uidToName.TryGetValue(uid, out displayName);
+        }
+
+        public IReadOnlyList<MemberSnapshot> GetMemberSnapshots()
+        {
+            var snapshots = new List<MemberSnapshot>(_memberReady.Count);
+            foreach (var pair in _memberReady)
+            {
+                var uid = pair.Key;
+                if (string.IsNullOrWhiteSpace(uid))
+                    continue;
+
+                var displayName = _uidToName.TryGetValue(uid, out var name) && !string.IsNullOrWhiteSpace(name)
+                    ? name
+                    : uid;
+
+                snapshots.Add(new MemberSnapshot
+                {
+                    Uid = uid,
+                    DisplayName = displayName,
+                    Ready = pair.Value,
+                    IsOwner = string.Equals(uid, _currentOwnerUid, StringComparison.OrdinalIgnoreCase),
+                    IsLocal = apiProvider != null && string.Equals(uid, apiProvider.Uid, StringComparison.OrdinalIgnoreCase)
+                });
+            }
+
+            return snapshots;
+        }
+
 
         void Awake()
         {
@@ -406,7 +454,8 @@ namespace NetClient.Room.UI
             string title,
             string mapId,
             int maxPlayers,
-            bool relayMode)
+            bool relayMode,
+            bool showUi = true)
         {
             if (!EnsureApiClients())
                 return "";
@@ -452,7 +501,7 @@ namespace NetClient.Room.UI
 
                 SetStatus($"Created: {createdId}");
                 UI_Refresh();
-                await JoinRoomAsync(createdId);
+                await JoinRoomAsync(createdId, showUi);
             });
 
             return createdId;
@@ -555,6 +604,7 @@ namespace NetClient.Room.UI
 
                 ClearChildren(memberListContent);
                 _memberViews.Clear();
+                _uidToName.Clear();
                 _memberReady.Clear();
 
                 if (room.memberTransport != null)

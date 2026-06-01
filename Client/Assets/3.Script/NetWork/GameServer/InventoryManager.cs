@@ -9,6 +9,18 @@ using NetClient.Network.Http.Dtos;
 public class InventoryManager : MonoBehaviour
 {
     private static InventoryManager _instance;
+    public static InventoryManager ExistingInstance
+    {
+        get
+        {
+            if (_instance != null)
+                return _instance;
+
+            _instance = FindAnyObjectByType<InventoryManager>();
+            return _instance;
+        }
+    }
+
     public static InventoryManager Instance
     {
         get

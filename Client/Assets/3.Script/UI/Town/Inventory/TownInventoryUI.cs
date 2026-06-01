@@ -201,8 +201,9 @@ public class TownInventoryUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (InventoryManager.Instance != null)
-            InventoryManager.Instance.OnInventoryUpdated -= RefreshAll;
+        var inventoryManager = InventoryManager.ExistingInstance;
+        if (inventoryManager != null)
+            inventoryManager.OnInventoryUpdated -= RefreshAll;
     }
 
     public void RefreshAll()

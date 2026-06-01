@@ -162,7 +162,15 @@ public sealed class TownRoomController : ControllerBase
             activeGameTitle = room.ActiveGameTitle,
             activeGameHostUid = room.ActiveGameHostUid,
             activeGameCreatedAtMs = room.ActiveGameCreatedAtMs,
-            createdAtMs = room.CreatedAtMs
+            createdAtMs = room.CreatedAtMs,
+            participants = room.Participants.Select(x => new TownRoomParticipantResponse
+            {
+                uid = x.Uid,
+                name = x.Name,
+                steamId64 = x.SteamId64,
+                clientVersion = x.ClientVersion,
+                joinedAtMs = x.JoinedAtMs
+            }).ToList()
         };
     }
 
@@ -173,7 +181,7 @@ public sealed class TownRoomController : ControllerBase
     {
         public string title { get; set; } = "";
         public string mapId { get; set; } = "";
-        public int maxPlayers { get; set; } = 16;
+        public int maxPlayers { get; set; } = 4;
         public string steamId64 { get; set; } = "";
         public string clientVersion { get; set; } = "";
     }
@@ -241,5 +249,15 @@ public sealed class TownRoomController : ControllerBase
         public string activeGameHostUid { get; set; } = "";
         public long activeGameCreatedAtMs { get; set; }
         public long createdAtMs { get; set; }
+        public List<TownRoomParticipantResponse> participants { get; set; } = new();
+    }
+
+    public sealed class TownRoomParticipantResponse
+    {
+        public string uid { get; set; } = "";
+        public string name { get; set; } = "";
+        public string steamId64 { get; set; } = "";
+        public string clientVersion { get; set; } = "";
+        public long joinedAtMs { get; set; }
     }
 }

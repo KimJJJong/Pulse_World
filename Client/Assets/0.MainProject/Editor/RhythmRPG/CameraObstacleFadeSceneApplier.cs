@@ -114,12 +114,15 @@ public static class CameraObstacleFadeSceneApplier
             var wallLayerObjects = Object.FindObjectsByType<Collider>(FindObjectsSortMode.None)
                 .Where(collider => collider != null && collider.gameObject.scene == scene && collider.gameObject.layer == WallLayer)
                 .ToArray();
+            var triggerColliders = wallLayerObjects.Count(collider => collider.isTrigger);
+            var blockingColliders = wallLayerObjects.Length - triggerColliders;
 
             Debug.Log(
                 "[CameraObstacleFadeSceneApplier] Validation " +
                 $"Scene={scene.name}, HasFade={fade != null}, " +
                 $"ObstacleLayer={(fade != null ? fade.obstacleLayer.value : 0)}, " +
-                $"WallColliders={wallLayerObjects.Length}.");
+                $"WallColliders={wallLayerObjects.Length}, " +
+                $"FadeTriggers={triggerColliders}, BlockingWallColliders={blockingColliders}.");
         }
     }
 
@@ -334,7 +337,7 @@ public static class CameraObstacleFadeSceneApplier
             ? meshFilter.sharedMesh.bounds
             : new Bounds(renderer.transform.InverseTransformPoint(renderer.bounds.center), Vector3.one);
 
-        collider.isTrigger = false;
+        collider.isTrigger = true;
         collider.center = localBounds.center;
         collider.size = localBounds.size;
         EditorUtility.SetDirty(collider);

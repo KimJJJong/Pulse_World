@@ -11,7 +11,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
 {
     private const string MissingMapMessage = "없는 맵입니다.";
     private const string ReadyMessage = "지역을 선택한 뒤 입장 버튼을 누르세요.";
-    private const int DefaultTownMaxPlayers = 16;
+    private const int DefaultTownMaxPlayers = 4;
 
     [Serializable]
     public sealed class RealmBinding
@@ -49,6 +49,8 @@ public sealed class HomeMapRealmUI : MonoBehaviour
     [SerializeField] private Button _createTownButton;
     [SerializeField] private Button _refreshTownRoomsButton;
     [SerializeField] private Button _closeChoiceButton;
+    [SerializeField] private TMP_InputField _inviteCodeInput;
+    [SerializeField] private Button _joinInviteButton;
     [SerializeField] private TextMeshProUGUI _emptyRoomText;
     [SerializeField] private TownRoomRowBinding[] _roomRows;
 
@@ -247,6 +249,8 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         _choicePanel.SetActive(true);
         if (_choiceTitle != null)
             _choiceTitle.text = $"{realm.DisplayName} Town";
+        if (_inviteCodeInput != null)
+            _inviteCodeInput.text = "";
         SetChoiceStatus("새 Town을 만들거나 기존 Town을 찾아 참여하세요.");
         SetStatus($"{realm.DisplayName} 입장 방식 선택 중...");
     }
@@ -408,6 +412,58 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         await EnterTownRoomAsync(room.roomId, mapId, Mathf.Max(2, room.maxPlayers), sceneName, IsOwnRoom(room) ? "Host" : "Guest");
     }
 
+    private async Task JoinTownByInviteCodeAsync()
+    {
+        var code = (_inviteCodeInput != null ? _inviteCodeInput.text : "").Trim();
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            SetChoiceStatus("초대 코드를 입력하세요.");
+            return;
+        }
+
+        var root = AppBootstrap.Instance?.Root;
+        if (root?.TownRoomApi == null)
+        {
+            SetChoiceStatus("TownRoomApi가 준비되지 않았습니다.");
+            return;
+        }
+
+        SetBusy(true);
+        ResetRoomRows();
+        SetChoiceStatus("이전 Town 정보 정리 중...");
+        await LeaveStaleTownContextAsync("home_invite_join");
+
+        SetChoiceStatus("초대 코드 확인 중...");
+        var roomResult = await root.TownRoomApi.GetAsync(code);
+        if (!roomResult.Ok || roomResult.Data == null)
+        {
+            SetChoiceStatus($"초대 코드 확인 실패: {roomResult.Error}");
+            SetBusy(false);
+            return;
+        }
+
+        var room = roomResult.Data;
+        var steam = root.SteamPlatform;
+        if (steam != null && steam.Enabled && steam.IsInitialized && !string.IsNullOrWhiteSpace(room.steamLobbyId))
+        {
+            SetChoiceStatus("Steam Lobby 참여 중...");
+            await steam.JoinLobbyAsync(room.steamLobbyId, room.roomId);
+        }
+
+        SetChoiceStatus("Town 참여 요청 중...");
+        var joined = await root.TownRoomApi.JoinAsync(room.roomId, steam?.SteamId64 ?? "", root.Config?.ClientVersion ?? "");
+        if (!joined.Ok)
+        {
+            SetChoiceStatus($"Town 참여 실패: {joined.Error}");
+            SetBusy(false);
+            return;
+        }
+
+        var fallbackScene = TryGetSelectedRealmContext(out _, out var selectedScene, out _) ? selectedScene : SceneNames.TownMap;
+        var sceneName = ResolveSceneNameForTownMap(room.mapId, fallbackScene);
+        await EnterTownRoomAsync(room.roomId, room.mapId, Mathf.Max(2, room.maxPlayers), sceneName, IsOwnRoom(room) ? "Host" : "Guest");
+    }
+
     private async Task<List<SteamLobbyInfo>> FindSteamTownLobbiesAsync(AppCompositionRoot root, string mapId)
     {
         var steam = root?.SteamPlatform;
@@ -482,6 +538,12 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         {
             _closeChoiceButton.onClick.RemoveAllListeners();
             _closeChoiceButton.onClick.AddListener(CloseChoicePanel);
+        }
+
+        if (_joinInviteButton != null)
+        {
+            _joinInviteButton.onClick.RemoveAllListeners();
+            _joinInviteButton.onClick.AddListener(() => _ = JoinTownByInviteCodeAsync());
         }
     }
 
@@ -669,6 +731,10 @@ public sealed class HomeMapRealmUI : MonoBehaviour
             _createTownButton.interactable = interactable;
         if (_refreshTownRoomsButton != null)
             _refreshTownRoomsButton.interactable = interactable;
+        if (_joinInviteButton != null)
+            _joinInviteButton.interactable = interactable;
+        if (_inviteCodeInput != null)
+            _inviteCodeInput.interactable = interactable;
         if (_roomRows != null)
         {
             foreach (var row in _roomRows)
@@ -744,5 +810,20 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         }
 
         return false;
+    }
+
+    private static string ResolveSceneNameForTownMap(string mapId, string fallbackScene)
+    {
+        if (string.Equals(mapId, "Town_Forest", StringComparison.OrdinalIgnoreCase))
+            return SceneNames.Town_Forest;
+
+        if (string.Equals(mapId, "Town_01", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mapId, "TownMap", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mapId, "town", StringComparison.OrdinalIgnoreCase))
+        {
+            return SceneNames.TownMap;
+        }
+
+        return string.IsNullOrWhiteSpace(fallbackScene) ? SceneNames.TownMap : fallbackScene;
     }
 }

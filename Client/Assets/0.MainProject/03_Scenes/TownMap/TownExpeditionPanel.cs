@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using NetClient.Room.UI;
@@ -11,24 +12,82 @@ using UnityEngine.UI;
 
 public sealed class TownExpeditionPanel : MonoBehaviour
 {
-    private const string OverlayCanvasName = "Canvas_TownExpeditionOverlay";
     private const int OverlaySortingOrder = 7000;
+
+    [Serializable]
+    public sealed class PartySlotBinding
+    {
+        public GameObject Root;
+        public TMP_Text IndexText;
+        public TMP_Text NameText;
+        public TMP_Text HpText;
+        public TMP_Text HostBadgeText;
+        public TMP_Text ReadyText;
+        public Graphic ReadyGraphic;
+        public Graphic LocalFrame;
+        public Slider HpSlider;
+    }
+
+    [Serializable]
+    public sealed class MapOptionBinding
+    {
+        public Button Button;
+        public TMP_Text TitleText;
+        public TMP_Text DescriptionText;
+        public TMP_Text DifficultyText;
+        public TMP_Text MetaText;
+        public Graphic SelectedFrame;
+    }
+
+    private sealed class PartyMemberView
+    {
+        public string Uid = "";
+        public string Name = "";
+        public bool IsHost;
+        public bool IsLocal;
+        public bool Connected = true;
+        public bool Ready = true;
+    }
 
     [Header("Runtime UI")]
     [SerializeField] private Canvas _canvas;
     [SerializeField] private RectTransform _root;
-    [SerializeField] private TMP_Text _titleText;
+    [SerializeField] private TMP_Text _topTownTitleText;
+    [SerializeField] private TMP_Text _topStatusText;
     [SerializeField] private TMP_Text _statusText;
-    [SerializeField] private TMP_Text _detailText;
+    [SerializeField] private TMP_Text _roleBadgeText;
+    [SerializeField] private TMP_Text _partyCountText;
+    [SerializeField] private TMP_Text _selectedMapTitleText;
+    [SerializeField] private TMP_Text _selectedMapMetaText;
+    [SerializeField] private TMP_Text _selectedMapDifficultyText;
+    [SerializeField] private TMP_Text _selectedMapGoalText;
+    [SerializeField] private TMP_Text _inviteCodeText;
+    [SerializeField] private TMP_Text _clientHintText;
+    [SerializeField] private TMP_Text _minimapCountText;
     [SerializeField] private TMP_Text _readySummaryText;
+    [SerializeField] private RectTransform _hostControlsRoot;
+    [SerializeField] private RectTransform _clientControlsRoot;
+    [SerializeField] private RectTransform _gameSelectWindow;
+    [SerializeField] private RectTransform _mapInfoWindow;
+    [SerializeField] private TMP_Text _mapInfoTitleText;
+    [SerializeField] private TMP_Text _mapInfoDescriptionText;
+    [SerializeField] private TMP_Text _mapInfoStatsText;
+    [SerializeField] private TMP_Text[] _mapInfoFeatureTexts;
+    [SerializeField] private PartySlotBinding[] _partySlots;
+    [SerializeField] private PartySlotBinding[] _sidePartySlots;
+    [SerializeField] private MapOptionBinding[] _mapOptions;
     [SerializeField] private Button _inventoryButton;
     [SerializeField] private Button _gameSelectButton;
+    [SerializeField] private Button _mapSelectConfirmButton;
+    [SerializeField] private Button _mapSelectPartyButton;
+    [SerializeField] private Button _gameSelectCloseButton;
+    [SerializeField] private Button _mapInfoButton;
+    [SerializeField] private Button _mapInfoCloseButton;
+    [SerializeField] private Button _copyInviteButton;
     [SerializeField] private Button _readyWindowButton;
     [SerializeField] private Button _hostStartGameButton;
     [SerializeField] private Button _hostCancelGameButton;
-    [SerializeField] private RectTransform _gameSelectWindow;
-    [SerializeField] private Button _gameSelectCloseButton;
-    [SerializeField] private Button[] _gameOptionButtons;
+    [SerializeField] private Button _partyManageButton;
 
     [Header("Game Options")]
     [SerializeField] private string[] _gameMapIds =
@@ -41,19 +100,60 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
     [SerializeField] private string[] _gameTitles =
     {
-        "Forest Tutorial",
-        "Whispering Forest",
-        "Game 01",
-        "Game"
+        "포레스트 튜토리얼",
+        "위스퍼링 포레스트",
+        "크리스탈 카번",
+        "테스트 던전"
+    };
+
+    [SerializeField] private string[] _gameDescriptions =
+    {
+        "깊고 울창한 포레스트에서 기본 조작을 익힐 수 있는 입문 맵입니다.",
+        "몬스터가 숨어 있는 숲길을 따라 전투 흐름을 익히는 맵입니다.",
+        "푸른 크리스탈이 빛나는 동굴에서 강한 적을 상대합니다.",
+        "개발 테스트용 기본 전투 맵입니다."
+    };
+
+    [SerializeField] private string[] _gameDifficultyLabels =
+    {
+        "쉬움",
+        "보통",
+        "어려움",
+        "테스트"
+    };
+
+    [SerializeField] private string[] _gamePlayerLabels =
+    {
+        "1~4명",
+        "1~4명",
+        "2~4명",
+        "1~4명"
+    };
+
+    [SerializeField] private string[] _gameTimeLabels =
+    {
+        "5~10분",
+        "10~15분",
+        "15~20분",
+        "5~10분"
+    };
+
+    [SerializeField] private string[] _gameGoalLabels =
+    {
+        "모든 적 처치",
+        "숲의 균열 정리",
+        "크리스탈 수호자 처치",
+        "테스트 완료"
     };
 
     [Header("Polling")]
-    [SerializeField] private int _pollIntervalMs = 2000;
+    [SerializeField] private int _pollIntervalMs = 1000;
 
     private CancellationTokenSource _cts;
     private TownRoomApiClient _townApi;
     private TownRoomApiClient.TownRoomSummaryDto _townRoom;
     private string _townRoomId = "";
+    private int _selectedGameMapIndex;
     private bool _creatingGameRoom;
     private bool _openingReadyWindow;
     private bool _startingGameRoom;
@@ -64,6 +164,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     private RoomUiController _subscribedRoomUi;
     private bool _warnedMissingEventSystem;
     private bool _warnedMissingUiReferences;
+    private float _nextLiveUiRefreshAt;
 
     public static TownExpeditionPanel EnsureInScene()
     {
@@ -83,6 +184,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         BindSceneReferencesIfNeeded();
         ConfigureExistingCanvas();
         EnsureUiInputReady();
+        InitializeMapOptionLabels();
         BindButtons();
         UpdateView("Town 정보를 불러오는 중...");
     }
@@ -99,6 +201,24 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.G))
             ShowGameSelectWindow(true);
+
+        if (Input.GetKeyDown(KeyCode.M))
+            ShowMapInfoWindow(true);
+
+        if (Time.unscaledTime >= _nextLiveUiRefreshAt)
+        {
+            _nextLiveUiRefreshAt = Time.unscaledTime + 0.25f;
+            if (_townRoom != null
+                && !_creatingGameRoom
+                && !_openingReadyWindow
+                && !_startingGameRoom
+                && !_cancelingGameRoom)
+            {
+                var roomUi = RoomUiController.ActiveInstance ?? FindSceneObject<RoomUiController>();
+                if (roomUi != null && roomUi.IsConnectedToRoom)
+                    UpdateView();
+            }
+        }
     }
 
     private void OnDestroy()
@@ -164,6 +284,9 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
 
         _townRoom = result.Data;
+        if (!string.IsNullOrWhiteSpace(_townRoom.activeGameMapId))
+            _selectedGameMapIndex = ResolveMapIndex(_townRoom.activeGameMapId);
+
         UpdateView();
     }
 
@@ -179,6 +302,42 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         {
             _gameSelectButton.onClick.RemoveAllListeners();
             _gameSelectButton.onClick.AddListener(() => ShowGameSelectWindow(true));
+        }
+
+        if (_mapSelectConfirmButton)
+        {
+            _mapSelectConfirmButton.onClick.RemoveAllListeners();
+            _mapSelectConfirmButton.onClick.AddListener(() => ShowGameSelectWindow(false));
+        }
+
+        if (_mapSelectPartyButton)
+        {
+            _mapSelectPartyButton.onClick.RemoveAllListeners();
+            _mapSelectPartyButton.onClick.AddListener(() => _ = OpenPartyManageAsync());
+        }
+
+        if (_gameSelectCloseButton)
+        {
+            _gameSelectCloseButton.onClick.RemoveAllListeners();
+            _gameSelectCloseButton.onClick.AddListener(() => ShowGameSelectWindow(false));
+        }
+
+        if (_mapInfoButton)
+        {
+            _mapInfoButton.onClick.RemoveAllListeners();
+            _mapInfoButton.onClick.AddListener(() => ShowMapInfoWindow(true));
+        }
+
+        if (_mapInfoCloseButton)
+        {
+            _mapInfoCloseButton.onClick.RemoveAllListeners();
+            _mapInfoCloseButton.onClick.AddListener(() => ShowMapInfoWindow(false));
+        }
+
+        if (_copyInviteButton)
+        {
+            _copyInviteButton.onClick.RemoveAllListeners();
+            _copyInviteButton.onClick.AddListener(CopyInviteCode);
         }
 
         if (_readyWindowButton)
@@ -199,31 +358,46 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _hostCancelGameButton.onClick.AddListener(() => _ = CancelActiveGameAsHostAsync());
         }
 
-        if (_gameSelectCloseButton)
+        if (_partyManageButton)
         {
-            _gameSelectCloseButton.onClick.RemoveAllListeners();
-            _gameSelectCloseButton.onClick.AddListener(() => ShowGameSelectWindow(false));
+            _partyManageButton.onClick.RemoveAllListeners();
+            _partyManageButton.onClick.AddListener(() => _ = OpenPartyManageAsync());
         }
 
-        BindGameOptionButtons();
+        if (_mapOptions != null)
+        {
+            for (int i = 0; i < _mapOptions.Length; i++)
+            {
+                var option = _mapOptions[i];
+                if (option?.Button == null)
+                    continue;
+
+                int index = i;
+                option.Button.onClick.RemoveAllListeners();
+                option.Button.onClick.AddListener(() => SelectMapOption(index));
+            }
+        }
     }
 
-    private void BindGameOptionButtons()
+    private void InitializeMapOptionLabels()
     {
-        if (_gameOptionButtons == null)
+        if (_mapOptions == null)
             return;
 
-        for (int i = 0; i < _gameOptionButtons.Length; i++)
+        for (int i = 0; i < _mapOptions.Length; i++)
         {
-            var button = _gameOptionButtons[i];
-            if (!button)
+            var option = _mapOptions[i];
+            if (option == null)
                 continue;
 
-            int index = i;
-            var mapId = index < _gameMapIds.Length ? _gameMapIds[index] ?? "" : "";
-            var title = index < _gameTitles.Length ? _gameTitles[index] ?? mapId : mapId;
-            button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => _ = CreateGameRoomForMapAsync(mapId, title));
+            if (option.TitleText)
+                option.TitleText.text = GetMapTitle(i);
+            if (option.DescriptionText)
+                option.DescriptionText.text = GetMapDescription(i);
+            if (option.DifficultyText)
+                option.DifficultyText.text = GetMapDifficulty(i);
+            if (option.MetaText)
+                option.MetaText.text = $"{GetMapPlayers(i)}  |  {GetMapTime(i)}";
         }
     }
 
@@ -240,60 +414,51 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
         var activeRoomUi = hasActiveGame ? FindActiveGameRoomUi(_townRoom.activeGameRoomId) : null;
         var hasReadySnapshot = activeRoomUi != null && activeRoomUi.IsConnectedToRoom;
+        var displayMapIndex = hasActiveGame && !string.IsNullOrWhiteSpace(_townRoom.activeGameMapId)
+            ? ResolveMapIndex(_townRoom.activeGameMapId)
+            : _selectedGameMapIndex;
 
-        if (_titleText)
-            _titleText.text = isHost ? "Town Host" : "Town Party";
+        SetActive(_hostControlsRoot, isHost);
+        SetActive(_clientControlsRoot, !isHost);
 
+        if (_topTownTitleText)
+            _topTownTitleText.text = ResolveTownTitle();
+
+        if (_roleBadgeText)
+            _roleBadgeText.text = isHost ? "HOST" : "CLIENT";
+
+        if (_partyCountText)
+        {
+            var memberCount = hasReadySnapshot
+                ? Mathf.Max(0, activeRoomUi.MemberCount)
+                : (hasRoom ? Mathf.Max(0, _townRoom.memberCount) : 0);
+            var maxPlayers = hasRoom ? Mathf.Max(1, _townRoom.maxPlayers) : 4;
+            _partyCountText.text = hasRoom ? $"파티 현황 ({memberCount}/{maxPlayers})" : "파티 현황 (-/-)";
+        }
+
+        if (_minimapCountText)
+            _minimapCountText.text = Mathf.Clamp(hasRoom ? _townRoom.memberCount : 1, 1, 99).ToString();
+
+        UpdatePartySlots(BuildPartyMembers(activeRoomUi), activeRoomUi, hasActiveGame);
+        UpdateSelectedMapCard(displayMapIndex, hasActiveGame);
+        UpdateMapSelectOptionState(displayMapIndex);
+        UpdateMapInfoWindow(displayMapIndex);
+
+        var inviteCode = ResolveInviteCode();
+        if (_inviteCodeText)
+            _inviteCodeText.text = string.IsNullOrWhiteSpace(inviteCode) ? "----" : inviteCode;
+        if (_copyInviteButton)
+            _copyInviteButton.interactable = !string.IsNullOrWhiteSpace(inviteCode);
+
+        var status = ResolveStatusText(overrideStatus, hasRoom, isHost, hasActiveGame, hasReadySnapshot, activeRoomUi, displayMapIndex);
         if (_statusText)
-        {
-            if (!string.IsNullOrWhiteSpace(overrideStatus))
-                _statusText.text = overrideStatus;
-            else if (!hasRoom)
-                _statusText.text = "Town Room 정보를 기다리는 중...";
-            else if (hasActiveGame)
-            {
-                if (hasReadySnapshot && isHost)
-                    _statusText.text = activeRoomUi.CanOwnerStartGame ? "모두 준비됨 - 시작 가능" : "참가자 Ready 대기 중";
-                else if (hasReadySnapshot)
-                    _statusText.text = activeRoomUi.AmIReady ? "준비 완료 - Host 시작 대기" : "준비가 필요합니다.";
-                else
-                    _statusText.text = isHost
-                        ? $"{SafeTitle(_townRoom.activeGameTitle, _townRoom.activeGameMapId)} 시작 대기 중"
-                        : $"{SafeTitle(_townRoom.activeGameTitle, _townRoom.activeGameMapId)} 준비 가능";
-            }
-            else if (isHost)
-                _statusText.text = "Game을 선택해 대기방을 만들 수 있습니다.";
-            else
-                _statusText.text = "Host의 Game 선택을 기다리는 중입니다.";
-        }
-
-        if (_detailText)
-        {
-            if (!hasRoom)
-            {
-                _detailText.text = "Town 연결 후 Inventory와 Game 준비 상태가 표시됩니다.";
-            }
-            else if (hasActiveGame)
-            {
-                _detailText.text =
-                    $"방: {_townRoom.activeGameRoomId}\n" +
-                    $"Map: {SafeTitle(_townRoom.activeGameTitle, _townRoom.activeGameMapId)}\n" +
-                    $"참여: {_townRoom.memberCount}/{_townRoom.maxPlayers}";
-            }
-            else
-            {
-                _detailText.text =
-                    $"Town: {_townRoom.title}\n" +
-                    $"참여: {_townRoom.memberCount}/{_townRoom.maxPlayers}\n" +
-                    $"Host: {TrimUid(_townRoom.ownerUid)}";
-            }
-        }
-
+            _statusText.text = status;
+        if (_topStatusText)
+            _topStatusText.text = hasActiveGame ? "Game 준비 중" : (isHost ? "Host 대기 중" : "Host 선택 대기 중");
+        if (_clientHintText)
+            _clientHintText.text = hasActiveGame ? "토글하여 준비 / 해제" : "Host가 맵을 선택하면 준비할 수 있습니다.";
         if (_readySummaryText)
-        {
-            _readySummaryText.gameObject.SetActive(hasActiveGame);
             _readySummaryText.text = BuildReadySummary(activeRoomUi, hasActiveGame, isHost);
-        }
 
         if (_gameSelectButton)
         {
@@ -303,26 +468,22 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
         if (_readyWindowButton)
         {
-            _readyWindowButton.gameObject.SetActive(hasActiveGame);
+            _readyWindowButton.gameObject.SetActive(!isHost);
             _readyWindowButton.interactable = hasActiveGame && !_openingReadyWindow;
-            var readyLabel = isHost
-                ? "대기방 보기"
-                : (hasReadySnapshot && activeRoomUi.AmIReady ? "준비 취소" : "준비하기");
+            var readyLabel = hasReadySnapshot && activeRoomUi.AmIReady ? "준비 완료" : "준비";
             if (_openingReadyWindow)
-                readyLabel = "연결 중";
+                readyLabel = "동기화 중";
             SetButtonLabel(_readyWindowButton, readyLabel);
         }
 
         if (_hostStartGameButton)
         {
-            _hostStartGameButton.gameObject.SetActive(isHost && hasActiveGame);
-            _hostStartGameButton.interactable = isHost
-                                               && hasActiveGame
-                                               && hasReadySnapshot
-                                               && activeRoomUi.CanOwnerStartGame
-                                               && !_startingGameRoom
-                                               && !_cancelingGameRoom;
-            SetButtonLabel(_hostStartGameButton, hasReadySnapshot && activeRoomUi.CanOwnerStartGame ? "게임 시작" : "Ready 대기");
+            _hostStartGameButton.gameObject.SetActive(isHost);
+            _hostStartGameButton.interactable = isHost && !_creatingGameRoom && !_startingGameRoom && !_cancelingGameRoom;
+            var startLabel = hasActiveGame && hasReadySnapshot && !activeRoomUi.CanOwnerStartGame ? "준비 대기" : "시작";
+            if (_creatingGameRoom || _startingGameRoom)
+                startLabel = "처리 중";
+            SetButtonLabel(_hostStartGameButton, startLabel);
         }
 
         if (_hostCancelGameButton)
@@ -332,59 +493,317 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
     }
 
-    private async Task CreateGameRoomForMapAsync(string mapId, string title)
+    private string ResolveStatusText(
+        string overrideStatus,
+        bool hasRoom,
+        bool isHost,
+        bool hasActiveGame,
+        bool hasReadySnapshot,
+        RoomUiController activeRoomUi,
+        int mapIndex)
+    {
+        if (!string.IsNullOrWhiteSpace(overrideStatus))
+            return overrideStatus;
+
+        if (!hasRoom)
+            return "Town Room 정보를 기다리는 중입니다.";
+
+        if (hasActiveGame)
+        {
+            if (hasReadySnapshot)
+            {
+                if (isHost)
+                    return activeRoomUi.CanOwnerStartGame ? "모든 준비가 완료되었습니다. 시작할 수 있습니다." : activeRoomUi.ReadySummaryText;
+
+                return activeRoomUi.AmIReady ? "준비 완료. Host의 시작을 기다리는 중입니다." : "준비 버튼으로 참가 준비를 완료하세요.";
+            }
+
+            return isHost
+                ? $"{GetMapTitle(mapIndex)} 대기방 연결 중입니다."
+                : $"{GetMapTitle(mapIndex)} 대기방에 자동 연결 중입니다.";
+        }
+
+        return isHost
+            ? $"{GetMapTitle(mapIndex)} 선택됨. 시작을 누르면 Game 대기방을 만들고 파티 준비 상태를 확인합니다."
+            : "Host의 맵 선택과 시작을 기다리는 중입니다.";
+    }
+
+    private void UpdateSelectedMapCard(int mapIndex, bool activeGame)
+    {
+        if (_selectedMapTitleText)
+            _selectedMapTitleText.text = GetMapTitle(mapIndex);
+        if (_selectedMapMetaText)
+            _selectedMapMetaText.text = $"{GetMapPlayers(mapIndex)}   {GetMapTime(mapIndex)}";
+        if (_selectedMapDifficultyText)
+            _selectedMapDifficultyText.text = GetMapDifficulty(mapIndex);
+        if (_selectedMapGoalText)
+            _selectedMapGoalText.text = activeGame ? "선택된 맵" : GetMapGoal(mapIndex);
+    }
+
+    private void UpdateMapInfoWindow(int mapIndex)
+    {
+        if (_mapInfoTitleText)
+            _mapInfoTitleText.text = GetMapTitle(mapIndex);
+        if (_mapInfoDescriptionText)
+            _mapInfoDescriptionText.text = GetMapDescription(mapIndex);
+        if (_mapInfoStatsText)
+            _mapInfoStatsText.text =
+                $"난이도  {GetMapDifficulty(mapIndex)}\n" +
+                $"권장 플레이어  {GetMapPlayers(mapIndex)}\n" +
+                $"예상 시간  {GetMapTime(mapIndex)}\n" +
+                $"목표  {GetMapGoal(mapIndex)}";
+
+        if (_mapInfoFeatureTexts == null)
+            return;
+
+        var features = GetMapFeatures(mapIndex);
+        for (int i = 0; i < _mapInfoFeatureTexts.Length; i++)
+        {
+            var text = _mapInfoFeatureTexts[i];
+            if (!text)
+                continue;
+
+            text.text = i < features.Length ? features[i] : "";
+        }
+    }
+
+    private void UpdateMapSelectOptionState(int selectedIndex)
+    {
+        if (_mapOptions == null)
+            return;
+
+        for (int i = 0; i < _mapOptions.Length; i++)
+        {
+            var option = _mapOptions[i];
+            if (option?.SelectedFrame != null)
+                option.SelectedFrame.gameObject.SetActive(i == selectedIndex);
+        }
+    }
+
+    private void UpdatePartySlots(List<PartyMemberView> members, RoomUiController roomUi, bool hasActiveGame)
+    {
+        UpdatePartySlotGroup(_partySlots, members, roomUi, hasActiveGame, false);
+        UpdatePartySlotGroup(_sidePartySlots, members, roomUi, hasActiveGame, true);
+    }
+
+    private void UpdatePartySlotGroup(
+        PartySlotBinding[] slots,
+        List<PartyMemberView> members,
+        RoomUiController roomUi,
+        bool hasActiveGame,
+        bool compact)
+    {
+        if (slots == null)
+            return;
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            var slot = slots[i];
+            if (slot == null || slot.Root == null)
+                continue;
+
+            var member = members != null && i < members.Count ? members[i] : null;
+            var hasMember = member != null && member.Connected;
+            if (compact && !hasMember)
+            {
+                slot.Root.SetActive(false);
+                continue;
+            }
+
+            slot.Root.SetActive(true);
+
+            if (slot.IndexText)
+                slot.IndexText.text = (i + 1).ToString();
+            if (slot.NameText)
+                slot.NameText.text = hasMember ? member.Name : "대기 중";
+            if (slot.HpText)
+                slot.HpText.text = hasMember ? "100/100" : compact ? "-" : "대기 중";
+            if (slot.HpSlider)
+                slot.HpSlider.value = hasMember ? 1f : 0f;
+
+            if (slot.HostBadgeText)
+            {
+                slot.HostBadgeText.gameObject.SetActive(hasMember && member.IsHost);
+                slot.HostBadgeText.text = "HOST";
+            }
+
+            var ready = hasMember && ResolveReadyState(member, roomUi, hasActiveGame);
+            if (slot.ReadyText)
+            {
+                slot.ReadyText.gameObject.SetActive(hasMember);
+                slot.ReadyText.text = ready ? "OK" : "...";
+            }
+
+            if (slot.ReadyGraphic)
+                slot.ReadyGraphic.color = hasMember
+                    ? (ready ? new Color(0.48f, 0.92f, 0.20f, 1f) : new Color(0.82f, 0.70f, 0.24f, 1f))
+                    : new Color(0.22f, 0.25f, 0.28f, 0.55f);
+
+            if (slot.LocalFrame)
+                slot.LocalFrame.gameObject.SetActive(hasMember && member.IsLocal);
+        }
+    }
+
+    private bool ResolveReadyState(PartyMemberView member, RoomUiController roomUi, bool hasActiveGame)
+    {
+        if (member == null || !member.Connected)
+            return false;
+
+        if (!hasActiveGame || member.IsHost || roomUi == null || !roomUi.IsConnectedToRoom)
+            return true;
+
+        if (string.IsNullOrWhiteSpace(member.Uid) || !roomUi.TryGetMemberReady(member.Uid, out var ready))
+            return member.Ready;
+
+        return ready;
+    }
+
+    private List<PartyMemberView> BuildPartyMembers(RoomUiController roomUi)
+    {
+        var result = new List<PartyMemberView>(4);
+        var uid = SessionContext.Instance?.Uid ?? "";
+
+        if (roomUi != null && roomUi.IsConnectedToRoom)
+        {
+            var snapshots = roomUi.GetMemberSnapshots();
+            if (snapshots != null)
+            {
+                foreach (var member in snapshots)
+                {
+                    if (member == null || string.IsNullOrWhiteSpace(member.Uid))
+                        continue;
+
+                    result.Add(new PartyMemberView
+                    {
+                        Uid = member.Uid,
+                        Name = !string.IsNullOrWhiteSpace(member.DisplayName) ? member.DisplayName : TrimUid(member.Uid),
+                        IsHost = member.IsOwner,
+                        IsLocal = member.IsLocal,
+                        Connected = true,
+                        Ready = member.Ready
+                    });
+
+                    if (result.Count >= 4)
+                        break;
+                }
+            }
+        }
+
+        if (result.Count == 0 && _townRoom?.participants != null && _townRoom.participants.Count > 0)
+        {
+            foreach (var participant in _townRoom.participants)
+            {
+                if (participant == null)
+                    continue;
+
+                var name = !string.IsNullOrWhiteSpace(participant.name)
+                    ? participant.name
+                    : (!string.IsNullOrWhiteSpace(participant.uid) ? TrimUid(participant.uid) : $"Player {result.Count + 1}");
+                if (roomUi != null
+                    && roomUi.TryGetMemberName(participant.uid, out var roomName)
+                    && !string.IsNullOrWhiteSpace(roomName))
+                {
+                    name = roomName;
+                }
+
+                result.Add(new PartyMemberView
+                {
+                    Uid = participant.uid ?? "",
+                    Name = name,
+                    IsHost = string.Equals(participant.uid, _townRoom.ownerUid, StringComparison.OrdinalIgnoreCase),
+                    IsLocal = !string.IsNullOrWhiteSpace(uid) && string.Equals(participant.uid, uid, StringComparison.OrdinalIgnoreCase),
+                    Connected = true,
+                    Ready = true
+                });
+
+                if (result.Count >= 4)
+                    break;
+            }
+        }
+
+        if (result.Count == 0)
+        {
+            result.Add(new PartyMemberView
+            {
+                Uid = uid,
+                Name = "Player 1",
+                IsHost = true,
+                IsLocal = true,
+                Connected = true,
+                Ready = true
+            });
+        }
+
+        while (result.Count < 4)
+        {
+            result.Add(new PartyMemberView
+            {
+                Name = $"Player {result.Count + 1}",
+                Connected = false,
+                Ready = false
+            });
+        }
+
+        return result;
+    }
+
+    private async Task<string> CreateGameRoomForSelectedMapAsync(bool showRoomUi)
     {
         if (_creatingGameRoom)
-            return;
+            return "";
 
         _townRoomId = ResolveTownRoomId();
         if (string.IsNullOrWhiteSpace(_townRoomId) || !IsTownHost(_townRoom))
         {
             ShowGameSelectWindow(false);
             UpdateView("Host만 Game 대기방을 만들 수 있습니다.");
-            return;
+            return "";
         }
 
         var roomUi = EnsureRoomUiController();
         if (roomUi == null)
         {
             UpdateView("Room UI를 찾을 수 없습니다.");
-            return;
+            return "";
         }
 
+        var mapId = GetMapId(_selectedGameMapIndex);
+        var title = GetMapTitle(_selectedGameMapIndex);
         _creatingGameRoom = true;
         UpdateView("Game 대기방 생성 중...");
 
         try
         {
             ShowGameSelectWindow(false);
-            roomUi.OpenRoot(showList: false);
+            if (showRoomUi)
+                roomUi.OpenRoot(showList: false);
 
             var maxPlayers = Mathf.Clamp(_townRoom != null && _townRoom.maxPlayers > 0 ? _townRoom.maxPlayers : 4, 1, 50);
-            var roomId = await roomUi.CreateAndJoinRoomAsync("", title, mapId, maxPlayers, relayMode: true);
+            var roomId = await roomUi.CreateAndJoinRoomAsync("", title, mapId, maxPlayers, relayMode: true, showUi: showRoomUi);
             if (!this)
-                return;
+                return "";
 
             if (string.IsNullOrWhiteSpace(roomId))
             {
                 UpdateView("Game 대기방 생성 실패");
-                return;
+                return "";
             }
 
             var result = await _townApi.SetActiveGameRoomAsync(_townRoomId, roomId, mapId, title);
             if (!this)
-                return;
+                return "";
 
             if (!result.Ok)
             {
                 UpdateView($"Town에 Game 방 공유 실패 ({result.StatusCode})");
-                return;
+                return "";
             }
 
             if (result.Data?.room != null)
                 _townRoom = result.Data.room;
 
-            UpdateView();
+            UpdateView("Game 대기방이 생성되었습니다.");
+            return roomId;
         }
         finally
         {
@@ -444,13 +863,6 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         if (_startingGameRoom)
             return;
 
-        var activeGameRoomId = _townRoom?.activeGameRoomId ?? "";
-        if (string.IsNullOrWhiteSpace(activeGameRoomId))
-        {
-            UpdateView("시작할 Game 대기방이 없습니다.");
-            return;
-        }
-
         if (!IsTownHost(_townRoom))
         {
             UpdateView("Host만 Game을 시작할 수 있습니다.");
@@ -465,12 +877,19 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
 
         _startingGameRoom = true;
-        UpdateView("Game 시작 요청 중...");
+        UpdateView("Game 시작 준비 중...");
 
         try
         {
-            roomUi.OpenRoot(showList: false);
-            await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: true);
+            var activeGameRoomId = _townRoom?.activeGameRoomId ?? "";
+            if (string.IsNullOrWhiteSpace(activeGameRoomId))
+            {
+                activeGameRoomId = await CreateGameRoomForSelectedMapAsync(showRoomUi: false);
+                if (string.IsNullOrWhiteSpace(activeGameRoomId))
+                    return;
+            }
+
+            await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: false);
 
             if (!roomUi.CanOwnerStartGame)
             {
@@ -531,6 +950,25 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
     }
 
+    private async Task OpenPartyManageAsync()
+    {
+        var roomUi = EnsureRoomUiController();
+        if (roomUi == null)
+        {
+            UpdateView("Room UI를 찾을 수 없습니다.");
+            return;
+        }
+
+        var activeGameRoomId = _townRoom?.activeGameRoomId ?? "";
+        if (!string.IsNullOrWhiteSpace(activeGameRoomId))
+        {
+            await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: true);
+            return;
+        }
+
+        roomUi.OpenRoot(showList: true);
+    }
+
     private void ToggleInventory()
     {
         var inventory = FindSceneObject<TownInventoryUI>();
@@ -541,6 +979,19 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
 
         inventory.ToggleInventory();
+    }
+
+    private void CopyInviteCode()
+    {
+        var code = ResolveInviteCode();
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            UpdateView("복사할 초대 코드가 없습니다.");
+            return;
+        }
+
+        GUIUtility.systemCopyBuffer = code;
+        UpdateView("초대 코드를 클립보드에 복사했습니다.");
     }
 
     private RoomUiController EnsureRoomUiController()
@@ -750,35 +1201,75 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _canvas = GetComponentInParent<Canvas>(true);
 
         if (_root == null)
-            _root = FindChild<RectTransform>("TownExpeditionInfo");
-        if (_titleText == null)
-            _titleText = FindChild<TMP_Text>("Title");
+            _root = FindChild<RectTransform>("TownLobbyRoot");
+        if (_topTownTitleText == null)
+            _topTownTitleText = FindChild<TMP_Text>("TopTownTitle");
+        if (_topStatusText == null)
+            _topStatusText = FindChild<TMP_Text>("TopStatus");
         if (_statusText == null)
             _statusText = FindChild<TMP_Text>("Status");
-        if (_detailText == null)
-            _detailText = FindChild<TMP_Text>("Detail");
+        if (_roleBadgeText == null)
+            _roleBadgeText = FindChild<TMP_Text>("RoleBadge");
+        if (_partyCountText == null)
+            _partyCountText = FindChild<TMP_Text>("PartyCount");
+        if (_selectedMapTitleText == null)
+            _selectedMapTitleText = FindChild<TMP_Text>("SelectedMapTitle");
+        if (_selectedMapMetaText == null)
+            _selectedMapMetaText = FindChild<TMP_Text>("SelectedMapMeta");
+        if (_selectedMapDifficultyText == null)
+            _selectedMapDifficultyText = FindChild<TMP_Text>("SelectedMapDifficulty");
+        if (_selectedMapGoalText == null)
+            _selectedMapGoalText = FindChild<TMP_Text>("SelectedMapGoal");
+        if (_inviteCodeText == null)
+            _inviteCodeText = FindChild<TMP_Text>("InviteCode");
+        if (_clientHintText == null)
+            _clientHintText = FindChild<TMP_Text>("ClientReadyHint");
+        if (_minimapCountText == null)
+            _minimapCountText = FindChild<TMP_Text>("MinimapCount");
         if (_readySummaryText == null)
             _readySummaryText = FindChild<TMP_Text>("ReadySummary");
+        if (_hostControlsRoot == null)
+            _hostControlsRoot = FindChild<RectTransform>("HostControls");
+        if (_clientControlsRoot == null)
+            _clientControlsRoot = FindChild<RectTransform>("ClientControls");
+        if (_gameSelectWindow == null)
+            _gameSelectWindow = FindChild<RectTransform>("TownGameSelectWindow");
+        if (_mapInfoWindow == null)
+            _mapInfoWindow = FindChild<RectTransform>("TownMapInfoWindow");
+        if (_mapInfoTitleText == null)
+            _mapInfoTitleText = FindChild<TMP_Text>("MapInfoTitle");
+        if (_mapInfoDescriptionText == null)
+            _mapInfoDescriptionText = FindChild<TMP_Text>("MapInfoDescription");
+        if (_mapInfoStatsText == null)
+            _mapInfoStatsText = FindChild<TMP_Text>("MapInfoStats");
         if (_inventoryButton == null)
             _inventoryButton = FindChild<Button>("InventoryButton");
         if (_gameSelectButton == null)
             _gameSelectButton = FindChild<Button>("GameSelectButton");
+        if (_mapSelectConfirmButton == null)
+            _mapSelectConfirmButton = FindChild<Button>("MapSelectConfirmButton");
+        if (_mapSelectPartyButton == null)
+            _mapSelectPartyButton = FindChild<Button>("MapSelectPartyButton");
+        if (_gameSelectCloseButton == null)
+            _gameSelectCloseButton = FindChild<Button>("CloseButton");
+        if (_mapInfoButton == null)
+            _mapInfoButton = FindChild<Button>("MapInfoButton");
+        if (_mapInfoCloseButton == null)
+            _mapInfoCloseButton = FindChild<Button>("MapInfoCloseButton");
+        if (_copyInviteButton == null)
+            _copyInviteButton = FindChild<Button>("CopyInviteButton");
         if (_readyWindowButton == null)
             _readyWindowButton = FindChild<Button>("ReadyWindowButton");
         if (_hostStartGameButton == null)
             _hostStartGameButton = FindChild<Button>("HostStartGameButton");
         if (_hostCancelGameButton == null)
             _hostCancelGameButton = FindChild<Button>("HostCancelGameButton");
-        if (_gameSelectWindow == null)
-            _gameSelectWindow = FindChild<RectTransform>("TownGameSelectWindow");
-        if (_gameSelectCloseButton == null)
-            _gameSelectCloseButton = FindChild<Button>("CloseButton");
-        if (_gameOptionButtons == null || _gameOptionButtons.Length == 0)
-            _gameOptionButtons = FindGameOptionButtons();
+        if (_partyManageButton == null)
+            _partyManageButton = FindChild<Button>("PartyManageButton");
 
         ApplyFontToChildren();
 
-        if (!_warnedMissingUiReferences && (_root == null || _inventoryButton == null || _gameSelectButton == null || _gameSelectWindow == null))
+        if (!_warnedMissingUiReferences && (_root == null || _sidePartySlots == null || _sidePartySlots.Length == 0 || _gameSelectWindow == null))
         {
             _warnedMissingUiReferences = true;
             Debug.LogError("[TownExpeditionPanel] Scene UI references are incomplete. Rebuild Canvas_TownExpeditionOverlay in the hierarchy.");
@@ -801,12 +1292,12 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     private static string BuildReadySummary(RoomUiController roomUi, bool hasActiveGame, bool isHost)
     {
         if (!hasActiveGame)
-            return "";
+            return isHost ? "Game 대기방 없음" : "Host 대기 중";
 
         if (roomUi == null || !roomUi.IsConnectedToRoom)
             return isHost
-                ? "참가자 준비: 대기방 연결 필요\n대기방 보기로 상태를 확인하세요."
-                : "참가자 준비: 대기방 연결 필요\n준비하기를 눌러 상태를 확인하세요.";
+                ? "참가자 준비: 대기방 연결 중"
+                : "참가자 준비: 자동 연결 중";
 
         return roomUi.ReadySummaryText;
     }
@@ -876,6 +1367,120 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
     }
 
+    private void SelectMapOption(int index)
+    {
+        if (!IsTownHost(_townRoom))
+        {
+            UpdateView("Host만 맵을 변경할 수 있습니다.");
+            return;
+        }
+
+        if (_townRoom != null && !string.IsNullOrWhiteSpace(_townRoom.activeGameRoomId))
+        {
+            UpdateView("이미 열린 Game 대기방이 있어 맵을 변경할 수 없습니다. 대기 취소 후 다시 선택하세요.");
+            return;
+        }
+
+        _selectedGameMapIndex = Mathf.Clamp(index, 0, Mathf.Max(0, _gameMapIds.Length - 1));
+        UpdateView();
+    }
+
+    private void ShowGameSelectWindow(bool show)
+    {
+        BindSceneReferencesIfNeeded();
+        if (show && !IsTownHost(_townRoom))
+        {
+            UpdateView("Host만 맵 선택 창을 열 수 있습니다.");
+            return;
+        }
+
+        if (_gameSelectWindow)
+        {
+            if (show)
+                _gameSelectWindow.SetAsLastSibling();
+
+            _gameSelectWindow.gameObject.SetActive(show);
+        }
+    }
+
+    private void ShowMapInfoWindow(bool show)
+    {
+        BindSceneReferencesIfNeeded();
+        if (_mapInfoWindow)
+        {
+            if (show)
+            {
+                UpdateMapInfoWindow(!string.IsNullOrWhiteSpace(_townRoom?.activeGameMapId)
+                    ? ResolveMapIndex(_townRoom.activeGameMapId)
+                    : _selectedGameMapIndex);
+                _mapInfoWindow.SetAsLastSibling();
+            }
+
+            _mapInfoWindow.gameObject.SetActive(show);
+        }
+    }
+
+    private string ResolveInviteCode()
+    {
+        if (_townRoom != null && !string.IsNullOrWhiteSpace(_townRoom.roomId))
+            return _townRoom.roomId;
+        return _townRoomId;
+    }
+
+    private string ResolveTownTitle()
+    {
+        if (_townRoom != null && !string.IsNullOrWhiteSpace(_townRoom.title))
+            return _townRoom.title;
+
+        var mapId = SessionContext.Instance?.MapId ?? "";
+        if (string.Equals(mapId, "Town_Forest", StringComparison.OrdinalIgnoreCase))
+            return "타운 포레스트";
+
+        return "타운";
+    }
+
+    private int ResolveMapIndex(string mapId)
+    {
+        if (_gameMapIds == null || _gameMapIds.Length == 0)
+            return 0;
+
+        for (int i = 0; i < _gameMapIds.Length; i++)
+        {
+            if (string.Equals(_gameMapIds[i], mapId, StringComparison.OrdinalIgnoreCase))
+                return i;
+        }
+
+        return Mathf.Clamp(_selectedGameMapIndex, 0, _gameMapIds.Length - 1);
+    }
+
+    private string GetMapId(int index) => GetArrayValue(_gameMapIds, index, "Game_Forest_Tutorial");
+    private string GetMapTitle(int index) => GetArrayValue(_gameTitles, index, GetMapId(index));
+    private string GetMapDescription(int index) => GetArrayValue(_gameDescriptions, index, "");
+    private string GetMapDifficulty(int index) => GetArrayValue(_gameDifficultyLabels, index, "쉬움");
+    private string GetMapPlayers(int index) => GetArrayValue(_gamePlayerLabels, index, "1~4명");
+    private string GetMapTime(int index) => GetArrayValue(_gameTimeLabels, index, "5~10분");
+    private string GetMapGoal(int index) => GetArrayValue(_gameGoalLabels, index, "모든 적 처치");
+
+    private string[] GetMapFeatures(int index)
+    {
+        var title = GetMapTitle(index);
+        return new[]
+        {
+            $"{title} 입구",
+            "파티 합류 후 즉시 전투 준비 가능",
+            GetMapGoal(index)
+        };
+    }
+
+    private static string GetArrayValue(string[] values, int index, string fallback)
+    {
+        if (values == null || values.Length == 0)
+            return fallback;
+
+        index = Mathf.Clamp(index, 0, values.Length - 1);
+        return string.IsNullOrWhiteSpace(values[index]) ? fallback : values[index];
+    }
+
     private T FindChild<T>(string objectName) where T : Component
     {
         var components = GetComponentsInChildren<T>(true);
@@ -886,38 +1491,6 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
 
         return null;
-    }
-
-    private Button[] FindGameOptionButtons()
-    {
-        var buttons = GetComponentsInChildren<Button>(true);
-        var result = new Button[_gameMapIds.Length];
-        for (int i = 0; i < _gameMapIds.Length; i++)
-        {
-            var expectedName = $"GameOption_{_gameMapIds[i]}";
-            for (int j = 0; j < buttons.Length; j++)
-            {
-                if (buttons[j] != null && string.Equals(buttons[j].gameObject.name, expectedName, StringComparison.Ordinal))
-                {
-                    result[i] = buttons[j];
-                    break;
-                }
-            }
-        }
-
-        return result;
-    }
-
-    private void ShowGameSelectWindow(bool show)
-    {
-        BindSceneReferencesIfNeeded();
-        if (_gameSelectWindow)
-        {
-            if (show)
-                _gameSelectWindow.SetAsLastSibling();
-
-            _gameSelectWindow.gameObject.SetActive(show);
-        }
     }
 
     private static TMP_FontAsset LoadKoreanFont()
@@ -938,9 +1511,10 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             text.text = label;
     }
 
-    private static string SafeTitle(string title, string fallback)
+    private static void SetActive(Component component, bool active)
     {
-        return !string.IsNullOrWhiteSpace(title) ? title : fallback ?? "";
+        if (component != null)
+            component.gameObject.SetActive(active);
     }
 
     private static string TrimUid(string uid)

@@ -1512,12 +1512,17 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     private float GetGroundHeight(float x, float z)
     {
-        Ray ray = new Ray(new Vector3(x, 20f, z), Vector3.down);
-        if (Physics.Raycast(ray, out RaycastHit hit, 50f))
-            return hit.point.y;
-
         if (TryGetTileTopFromRendererBounds(x, z, out float tileTopY))
             return tileTopY;
+
+        Ray ray = new Ray(new Vector3(x, 20f, z), Vector3.down);
+        var groundMask = Physics.DefaultRaycastLayers;
+        var wallLayer = LayerMask.NameToLayer("Wall");
+        if (wallLayer >= 0)
+            groundMask &= ~(1 << wallLayer);
+
+        if (Physics.Raycast(ray, out RaycastHit hit, 50f, groundMask, QueryTriggerInteraction.Ignore))
+            return hit.point.y;
 
         Debug.LogWarning($"[GetGroundHeight] Miss! ({x}, {z}) -> Defaulting to 0");
         return 0f;

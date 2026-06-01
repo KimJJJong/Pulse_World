@@ -75,7 +75,7 @@ public class CameraObstacleFade : MonoBehaviour
             rayRadius, 
             _hitColliders, 
             obstacleLayer,
-            QueryTriggerInteraction.Ignore
+            QueryTriggerInteraction.Collide
         );
 
         if (debugMode)
