@@ -12,6 +12,7 @@ using Util;
 public sealed class TownRoom : RoomBase
 {
     private const string DefaultTownId = "Town_01";
+    private const int TownBpm = 180;
 
     public string TownId { get; }
 
@@ -62,7 +63,7 @@ public sealed class TownRoom : RoomBase
 
         _rhythmConfig = new RhythmConfig
         {
-            Bpm = 240,
+            Bpm = TownBpm,
             BaseBeatDivision = 1,
             ActionWindowMs = 100,
             MaxBeatLookAhead = 2,

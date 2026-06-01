@@ -14,6 +14,7 @@ public sealed class TownP2PRelayRoom : RoomBase
     private enum RoomPhase { Waiting, Running, Ended }
 
     private const int RelayTickRate = 120;
+    private const double TownBpm = 180;
     private const string DefaultTownId = "Town_01";
 
     public string RelayId { get; }
@@ -311,7 +312,7 @@ public sealed class TownP2PRelayRoom : RoomBase
                 ServerSendTimeMs = AppRef.ServerTimeMs(),
                 ClientSendTimeMs = 0,
                 SongStartServerTimeMs = _songStartAtMs,
-                Bpm = 240,
+                Bpm = TownBpm,
                 BaseBeatDivision = 1,
                 BeatIndex = 0
             }.Write());
@@ -342,7 +343,7 @@ public sealed class TownP2PRelayRoom : RoomBase
             MyActorId = myActorId,
             ActionWindowMs = 100,
             SongId = "TownP2P",
-            Bpm = 240,
+            Bpm = TownBpm,
             BaseBeatDivision = 1,
             SongStartServerTime = _songStartAtMs
         };

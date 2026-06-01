@@ -65,6 +65,9 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     [SerializeField] private TMP_Text _clientHintText;
     [SerializeField] private TMP_Text _minimapCountText;
     [SerializeField] private TMP_Text _readySummaryText;
+    [SerializeField] private RectTransform _partyPanelRoot;
+    [SerializeField] private RectTransform _partyPanelBodyRoot;
+    [SerializeField] private TMP_Text _partyMinimizeLabelText;
     [SerializeField] private RectTransform _hostControlsRoot;
     [SerializeField] private RectTransform _clientControlsRoot;
     [SerializeField] private RectTransform _gameSelectWindow;
@@ -84,6 +87,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     [SerializeField] private Button _mapInfoButton;
     [SerializeField] private Button _mapInfoCloseButton;
     [SerializeField] private Button _copyInviteButton;
+    [SerializeField] private Button _partyMinimizeButton;
     [SerializeField] private Button _readyWindowButton;
     [SerializeField] private Button _hostStartGameButton;
     [SerializeField] private Button _hostCancelGameButton;
@@ -165,6 +169,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     private bool _warnedMissingEventSystem;
     private bool _warnedMissingUiReferences;
     private float _nextLiveUiRefreshAt;
+    private bool _partyPanelCollapsed;
 
     public static TownExpeditionPanel EnsureInScene()
     {
@@ -340,6 +345,12 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _copyInviteButton.onClick.AddListener(CopyInviteCode);
         }
 
+        if (_partyMinimizeButton)
+        {
+            _partyMinimizeButton.onClick.RemoveAllListeners();
+            _partyMinimizeButton.onClick.AddListener(TogglePartyPanelCollapsed);
+        }
+
         if (_readyWindowButton)
         {
             _readyWindowButton.onClick.RemoveAllListeners();
@@ -491,6 +502,32 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _hostCancelGameButton.gameObject.SetActive(isHost && hasActiveGame);
             _hostCancelGameButton.interactable = isHost && hasActiveGame && !_startingGameRoom && !_cancelingGameRoom;
         }
+
+        ApplyPartyPanelCollapsedState();
+    }
+
+    private void TogglePartyPanelCollapsed()
+    {
+        _partyPanelCollapsed = !_partyPanelCollapsed;
+        ApplyPartyPanelCollapsedState();
+    }
+
+    private void ApplyPartyPanelCollapsedState()
+    {
+        if (_partyPanelBodyRoot)
+            _partyPanelBodyRoot.gameObject.SetActive(!_partyPanelCollapsed);
+
+        if (_partyPanelRoot)
+        {
+            var height = _partyPanelCollapsed ? 56f : 640f;
+            _partyPanelRoot.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+        }
+
+        if (_partyMinimizeLabelText)
+            _partyMinimizeLabelText.text = _partyPanelCollapsed ? "+" : "-";
+
+        if (_partyMinimizeButton)
+            SetButtonLabel(_partyMinimizeButton, _partyPanelCollapsed ? "+" : "-");
     }
 
     private string ResolveStatusText(
@@ -1228,6 +1265,12 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _minimapCountText = FindChild<TMP_Text>("MinimapCount");
         if (_readySummaryText == null)
             _readySummaryText = FindChild<TMP_Text>("ReadySummary");
+        if (_partyPanelRoot == null)
+            _partyPanelRoot = FindChild<RectTransform>("TownPartyPanel");
+        if (_partyPanelBodyRoot == null)
+            _partyPanelBodyRoot = FindChild<RectTransform>("PartyPanelBody");
+        if (_partyMinimizeLabelText == null)
+            _partyMinimizeLabelText = FindChild<TMP_Text>("PartyPanelMinimizeLabel");
         if (_hostControlsRoot == null)
             _hostControlsRoot = FindChild<RectTransform>("HostControls");
         if (_clientControlsRoot == null)
@@ -1258,6 +1301,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _mapInfoCloseButton = FindChild<Button>("MapInfoCloseButton");
         if (_copyInviteButton == null)
             _copyInviteButton = FindChild<Button>("CopyInviteButton");
+        if (_partyMinimizeButton == null)
+            _partyMinimizeButton = FindChild<Button>("PartyPanelMinimizeButton");
         if (_readyWindowButton == null)
             _readyWindowButton = FindChild<Button>("ReadyWindowButton");
         if (_hostStartGameButton == null)

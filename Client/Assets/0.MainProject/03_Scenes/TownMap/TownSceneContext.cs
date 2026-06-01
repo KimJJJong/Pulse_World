@@ -16,6 +16,7 @@ public sealed class TownSceneContext : BaseSceneContext
     private void Start()
     {
         TownExpeditionPanel.EnsureInScene();
+        HideTownCombatRhythmHud();
         TryApplyInitMapIfAlreadyReceived();
     }
 
@@ -23,6 +24,36 @@ public sealed class TownSceneContext : BaseSceneContext
     {
         base.ResolveSceneRefs();
         _inputController?.ConfigureForScene(RhythmInputController.InputChannel.Town, enableHoldAutoInput: true);
+    }
+
+    private static void HideTownCombatRhythmHud()
+    {
+        foreach (var beatGuide in FindObjectsByType<BeatGuideView>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            SetSceneObjectActive(beatGuide != null ? beatGuide.gameObject : null, false);
+
+        foreach (var combo in FindObjectsByType<ComboCounterView>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            SetSceneObjectActive(combo != null ? combo.gameObject : null, false);
+
+        foreach (var rect in FindObjectsByType<RectTransform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (rect == null)
+                continue;
+
+            var name = rect.gameObject.name;
+            if (string.Equals(name, "BeatGuide", System.StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "ComboFlourish", System.StringComparison.OrdinalIgnoreCase))
+            {
+                SetSceneObjectActive(rect.gameObject, false);
+            }
+        }
+    }
+
+    private static void SetSceneObjectActive(GameObject target, bool active)
+    {
+        if (target == null || !target.scene.IsValid() || !target.scene.isLoaded)
+            return;
+
+        target.SetActive(active);
     }
 
     public void OnInitMap(SC_InitMap p) => ApplyInitMapOnce(p);

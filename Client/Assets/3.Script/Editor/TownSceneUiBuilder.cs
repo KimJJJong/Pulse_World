@@ -56,6 +56,7 @@ public static class TownSceneUiBuilder
         var apiProvider = EnsureApiClientProvider();
         EnsureRoomUiRoot(apiProvider);
         EnsureTownExpeditionOverlay();
+        DisableTownCombatRhythmHud();
         InventoryUIBuilder.CreateTownInventoryMenu();
         ConfigureTownInventory();
         var scene = EditorSceneManager.GetActiveScene();
@@ -104,6 +105,7 @@ public static class TownSceneUiBuilder
             root,
             out var roleBadge,
             out var partyCount,
+            out var partyPanelBody,
             out var sidePartySlots,
             out var selectedMapTitle,
             out var selectedMapDifficulty,
@@ -121,7 +123,9 @@ public static class TownSceneUiBuilder
             out var hostCancelButton,
             out var partyManageButton,
             out var readyButton,
-            out var clientHint);
+            out var clientHint,
+            out var partyMinimizeButton,
+            out var partyMinimizeLabel);
 
         Button inventoryButton = null;
         var mapSelectWindow = BuildMapSelectWindow(root, out var mapSelectOptions, out var mapSelectConfirmButton, out var mapSelectPartyButton, out var mapSelectCloseButton);
@@ -134,6 +138,8 @@ public static class TownSceneUiBuilder
             topTownTitle,
             topStatus,
             status,
+            side,
+            partyPanelBody,
             roleBadge,
             partyCount,
             selectedMapTitle,
@@ -163,6 +169,8 @@ public static class TownSceneUiBuilder
             mapInfoButton,
             mapInfoCloseButton,
             copyInviteButton,
+            partyMinimizeButton,
+            partyMinimizeLabel,
             readyButton,
             hostStartButton,
             hostCancelButton,
@@ -172,6 +180,37 @@ public static class TownSceneUiBuilder
         mapInfoWindow.gameObject.SetActive(false);
         EditorUtility.SetDirty(side.gameObject);
         EditorUtility.SetDirty(canvasGo);
+    }
+
+    private static void DisableTownCombatRhythmHud()
+    {
+        foreach (var guide in Object.FindObjectsByType<BeatGuideView>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            SetSceneObjectActive(guide != null ? guide.gameObject : null, false);
+
+        foreach (var combo in Object.FindObjectsByType<ComboCounterView>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            SetSceneObjectActive(combo != null ? combo.gameObject : null, false);
+
+        foreach (var rect in Object.FindObjectsByType<RectTransform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (rect == null)
+                continue;
+
+            var name = rect.gameObject.name;
+            if (string.Equals(name, "BeatGuide", System.StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "ComboFlourish", System.StringComparison.OrdinalIgnoreCase))
+            {
+                SetSceneObjectActive(rect.gameObject, false);
+            }
+        }
+    }
+
+    private static void SetSceneObjectActive(GameObject target, bool active)
+    {
+        if (target == null || !target.scene.IsValid() || !target.scene.isLoaded)
+            return;
+
+        target.SetActive(active);
+        EditorUtility.SetDirty(target);
     }
 
     private static PartySlotBuildBinding[] BuildLeftPartyHud(RectTransform root)
@@ -255,6 +294,7 @@ public static class TownSceneUiBuilder
         RectTransform root,
         out TMP_Text roleBadge,
         out TMP_Text partyCount,
+        out RectTransform partyPanelBody,
         out PartySlotBuildBinding[] sideSlots,
         out TMP_Text selectedMapTitle,
         out TMP_Text selectedMapDifficulty,
@@ -272,7 +312,9 @@ public static class TownSceneUiBuilder
         out Button hostCancelButton,
         out Button partyManageButton,
         out Button readyButton,
-        out TMP_Text clientHint)
+        out TMP_Text clientHint,
+        out Button partyMinimizeButton,
+        out TMP_Text partyMinimizeLabel)
     {
         var panel = CreatePanel(root, "TownPartyPanel", PanelDark, true);
         SetTopRight(panel, 42f, 354f, 430f, 640f);
@@ -285,14 +327,23 @@ public static class TownSceneUiBuilder
         SetTopRight(roleBadge.rectTransform, 20f, 18f, 74f, 26f);
         AddTextBackplate(roleBadge.rectTransform, Cyan);
 
-        var sideSlotRoot = CreateRect(panel, "SidePartySlots");
+        partyMinimizeButton = CreateButton(panel, "PartyPanelMinimizeButton", "-", 30f, 26f);
+        SetTopRight(partyMinimizeButton.GetComponent<RectTransform>(), 102f, 18f, 30f, 26f);
+        partyMinimizeLabel = partyMinimizeButton.GetComponentInChildren<TMP_Text>(true);
+        if (partyMinimizeLabel)
+            partyMinimizeLabel.gameObject.name = "PartyPanelMinimizeLabel";
+
+        partyPanelBody = CreateRect(panel, "PartyPanelBody");
+        Stretch(partyPanelBody);
+
+        var sideSlotRoot = CreateRect(partyPanelBody, "SidePartySlots");
         SetTopLeft(sideSlotRoot, 18f, 56f, 394f, 160f);
         var sideList = new List<PartySlotBuildBinding>();
         for (var i = 0; i < 4; i++)
             sideList.Add(CreatePartySlot(sideSlotRoot, $"SidePartySlot_{i + 1:00}", i + 1, 0f, i * 39f, 394f, 34f, true));
         sideSlots = sideList.ToArray();
 
-        var selectedFrame = CreatePanel(panel, "SelectedMapPanel", new Color32(8, 16, 20, 212), true);
+        var selectedFrame = CreatePanel(partyPanelBody, "SelectedMapPanel", new Color32(8, 16, 20, 212), true);
         SetTopLeft(selectedFrame, 18f, 224f, 394f, 102f);
         CreateText(selectedFrame, "SelectedMapLabel", "선택된 맵", 14f, TextAlignmentOptions.MidlineLeft, TextMuted);
         SetTopLeft(selectedFrame.Find("SelectedMapLabel") as RectTransform, 12f, 4f, 120f, 24f);
@@ -310,28 +361,28 @@ public static class TownSceneUiBuilder
         selectedMapGoal = CreateText(selectedFrame, "SelectedMapGoal", "모든 적 처치", 13f, TextAlignmentOptions.MidlineLeft, TextMuted);
         SetTopLeft(selectedMapGoal.rectTransform, 156f, 78f, 210f, 20f);
 
-        gameSelectButton = CreateButton(panel, "GameSelectButton", "맵 변경", 390f, 36f, true);
+        gameSelectButton = CreateButton(partyPanelBody, "GameSelectButton", "맵 변경", 390f, 36f, true);
         SetTopLeft(gameSelectButton.GetComponent<RectTransform>(), 20f, 336f, 390f, 36f);
 
-        var inviteLabel = CreateText(panel, "InviteLabel", "초대 코드", 14f, TextAlignmentOptions.MidlineLeft, TextMuted);
+        var inviteLabel = CreateText(partyPanelBody, "InviteLabel", "초대 코드", 14f, TextAlignmentOptions.MidlineLeft, TextMuted);
         SetTopLeft(inviteLabel.rectTransform, 22f, 384f, 160f, 22f);
-        var inviteBox = CreateSolid(panel, "InviteCodeBox", new Color32(4, 16, 18, 235));
+        var inviteBox = CreateSolid(partyPanelBody, "InviteCodeBox", new Color32(4, 16, 18, 235));
         SetTopLeft(inviteBox.rectTransform, 22f, 408f, 260f, 38f);
         AddBorder(inviteBox.rectTransform, new Color32(61, 89, 95, 210), 1f);
         inviteCode = CreateText(inviteBox.rectTransform, "InviteCode", "----", 20f, TextAlignmentOptions.Center, Cyan);
         Stretch(inviteCode.rectTransform);
-        copyInviteButton = CreateButton(panel, "CopyInviteButton", "복사", 104f, 38f);
+        copyInviteButton = CreateButton(partyPanelBody, "CopyInviteButton", "복사", 104f, 38f);
         SetTopRight(copyInviteButton.GetComponent<RectTransform>(), 24f, 408f, 104f, 38f);
 
-        mapInfoButton = CreateButton(panel, "MapInfoButton", "맵 정보", 390f, 36f);
+        mapInfoButton = CreateButton(partyPanelBody, "MapInfoButton", "맵 정보", 390f, 36f);
         SetTopLeft(mapInfoButton.GetComponent<RectTransform>(), 20f, 456f, 390f, 36f);
 
-        status = CreateText(panel, "Status", "Town 정보를 불러오는 중...", 14f, TextAlignmentOptions.Center, TextMuted);
+        status = CreateText(partyPanelBody, "Status", "Town 정보를 불러오는 중...", 14f, TextAlignmentOptions.Center, TextMuted);
         SetTopLeft(status.rectTransform, 22f, 494f, 386f, 22f);
-        readySummary = CreateText(panel, "ReadySummary", "Game 대기방 없음", 13f, TextAlignmentOptions.Center, TextMuted);
+        readySummary = CreateText(partyPanelBody, "ReadySummary", "Game 대기방 없음", 13f, TextAlignmentOptions.Center, TextMuted);
         SetTopLeft(readySummary.rectTransform, 22f, 518f, 386f, 20f);
 
-        hostControls = CreateRect(panel, "HostControls");
+        hostControls = CreateRect(partyPanelBody, "HostControls");
         SetBottomLeft(hostControls, 18f, 12f, 394f, 84f);
         hostStartButton = CreateButton(hostControls, "HostStartGameButton", "시작", 238f, 54f, true);
         SetBottomLeft(hostStartButton.GetComponent<RectTransform>(), 0f, 0f, 238f, 54f);
@@ -341,7 +392,7 @@ public static class TownSceneUiBuilder
         SetBottomLeft(hostCancelButton.GetComponent<RectTransform>(), 0f, 58f, 120f, 24f);
         hostCancelButton.gameObject.SetActive(false);
 
-        clientControls = CreateRect(panel, "ClientControls");
+        clientControls = CreateRect(partyPanelBody, "ClientControls");
         SetBottomLeft(clientControls, 18f, 12f, 394f, 84f);
         readyButton = CreateButton(clientControls, "ReadyWindowButton", "준비", 394f, 54f, true);
         SetBottomLeft(readyButton.GetComponent<RectTransform>(), 0f, 26f, 394f, 54f);
@@ -577,6 +628,8 @@ public static class TownSceneUiBuilder
         TMP_Text topTownTitle,
         TMP_Text topStatus,
         TMP_Text status,
+        RectTransform partyPanelRoot,
+        RectTransform partyPanelBody,
         TMP_Text roleBadge,
         TMP_Text partyCount,
         TMP_Text selectedMapTitle,
@@ -606,6 +659,8 @@ public static class TownSceneUiBuilder
         Button mapInfoButton,
         Button mapInfoCloseButton,
         Button copyInviteButton,
+        Button partyMinimizeButton,
+        TMP_Text partyMinimizeLabel,
         Button readyButton,
         Button hostStartButton,
         Button hostCancelButton,
@@ -627,6 +682,9 @@ public static class TownSceneUiBuilder
         so.FindProperty("_clientHintText").objectReferenceValue = clientHint;
         so.FindProperty("_minimapCountText").objectReferenceValue = minimapCount;
         so.FindProperty("_readySummaryText").objectReferenceValue = readySummary;
+        so.FindProperty("_partyPanelRoot").objectReferenceValue = partyPanelRoot;
+        so.FindProperty("_partyPanelBodyRoot").objectReferenceValue = partyPanelBody;
+        so.FindProperty("_partyMinimizeLabelText").objectReferenceValue = partyMinimizeLabel;
         so.FindProperty("_hostControlsRoot").objectReferenceValue = hostControls;
         so.FindProperty("_clientControlsRoot").objectReferenceValue = clientControls;
         so.FindProperty("_gameSelectWindow").objectReferenceValue = mapSelectWindow;
@@ -646,6 +704,7 @@ public static class TownSceneUiBuilder
         so.FindProperty("_mapInfoButton").objectReferenceValue = mapInfoButton;
         so.FindProperty("_mapInfoCloseButton").objectReferenceValue = mapInfoCloseButton;
         so.FindProperty("_copyInviteButton").objectReferenceValue = copyInviteButton;
+        so.FindProperty("_partyMinimizeButton").objectReferenceValue = partyMinimizeButton;
         so.FindProperty("_readyWindowButton").objectReferenceValue = readyButton;
         so.FindProperty("_hostStartGameButton").objectReferenceValue = hostStartButton;
         so.FindProperty("_hostCancelGameButton").objectReferenceValue = hostCancelButton;
