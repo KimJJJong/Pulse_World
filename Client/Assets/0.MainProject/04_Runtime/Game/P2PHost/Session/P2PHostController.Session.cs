@@ -446,16 +446,14 @@ public sealed partial class P2PHostController
                 fromLocalSource,
                 isLateResolvedBeat ? P2PActionTraceReason.AcceptMoveLate : P2PActionTraceReason.AcceptMove,
                 executeBeat);
-            if (isLateResolvedBeat)
-            {
-                if (P2PDebugConfig.TraceHostFlow)
-                    Debug.Log($"[P2PHostController] LateAccept move actor={actorId} beat={executeBeat} resolvedBeat={_lastJudgeWindowBeat}");
-                EnqueueLateResolvedCommand(command);
-            }
-            else
-            {
-                EnqueueScheduledCommand(command);
-            }
+
+            // Player movement is already locally predicted by the input owner. Waiting until
+            // the judge window closes makes other peers see every accepted move late, so normal
+            // movement is resolved and relayed as soon as the host validates the request.
+            if (isLateResolvedBeat && P2PDebugConfig.TraceHostFlow)
+                Debug.Log($"[P2PHostController] LateAccept move actor={actorId} beat={executeBeat} resolvedBeat={_lastJudgeWindowBeat}");
+
+            ProcessMoveAction(actorId, req, executeBeat, actorInfo, broadcastImmediately: true);
             return;
         }
 
@@ -745,7 +743,12 @@ public sealed partial class P2PHostController
         _batchedBeatResults.Add(result);
     }
 
-    private void ProcessMoveAction(int actorId, CS_ActionRequest req, long beat, ClientEntityInfo actorInfo)
+    private void ProcessMoveAction(
+        int actorId,
+        CS_ActionRequest req,
+        long beat,
+        ClientEntityInfo actorInfo,
+        bool broadcastImmediately = false)
     {
         var origin = GetActorOrigin(actorId);
         int fromX = origin.x;
@@ -795,7 +798,25 @@ public sealed partial class P2PHostController
             hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>()
         };
 
+        if (broadcastImmediately)
+        {
+            BroadcastMoveResult(beat, result);
+            return;
+        }
+
         _batchedBeatResults.Add(result);
+    }
+
+    private void BroadcastMoveResult(long beat, SC_BeatActions.BeatActionResult result)
+    {
+        if (result == null)
+            return;
+
+        BroadcastBeatPacket(new SC_BeatActions
+        {
+            BeatIndex = beat,
+            beatActionResults = new List<SC_BeatActions.BeatActionResult> { result }
+        });
     }
 
     private void NotifyStageMoveIfPlayer(ClientEntityInfo actorInfo, int actorId, int x, int y)

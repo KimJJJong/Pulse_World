@@ -1102,6 +1102,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
     [Header("Sync")]
     [Range(0.1f, 2.0f)]
     public float actionDurationRatio = 0.5f;
+    [SerializeField, Range(0.02f, 0.2f)] private float remoteMoveMinCatchUpDuration = 0.06f;
+    [SerializeField, Range(0f, 0.25f)] private float remoteMoveStartGraceSeconds = 0.03f;
 
     public void OnBeatAction(ClientBeatAction action, ClientEntityInfo entity)
     {
@@ -1140,6 +1142,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
                 ClearPredictedMoves(action.ActorId);
             }
+
+            moveDuration = ResolveRemoteMoveDuration(action, moveDuration);
 
             float snapThreshold = 0.5f;
             float distFromServer = Vector3.Distance(visual.transform.position, serverFromW);
@@ -1200,6 +1204,29 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         visual.SetRotation(rotation);
         _recentInstantActions[actorId] = Time.time;
+    }
+
+    private float ResolveRemoteMoveDuration(ClientBeatAction action, float baseDuration)
+    {
+        if (baseDuration <= remoteMoveMinCatchUpDuration)
+            return baseDuration;
+
+        if (action.BeatIndex < 0
+            || RhythmClient.Instance == null
+            || RhythmClient.Instance.ServerSongStartMs <= 0)
+            return baseDuration;
+
+        if (ClientGameState.Instance != null
+            && action.ActorId == ClientGameState.Instance.MyActorId)
+            return baseDuration;
+
+        long beatTimeMs = RhythmClient.Instance.GetBeatTimeMs(action.BeatIndex);
+        long nowMs = RhythmClient.Instance.GetCurrentServerTimeMs();
+        float elapsed = Mathf.Max(0f, (nowMs - beatTimeMs) / 1000f - remoteMoveStartGraceSeconds);
+        if (elapsed <= 0f)
+            return baseDuration;
+
+        return Mathf.Clamp(baseDuration - elapsed, remoteMoveMinCatchUpDuration, baseDuration);
     }
 
     public bool TryGetPredictedMoveTile(int actorId, out Vector2Int tile)

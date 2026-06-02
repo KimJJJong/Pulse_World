@@ -84,6 +84,7 @@ namespace NetClient.Room.UI
         string _lastStatus = "";
         bool _openedExplicitly = false;
         bool _transitioningToGame = false;
+        string _requestedRoomId = "";
 
         const string RelayKeyPrefix = "p2p:";
 
@@ -384,6 +385,10 @@ namespace NetClient.Room.UI
             _uidToName.Clear();
             _memberReady.Clear();
             _requiredStartMemberUids.Clear();
+            _requestedRoomId = roomId ?? "";
+            _currentRoomId = "";
+            _currentRoomUseP2PRelay = false;
+            _currentSteamLobbyId = "";
             _amIReady = false;
             _currentOwnerUid = "";
             _preferredHostUid = "";
@@ -613,6 +618,7 @@ namespace NetClient.Room.UI
             {
                 Debug.Log($"[RoomUiController] OnInit Received. RoomId={room?.roomId}, Members={room?.memberUids?.Count}");
                 _currentRoomId = room?.roomId;
+                _requestedRoomId = _currentRoomId ?? _requestedRoomId;
                 _currentRoomUseP2PRelay = room != null && room.useP2PRelay;
                 _currentSteamLobbyId = room?.steamLobbyId ?? "";
                 _currentOwnerUid = room?.ownerUid ?? "";
@@ -1376,12 +1382,13 @@ namespace NetClient.Room.UI
             _lastWaitingProbeStatus = "Idle";
             _steamLobbyStatus = "Idle";
             _memberReady.Clear();
+            _requestedRoomId = "";
             NotifyWaitingRoomStateChanged();
         }
 
         void NotifyRoomSessionClosed()
         {
-            var roomId = _currentRoomId ?? "";
+            var roomId = !string.IsNullOrWhiteSpace(_currentRoomId) ? _currentRoomId : (_requestedRoomId ?? "");
             if (!string.IsNullOrWhiteSpace(roomId))
                 RoomSessionClosed?.Invoke(roomId);
         }

@@ -822,21 +822,22 @@ public static class Home1SceneSpaceUiBuilder
         CreateText(root, "MapTitleText", "WORLD MAP", new Rect(504f, 38f, 270f, 42f), 36f, TextAlignmentOptions.Center, ParchmentText);
         var realms = new[]
         {
-            CreateRealmButton(root, "Realm_Plains", "UI_Map/UI_Map_Location_Farm.png", new Rect(360f, 314f, 330f, 188f), "plains", "Golden Plains", "마을로 이동 가능한 중심 평야입니다. 현재 Town 입장 티켓 검증 흐름과 동일하게 동작합니다.", TownPassTicket, SceneNames.TownMap),
-            CreateRealmButton(root, "Realm_Forest", "UI_Map/UI_Map_Location_Forest.png", new Rect(180f, 142f, 208f, 154f), "forest", "Whispering Forest", "울창한 숲과 작은 마을이 있는 초반 영역입니다. 리듬 왜곡이 가장 약해 입장 준비에 적합합니다.", TownPassTicket, SceneNames.Town_Forest),
-            CreateRealmButton(root, "Realm_Snow", "UI_Map/UI_Map_Location_SnowMountain.png", new Rect(430f, 128f, 208f, 150f), "snow", "Frostpeak Mountains", "얼어붙은 박자와 지연 입력이 섞이는 설산 영역입니다. 방어 장비 확인을 권장합니다.", MissingMapTicket, string.Empty),
-            CreateRealmButton(root, "Realm_Ruins", "UI_Map/UI_Map_Location_Ruins.png", new Rect(658f, 156f, 206f, 154f), "ruins", "Ancient Ruins", "무너진 유적과 잔향 패턴이 겹치는 고대 영역입니다. 복합 리듬 전투가 등장합니다.", MissingMapTicket, string.Empty),
-            CreateRealmButton(root, "Realm_Lake", "UI_Map/UI_Map_Location_Seashore.png", new Rect(134f, 330f, 220f, 160f), "lake", "Sapphire Lake", "파도 리듬과 반향 전투가 만나는 수상 영역입니다. 긴 패턴을 안정적으로 처리해야 합니다.", MissingMapTicket, string.Empty),
-            CreateRealmButton(root, "Realm_Desert", "UI_Map/UI_Map_Location_Descert.png", new Rect(384f, 500f, 230f, 142f), "desert", "Sandworn Wastes", "모래 위로 느린 박동이 흐르는 고열 영역입니다. 회피 타이밍이 느리게 흔들립니다.", MissingMapTicket, string.Empty),
-            CreateRealmButton(root, "Realm_Volcano", "UI_Map/UI_Map_Location_Volcano.png", new Rect(680f, 390f, 226f, 168f), "volcano", "Ember Volcano", "과열된 박동이 빠르게 증폭되는 화산 영역입니다. 짧은 입력 판단이 중요합니다.", MissingMapTicket, string.Empty)
+            CreateRealmButton(root, "Realm_Plains", "UI_Map/UI_Map_Location_Farm.png", new Rect(354f, 336f, 276f, 158f), "plains", "Golden Plains", "마을로 이동 가능한 중심 평야입니다. 현재 Town 입장 티켓 검증 흐름과 동일하게 동작합니다.", TownPassTicket, SceneNames.TownMap),
+            CreateRealmButton(root, "Realm_Forest", "UI_Map/UI_Map_Location_Forest.png", new Rect(142f, 150f, 320f, 236f), "forest", "Whispering Forest", "울창한 숲과 작은 마을이 있는 초반 영역입니다. 리듬 왜곡이 가장 약해 입장 준비에 적합합니다.", TownPassTicket, SceneNames.Town_Forest),
+            CreateRealmButton(root, "Realm_Snow", "UI_Map/UI_Map_Location_SnowMountain.png", new Rect(424f, 150f, 222f, 160f), "snow", "Frostpeak Mountains", "얼어붙은 박자와 지연 입력이 섞이는 설산 영역입니다. 방어 장비 확인을 권장합니다.", MissingMapTicket, string.Empty),
+            CreateRealmButton(root, "Realm_Ruins", "UI_Map/UI_Map_Location_Ruins.png", new Rect(626f, 176f, 220f, 164f), "ruins", "Ancient Ruins", "무너진 유적과 잔향 패턴이 겹치는 고대 영역입니다. 복합 리듬 전투가 등장합니다.", MissingMapTicket, string.Empty),
+            CreateRealmButton(root, "Realm_Lake", "UI_Map/UI_Map_Location_Seashore.png", new Rect(96f, 326f, 340f, 248f), "lake", "Sapphire Lake", "파도 리듬과 반향 전투가 만나는 수상 영역입니다. 긴 패턴을 안정적으로 처리해야 합니다.", MissingMapTicket, string.Empty),
+            CreateRealmButton(root, "Realm_Desert", "UI_Map/UI_Map_Location_Descert.png", new Rect(314f, 506f, 258f, 160f), "desert", "Sandworn Wastes", "모래 위로 느린 박동이 흐르는 고열 영역입니다. 회피 타이밍이 느리게 흔들립니다.", MissingMapTicket, string.Empty),
+            CreateRealmButton(root, "Realm_Volcano", "UI_Map/UI_Map_Location_Volcano.png", new Rect(642f, 400f, 246f, 182f), "volcano", "Ember Volcano", "과열된 박동이 빠르게 증폭되는 화산 영역입니다. 짧은 입력 판단이 중요합니다.", MissingMapTicket, string.Empty)
         };
         CreateTexture(root, "DetailPanel", "UI_Map/UI_Panel_MapLocation_Detail.png", new Rect(900f, 120f, 314f, 488f));
         CreateText(root, "RealmTitle", "GOLDEN PLAINS", new Rect(932f, 192f, 252f, 36f), 27f, TextAlignmentOptions.Center, ParchmentText);
         CreateText(root, "RealmTicket", "Ticket: -", new Rect(934f, 238f, 248f, 22f), 14f, TextAlignmentOptions.Center, ParchmentMutedText);
 
-        var detailScroll = CreateScrollView(root, "RealmDetailScroll", new Rect(932f, 282f, 250f, 134f), new Vector2(230f, 200f));
-        var detail = CreateText(detailScroll.Content, "RealmDescription", "숲의 균열과 리듬 왜곡이 시작된 첫 영역입니다.", new Rect(0f, 0f, 230f, 184f), 16f, TextAlignmentOptions.TopLeft, ParchmentText, detailScroll.Content.sizeDelta);
+        var detailScroll = CreateScrollView(root, "RealmDetailScroll", new Rect(932f, 282f, 250f, 108f), new Vector2(230f, 150f));
+        var detail = CreateText(detailScroll.Content, "RealmDescription", "숲의 균열과 리듬 왜곡이 시작된 첫 영역입니다.", new Rect(0f, 0f, 230f, 132f), 14f, TextAlignmentOptions.TopLeft, ParchmentText, detailScroll.Content.sizeDelta);
         detail.textWrappingMode = TextWrappingModes.Normal;
+        detail.lineSpacing = -4f;
 
         var select = CreateButtonTexture(root, "Button_SelectRealm", "UI_Map/UI_Button_SelectLocation.png", new Rect(958f, 518f, 214f, 68f));
         CreateText(select.transform as RectTransform, "Label", "TRAVEL HERE", new Rect(30f, 18f, 152f, 26f), 20f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(214f, 68f));
@@ -1069,35 +1070,14 @@ public static class Home1SceneSpaceUiBuilder
             UnityEngine.Object.DestroyImmediate(existing.gameObject);
 
         var panelSize = new Vector2(620f, 548f);
-        var panelImage = CreateSolid(mapRoot, "TownEntryChoicePanel", new Color(0.13f, 0.09f, 0.05f, 0.98f));
-        SetRectFromTopLeft(panelImage.rectTransform, new Rect(272f, 98f, panelSize.x, panelSize.y), LayoutSize);
+        var panelImage = CreateTownTexture(mapRoot, "TownEntryChoicePanel", "Panel_ModalTitle.png", new Rect(272f, 98f, panelSize.x, panelSize.y), LayoutSize);
         panelImage.raycastTarget = true;
 
         var panelRect = panelImage.rectTransform;
-        var windowBody = CreateSolid(panelRect, "WindowBody", new Color(0.91f, 0.78f, 0.56f, 0.99f));
-        SetRectFromTopLeft(windowBody.rectTransform, new Rect(7f, 7f, 606f, 534f), panelSize);
-        windowBody.raycastTarget = false;
-
-        var innerBody = CreateSolid(panelRect, "InnerParchment", new Color(0.95f, 0.84f, 0.63f, 0.96f));
-        SetRectFromTopLeft(innerBody.rectTransform, new Rect(13f, 65f, 594f, 468f), panelSize);
-        innerBody.raycastTarget = false;
-
-        var titleBar = CreateSolid(panelRect, "WindowTitleBar", new Color(0.07f, 0.22f, 0.24f, 1f));
-        SetRectFromTopLeft(titleBar.rectTransform, new Rect(8f, 8f, 604f, 58f), panelSize);
-        titleBar.raycastTarget = false;
-
-        var titleTopLine = CreateSolid(panelRect, "WindowTopLine", new Color(0.96f, 0.76f, 0.38f, 1f));
-        SetRectFromTopLeft(titleTopLine.rectTransform, new Rect(18f, 13f, 584f, 2f), panelSize);
-        titleTopLine.raycastTarget = false;
-
-        var titleBottomLine = CreateSolid(panelRect, "WindowTitleDivider", new Color(0.50f, 0.32f, 0.12f, 1f));
-        SetRectFromTopLeft(titleBottomLine.rectTransform, new Rect(18f, 63f, 584f, 2f), panelSize);
-        titleBottomLine.raycastTarget = false;
-
-        var title = CreateText(panelRect, "TownEntryTitle", "Whispering Forest Town", new Rect(72f, 17f, 466f, 36f), 28f, TextAlignmentOptions.Center, new Color(1f, 0.91f, 0.66f, 1f), panelSize);
-        var closeButton = CreateTownChoiceButton(panelRect, "Button_CloseTownChoice", "X", new Rect(570f, 18f, 32f, 32f), panelSize);
-        var status = CreateText(panelRect, "TownEntryStatus", "Choose how you want to enter a town.", new Rect(38f, 76f, 544f, 28f), 15f, TextAlignmentOptions.Center, new Color(0.20f, 0.18f, 0.13f, 1f), panelSize);
-        CreateTownSeparator(panelRect, "TownEntryStatusDivider", new Rect(116f, 111f, 388f, 14f), panelSize);
+        var title = CreateText(panelRect, "TownEntryTitle", "Whispering Forest Town", new Rect(72f, 19f, 466f, 34f), 27f, TextAlignmentOptions.Center, new Color(1f, 0.91f, 0.66f, 1f), panelSize);
+        var closeButton = CreateTownChoiceButton(panelRect, "Button_CloseTownChoice", "", new Rect(568f, 17f, 34f, 34f), panelSize, "Button_Close.png");
+        var status = CreateText(panelRect, "TownEntryStatus", "Choose how you want to enter a town.", new Rect(38f, 78f, 544f, 28f), 15f, TextAlignmentOptions.Center, new Color(0.20f, 0.18f, 0.13f, 1f), panelSize);
+        CreateTownSeparator(panelRect, "TownEntryStatusDivider", new Rect(116f, 112f, 388f, 18f), panelSize);
 
         var choiceRoot = CreateRect(panelRect, "EntryChoiceRoot");
         SetRectFromTopLeft(choiceRoot, new Rect(26f, 126f, 568f, 388f), panelSize);
@@ -1115,28 +1095,27 @@ public static class Home1SceneSpaceUiBuilder
         SetRectFromTopLeft(existingRoot, new Rect(24f, 126f, 572f, 388f), panelSize);
         var existingSize = new Vector2(572f, 388f);
         var existingStatus = CreateText(existingRoot, "ExistingStatus", "Browse available towns and join one.", new Rect(0f, 0f, 572f, 22f), 13f, TextAlignmentOptions.Center, ParchmentMutedText, existingSize);
-        var searchInput = CreateTownChoiceInput(existingRoot, "Input_SearchTown", "Search Town", new Rect(28f, 34f, 318f, 34f), existingSize);
-        var listFrame = CreateSolid(existingRoot, "TownRoomListFrame", new Color(0.70f, 0.55f, 0.34f, 0.28f));
-        SetRectFromTopLeft(listFrame.rectTransform, new Rect(28f, 78f, 318f, 230f), existingSize);
+        existingStatus.gameObject.SetActive(false);
+        var searchInput = CreateTownChoiceInput(existingRoot, "Input_SearchTown", "Search Town", new Rect(28f, 26f, 318f, 34f), existingSize, "Search_Input.png");
+        var listFrame = CreateTownTexture(existingRoot, "TownRoomListFrame", "Detail_Card.png", new Rect(20f, 62f, 334f, 254f), existingSize);
         listFrame.raycastTarget = false;
         var roomList = CreateRect(existingRoot, "TownRoomList");
-        SetRectFromTopLeft(roomList, new Rect(28f, 78f, 318f, 230f), existingSize);
-        var listSize = new Vector2(318f, 230f);
+        SetRectFromTopLeft(roomList, new Rect(28f, 70f, 318f, 238f), existingSize);
+        var listSize = new Vector2(318f, 238f);
         var rows = new List<TownEntryRowBuildBinding>();
         for (var i = 0; i < 5; i++)
             rows.Add(CreateTownRoomRow(roomList, $"TownRoomRow_{i:00}", new Rect(6f, 6f + i * 44f, 306f, 40f), listSize));
         var emptyText = CreateText(roomList, "EmptyRoomText", "열려 있는 Town이 없습니다.", new Rect(0f, 88f, 318f, 44f), 16f, TextAlignmentOptions.Center, new Color(0.22f, 0.19f, 0.13f, 1f), listSize);
         emptyText.gameObject.SetActive(false);
 
-        var detailBox = CreateSolid(existingRoot, "SelectedTownDetailPanel", new Color(0.94f, 0.82f, 0.61f, 0.75f));
-        SetRectFromTopLeft(detailBox.rectTransform, new Rect(374f, 34f, 170f, 274f), existingSize);
+        var detailBox = CreateTownTexture(existingRoot, "SelectedTownDetailPanel", "Detail_Card_Clean.png", new Rect(352f, 28f, 210f, 294f), existingSize);
         detailBox.raycastTarget = false;
-        var selectedTownTitle = CreateText(existingRoot, "SelectedTownTitle", "Select a Town", new Rect(386f, 54f, 146f, 46f), 20f, TextAlignmentOptions.Center, ParchmentText, existingSize);
-        var selectedTownHost = CreateText(existingRoot, "SelectedTownHost", "Host: -", new Rect(386f, 112f, 146f, 20f), 12f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, existingSize);
-        var selectedTownPlayers = CreateText(existingRoot, "SelectedTownPlayers", "Players: -", new Rect(386f, 136f, 146f, 20f), 12f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, existingSize);
-        CreateTownSeparator(existingRoot, "SelectedTownDivider", new Rect(388f, 166f, 142f, 12f), existingSize);
-        var selectedTownDescription = CreateText(existingRoot, "SelectedTownDescription", "Browse available towns and choose one.", new Rect(386f, 186f, 146f, 70f), 11f, TextAlignmentOptions.TopLeft, ParchmentText, existingSize);
-        var selectedTownKey = CreateText(existingRoot, "SelectedTownKey", "", new Rect(386f, 262f, 146f, 18f), 10f, TextAlignmentOptions.Center, ParchmentMutedText, existingSize);
+        var selectedTownTitle = CreateText(existingRoot, "SelectedTownTitle", "Select a Town", new Rect(376f, 46f, 160f, 40f), 15.5f, TextAlignmentOptions.Center, ParchmentText, existingSize);
+        var selectedTownHost = CreateText(existingRoot, "SelectedTownHost", "Host: -", new Rect(378f, 90f, 158f, 18f), 10.5f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, existingSize);
+        var selectedTownPlayers = CreateText(existingRoot, "SelectedTownPlayers", "Players: -", new Rect(378f, 114f, 158f, 18f), 10.5f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, existingSize);
+        CreateTownSeparator(existingRoot, "SelectedTownDivider", new Rect(386f, 174f, 148f, 12f), existingSize);
+        var selectedTownDescription = CreateText(existingRoot, "SelectedTownDescription", "Browse available towns and choose one.", new Rect(376f, 194f, 160f, 54f), 9.5f, TextAlignmentOptions.TopLeft, ParchmentText, existingSize);
+        var selectedTownKey = CreateText(existingRoot, "SelectedTownKey", "", new Rect(378f, 254f, 158f, 16f), 9f, TextAlignmentOptions.Center, ParchmentMutedText, existingSize);
         var joinSelectedButton = CreateTownChoiceButton(existingRoot, "Button_JoinSelectedTown", "Join Selected Town", new Rect(384f, 284f, 150f, 34f), existingSize);
         var existingBack = CreateTownChoiceButton(existingRoot, "Button_ExistingBack", "Back", new Rect(146f, 346f, 170f, 42f), existingSize);
         var refreshButton = CreateTownChoiceButton(existingRoot, "Button_FindTown", "Refresh", new Rect(336f, 346f, 170f, 42f), existingSize);
@@ -1149,8 +1128,8 @@ public static class Home1SceneSpaceUiBuilder
         CreateText(createRoot, "TownNameLabel", "Town Name", new Rect(26f, 24f, 160f, 24f), 15f, TextAlignmentOptions.MidlineLeft, ParchmentText, createSize);
         var townNameInput = CreateTownChoiceInput(createRoot, "Input_TownName", "Whispering Nest", new Rect(26f, 54f, 480f, 42f), createSize);
         CreateText(createRoot, "VisibilityLabel", "Visibility", new Rect(26f, 116f, 160f, 24f), 15f, TextAlignmentOptions.MidlineLeft, ParchmentText, createSize);
-        var privateButton = CreateTownChoiceButton(createRoot, "Button_CreatePrivate", "Private", new Rect(26f, 148f, 234f, 42f), createSize);
-        var publicButton = CreateTownChoiceButton(createRoot, "Button_CreatePublic", "Public", new Rect(272f, 148f, 234f, 42f), createSize);
+        var privateButton = CreateTownChoiceButton(createRoot, "Button_CreatePrivate", "Private", new Rect(26f, 148f, 234f, 42f), createSize, "Button_Parchment_Wide.png");
+        var publicButton = CreateTownChoiceButton(createRoot, "Button_CreatePublic", "Public", new Rect(272f, 148f, 234f, 42f), createSize, "Button_Parchment_Wide.png");
         CreateText(createRoot, "MaxPlayersLabel", "Max Players", new Rect(26f, 210f, 160f, 24f), 15f, TextAlignmentOptions.MidlineLeft, ParchmentText, createSize);
         var maxButtons = new List<MaxPlayerBuildBinding>
         {
@@ -1172,16 +1151,15 @@ public static class Home1SceneSpaceUiBuilder
         var inviteInput = CreateTownChoiceInput(keyRoot, "Input_InviteCode", "7F3K-G2M9", new Rect(28f, 58f, 360f, 46f), keySize);
         var findKeyButton = CreateTownChoiceButton(keyRoot, "Button_JoinInvite", "Find", new Rect(402f, 58f, 104f, 46f), keySize);
         var keyStatus = CreateText(keyRoot, "KeyStatus", "Private towns require a valid key.", new Rect(60f, 118f, 412f, 24f), 14f, TextAlignmentOptions.Center, ParchmentMutedText, keySize);
-        var keyResult = CreateSolid(keyRoot, "KeyResultPanel", new Color(0.94f, 0.82f, 0.61f, 0.80f));
-        SetRectFromTopLeft(keyResult.rectTransform, new Rect(28f, 160f, 478f, 90f), keySize);
+        var keyResult = CreateTownTexture(keyRoot, "KeyResultPanel", "Key_Result_Row_Clean.png", new Rect(28f, 154f, 478f, 112f), keySize);
         keyResult.raycastTarget = false;
-        var keyResultTitle = CreateText(keyResult.rectTransform, "KeyResultTitle", "Moonlit Pine Camp", new Rect(132f, 16f, 268f, 26f), 20f, TextAlignmentOptions.MidlineLeft, ParchmentText, new Vector2(478f, 90f));
-        var keyResultHost = CreateText(keyResult.rectTransform, "KeyResultHost", "Host: -", new Rect(132f, 46f, 170f, 22f), 13f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, new Vector2(478f, 90f));
-        var keyResultPlayers = CreateText(keyResult.rectTransform, "KeyResultPlayers", "-", new Rect(316f, 46f, 78f, 22f), 13f, TextAlignmentOptions.MidlineRight, ParchmentMutedText, new Vector2(478f, 90f));
-        var keyResultDescription = CreateText(keyResult.rectTransform, "KeyResultDescription", "", new Rect(400f, 16f, 68f, 58f), 10f, TextAlignmentOptions.Center, ParchmentMutedText, new Vector2(478f, 90f));
-        var keyIcon = CreateSolid(keyResult.rectTransform, "KeyResultIcon", new Color(0.08f, 0.28f, 0.30f, 1f));
-        SetRectFromTopLeft(keyIcon.rectTransform, new Rect(22f, 14f, 88f, 62f), new Vector2(478f, 90f));
-        CreateText(keyIcon.rectTransform, "KeyResultIconText", "TOWN", new Rect(8f, 20f, 72f, 20f), 12f, TextAlignmentOptions.Center, new Color(0.96f, 0.78f, 0.46f, 1f), new Vector2(88f, 62f));
+        var keyResultSize = new Vector2(478f, 112f);
+        var keyResultTitle = CreateText(keyResult.rectTransform, "KeyResultTitle", "Moonlit Pine Camp", new Rect(132f, 20f, 270f, 28f), 18f, TextAlignmentOptions.MidlineLeft, ParchmentText, keyResultSize);
+        var keyResultHost = CreateText(keyResult.rectTransform, "KeyResultHost", "Host: -", new Rect(132f, 64f, 150f, 18f), 10.5f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, keyResultSize);
+        var keyResultPlayers = CreateText(keyResult.rectTransform, "KeyResultPlayers", "-", new Rect(286f, 64f, 72f, 18f), 10.5f, TextAlignmentOptions.MidlineRight, ParchmentMutedText, keyResultSize);
+        var keyResultDescription = CreateText(keyResult.rectTransform, "KeyResultDescription", "", new Rect(372f, 64f, 84f, 18f), 9.5f, TextAlignmentOptions.MidlineRight, ParchmentMutedText, keyResultSize);
+        var keyIcon = CreateTownTexture(keyResult.rectTransform, "KeyResultIcon", "Choice_Icon_Key.png", new Rect(24f, 19f, 86f, 74f), keyResultSize);
+        keyIcon.raycastTarget = false;
         keyResult.gameObject.SetActive(false);
         CreateTownSeparator(keyRoot, "KeyClearDivider", new Rect(76f, 282f, 380f, 12f), keySize, "Clear");
         var keyCancel = CreateTownChoiceButton(keyRoot, "Button_KeyCancel", "Cancel", new Rect(28f, 346f, 210f, 42f), keySize);
@@ -1268,10 +1246,9 @@ public static class Home1SceneSpaceUiBuilder
         EditorUtility.SetDirty(mapUi);
     }
 
-    private static TMP_InputField CreateTownChoiceInput(RectTransform parent, string name, string placeholderValue, Rect rect, Vector2 sourceSize)
+    private static TMP_InputField CreateTownChoiceInput(RectTransform parent, string name, string placeholderValue, Rect rect, Vector2 sourceSize, string textureName = "Input_Wide.png")
     {
-        var image = CreateSolid(parent, name, new Color(0.97f, 0.86f, 0.65f, 0.92f));
-        SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
+        var image = CreateTownTexture(parent, name, textureName, rect, sourceSize);
         image.raycastTarget = true;
 
         var input = image.gameObject.AddComponent<TMP_InputField>();
@@ -1282,41 +1259,31 @@ public static class Home1SceneSpaceUiBuilder
         input.transition = Selectable.Transition.ColorTint;
 
         var inputSize = new Vector2(rect.width, rect.height);
-        var border = CreateSolid(image.rectTransform, "Border", new Color(0.45f, 0.30f, 0.13f, 0.58f));
-        Stretch(border.rectTransform);
-        border.raycastTarget = false;
-        var text = CreateText(image.rectTransform, "Text", "", new Rect(14f, 2f, rect.width - 28f, rect.height - 4f), 15f, TextAlignmentOptions.MidlineLeft, ParchmentText, inputSize);
-        var placeholder = CreateText(image.rectTransform, "Placeholder", placeholderValue, new Rect(14f, 2f, rect.width - 28f, rect.height - 4f), 14f, TextAlignmentOptions.MidlineLeft, new Color(0.43f, 0.35f, 0.24f, 0.72f), inputSize);
+        var leftPadding = string.Equals(textureName, "Search_Input.png", StringComparison.OrdinalIgnoreCase) ? 44f : 18f;
+        var text = CreateText(image.rectTransform, "Text", "", new Rect(leftPadding, 2f, rect.width - leftPadding - 18f, rect.height - 4f), 15f, TextAlignmentOptions.MidlineLeft, ParchmentText, inputSize);
+        var placeholder = CreateText(image.rectTransform, "Placeholder", placeholderValue, new Rect(leftPadding, 2f, rect.width - leftPadding - 18f, rect.height - 4f), 14f, TextAlignmentOptions.MidlineLeft, new Color(0.43f, 0.35f, 0.24f, 0.72f), inputSize);
         input.textComponent = text;
         input.placeholder = placeholder;
 
         return input;
     }
 
-    private static Button CreateTownChoiceButton(RectTransform parent, string name, string label, Rect rect, Vector2 sourceSize)
+    private static Button CreateTownChoiceButton(RectTransform parent, string name, string label, Rect rect, Vector2 sourceSize, string textureName = null)
     {
-        var image = CreateSolid(parent, name, new Color(0.10f, 0.26f, 0.30f, 1f));
-        SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
-        image.raycastTarget = true;
-        var button = image.gameObject.AddComponent<Button>();
-        button.targetGraphic = image;
-        button.transition = Selectable.Transition.None;
-        button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
-        var border = CreateSolid(image.rectTransform, "Border", new Color(0.91f, 0.72f, 0.38f, 0.9f));
-        Stretch(border.rectTransform);
-        border.raycastTarget = false;
-        var face = CreateSolid(image.rectTransform, "Face", new Color(0.10f, 0.26f, 0.30f, 1f));
-        SetRectFromTopLeft(face.rectTransform, new Rect(2f, 2f, rect.width - 4f, rect.height - 4f), new Vector2(rect.width, rect.height));
-        face.raycastTarget = false;
-        CreateText(image.rectTransform, "Label", label, new Rect(6f, 0f, rect.width - 12f, rect.height), 15f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(rect.width, rect.height));
-        AddButtonFeedback(button, image.rectTransform, image);
+        textureName ??= rect.width >= 200f
+            ? "Button_Teal_Medium_Left.png"
+            : rect.width >= 145f
+                ? "Button_Teal_Small.png"
+                : "Button_Teal_Short.png";
+        var button = CreateTownTextureButton(parent, name, textureName, rect, sourceSize);
+        var rectTransform = button.transform as RectTransform;
+        CreateText(rectTransform, "Label", label, new Rect(8f, 0f, rect.width - 16f, rect.height), rect.height <= 30f ? 12f : 15f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(rect.width, rect.height));
         return button;
     }
 
     private static TownEntryRowBuildBinding CreateTownRoomRow(RectTransform parent, string name, Rect rect, Vector2 sourceSize)
     {
-        var image = CreateSolid(parent, name, new Color(0.96f, 0.86f, 0.65f, 0.96f));
-        SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
+        var image = CreateTownTexture(parent, name, "Room_Row.png", rect, sourceSize);
         image.raycastTarget = true;
 
         var button = image.gameObject.AddComponent<Button>();
@@ -1326,18 +1293,14 @@ public static class Home1SceneSpaceUiBuilder
         AddButtonFeedback(button, image.rectTransform, image);
 
         var rowSize = new Vector2(rect.width, rect.height);
-        var selectedFrame = CreateSolid(image.rectTransform, "SelectedFrame", new Color(0f, 0f, 0f, 0f));
+        var selectedFrame = CreateFlatSolid(image.rectTransform, "SelectedFrame", new Color(0f, 0f, 0f, 0f));
         Stretch(selectedFrame.rectTransform);
         selectedFrame.raycastTarget = false;
-        var icon = CreateSolid(image.rectTransform, "TownIcon", new Color(0.08f, 0.28f, 0.30f, 1f));
-        SetRectFromTopLeft(icon.rectTransform, new Rect(8f, 7f, 34f, 30f), rowSize);
-        icon.raycastTarget = false;
-        CreateText(icon.rectTransform, "TownIconText", "T", new Rect(0f, 4f, 34f, 20f), 14f, TextAlignmentOptions.Center, new Color(0.96f, 0.78f, 0.46f, 1f), new Vector2(34f, 30f));
-        var title = CreateText(image.rectTransform, "Title", "Town", new Rect(52f, 4f, 145f, 21f), 13f, TextAlignmentOptions.MidlineLeft, new Color(0.11f, 0.20f, 0.18f, 1f), rowSize);
-        var meta = CreateText(image.rectTransform, "Meta", "0 / 0", new Rect(206f, 4f, 48f, 21f), 12f, TextAlignmentOptions.MidlineRight, new Color(0.32f, 0.28f, 0.20f, 1f), rowSize);
-        var steamBadge = CreateText(image.rectTransform, "SteamBadge", "Steam", new Rect(52f, 24f, 54f, 16f), 10f, TextAlignmentOptions.MidlineLeft, new Color(0.04f, 0.38f, 0.58f, 1f), rowSize);
+        var title = CreateText(image.rectTransform, "Title", "Town", new Rect(58f, 3f, 145f, 21f), 13f, TextAlignmentOptions.MidlineLeft, new Color(0.11f, 0.20f, 0.18f, 1f), rowSize);
+        var meta = CreateText(image.rectTransform, "Meta", "0 / 0", new Rect(204f, 4f, 50f, 21f), 12f, TextAlignmentOptions.MidlineRight, new Color(0.32f, 0.28f, 0.20f, 1f), rowSize);
+        var steamBadge = CreateText(image.rectTransform, "SteamBadge", "Steam", new Rect(58f, 23f, 54f, 16f), 10f, TextAlignmentOptions.MidlineLeft, new Color(0.04f, 0.38f, 0.58f, 1f), rowSize);
         steamBadge.gameObject.SetActive(false);
-        var joinButton = CreateTownChoiceButton(image.rectTransform, "Button_RowJoin", "Join", new Rect(258f, 8f, 42f, 28f), rowSize);
+        var joinButton = CreateTownChoiceButton(image.rectTransform, "Button_RowJoin", "Join", new Rect(256f, 8f, 44f, 28f), rowSize, "Button_Teal_Short.png");
 
         image.gameObject.SetActive(false);
         return new TownEntryRowBuildBinding
@@ -1357,65 +1320,48 @@ public static class Home1SceneSpaceUiBuilder
         var root = CreateRect(parent, name);
         SetRectFromTopLeft(root, rect, sourceSize);
         var size = new Vector2(rect.width, rect.height);
-        var y = Mathf.Max(1f, rect.height * 0.5f - 0.5f);
-        var leftWidth = string.IsNullOrWhiteSpace(label) ? rect.width * 0.45f : rect.width * 0.36f;
-        var rightX = string.IsNullOrWhiteSpace(label) ? rect.width * 0.55f : rect.width * 0.64f;
-        var rightWidth = rect.width - rightX;
-        var lineColor = new Color(0.43f, 0.29f, 0.13f, 0.62f);
-        var left = CreateSolid(root, "LeftLine", lineColor);
-        SetRectFromTopLeft(left.rectTransform, new Rect(0f, y, leftWidth, 1f), size);
-        left.raycastTarget = false;
-        var right = CreateSolid(root, "RightLine", lineColor);
-        SetRectFromTopLeft(right.rectTransform, new Rect(rightX, y, rightWidth, 1f), size);
-        right.raycastTarget = false;
-        var diamond = CreateSolid(root, "Diamond", lineColor);
-        SetRectFromTopLeft(diamond.rectTransform, new Rect(rect.width * 0.5f - 4f, rect.height * 0.5f - 4f, 8f, 8f), size);
-        diamond.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-        diamond.raycastTarget = false;
+        var art = CreateTownTexture(root, "Art", "Separator_Short.png", new Rect(0f, 0f, rect.width, rect.height), size);
+        art.raycastTarget = false;
         if (!string.IsNullOrWhiteSpace(label))
-            CreateText(root, "Label", label, new Rect(rect.width * 0.36f, 0f, rect.width * 0.28f, rect.height), 13f, TextAlignmentOptions.Center, ParchmentText, size);
+        {
+            var labelWidth = Mathf.Clamp(rect.width * 0.28f, 88f, 132f);
+            var labelX = (rect.width - labelWidth) * 0.5f;
+            var labelBack = CreateFlatSolid(root, "LabelBack", new Color(0.80f, 0.68f, 0.48f, 0.88f));
+            SetRectFromTopLeft(labelBack.rectTransform, new Rect(labelX, 0f, labelWidth, rect.height), size);
+            CreateText(root, "Label", label, new Rect(labelX, 0f, labelWidth, rect.height), 12.5f, TextAlignmentOptions.Center, ParchmentText, size);
+        }
     }
 
     private static Button CreateTownOptionButton(RectTransform parent, string name, string title, string subtitle, string iconLabel, Rect rect, Vector2 sourceSize)
     {
-        var image = CreateSolid(parent, name, new Color(0.96f, 0.86f, 0.65f, 0.92f));
-        SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
-        image.raycastTarget = true;
-        var button = image.gameObject.AddComponent<Button>();
-        button.targetGraphic = image;
-        button.transition = Selectable.Transition.None;
-        button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
+        var button = CreateTownTextureButton(parent, name, "Choice_Row.png", rect, sourceSize);
+        var image = button.targetGraphic as RawImage;
 
         var optionSize = new Vector2(rect.width, rect.height);
-        var border = CreateSolid(image.rectTransform, "Border", new Color(0.45f, 0.30f, 0.13f, 0.60f));
-        Stretch(border.rectTransform);
-        border.raycastTarget = false;
-        var icon = CreateSolid(image.rectTransform, "IconPlate", new Color(0.08f, 0.28f, 0.30f, 1f));
-        SetRectFromTopLeft(icon.rectTransform, new Rect(18f, 14f, 54f, 46f), optionSize);
+        var iconTexture = iconLabel switch
+        {
+            "FIND" => "Choice_Icon_Find.png",
+            "NEW" => "Choice_Icon_Create.png",
+            "KEY" => "Choice_Icon_Key.png",
+            _ => "Choice_Icon_Find.png"
+        };
+        var icon = CreateTownTexture(image.rectTransform, "Icon", iconTexture, new Rect(18f, 9f, 58f, 58f), optionSize);
         icon.raycastTarget = false;
-        CreateText(icon.rectTransform, "IconLabel", iconLabel, new Rect(4f, 14f, 46f, 18f), 10f, TextAlignmentOptions.Center, new Color(0.96f, 0.78f, 0.46f, 1f), new Vector2(54f, 46f));
-        CreateText(image.rectTransform, "Title", title, new Rect(96f, 14f, 300f, 24f), 20f, TextAlignmentOptions.MidlineLeft, ParchmentText, optionSize);
-        CreateText(image.rectTransform, "Subtitle", subtitle, new Rect(96f, 42f, 330f, 20f), 13f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, optionSize);
-        CreateText(image.rectTransform, "Arrow", ">", new Rect(480f, 20f, 24f, 32f), 24f, TextAlignmentOptions.Center, ParchmentText, optionSize);
-        AddButtonFeedback(button, image.rectTransform, image);
+        CreateText(image.rectTransform, "Title", title, new Rect(138f, 14f, 260f, 24f), 19f, TextAlignmentOptions.MidlineLeft, ParchmentText, optionSize);
+        CreateText(image.rectTransform, "Subtitle", subtitle, new Rect(138f, 42f, 286f, 20f), 12.5f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, optionSize);
         return button;
     }
 
     private static MaxPlayerBuildBinding CreateTownMaxPlayerButton(RectTransform parent, string name, int value, Rect rect, Vector2 sourceSize)
     {
-        var image = CreateSolid(parent, name, new Color(0.96f, 0.86f, 0.65f, 0.80f));
-        SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
-        image.raycastTarget = true;
-        var button = image.gameObject.AddComponent<Button>();
-        button.targetGraphic = image;
-        button.transition = Selectable.Transition.None;
-        button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
+        var button = CreateTownTextureButton(parent, name, "Button_Parchment_Wide.png", rect, sourceSize);
+        var image = button.targetGraphic as RawImage;
         var size = new Vector2(rect.width, rect.height);
-        var highlight = CreateSolid(image.rectTransform, "SelectedHighlight", new Color(0f, 0f, 0f, 0f));
+        var highlight = CreateTownTexture(image.rectTransform, "SelectedHighlight", "Button_Teal_Small.png", new Rect(0f, 0f, rect.width, rect.height), size);
         Stretch(highlight.rectTransform);
         highlight.raycastTarget = false;
+        highlight.color = new Color(1f, 1f, 1f, 0f);
         var label = CreateText(image.rectTransform, "Label", value.ToString(), new Rect(0f, 0f, rect.width, rect.height), 18f, TextAlignmentOptions.Center, ParchmentText, size);
-        AddButtonFeedback(button, image.rectTransform, image);
         return new MaxPlayerBuildBinding
         {
             Value = value,
@@ -1662,6 +1608,23 @@ public static class Home1SceneSpaceUiBuilder
         };
     }
 
+    private static RawImage CreateTownTexture(Transform parent, string name, string textureName, Rect rect, Vector2 sourceSize)
+    {
+        return CreateTexture(parent, name, $"UI_TownEntry/{textureName}", rect, sourceSize);
+    }
+
+    private static Button CreateTownTextureButton(RectTransform parent, string name, string textureName, Rect rect, Vector2 sourceSize)
+    {
+        var image = CreateTownTexture(parent, name, textureName, rect, sourceSize);
+        image.raycastTarget = true;
+        var button = image.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        button.transition = Selectable.Transition.None;
+        button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
+        AddButtonFeedback(button, image.rectTransform, image);
+        return button;
+    }
+
     private static RawImage CreateTexture(Transform parent, string name, string relativePath, Rect rect)
     {
         return CreateTexture(parent, name, relativePath, rect, LayoutSize);
@@ -1734,6 +1697,20 @@ public static class Home1SceneSpaceUiBuilder
         Stretch(go.GetComponent<RectTransform>());
         var image = go.GetComponent<Image>();
         ApplyDefaultSprite(image);
+        image.color = color;
+        image.raycastTarget = false;
+        return image;
+    }
+
+    private static Image CreateFlatSolid(RectTransform parent, string name, Color color)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        go.transform.SetParent(parent, false);
+        Stretch(go.GetComponent<RectTransform>());
+        var image = go.GetComponent<Image>();
+        image.sprite = null;
+        image.type = Image.Type.Simple;
+        image.preserveAspect = false;
         image.color = color;
         image.raycastTarget = false;
         return image;

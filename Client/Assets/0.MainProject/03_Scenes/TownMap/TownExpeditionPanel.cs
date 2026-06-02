@@ -855,6 +855,13 @@ public sealed class TownExpeditionPanel : MonoBehaviour
                 return "";
             }
 
+            await WaitForRoomUiSnapshotAsync(roomUi, roomId);
+            if (!IsRoomUiConnectedTo(roomUi, roomId))
+            {
+                UpdateView("Game 대기방 연결 실패");
+                return "";
+            }
+
             var result = await _townApi.SetActiveGameRoomAsync(_townRoomId, roomId, mapId, title);
             if (!this)
                 return "";
@@ -906,7 +913,13 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         try
         {
             var isHost = IsTownHost(_townRoom);
-            await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: isHost);
+            var joined = await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: isHost);
+            if (!joined)
+            {
+                UpdateView("Game 대기방 연결에 실패했습니다.");
+                return;
+            }
+
             if (!isHost)
             {
                 var nextReady = !roomUi.AmIReady;
@@ -961,7 +974,20 @@ public sealed class TownExpeditionPanel : MonoBehaviour
                 return;
             }
 
-            await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: false);
+            var joined = await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: false);
+            if (!joined)
+            {
+                activeGameRoomId = await RecreateActiveGameRoomAfterJoinFailureAsync(activeGameRoomId);
+                if (string.IsNullOrWhiteSpace(activeGameRoomId))
+                    return;
+
+                joined = await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: false);
+                if (!joined)
+                {
+                    UpdateView("Game 대기방 재연결에 실패했습니다.");
+                    return;
+                }
+            }
 
             if (TryGetTownStartBlockReason(roomUi, out var blockReason))
             {
@@ -1034,7 +1060,9 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         var activeGameRoomId = _townRoom?.activeGameRoomId ?? "";
         if (!string.IsNullOrWhiteSpace(activeGameRoomId))
         {
-            await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: true);
+            var joined = await EnsureJoinedActiveGameRoomAsync(roomUi, activeGameRoomId, showUi: true);
+            if (!joined)
+                UpdateView("Game 대기방 연결에 실패했습니다.");
             return;
         }
 
@@ -1143,6 +1171,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             || !string.Equals(roomId, _townRoom.activeGameRoomId, StringComparison.OrdinalIgnoreCase))
             return;
 
+        _lastAutoJoinRoomId = "";
         _ = ClearActiveGameRoomAsync(roomId);
     }
 
@@ -1161,6 +1190,27 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _townRoom.activeGameRoomId = "";
 
         UpdateView();
+    }
+
+    private async Task<string> RecreateActiveGameRoomAfterJoinFailureAsync(string staleGameRoomId)
+    {
+        if (!IsTownHost(_townRoom))
+            return "";
+
+        UpdateView("기존 Game 대기방 연결이 끊겨 새로 만드는 중...");
+        _lastAutoJoinRoomId = "";
+
+        if (!string.IsNullOrWhiteSpace(staleGameRoomId))
+            await ClearActiveGameRoomAsync(staleGameRoomId);
+
+        if (!this)
+            return "";
+
+        await RefreshTownRoomAsync();
+        if (!this)
+            return "";
+
+        return await CreateGameRoomForSelectedMapAsync(showRoomUi: false);
     }
 
     private void RequestAutoJoinActiveGameRoom(string activeGameRoomId)
@@ -1214,10 +1264,10 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
     }
 
-    private async Task EnsureJoinedActiveGameRoomAsync(RoomUiController roomUi, string activeGameRoomId, bool showUi)
+    private async Task<bool> EnsureJoinedActiveGameRoomAsync(RoomUiController roomUi, string activeGameRoomId, bool showUi)
     {
         if (roomUi == null || string.IsNullOrWhiteSpace(activeGameRoomId))
-            return;
+            return false;
 
         ConfigureTownRequiredStartMembers(roomUi);
 
@@ -1236,6 +1286,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
         await WaitForRoomUiSnapshotAsync(roomUi, activeGameRoomId);
         ConfigureTownRequiredStartMembers(roomUi);
+        return IsRoomUiConnectedTo(roomUi, activeGameRoomId);
     }
 
     private string ResolveTownRoomId()
@@ -1490,12 +1541,20 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         return result;
     }
 
+    private static bool IsRoomUiConnectedTo(RoomUiController roomUi, string roomId)
+    {
+        return roomUi != null
+               && roomUi.IsConnectedToRoom
+               && !string.IsNullOrWhiteSpace(roomId)
+               && string.Equals(roomUi.CurrentRoomId, roomId, StringComparison.OrdinalIgnoreCase);
+    }
+
     private async Task WaitForRoomUiSnapshotAsync(RoomUiController roomUi, string roomId)
     {
         if (roomUi == null || string.IsNullOrWhiteSpace(roomId))
             return;
 
-        var deadline = Time.realtimeSinceStartup + 1.5f;
+        var deadline = Time.realtimeSinceStartup + 3f;
         while (this
                && Time.realtimeSinceStartup < deadline
                && (!roomUi.IsConnectedToRoom || !string.Equals(roomUi.CurrentRoomId, roomId, StringComparison.OrdinalIgnoreCase)))

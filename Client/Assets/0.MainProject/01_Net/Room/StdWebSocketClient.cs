@@ -60,6 +60,7 @@ using UnityEngine;
         async Task ReceiveLoop(CancellationToken ct)
         {
             var buf = new byte[8192];
+            var closeReason = "closed";
             try
             {
                 while (!ct.IsCancellationRequested && _ws.State == WebSocketState.Open)
@@ -69,7 +70,13 @@ using UnityEngine;
                     do
                     {
                         result = await _ws.ReceiveAsync(new ArraySegment<byte>(buf), ct);
-                        if (result.MessageType == WebSocketMessageType.Close) break;
+                        if (result.MessageType == WebSocketMessageType.Close)
+                        {
+                            closeReason = string.IsNullOrWhiteSpace(result.CloseStatusDescription)
+                                ? (_ws.CloseStatusDescription ?? "closed")
+                                : result.CloseStatusDescription;
+                            break;
+                        }
                         
                         sb.Append(Encoding.UTF8.GetString(buf, 0, result.Count));
                     } while (!result.EndOfMessage);
@@ -80,13 +87,18 @@ using UnityEngine;
                     MainThreadDispatcher.Post(() => OnMessage?.Invoke(msg));
                 }
             }
+            catch (OperationCanceledException)
+            {
+                closeReason = "canceled";
+            }
             catch (Exception ex)
             {
+                closeReason = string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
                 MainThreadDispatcher.Post(() => OnError?.Invoke(ex));
             }
             finally
             {
-                MainThreadDispatcher.Post(() => OnClosed?.Invoke("closed"));
+                MainThreadDispatcher.Post(() => OnClosed?.Invoke(string.IsNullOrWhiteSpace(closeReason) ? "closed" : closeReason));
             }
         }
 

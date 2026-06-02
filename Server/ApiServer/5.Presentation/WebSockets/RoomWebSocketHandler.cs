@@ -182,12 +182,24 @@ public sealed class RoomWebSocketHandler
         {
             _logger.LogInformation("WS Disconnected: Room={roomId}, Uid={uid}", roomId, uid);
             _conns.Remove(roomId, uid);
+
+            WaitingRoomDto? roomBeforeLeave = null;
+            try
+            {
+                var (_, snapshot) = await _waitingRoom.GetAsync(roomId);
+                roomBeforeLeave = snapshot;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[WaitingRoom] Failed to snapshot room before leave room={RoomId} uid={Uid}", roomId, uid);
+            }
             
             // Leave (Local)
             if (await _waitingRoom.LeaveAsync(roomId, uid))
             {
                 await _conns.BroadcastAsync(roomId, new { type = "MemberLeave", uid });
                 await BroadcastHostSelectionAsync(roomId);
+                await ClearTownActiveGameRoomIfOwnerAsync(roomBeforeLeave, uid, "websocket_closed");
             }
         }
     }
@@ -420,6 +432,7 @@ public sealed class RoomWebSocketHandler
 
                     // 4. Issue Tickets & Broadcast
                     // (Ideally, CP should support BulkIssue, but for now loop)
+                    var gameStartSent = false;
                     foreach(var memberUid in room.MemberUids)
                     {
                         // IssueTicket (RPC)
@@ -449,6 +462,7 @@ public sealed class RoomWebSocketHandler
                             var sent = await _conns.SendToAsync(roomId, memberUid, payload);
                             if (sent)
                             {
+                                gameStartSent = true;
                                 _logger.LogInformation(
                                     "[WaitingRoom] GameStart sent room={RoomId} uid={Uid} map={MapId} relay={Relay} host={HostUid}",
                                     roomId,
@@ -471,6 +485,9 @@ public sealed class RoomWebSocketHandler
                             _logger.LogError(ticketEx, "Failed to issue ticket for {memberUid}", memberUid);
                         }
                     }
+
+                    if (gameStartSent)
+                        await ClearTownActiveGameRoomIfOwnerAsync(room, uid, "game_start");
                 }
                 catch (Exception ex)
                 {
@@ -530,6 +547,37 @@ public sealed class RoomWebSocketHandler
         }
 
         return result;
+    }
+
+    private async Task ClearTownActiveGameRoomIfOwnerAsync(WaitingRoomDto? room, string uid, string reason)
+    {
+        if (room == null
+            || string.IsNullOrWhiteSpace(room.SourceTownRoomId)
+            || string.IsNullOrWhiteSpace(room.RoomId)
+            || !string.Equals(room.OwnerUid, uid, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var result = await _townRooms.ClearActiveGameRoomIfMatchesAsync(room.SourceTownRoomId, room.OwnerUid, room.RoomId);
+        if (result.ok)
+        {
+            _logger.LogInformation(
+                "[WaitingRoom] Town active game clear requested reason={Reason} townRoom={TownRoomId} gameRoom={GameRoomId} owner={OwnerUid}",
+                reason,
+                room.SourceTownRoomId,
+                room.RoomId,
+                room.OwnerUid);
+            return;
+        }
+
+        _logger.LogWarning(
+            "[WaitingRoom] Town active game clear failed reason={Reason} townRoom={TownRoomId} gameRoom={GameRoomId} owner={OwnerUid} error={Error}",
+            reason,
+            room.SourceTownRoomId,
+            room.RoomId,
+            room.OwnerUid,
+            result.error);
     }
 
     private async Task CloseAsync(WebSocket ws, string reason)

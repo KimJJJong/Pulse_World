@@ -399,6 +399,29 @@ public sealed class TownRoomService
         return (true, "");
     }
 
+    public async Task<(bool ok, string error)> ClearActiveGameRoomIfMatchesAsync(string roomId, string uid, string gameRoomId)
+    {
+        var room = await GetAsync(roomId);
+        if (room == null)
+            return (false, "RoomNotFound");
+
+        if (!string.Equals(room.OwnerUid, uid, StringComparison.OrdinalIgnoreCase))
+            return (false, "NotOwner");
+
+        if (!string.Equals(room.ActiveGameRoomId, gameRoomId, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation(
+                "[TownRoomLifecycle] event=active_game_clear_skip reason=game_room_mismatch room={RoomId} owner={OwnerUid} activeGame={ActiveGameRoomId} closingGame={ClosingGameRoomId}",
+                roomId,
+                uid,
+                room.ActiveGameRoomId,
+                gameRoomId);
+            return (true, "");
+        }
+
+        return await ClearActiveGameRoomAsync(roomId, uid);
+    }
+
     public async Task<TownRoomDto?> GetAsync(string roomId)
     {
         if (string.IsNullOrWhiteSpace(roomId))
