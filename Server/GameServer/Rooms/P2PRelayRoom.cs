@@ -622,92 +622,104 @@ public sealed class P2PRelayRoom : RoomBase
 
         Task.Run(async () =>
         {
-            var states = new Dictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?>(StringComparer.OrdinalIgnoreCase);
-            List<RoomPlayer> playersSnapshot;
-
-            lock (_lock)
+            try
             {
-                playersSnapshot = _players.Values.ToList();
-            }
+                var states = new Dictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?>(StringComparer.OrdinalIgnoreCase);
+                List<RoomPlayer> playersSnapshot;
 
-            foreach (var player in playersSnapshot)
-            {
-                try
+                lock (_lock)
                 {
-                    states[player.Uid] = await ServerServices.ApiClient.GetPlayerStateAsync(player.Uid);
+                    playersSnapshot = _players.Values.ToList();
                 }
-                catch (Exception ex)
+
+                foreach (var player in playersSnapshot)
                 {
-                    _logger.LogWarning(ex, "[P2PRelayRoom] PlayerState load failed uid={Uid}", player.Uid);
-                    states[player.Uid] = null;
-                }
-            }
-
-            var init = BuildInitPacketForPlayer(myActorId, states);
-            _logger.LogInformation(
-                "[P2PRelayRoom] Init payload relayId={RelayId} actor={ActorId} roster={Roster} playerEntities={PlayerEntities}",
-                RelayId,
-                myActorId,
-                string.Join(",", init.playerss.Select(x => $"{x.ActorId}:{x.Uid}")),
-                string.Join(",", init.entitiess.Where(x => x.EntityType == (int)EntityType.Player).Select(x => $"{x.EntityId}@({x.X},{x.Y})")));
-
-            if (!s.IsConnected)
-                return;
-
-            if (states.TryGetValue(s.Uid, out var myState) && myState != null)
-            {
-                var updateSkillsPkt = new SC_UpdateSkillSlots
-                {
-                    NormalAttackSkillId = myState.NormalAttackSkillId ?? ""
-                };
-
-                if (myState.ActiveSkillSlots != null)
-                {
-                    foreach (var skill in myState.ActiveSkillSlots)
+                    try
                     {
-                        updateSkillsPkt.activeSkillSlotss.Add(new SC_UpdateSkillSlots.ActiveSkillSlots
-                        {
-                            SkillId = skill ?? ""
-                        });
+                        states[player.Uid] = await ServerServices.ApiClient.GetPlayerStateAsync(player.Uid);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[P2PRelayRoom] PlayerState load failed uid={Uid}", player.Uid);
+                        states[player.Uid] = null;
                     }
                 }
 
-                s.Send(updateSkillsPkt.Write());
+                var init = BuildInitPacketForPlayer(myActorId, states);
+                _logger.LogInformation(
+                    "[P2PRelayRoom] Init payload relayId={RelayId} actor={ActorId} players={PlayerCount} entities={EntityCount} monsters={MonsterCount} objects={ObjectCount} roster={Roster} playerEntities={PlayerEntities}",
+                    RelayId,
+                    myActorId,
+                    init.playerss.Count,
+                    init.entitiess.Count,
+                    init.entitiess.Count(x => x.EntityType == (int)EntityType.Monster),
+                    init.entitiess.Count(x => x.EntityType == (int)EntityType.Object),
+                    string.Join(",", init.playerss.Select(x => $"{x.ActorId}:{x.Uid}")),
+                    string.Join(",", init.entitiess.Where(x => x.EntityType == (int)EntityType.Player).Select(x => $"{x.EntityId}@({x.X},{x.Y})")));
+
+                if (!s.IsConnected)
+                    return;
+
+                if (states.TryGetValue(s.Uid, out var myState) && myState != null)
+                {
+                    var updateSkillsPkt = new SC_UpdateSkillSlots
+                    {
+                        NormalAttackSkillId = myState.NormalAttackSkillId ?? ""
+                    };
+
+                    if (myState.ActiveSkillSlots != null)
+                    {
+                        foreach (var skill in myState.ActiveSkillSlots)
+                        {
+                            updateSkillsPkt.activeSkillSlotss.Add(new SC_UpdateSkillSlots.ActiveSkillSlots
+                            {
+                                SkillId = skill ?? ""
+                            });
+                        }
+                    }
+
+                    s.Send(updateSkillsPkt.Write());
+                }
+
+                s.Send(init.Write());
+                s.Send(new SC_GameBegin
+                {
+                    matchId = RelayId,
+                    startAtMs = _songStartAtMs,
+                    startTick = 0
+                }.Write());
+
+                s.Send(new SC_BeatSync
+                {
+                    ServerSendTimeMs = AppRef.ServerTimeMs(),
+                    ClientSendTimeMs = 0,
+                    SongStartServerTimeMs = _songStartAtMs,
+                    Bpm = _stage?.RhythmSettings?.Bpm ?? 120,
+                    BaseBeatDivision = _stage?.RhythmSettings?.BaseBeatDivision ?? 1,
+                    BeatIndex = 0
+                }.Write());
+
+                s.Send(new SC_HostChange
+                {
+                    HostActorId = _hostActorId
+                }.Write());
+
+                _logger.LogInformation(
+                    "[P2PRelayRoom] Init sent relayId={RelayId} actor={ActorId} host={Host}",
+                    RelayId,
+                    myActorId,
+                    _hostActorId);
+
+                if (!isNewJoin)
+                    return;
+
+                BroadcastCurrentPlayerSpawns(states);
             }
-
-            s.Send(init.Write());
-            s.Send(new SC_GameBegin
+            catch (Exception ex)
             {
-                matchId = RelayId,
-                startAtMs = _songStartAtMs,
-                startTick = 0
-            }.Write());
-
-            s.Send(new SC_BeatSync
-            {
-                ServerSendTimeMs = AppRef.ServerTimeMs(),
-                ClientSendTimeMs = 0,
-                SongStartServerTimeMs = _songStartAtMs,
-                Bpm = _stage?.RhythmSettings?.Bpm ?? 120,
-                BaseBeatDivision = _stage?.RhythmSettings?.BaseBeatDivision ?? 1,
-                BeatIndex = 0
-            }.Write());
-
-            s.Send(new SC_HostChange
-            {
-                HostActorId = _hostActorId
-            }.Write());
-
-            _logger.LogInformation(
-                "[P2PRelayRoom] Init sent relayId={RelayId} actor={ActorId} host={Host}",
-                RelayId,
-                myActorId,
-                _hostActorId);
-
-            if (!isNewJoin)
-                return;
-
-            BroadcastCurrentPlayerSpawns(states);
+                _logger.LogError(ex, "[P2PRelayRoom] Init send failed relayId={RelayId} actor={ActorId}", RelayId, myActorId);
+                LogManager.Instance.LogError("P2PRelayRoom", $"Init send failed relayId={RelayId} actor={myActorId} err={ex}");
+            }
         });
     }
 

@@ -38,18 +38,33 @@ namespace Client
 
         public override void OnRecvPacket(ArraySegment<byte> buffer)
         {
-            PacketManager.Instance.OnRecvPacket(this, buffer, (s,p) => 
+            try
             {
-                // [Optimization] Ping/Pong은 유니티 프레임(Update) 딜레이를 피해 소켓 수신 스레드에서 즉각 처리하여 Jitter를 0으로 만듭니다.
-                if (p is SC_Pong)
+                PacketManager.Instance.OnRecvPacket(this, buffer, (s,p) =>
                 {
-                    PacketManager.Instance.HandlePacket(s, p);
-                }
-                else
+                    // [Optimization] Ping/Pong은 유니티 프레임(Update) 딜레이를 피해 소켓 수신 스레드에서 즉각 처리하여 Jitter를 0으로 만듭니다.
+                    if (p is SC_Pong)
+                    {
+                        PacketManager.Instance.HandlePacket(s, p);
+                    }
+                    else
+                    {
+                        PacketQueue.Instance.Push(p);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                ushort packetId = 0;
+                if (buffer.Array != null && buffer.Count >= 4)
+                    packetId = BitConverter.ToUInt16(buffer.Array, buffer.Offset + 2);
+
+                MainThreadDispatcher.Post(() =>
                 {
-                    PacketQueue.Instance.Push(p);
-                }
-            });
+                    Debug.LogError($"[ServerSession] Packet parse failed id={packetId} size={buffer.Count} err={ex}");
+                });
+                throw;
+            }
         }
 
         public override void OnSend(int numOfBytes)
