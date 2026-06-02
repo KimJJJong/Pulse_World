@@ -14,6 +14,7 @@ public sealed class TownRoomDto
     public string OwnerUid { get; set; } = "";
     public string HostUid { get; set; } = "";
     public string Status { get; set; } = "";
+    public bool IsPublic { get; set; } = true;
     public string SteamLobbyId { get; set; } = "";
     public string ActiveGameRoomId { get; set; } = "";
     public string ActiveGameMapId { get; set; } = "";
@@ -91,7 +92,8 @@ public sealed class TownRoomService
         string ownerUid,
         string ownerName,
         string ownerSteamId64,
-        string clientVersion)
+        string clientVersion,
+        bool isPublic = true)
     {
         if (string.IsNullOrWhiteSpace(ownerUid) || string.IsNullOrWhiteSpace(mapId))
             return null;
@@ -125,6 +127,7 @@ public sealed class TownRoomService
             new("ownerUid", ownerUid),
             new("hostUid", ownerUid),
             new("status", "Open"),
+            new("isPublic", isPublic ? "1" : "0"),
             new("steamLobbyId", ""),
             new("activeGameRoomId", ""),
             new("activeGameMapId", ""),
@@ -418,6 +421,7 @@ public sealed class TownRoomService
             OwnerUid = dict.GetValueOrDefault("ownerUid") ?? "",
             HostUid = dict.GetValueOrDefault("hostUid") ?? "",
             Status = dict.GetValueOrDefault("status") ?? "",
+            IsPublic = ParseBool(dict.GetValueOrDefault("isPublic"), true),
             SteamLobbyId = dict.GetValueOrDefault("steamLobbyId") ?? "",
             ActiveGameRoomId = dict.GetValueOrDefault("activeGameRoomId") ?? "",
             ActiveGameMapId = dict.GetValueOrDefault("activeGameMapId") ?? "",
@@ -643,6 +647,8 @@ public sealed class TownRoomService
     {
         if (!string.Equals(room.Status, "Open", StringComparison.OrdinalIgnoreCase))
             return false;
+        if (!room.IsPublic)
+            return false;
         if (!string.IsNullOrWhiteSpace(mapId) && !string.Equals(room.MapId, mapId, StringComparison.OrdinalIgnoreCase))
             return false;
         if (string.IsNullOrWhiteSpace(room.OwnerUid))
@@ -708,4 +714,18 @@ public sealed class TownRoomService
     }
 
     private static string MembersKey(string roomKey) => $"{roomKey}:members";
+
+    private static bool ParseBool(string? value, bool defaultValue)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return defaultValue;
+
+        if (bool.TryParse(value, out var parsed))
+            return parsed;
+
+        if (int.TryParse(value, out var intValue))
+            return intValue != 0;
+
+        return defaultValue;
+    }
 }

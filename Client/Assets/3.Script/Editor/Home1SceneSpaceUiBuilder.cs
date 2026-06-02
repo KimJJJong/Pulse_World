@@ -139,7 +139,8 @@ public static class Home1SceneSpaceUiBuilder
         RequireComponent<HomeInventoryUI>("UI_Home_Equipment");
         var popup = RequireComponent<HomeEquipPopupUI>("UI_Home_Equipment_Detail");
         RequireComponent<HomeAppearancePageUI>("UI_Home_Appearance");
-        RequireComponent<HomeMapRealmUI>("UI_Home_Map");
+        var mapUi = RequireComponent<HomeMapRealmUI>("UI_Home_Map");
+        VerifyHomeMapTownEntry(mapUi);
         popup.Show(EquipmentSlot.Weapon);
         RequireComponent<RectMask2D>("ItemListViewport");
         popup.Hide();
@@ -156,6 +157,39 @@ public static class Home1SceneSpaceUiBuilder
         Require(RequireSceneObject("UI_Home_Map").activeSelf, "Map root should be active after ShowMap.");
 
         Debug.Log("[Home1SceneSpaceUiBuilder] Home1 Overlay flow verification passed.");
+    }
+
+    [MenuItem("RhythmRPG/Editors/UI/Capture Home1 Map Town Entry Preview Screenshots")]
+    public static void CaptureHomeMapTownEntryPreviewScreenshots()
+    {
+        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+        var canvas = RequireComponent<Canvas>("Canvas_Home1_SceneSpace");
+        var mapRoot = RequireSceneObject("UI_Home_Map");
+        ActivateOnlyHomeRoot(mapRoot);
+        PrepareForestMapPreview(mapRoot.transform);
+
+        var panel = RequireSceneObject("TownEntryChoicePanel");
+        panel.SetActive(true);
+        var panelTransform = panel.transform;
+
+        SetTownPreviewView(panelTransform, "EntryChoiceRoot", "Whispering Forest Town", "Choose how you want to enter a town.");
+        CaptureCanvasPreview(canvas, "HomeMap_TownEntry_Choice_Preview.png");
+
+        PrepareExistingTownPreview(panelTransform);
+        SetTownPreviewView(panelTransform, "ExistingTownsRoot", "Existing Towns", "Browse available towns and join one.");
+        CaptureCanvasPreview(canvas, "HomeMap_TownEntry_Existing_Preview.png");
+
+        PrepareCreateTownPreview(panelTransform);
+        SetTownPreviewView(panelTransform, "CreateTownRoot", "Create My Town", "Create a new town and choose who can join.");
+        CaptureCanvasPreview(canvas, "HomeMap_TownEntry_Create_Preview.png");
+
+        PrepareKeyTownPreview(panelTransform);
+        SetTownPreviewView(panelTransform, "JoinWithKeyRoot", "Join with Key", "Enter the town key shared by the host.");
+        CaptureCanvasPreview(canvas, "HomeMap_TownEntry_Key_Preview.png");
+
+        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        Debug.Log("[Home1SceneSpaceUiBuilder] Captured Home1 Map Town entry preview screenshots.");
     }
 
     [MenuItem("RhythmRPG/Editors/UI/Configure Home1 Map Realm Routes")]
@@ -796,17 +830,17 @@ public static class Home1SceneSpaceUiBuilder
             CreateRealmButton(root, "Realm_Desert", "UI_Map/UI_Map_Location_Descert.png", new Rect(384f, 500f, 230f, 142f), "desert", "Sandworn Wastes", "모래 위로 느린 박동이 흐르는 고열 영역입니다. 회피 타이밍이 느리게 흔들립니다.", MissingMapTicket, string.Empty),
             CreateRealmButton(root, "Realm_Volcano", "UI_Map/UI_Map_Location_Volcano.png", new Rect(680f, 390f, 226f, 168f), "volcano", "Ember Volcano", "과열된 박동이 빠르게 증폭되는 화산 영역입니다. 짧은 입력 판단이 중요합니다.", MissingMapTicket, string.Empty)
         };
-        CreateTexture(root, "DetailPanel", "UI_Map/UI_Panel_MapLocation_Detail.png", new Rect(872f, 120f, 342f, 488f));
-        CreateText(root, "RealmTitle", "GOLDEN PLAINS", new Rect(920f, 192f, 262f, 36f), 27f, TextAlignmentOptions.Center, ParchmentText);
-        CreateText(root, "RealmTicket", "Ticket: -", new Rect(922f, 238f, 258f, 22f), 14f, TextAlignmentOptions.Center, ParchmentMutedText);
+        CreateTexture(root, "DetailPanel", "UI_Map/UI_Panel_MapLocation_Detail.png", new Rect(900f, 120f, 314f, 488f));
+        CreateText(root, "RealmTitle", "GOLDEN PLAINS", new Rect(932f, 192f, 252f, 36f), 27f, TextAlignmentOptions.Center, ParchmentText);
+        CreateText(root, "RealmTicket", "Ticket: -", new Rect(934f, 238f, 248f, 22f), 14f, TextAlignmentOptions.Center, ParchmentMutedText);
 
-        var detailScroll = CreateScrollView(root, "RealmDetailScroll", new Rect(916f, 282f, 270f, 224f), new Vector2(250f, 430f));
-        var detail = CreateText(detailScroll.Content, "RealmDescription", "숲의 균열과 리듬 왜곡이 시작된 첫 영역입니다.", new Rect(0f, 0f, 250f, 402f), 16f, TextAlignmentOptions.TopLeft, ParchmentText, detailScroll.Content.sizeDelta);
+        var detailScroll = CreateScrollView(root, "RealmDetailScroll", new Rect(932f, 282f, 250f, 134f), new Vector2(230f, 200f));
+        var detail = CreateText(detailScroll.Content, "RealmDescription", "숲의 균열과 리듬 왜곡이 시작된 첫 영역입니다.", new Rect(0f, 0f, 230f, 184f), 16f, TextAlignmentOptions.TopLeft, ParchmentText, detailScroll.Content.sizeDelta);
         detail.textWrappingMode = TextWrappingModes.Normal;
 
-        var select = CreateButtonTexture(root, "Button_SelectRealm", "UI_Map/UI_Button_SelectLocation.png", new Rect(966f, 518f, 214f, 68f));
+        var select = CreateButtonTexture(root, "Button_SelectRealm", "UI_Map/UI_Button_SelectLocation.png", new Rect(958f, 518f, 214f, 68f));
         CreateText(select.transform as RectTransform, "Label", "TRAVEL HERE", new Rect(30f, 18f, 152f, 26f), 20f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(214f, 68f));
-        CreateText(root, "MapStatus", "지역을 선택하세요.", new Rect(908f, 526f, 296f, 38f), 13f, TextAlignmentOptions.Center, ParchmentMutedText);
+        CreateText(root, "MapStatus", "지역을 선택하세요.", new Rect(916f, 432f, 282f, 40f), 13f, TextAlignmentOptions.Center, ParchmentMutedText);
 
         var ui = root.gameObject.AddComponent<HomeMapRealmUI>();
         var so = new SerializedObject(ui);
@@ -1034,67 +1068,174 @@ public static class Home1SceneSpaceUiBuilder
         if (existing != null)
             UnityEngine.Object.DestroyImmediate(existing.gameObject);
 
-        var panelSize = new Vector2(500f, 480f);
-        var panelImage = CreateSolid(mapRoot, "TownEntryChoicePanel", new Color(0.16f, 0.11f, 0.06f, 0.98f));
-        SetRectFromTopLeft(panelImage.rectTransform, new Rect(390f, 128f, panelSize.x, panelSize.y), LayoutSize);
+        var panelSize = new Vector2(620f, 548f);
+        var panelImage = CreateSolid(mapRoot, "TownEntryChoicePanel", new Color(0.13f, 0.09f, 0.05f, 0.98f));
+        SetRectFromTopLeft(panelImage.rectTransform, new Rect(272f, 98f, panelSize.x, panelSize.y), LayoutSize);
         panelImage.raycastTarget = true;
 
         var panelRect = panelImage.rectTransform;
-        var windowBody = CreateSolid(panelRect, "WindowBody", new Color(0.91f, 0.79f, 0.57f, 0.99f));
-        SetRectFromTopLeft(windowBody.rectTransform, new Rect(8f, 8f, 484f, 464f), panelSize);
+        var windowBody = CreateSolid(panelRect, "WindowBody", new Color(0.91f, 0.78f, 0.56f, 0.99f));
+        SetRectFromTopLeft(windowBody.rectTransform, new Rect(7f, 7f, 606f, 534f), panelSize);
         windowBody.raycastTarget = false;
 
-        var titleBar = CreateSolid(panelRect, "WindowTitleBar", new Color(0.09f, 0.25f, 0.28f, 1f));
-        SetRectFromTopLeft(titleBar.rectTransform, new Rect(8f, 8f, 484f, 56f), panelSize);
+        var innerBody = CreateSolid(panelRect, "InnerParchment", new Color(0.95f, 0.84f, 0.63f, 0.96f));
+        SetRectFromTopLeft(innerBody.rectTransform, new Rect(13f, 65f, 594f, 468f), panelSize);
+        innerBody.raycastTarget = false;
+
+        var titleBar = CreateSolid(panelRect, "WindowTitleBar", new Color(0.07f, 0.22f, 0.24f, 1f));
+        SetRectFromTopLeft(titleBar.rectTransform, new Rect(8f, 8f, 604f, 58f), panelSize);
         titleBar.raycastTarget = false;
 
-        var titleTopLine = CreateSolid(panelRect, "WindowTopLine", new Color(0.94f, 0.74f, 0.36f, 1f));
-        SetRectFromTopLeft(titleTopLine.rectTransform, new Rect(16f, 14f, 468f, 2f), panelSize);
+        var titleTopLine = CreateSolid(panelRect, "WindowTopLine", new Color(0.96f, 0.76f, 0.38f, 1f));
+        SetRectFromTopLeft(titleTopLine.rectTransform, new Rect(18f, 13f, 584f, 2f), panelSize);
         titleTopLine.raycastTarget = false;
 
         var titleBottomLine = CreateSolid(panelRect, "WindowTitleDivider", new Color(0.50f, 0.32f, 0.12f, 1f));
-        SetRectFromTopLeft(titleBottomLine.rectTransform, new Rect(16f, 62f, 468f, 2f), panelSize);
+        SetRectFromTopLeft(titleBottomLine.rectTransform, new Rect(18f, 63f, 584f, 2f), panelSize);
         titleBottomLine.raycastTarget = false;
 
-        var title = CreateText(panelRect, "TownEntryTitle", "Golden Plains Town", new Rect(28f, 18f, 398f, 36f), 24f, TextAlignmentOptions.MidlineLeft, new Color(1f, 0.91f, 0.66f, 1f), panelSize);
-        var closeButton = CreateTownChoiceButton(panelRect, "Button_CloseTownChoice", "X", new Rect(444f, 18f, 32f, 32f), panelSize);
+        var title = CreateText(panelRect, "TownEntryTitle", "Whispering Forest Town", new Rect(72f, 17f, 466f, 36f), 28f, TextAlignmentOptions.Center, new Color(1f, 0.91f, 0.66f, 1f), panelSize);
+        var closeButton = CreateTownChoiceButton(panelRect, "Button_CloseTownChoice", "X", new Rect(570f, 18f, 32f, 32f), panelSize);
+        var status = CreateText(panelRect, "TownEntryStatus", "Choose how you want to enter a town.", new Rect(38f, 76f, 544f, 28f), 15f, TextAlignmentOptions.Center, new Color(0.20f, 0.18f, 0.13f, 1f), panelSize);
+        CreateTownSeparator(panelRect, "TownEntryStatusDivider", new Rect(116f, 111f, 388f, 14f), panelSize);
 
-        var status = CreateText(panelRect, "TownEntryStatus", "새 Town을 만들거나 기존 Town을 찾아 참여하세요.", new Rect(30f, 74f, 440f, 38f), 15f, TextAlignmentOptions.Center, new Color(0.18f, 0.20f, 0.17f, 1f), panelSize);
+        var choiceRoot = CreateRect(panelRect, "EntryChoiceRoot");
+        SetRectFromTopLeft(choiceRoot, new Rect(26f, 126f, 568f, 388f), panelSize);
+        var choiceSize = new Vector2(568f, 388f);
+        var choiceExisting = CreateTownOptionButton(choiceRoot, "Button_ChoiceExistingTown", "Find Existing Town", "Browse towns created by other players", "FIND", new Rect(24f, 0f, 520f, 74f), choiceSize);
+        var choiceCreate = CreateTownOptionButton(choiceRoot, "Button_ChoiceCreateTown", "Create My Town", "Set name, visibility, and player limit", "NEW", new Rect(24f, 88f, 520f, 74f), choiceSize);
+        var choiceKey = CreateTownOptionButton(choiceRoot, "Button_ChoiceJoinKey", "Join with Key", "Enter an invite key for direct access", "KEY", new Rect(24f, 176f, 520f, 74f), choiceSize);
+        CreateTownSeparator(choiceRoot, "QuickKeyDivider", new Rect(28f, 260f, 512f, 16f), choiceSize, "Quick Key Join");
+        var quickKeyInput = CreateTownChoiceInput(choiceRoot, "Input_QuickTownKey", "Enter town key...", new Rect(26f, 288f, 390f, 42f), choiceSize);
+        var quickJoinButton = CreateTownChoiceButton(choiceRoot, "Button_QuickKeyJoin", "Join", new Rect(436f, 288f, 104f, 42f), choiceSize);
+        var choiceBack = CreateTownChoiceButton(choiceRoot, "Button_ChoiceBack", "Back", new Rect(22f, 346f, 220f, 42f), choiceSize);
+        var choiceOpen = CreateTownChoiceButton(choiceRoot, "Button_ChoiceOpenSelected", "Open Selected", new Rect(318f, 346f, 226f, 42f), choiceSize);
 
-        var listFrame = CreateSolid(panelRect, "TownRoomListFrame", new Color(0.70f, 0.55f, 0.34f, 0.55f));
-        SetRectFromTopLeft(listFrame.rectTransform, new Rect(26f, 118f, 448f, 204f), panelSize);
+        var existingRoot = CreateRect(panelRect, "ExistingTownsRoot");
+        SetRectFromTopLeft(existingRoot, new Rect(24f, 126f, 572f, 388f), panelSize);
+        var existingSize = new Vector2(572f, 388f);
+        var existingStatus = CreateText(existingRoot, "ExistingStatus", "Browse available towns and join one.", new Rect(0f, 0f, 572f, 22f), 13f, TextAlignmentOptions.Center, ParchmentMutedText, existingSize);
+        var searchInput = CreateTownChoiceInput(existingRoot, "Input_SearchTown", "Search Town", new Rect(28f, 34f, 318f, 34f), existingSize);
+        var listFrame = CreateSolid(existingRoot, "TownRoomListFrame", new Color(0.70f, 0.55f, 0.34f, 0.28f));
+        SetRectFromTopLeft(listFrame.rectTransform, new Rect(28f, 78f, 318f, 230f), existingSize);
         listFrame.raycastTarget = false;
-
-        var roomList = CreateRect(panelRect, "TownRoomList");
-        SetRectFromTopLeft(roomList, new Rect(26f, 118f, 448f, 204f), panelSize);
-        var listSize = new Vector2(448f, 204f);
-
+        var roomList = CreateRect(existingRoot, "TownRoomList");
+        SetRectFromTopLeft(roomList, new Rect(28f, 78f, 318f, 230f), existingSize);
+        var listSize = new Vector2(318f, 230f);
         var rows = new List<TownEntryRowBuildBinding>();
-        for (var i = 0; i < 6; i++)
-        {
-            var row = CreateTownRoomRow(roomList, $"TownRoomRow_{i:00}", new Rect(8f, 8f + i * 32f, 432f, 28f), listSize);
-            rows.Add(row);
-        }
-
-        var emptyText = CreateText(roomList, "EmptyRoomText", "열려 있는 Town이 없습니다.", new Rect(0f, 80f, 448f, 44f), 16f, TextAlignmentOptions.Center, new Color(0.22f, 0.19f, 0.13f, 1f), listSize);
+        for (var i = 0; i < 5; i++)
+            rows.Add(CreateTownRoomRow(roomList, $"TownRoomRow_{i:00}", new Rect(6f, 6f + i * 44f, 306f, 40f), listSize));
+        var emptyText = CreateText(roomList, "EmptyRoomText", "열려 있는 Town이 없습니다.", new Rect(0f, 88f, 318f, 44f), 16f, TextAlignmentOptions.Center, new Color(0.22f, 0.19f, 0.13f, 1f), listSize);
         emptyText.gameObject.SetActive(false);
 
-        CreateText(panelRect, "InviteCodeLabel", "초대 코드 직접 입장", new Rect(30f, 332f, 220f, 22f), 14f, TextAlignmentOptions.MidlineLeft, new Color(0.18f, 0.20f, 0.17f, 1f), panelSize);
-        var inviteInput = CreateTownChoiceInput(panelRect, "Input_InviteCode", "예: 7F3K-G2M9", new Rect(30f, 358f, 292f, 36f), panelSize);
-        var joinInviteButton = CreateTownChoiceButton(panelRect, "Button_JoinInvite", "코드 입장", new Rect(334f, 358f, 136f, 36f), panelSize);
-        var createButton = CreateTownChoiceButton(panelRect, "Button_CreateTown", "새 Town 만들기", new Rect(54f, 416f, 178f, 42f), panelSize);
-        var refreshButton = CreateTownChoiceButton(panelRect, "Button_FindTown", "기존 Town 찾기", new Rect(268f, 416f, 178f, 42f), panelSize);
+        var detailBox = CreateSolid(existingRoot, "SelectedTownDetailPanel", new Color(0.94f, 0.82f, 0.61f, 0.75f));
+        SetRectFromTopLeft(detailBox.rectTransform, new Rect(374f, 34f, 170f, 274f), existingSize);
+        detailBox.raycastTarget = false;
+        var selectedTownTitle = CreateText(existingRoot, "SelectedTownTitle", "Select a Town", new Rect(386f, 54f, 146f, 46f), 20f, TextAlignmentOptions.Center, ParchmentText, existingSize);
+        var selectedTownHost = CreateText(existingRoot, "SelectedTownHost", "Host: -", new Rect(386f, 112f, 146f, 20f), 12f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, existingSize);
+        var selectedTownPlayers = CreateText(existingRoot, "SelectedTownPlayers", "Players: -", new Rect(386f, 136f, 146f, 20f), 12f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, existingSize);
+        CreateTownSeparator(existingRoot, "SelectedTownDivider", new Rect(388f, 166f, 142f, 12f), existingSize);
+        var selectedTownDescription = CreateText(existingRoot, "SelectedTownDescription", "Browse available towns and choose one.", new Rect(386f, 186f, 146f, 70f), 11f, TextAlignmentOptions.TopLeft, ParchmentText, existingSize);
+        var selectedTownKey = CreateText(existingRoot, "SelectedTownKey", "", new Rect(386f, 262f, 146f, 18f), 10f, TextAlignmentOptions.Center, ParchmentMutedText, existingSize);
+        var joinSelectedButton = CreateTownChoiceButton(existingRoot, "Button_JoinSelectedTown", "Join Selected Town", new Rect(384f, 284f, 150f, 34f), existingSize);
+        var existingBack = CreateTownChoiceButton(existingRoot, "Button_ExistingBack", "Back", new Rect(146f, 346f, 170f, 42f), existingSize);
+        var refreshButton = CreateTownChoiceButton(existingRoot, "Button_FindTown", "Refresh", new Rect(336f, 346f, 170f, 42f), existingSize);
+        existingRoot.gameObject.SetActive(false);
+
+        var createRoot = CreateRect(panelRect, "CreateTownRoot");
+        SetRectFromTopLeft(createRoot, new Rect(44f, 126f, 532f, 398f), panelSize);
+        var createSize = new Vector2(532f, 398f);
+        CreateTownSeparator(createRoot, "CreateHeaderDivider", new Rect(146f, 0f, 240f, 12f), createSize);
+        CreateText(createRoot, "TownNameLabel", "Town Name", new Rect(26f, 24f, 160f, 24f), 15f, TextAlignmentOptions.MidlineLeft, ParchmentText, createSize);
+        var townNameInput = CreateTownChoiceInput(createRoot, "Input_TownName", "Whispering Nest", new Rect(26f, 54f, 480f, 42f), createSize);
+        CreateText(createRoot, "VisibilityLabel", "Visibility", new Rect(26f, 116f, 160f, 24f), 15f, TextAlignmentOptions.MidlineLeft, ParchmentText, createSize);
+        var privateButton = CreateTownChoiceButton(createRoot, "Button_CreatePrivate", "Private", new Rect(26f, 148f, 234f, 42f), createSize);
+        var publicButton = CreateTownChoiceButton(createRoot, "Button_CreatePublic", "Public", new Rect(272f, 148f, 234f, 42f), createSize);
+        CreateText(createRoot, "MaxPlayersLabel", "Max Players", new Rect(26f, 210f, 160f, 24f), 15f, TextAlignmentOptions.MidlineLeft, ParchmentText, createSize);
+        var maxButtons = new List<MaxPlayerBuildBinding>
+        {
+            CreateTownMaxPlayerButton(createRoot, "Button_MaxPlayers_2", 2, new Rect(26f, 242f, 108f, 38f), createSize),
+            CreateTownMaxPlayerButton(createRoot, "Button_MaxPlayers_4", 4, new Rect(150f, 242f, 108f, 38f), createSize),
+            CreateTownMaxPlayerButton(createRoot, "Button_MaxPlayers_6", 6, new Rect(274f, 242f, 108f, 38f), createSize),
+            CreateTownMaxPlayerButton(createRoot, "Button_MaxPlayers_8", 8, new Rect(398f, 242f, 108f, 38f), createSize)
+        };
+        var visibilityHint = CreateText(createRoot, "VisibilityHint", "Public towns appear in the existing town list and can be joined by other players.", new Rect(52f, 298f, 428f, 34f), 13f, TextAlignmentOptions.Center, ParchmentMutedText, createSize);
+        var createCancel = CreateTownChoiceButton(createRoot, "Button_CreateCancel", "Cancel", new Rect(26f, 356f, 210f, 42f), createSize);
+        var createButton = CreateTownChoiceButton(createRoot, "Button_CreateTown", "Create Town", new Rect(296f, 356f, 210f, 42f), createSize);
+        createRoot.gameObject.SetActive(false);
+
+        var keyRoot = CreateRect(panelRect, "JoinWithKeyRoot");
+        SetRectFromTopLeft(keyRoot, new Rect(44f, 126f, 532f, 388f), panelSize);
+        var keySize = new Vector2(532f, 388f);
+        CreateTownSeparator(keyRoot, "KeyHeaderDivider", new Rect(76f, 0f, 380f, 12f), keySize);
+        CreateText(keyRoot, "TownKeyLabel", "Town Key", new Rect(28f, 26f, 180f, 24f), 16f, TextAlignmentOptions.MidlineLeft, ParchmentText, keySize);
+        var inviteInput = CreateTownChoiceInput(keyRoot, "Input_InviteCode", "7F3K-G2M9", new Rect(28f, 58f, 360f, 46f), keySize);
+        var findKeyButton = CreateTownChoiceButton(keyRoot, "Button_JoinInvite", "Find", new Rect(402f, 58f, 104f, 46f), keySize);
+        var keyStatus = CreateText(keyRoot, "KeyStatus", "Private towns require a valid key.", new Rect(60f, 118f, 412f, 24f), 14f, TextAlignmentOptions.Center, ParchmentMutedText, keySize);
+        var keyResult = CreateSolid(keyRoot, "KeyResultPanel", new Color(0.94f, 0.82f, 0.61f, 0.80f));
+        SetRectFromTopLeft(keyResult.rectTransform, new Rect(28f, 160f, 478f, 90f), keySize);
+        keyResult.raycastTarget = false;
+        var keyResultTitle = CreateText(keyResult.rectTransform, "KeyResultTitle", "Moonlit Pine Camp", new Rect(132f, 16f, 268f, 26f), 20f, TextAlignmentOptions.MidlineLeft, ParchmentText, new Vector2(478f, 90f));
+        var keyResultHost = CreateText(keyResult.rectTransform, "KeyResultHost", "Host: -", new Rect(132f, 46f, 170f, 22f), 13f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, new Vector2(478f, 90f));
+        var keyResultPlayers = CreateText(keyResult.rectTransform, "KeyResultPlayers", "-", new Rect(316f, 46f, 78f, 22f), 13f, TextAlignmentOptions.MidlineRight, ParchmentMutedText, new Vector2(478f, 90f));
+        var keyResultDescription = CreateText(keyResult.rectTransform, "KeyResultDescription", "", new Rect(400f, 16f, 68f, 58f), 10f, TextAlignmentOptions.Center, ParchmentMutedText, new Vector2(478f, 90f));
+        var keyIcon = CreateSolid(keyResult.rectTransform, "KeyResultIcon", new Color(0.08f, 0.28f, 0.30f, 1f));
+        SetRectFromTopLeft(keyIcon.rectTransform, new Rect(22f, 14f, 88f, 62f), new Vector2(478f, 90f));
+        CreateText(keyIcon.rectTransform, "KeyResultIconText", "TOWN", new Rect(8f, 20f, 72f, 20f), 12f, TextAlignmentOptions.Center, new Color(0.96f, 0.78f, 0.46f, 1f), new Vector2(88f, 62f));
+        keyResult.gameObject.SetActive(false);
+        CreateTownSeparator(keyRoot, "KeyClearDivider", new Rect(76f, 282f, 380f, 12f), keySize, "Clear");
+        var keyCancel = CreateTownChoiceButton(keyRoot, "Button_KeyCancel", "Cancel", new Rect(28f, 346f, 210f, 42f), keySize);
+        var joinKeyButton = CreateTownChoiceButton(keyRoot, "Button_JoinKeyTown", "Join Town", new Rect(296f, 346f, 210f, 42f), keySize);
+        var clearKeyButton = CreateTownChoiceButton(keyRoot, "Button_ClearKey", "Clear", new Rect(220f, 278f, 92f, 28f), keySize);
+        keyRoot.gameObject.SetActive(false);
 
         var so = new SerializedObject(mapUi);
         so.FindProperty("_choicePanel").objectReferenceValue = panelImage.gameObject;
         so.FindProperty("_choiceTitle").objectReferenceValue = title;
         so.FindProperty("_choiceStatus").objectReferenceValue = status;
-        so.FindProperty("_createTownButton").objectReferenceValue = createButton;
-        so.FindProperty("_refreshTownRoomsButton").objectReferenceValue = refreshButton;
         so.FindProperty("_closeChoiceButton").objectReferenceValue = closeButton;
-        so.FindProperty("_inviteCodeInput").objectReferenceValue = inviteInput;
-        so.FindProperty("_joinInviteButton").objectReferenceValue = joinInviteButton;
+        so.FindProperty("_entryChoiceRoot").objectReferenceValue = choiceRoot.gameObject;
+        so.FindProperty("_choiceExistingButton").objectReferenceValue = choiceExisting;
+        so.FindProperty("_choiceCreateButton").objectReferenceValue = choiceCreate;
+        so.FindProperty("_choiceKeyButton").objectReferenceValue = choiceKey;
+        so.FindProperty("_choiceOpenSelectedButton").objectReferenceValue = choiceOpen;
+        so.FindProperty("_choiceBackButton").objectReferenceValue = choiceBack;
+        so.FindProperty("_quickKeyInput").objectReferenceValue = quickKeyInput;
+        so.FindProperty("_quickKeyJoinButton").objectReferenceValue = quickJoinButton;
+
+        so.FindProperty("_existingTownsRoot").objectReferenceValue = existingRoot.gameObject;
+        so.FindProperty("_townSearchInput").objectReferenceValue = searchInput;
+        so.FindProperty("_refreshTownRoomsButton").objectReferenceValue = refreshButton;
+        so.FindProperty("_existingBackButton").objectReferenceValue = existingBack;
+        so.FindProperty("_existingStatus").objectReferenceValue = existingStatus;
         so.FindProperty("_emptyRoomText").objectReferenceValue = emptyText;
+        so.FindProperty("_selectedTownTitle").objectReferenceValue = selectedTownTitle;
+        so.FindProperty("_selectedTownHost").objectReferenceValue = selectedTownHost;
+        so.FindProperty("_selectedTownPlayers").objectReferenceValue = selectedTownPlayers;
+        so.FindProperty("_selectedTownDescription").objectReferenceValue = selectedTownDescription;
+        so.FindProperty("_selectedTownKey").objectReferenceValue = selectedTownKey;
+        so.FindProperty("_joinSelectedTownButton").objectReferenceValue = joinSelectedButton;
+
+        so.FindProperty("_createTownRoot").objectReferenceValue = createRoot.gameObject;
+        so.FindProperty("_townNameInput").objectReferenceValue = townNameInput;
+        so.FindProperty("_privateVisibilityButton").objectReferenceValue = privateButton;
+        so.FindProperty("_publicVisibilityButton").objectReferenceValue = publicButton;
+        so.FindProperty("_visibilityHint").objectReferenceValue = visibilityHint;
+        so.FindProperty("_createTownButton").objectReferenceValue = createButton;
+        so.FindProperty("_createCancelButton").objectReferenceValue = createCancel;
+
+        so.FindProperty("_keyTownRoot").objectReferenceValue = keyRoot.gameObject;
+        so.FindProperty("_inviteCodeInput").objectReferenceValue = inviteInput;
+        so.FindProperty("_joinInviteButton").objectReferenceValue = findKeyButton;
+        so.FindProperty("_joinKeyTownButton").objectReferenceValue = joinKeyButton;
+        so.FindProperty("_clearKeyButton").objectReferenceValue = clearKeyButton;
+        so.FindProperty("_keyCancelButton").objectReferenceValue = keyCancel;
+        so.FindProperty("_keyStatus").objectReferenceValue = keyStatus;
+        so.FindProperty("_keyResultRoot").objectReferenceValue = keyResult.gameObject;
+        so.FindProperty("_keyResultTitle").objectReferenceValue = keyResultTitle;
+        so.FindProperty("_keyResultHost").objectReferenceValue = keyResultHost;
+        so.FindProperty("_keyResultPlayers").objectReferenceValue = keyResultPlayers;
+        so.FindProperty("_keyResultDescription").objectReferenceValue = keyResultDescription;
 
         var rowProperty = so.FindProperty("_roomRows");
         rowProperty.arraySize = rows.Count;
@@ -1103,9 +1244,22 @@ public static class Home1SceneSpaceUiBuilder
             var element = rowProperty.GetArrayElementAtIndex(i);
             element.FindPropertyRelative("Root").objectReferenceValue = rows[i].Root;
             element.FindPropertyRelative("Button").objectReferenceValue = rows[i].Button;
+            element.FindPropertyRelative("JoinButton").objectReferenceValue = rows[i].JoinButton;
             element.FindPropertyRelative("Title").objectReferenceValue = rows[i].Title;
             element.FindPropertyRelative("Meta").objectReferenceValue = rows[i].Meta;
             element.FindPropertyRelative("SteamBadge").objectReferenceValue = rows[i].SteamBadge;
+            element.FindPropertyRelative("SelectedFrame").objectReferenceValue = rows[i].SelectedFrame;
+        }
+
+        var maxPlayersProperty = so.FindProperty("_maxPlayerButtons");
+        maxPlayersProperty.arraySize = maxButtons.Count;
+        for (var i = 0; i < maxButtons.Count; i++)
+        {
+            var element = maxPlayersProperty.GetArrayElementAtIndex(i);
+            element.FindPropertyRelative("Value").intValue = maxButtons[i].Value;
+            element.FindPropertyRelative("Button").objectReferenceValue = maxButtons[i].Button;
+            element.FindPropertyRelative("Label").objectReferenceValue = maxButtons[i].Label;
+            element.FindPropertyRelative("Highlight").objectReferenceValue = maxButtons[i].Highlight;
         }
         so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -1116,20 +1270,23 @@ public static class Home1SceneSpaceUiBuilder
 
     private static TMP_InputField CreateTownChoiceInput(RectTransform parent, string name, string placeholderValue, Rect rect, Vector2 sourceSize)
     {
-        var image = CreateSolid(parent, name, new Color(0.08f, 0.13f, 0.12f, 0.96f));
+        var image = CreateSolid(parent, name, new Color(0.97f, 0.86f, 0.65f, 0.92f));
         SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
         image.raycastTarget = true;
 
         var input = image.gameObject.AddComponent<TMP_InputField>();
         input.targetGraphic = image;
-        input.characterLimit = 24;
-        input.contentType = TMP_InputField.ContentType.Alphanumeric;
+        input.characterLimit = 32;
+        input.contentType = TMP_InputField.ContentType.Standard;
         input.lineType = TMP_InputField.LineType.SingleLine;
         input.transition = Selectable.Transition.ColorTint;
 
         var inputSize = new Vector2(rect.width, rect.height);
-        var text = CreateText(image.rectTransform, "Text", "", new Rect(12f, 2f, rect.width - 24f, rect.height - 4f), 15f, TextAlignmentOptions.MidlineLeft, ButtonLightText, inputSize);
-        var placeholder = CreateText(image.rectTransform, "Placeholder", placeholderValue, new Rect(12f, 2f, rect.width - 24f, rect.height - 4f), 14f, TextAlignmentOptions.MidlineLeft, new Color(0.64f, 0.72f, 0.68f, 0.74f), inputSize);
+        var border = CreateSolid(image.rectTransform, "Border", new Color(0.45f, 0.30f, 0.13f, 0.58f));
+        Stretch(border.rectTransform);
+        border.raycastTarget = false;
+        var text = CreateText(image.rectTransform, "Text", "", new Rect(14f, 2f, rect.width - 28f, rect.height - 4f), 15f, TextAlignmentOptions.MidlineLeft, ParchmentText, inputSize);
+        var placeholder = CreateText(image.rectTransform, "Placeholder", placeholderValue, new Rect(14f, 2f, rect.width - 28f, rect.height - 4f), 14f, TextAlignmentOptions.MidlineLeft, new Color(0.43f, 0.35f, 0.24f, 0.72f), inputSize);
         input.textComponent = text;
         input.placeholder = placeholder;
 
@@ -1158,7 +1315,7 @@ public static class Home1SceneSpaceUiBuilder
 
     private static TownEntryRowBuildBinding CreateTownRoomRow(RectTransform parent, string name, Rect rect, Vector2 sourceSize)
     {
-        var image = CreateSolid(parent, name, new Color(0.96f, 0.88f, 0.68f, 0.98f));
+        var image = CreateSolid(parent, name, new Color(0.96f, 0.86f, 0.65f, 0.96f));
         SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
         image.raycastTarget = true;
 
@@ -1169,19 +1326,102 @@ public static class Home1SceneSpaceUiBuilder
         AddButtonFeedback(button, image.rectTransform, image);
 
         var rowSize = new Vector2(rect.width, rect.height);
-        var title = CreateText(image.rectTransform, "Title", "Town", new Rect(12f, 3f, 244f, 22f), 13f, TextAlignmentOptions.MidlineLeft, new Color(0.11f, 0.20f, 0.18f, 1f), rowSize);
-        var meta = CreateText(image.rectTransform, "Meta", "0/0", new Rect(264f, 3f, 88f, 22f), 12f, TextAlignmentOptions.MidlineRight, new Color(0.32f, 0.28f, 0.20f, 1f), rowSize);
-        var steamBadge = CreateText(image.rectTransform, "SteamBadge", "Steam", new Rect(364f, 3f, 56f, 22f), 11f, TextAlignmentOptions.Center, new Color(0.04f, 0.38f, 0.58f, 1f), rowSize);
+        var selectedFrame = CreateSolid(image.rectTransform, "SelectedFrame", new Color(0f, 0f, 0f, 0f));
+        Stretch(selectedFrame.rectTransform);
+        selectedFrame.raycastTarget = false;
+        var icon = CreateSolid(image.rectTransform, "TownIcon", new Color(0.08f, 0.28f, 0.30f, 1f));
+        SetRectFromTopLeft(icon.rectTransform, new Rect(8f, 7f, 34f, 30f), rowSize);
+        icon.raycastTarget = false;
+        CreateText(icon.rectTransform, "TownIconText", "T", new Rect(0f, 4f, 34f, 20f), 14f, TextAlignmentOptions.Center, new Color(0.96f, 0.78f, 0.46f, 1f), new Vector2(34f, 30f));
+        var title = CreateText(image.rectTransform, "Title", "Town", new Rect(52f, 4f, 145f, 21f), 13f, TextAlignmentOptions.MidlineLeft, new Color(0.11f, 0.20f, 0.18f, 1f), rowSize);
+        var meta = CreateText(image.rectTransform, "Meta", "0 / 0", new Rect(206f, 4f, 48f, 21f), 12f, TextAlignmentOptions.MidlineRight, new Color(0.32f, 0.28f, 0.20f, 1f), rowSize);
+        var steamBadge = CreateText(image.rectTransform, "SteamBadge", "Steam", new Rect(52f, 24f, 54f, 16f), 10f, TextAlignmentOptions.MidlineLeft, new Color(0.04f, 0.38f, 0.58f, 1f), rowSize);
         steamBadge.gameObject.SetActive(false);
+        var joinButton = CreateTownChoiceButton(image.rectTransform, "Button_RowJoin", "Join", new Rect(258f, 8f, 42f, 28f), rowSize);
 
         image.gameObject.SetActive(false);
         return new TownEntryRowBuildBinding
         {
             Root = image.gameObject,
             Button = button,
+            JoinButton = joinButton,
             Title = title,
             Meta = meta,
-            SteamBadge = steamBadge
+            SteamBadge = steamBadge,
+            SelectedFrame = selectedFrame
+        };
+    }
+
+    private static void CreateTownSeparator(RectTransform parent, string name, Rect rect, Vector2 sourceSize, string label = "")
+    {
+        var root = CreateRect(parent, name);
+        SetRectFromTopLeft(root, rect, sourceSize);
+        var size = new Vector2(rect.width, rect.height);
+        var y = Mathf.Max(1f, rect.height * 0.5f - 0.5f);
+        var leftWidth = string.IsNullOrWhiteSpace(label) ? rect.width * 0.45f : rect.width * 0.36f;
+        var rightX = string.IsNullOrWhiteSpace(label) ? rect.width * 0.55f : rect.width * 0.64f;
+        var rightWidth = rect.width - rightX;
+        var lineColor = new Color(0.43f, 0.29f, 0.13f, 0.62f);
+        var left = CreateSolid(root, "LeftLine", lineColor);
+        SetRectFromTopLeft(left.rectTransform, new Rect(0f, y, leftWidth, 1f), size);
+        left.raycastTarget = false;
+        var right = CreateSolid(root, "RightLine", lineColor);
+        SetRectFromTopLeft(right.rectTransform, new Rect(rightX, y, rightWidth, 1f), size);
+        right.raycastTarget = false;
+        var diamond = CreateSolid(root, "Diamond", lineColor);
+        SetRectFromTopLeft(diamond.rectTransform, new Rect(rect.width * 0.5f - 4f, rect.height * 0.5f - 4f, 8f, 8f), size);
+        diamond.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        diamond.raycastTarget = false;
+        if (!string.IsNullOrWhiteSpace(label))
+            CreateText(root, "Label", label, new Rect(rect.width * 0.36f, 0f, rect.width * 0.28f, rect.height), 13f, TextAlignmentOptions.Center, ParchmentText, size);
+    }
+
+    private static Button CreateTownOptionButton(RectTransform parent, string name, string title, string subtitle, string iconLabel, Rect rect, Vector2 sourceSize)
+    {
+        var image = CreateSolid(parent, name, new Color(0.96f, 0.86f, 0.65f, 0.92f));
+        SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
+        image.raycastTarget = true;
+        var button = image.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        button.transition = Selectable.Transition.None;
+        button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
+
+        var optionSize = new Vector2(rect.width, rect.height);
+        var border = CreateSolid(image.rectTransform, "Border", new Color(0.45f, 0.30f, 0.13f, 0.60f));
+        Stretch(border.rectTransform);
+        border.raycastTarget = false;
+        var icon = CreateSolid(image.rectTransform, "IconPlate", new Color(0.08f, 0.28f, 0.30f, 1f));
+        SetRectFromTopLeft(icon.rectTransform, new Rect(18f, 14f, 54f, 46f), optionSize);
+        icon.raycastTarget = false;
+        CreateText(icon.rectTransform, "IconLabel", iconLabel, new Rect(4f, 14f, 46f, 18f), 10f, TextAlignmentOptions.Center, new Color(0.96f, 0.78f, 0.46f, 1f), new Vector2(54f, 46f));
+        CreateText(image.rectTransform, "Title", title, new Rect(96f, 14f, 300f, 24f), 20f, TextAlignmentOptions.MidlineLeft, ParchmentText, optionSize);
+        CreateText(image.rectTransform, "Subtitle", subtitle, new Rect(96f, 42f, 330f, 20f), 13f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, optionSize);
+        CreateText(image.rectTransform, "Arrow", ">", new Rect(480f, 20f, 24f, 32f), 24f, TextAlignmentOptions.Center, ParchmentText, optionSize);
+        AddButtonFeedback(button, image.rectTransform, image);
+        return button;
+    }
+
+    private static MaxPlayerBuildBinding CreateTownMaxPlayerButton(RectTransform parent, string name, int value, Rect rect, Vector2 sourceSize)
+    {
+        var image = CreateSolid(parent, name, new Color(0.96f, 0.86f, 0.65f, 0.80f));
+        SetRectFromTopLeft(image.rectTransform, rect, sourceSize);
+        image.raycastTarget = true;
+        var button = image.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        button.transition = Selectable.Transition.None;
+        button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
+        var size = new Vector2(rect.width, rect.height);
+        var highlight = CreateSolid(image.rectTransform, "SelectedHighlight", new Color(0f, 0f, 0f, 0f));
+        Stretch(highlight.rectTransform);
+        highlight.raycastTarget = false;
+        var label = CreateText(image.rectTransform, "Label", value.ToString(), new Rect(0f, 0f, rect.width, rect.height), 18f, TextAlignmentOptions.Center, ParchmentText, size);
+        AddButtonFeedback(button, image.rectTransform, image);
+        return new MaxPlayerBuildBinding
+        {
+            Value = value,
+            Button = button,
+            Label = label,
+            Highlight = highlight
         };
     }
 
@@ -1619,6 +1859,199 @@ public static class Home1SceneSpaceUiBuilder
         throw new InvalidOperationException($"TextMeshProUGUI not found: {name}");
     }
 
+    private static void ActivateOnlyHomeRoot(GameObject activeRoot)
+    {
+        var rootNames = new[]
+        {
+            "UI_Home_Interface",
+            "UI_Home_Equipment",
+            "UI_Home_Inventory",
+            "UI_Home_Appearance",
+            "UI_Home_Map",
+            "UI_Home_Equipment_Detail"
+        };
+
+        foreach (var rootName in rootNames)
+        {
+            var root = RequireSceneObject(rootName);
+            root.SetActive(root == activeRoot);
+        }
+    }
+
+    private static void PrepareForestMapPreview(Transform mapRoot)
+    {
+        RequireTmp(mapRoot, "RealmTitle").text = "Whispering Forest";
+        RequireTmp(mapRoot, "RealmTicket").text = $"Ticket: {TownPassTicket}";
+        RequireTmp(mapRoot, "RealmDescription").text = "울창한 숲과 작은 마을이 있는 초반 영역입니다. 리듬 왜곡이 가장 약해 입장 준비에 적합합니다.";
+        RequireTmp(mapRoot, "MapStatus").text = "Whispering Forest 입장 방식 선택 중...";
+    }
+
+    private static void SetTownPreviewView(Transform panel, string activeRootName, string title, string status)
+    {
+        var roots = new[] { "EntryChoiceRoot", "ExistingTownsRoot", "CreateTownRoot", "JoinWithKeyRoot" };
+        foreach (var rootName in roots)
+        {
+            var root = RequireChild(panel, rootName);
+            root.gameObject.SetActive(rootName == activeRootName);
+        }
+
+        RequireTmp(panel, "TownEntryTitle").text = title;
+        RequireTmp(panel, "TownEntryStatus").text = status;
+        Canvas.ForceUpdateCanvases();
+    }
+
+    private static void PrepareExistingTownPreview(Transform panel)
+    {
+        SetInputText(panel, "Input_SearchTown", "");
+        RequireTmp(panel, "EmptyRoomText").gameObject.SetActive(false);
+
+        var roomData = new[]
+        {
+            ("Moss Lantern Village", "18 / 30", true),
+            ("Riverbend Hamlet", "12 / 25", false),
+            ("Pinewatch Outpost", "9 / 20", false),
+            ("Dewdrop Hollow", "7 / 20", false),
+            ("Thornfield Settlement", "16 / 30", false)
+        };
+
+        for (var i = 0; i < roomData.Length; i++)
+        {
+            var row = RequireChild(panel, $"TownRoomRow_{i:00}");
+            row.gameObject.SetActive(true);
+            RequireTmp(row, "Title").text = roomData[i].Item1;
+            RequireTmp(row, "Meta").text = roomData[i].Item2;
+            var steamBadge = RequireTmp(row, "SteamBadge");
+            steamBadge.text = i == 0 ? "Steam" : "";
+            steamBadge.gameObject.SetActive(i == 0);
+
+            var selectedFrame = RequireChild(row, "SelectedFrame").GetComponent<Graphic>();
+            if (selectedFrame != null)
+                selectedFrame.color = roomData[i].Item3 ? new Color(0.08f, 0.31f, 0.33f, 0.26f) : new Color(0f, 0f, 0f, 0f);
+        }
+
+        RequireTmp(panel, "SelectedTownTitle").text = "Moss Lantern Village";
+        RequireTmp(panel, "SelectedTownHost").text = "Host: Elowen";
+        RequireTmp(panel, "SelectedTownPlayers").text = "Players: 18 / 30";
+        RequireTmp(panel, "SelectedTownDescription").text = "A peaceful woodland village surrounded by mossy trees and soft lantern light. Friendly folk welcome travelers and builders alike.";
+        RequireTmp(panel, "SelectedTownKey").text = "Key: 7f3kg2m9";
+    }
+
+    private static void PrepareCreateTownPreview(Transform panel)
+    {
+        SetInputText(panel, "Input_TownName", "Whispering Nest");
+        SetTownPreviewButtonSelected(panel, "Button_CreatePrivate", false);
+        SetTownPreviewButtonSelected(panel, "Button_CreatePublic", true);
+        RequireTmp(panel, "VisibilityHint").text = "Public towns appear in the existing town list and can be joined by other players.";
+
+        foreach (var value in new[] { 2, 4, 6, 8 })
+        {
+            var selected = value == 4;
+            var button = RequireChild(panel, $"Button_MaxPlayers_{value}");
+            var highlight = RequireChild(button, "SelectedHighlight").GetComponent<Graphic>();
+            if (highlight != null)
+                highlight.color = selected ? new Color(0.08f, 0.31f, 0.33f, 0.95f) : new Color(0f, 0f, 0f, 0f);
+            RequireTmp(button, "Label").color = selected ? new Color(0.98f, 0.91f, 0.70f, 1f) : ParchmentText;
+        }
+    }
+
+    private static void PrepareKeyTownPreview(Transform panel)
+    {
+        SetInputText(panel, "Input_InviteCode", "7F3K-G2M9");
+        RequireTmp(panel, "KeyStatus").text = "Private towns require a valid key.";
+
+        var result = RequireChild(panel, "KeyResultPanel");
+        result.gameObject.SetActive(true);
+        RequireTmp(result, "KeyResultTitle").text = "Moonlit Pine Camp";
+        RequireTmp(result, "KeyResultHost").text = "Host: Rhea";
+        RequireTmp(result, "KeyResultPlayers").text = "3 / 4";
+        RequireTmp(result, "KeyResultDescription").text = "Private";
+    }
+
+    private static void SetInputText(Transform root, string inputName, string value)
+    {
+        var input = RequireChild(root, inputName).GetComponent<TMP_InputField>();
+        Require(input != null, $"{inputName} is missing TMP_InputField.");
+        input.text = value;
+        input.ForceLabelUpdate();
+    }
+
+    private static void SetTownPreviewButtonSelected(Transform root, string buttonName, bool selected)
+    {
+        var buttonRoot = RequireChild(root, buttonName);
+        var graphic = buttonRoot.GetComponent<Graphic>();
+        if (graphic != null)
+            graphic.color = selected ? new Color(0.08f, 0.31f, 0.33f, 1f) : new Color(0.86f, 0.72f, 0.50f, 0.28f);
+
+        RequireTmp(buttonRoot, "Label").color = selected ? new Color(0.98f, 0.91f, 0.70f, 1f) : ParchmentText;
+    }
+
+    private static Transform RequireChild(Transform root, string name)
+    {
+        foreach (var child in root.GetComponentsInChildren<Transform>(true))
+        {
+            if (child != null && child.name == name)
+                return child;
+        }
+
+        throw new InvalidOperationException($"Child transform not found: {name}");
+    }
+
+    private static void CaptureCanvasPreview(Canvas canvas, string fileName)
+    {
+        const int width = 1920;
+        const int height = 1080;
+
+        var screenshotsDirectory = Path.Combine(Application.dataPath, "Screenshots");
+        Directory.CreateDirectory(screenshotsDirectory);
+        var fullPath = Path.Combine(screenshotsDirectory, fileName);
+        var assetPath = $"Assets/Screenshots/{fileName}";
+
+        var previousRenderMode = canvas.renderMode;
+        var previousCamera = canvas.worldCamera;
+        var previousPlaneDistance = canvas.planeDistance;
+        var previousActive = RenderTexture.active;
+
+        var cameraObject = new GameObject("Temp_HomeMapTownEntryPreviewCamera", typeof(Camera));
+        var camera = cameraObject.GetComponent<Camera>();
+        camera.clearFlags = CameraClearFlags.SolidColor;
+        camera.backgroundColor = Color.black;
+        camera.cullingMask = ~0;
+        camera.orthographic = true;
+        camera.orthographicSize = 5f;
+        camera.transform.position = new Vector3(0f, 0f, -10f);
+
+        var renderTexture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
+        var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+
+        try
+        {
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = camera;
+            canvas.planeDistance = 1f;
+            camera.targetTexture = renderTexture;
+            Canvas.ForceUpdateCanvases();
+
+            camera.Render();
+            RenderTexture.active = renderTexture;
+            texture.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
+            texture.Apply();
+            File.WriteAllBytes(fullPath, texture.EncodeToPNG());
+            AssetDatabase.ImportAsset(assetPath);
+        }
+        finally
+        {
+            canvas.renderMode = previousRenderMode;
+            canvas.worldCamera = previousCamera;
+            canvas.planeDistance = previousPlaneDistance;
+            camera.targetTexture = null;
+            RenderTexture.active = previousActive;
+            renderTexture.Release();
+            UnityEngine.Object.DestroyImmediate(texture);
+            UnityEngine.Object.DestroyImmediate(renderTexture);
+            UnityEngine.Object.DestroyImmediate(cameraObject);
+        }
+    }
+
     private static T RequireComponent<T>(string gameObjectName) where T : Component
     {
         var go = RequireSceneObject(gameObjectName);
@@ -1636,6 +2069,153 @@ public static class Home1SceneSpaceUiBuilder
         }
 
         throw new InvalidOperationException($"Scene object not found: {name}");
+    }
+
+    private static void VerifyHomeMapTownEntry(HomeMapRealmUI mapUi)
+    {
+        var so = new SerializedObject(mapUi);
+        var panel = RequireSerializedReference<GameObject>(so, "_choicePanel");
+        var panelRect = panel.GetComponent<RectTransform>();
+        Require(panelRect != null, "TownEntryChoicePanel is missing RectTransform.");
+        Require(!panel.activeSelf, "TownEntryChoicePanel must start inactive and open only after choosing a realm.");
+        RequireAnchorsInsideParent(panelRect, "TownEntryChoicePanel");
+
+        var entryRoot = RequireSerializedReference<GameObject>(so, "_entryChoiceRoot");
+        var existingRoot = RequireSerializedReference<GameObject>(so, "_existingTownsRoot");
+        var createRoot = RequireSerializedReference<GameObject>(so, "_createTownRoot");
+        var keyRoot = RequireSerializedReference<GameObject>(so, "_keyTownRoot");
+        Require(entryRoot.activeSelf, "EntryChoiceRoot should be the default active town entry view.");
+        Require(!existingRoot.activeSelf, "ExistingTownsRoot should start inactive.");
+        Require(!createRoot.activeSelf, "CreateTownRoot should start inactive.");
+        Require(!keyRoot.activeSelf, "JoinWithKeyRoot should start inactive.");
+
+        var requiredReferences = new[]
+        {
+            "_choiceTitle",
+            "_choiceStatus",
+            "_closeChoiceButton",
+            "_choiceExistingButton",
+            "_choiceCreateButton",
+            "_choiceKeyButton",
+            "_choiceOpenSelectedButton",
+            "_choiceBackButton",
+            "_quickKeyJoinButton",
+            "_refreshTownRoomsButton",
+            "_existingBackButton",
+            "_existingStatus",
+            "_emptyRoomText",
+            "_selectedTownTitle",
+            "_selectedTownHost",
+            "_selectedTownPlayers",
+            "_selectedTownDescription",
+            "_selectedTownKey",
+            "_joinSelectedTownButton",
+            "_privateVisibilityButton",
+            "_publicVisibilityButton",
+            "_visibilityHint",
+            "_createTownButton",
+            "_createCancelButton",
+            "_joinInviteButton",
+            "_joinKeyTownButton",
+            "_clearKeyButton",
+            "_keyCancelButton",
+            "_keyStatus",
+            "_keyResultRoot",
+            "_keyResultTitle",
+            "_keyResultHost",
+            "_keyResultPlayers",
+            "_keyResultDescription"
+        };
+
+        foreach (var propertyName in requiredReferences)
+            RequireSerializedReference(so, propertyName);
+
+        VerifyInputField(RequireSerializedReference<TMP_InputField>(so, "_quickKeyInput"), "_quickKeyInput");
+        VerifyInputField(RequireSerializedReference<TMP_InputField>(so, "_townSearchInput"), "_townSearchInput");
+        VerifyInputField(RequireSerializedReference<TMP_InputField>(so, "_townNameInput"), "_townNameInput");
+        VerifyInputField(RequireSerializedReference<TMP_InputField>(so, "_inviteCodeInput"), "_inviteCodeInput");
+
+        var roomRows = so.FindProperty("_roomRows");
+        Require(roomRows != null && roomRows.isArray, "_roomRows must be an array.");
+        Require(roomRows.arraySize == 5, "_roomRows should provide five visible town rows.");
+        for (var i = 0; i < roomRows.arraySize; i++)
+        {
+            var row = roomRows.GetArrayElementAtIndex(i);
+            RequireSerializedRelativeReference(row, "Root", $"_roomRows[{i}].Root");
+            RequireSerializedRelativeReference(row, "Button", $"_roomRows[{i}].Button");
+            RequireSerializedRelativeReference(row, "JoinButton", $"_roomRows[{i}].JoinButton");
+            RequireSerializedRelativeReference(row, "Title", $"_roomRows[{i}].Title");
+            RequireSerializedRelativeReference(row, "Meta", $"_roomRows[{i}].Meta");
+            RequireSerializedRelativeReference(row, "SteamBadge", $"_roomRows[{i}].SteamBadge");
+            RequireSerializedRelativeReference(row, "SelectedFrame", $"_roomRows[{i}].SelectedFrame");
+        }
+
+        var expectedMaxPlayers = new HashSet<int> { 2, 4, 6, 8 };
+        var maxPlayers = so.FindProperty("_maxPlayerButtons");
+        Require(maxPlayers != null && maxPlayers.isArray, "_maxPlayerButtons must be an array.");
+        Require(maxPlayers.arraySize == expectedMaxPlayers.Count, "_maxPlayerButtons should expose 2, 4, 6, and 8 player choices.");
+        for (var i = 0; i < maxPlayers.arraySize; i++)
+        {
+            var binding = maxPlayers.GetArrayElementAtIndex(i);
+            var value = binding.FindPropertyRelative("Value").intValue;
+            Require(expectedMaxPlayers.Remove(value), $"Unexpected max player choice: {value}.");
+            RequireSerializedRelativeReference(binding, "Button", $"_maxPlayerButtons[{i}].Button");
+            RequireSerializedRelativeReference(binding, "Label", $"_maxPlayerButtons[{i}].Label");
+            RequireSerializedRelativeReference(binding, "Highlight", $"_maxPlayerButtons[{i}].Highlight");
+        }
+
+        Require(expectedMaxPlayers.Count == 0, "Max player choices are missing one or more expected values.");
+        VerifyTownPanelAnchors(panelRect);
+    }
+
+    private static void VerifyInputField(TMP_InputField input, string propertyName)
+    {
+        Require(input.contentType == TMP_InputField.ContentType.Standard, $"{propertyName} must allow standard text.");
+        Require(input.lineType == TMP_InputField.LineType.SingleLine, $"{propertyName} must be single line.");
+        Require(input.textComponent != null, $"{propertyName} is missing text component.");
+        Require(input.placeholder != null, $"{propertyName} is missing placeholder.");
+    }
+
+    private static void VerifyTownPanelAnchors(RectTransform panelRect)
+    {
+        foreach (var rect in panelRect.GetComponentsInChildren<RectTransform>(true))
+        {
+            if (rect == null || rect == panelRect || rect.parent is not RectTransform)
+                continue;
+
+            RequireAnchorsInsideParent(rect, rect.gameObject.name);
+        }
+    }
+
+    private static void RequireAnchorsInsideParent(RectTransform rect, string label)
+    {
+        const float tolerance = 0.001f;
+        Require(rect.anchorMin.x >= -tolerance && rect.anchorMin.y >= -tolerance, $"{label} anchorMin must stay inside its parent.");
+        Require(rect.anchorMax.x <= 1f + tolerance && rect.anchorMax.y <= 1f + tolerance, $"{label} anchorMax must stay inside its parent.");
+        Require(rect.anchorMax.x >= rect.anchorMin.x && rect.anchorMax.y >= rect.anchorMin.y, $"{label} anchors are inverted.");
+    }
+
+    private static UnityEngine.Object RequireSerializedReference(SerializedObject so, string propertyName)
+    {
+        var property = so.FindProperty(propertyName);
+        Require(property != null, $"{propertyName} serialized property is missing.");
+        Require(property.objectReferenceValue != null, $"{propertyName} is not assigned.");
+        return property.objectReferenceValue;
+    }
+
+    private static T RequireSerializedReference<T>(SerializedObject so, string propertyName) where T : UnityEngine.Object
+    {
+        var value = RequireSerializedReference(so, propertyName) as T;
+        Require(value != null, $"{propertyName} must reference {typeof(T).Name}.");
+        return value;
+    }
+
+    private static UnityEngine.Object RequireSerializedRelativeReference(SerializedProperty parent, string relativePropertyName, string label)
+    {
+        var property = parent.FindPropertyRelative(relativePropertyName);
+        Require(property != null, $"{label} serialized property is missing.");
+        Require(property.objectReferenceValue != null, $"{label} is not assigned.");
+        return property.objectReferenceValue;
     }
 
     private static void RequireBuildScene(string scenePath, bool shouldBeEnabled)
@@ -1719,8 +2299,18 @@ public static class Home1SceneSpaceUiBuilder
     {
         public GameObject Root;
         public Button Button;
+        public Button JoinButton;
         public TextMeshProUGUI Title;
         public TextMeshProUGUI Meta;
         public TextMeshProUGUI SteamBadge;
+        public Graphic SelectedFrame;
+    }
+
+    private struct MaxPlayerBuildBinding
+    {
+        public int Value;
+        public Button Button;
+        public TextMeshProUGUI Label;
+        public Graphic Highlight;
     }
 }

@@ -35,7 +35,8 @@ namespace NetClient.Town
             string mapId,
             int maxPlayers,
             string steamId64,
-            string clientVersion)
+            string clientVersion,
+            bool isPublic = true)
         {
             return _api.PostJsonAsync<CreateTownRoomResponse>(
                 "/townRooms",
@@ -45,7 +46,8 @@ namespace NetClient.Town
                     mapId = mapId ?? "",
                     maxPlayers = maxPlayers,
                     steamId64 = steamId64 ?? "",
-                    clientVersion = clientVersion ?? ""
+                    clientVersion = clientVersion ?? "",
+                    isPublic = isPublic
                 },
                 attachAuth: true);
         }
@@ -111,6 +113,7 @@ namespace NetClient.Town
             public int maxPlayers;
             public string steamId64;
             public string clientVersion;
+            public bool isPublic = true;
         }
 
         [Serializable]
@@ -171,6 +174,7 @@ namespace NetClient.Town
             public string status;
             public string ownerUid;
             public string hostUid;
+            public bool isPublic = true;
             public string steamLobbyId;
             public string activeGameRoomId;
             public string activeGameMapId;

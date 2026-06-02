@@ -57,7 +57,8 @@ public sealed class TownRoomController : ControllerBase
             uid,
             name,
             req.steamId64 ?? "",
-            req.clientVersion ?? "");
+            req.clientVersion ?? "",
+            req.isPublic);
 
         if (room == null)
             return BadRequest("CreateTownRoomFailed");
@@ -156,6 +157,7 @@ public sealed class TownRoomController : ControllerBase
             status = room.Status,
             ownerUid = room.OwnerUid,
             hostUid = room.HostUid,
+            isPublic = room.IsPublic,
             steamLobbyId = room.SteamLobbyId,
             activeGameRoomId = room.ActiveGameRoomId,
             activeGameMapId = room.ActiveGameMapId,
@@ -184,6 +186,7 @@ public sealed class TownRoomController : ControllerBase
         public int maxPlayers { get; set; } = 4;
         public string steamId64 { get; set; } = "";
         public string clientVersion { get; set; } = "";
+        public bool isPublic { get; set; } = true;
     }
 
     public sealed class JoinTownRoomRequest
@@ -242,6 +245,7 @@ public sealed class TownRoomController : ControllerBase
         public string status { get; set; } = "";
         public string ownerUid { get; set; } = "";
         public string hostUid { get; set; } = "";
+        public bool isPublic { get; set; } = true;
         public string steamLobbyId { get; set; } = "";
         public string activeGameRoomId { get; set; } = "";
         public string activeGameMapId { get; set; } = "";
