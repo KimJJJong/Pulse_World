@@ -1,0 +1,126 @@
+{
+  "MonsterType": "Enemy_Traning_Dummy",
+  "DefaultPhase": "P1",
+  "Phases": [
+    {
+      "Id": "P1",
+      "Selectors": [
+        {
+          "Id": "New Pattern",
+          "Weight": 1,
+          "CooldownBeats": 0,
+          "When": {
+            "All": []
+          },
+          "Timeline": [
+            {
+              "Type": 3,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "Enemy_Attack_Cross",
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            },
+            {
+              "Type": 0,
+              "AtBeatOffset": 2,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            },
+            {
+              "Type": 0,
+              "AtBeatOffset": 3,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            },
+            {
+              "Type": 0,
+              "AtBeatOffset": 4,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "Transitions": []
+}

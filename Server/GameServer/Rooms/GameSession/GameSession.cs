@@ -163,6 +163,7 @@ public sealed class GameSession : SessionBase
     private SC_InitMap BuildInitPacketForPlayer(int myActorId)
     {
         SC_InitMap packet = new SC_InitMap();
+        packet.ServerTimeMs = _time.NowMs;
         packet.Mode = 2;
         packet.ActionWindowMs = _rhythmConfig.ActionWindowMs;
         packet.SongId = "TestSong";

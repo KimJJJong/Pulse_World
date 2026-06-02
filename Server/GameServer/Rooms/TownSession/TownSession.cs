@@ -165,7 +165,7 @@ public sealed class TownSession : SessionBase
     {
         SC_InitMap packet = new SC_InitMap();
 
-
+        packet.ServerTimeMs = _time.NowMs;
         packet.Mode = 1;    // tmp 마을, 게임 구분용
         packet.ActionWindowMs = _rhythmConfig.ActionWindowMs;
         packet.SongId = "TestSong";

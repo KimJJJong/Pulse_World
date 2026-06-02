@@ -7,10 +7,12 @@ public class EntityVisual : MonoBehaviour
     private static readonly int AttackHash = Animator.StringToHash("Attack");
     private static readonly int HitHash = Animator.StringToHash("Hit");
     private static readonly int IsDeadHash = Animator.StringToHash("IsDead");
+    private const float FallbackAttackClipLengthSeconds = 1f;
 
     [Header("Components")]
     [SerializeField] private Animator _animator;
     // [Fix] AudioSource/AudioClip 하드코딩 사운드 제거 — 사운드는 ClientSkillRunner의 SoundAction이 담당
+    private Coroutine _resetAnimatorSpeedCoroutine;
 
     private void Awake()
     {
@@ -40,11 +42,12 @@ public class EntityVisual : MonoBehaviour
     /// </summary>
     public void StartMove(Vector3 start, Vector3 end, float duration)
     {
-        StopAllCoroutines();
+        StopVisualCoroutines();
 
         if (_animator != null)
         {
-            _animator.speed = 1.0f / Mathf.Max(duration, 0.05f);
+            duration = Mathf.Max(duration, 0.05f);
+            _animator.speed = 1.0f / duration;
             _animator.SetBool(IsMovingHash, true);
         }
 
@@ -67,7 +70,10 @@ public class EntityVisual : MonoBehaviour
         transform.position = end;
 
         if (_animator != null)
+        {
             _animator.SetBool(IsMovingHash, false);
+            _animator.speed = 1f;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -82,7 +88,7 @@ public class EntityVisual : MonoBehaviour
     /// <param name="bumpRatio">얼마나 파고들지 (0~1, 기본 0.35)</param>
     public void PlayBumpBack(Vector3 attemptedPos, Vector3 returnPos, float bumpRatio = 0.35f)
     {
-        StopAllCoroutines();
+        StopVisualCoroutines();
         StartCoroutine(CoBumpBack(attemptedPos, returnPos, bumpRatio));
     }
 
@@ -120,7 +126,10 @@ public class EntityVisual : MonoBehaviour
         transform.position = returnPos;
 
         if (_animator != null)
+        {
             _animator.SetBool(IsMovingHash, false);
+            _animator.speed = 1f;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -133,15 +142,104 @@ public class EntityVisual : MonoBehaviour
     /// <summary>
     /// 공격/스킬 애니메이션 재생. 사운드는 ClientSkillRunner의 SoundAction이 담당.
     /// </summary>
-    public void PlaySkill(float duration, bool isMine = false)
+    public void PlaySkill(float duration, bool isMine = false, float normalizedStart = 0f)
     {
         if (_animator != null)
         {
-            _animator.speed = 2f;
-            _animator.SetTrigger(AttackHash);
+            duration = Mathf.Max(duration, 0.05f);
+            normalizedStart = Mathf.Clamp01(normalizedStart);
+
+            StopAnimatorSpeedReset();
+
+            float clipLength = ResolveAttackClipLengthSeconds(out string attackStateName);
+            _animator.speed = clipLength / duration;
+
+            _animator.ResetTrigger(AttackHash);
+
+            if (normalizedStart > 0.001f && TryPlayAttackStateAt(attackStateName, normalizedStart))
+            {
+                // State was positioned directly to the server-authoritative skill phase.
+            }
+            else
+            {
+                _animator.SetTrigger(AttackHash);
+            }
+
+            float remainingDuration = duration * (1f - normalizedStart);
+            _resetAnimatorSpeedCoroutine = StartCoroutine(CoResetAnimatorSpeedAfter(remainingDuration));
         }
         // [Fix] 하드코딩 AudioClip 재생 제거 — FMOD SoundAction에서 전담 처리
         LogTimingIfMine("Skill", isMine);
+    }
+
+    private void StopVisualCoroutines()
+    {
+        StopAllCoroutines();
+        _resetAnimatorSpeedCoroutine = null;
+    }
+
+    private void StopAnimatorSpeedReset()
+    {
+        if (_resetAnimatorSpeedCoroutine == null)
+            return;
+
+        StopCoroutine(_resetAnimatorSpeedCoroutine);
+        _resetAnimatorSpeedCoroutine = null;
+    }
+
+    private IEnumerator CoResetAnimatorSpeedAfter(float delay)
+    {
+        yield return new WaitForSeconds(Mathf.Max(0.01f, delay));
+
+        if (_animator != null)
+            _animator.speed = 1f;
+
+        _resetAnimatorSpeedCoroutine = null;
+    }
+
+    private float ResolveAttackClipLengthSeconds(out string attackStateName)
+    {
+        attackStateName = null;
+
+        var controller = _animator != null ? _animator.runtimeAnimatorController : null;
+        if (controller == null || controller.animationClips == null)
+            return FallbackAttackClipLengthSeconds;
+
+        foreach (var clip in controller.animationClips)
+        {
+            if (clip == null)
+                continue;
+
+            if (clip.name.IndexOf("Attack", System.StringComparison.OrdinalIgnoreCase) < 0)
+                continue;
+
+            attackStateName = clip.name;
+            return Mathf.Max(clip.length, 0.05f);
+        }
+
+        return FallbackAttackClipLengthSeconds;
+    }
+
+    private bool TryPlayAttackStateAt(string attackStateName, float normalizedStart)
+    {
+        if (_animator == null || string.IsNullOrWhiteSpace(attackStateName) || _animator.layerCount <= 0)
+            return false;
+
+        int fullPathHash = Animator.StringToHash($"Base Layer.{attackStateName}");
+        if (_animator.HasState(0, fullPathHash))
+        {
+            _animator.Play(fullPathHash, 0, normalizedStart);
+            return true;
+        }
+
+        int shortNameHash = Animator.StringToHash(attackStateName);
+        if (_animator.HasState(0, shortNameHash))
+        {
+            _animator.Play(shortNameHash, 0, normalizedStart);
+            return true;
+        }
+
+        return false;
     }
 
     private void LogTimingIfMine(string actionName, bool isMine)

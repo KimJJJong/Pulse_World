@@ -137,9 +137,13 @@ public class ClientHandlers : MonoBehaviour
         if (RhythmClient.Instance != null)
         {
             RhythmClient.Instance.judgeWindowMs = (float)p.ActionWindowMs;
+
+            if (p.ServerTimeMs > 0)
+                TimeSync.Reset();
+
             if (RhythmSyncCoordinator.TryApplyBeatSync(
                 rhythm: RhythmClient.Instance,
-                serverSendTimeMs: 0,
+                serverSendTimeMs: p.ServerTimeMs,
                 songStartServerTimeMs: p.SongStartServerTime,
                 bpm: p.Bpm,
                 baseBeatDivision: p.BaseBeatDivision,

@@ -22,6 +22,13 @@
             "ResourcePath": "Data/Entity_12_Player_Rogu"
         },
         {
+            "EntityId": 999,
+            "Name": "Entity_999_Monster_TrainingDummy",
+            "EntityType": 2,
+            "MaxHp": 50,
+            "ResourcePath": "Data/Entity_999_Monster_TrainingDummy"
+        },
+        {
             "EntityId": 1000,
             "Name": "Entity_1000_Monster_BlackPawn",
             "EntityType": 2,

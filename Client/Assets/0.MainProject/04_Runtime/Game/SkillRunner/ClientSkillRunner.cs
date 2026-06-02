@@ -163,8 +163,12 @@ public class ClientSkillRunner : MonoBehaviour
         if (currentTick < _startTick)
             return;
 
-        float totalDurationSec = (_skillDef.Data.TotalDurationTicks / 480f) * (float)rhythm.GetBeatDurationMs() / 1000f;
-        _visual.PlaySkill(totalDurationSec, _isMine);
+        int totalDurationTicks = Mathf.Max(_skillDef.Data.TotalDurationTicks, 1);
+        long relativeTick = System.Math.Max(0L, currentTick - _startTick);
+        float normalizedStart = Mathf.Clamp01(relativeTick / (float)totalDurationTicks);
+        float totalDurationSec = (totalDurationTicks / 480f) * (float)rhythm.GetBeatDurationMs() / 1000f;
+
+        _visual.PlaySkill(totalDurationSec, _isMine, normalizedStart);
         _playbackStarted = true;
     }
 
