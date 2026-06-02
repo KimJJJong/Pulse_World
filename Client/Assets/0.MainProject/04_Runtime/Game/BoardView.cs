@@ -1158,6 +1158,19 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         if (!action.Accepted) return;
 
+        if (action.ActionKind == (int)ActionKind.Interact)
+        {
+            bool isMine = ClientGameState.Instance != null
+                       && action.ActorId == ClientGameState.Instance.MyActorId;
+
+            if (playWalkableGridWaveOnCombat)
+                PlayWalkableGridWave(action.ToX, action.ToY);
+
+            visual.PlaySkill(duration * 0.35f, isMine);
+            visual.SetRotation(action.Rotation);
+            return;
+        }
+
         bool isAttackOrSkill = action.ActionKind == (int)ActionKind.Attack
                             || action.ActionKind == (int)ActionKind.Skill;
         if (isAttackOrSkill)

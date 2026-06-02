@@ -25,6 +25,9 @@ public static partial class ActionRequestTranslator
             case ActionKind.Skill:
                 return TryBuildSkill(actorId, req, executeBeat, judgeDiffMs, serverReceiveMs, out cmd, out reason);
 
+            case ActionKind.Interact:
+                return TryBuildInteract(actorId, req, executeBeat, judgeDiffMs, serverReceiveMs, out cmd, out reason);
+
             case ActionKind.Wait:
                 cmd = new PlayerActionCmd
                 {
@@ -117,6 +120,23 @@ public static partial class ActionRequestTranslator
             ExecuteBeat = executeBeat,
             Rotation = req.Rotation,
             //JudgeDiffMs = judgeDiffMs,
+            ClientSendTimeMs = req.ClientSendTimeMs,
+            ServerReceiveTimeMs = serverReceiveMs,
+        };
+        return true;
+    }
+
+    static bool TryBuildInteract(int actorId, CS_ActionRequest req, long executeBeat, int judgeDiffMs, long serverReceiveMs,
+        out PlayerActionCmd cmd, out string reason)
+    {
+        reason = "";
+        cmd = new PlayerActionCmd
+        {
+            ActorId = actorId,
+            Kind = ActionKind.Interact,
+            TargetCell = new GridPos(req.TargetX, req.TargetY),
+            ExecuteBeat = executeBeat,
+            Rotation = req.Rotation,
             ClientSendTimeMs = req.ClientSendTimeMs,
             ServerReceiveTimeMs = serverReceiveMs,
         };

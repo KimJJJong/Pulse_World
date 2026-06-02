@@ -8,7 +8,95 @@
         "ActionWindowMs": 150,
         "StartDelayMs": 2000
     },
-    "InitialSpawns": [],
-    "InitialObjects": [],
-    "Events": []
+    "InitialSpawns": [
+        {
+            "MonsterId": 999,
+            "X": 48,
+            "Y": -1,
+            "Z": 14,
+            "AI": "Enemy_Traning_Dummy",
+            "GroupId": 10
+        },
+        {
+            "MonsterId": 999,
+            "X": 52,
+            "Y": -1,
+            "Z": 17,
+            "AI": "Enemy_Traning_Dummy",
+            "GroupId": 10
+        },
+        {
+            "MonsterId": 999,
+            "X": 48,
+            "Y": -1,
+            "Z": 19,
+            "AI": "Enemy_Traning_Dummy",
+            "GroupId": 10
+        },
+        {
+            "MonsterId": 999,
+            "X": 52,
+            "Y": -1,
+            "Z": 22,
+            "AI": "Enemy_Traning_Dummy",
+            "GroupId": 10
+        }
+    ],
+    "InitialObjects": [
+        {
+            "EntityId": 500,
+            "EntityType": 3,
+            "X": 18,
+            "Y": 0,
+            "Z": 25,
+            "GroupId": 5,
+            "Pattern": ""
+        },
+        {
+            "EntityId": 500,
+            "EntityType": 3,
+            "X": 18,
+            "Y": 0,
+            "Z": 32,
+            "GroupId": 6,
+            "Pattern": ""
+        }
+    ],
+    "Events": [
+        {
+            "EventId": 1,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectPairInteracted",
+                    "TargetId": 5,
+                    "SecondaryTargetId": 6,
+                    "TargetKey": "",
+                    "Count": 0,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 1,
+                        "H": 1
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "ReturnToTown",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 1200,
+                    "VfxKey": "CrystalPulse"
+                }
+            ]
+        }
+    ]
 }

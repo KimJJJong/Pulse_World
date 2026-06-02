@@ -119,6 +119,8 @@ namespace RhythmRPG.Editor.StageBuilder
                     evtDto.Conditions.Add(new ConditionDataDTO {
                         Type = c.Type.ToString(),
                         TargetId = c.TargetId,
+                        SecondaryTargetId = c.SecondaryTargetId,
+                        TargetKey = c.TargetKey,
                         Count = c.Count,
                         Area = new RectDTO { X=c.Area.x, Y=c.Area.y, W=c.Area.width, H=c.Area.height }
                     });
@@ -136,7 +138,7 @@ namespace RhythmRPG.Editor.StageBuilder
                          paramId = reg.EntityDef.EntityId;
 
                          // [Refactor] Extract Pattern from Registry for SpawnMonster Action
-                         if (a.Type == ActionType.SpawnMonster) 
+                         if (a.Type == ActionType.SpawnMonster || a.Type == ActionType.SpawnObject)
                          {
                              if (reg.PatternRef != null)
                              {
@@ -160,7 +162,12 @@ namespace RhythmRPG.Editor.StageBuilder
                         Y = (int)a.Position.y,
                         Z = (int)a.Position.z, // [NEW]
                         StringVal = ai_pattern, // Use resolved pattern
-                        GroupId = a.GroupId
+                        GroupId = a.GroupId,
+                        GuideTitle = a.GuideTitle,
+                        GuideBody = a.GuideBody,
+                        GuideImageResource = a.GuideImageResource,
+                        DurationMs = a.DurationMs,
+                        VfxKey = a.VfxKey
                     });
                 }
 
@@ -267,6 +274,8 @@ namespace RhythmRPG.Editor.StageBuilder
         {
             public string Type;
             public int TargetId;
+            public int SecondaryTargetId;
+            public string TargetKey;
             public int Count;
             public RectDTO Area;
         }
@@ -281,6 +290,11 @@ namespace RhythmRPG.Editor.StageBuilder
             public int Z; // [NEW] Unity Z
             public string StringVal;
             public int GroupId;
+            public string GuideTitle;
+            public string GuideBody;
+            public string GuideImageResource;
+            public int DurationMs;
+            public string VfxKey;
         }
 
         [System.Serializable]

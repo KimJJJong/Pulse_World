@@ -522,6 +522,7 @@ public struct ClientEntityInfo
     public float Rotation;
     public int Hp;
     public int MaxHp;
+    public int GroupId;
 }
 
 public struct ClientBeatAction

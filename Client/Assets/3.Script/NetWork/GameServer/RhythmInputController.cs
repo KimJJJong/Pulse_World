@@ -93,6 +93,7 @@ public class RhythmInputController : MonoBehaviour
 
     InputAction _moveAction;
     InputAction _attackAction;
+    InputAction _interactAction;
     InputAction _skillHAction;
     InputAction _skillJAction;
     InputAction _skillKAction;
@@ -142,6 +143,7 @@ public class RhythmInputController : MonoBehaviour
                 .With("Right", "<Keyboard>/d");
 
             _attackAction = new InputAction("Attack", type: InputActionType.Button, binding: "<Keyboard>/space");
+            _interactAction = new InputAction("Interact", type: InputActionType.Button, binding: "<Keyboard>/f");
 
             _skillHAction = new InputAction("SkillH", type: InputActionType.Button, binding: "<Keyboard>/h");
             _skillJAction = new InputAction("SkillJ", type: InputActionType.Button, binding: "<Keyboard>/j");
@@ -154,6 +156,7 @@ public class RhythmInputController : MonoBehaviour
 
             _moveAction.started    += OnMovePerformed;
             _attackAction.started  += OnAttackPerformed;
+            _interactAction.started += OnInteractPerformed;
 
             _skillHAction.started += (ctx) => OnSkillSlotPerformed(0);
             _skillJAction.started += (ctx) => OnSkillSlotPerformed(1);
@@ -172,6 +175,7 @@ public class RhythmInputController : MonoBehaviour
         }
         _moveAction.Enable();
         _attackAction.Enable();
+        _interactAction.Enable();
         _skillHAction.Enable();
         _skillJAction.Enable();
         _skillKAction.Enable();
@@ -188,6 +192,7 @@ public class RhythmInputController : MonoBehaviour
     {
         _moveAction?.Disable();
         _attackAction?.Disable();
+        _interactAction?.Disable();
         _skillHAction?.Disable();
         _skillJAction?.Disable();
         _skillKAction?.Disable();
@@ -204,6 +209,7 @@ public class RhythmInputController : MonoBehaviour
 
         _moveAction?.Dispose();
         _attackAction?.Dispose();
+        _interactAction?.Dispose();
         _skillHAction?.Dispose();
         _skillJAction?.Dispose();
         _skillKAction?.Dispose();
@@ -224,6 +230,12 @@ public class RhythmInputController : MonoBehaviour
         if (holdAutoInput) return;
         // Space = 일반공격. ActionKind.Skill + SlotIndex=-1 로 전송해 Skill 경로로 통일한다.
         HandleAttackInputEvent(_normalAttackSkillId);
+    }
+
+    void OnInteractPerformed(InputAction.CallbackContext ctx)
+    {
+        if (holdAutoInput) return;
+        HandleInteractInputEvent(ctx);
     }
 
     void OnSkillSlotPerformed(int slotIndex)
@@ -306,6 +318,54 @@ public class RhythmInputController : MonoBehaviour
 
         NotifyCombatInputAccepted(actionBeat);
         SendActionRouted(ActionKind.Move, tx, ty, serverNow, -1);
+        _lastSendLocalMs = trueLocalNowMs;
+    }
+
+    void HandleInteractInputEvent(InputAction.CallbackContext ctx)
+    {
+        if (!TryBeginInput("Interact")) return;
+        if (!GS.TryGetMyEntity(out var me))
+        {
+            LogGuardFailure("Interact", $"MyEntity missing myActorId={GS.MyActorId} entityCount={GS.EntityCount} {GetDebugState()}");
+            return;
+        }
+
+        Vector2Int rdir = RotateDirByTarget(Vector2Int.up);
+        int tx = me.X + rdir.x;
+        int ty = me.Y + rdir.y;
+
+        double unityTimeNow = Time.realtimeSinceStartupAsDouble;
+        double ageSec = unityTimeNow - ctx.time;
+        long trueLocalNowMs = LocalNowMs() - (long)(ageSec * 1000.0);
+        if (!PassCooldown(trueLocalNowMs)) return;
+
+        long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
+        if (!TryGetJudgeWindowInfo(serverNow, out long actionBeat, out long diff, out bool inJudgeWin))
+        {
+            if (P2PDebugConfig.TraceInput)
+                Debug.Log($"[Input_Interact] OUT_OF_WINDOW actor={me.EntityId} target=({tx},{ty}) serverNow={serverNow} beat={actionBeat} diff={diff}ms blocked");
+            NotifyCombatInputMissed();
+            return;
+        }
+
+        if (_lastActionBeatIndex == actionBeat)
+        {
+            if (P2PDebugConfig.TraceInput)
+                Debug.Log($"[Input_Interact] DUPLICATE beat={actionBeat} diff={diff}ms BLOCKED");
+            NotifyCombatInputMissed();
+            return;
+        }
+
+        _lastActionBeatIndex = actionBeat;
+        BeatDebugUI_TMP.Instance?.MarkHitNow();
+
+        if (P2PDebugConfig.TraceInput)
+        {
+            Debug.Log($"[Input_Interact] actor={me.EntityId} target=({tx},{ty}) serverNow={serverNow} beat={actionBeat} diff={diff}ms inWin={inJudgeWin}");
+        }
+
+        NotifyCombatInputAccepted(actionBeat);
+        SendActionRouted(ActionKind.Interact, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;
     }
 

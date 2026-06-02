@@ -51,7 +51,12 @@ namespace RhythmRPG.Editor.StageBuilder
     public class SpawnInfoSO
     {
         public string EntityKey; // [Refactor] Reference Registry Key
+        public string Label;
         public Vector3 Position;
+        public Vector3 EulerAngles;
+        public Vector3 Scale = Vector3.one;
+        public GameObject PreviewPrefabOverride;
+        public bool PlaceInScene = true;
         
         // Optional Overrides (-1 or Empty means use Default)
         public int OverrideGroupId = -1; 
@@ -68,8 +73,17 @@ namespace RhythmRPG.Editor.StageBuilder
         public bool Enabled = true;
         public int EventId;
         public bool IsOneShot = true;
+        public StageEventVisualSO Visual = new StageEventVisualSO();
         public List<ConditionInfoSO> Conditions = new List<ConditionInfoSO>();
         public List<ActionInfoSO> Actions = new List<ActionInfoSO>();
+    }
+
+    [System.Serializable]
+    public class StageEventVisualSO
+    {
+        public Color SceneColor = new Color(0.67f, 0.44f, 0.93f, 1f);
+        public string VfxKey;
+        public bool DrawSceneLinks = true;
     }
 
     [System.Serializable]
@@ -77,6 +91,8 @@ namespace RhythmRPG.Editor.StageBuilder
     {
         public ConditionType Type;
         public int TargetId;
+        public int SecondaryTargetId;
+        public string TargetKey;
         public int Count;
         public RectInt Area;
     }
@@ -90,13 +106,21 @@ namespace RhythmRPG.Editor.StageBuilder
         public Vector3 Position;
         public string StringVal; // (Deprecated or Extra)
         public int GroupId; // Override?
+        public string GuideTitle;
+        [TextArea(2, 5)] public string GuideBody;
+        public string GuideImageResource;
+        public int DurationMs = 3500;
+        public string VfxKey;
     }
 
     public enum ConditionType
     {
         MonsterAllDead,
         AreaEnter,
-        TimeElapsed
+        TimeElapsed,
+        ObjectInteracted,
+        ObjectPairInteracted,
+        ObjectStateEquals
     }
 
     public enum ActionType
@@ -104,6 +128,10 @@ namespace RhythmRPG.Editor.StageBuilder
         SpawnMonster,
         Broadcast,
         OpenGate,
-        ReturnToTown
+        ReturnToTown,
+        SpawnObject,
+        ShowGuide,
+        SetObjectState,
+        PlayVfx
     }
 }

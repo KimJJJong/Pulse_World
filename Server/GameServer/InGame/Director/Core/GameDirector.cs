@@ -13,6 +13,7 @@ namespace GameServer.InGame.Director.Core
         private StageScenario _currentScenario;
         private long _startTime;
         private long _lastServerTimeMs;
+        private readonly Dictionary<int, int> _objectStates = new();
 
         public Dictionary<int, int> MonsterGroupDeadCounts { get; } = new();
 
@@ -25,6 +26,7 @@ namespace GameServer.InGame.Director.Core
         {
             _currentScenario = scenario;
             MonsterGroupDeadCounts.Clear();
+            _objectStates.Clear();
             _startTime = 0;
             _lastServerTimeMs = 0;
             _stageEngine.LoadScenario(scenario);
@@ -92,6 +94,11 @@ namespace GameServer.InGame.Director.Core
             return MonsterGroupDeadCounts.TryGetValue(groupId, out var count) ? count : 0;
         }
 
+        public int GetObjectState(int targetId)
+        {
+            return _objectStates.TryGetValue(targetId, out var state) ? state : 0;
+        }
+
         public void SpawnMonster(SpawnData data)
         {
             if (data == null)
@@ -131,6 +138,11 @@ namespace GameServer.InGame.Director.Core
         public void BroadcastMessage(string msg)
         {
             Console.WriteLine($"[Generate Broadcast] {msg}");
+            ShowGuide(new StageGuideData
+            {
+                Body = msg ?? string.Empty,
+                DurationMs = 3000
+            });
         }
 
         public void ReturnToTown()
@@ -147,6 +159,29 @@ namespace GameServer.InGame.Director.Core
 
             map.Set(x, y, TileKind.Floor);
             Console.WriteLine($"[GameDirector] OpenGate at ({x},{y})");
+        }
+
+        public void SetObjectState(int targetId, int state)
+        {
+            if (targetId <= 0)
+                return;
+
+            _objectStates[targetId] = state;
+            Console.WriteLine($"[GameDirector] SetObjectState target={targetId} state={state}");
+        }
+
+        public void ShowGuide(StageGuideData data)
+        {
+            data ??= new StageGuideData();
+            Console.WriteLine($"[GameDirector] ShowGuide title='{data.Title}' body='{data.Body}'");
+            _session.BroadcastStageSignal(StageSignalCodec.GuideWarnCode, StageSignalCodec.EncodeGuide(data));
+        }
+
+        public void PlayStageVfx(StageVfxData data)
+        {
+            data ??= new StageVfxData();
+            Console.WriteLine($"[GameDirector] PlayStageVfx key='{data.VfxKey}' pos=({data.X},{ResolveMapY(data.Y, data.Z)})");
+            _session.BroadcastStageSignal(StageSignalCodec.VfxWarnCode, StageSignalCodec.EncodeVfx(data));
         }
 
         private static int ResolveMapY(int legacyY, int unityZ)

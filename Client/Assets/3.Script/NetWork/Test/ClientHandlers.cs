@@ -40,8 +40,9 @@ public class ClientHandlers : MonoBehaviour
         public readonly int X;
         public readonly int Y;
         public readonly int Hp;
+        public readonly int GroupId;
 
-        public PendingEntitySpawn(long beatIndex, int entityId, int entityType, int appearanceId, int x, int y, int hp)
+        public PendingEntitySpawn(long beatIndex, int entityId, int entityType, int appearanceId, int x, int y, int hp, int groupId)
         {
             BeatIndex = beatIndex;
             EntityId = entityId;
@@ -50,10 +51,11 @@ public class ClientHandlers : MonoBehaviour
             X = x;
             Y = y;
             Hp = hp;
+            GroupId = groupId;
         }
 
         public static PendingEntitySpawn From(SC_EntitySpawn p)
-            => new PendingEntitySpawn(p.BeatIndex, p.EntityId, p.EntityType, p.AppearanceId, p.X, p.Y, p.Hp);
+            => new PendingEntitySpawn(p.BeatIndex, p.EntityId, p.EntityType, p.AppearanceId, p.X, p.Y, p.Hp, 0);
 
         public ClientEntityInfo ToEntityInfo()
             => new ClientEntityInfo
@@ -63,7 +65,8 @@ public class ClientHandlers : MonoBehaviour
                 AppearanceId = AppearanceId,
                 X = X,
                 Y = Y,
-                Hp = Hp
+                Hp = Hp,
+                GroupId = GroupId
             };
     }
 
@@ -217,7 +220,8 @@ public class ClientHandlers : MonoBehaviour
                 AppearanceId = e.AppearanceId,
                 X = e.X,
                 Y = e.Y,
-                Hp = e.Hp
+                Hp = e.Hp,
+                GroupId = e.OwnerSlot
             });
         }
 
@@ -453,7 +457,8 @@ public class ClientHandlers : MonoBehaviour
                     if (P2PDebugConfig.TraceCombat)
                         Debug.Log($"[DamageRecv] HP_Change entity={u.EntityId} {oldHp}→{u.NewHp} (delta={u.NewHp - oldHp})");
 
-                    GS.UpdateEntityState(info, refreshWorldView: false);
+                    bool refreshWorldView = info.EntityType == (int)EntityType.Object;
+                    GS.UpdateEntityState(info, refreshWorldView);
                     if (info.EntityType == (int)EntityType.Monster)
                         P2PContentDirector.Instance?.MarkWorldDirty();
                 }
@@ -529,6 +534,9 @@ public class ClientHandlers : MonoBehaviour
 
     public void Handle_SC_Warn(SC_Warn p)
     {
+        if (StageGuideHud.TryHandleWarn(p.code, p.msg))
+            return;
+
         if (P2PDebugConfig.TraceCombat)
             Debug.LogWarning($"[SC_Warn] code={p.code} msg={p.msg}");
     }

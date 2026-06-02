@@ -1,6 +1,7 @@
 using GameServer.Content.Map;
 using GameServer.Content.Map.Interface;
 using GameServer.Content.Skill;
+using GameServer.InGame.Manager.Entity;
 using GameServer.InGame.System.Rhythm;
 using System;
 using System.Collections.Generic;
@@ -23,6 +24,8 @@ namespace GameServer.InGame.Manager.Beat
 
         private readonly double _actionWindowMs;
         private readonly int _maxBeatLookAhead;
+
+        public event Action<PlayerActionCmd, int, int>? InteractResolved;
 
         // Move Frequency Limiter
         private readonly Dictionary<int, long> _lastActionBeat = new();
@@ -113,6 +116,10 @@ namespace GameServer.InGame.Manager.Beat
             if (cmd.Kind == ActionKind.Move)
             {
                 ProcessImmediateMove(cmd, judge.ExecuteBeat);
+            }
+            else if (cmd.Kind == ActionKind.Interact)
+            {
+                ProcessImmediateInteract(cmd, judge.ExecuteBeat);
             }
             // --- Skill: 지연 실행 (OnJudgeWindowEnd) ---
             else
@@ -250,6 +257,10 @@ namespace GameServer.InGame.Manager.Beat
             {
                 ProcessImmediateMove(cmd, judge.ExecuteBeat);
             }
+            else if (cmd.Kind == ActionKind.Interact)
+            {
+                ProcessImmediateInteract(cmd, judge.ExecuteBeat);
+            }
             else
             {
                 ResolveSkillId(cmd);
@@ -309,6 +320,35 @@ namespace GameServer.InGame.Manager.Beat
                 DiffMs = diff,
                 ServerNowMs = now,
                 BeatIndex = nearestBeat
+            });
+        }
+
+        private void ProcessImmediateInteract(PlayerActionCmd cmd, long beatIndex)
+        {
+            if (!_world.TryGetActorPosition(cmd.ActorId, out var fromPos)) return;
+
+            bool accepted = TryResolveInteractTarget(cmd.TargetCell, out int targetEntityId, out int targetGroupId);
+            if (accepted)
+                InteractResolved?.Invoke(cmd, targetEntityId, targetGroupId);
+
+            _broadcaster.Broadcast(new SC_BeatActions
+            {
+                BeatIndex = beatIndex,
+                beatActionResults = new List<SC_BeatActions.BeatActionResult>
+                {
+                    new SC_BeatActions.BeatActionResult
+                    {
+                        ActorId = cmd.ActorId,
+                        ActionKind = (int)ActionKind.Interact,
+                        FromX = fromPos.X,
+                        FromY = fromPos.Y,
+                        ToX = cmd.TargetCell.X,
+                        ToY = cmd.TargetCell.Y,
+                        Rotation = cmd.Rotation,
+                        Accepted = accepted,
+                        hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>()
+                    }
+                }
             });
         }
 
@@ -422,6 +462,13 @@ namespace GameServer.InGame.Manager.Beat
                         if (!accepted) toPos = fromPos;
                         break;
 
+                    case ActionKind.Interact:
+                        accepted = TryResolveInteractTarget(cmd.TargetCell, out int targetEntityId, out int targetGroupId);
+                        if (accepted)
+                            InteractResolved?.Invoke(cmd, targetEntityId, targetGroupId);
+                        toPos = cmd.TargetCell;
+                        break;
+
                     case ActionKind.Skill:
                     {
                         // [Fix] FrozenPop을 최우선으로 체크 (몬스터 AI 패턴Runner가 사전에 PutRaw 해둔 경우)
@@ -487,6 +534,24 @@ namespace GameServer.InGame.Manager.Beat
                 BeatIndex = beatIndex,
                 beatActionResults = results
             });
+        }
+
+        private bool TryResolveInteractTarget(GridPos targetCell, out int targetEntityId, out int targetGroupId)
+        {
+            targetEntityId = 0;
+            targetGroupId = 0;
+
+            foreach (var entity in _world.GetEntitiesAt(targetCell))
+            {
+                if (entity == null || !entity.IsAlive || entity.Type != EntityType.Object)
+                    continue;
+
+                targetEntityId = entity.Id;
+                targetGroupId = entity.GetState<int>("GroupId");
+                return true;
+            }
+
+            return false;
         }
 
         public void CancelActor(int actorId)

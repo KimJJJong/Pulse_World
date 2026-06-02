@@ -67,6 +67,7 @@ public sealed class GameSession : SessionBase
         World2D.OnEntityDead += OnEntityDeadHandler;
 
         Director = new GameDirector(this);
+        BeatActions.InteractResolved += OnInteractResolvedHandler;
     }
 
     protected override void CleanupActor(int actorId)
@@ -99,6 +100,22 @@ public sealed class GameSession : SessionBase
                 Console.WriteLine($"[OnEntityDeadHandler] Failed to report death: {ex.Message}");
             }
         }
+    }
+
+    private void OnInteractResolvedHandler(PlayerActionCmd cmd, int targetEntityId, int targetGroupId)
+    {
+        int targetId = targetGroupId > 0 ? targetGroupId : targetEntityId;
+        Director.NotifyEvent(new GameEventContext
+        {
+            Type = EventType.Interact,
+            SourceActorId = cmd.ActorId,
+            TargetId = targetId,
+            X = cmd.TargetCell.X,
+            Y = cmd.TargetCell.Y,
+            TimeMs = AppRef.ServerTimeMs()
+        });
+
+        Console.WriteLine($"[GameSession] Reported Interact actor={cmd.ActorId} targetEntity={targetEntityId} targetId={targetId}");
     }
 
     // =====================================================
@@ -355,5 +372,14 @@ public sealed class GameSession : SessionBase
     {
         Console.WriteLine("[GameSession] Broadcast ReturnToTown");
         _broadcaster.Broadcast(new SC_ReturnToTown());
+    }
+
+    public void BroadcastStageSignal(int code, string payload)
+    {
+        _broadcaster.Broadcast(new SC_Warn
+        {
+            code = code,
+            msg = payload ?? string.Empty
+        });
     }
 }

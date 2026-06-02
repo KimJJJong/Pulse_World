@@ -21,7 +21,95 @@ MonoBehaviour:
     BaseBeatDivision: 1
     ActionWindowMs: 150
     StartDelayMs: 2000
-  Registry: []
-  InitialSpawns: []
-  InitialObjects: []
-  Events: []
+  Registry:
+  - Key: Dummy
+    EntityDef: {fileID: 11400000, guid: 758b8370459befb4c81efe52ab6f3fec, type: 2}
+    DefaultGroupId: 10
+    PatternRef: {fileID: 11400000, guid: a8c9a92f686a7d540bdcfd4e1d97a783, type: 2}
+  - Key: Crystal
+    EntityDef: {fileID: 11400000, guid: 76eb659d9a9faa246872d4f4bcc295c9, type: 2}
+    DefaultGroupId: 5
+    PatternRef: {fileID: 0}
+  InitialSpawns:
+  - EntityKey: Dummy
+    Label: 
+    Position: {x: 48, y: -1, z: 14}
+    EulerAngles: {x: -0, y: 90, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 10
+  - EntityKey: Dummy
+    Label: 
+    Position: {x: 52, y: -1, z: 17}
+    EulerAngles: {x: -0, y: 90, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 10
+  - EntityKey: Dummy
+    Label: 
+    Position: {x: 48, y: -1, z: 19}
+    EulerAngles: {x: -0, y: 90, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 10
+  - EntityKey: Dummy
+    Label: 
+    Position: {x: 52, y: -1, z: 22}
+    EulerAngles: {x: -0, y: 90, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 10
+  InitialObjects:
+  - EntityKey: Crystal
+    Label: 
+    Position: {x: 18, y: 0, z: 25}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 5
+  - EntityKey: Crystal
+    Label: 
+    Position: {x: 18, y: 0, z: 32}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 6
+  Events:
+  - Title: Crystal Pair 1
+    Notes: 
+    Enabled: 1
+    EventId: 1
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 4
+      TargetId: 5
+      SecondaryTargetId: 6
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+    Actions:
+    - Type: 3
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: CrystalPulse

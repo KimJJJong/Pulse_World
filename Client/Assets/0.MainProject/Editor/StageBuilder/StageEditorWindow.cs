@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace RhythmRPG.Editor.StageBuilder
@@ -9,10 +10,14 @@ namespace RhythmRPG.Editor.StageBuilder
     public class StageEditorWindow : EditorWindow
     {
         private const string DefaultStageAssetFolder = "Assets/Resources/Data/StageAssets";
+        private const string PreviewRootPrefix = "__StagePreview_";
 
         private StageDataSO _currentStage;
         private Vector2 _scrollPos;
         private readonly BoxBoundsHandle _boundsHandle = new BoxBoundsHandle();
+        private bool _autoSyncPreview = true;
+        private bool _showSceneLabels = true;
+        private bool _showEventLinks = true;
 
         private static readonly Color BasicAccent = new Color(0.42f, 0.57f, 0.86f, 1f);
         private static readonly Color RhythmAccent = new Color(0.26f, 0.70f, 0.62f, 1f);
@@ -90,6 +95,7 @@ namespace RhythmRPG.Editor.StageBuilder
             DrawBasicInfo(so);
             DrawRhythmSettings(so);
             DrawRegistry(so);
+            DrawSceneTools();
             DrawSpawnLists(so);
             DrawEventSection(so);
 
@@ -123,6 +129,45 @@ namespace RhythmRPG.Editor.StageBuilder
             DrawSectionHeader("Entity Registry", "Keys used by events and spawn data.", RegistryAccent);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.PropertyField(so.FindProperty("Registry"), true);
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space();
+        }
+
+        private void DrawSceneTools()
+        {
+            DrawSectionHeader("Scene Layout Tools", "Preview and edit the real placement in Scene View.", ObjectAccent);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            _autoSyncPreview = EditorGUILayout.ToggleLeft("Auto-sync preview objects when Stage handles move", _autoSyncPreview);
+            _showSceneLabels = EditorGUILayout.ToggleLeft("Show scene labels", _showSceneLabels);
+            _showEventLinks = EditorGUILayout.ToggleLeft("Show event condition/action links", _showEventLinks);
+
+            EditorGUILayout.BeginHorizontal();
+            if (ColoredButton("Sync Preview", ObjectAccent, GUILayout.Height(28)))
+            {
+                SyncScenePreview();
+            }
+
+            if (ColoredButton("Pull From Scene", SpawnAccent, GUILayout.Height(28)))
+            {
+                PullPreviewTransformsToStage();
+            }
+
+            if (ColoredButton("Clear Preview", new Color(0.70f, 0.34f, 0.34f, 1f), GUILayout.Height(28)))
+            {
+                ClearScenePreview();
+            }
+
+            if (GUILayout.Button("Select Root", GUILayout.Width(92), GUILayout.Height(28)))
+            {
+                Selection.activeGameObject = FindPreviewRoot();
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.HelpBox(
+                "Sync Preview는 Registry의 EntityDefinition Prefab을 씬에 배치합니다. 씬에서 프리뷰 오브젝트를 이동한 뒤 Pull From Scene을 누르면 StageData 위치/회전/스케일로 저장됩니다.",
+                MessageType.None);
+
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
         }
@@ -335,6 +380,25 @@ namespace RhythmRPG.Editor.StageBuilder
                     EditorGUILayout.PropertyField(timeProp, new GUIContent("Elapsed Time (ms)"));
                     EditorGUILayout.LabelField("Preview", $"{timeProp.intValue / 1000f:0.0}s");
                     break;
+
+                case ConditionType.ObjectInteracted:
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("TargetId"), new GUIContent("Object Group/ID"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("TargetKey"), new GUIContent("Editor Key"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("Count"), new GUIContent("Required Interactions"));
+                    EditorGUILayout.HelpBox("지정한 오브젝트 GroupId 또는 ID와 상호작용하면 발동합니다. 0이면 아무 오브젝트 상호작용에도 반응합니다.", MessageType.None);
+                    break;
+
+                case ConditionType.ObjectPairInteracted:
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("TargetId"), new GUIContent("First Object Group/ID"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("SecondaryTargetId"), new GUIContent("Second Object Group/ID"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("TargetKey"), new GUIContent("Editor Key"));
+                    EditorGUILayout.HelpBox("두 오브젝트를 각각 한 번 이상 상호작용하면 발동합니다. 크리스탈 2개를 모두 활성화하는 구조에 사용합니다.", MessageType.None);
+                    break;
+
+                case ConditionType.ObjectStateEquals:
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("TargetId"), new GUIContent("Object Group/ID"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("Count"), new GUIContent("Expected State"));
+                    break;
             }
 
             EditorGUILayout.EndVertical();
@@ -392,6 +456,34 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 case ActionType.ReturnToTown:
                     EditorGUILayout.HelpBox("추가 파라미터가 필요 없는 종료 액션입니다.", MessageType.None);
+                    break;
+
+                case ActionType.SpawnObject:
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("HeaderParam"), new GUIContent("Registry Key"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Object Entity ID"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("Position"), new GUIContent("Spawn Position"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GroupId"), new GUIContent("Group ID"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("StringVal"), new GUIContent("Pattern/State"));
+                    EditorGUILayout.HelpBox("Registry Key가 있으면 Export 시 Object Entity ID가 자동으로 채워집니다.", MessageType.None);
+                    break;
+
+                case ActionType.ShowGuide:
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GuideTitle"), new GUIContent("Title"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GuideBody"), new GUIContent("Body"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GuideImageResource"), new GUIContent("Image Resource"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("DurationMs"), new GUIContent("Duration (ms)"));
+                    EditorGUILayout.HelpBox("Image Resource는 Resources 기준 경로입니다. 예: UI/Tutorial/MoveGuide", MessageType.None);
+                    break;
+
+                case ActionType.SetObjectState:
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Object Group/ID"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GroupId"), new GUIContent("State Value"));
+                    break;
+
+                case ActionType.PlayVfx:
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("VfxKey"), new GUIContent("VFX Key"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("Position"), new GUIContent("Position"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("DurationMs"), new GUIContent("Duration (ms)"));
                     break;
             }
 
@@ -489,14 +581,19 @@ namespace RhythmRPG.Editor.StageBuilder
             Empty,
             MonsterClearSpawn,
             AreaBroadcast,
-            TimeReturnTown
+            TimeReturnTown,
+            TutorialGuide,
+            CrystalPair
         }
 
         private enum ConditionQuickTemplate
         {
             MonsterAllDead,
             AreaEnter,
-            TimeElapsed
+            TimeElapsed,
+            ObjectInteracted,
+            ObjectPairInteracted,
+            ObjectStateEquals
         }
 
         private enum ActionQuickTemplate
@@ -504,7 +601,11 @@ namespace RhythmRPG.Editor.StageBuilder
             Broadcast,
             SpawnMonster,
             OpenGate,
-            ReturnToTown
+            ReturnToTown,
+            SpawnObject,
+            ShowGuide,
+            SetObjectState,
+            PlayVfx
         }
 
         private void DrawEventQuickAddRow(SerializedProperty eventsProp, SerializedObject so)
@@ -531,6 +632,18 @@ namespace RhythmRPG.Editor.StageBuilder
             if (ColoredButton("Timer End", ActionAccent, GUILayout.Width(90)))
             {
                 AddEvent(eventsProp, EventQuickTemplate.TimeReturnTown);
+                so.ApplyModifiedProperties();
+            }
+
+            if (ColoredButton("Guide", BasicAccent, GUILayout.Width(70)))
+            {
+                AddEvent(eventsProp, EventQuickTemplate.TutorialGuide);
+                so.ApplyModifiedProperties();
+            }
+
+            if (ColoredButton("Crystal Pair", ObjectAccent, GUILayout.Width(100)))
+            {
+                AddEvent(eventsProp, EventQuickTemplate.CrystalPair);
                 so.ApplyModifiedProperties();
             }
 
@@ -561,6 +674,16 @@ namespace RhythmRPG.Editor.StageBuilder
             if (ColoredButton("+ Time", ActionAccent, GUILayout.Width(70)))
             {
                 AddCondition(conditionsProp, ConditionQuickTemplate.TimeElapsed);
+            }
+
+            if (ColoredButton("+ Obj", ObjectAccent, GUILayout.Width(68)))
+            {
+                AddCondition(conditionsProp, ConditionQuickTemplate.ObjectInteracted);
+            }
+
+            if (ColoredButton("+ Pair", EventAccent, GUILayout.Width(70)))
+            {
+                AddCondition(conditionsProp, ConditionQuickTemplate.ObjectPairInteracted);
             }
 
             GUILayout.FlexibleSpace();
@@ -594,6 +717,21 @@ namespace RhythmRPG.Editor.StageBuilder
             if (ColoredButton("+ Town", RegistryAccent, GUILayout.Width(70)))
             {
                 AddAction(actionsProp, ActionQuickTemplate.ReturnToTown);
+            }
+
+            if (ColoredButton("+ Obj", ObjectAccent, GUILayout.Width(70)))
+            {
+                AddAction(actionsProp, ActionQuickTemplate.SpawnObject);
+            }
+
+            if (ColoredButton("+ Guide", BasicAccent, GUILayout.Width(76)))
+            {
+                AddAction(actionsProp, ActionQuickTemplate.ShowGuide);
+            }
+
+            if (ColoredButton("+ VFX", ConditionAccent, GUILayout.Width(70)))
+            {
+                AddAction(actionsProp, ActionQuickTemplate.PlayVfx);
             }
 
             GUILayout.FlexibleSpace();
@@ -639,6 +777,18 @@ namespace RhythmRPG.Editor.StageBuilder
                     AddCondition(evtProp.FindPropertyRelative("Conditions"), ConditionQuickTemplate.TimeElapsed);
                     AddAction(evtProp.FindPropertyRelative("Actions"), ActionQuickTemplate.ReturnToTown);
                     break;
+
+                case EventQuickTemplate.TutorialGuide:
+                    evtProp.FindPropertyRelative("Title").stringValue = $"Guide {nextId}";
+                    AddCondition(evtProp.FindPropertyRelative("Conditions"), ConditionQuickTemplate.AreaEnter);
+                    AddAction(evtProp.FindPropertyRelative("Actions"), ActionQuickTemplate.ShowGuide);
+                    break;
+
+                case EventQuickTemplate.CrystalPair:
+                    evtProp.FindPropertyRelative("Title").stringValue = $"Crystal Pair {nextId}";
+                    AddCondition(evtProp.FindPropertyRelative("Conditions"), ConditionQuickTemplate.ObjectPairInteracted);
+                    AddAction(evtProp.FindPropertyRelative("Actions"), ActionQuickTemplate.PlayVfx);
+                    break;
             }
 
             evtProp.isExpanded = true;
@@ -682,6 +832,8 @@ namespace RhythmRPG.Editor.StageBuilder
 
             SerializedProperty condProp = conditionsProp.GetArrayElementAtIndex(insertIndex);
             condProp.FindPropertyRelative("Area").rectIntValue = new RectInt(0, 0, 1, 1);
+            condProp.FindPropertyRelative("TargetKey").stringValue = string.Empty;
+            condProp.FindPropertyRelative("SecondaryTargetId").intValue = 0;
 
             switch (template)
             {
@@ -695,6 +847,25 @@ namespace RhythmRPG.Editor.StageBuilder
                     condProp.FindPropertyRelative("Type").enumValueIndex = (int)ConditionType.TimeElapsed;
                     condProp.FindPropertyRelative("TargetId").intValue = 0;
                     condProp.FindPropertyRelative("Count").intValue = 1000;
+                    break;
+
+                case ConditionQuickTemplate.ObjectInteracted:
+                    condProp.FindPropertyRelative("Type").enumValueIndex = (int)ConditionType.ObjectInteracted;
+                    condProp.FindPropertyRelative("TargetId").intValue = 1;
+                    condProp.FindPropertyRelative("Count").intValue = 1;
+                    break;
+
+                case ConditionQuickTemplate.ObjectPairInteracted:
+                    condProp.FindPropertyRelative("Type").enumValueIndex = (int)ConditionType.ObjectPairInteracted;
+                    condProp.FindPropertyRelative("TargetId").intValue = 1;
+                    condProp.FindPropertyRelative("SecondaryTargetId").intValue = 2;
+                    condProp.FindPropertyRelative("Count").intValue = 0;
+                    break;
+
+                case ConditionQuickTemplate.ObjectStateEquals:
+                    condProp.FindPropertyRelative("Type").enumValueIndex = (int)ConditionType.ObjectStateEquals;
+                    condProp.FindPropertyRelative("TargetId").intValue = 1;
+                    condProp.FindPropertyRelative("Count").intValue = 1;
                     break;
 
                 default:
@@ -721,6 +892,11 @@ namespace RhythmRPG.Editor.StageBuilder
             actionProp.FindPropertyRelative("Position").vector3Value = Vector3.zero;
             actionProp.FindPropertyRelative("StringVal").stringValue = string.Empty;
             actionProp.FindPropertyRelative("GroupId").intValue = 0;
+            actionProp.FindPropertyRelative("GuideTitle").stringValue = string.Empty;
+            actionProp.FindPropertyRelative("GuideBody").stringValue = string.Empty;
+            actionProp.FindPropertyRelative("GuideImageResource").stringValue = string.Empty;
+            actionProp.FindPropertyRelative("DurationMs").intValue = 3500;
+            actionProp.FindPropertyRelative("VfxKey").stringValue = string.Empty;
 
             switch (template)
             {
@@ -735,6 +911,30 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 case ActionQuickTemplate.ReturnToTown:
                     actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.ReturnToTown;
+                    break;
+
+                case ActionQuickTemplate.SpawnObject:
+                    actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.SpawnObject;
+                    actionProp.FindPropertyRelative("GroupId").intValue = 1;
+                    break;
+
+                case ActionQuickTemplate.ShowGuide:
+                    actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.ShowGuide;
+                    actionProp.FindPropertyRelative("GuideTitle").stringValue = "Guide";
+                    actionProp.FindPropertyRelative("GuideBody").stringValue = "Move with WASD and use skills on beat.";
+                    actionProp.FindPropertyRelative("DurationMs").intValue = 4500;
+                    break;
+
+                case ActionQuickTemplate.SetObjectState:
+                    actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.SetObjectState;
+                    actionProp.FindPropertyRelative("ParamId").intValue = 1;
+                    actionProp.FindPropertyRelative("GroupId").intValue = 1;
+                    break;
+
+                case ActionQuickTemplate.PlayVfx:
+                    actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.PlayVfx;
+                    actionProp.FindPropertyRelative("VfxKey").stringValue = "CrystalPulse";
+                    actionProp.FindPropertyRelative("DurationMs").intValue = 1200;
                     break;
 
                 default:
@@ -847,6 +1047,15 @@ namespace RhythmRPG.Editor.StageBuilder
                 case ConditionType.TimeElapsed:
                     int ms = condProp.FindPropertyRelative("Count").intValue;
                     return $"경과 시간 {ms / 1000f:0.0}s";
+
+                case ConditionType.ObjectInteracted:
+                    return $"오브젝트 {condProp.FindPropertyRelative("TargetId").intValue} 상호작용";
+
+                case ConditionType.ObjectPairInteracted:
+                    return $"오브젝트 {condProp.FindPropertyRelative("TargetId").intValue}+{condProp.FindPropertyRelative("SecondaryTargetId").intValue} 상호작용";
+
+                case ConditionType.ObjectStateEquals:
+                    return $"오브젝트 {condProp.FindPropertyRelative("TargetId").intValue} 상태={condProp.FindPropertyRelative("Count").intValue}";
             }
 
             return type.ToString();
@@ -875,6 +1084,23 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 case ActionType.ReturnToTown:
                     return "마을 복귀";
+
+                case ActionType.SpawnObject:
+                    string objectKey = actionProp.FindPropertyRelative("HeaderParam").stringValue;
+                    return string.IsNullOrWhiteSpace(objectKey)
+                        ? $"오브젝트 {actionProp.FindPropertyRelative("ParamId").intValue} 소환"
+                        : $"오브젝트 {objectKey} 소환";
+
+                case ActionType.ShowGuide:
+                    string title = actionProp.FindPropertyRelative("GuideTitle").stringValue;
+                    return string.IsNullOrWhiteSpace(title) ? "가이드 UI 표시" : $"가이드: {title}";
+
+                case ActionType.SetObjectState:
+                    return $"오브젝트 {actionProp.FindPropertyRelative("ParamId").intValue} 상태={actionProp.FindPropertyRelative("GroupId").intValue}";
+
+                case ActionType.PlayVfx:
+                    string vfxKey = actionProp.FindPropertyRelative("VfxKey").stringValue;
+                    return string.IsNullOrWhiteSpace(vfxKey) ? "VFX 재생" : $"VFX: {vfxKey}";
             }
 
             return type.ToString();
@@ -887,7 +1113,8 @@ namespace RhythmRPG.Editor.StageBuilder
 
             _boundsHandle.center = center;
             _boundsHandle.size = size;
-            _boundsHandle.SetColor(new Color(0f, 1f, 0f, 0.5f));
+            Color areaColor = evt != null && evt.Visual != null ? evt.Visual.SceneColor : ConditionAccent;
+            _boundsHandle.SetColor(WithAlpha(areaColor, 0.5f));
 
             EditorGUI.BeginChangeCheck();
             _boundsHandle.DrawHandle();
@@ -904,7 +1131,7 @@ namespace RhythmRPG.Editor.StageBuilder
                 EditorUtility.SetDirty(_currentStage);
             }
 
-            Handles.Label(center, $"{GetEventSceneLabel(evt)}\nArea");
+            DrawSceneBadge(center + Vector3.up * 1.1f, $"{GetEventSceneLabel(evt)}\nArea", areaColor);
         }
 
         private void OnSceneGUI(SceneView sceneView)
@@ -916,36 +1143,12 @@ namespace RhythmRPG.Editor.StageBuilder
 
             for (int i = 0; i < _currentStage.InitialSpawns.Count; i++)
             {
-                var spawn = _currentStage.InitialSpawns[i];
-                Vector3 pos = spawn.Position;
-
-                EditorGUI.BeginChangeCheck();
-                Vector3 newPos = Handles.PositionHandle(pos, Quaternion.identity);
-                Handles.Label(pos + Vector3.up * 1f, $"Spawn {i}\n({spawn.EntityKey})");
-
-                if (EditorGUI.EndChangeCheck())
-                {
-                    Undo.RecordObject(_currentStage, "Move Spawn");
-                    spawn.Position = new Vector3(Mathf.Round(newPos.x), Mathf.Round(newPos.y), Mathf.Round(newPos.z));
-                    EditorUtility.SetDirty(_currentStage);
-                }
+                DrawPlacementHandle(_currentStage.InitialSpawns[i], i, "Spawn", SpawnAccent, "M");
             }
 
             for (int i = 0; i < _currentStage.InitialObjects.Count; i++)
             {
-                var obj = _currentStage.InitialObjects[i];
-                Vector3 pos = obj.Position;
-
-                EditorGUI.BeginChangeCheck();
-                Vector3 newPos = Handles.PositionHandle(pos, Quaternion.identity);
-                Handles.Label(pos + Vector3.up * 1f, $"Obj {i}\n({obj.EntityKey})");
-
-                if (EditorGUI.EndChangeCheck())
-                {
-                    Undo.RecordObject(_currentStage, "Move Object");
-                    obj.Position = new Vector3(Mathf.Round(newPos.x), Mathf.Round(newPos.y), Mathf.Round(newPos.z));
-                    EditorUtility.SetDirty(_currentStage);
-                }
+                DrawPlacementHandle(_currentStage.InitialObjects[i], i, "Object", ObjectAccent, "O");
             }
 
             if (_currentStage.Events == null)
@@ -960,38 +1163,129 @@ namespace RhythmRPG.Editor.StageBuilder
                     continue;
                 }
 
+                List<Vector3> conditionPoints = new List<Vector3>();
+                List<Vector3> actionPoints = new List<Vector3>();
+
                 foreach (var cond in evt.Conditions)
                 {
                     if (cond.Type == ConditionType.AreaEnter)
                     {
                         DrawAreaHandle(evt, cond);
+                        conditionPoints.Add(GetAreaCenter(cond));
+                    }
+                    else if (cond.Type == ConditionType.ObjectInteracted)
+                    {
+                        if (TryGetPreviewPositionByGroup(cond.TargetId, out var targetPos))
+                        {
+                            DrawSceneBadge(targetPos + Vector3.up * 1.75f, "Interact", ConditionAccent);
+                            conditionPoints.Add(targetPos);
+                        }
+                    }
+                    else if (cond.Type == ConditionType.ObjectPairInteracted)
+                    {
+                        if (TryGetPreviewPositionByGroup(cond.TargetId, out var firstPos))
+                        {
+                            DrawSceneBadge(firstPos + Vector3.up * 1.75f, "Pair A", ConditionAccent);
+                            conditionPoints.Add(firstPos);
+                        }
+
+                        if (TryGetPreviewPositionByGroup(cond.SecondaryTargetId, out var secondPos))
+                        {
+                            DrawSceneBadge(secondPos + Vector3.up * 1.75f, "Pair B", ConditionAccent);
+                            conditionPoints.Add(secondPos);
+                        }
+
+                        if (TryGetPreviewPositionByGroup(cond.TargetId, out var a)
+                            && TryGetPreviewPositionByGroup(cond.SecondaryTargetId, out var b))
+                        {
+                            Handles.color = WithAlpha(ConditionAccent, 0.75f);
+                            Handles.DrawAAPolyLine(4f, a + Vector3.up * 0.35f, b + Vector3.up * 0.35f);
+                        }
                     }
                 }
 
                 foreach (var action in evt.Actions)
                 {
-                    DrawActionHandle(evt, action);
+                    if (DrawActionHandle(evt, action, out var actionPos))
+                    {
+                        actionPoints.Add(actionPos);
+                    }
+                }
+
+                if (_showEventLinks && evt.Visual != null && evt.Visual.DrawSceneLinks)
+                {
+                    DrawEventLinks(conditionPoints, actionPoints, evt.Visual.SceneColor);
                 }
             }
         }
 
-        private void DrawActionHandle(EventInfoSO evt, ActionInfoSO action)
+        private void DrawPlacementHandle(SpawnInfoSO item, int index, string kind, Color accent, string icon)
         {
-            if (action.Type == ActionType.SpawnMonster || action.Type == ActionType.OpenGate)
+            if (item == null)
             {
-                Vector3 pos = action.Position;
+                return;
+            }
+
+            Vector3 pos = item.Position;
+            Handles.color = accent;
+            Handles.DrawWireDisc(pos + Vector3.up * 0.05f, Vector3.up, 0.42f);
+            Handles.SphereHandleCap(0, pos + Vector3.up * 0.12f, Quaternion.identity, 0.18f, EventType.Repaint);
+
+            if (_showSceneLabels)
+            {
+                string label = $"{icon} {kind} {index}\n{GetPlacementDisplayName(item)}";
+                DrawSceneBadge(pos + Vector3.up * 1.25f, label, accent);
+            }
+
+            EditorGUI.BeginChangeCheck();
+            Vector3 newPos = Handles.PositionHandle(pos, Quaternion.identity);
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(_currentStage, $"Move {kind}");
+                item.Position = RoundVector(newPos);
+                EditorUtility.SetDirty(_currentStage);
+                if (_autoSyncPreview)
+                {
+                    SyncPreviewTransform(kind, index, item);
+                }
+            }
+        }
+
+        private bool DrawActionHandle(EventInfoSO evt, ActionInfoSO action, out Vector3 pos)
+        {
+            pos = action != null ? action.Position : Vector3.zero;
+            if (action == null)
+            {
+                return false;
+            }
+
+            if (ActionUsesPosition(action.Type))
+            {
+                Color accent = GetActionSceneColor(action.Type);
+                Handles.color = accent;
+                Handles.DrawWireDisc(pos + Vector3.up * 0.08f, Vector3.up, 0.36f);
 
                 EditorGUI.BeginChangeCheck();
                 Vector3 newPos = Handles.PositionHandle(pos, Quaternion.identity);
-                Handles.Label(pos, $"{GetEventSceneLabel(evt)}\n{action.Type}");
+                DrawSceneBadge(pos + Vector3.up * 1.1f, $"{GetEventSceneLabel(evt)}\n{action.Type}", accent);
 
                 if (EditorGUI.EndChangeCheck())
                 {
                     Undo.RecordObject(_currentStage, "Move Action");
-                    action.Position = new Vector3(Mathf.Round(newPos.x), Mathf.Round(newPos.y), Mathf.Round(newPos.z));
+                    action.Position = RoundVector(newPos);
                     EditorUtility.SetDirty(_currentStage);
                 }
+
+                pos = action.Position;
+                return true;
             }
+
+            if (action.Type == ActionType.ShowGuide)
+            {
+                DrawSceneBadge(Vector3.up * 2.1f, $"{GetEventSceneLabel(evt)}\nGuide UI", BasicAccent);
+            }
+
+            return false;
         }
 
         private static string GetEventSceneLabel(EventInfoSO evt)
@@ -1003,6 +1297,332 @@ namespace RhythmRPG.Editor.StageBuilder
 
             string title = string.IsNullOrWhiteSpace(evt.Title) ? $"Event {evt.EventId}" : evt.Title.Trim();
             return evt.Enabled ? title : $"{title} (Disabled)";
+        }
+
+        private void SyncScenePreview()
+        {
+            if (_currentStage == null)
+                return;
+
+            GameObject root = GetOrCreatePreviewRoot();
+            ClearChildren(root.transform);
+
+            if (_currentStage.MapPrefab != null)
+            {
+                GameObject mapPreview = InstantiatePreviewObject(_currentStage.MapPrefab, root.transform);
+                mapPreview.name = "MapPrefab";
+            }
+
+            for (int i = 0; i < _currentStage.InitialSpawns.Count; i++)
+            {
+                CreatePlacementPreview(root.transform, _currentStage.InitialSpawns[i], i, "Spawn", SpawnAccent, PrimitiveType.Capsule);
+            }
+
+            for (int i = 0; i < _currentStage.InitialObjects.Count; i++)
+            {
+                CreatePlacementPreview(root.transform, _currentStage.InitialObjects[i], i, "Object", ObjectAccent, PrimitiveType.Cube);
+            }
+
+            Selection.activeGameObject = root;
+            EditorSceneManager.MarkSceneDirty(root.scene);
+            SceneView.RepaintAll();
+        }
+
+        private void PullPreviewTransformsToStage()
+        {
+            GameObject root = FindPreviewRoot();
+            if (_currentStage == null || root == null)
+                return;
+
+            Undo.RecordObject(_currentStage, "Pull Stage Preview Transforms");
+            PullPreviewList(root.transform, _currentStage.InitialSpawns, "Spawn");
+            PullPreviewList(root.transform, _currentStage.InitialObjects, "Object");
+            EditorUtility.SetDirty(_currentStage);
+            Repaint();
+            SceneView.RepaintAll();
+        }
+
+        private void ClearScenePreview()
+        {
+            GameObject root = FindPreviewRoot();
+            if (root == null)
+                return;
+
+            DestroyImmediate(root);
+            SceneView.RepaintAll();
+        }
+
+        private GameObject GetOrCreatePreviewRoot()
+        {
+            GameObject root = FindPreviewRoot();
+            if (root != null)
+                return root;
+
+            root = new GameObject(GetPreviewRootName());
+            root.hideFlags = HideFlags.DontSaveInBuild;
+            return root;
+        }
+
+        private GameObject FindPreviewRoot()
+        {
+            string rootName = GetPreviewRootName();
+            return GameObject.Find(rootName);
+        }
+
+        private string GetPreviewRootName()
+        {
+            string mapId = _currentStage != null && !string.IsNullOrWhiteSpace(_currentStage.MapId)
+                ? _currentStage.MapId.Trim()
+                : "Stage";
+            return PreviewRootPrefix + mapId;
+        }
+
+        private void CreatePlacementPreview(Transform root, SpawnInfoSO item, int index, string kind, Color accent, PrimitiveType fallbackPrimitive)
+        {
+            if (item == null || !item.PlaceInScene)
+                return;
+
+            GameObject prefab = ResolvePreviewPrefab(item);
+            GameObject preview = prefab != null
+                ? InstantiatePreviewObject(prefab, root)
+                : GameObject.CreatePrimitive(fallbackPrimitive);
+
+            preview.transform.SetParent(root, false);
+            preview.name = BuildPreviewChildName(kind, index, item.EntityKey);
+            ApplyPlacementTransform(preview.transform, item);
+
+            if (prefab == null)
+            {
+                var renderer = preview.GetComponent<Renderer>();
+                if (renderer != null)
+                    renderer.sharedMaterial = CreatePreviewMaterial(accent);
+            }
+
+            preview.hideFlags = HideFlags.DontSaveInBuild;
+        }
+
+        private GameObject InstantiatePreviewObject(GameObject prefab, Transform parent)
+        {
+            GameObject instance = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+            if (instance == null)
+                instance = Instantiate(prefab);
+
+            instance.transform.SetParent(parent, false);
+            instance.hideFlags = HideFlags.DontSaveInBuild;
+            return instance;
+        }
+
+        private Material CreatePreviewMaterial(Color color)
+        {
+            var mat = new Material(Shader.Find("Standard"));
+            mat.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
+            mat.color = WithAlpha(color, 0.72f);
+            return mat;
+        }
+
+        private void PullPreviewList(Transform root, List<SpawnInfoSO> list, string kind)
+        {
+            if (list == null)
+                return;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                Transform child = FindPreviewChild(root, kind, i);
+                if (child == null || list[i] == null)
+                    continue;
+
+                list[i].Position = RoundVector(child.position);
+                list[i].EulerAngles = RoundVector(child.eulerAngles);
+                list[i].Scale = child.localScale == Vector3.zero ? Vector3.one : child.localScale;
+            }
+        }
+
+        private void SyncPreviewTransform(string kind, int index, SpawnInfoSO item)
+        {
+            GameObject root = FindPreviewRoot();
+            if (root == null)
+                return;
+
+            Transform child = FindPreviewChild(root.transform, kind, index);
+            if (child == null)
+                return;
+
+            ApplyPlacementTransform(child, item);
+        }
+
+        private Transform FindPreviewChild(Transform root, string kind, int index)
+        {
+            string prefix = $"{kind}_{index:000}_";
+            for (int i = 0; i < root.childCount; i++)
+            {
+                Transform child = root.GetChild(i);
+                if (child.name.StartsWith(prefix, StringComparison.Ordinal))
+                    return child;
+            }
+
+            return null;
+        }
+
+        private void ApplyPlacementTransform(Transform target, SpawnInfoSO item)
+        {
+            target.position = item.Position;
+            target.rotation = Quaternion.Euler(item.EulerAngles);
+            target.localScale = item.Scale == Vector3.zero ? Vector3.one : item.Scale;
+        }
+
+        private GameObject ResolvePreviewPrefab(SpawnInfoSO item)
+        {
+            if (item.PreviewPrefabOverride != null)
+                return item.PreviewPrefabOverride;
+
+            if (TryFindRegistry(item.EntityKey, out var registry) && registry.EntityDef != null)
+                return registry.EntityDef.Prefab;
+
+            return null;
+        }
+
+        private bool TryFindRegistry(string entityKey, out StageRegisteredEntity registry)
+        {
+            registry = null;
+            if (_currentStage?.Registry == null || string.IsNullOrWhiteSpace(entityKey))
+                return false;
+
+            for (int i = 0; i < _currentStage.Registry.Count; i++)
+            {
+                var item = _currentStage.Registry[i];
+                if (item == null)
+                    continue;
+
+                if (string.Equals(item.Key, entityKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    registry = item;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static void ClearChildren(Transform root)
+        {
+            for (int i = root.childCount - 1; i >= 0; i--)
+            {
+                DestroyImmediate(root.GetChild(i).gameObject);
+            }
+        }
+
+        private static string BuildPreviewChildName(string kind, int index, string entityKey)
+        {
+            string safeKey = string.IsNullOrWhiteSpace(entityKey) ? "None" : entityKey.Trim().Replace(' ', '_');
+            return $"{kind}_{index:000}_{safeKey}";
+        }
+
+        private string GetPlacementDisplayName(SpawnInfoSO item)
+        {
+            string key = string.IsNullOrWhiteSpace(item.EntityKey) ? "<no key>" : item.EntityKey.Trim();
+            int groupId = item.OverrideGroupId;
+            if (groupId < 0 && TryFindRegistry(item.EntityKey, out var registry))
+                groupId = registry.DefaultGroupId;
+
+            string label = string.IsNullOrWhiteSpace(item.Label) ? key : item.Label.Trim();
+            return groupId > 0 ? $"{label}\nGroup {groupId}" : label;
+        }
+
+        private bool TryGetPreviewPositionByGroup(int groupId, out Vector3 position)
+        {
+            position = Vector3.zero;
+            if (groupId <= 0 || _currentStage?.InitialObjects == null)
+                return false;
+
+            for (int i = 0; i < _currentStage.InitialObjects.Count; i++)
+            {
+                var item = _currentStage.InitialObjects[i];
+                if (item == null)
+                    continue;
+
+                int itemGroupId = item.OverrideGroupId;
+                if (itemGroupId < 0 && TryFindRegistry(item.EntityKey, out var registry))
+                    itemGroupId = registry.DefaultGroupId;
+
+                if (itemGroupId != groupId)
+                    continue;
+
+                position = item.Position;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static Vector3 GetAreaCenter(ConditionInfoSO cond)
+        {
+            return new Vector3(
+                cond.Area.x + cond.Area.width * 0.5f,
+                0f,
+                cond.Area.y + cond.Area.height * 0.5f);
+        }
+
+        private static Vector3 RoundVector(Vector3 value)
+        {
+            return new Vector3(Mathf.Round(value.x), Mathf.Round(value.y), Mathf.Round(value.z));
+        }
+
+        private static bool ActionUsesPosition(ActionType type)
+        {
+            return type == ActionType.SpawnMonster
+                   || type == ActionType.SpawnObject
+                   || type == ActionType.OpenGate
+                   || type == ActionType.PlayVfx;
+        }
+
+        private static Color GetActionSceneColor(ActionType type)
+        {
+            switch (type)
+            {
+                case ActionType.SpawnMonster:
+                    return SpawnAccent;
+                case ActionType.SpawnObject:
+                    return ObjectAccent;
+                case ActionType.OpenGate:
+                    return ActionAccent;
+                case ActionType.PlayVfx:
+                    return ConditionAccent;
+                default:
+                    return EventAccent;
+            }
+        }
+
+        private void DrawEventLinks(List<Vector3> conditionPoints, List<Vector3> actionPoints, Color color)
+        {
+            if (conditionPoints == null || actionPoints == null)
+                return;
+
+            Handles.color = WithAlpha(color, 0.62f);
+            foreach (var from in conditionPoints)
+            {
+                foreach (var to in actionPoints)
+                {
+                    Handles.DrawAAPolyLine(3f, from + Vector3.up * 0.45f, to + Vector3.up * 0.45f);
+                }
+            }
+        }
+
+        private static void DrawSceneBadge(Vector3 position, string text, Color accent)
+        {
+            GUIStyle style = new GUIStyle(EditorStyles.boldLabel)
+            {
+                normal = { textColor = Color.white },
+                alignment = TextAnchor.MiddleCenter,
+                padding = new RectOffset(7, 7, 3, 3)
+            };
+
+            Handles.Label(position, text, style);
+        }
+
+        private static Color WithAlpha(Color color, float alpha)
+        {
+            color.a = alpha;
+            return color;
         }
 
         private void CreateNewStageData()

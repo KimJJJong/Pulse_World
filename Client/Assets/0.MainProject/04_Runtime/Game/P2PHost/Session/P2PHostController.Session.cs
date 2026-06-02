@@ -457,6 +457,17 @@ public sealed partial class P2PHostController
             return;
         }
 
+        if (req.ActionKind == (int)ActionKind.Interact)
+        {
+            P2PTransportDiagnostics.RecordHostJudge(
+                "Accept:Interact",
+                actorId,
+                ActionKind.Interact.ToString(),
+                $"executeBeat={executeBeat} target=({req.TargetX},{req.TargetY})");
+            ProcessInteractAction(actorId, req, executeBeat, actorInfo);
+            return;
+        }
+
         if (req.ActionKind != (int)ActionKind.Attack && req.ActionKind != (int)ActionKind.Skill)
             return;
 
@@ -805,6 +816,57 @@ public sealed partial class P2PHostController
         }
 
         _batchedBeatResults.Add(result);
+    }
+
+    private void ProcessInteractAction(int actorId, CS_ActionRequest req, long beat, ClientEntityInfo actorInfo)
+    {
+        bool accepted = TryFindInteractTarget(req.TargetX, req.TargetY, out var targetInfo);
+        if (accepted)
+            P2PContentDirector.Instance.NotifyObjectInteracted(actorId, targetInfo);
+
+        var result = new SC_BeatActions.BeatActionResult
+        {
+            ActorId = actorId,
+            ActionKind = (int)ActionKind.Interact,
+            FromX = actorInfo.X,
+            FromY = actorInfo.Y,
+            ToX = req.TargetX,
+            ToY = req.TargetY,
+            Rotation = req.Rotation,
+            Accepted = accepted,
+            hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>()
+        };
+
+        if (P2PDebugConfig.TraceHostFlow)
+            Debug.Log($"[P2PHostController] InteractResult actor={actorId} beat={beat} target=({req.TargetX},{req.TargetY}) accepted={accepted} targetEntity={(accepted ? targetInfo.EntityId : 0)}");
+
+        BroadcastBeatPacket(new SC_BeatActions
+        {
+            BeatIndex = beat,
+            beatActionResults = new List<SC_BeatActions.BeatActionResult> { result }
+        });
+    }
+
+    private static bool TryFindInteractTarget(int x, int y, out ClientEntityInfo targetInfo)
+    {
+        targetInfo = default;
+
+        if (ClientGameState.Instance == null)
+            return false;
+
+        foreach (var entity in ClientGameState.Instance.EnumerateEntities())
+        {
+            if (entity.EntityType != (int)EntityType.Object || entity.Hp <= 0)
+                continue;
+
+            if (entity.X != x || entity.Y != y)
+                continue;
+
+            targetInfo = entity;
+            return true;
+        }
+
+        return false;
     }
 
     private void BroadcastMoveResult(long beat, SC_BeatActions.BeatActionResult result)

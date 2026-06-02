@@ -8,6 +8,7 @@ public interface IGameWorld
     bool TryGetActorPosition(int actorId, out GridPos pos);
     bool ContainsEntity(int actorId);
     bool TryGetEntity(int entityId, out MapEntity entity);
+    IEnumerable<MapEntity> GetEntitiesAt(GridPos pos);
 
     bool TryMove(int actorId, GridPos target);
 

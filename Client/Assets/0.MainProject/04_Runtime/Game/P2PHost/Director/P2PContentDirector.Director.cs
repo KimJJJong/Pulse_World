@@ -48,6 +48,7 @@ public sealed partial class P2PContentDirector
             }
 
             BuildAppearanceTemplateIndex(_stage);
+            BuildStageObjectIndex(_stage);
             _stageEngine.LoadScenario(_stage);
             _stageLoaded = true;
             if (P2PDebugConfig.TraceContent)
@@ -66,6 +67,8 @@ public sealed partial class P2PContentDirector
         _lastStageLoadAttemptMapId = "";
         _templatesByAppearanceId.Clear();
         _monsterStates.Clear();
+        _stageObjectGroupByEntityId.Clear();
+        _objectStatesByTargetId.Clear();
         _stageEngine.Reset();
     }
 
@@ -179,6 +182,22 @@ public sealed partial class P2PContentDirector
 
         foreach (var spawn in stage.InitialSpawns ?? new List<SpawnData>())
             RegisterTemplate(spawn.MonsterId, spawn.AI, spawn.GroupId);
+    }
+
+    private void BuildStageObjectIndex(StageScenarioData stage)
+    {
+        _stageObjectGroupByEntityId.Clear();
+
+        if (stage?.InitialObjects == null)
+            return;
+
+        foreach (var obj in stage.InitialObjects)
+        {
+            if (obj == null || obj.EntityId <= 0 || obj.GroupId <= 0)
+                continue;
+
+            _stageObjectGroupByEntityId[obj.EntityId] = obj.GroupId;
+        }
     }
 
     private void RegisterTemplate(int appearanceId, string monsterType, int groupId)
@@ -302,6 +321,103 @@ public sealed partial class P2PContentDirector
         return Math.Max(0, TimeSync.ServerNowMs() - _stageLoadServerTimeMs);
     }
 
+    public int GetObjectState(int targetId)
+    {
+        if (_objectStatesByTargetId.TryGetValue(targetId, out int state))
+            return state;
+
+        if (ClientGameState.Instance != null
+            && ClientGameState.Instance.TryGetEntity(targetId, out var entity)
+            && entity.EntityType == (int)EntityType.Object)
+        {
+            return entity.Hp;
+        }
+
+        return 0;
+    }
+
+    public void SetObjectState(int targetId, int state)
+    {
+        if (targetId <= 0)
+            return;
+
+        _objectStatesByTargetId[targetId] = state;
+
+        int x = 0;
+        int y = 0;
+        float rotation = 0f;
+        if (ClientGameState.Instance != null && ClientGameState.Instance.TryGetEntity(targetId, out var entity))
+        {
+            x = entity.X;
+            y = entity.Y;
+            rotation = entity.Rotation;
+        }
+
+        long beat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : 0;
+        var pkt = new SC_BeatActions
+        {
+            BeatIndex = beat,
+            beatActionResults = new List<SC_BeatActions.BeatActionResult>
+            {
+                new SC_BeatActions.BeatActionResult
+                {
+                    ActorId = targetId,
+                    ActionKind = (int)ActionKind.Interact,
+                    FromX = x,
+                    FromY = y,
+                    ToX = x,
+                    ToY = y,
+                    Rotation = rotation,
+                    Accepted = true,
+                    hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>
+                    {
+                        new SC_BeatActions.BeatActionResult.HpUpdate
+                        {
+                            EntityId = targetId,
+                            NewHp = state
+                        }
+                    }
+                }
+            }
+        };
+
+        if (P2PHostController.HasInstance)
+            P2PHostController.Instance.SendLocalAndRelay(pkt);
+    }
+
+    public void NotifyObjectInteracted(int actorId, ClientEntityInfo targetInfo)
+    {
+        EnsureStageLoaded();
+        if (!_stageLoaded)
+            return;
+
+        int stageTargetId = ResolveStageObjectTargetId(targetInfo);
+        _objectStatesByTargetId[stageTargetId] = GetObjectState(stageTargetId) + 1;
+
+        _stageEngine.NotifyEvent(new GameEventContext(
+            StageEventType.Interact,
+            sourceActorId: actorId,
+            targetId: stageTargetId,
+            x: targetInfo.X,
+            y: targetInfo.Y,
+            timeMs: TimeSync.ServerNowMs()),
+            this);
+
+        if (P2PDebugConfig.TraceContent)
+            Debug.Log($"[P2PContentDirector] StageInteract actor={actorId} targetEntity={targetInfo.EntityId} stageTarget={stageTargetId} pos=({targetInfo.X},{targetInfo.Y})");
+    }
+
+    private int ResolveStageObjectTargetId(ClientEntityInfo targetInfo)
+    {
+        if (targetInfo.GroupId > 0)
+            return targetInfo.GroupId;
+
+        if (_stageObjectGroupByEntityId.TryGetValue(targetInfo.EntityId, out int groupId) && groupId > 0)
+            return groupId;
+
+        return targetInfo.EntityId;
+    }
+
     public void SpawnMonster(SpawnData data)
     {
         if (data == null)
@@ -339,6 +455,9 @@ public sealed partial class P2PContentDirector
         if (data == null)
             return;
 
+        if (data.EntityId > 0 && data.GroupId > 0)
+            _stageObjectGroupByEntityId[data.EntityId] = data.GroupId;
+
         long beat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : 0;
         var pkt = new SC_EntitySpawn
         {
@@ -361,6 +480,46 @@ public sealed partial class P2PContentDirector
     {
         if (P2PDebugConfig.TraceContent)
             Debug.Log($"[P2PContentDirector] Broadcast: {msg}");
+
+        ShowGuide(new StageGuideData
+        {
+            Body = msg ?? string.Empty,
+            DurationMs = 3000
+        });
+    }
+
+    public void ShowGuide(StageGuideData data)
+    {
+        data ??= new StageGuideData();
+
+        if (P2PHostController.HasInstance)
+        {
+            P2PHostController.Instance.SendLocalAndRelay(new SC_Warn
+            {
+                code = StageSignalCodec.GuideWarnCode,
+                msg = StageSignalCodec.EncodeGuide(data)
+            });
+            return;
+        }
+
+        StageGuideHud.Show(data);
+    }
+
+    public void PlayStageVfx(StageVfxData data)
+    {
+        data ??= new StageVfxData();
+
+        if (P2PHostController.HasInstance)
+        {
+            P2PHostController.Instance.SendLocalAndRelay(new SC_Warn
+            {
+                code = StageSignalCodec.VfxWarnCode,
+                msg = StageSignalCodec.EncodeVfx(data)
+            });
+            return;
+        }
+
+        StageGuideHud.PlayVfx(data);
     }
 
     public void ReturnToTown()
