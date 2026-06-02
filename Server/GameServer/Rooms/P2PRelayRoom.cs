@@ -764,6 +764,9 @@ public sealed class P2PRelayRoom : RoomBase
         int myActorId,
         IReadOnlyDictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?> states)
     {
+        var stageEntityIds = new EntityIdGenerator();
+        var usedEntityIds = new HashSet<int>();
+
         var packet = new SC_InitMap
         {
             ServerTimeMs = AppRef.ServerTimeMs(),
@@ -811,6 +814,7 @@ public sealed class P2PRelayRoom : RoomBase
                     Hp = hp,
                     AppearanceId = appearanceId
                 });
+                usedEntityIds.Add(p.ActorId);
             }
         }
 
@@ -821,9 +825,9 @@ public sealed class P2PRelayRoom : RoomBase
                 var entityData = EntityDataManager.Instance.Get(spawn.MonsterId);
                 packet.entitiess.Add(new SC_InitMap.Entities
                 {
-                    EntityId = spawn.MonsterId,
+                    EntityId = AllocateRelayStageEntityId(stageEntityIds, usedEntityIds, EntityType.Monster),
                     EntityType = (int)EntityType.Monster,
-                    OwnerSlot = -1,
+                    OwnerSlot = spawn.GroupId,
                     X = spawn.X,
                     Y = ResolveMapY(spawn.Y, spawn.Z),
                     Dir = 0,
@@ -834,10 +838,11 @@ public sealed class P2PRelayRoom : RoomBase
 
             foreach (var obj in _stage.InitialObjects ?? new List<SpawnObjectData>())
             {
+                var entityType = ResolveRelayStageObjectType(obj.EntityType);
                 packet.entitiess.Add(new SC_InitMap.Entities
                 {
-                    EntityId = obj.EntityId,
-                    EntityType = obj.EntityType,
+                    EntityId = AllocateRelayStageEntityId(stageEntityIds, usedEntityIds, entityType),
+                    EntityType = (int)entityType,
                     OwnerSlot = obj.GroupId,
                     X = obj.X,
                     Y = ResolveMapY(obj.Y, obj.Z),
@@ -849,6 +854,28 @@ public sealed class P2PRelayRoom : RoomBase
         }
 
         return packet;
+    }
+
+    private static int AllocateRelayStageEntityId(EntityIdGenerator generator, HashSet<int> usedEntityIds, EntityType type)
+    {
+        while (true)
+        {
+            int entityId = generator.Generate(type);
+            if (usedEntityIds.Add(entityId))
+                return entityId;
+        }
+    }
+
+    private static EntityType ResolveRelayStageObjectType(int entityType)
+    {
+        if (Enum.IsDefined(typeof(EntityType), entityType))
+        {
+            var resolved = (EntityType)entityType;
+            if (resolved != EntityType.Player)
+                return resolved;
+        }
+
+        return EntityType.Object;
     }
 
     private bool TryValidateMember(ClientSession sender, out RoomPlayer player)

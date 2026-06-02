@@ -261,8 +261,9 @@ public sealed partial class P2PContentDirector
         if (string.IsNullOrWhiteSpace(state.MonsterType))
             state.MonsterType = template.MonsterType;
 
+        int groupId = entity.GroupId > 0 ? entity.GroupId : template.GroupId;
         if (state.GroupId <= 0)
-            state.GroupId = template.GroupId;
+            state.GroupId = groupId;
 
         if (state.MaxHp <= 0)
             state.MaxHp = template.MaxHp;
@@ -455,14 +456,15 @@ public sealed partial class P2PContentDirector
         if (data == null)
             return;
 
-        if (data.EntityId > 0 && data.GroupId > 0)
-            _stageObjectGroupByEntityId[data.EntityId] = data.GroupId;
+        int entityId = GenerateSpawnEntityId();
+        if (entityId > 0 && data.GroupId > 0)
+            _stageObjectGroupByEntityId[entityId] = data.GroupId;
 
         long beat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : 0;
         var pkt = new SC_EntitySpawn
         {
             BeatIndex = beat,
-            EntityId = data.EntityId,
+            EntityId = entityId,
             EntityType = data.EntityType <= 0 ? (int)EntityType.Object : data.EntityType,
             X = data.X,
             Y = ResolveMapY(data.Y, data.Z),
@@ -471,7 +473,7 @@ public sealed partial class P2PContentDirector
         };
 
         if (P2PDebugConfig.TraceContent)
-            Debug.Log($"[P2PContentDirector] SpawnObject entity={data.EntityId} type={pkt.EntityType} pos=({data.X},{pkt.Y})");
+            Debug.Log($"[P2PContentDirector] SpawnObject entity={entityId} appearance={data.EntityId} type={pkt.EntityType} group={data.GroupId} pos=({data.X},{pkt.Y})");
 
         P2PHostController.Instance.SendLocalAndRelay(pkt);
     }
