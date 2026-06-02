@@ -27,8 +27,8 @@ Material:
     m_Floats:
     - _BlendDistance: 5.2
     - _Density: 0.0601
-    - _FogEnabled: 1
-    - _FogZoneCount: 5
+    - _FogEnabled: 0
+    - _FogZoneCount: 0
     - _NoiseScale: 0.045
     - _NoiseStrength: 1
     m_Colors:
