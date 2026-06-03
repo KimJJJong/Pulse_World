@@ -2,12 +2,13 @@ using GameServer.InGame.Director.Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 public sealed class StageClearResultHud : MonoBehaviour
 {
     private const string ResourceRoot = "UI/UI_StageClear/";
-    private const int SortingOrder = 820;
+    private const int SortingOrder = 32000;
 
     private static readonly Color Cyan = new Color(0.28f, 0.96f, 1f, 1f);
     private static readonly Color CyanDim = new Color(0.18f, 0.68f, 0.76f, 0.68f);
@@ -20,6 +21,7 @@ public sealed class StageClearResultHud : MonoBehaviour
 
     private RectTransform _root;
     private RectTransform _panel;
+    private Canvas _canvas;
     private CanvasGroup _group;
     private TextMeshProUGUI _clearTimeValue;
     private TextMeshProUGUI _syncValue;
@@ -31,6 +33,7 @@ public sealed class StageClearResultHud : MonoBehaviour
     private TextMeshProUGUI _statusText;
     private Button _returnButton;
     private Button _continueButton;
+    private bool _submissionInFlight;
 
     public static bool TryHandleWarn(int code, string payload)
     {
@@ -47,6 +50,14 @@ public sealed class StageClearResultHud : MonoBehaviour
     public static void Show(StageClearResultData data)
     {
         EnsureInstance().ShowInternal(data ?? new StageClearResultData());
+    }
+
+    public static void Hide()
+    {
+        if (_instance == null)
+            return;
+
+        _instance.HideInternal();
     }
 
 #if UNITY_EDITOR
@@ -90,20 +101,8 @@ public sealed class StageClearResultHud : MonoBehaviour
     {
         EnsureEventSystem();
 
-        var canvas = gameObject.AddComponent<Canvas>();
-        Camera uiCamera = Camera.main;
-        if (uiCamera != null)
-        {
-            canvas.renderMode = RenderMode.ScreenSpaceCamera;
-            canvas.worldCamera = uiCamera;
-            canvas.planeDistance = 1f;
-        }
-        else
-        {
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        }
-
-        canvas.sortingOrder = SortingOrder;
+        _canvas = gameObject.AddComponent<Canvas>();
+        ConfigureTopCanvas(_canvas);
 
         var scaler = gameObject.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -122,6 +121,7 @@ public sealed class StageClearResultHud : MonoBehaviour
 
         Image dim = CreateImage("Dim", _root, null, new Color(0f, 0.012f, 0.02f, 0.62f));
         Stretch(dim.rectTransform);
+        dim.raycastTarget = true;
 
         _panel = CreateRect("StageClearPanel", _root);
         Anchor(_panel, new Vector2(0.5f, 0.52f), Vector2.zero, new Vector2(1480f, 820f), new Vector2(0.5f, 0.5f));
@@ -232,8 +232,8 @@ public sealed class StageClearResultHud : MonoBehaviour
         _returnButton = BuildButton(parent, "Button_ReturnToTown", "Icon_Home", "Return to Town", Load("Button_Return"), Gold, new Vector2(-340f, 36f));
         _continueButton = BuildButton(parent, "Button_Continue", "Icon_Arrow", "Continue to Next Map", Load("Button_Continue"), Cyan, new Vector2(360f, 36f));
 
-        _returnButton.onClick.AddListener(() => SubmitResult("StageClearUI:ReturnToTown"));
-        _continueButton.onClick.AddListener(() => SubmitResult("StageClearUI:Continue"));
+        _returnButton.onClick.AddListener(OnReturnToTownClicked);
+        _continueButton.onClick.AddListener(OnContinueClicked);
 
         _statusText = CreateText("Status", parent, string.Empty, 18f, FontStyles.Normal, TextAlignmentOptions.Center, TextSoft);
         Anchor(_statusText.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(760f, 26f), new Vector2(0.5f, 0f));
@@ -245,9 +245,12 @@ public sealed class StageClearResultHud : MonoBehaviour
             BuildUi();
 
         gameObject.SetActive(true);
+        transform.SetAsLastSibling();
+        ConfigureTopCanvas(_canvas);
         _group.alpha = 1f;
         _group.blocksRaycasts = true;
         _group.interactable = true;
+        _submissionInFlight = false;
 
         _clearTimeValue.text = FormatTime(data.ClearTimeMs);
         _syncValue.text = $"{Mathf.Clamp(data.RhythmSyncPercent, 0, 100)}%";
@@ -257,10 +260,22 @@ public sealed class StageClearResultHud : MonoBehaviour
         _levelValue.text = Mathf.Max(0, data.RecommendedLevel).ToString();
         _dangerValue.text = string.IsNullOrWhiteSpace(data.DangerRhythm) ? "Normal" : data.DangerRhythm;
 
-        bool canSubmit = CanSubmitResult();
-        _returnButton.interactable = canSubmit;
-        _continueButton.interactable = canSubmit;
-        _statusText.text = canSubmit ? string.Empty : "Waiting for host confirmation";
+        SetButtonsInteractable(true);
+        _statusText.text = CanSubmitResult() ? string.Empty : "Waiting for host confirmation";
+    }
+
+    private void HideInternal()
+    {
+        _submissionInFlight = false;
+
+        if (_group != null)
+        {
+            _group.alpha = 0f;
+            _group.blocksRaycasts = false;
+            _group.interactable = false;
+        }
+
+        gameObject.SetActive(false);
     }
 
     private static bool CanSubmitResult()
@@ -269,25 +284,70 @@ public sealed class StageClearResultHud : MonoBehaviour
         return bridge == null || !bridge.IsRelayMode || bridge.IsHostLocal;
     }
 
-    private void SubmitResult(string source)
+    private void OnReturnToTownClicked()
     {
-        if (!CanSubmitResult())
+        if (_submissionInFlight)
+            return;
+
+        if (TrySubmitHostResult("StageClearUI:ReturnToTown", "Returning to town..."))
+            return;
+
+        _statusText.text = "Returning to town...";
+        HideInternal();
+        ClientFlow.Instance?.ReturnToTown();
+    }
+
+    private void OnContinueClicked()
+    {
+        if (_submissionInFlight)
+            return;
+
+        if (TrySubmitHostResult("StageClearUI:Continue", "Continuing to next map..."))
+            return;
+
+        if (IsRelayGuest())
         {
             _statusText.text = "Waiting for host confirmation";
             return;
         }
 
-        _returnButton.interactable = false;
-        _continueButton.interactable = false;
-        _statusText.text = "Submitting result...";
+        _statusText.text = "Continuing to next map...";
+        HideInternal();
+        ClientFlow.Instance?.ReturnToTown();
+    }
+
+    private bool TrySubmitHostResult(string source, string status)
+    {
+        if (!CanSubmitResult())
+        {
+            _statusText.text = "Waiting for host confirmation";
+            return false;
+        }
 
         if (P2PHostController.HasInstance)
         {
+            _submissionInFlight = true;
+            SetButtonsInteractable(false);
+            _statusText.text = status;
             P2PHostController.Instance.SubmitStageClearResult(source);
-            return;
+            return true;
         }
 
-        ClientFlow.Instance?.ReturnToTown();
+        return false;
+    }
+
+    private static bool IsRelayGuest()
+    {
+        var bridge = P2PRelayClientBridge.HasInstance ? P2PRelayClientBridge.Instance : null;
+        return bridge != null && bridge.IsRelayMode && !bridge.IsHostLocal;
+    }
+
+    private void SetButtonsInteractable(bool interactable)
+    {
+        if (_returnButton != null)
+            _returnButton.interactable = interactable;
+        if (_continueButton != null)
+            _continueButton.interactable = interactable;
     }
 
     private static void BuildStat(RectTransform parent, string name, string iconName, string label, out TextMeshProUGUI valueText, Vector2 anchoredPosition)
@@ -338,6 +398,7 @@ public sealed class StageClearResultHud : MonoBehaviour
     {
         Image image = CreateImage(name, parent, sprite, Color.white);
         image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.raycastTarget = true;
         Anchor(image.rectTransform, new Vector2(0.5f, 0f), anchoredPosition, new Vector2(560f, 82f), new Vector2(0.5f, 0f));
 
         Button button = image.gameObject.AddComponent<Button>();
@@ -434,13 +495,44 @@ public sealed class StageClearResultHud : MonoBehaviour
         rect.localScale = Vector3.one;
     }
 
-    private static void EnsureEventSystem()
+    private static void ConfigureTopCanvas(Canvas canvas)
     {
-        if (FindFirstObjectByType<EventSystem>() != null)
+        if (canvas == null)
             return;
 
-        var go = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.worldCamera = null;
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = SortingOrder;
+    }
+
+    private static void EnsureEventSystem()
+    {
+        var eventSystem = FindFirstObjectByType<EventSystem>();
+        GameObject eventSystemGo;
+        if (eventSystem == null)
+        {
+            eventSystemGo = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
+            eventSystem = eventSystemGo.GetComponent<EventSystem>();
+        }
+        else
+        {
+            eventSystemGo = eventSystem.gameObject;
+            eventSystemGo.SetActive(true);
+        }
+
+        eventSystem.enabled = true;
+
+        var inputSystemModule = eventSystemGo.GetComponent<InputSystemUIInputModule>();
+        if (inputSystemModule == null)
+            inputSystemModule = eventSystemGo.AddComponent<InputSystemUIInputModule>();
+        inputSystemModule.enabled = true;
+
+        var standalone = eventSystemGo.GetComponent<StandaloneInputModule>();
+        if (standalone != null)
+            standalone.enabled = false;
+
         if (Application.isPlaying)
-            DontDestroyOnLoad(go);
+            DontDestroyOnLoad(eventSystemGo);
     }
 }

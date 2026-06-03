@@ -53,6 +53,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
     private Material _defaultTileBaseMaterial;
 
     private static readonly Color TELEGRAPH_COLOR = new Color(1f, 0.08f, 0f, 0.45f);
+    private static readonly Color PLAYER_TELEGRAPH_COLOR = new Color(0.05f, 0.55f, 1f, 0.45f);
 
     private const int MaxPredictedMovesPerActor = 8;
 
@@ -393,6 +394,11 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     public void SetTelegraphOverlay(int x, int y, bool on)
     {
+        SetTelegraphOverlay(x, y, on, TELEGRAPH_COLOR);
+    }
+
+    public void SetTelegraphOverlay(int x, int y, bool on, Color color)
+    {
         if (_tiles == null) return;
         if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1))
         {
@@ -418,7 +424,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         if (on)
         {
-            visual.ShowWarningOverlay(TELEGRAPH_COLOR);
+            visual.ShowWarningOverlay(color);
         }
         else
         {
@@ -428,6 +434,11 @@ public class BoardView : MonoBehaviour, IClientWorldView
     }
 
     public void SetTelegraphWithExpire(int x, int y, long expireBeat)
+    {
+        SetTelegraphWithExpire(x, y, expireBeat, TELEGRAPH_COLOR);
+    }
+
+    public void SetTelegraphWithExpire(int x, int y, long expireBeat, Color color)
     {
         var pos = new Vector2Int(x, y);
         long currentBeat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : -1;
@@ -448,7 +459,15 @@ public class BoardView : MonoBehaviour, IClientWorldView
         }
 
         _telegraphExpiration[pos] = expireBeat;
-        SetTelegraphOverlay(x, y, true);
+        SetTelegraphOverlay(x, y, true, color);
+    }
+
+    public Color GetTelegraphColorForActor(int actorId)
+    {
+        if (ClientGameState.Instance != null && ClientGameState.Instance.TryGetEntity(actorId, out var info))
+            return info.EntityType == (int)EntityType.Player ? PLAYER_TELEGRAPH_COLOR : TELEGRAPH_COLOR;
+
+        return TELEGRAPH_COLOR;
     }
 
     public void RestoreTileColor(int x, int y)
@@ -1087,6 +1106,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         }
 
         visual.transform.position = ResolveEntityWorldPosition(info, visual.transform);
+        visual.SetRotation(info.Rotation);
     }
 
     public bool HasEntityView(int entityId)
@@ -1389,8 +1409,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
     {
         if (cells == null || cells.Count == 0) return;
         long expireBeat = (startTick + totalDurationTicks + 479) / 480;
+        Color color = GetTelegraphColorForActor(actorId);
         foreach (var cell in cells)
-            SetTelegraphWithExpire(cell.x, cell.y, expireBeat);
+            SetTelegraphWithExpire(cell.x, cell.y, expireBeat, color);
     }
 
     public bool IsActorRunningNewSkill(int actorId)

@@ -347,9 +347,10 @@ public class ClientSkillRunner : MonoBehaviour
     {
         if (_boardView == null || shape == null) return;
         var cells = ShapeToWorldCells(shape);
+        Color color = _boardView.GetTelegraphColorForActor(_actorId);
         foreach (var cell in cells)
         {
-            _boardView.SetTelegraphWithExpire(cell.x, cell.y, expireBeat);
+            _boardView.SetTelegraphWithExpire(cell.x, cell.y, expireBeat, color);
             _activeTelegraphs.Add(cell);
         }
     }

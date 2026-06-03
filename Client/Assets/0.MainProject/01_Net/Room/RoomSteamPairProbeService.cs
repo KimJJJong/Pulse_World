@@ -71,10 +71,23 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
     private readonly Dictionary<string, ProbeGuestConnection> _guestConnections = new(StringComparer.Ordinal);
     private readonly Dictionary<string, long> _nextReconnectAtMsBySteamId = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _retryCountBySteamId = new(StringComparer.Ordinal);
+    private string _socketScopeKey = "";
+    private long _suspendedUntilMs;
+    private long _lastRecoverablePumpWarningAtMs;
 
     public void Configure(RoomSteamPairProbeConfig config)
     {
-        _config = CloneConfig(config);
+        var nextConfig = CloneConfig(config);
+        string nextScopeKey = BuildSocketScopeKey(nextConfig);
+        if (!string.Equals(_socketScopeKey, nextScopeKey, StringComparison.Ordinal))
+        {
+            Stop(logCloseWarnings: false);
+            _suspendedUntilMs = 0;
+            _lastRecoverablePumpWarningAtMs = 0;
+            _socketScopeKey = nextScopeKey;
+        }
+
+        _config = nextConfig;
         if (!IsConfigUsable())
             Stop();
     }
@@ -86,6 +99,10 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
             Stop();
             return;
         }
+
+        long nowMs = NowMs();
+        if (_suspendedUntilMs > nowMs)
+            return;
 
         try
         {
@@ -99,6 +116,10 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
 
             EvaluateGuestConnectTimeouts();
         }
+        catch (Exception ex) when (IsRecoverableSteamSocketException(ex))
+        {
+            ResetAfterRecoverableSteamSocketFailure("Pump", ex);
+        }
         catch (Exception ex)
         {
             Debug.LogWarning($"[RoomSteamPairProbe] Pump failed: {ex.Message}");
@@ -107,8 +128,13 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
 
     public void Stop()
     {
+        Stop(logCloseWarnings: true);
+    }
+
+    private void Stop(bool logCloseWarnings)
+    {
         foreach (var connection in _guestConnections.Values.ToList())
-            CloseGuestConnection(connection.PeerSteamId64, "Stop");
+            CloseGuestConnection(connection.PeerSteamId64, "Stop", logCloseWarnings: logCloseWarnings);
 
         _guestConnections.Clear();
         _nextReconnectAtMsBySteamId.Clear();
@@ -123,7 +149,8 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
         }
         catch (Exception ex)
         {
-            Debug.LogWarning($"[RoomSteamPairProbe] Failed to close host socket: {ex.Message}");
+            if (logCloseWarnings && !IsRecoverableSteamSocketException(ex))
+                Debug.LogWarning($"[RoomSteamPairProbe] Failed to close host socket: {ex.Message}");
         }
         finally
         {
@@ -142,10 +169,18 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
 
         foreach (var peer in peers.Values.OrderBy(x => x.Uid, StringComparer.OrdinalIgnoreCase))
         {
-            if (TryBuildMeasurementFromGuest(peer, nowMs, out var measurement)
-                || TryBuildMeasurementFromHost(peer, nowMs, out measurement))
+            try
             {
-                results.Add(measurement);
+                if (TryBuildMeasurementFromGuest(peer, nowMs, out var measurement)
+                    || TryBuildMeasurementFromHost(peer, nowMs, out measurement))
+                {
+                    results.Add(measurement);
+                }
+            }
+            catch (Exception ex) when (IsRecoverableSteamSocketException(ex))
+            {
+                ResetAfterRecoverableSteamSocketFailure("Snapshot", ex);
+                break;
             }
         }
 
@@ -224,6 +259,14 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
     private bool IsConfigUsable()
     {
         return _config.LocalSteamReady && !string.IsNullOrWhiteSpace(_config.LocalSteamId64);
+    }
+
+    private static string BuildSocketScopeKey(RoomSteamPairProbeConfig config)
+    {
+        if (config == null)
+            return "";
+
+        return $"{config.RoomId ?? ""}|{config.LocalSteamId64 ?? ""}|{config.LocalSteamReady}";
     }
 
     private void EnsureHostSocket()
@@ -322,7 +365,7 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
         }
     }
 
-    private void CloseGuestConnection(string peerSteamId64, string reason, bool scheduleReconnect = false)
+    private void CloseGuestConnection(string peerSteamId64, string reason, bool scheduleReconnect = false, bool logCloseWarnings = true)
     {
         if (string.IsNullOrWhiteSpace(peerSteamId64))
             return;
@@ -340,7 +383,8 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
         }
         catch (Exception ex)
         {
-            Debug.LogWarning($"[RoomSteamPairProbe] Failed to close guest connection {peerSteamId64}: {ex.Message}");
+            if (logCloseWarnings && !IsRecoverableSteamSocketException(ex))
+                Debug.LogWarning($"[RoomSteamPairProbe] Failed to close guest connection {peerSteamId64}: {ex.Message}");
         }
         finally
         {
@@ -477,6 +521,35 @@ internal sealed class FacepunchRoomSteamPairProbeService : IRoomSteamPairProbeSe
     private static long NowMs()
     {
         return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    }
+
+    private void ResetAfterRecoverableSteamSocketFailure(string context, Exception ex)
+    {
+        long nowMs = NowMs();
+        if (nowMs - _lastRecoverablePumpWarningAtMs >= 3000)
+        {
+            _lastRecoverablePumpWarningAtMs = nowMs;
+            Debug.LogWarning($"[RoomSteamPairProbe] {context} detected stale Steam socket; resetting probe and retrying shortly. Error: {ex.Message}");
+        }
+
+        Stop(logCloseWarnings: false);
+        _suspendedUntilMs = nowMs + 1000;
+    }
+
+    private static bool IsRecoverableSteamSocketException(Exception ex)
+    {
+        for (Exception current = ex; current != null; current = current.InnerException)
+        {
+            string message = current.Message ?? "";
+            if (message.IndexOf("Invalid Socket", StringComparison.OrdinalIgnoreCase) >= 0
+                || message.IndexOf("Socket is closed", StringComparison.OrdinalIgnoreCase) >= 0
+                || message.IndexOf("socket has been closed", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private sealed class ProbePeerState

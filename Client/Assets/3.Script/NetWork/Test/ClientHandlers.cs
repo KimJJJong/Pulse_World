@@ -41,8 +41,9 @@ public class ClientHandlers : MonoBehaviour
         public readonly int Y;
         public readonly int Hp;
         public readonly int GroupId;
+        public readonly float Rotation;
 
-        public PendingEntitySpawn(long beatIndex, int entityId, int entityType, int appearanceId, int x, int y, int hp, int groupId)
+        public PendingEntitySpawn(long beatIndex, int entityId, int entityType, int appearanceId, int x, int y, int hp, int groupId, float rotation)
         {
             BeatIndex = beatIndex;
             EntityId = entityId;
@@ -52,10 +53,11 @@ public class ClientHandlers : MonoBehaviour
             Y = y;
             Hp = hp;
             GroupId = groupId;
+            Rotation = rotation;
         }
 
         public static PendingEntitySpawn From(SC_EntitySpawn p)
-            => new PendingEntitySpawn(p.BeatIndex, p.EntityId, p.EntityType, p.AppearanceId, p.X, p.Y, p.Hp, 0);
+            => new PendingEntitySpawn(p.BeatIndex, p.EntityId, p.EntityType, p.AppearanceId, p.X, p.Y, p.Hp, 0, p.Rotation);
 
         public ClientEntityInfo ToEntityInfo()
             => new ClientEntityInfo
@@ -65,6 +67,7 @@ public class ClientHandlers : MonoBehaviour
                 AppearanceId = AppearanceId,
                 X = X,
                 Y = Y,
+                Rotation = Rotation,
                 Hp = Hp,
                 GroupId = GroupId
             };
@@ -843,6 +846,7 @@ public class ClientHandlers : MonoBehaviour
     {
         if (P2PDebugConfig.TraceCombat)
             Debug.Log("[ClientHandlers] Received ReturnToTown");
+        StageClearResultHud.Hide();
         ClientFlow.Instance.ReturnToTown();
     }
 

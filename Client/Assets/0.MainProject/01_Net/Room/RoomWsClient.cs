@@ -40,6 +40,8 @@ using UnityEngine;
         private Action<string> _onClosed;
         private Action<Exception> _onError;
         private bool _subscribed;
+        private bool _closing;
+        private bool _disposed;
 
         public RoomWsClient(IWebSocketClient wsImpl, string clientVersion)
         {
@@ -83,8 +85,12 @@ using UnityEngine;
 
         public async Task ConnectAsync(string wsUrl, CancellationToken ct = default)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(RoomWsClient));
+
             var headers = new Dictionary<string, string> { ["X-Client-Version"] = _clientVersion };
 
+            _closing = false;
             LastHostProbeRttMs = -1;
             LastHostProbeStatus = "Connecting";
             _currentRoomId = "";
@@ -122,6 +128,7 @@ using UnityEngine;
 
         public Task LeaveAsync(CancellationToken ct = default)
         {
+            _closing = true;
             StopHostSelectionReportLoop();
             _pairProbe.Stop();
             // Just close connection or send specific message?
@@ -195,6 +202,12 @@ using UnityEngine;
 
         public void Tick()
         {
+            if (_disposed || _closing || !CanSend())
+            {
+                _pairProbe.Stop();
+                return;
+            }
+
             var steam = AppBootstrap.Instance != null && AppBootstrap.Instance.Root != null
                 ? AppBootstrap.Instance.Root.SteamPlatform
                 : null;
@@ -272,7 +285,7 @@ using UnityEngine;
 
         private bool CanSend(CancellationToken ct = default)
         {
-            return !ct.IsCancellationRequested && _ws != null && _ws.IsOpen;
+            return !_disposed && !_closing && !ct.IsCancellationRequested && _ws != null && _ws.IsOpen;
         }
 
         private static bool IsExpectedClosedSocketException(Exception ex)
@@ -380,10 +393,22 @@ using UnityEngine;
 
         public async ValueTask DisposeAsync()
         {
+            if (_disposed)
+                return;
+
+            _closing = true;
+            _disposed = true;
             StopHostSelectionReportLoop();
             _pairProbe.Stop();
             Unsubscribe();
-            await _ws.CloseAsync("dispose");
+
+            try
+            {
+                await _ws.CloseAsync("dispose");
+            }
+            catch (Exception ex) when (ex is OperationCanceledException || IsExpectedClosedSocketException(ex))
+            {
+            }
         }
 
         private void ApplyRoomSnapshot(WaitingRoomDto room)

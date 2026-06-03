@@ -309,6 +309,7 @@
 		<int name ="Y"/>
 		<int name ="Hp"/>
 		<int name ="AppearanceId"/>
+		<float name ="Rotation"/>
 	</packet>
 	
 	

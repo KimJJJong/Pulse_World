@@ -84,7 +84,8 @@ namespace RhythmRPG.Editor.StageBuilder
                         Z = (int)s.Position.z, // [NEW]
                         AI = ai_pattern,
                         Pattern = ai_pattern,
-                        GroupId = groupId
+                        GroupId = groupId,
+                        Rotation = s.EulerAngles.y
                     });
                 }
                 else // Object, etc.
@@ -96,7 +97,8 @@ namespace RhythmRPG.Editor.StageBuilder
                         Y = (int)s.Position.y,
                         Z = (int)s.Position.z, // [NEW]
                         GroupId = groupId,
-                        Pattern = ai_pattern
+                        Pattern = ai_pattern,
+                        Rotation = s.EulerAngles.y
                     });
                 }
             }
@@ -248,6 +250,7 @@ namespace RhythmRPG.Editor.StageBuilder
             public string AI;
             public string Pattern;
             public int GroupId;
+            public float Rotation;
         }
 
         [System.Serializable]
@@ -260,6 +263,7 @@ namespace RhythmRPG.Editor.StageBuilder
             public int Z; // [NEW] Unity Z
             public int GroupId;
             public string Pattern;
+            public float Rotation;
         }
 
         [System.Serializable]

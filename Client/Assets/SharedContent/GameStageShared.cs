@@ -40,6 +40,7 @@ namespace GameServer.InGame.Director.Data
         public string PatternId = string.Empty;
         public string PatternKey = string.Empty;
         public int GroupId = 0;
+        public float Rotation = 0f;
 
         public string ResolvePatternKey()
         {
@@ -68,6 +69,7 @@ namespace GameServer.InGame.Director.Data
         public int Y;
         public int Z;
         public int GroupId;
+        public float Rotation = 0f;
         public string Pattern = string.Empty;
     }
 

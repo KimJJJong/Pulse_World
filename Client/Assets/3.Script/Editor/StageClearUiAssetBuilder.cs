@@ -98,11 +98,35 @@ public static class StageClearUiAssetBuilder
         var renderTexture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
         var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
 
+        var previewHud = UnityEngine.Object.FindFirstObjectByType<StageClearResultHud>();
+        Canvas previewCanvas = previewHud != null ? previewHud.GetComponent<Canvas>() : null;
+        RenderMode previousCanvasRenderMode = RenderMode.ScreenSpaceOverlay;
+        Camera previousCanvasCamera = null;
+        float previousCanvasPlaneDistance = 0f;
+        bool previousCanvasOverrideSorting = false;
+        int previousCanvasSortingOrder = 0;
+
         RenderTexture previousActive = RenderTexture.active;
         RenderTexture previousTarget = camera.targetTexture;
 
         try
         {
+            if (previewCanvas != null)
+            {
+                previousCanvasRenderMode = previewCanvas.renderMode;
+                previousCanvasCamera = previewCanvas.worldCamera;
+                previousCanvasPlaneDistance = previewCanvas.planeDistance;
+                previousCanvasOverrideSorting = previewCanvas.overrideSorting;
+                previousCanvasSortingOrder = previewCanvas.sortingOrder;
+
+                previewCanvas.renderMode = RenderMode.ScreenSpaceCamera;
+                previewCanvas.worldCamera = camera;
+                previewCanvas.planeDistance = 1f;
+                previewCanvas.overrideSorting = true;
+                previewCanvas.sortingOrder = 32000;
+                Canvas.ForceUpdateCanvases();
+            }
+
             camera.targetTexture = renderTexture;
             RenderTexture.active = renderTexture;
             camera.Render();
@@ -118,6 +142,15 @@ public static class StageClearUiAssetBuilder
         }
         finally
         {
+            if (previewCanvas != null)
+            {
+                previewCanvas.renderMode = previousCanvasRenderMode;
+                previewCanvas.worldCamera = previousCanvasCamera;
+                previewCanvas.planeDistance = previousCanvasPlaneDistance;
+                previewCanvas.overrideSorting = previousCanvasOverrideSorting;
+                previewCanvas.sortingOrder = previousCanvasSortingOrder;
+            }
+
             camera.targetTexture = previousTarget;
             RenderTexture.active = previousActive;
             UnityEngine.Object.DestroyImmediate(texture);

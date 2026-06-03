@@ -16,7 +16,8 @@
             "Z": 14,
             "AI": "Enemy_Traning_Dummy",
             "Pattern": "Enemy_Traning_Dummy",
-            "GroupId": 10
+            "GroupId": 10,
+            "Rotation": 90.0
         },
         {
             "MonsterId": 999,
@@ -25,7 +26,8 @@
             "Z": 17,
             "AI": "Enemy_Traning_Dummy",
             "Pattern": "Enemy_Traning_Dummy",
-            "GroupId": 10
+            "GroupId": 10,
+            "Rotation": 90.0
         },
         {
             "MonsterId": 999,
@@ -34,7 +36,8 @@
             "Z": 19,
             "AI": "Enemy_Traning_Dummy",
             "Pattern": "Enemy_Traning_Dummy",
-            "GroupId": 10
+            "GroupId": 10,
+            "Rotation": 90.0
         },
         {
             "MonsterId": 999,
@@ -43,7 +46,8 @@
             "Z": 22,
             "AI": "Enemy_Traning_Dummy",
             "Pattern": "Enemy_Traning_Dummy",
-            "GroupId": 10
+            "GroupId": 10,
+            "Rotation": 90.0
         }
     ],
     "InitialObjects": [

@@ -1136,8 +1136,9 @@ namespace NetClient.Room.UI
         async Task DisposeWsIfAny()
         {
             if (_roomWs == null) return;
-            try { await _roomWs.DisposeAsync(); } catch { }
+            var ws = _roomWs;
             _roomWs = null;
+            try { await ws.DisposeAsync(); } catch { }
         }
 
         async Task SafeCall(Func<Task> f)

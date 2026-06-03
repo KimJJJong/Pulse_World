@@ -1868,6 +1868,7 @@ public class SC_EntitySpawn : IPacket
 	public int Y;
 	public int Hp;
 	public int AppearanceId;
+	public float Rotation;
 
 	public ushort Protocol { get { return (ushort)PacketID.SC_EntitySpawn; } }
 
@@ -1892,6 +1893,8 @@ public class SC_EntitySpawn : IPacket
 		count += sizeof(int);
 		this.AppearanceId = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 		count += sizeof(int);
+		this.Rotation = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+		count += sizeof(float);
 	}
 
 	public ArraySegment<byte> Write()
@@ -1919,6 +1922,8 @@ public class SC_EntitySpawn : IPacket
 		count += sizeof(int);
 		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.AppearanceId);
 		count += sizeof(int);
+		success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Rotation);
+		count += sizeof(float);
 		success &= BitConverter.TryWriteBytes(s, count);
 		if (success == false)
 			return null;

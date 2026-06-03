@@ -446,8 +446,9 @@ public sealed partial class P2PContentDirector
         int maxHp = ResolveMaxHp(data.MonsterId);
         int entityId = GenerateSpawnEntityId();
         long beat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : 0;
+        float rotation = data.Rotation;
 
-        RegisterRuntimeMonster(entityId, data.MonsterId, monsterType, data.GroupId, maxHp, beat);
+        RegisterRuntimeMonster(entityId, data.MonsterId, monsterType, data.GroupId, maxHp, beat, rotation);
 
         var pkt = new SC_EntitySpawn
         {
@@ -457,11 +458,12 @@ public sealed partial class P2PContentDirector
             X = data.X,
             Y = ResolveMapY(data.Y, data.Z),
             Hp = maxHp,
-            AppearanceId = data.MonsterId
+            AppearanceId = data.MonsterId,
+            Rotation = rotation
         };
 
         if (P2PDebugConfig.TraceContent)
-            Debug.Log($"[P2PContentDirector] SpawnMonster entity={entityId} appearance={data.MonsterId} type={monsterType} group={data.GroupId} pos=({data.X},{ResolveMapY(data.Y, data.Z)}) hp={maxHp}");
+            Debug.Log($"[P2PContentDirector] SpawnMonster entity={entityId} appearance={data.MonsterId} type={monsterType} group={data.GroupId} pos=({data.X},{ResolveMapY(data.Y, data.Z)}) rot={rotation:F0} hp={maxHp}");
 
         P2PHostController.Instance.SendLocalAndRelay(pkt);
     }
@@ -484,7 +486,8 @@ public sealed partial class P2PContentDirector
             X = data.X,
             Y = ResolveMapY(data.Y, data.Z),
             Hp = 1,
-            AppearanceId = data.EntityId
+            AppearanceId = data.EntityId,
+            Rotation = data.Rotation
         };
 
         if (P2PDebugConfig.TraceContent)
@@ -609,7 +612,7 @@ public sealed partial class P2PContentDirector
         };
     }
 
-    private void RegisterRuntimeMonster(int entityId, int appearanceId, string monsterType, int groupId, int maxHp, long beat)
+    private void RegisterRuntimeMonster(int entityId, int appearanceId, string monsterType, int groupId, int maxHp, long beat, float rotation = 0f)
     {
         if (!_monsterStates.TryGetValue(entityId, out var state))
         {
@@ -627,7 +630,7 @@ public sealed partial class P2PContentDirector
         state.PhaseId = "P1";
         state.IsAlive = true;
         state.LastKnownHp = maxHp;
-        state.Rotation = 0f;
+        state.Rotation = rotation;
 
         var template = new StageMonsterTemplate
         {
