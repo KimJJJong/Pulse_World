@@ -36,7 +36,27 @@ namespace GameServer.InGame.Director.Data
         public int Y;
         public int Z;
         public string AI = "Default";
+        public string Pattern = string.Empty;
+        public string PatternId = string.Empty;
+        public string PatternKey = string.Empty;
         public int GroupId = 0;
+
+        public string ResolvePatternKey()
+        {
+            if (!string.IsNullOrWhiteSpace(PatternKey))
+                return PatternKey;
+
+            if (!string.IsNullOrWhiteSpace(PatternId))
+                return PatternId;
+
+            if (!string.IsNullOrWhiteSpace(Pattern))
+                return Pattern;
+
+            if (!string.IsNullOrWhiteSpace(AI))
+                return AI;
+
+            return "Default";
+        }
     }
 
     [Serializable]

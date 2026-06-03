@@ -114,7 +114,7 @@ namespace GameServer.InGame.Director.Core
                 return;
             }
 
-            _session.SpawnEntityInternal(data.MonsterId, EntityType.Monster, mapX, mapY, data.GroupId, data.AI);
+            _session.SpawnEntityInternal(data.MonsterId, EntityType.Monster, mapX, mapY, data.GroupId, data.ResolvePatternKey());
         }
 
         public void SpawnObject(SpawnObjectData data)

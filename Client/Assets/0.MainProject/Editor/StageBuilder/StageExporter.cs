@@ -83,6 +83,7 @@ namespace RhythmRPG.Editor.StageBuilder
                         Y = (int)s.Position.y,
                         Z = (int)s.Position.z, // [NEW]
                         AI = ai_pattern,
+                        Pattern = ai_pattern,
                         GroupId = groupId
                     });
                 }
@@ -245,6 +246,7 @@ namespace RhythmRPG.Editor.StageBuilder
             public int Y;
             public int Z; // [NEW] Unity Z
             public string AI;
+            public string Pattern;
             public int GroupId;
         }
 

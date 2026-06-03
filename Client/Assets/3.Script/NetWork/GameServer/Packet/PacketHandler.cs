@@ -50,16 +50,16 @@ class PacketHandler
     {
         var p = (SC_HandshakeOk)packet;
 
-        Debug.Log("SC_HandshakeOkHandler");
+        Debug.Log($"SC_HandshakeOkHandler roleRaw={p.ServerRole}");
 
-        // 이친구도 조금더 엘래강스하게 뺄 수 없을까?
+        // Server PresenceState enum: StateTown=0, StateGame=1.
         string serverRole = "Unknown";
         switch (p.ServerRole)
         {
-            case 1:
+            case 0:
                 serverRole = "Town";
                 break;
-            case 2:
+            case 1:
                 serverRole = "Game";
                 break;
             default:

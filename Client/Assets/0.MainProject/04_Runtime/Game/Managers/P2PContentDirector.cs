@@ -40,6 +40,8 @@ public sealed partial class P2PContentDirector : MonoBehaviour, IStageActionHost
 
     private readonly System.Random _rng = new();
     private readonly Dictionary<int, StageMonsterTemplate> _templatesByAppearanceId = new();
+    private readonly Dictionary<string, StageMonsterTemplate> _templatesByAppearanceAndGroup = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, StageMonsterTemplate> _templatesBySpawnSignature = new(StringComparer.Ordinal);
     private readonly Dictionary<string, MonsterPatternDef> _patterns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, MonsterRuntimeState> _monsterStates = new();
     private readonly Dictionary<int, int> _entityMaxHpByTemplateId = new();

@@ -66,6 +66,8 @@ public sealed partial class P2PContentDirector
         _stageLoaded = false;
         _lastStageLoadAttemptMapId = "";
         _templatesByAppearanceId.Clear();
+        _templatesByAppearanceAndGroup.Clear();
+        _templatesBySpawnSignature.Clear();
         _monsterStates.Clear();
         _stageObjectGroupByEntityId.Clear();
         _objectStatesByTargetId.Clear();
@@ -176,12 +178,14 @@ public sealed partial class P2PContentDirector
     private void BuildAppearanceTemplateIndex(StageScenarioData stage)
     {
         _templatesByAppearanceId.Clear();
+        _templatesByAppearanceAndGroup.Clear();
+        _templatesBySpawnSignature.Clear();
 
         if (stage == null)
             return;
 
         foreach (var spawn in stage.InitialSpawns ?? new List<SpawnData>())
-            RegisterTemplate(spawn.MonsterId, spawn.AI, spawn.GroupId);
+            RegisterTemplate(spawn.MonsterId, ResolveSpawnPattern(spawn), spawn.GroupId, spawn.X, ResolveMapY(spawn.Y, spawn.Z));
     }
 
     private void BuildStageObjectIndex(StageScenarioData stage)
@@ -200,7 +204,7 @@ public sealed partial class P2PContentDirector
         }
     }
 
-    private void RegisterTemplate(int appearanceId, string monsterType, int groupId)
+    private void RegisterTemplate(int appearanceId, string monsterType, int groupId, int x = int.MinValue, int y = int.MinValue)
     {
         if (appearanceId <= 0)
             return;
@@ -208,13 +212,22 @@ public sealed partial class P2PContentDirector
         if (!_entityMaxHpByTemplateId.TryGetValue(appearanceId, out var maxHp))
             maxHp = 50;
 
-        _templatesByAppearanceId[appearanceId] = new StageMonsterTemplate
+        var template = new StageMonsterTemplate
         {
             AppearanceId = appearanceId,
             MonsterType = string.IsNullOrWhiteSpace(monsterType) ? "Default" : monsterType,
             GroupId = groupId,
             MaxHp = Math.Max(1, maxHp)
         };
+
+        if (groupId > 0)
+            _templatesByAppearanceAndGroup[BuildTemplateKey(appearanceId, groupId)] = template;
+
+        if (groupId > 0 && x != int.MinValue && y != int.MinValue)
+            _templatesBySpawnSignature[BuildTemplateKey(appearanceId, groupId, x, y)] = template;
+
+        if (!_templatesByAppearanceId.ContainsKey(appearanceId) || groupId <= 0)
+            _templatesByAppearanceId[appearanceId] = template;
     }
 
     private void SyncBindingsFromWorld()
@@ -245,7 +258,7 @@ public sealed partial class P2PContentDirector
 
     private void BindMonsterEntity(ClientEntityInfo entity, long? spawnBeat = null)
     {
-        if (!_templatesByAppearanceId.TryGetValue(entity.AppearanceId, out var template))
+        if (!TryResolveMonsterTemplate(entity.AppearanceId, entity.GroupId, entity.X, entity.Y, out var template))
             return;
 
         if (!_monsterStates.TryGetValue(entity.EntityId, out var state))
@@ -258,12 +271,14 @@ public sealed partial class P2PContentDirector
 
         state.EntityId = entity.EntityId;
         state.AppearanceId = entity.AppearanceId;
-        if (string.IsNullOrWhiteSpace(state.MonsterType))
-            state.MonsterType = template.MonsterType;
-
         int groupId = entity.GroupId > 0 ? entity.GroupId : template.GroupId;
-        if (state.GroupId <= 0)
+        if (groupId > 0)
             state.GroupId = groupId;
+
+        if (!string.IsNullOrWhiteSpace(template.MonsterType))
+            state.MonsterType = template.MonsterType;
+        else if (string.IsNullOrWhiteSpace(state.MonsterType))
+            state.MonsterType = "Default";
 
         if (state.MaxHp <= 0)
             state.MaxHp = template.MaxHp;
@@ -424,9 +439,9 @@ public sealed partial class P2PContentDirector
         if (data == null)
             return;
 
-        string monsterType = string.IsNullOrWhiteSpace(data.AI)
-            ? ResolveMonsterType(data.MonsterId)
-            : data.AI;
+        string monsterType = ResolveSpawnPattern(data);
+        if (string.IsNullOrWhiteSpace(monsterType) || string.Equals(monsterType, "Default", StringComparison.OrdinalIgnoreCase))
+            monsterType = ResolveMonsterType(data.MonsterId, data.GroupId);
 
         int maxHp = ResolveMaxHp(data.MonsterId);
         int entityId = GenerateSpawnEntityId();
@@ -563,13 +578,18 @@ public sealed partial class P2PContentDirector
         state.LastKnownHp = maxHp;
         state.Rotation = 0f;
 
-        _templatesByAppearanceId[appearanceId] = new StageMonsterTemplate
+        var template = new StageMonsterTemplate
         {
             AppearanceId = appearanceId,
             MonsterType = state.MonsterType,
             GroupId = groupId,
             MaxHp = state.MaxHp
         };
+
+        if (groupId > 0)
+            _templatesByAppearanceAndGroup[BuildTemplateKey(appearanceId, groupId)] = template;
+
+        _templatesByAppearanceId[appearanceId] = template;
     }
 
     private const int AiBucketCount = 3;  // [최적화] AI 버킷 분산 — Beat마다 1/N 몬스터만 처리
@@ -1209,10 +1229,63 @@ public sealed partial class P2PContentDirector
         return 50;
     }
 
-    private string ResolveMonsterType(int appearanceId)
+    private string ResolveMonsterType(int appearanceId, int groupId = 0)
     {
-        if (_templatesByAppearanceId.TryGetValue(appearanceId, out var template) && !string.IsNullOrWhiteSpace(template.MonsterType))
+        if (TryResolveMonsterTemplate(appearanceId, groupId, out var template)
+            && !string.IsNullOrWhiteSpace(template.MonsterType))
+        {
             return template.MonsterType;
+        }
+
+        return "Default";
+    }
+
+    private bool TryResolveMonsterTemplate(int appearanceId, int groupId, out StageMonsterTemplate template)
+        => TryResolveMonsterTemplate(appearanceId, groupId, int.MinValue, int.MinValue, out template);
+
+    private bool TryResolveMonsterTemplate(int appearanceId, int groupId, int x, int y, out StageMonsterTemplate template)
+    {
+        if (appearanceId > 0 && groupId > 0 && x != int.MinValue && y != int.MinValue &&
+            _templatesBySpawnSignature.TryGetValue(BuildTemplateKey(appearanceId, groupId, x, y), out template))
+        {
+            return true;
+        }
+
+        if (appearanceId > 0 && groupId > 0 &&
+            _templatesByAppearanceAndGroup.TryGetValue(BuildTemplateKey(appearanceId, groupId), out template))
+        {
+            return true;
+        }
+
+        if (_templatesByAppearanceId.TryGetValue(appearanceId, out template) && !string.IsNullOrWhiteSpace(template.MonsterType))
+        {
+            return true;
+        }
+
+        template = default;
+        return false;
+    }
+
+    private static string BuildTemplateKey(int appearanceId, int groupId)
+        => $"{appearanceId}:{groupId}";
+
+    private static string BuildTemplateKey(int appearanceId, int groupId, int x, int y)
+        => $"{appearanceId}:{groupId}:{x}:{y}";
+
+    private static string ResolveSpawnPattern(SpawnData data)
+    {
+        if (data == null)
+            return "Default";
+
+        string pattern = data.ResolvePatternKey();
+        if (!string.IsNullOrWhiteSpace(pattern))
+            return pattern;
+
+        if (!string.IsNullOrWhiteSpace(data.AI))
+            return data.AI;
+
+        if (!string.IsNullOrWhiteSpace(data.Pattern))
+            return data.Pattern;
 
         return "Default";
     }

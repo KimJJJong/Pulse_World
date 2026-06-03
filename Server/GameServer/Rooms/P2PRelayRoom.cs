@@ -15,6 +15,7 @@ public sealed class P2PRelayRoom : RoomBase
 {
     private enum RoomPhase { Waiting, Running, Ended }
     private const string ServerGuardMode = "StartEndValidationOnly";
+    private const int PlayerStateInitTimeoutMs = 1500;
 
     public string RelayId { get; }
     public string MapId { get; private set; }
@@ -624,7 +625,6 @@ public sealed class P2PRelayRoom : RoomBase
         {
             try
             {
-                var states = new Dictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?>(StringComparer.OrdinalIgnoreCase);
                 List<RoomPlayer> playersSnapshot;
 
                 lock (_lock)
@@ -632,18 +632,9 @@ public sealed class P2PRelayRoom : RoomBase
                     playersSnapshot = _players.Values.ToList();
                 }
 
-                foreach (var player in playersSnapshot)
-                {
-                    try
-                    {
-                        states[player.Uid] = await ServerServices.ApiClient.GetPlayerStateAsync(player.Uid);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "[P2PRelayRoom] PlayerState load failed uid={Uid}", player.Uid);
-                        states[player.Uid] = null;
-                    }
-                }
+                var statesTask = LoadPlayerStatesAsync(playersSnapshot);
+                var stateLoad = await WaitForPlayerStatesForInitAsync(statesTask, PlayerStateInitTimeoutMs, playersSnapshot.Count);
+                var states = stateLoad.States;
 
                 var init = BuildInitPacketForPlayer(myActorId, states);
                 _logger.LogInformation(
@@ -660,28 +651,12 @@ public sealed class P2PRelayRoom : RoomBase
                 if (!s.IsConnected)
                     return;
 
-                if (states.TryGetValue(s.Uid, out var myState) && myState != null)
-                {
-                    var updateSkillsPkt = new SC_UpdateSkillSlots
-                    {
-                        NormalAttackSkillId = myState.NormalAttackSkillId ?? ""
-                    };
-
-                    if (myState.ActiveSkillSlots != null)
-                    {
-                        foreach (var skill in myState.ActiveSkillSlots)
-                        {
-                            updateSkillsPkt.activeSkillSlotss.Add(new SC_UpdateSkillSlots.ActiveSkillSlots
-                            {
-                                SkillId = skill ?? ""
-                            });
-                        }
-                    }
-
-                    s.Send(updateSkillsPkt.Write());
-                }
-
                 s.Send(init.Write());
+                SendSkillSlotsIfAvailable(s, states);
+
+                if (stateLoad.TimedOut)
+                    _ = SendLateSkillSlotsWhenReadyAsync(s, statesTask);
+
                 s.Send(new SC_GameBegin
                 {
                     matchId = RelayId,
@@ -721,6 +696,93 @@ public sealed class P2PRelayRoom : RoomBase
                 LogManager.Instance.LogError("P2PRelayRoom", $"Init send failed relayId={RelayId} actor={myActorId} err={ex}");
             }
         });
+    }
+
+    private async Task<Dictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?>> LoadPlayerStatesAsync(
+        IReadOnlyCollection<RoomPlayer> playersSnapshot)
+    {
+        var states = new Dictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var player in playersSnapshot)
+        {
+            try
+            {
+                states[player.Uid] = await ServerServices.ApiClient.GetPlayerStateAsync(player.Uid);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[P2PRelayRoom] PlayerState load failed uid={Uid}", player.Uid);
+                states[player.Uid] = null;
+            }
+        }
+
+        return states;
+    }
+
+    private async Task<(Dictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?> States, bool TimedOut)>
+        WaitForPlayerStatesForInitAsync(
+            Task<Dictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?>> statesTask,
+            int timeoutMs,
+            int playerCount)
+    {
+        var completed = await Task.WhenAny(statesTask, Task.Delay(Math.Max(1, timeoutMs)));
+        if (completed == statesTask)
+            return (await statesTask, false);
+
+        _logger.LogWarning(
+            "[P2PRelayRoom] PlayerState init load timed out relayId={RelayId} players={PlayerCount} timeoutMs={TimeoutMs}. Sending InitMap with defaults.",
+            RelayId,
+            playerCount,
+            timeoutMs);
+        LogManager.Instance.LogWarning(
+            "P2PRelayRoom",
+            $"PlayerState init load timed out relayId={RelayId} players={playerCount} timeoutMs={timeoutMs}. Sending InitMap with defaults.");
+
+        return (new Dictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?>(StringComparer.OrdinalIgnoreCase), true);
+    }
+
+    private void SendSkillSlotsIfAvailable(
+        ClientSession s,
+        IReadOnlyDictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?> states)
+    {
+        if (s == null || !s.IsConnected)
+            return;
+
+        if (!states.TryGetValue(s.Uid, out var myState) || myState == null)
+            return;
+
+        var updateSkillsPkt = new SC_UpdateSkillSlots
+        {
+            NormalAttackSkillId = myState.NormalAttackSkillId ?? ""
+        };
+
+        if (myState.ActiveSkillSlots != null)
+        {
+            foreach (var skill in myState.ActiveSkillSlots)
+            {
+                updateSkillsPkt.activeSkillSlotss.Add(new SC_UpdateSkillSlots.ActiveSkillSlots
+                {
+                    SkillId = skill ?? ""
+                });
+            }
+        }
+
+        s.Send(updateSkillsPkt.Write());
+    }
+
+    private async Task SendLateSkillSlotsWhenReadyAsync(
+        ClientSession s,
+        Task<Dictionary<string, GameServer.Infrastructure.Api.Dto.PlayerStateResponse?>> statesTask)
+    {
+        try
+        {
+            var states = await statesTask;
+            SendSkillSlotsIfAvailable(s, states);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[P2PRelayRoom] Late skill slot send failed relayId={RelayId} uid={Uid}", RelayId, s?.Uid ?? "");
+        }
     }
 
     private void BroadcastCurrentPlayerSpawns(
