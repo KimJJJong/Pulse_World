@@ -990,7 +990,9 @@ public sealed class P2PRelayRoom : RoomBase
 
     private static EntityType ResolveRelayStageObjectType(int entityType)
     {
-        if (Enum.IsDefined(typeof(EntityType), entityType))
+        if (entityType >= byte.MinValue
+            && entityType <= byte.MaxValue
+            && Enum.IsDefined(typeof(EntityType), (byte)entityType))
         {
             var resolved = (EntityType)entityType;
             if (resolved != EntityType.Player)

@@ -271,6 +271,18 @@ public sealed class TownRoomService
 
         if (string.Equals(room.OwnerUid, uid, StringComparison.OrdinalIgnoreCase))
         {
+            if (IsImplicitDisconnectReason(reason) && !string.IsNullOrWhiteSpace(room.ActiveGameRoomId))
+            {
+                _logger.LogInformation(
+                    "[TownRoomLifecycle] event=owner_leave_deferred reason=active_game_transition leaveReason={LeaveReason} room={RoomId} map={MapId} uid={Uid} activeGame={ActiveGameRoomId}",
+                    reason,
+                    roomId,
+                    room.MapId,
+                    uid,
+                    room.ActiveGameRoomId);
+                return true;
+            }
+
             await DeleteAsync(roomId, $"owner_leave:{reason}");
             return true;
         }
@@ -705,6 +717,13 @@ public sealed class TownRoomService
             removedMeta,
             removedMembers,
             removedManifest);
+    }
+
+    private static bool IsImplicitDisconnectReason(string reason)
+    {
+        return string.Equals(reason, "tcp_disconnect", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(reason, "server_disconnect", StringComparison.OrdinalIgnoreCase)
+            || reason.StartsWith("lease_invalid:", StringComparison.OrdinalIgnoreCase);
     }
 
     private static IEnumerable<TownRoomParticipantDto> OrderParticipants(TownRoomDto room)

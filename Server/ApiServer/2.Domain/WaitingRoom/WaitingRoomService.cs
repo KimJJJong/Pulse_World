@@ -325,6 +325,20 @@ public sealed class WaitingRoomService
         return true;
     }
 
+    public async Task<bool> SetStatusAsync(string roomId, string status)
+    {
+        var key = _redis.KeyWaitingRoom(roomId);
+        if (!await _redis.Db.KeyExistsAsync(key))
+            return false;
+
+        await _redis.Db.HashSetAsync(key, new HashEntry[]
+        {
+            new("status", string.IsNullOrWhiteSpace(status) ? "Open" : status.Trim()),
+            new("statusUpdatedAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
+        });
+        return true;
+    }
+
     public async Task<(bool exists, WaitingRoomDto? dto)> GetAsync(string roomId)
     {
         var key = _redis.KeyWaitingRoom(roomId);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GameServer.InGame.Director.Data;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEditor.SceneManagement;
@@ -481,13 +482,70 @@ namespace RhythmRPG.Editor.StageBuilder
                     break;
 
                 case ActionType.PlayVfx:
-                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("VfxKey"), new GUIContent("VFX Key"));
-                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("Position"), new GUIContent("Position"));
+                    SerializedProperty vfxKeyProp = actionProp.FindPropertyRelative("VfxKey");
+                    DrawVfxKeySelector(vfxKeyProp);
+
+                    StageVfxCatalog.TryGetDefinition(vfxKeyProp.stringValue, out var vfxDefinition);
+                    bool objectTargetVfx = vfxDefinition != null && vfxDefinition.TargetMode == StageVfxTargetMode.ObjectPulseColor;
+                    if (objectTargetVfx)
+                    {
+                        EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Target Object Group/ID"));
+                        EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GroupId"), new GUIContent("Second Object Group/ID"));
+                    }
+
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("Position"), new GUIContent(objectTargetVfx ? "Fallback Position" : "Position"));
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("DurationMs"), new GUIContent("Duration (ms)"));
+                    if (vfxDefinition != null && !string.IsNullOrWhiteSpace(vfxDefinition.Description))
+                        EditorGUILayout.HelpBox(vfxDefinition.Description, MessageType.None);
+                    else
+                        EditorGUILayout.HelpBox("Catalog에 없는 key는 기존 위치 기반 VFX 마커 fallback으로 처리됩니다.", MessageType.Info);
                     break;
             }
 
             EditorGUILayout.EndVertical();
+        }
+
+        private static void DrawVfxKeySelector(SerializedProperty vfxKeyProp)
+        {
+            string currentKey = vfxKeyProp.stringValue ?? string.Empty;
+            bool hasKnownDefinition = StageVfxCatalog.TryGetDefinition(currentKey, out var currentDefinition);
+            if (hasKnownDefinition && !string.Equals(currentKey, currentDefinition.Key, StringComparison.Ordinal))
+            {
+                currentKey = currentDefinition.Key;
+                vfxKeyProp.stringValue = currentKey;
+            }
+
+            var definitions = StageVfxCatalog.All;
+            int extraOptionCount = hasKnownDefinition ? 0 : 1;
+            var labels = new GUIContent[definitions.Count + extraOptionCount];
+            var values = new string[labels.Length];
+            int selectedIndex = 0;
+            int writeIndex = 0;
+
+            if (!hasKnownDefinition)
+            {
+                labels[0] = new GUIContent(string.IsNullOrWhiteSpace(currentKey) ? "None" : $"Custom: {currentKey}");
+                values[0] = currentKey;
+                writeIndex = 1;
+            }
+
+            for (int i = 0; i < definitions.Count; i++)
+            {
+                var definition = definitions[i];
+                int optionIndex = writeIndex + i;
+                labels[optionIndex] = new GUIContent($"{definition.DisplayName} ({definition.Key})");
+                values[optionIndex] = definition.Key;
+
+                if (hasKnownDefinition && string.Equals(definition.Key, currentDefinition.Key, StringComparison.Ordinal))
+                    selectedIndex = optionIndex;
+            }
+
+            int nextIndex = EditorGUILayout.Popup(new GUIContent("VFX Key"), selectedIndex, labels);
+            if (nextIndex >= 0 && nextIndex < values.Length && !string.Equals(vfxKeyProp.stringValue, values[nextIndex], StringComparison.Ordinal))
+                vfxKeyProp.stringValue = values[nextIndex];
+
+            if (!hasKnownDefinition && !string.IsNullOrWhiteSpace(currentKey))
+                EditorGUILayout.PropertyField(vfxKeyProp, new GUIContent("Custom VFX Key"));
         }
 
         private static void DrawSectionHeader(string title, string description, Color accent)
@@ -933,7 +991,7 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 case ActionQuickTemplate.PlayVfx:
                     actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.PlayVfx;
-                    actionProp.FindPropertyRelative("VfxKey").stringValue = "CrystalPulse";
+                    actionProp.FindPropertyRelative("VfxKey").stringValue = StageVfxKeys.MarkerCyan;
                     actionProp.FindPropertyRelative("DurationMs").intValue = 1200;
                     break;
 
@@ -1100,7 +1158,15 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 case ActionType.PlayVfx:
                     string vfxKey = actionProp.FindPropertyRelative("VfxKey").stringValue;
-                    return string.IsNullOrWhiteSpace(vfxKey) ? "VFX 재생" : $"VFX: {vfxKey}";
+                    int targetId = actionProp.FindPropertyRelative("ParamId").intValue;
+                    int secondTargetId = actionProp.FindPropertyRelative("GroupId").intValue;
+                    string targetLabel = targetId > 0
+                        ? secondTargetId > 0 ? $" -> {targetId}, {secondTargetId}" : $" -> {targetId}"
+                        : string.Empty;
+                    string vfxLabel = StageVfxCatalog.TryGetDefinition(vfxKey, out var vfxDefinition)
+                        ? vfxDefinition.DisplayName
+                        : vfxKey;
+                    return string.IsNullOrWhiteSpace(vfxLabel) ? "VFX 재생" : $"VFX: {vfxLabel}{targetLabel}";
             }
 
             return type.ToString();

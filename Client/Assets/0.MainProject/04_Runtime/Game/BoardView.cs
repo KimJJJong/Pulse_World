@@ -1086,11 +1086,14 @@ public class BoardView : MonoBehaviour, IClientWorldView
             }
         }
 
-        visual.transform.position = GridToWorld(info.X, info.Y);
+        visual.transform.position = ResolveEntityWorldPosition(info, visual.transform);
     }
 
     public bool HasEntityView(int entityId)
         => _entityViews.TryGetValue(entityId, out var visual) && visual != null;
+
+    public bool TryGetEntityView(int entityId, out EntityVisual visual)
+        => _entityViews.TryGetValue(entityId, out visual) && visual != null;
 
     public void OnDespawnEntity(int entityId)
     {
@@ -1548,6 +1551,63 @@ public class BoardView : MonoBehaviour, IClientWorldView
         float targetX = x * cellSize;
         float targetZ = y * cellSize;
         return new Vector3(targetX, GetGroundHeight(targetX, targetZ), targetZ);
+    }
+
+    private Vector3 ResolveEntityWorldPosition(ClientEntityInfo info, Transform visualTransform)
+    {
+        Vector3 position = GridToWorld(info.X, info.Y);
+
+        if (info.EntityType != (int)EntityType.Object || visualTransform == null)
+            return position;
+
+        visualTransform.position = position;
+        if (TryGetObjectGroundingBounds(visualTransform, out Bounds bounds))
+        {
+            float yCorrection = position.y - bounds.min.y;
+            if (Mathf.Abs(yCorrection) > 0.0001f)
+                position.y += yCorrection;
+        }
+
+        return position;
+    }
+
+    private static bool TryGetObjectGroundingBounds(Transform root, out Bounds bounds)
+    {
+        bounds = default;
+        if (root == null)
+            return false;
+
+        bool hasBounds = false;
+        var renderers = root.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            var renderer = renderers[i];
+            if (renderer == null || !renderer.enabled || ShouldIgnoreForObjectGrounding(renderer))
+                continue;
+
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        return hasBounds;
+    }
+
+    private static bool ShouldIgnoreForObjectGrounding(Renderer renderer)
+    {
+        if (renderer is ParticleSystemRenderer || renderer is TrailRenderer || renderer is LineRenderer)
+            return true;
+
+        string objectName = renderer.gameObject.name;
+        return objectName.StartsWith("FX_", System.StringComparison.OrdinalIgnoreCase)
+               || objectName.IndexOf("Glow", System.StringComparison.OrdinalIgnoreCase) >= 0
+               || objectName.IndexOf("EmissionShell", System.StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private float GetGroundHeight(float x, float z)

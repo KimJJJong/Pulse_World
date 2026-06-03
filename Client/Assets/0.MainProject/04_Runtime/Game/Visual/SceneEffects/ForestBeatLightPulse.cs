@@ -121,6 +121,28 @@ namespace RhythmRPG.Game.Visual.SceneEffects
             fallbackBpm = Mathf.Max(1f, bpm);
         }
 
+        public void SetPulseColor(Color color)
+        {
+            emissionColor = color;
+
+            foreach (var light in Compact(targetLights))
+            {
+                if (light != null)
+                    light.color = color;
+            }
+
+            foreach (var particleTarget in Compact(targetParticles))
+            {
+                if (particleTarget == null)
+                    continue;
+
+                var main = particleTarget.main;
+                main.startColor = color;
+            }
+
+            RebuildCaches();
+        }
+
         private void Reset()
         {
             _noiseSeed = UnityEngine.Random.value * 100f;
@@ -368,14 +390,14 @@ namespace RhythmRPG.Game.Visual.SceneEffects
             private readonly bool _hasGlowColor;
             private readonly bool _hasGlowIntensity;
             private readonly bool _hasGlowAlpha;
-            private readonly Color _baseEmissionColor;
+            private float _baseEmissionIntensity = 2f;
             private readonly float _baseGlowIntensity = 1f;
             private readonly float _baseGlowAlpha = 1f;
 
             public RendererState(Renderer renderer, Color fallbackColor)
             {
                 _renderer = renderer;
-                _baseEmissionColor = fallbackColor;
+                _baseEmissionIntensity = Mathf.Max(1f, fallbackColor.maxColorComponent * 2f);
 
                 var materials = renderer != null ? renderer.sharedMaterials : null;
                 if (materials == null)
@@ -394,7 +416,9 @@ namespace RhythmRPG.Game.Visual.SceneEffects
                     {
                         _hasEmissionColor = true;
                         var materialEmission = material.GetColor(EmissionColorId);
-                        _baseEmissionColor = materialEmission.maxColorComponent > 0.001f ? materialEmission : Hdr(fallbackColor, 2f);
+                        _baseEmissionIntensity = materialEmission.maxColorComponent > 0.001f
+                            ? Mathf.Max(1f, materialEmission.maxColorComponent)
+                            : Mathf.Max(1f, Hdr(fallbackColor, 2f).maxColorComponent);
                     }
 
                     if (!_hasGlowColor && material.HasProperty(GlowColorId))
@@ -427,8 +451,8 @@ namespace RhythmRPG.Game.Visual.SceneEffects
 
                 if (_hasEmissionColor)
                 {
-                    var emission = _baseEmissionColor * emissionScale;
-                    emission.a = _baseEmissionColor.a;
+                    var emission = tint * _baseEmissionIntensity * emissionScale;
+                    emission.a = tint.a;
                     _block.SetColor(EmissionColorId, emission);
                 }
 

@@ -1,5 +1,6 @@
 using System.Collections;
 using GameServer.InGame.Director.Data;
+using RhythmRPG.Game.Visual.SceneEffects;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -221,6 +222,9 @@ public sealed class StageGuideHud : MonoBehaviour
 
     private void PlayVfxInternal(StageVfxData data)
     {
+        if (TryApplySceneObjectVfx(data))
+            return;
+
         int mapY = data.Z != 0 ? data.Z : data.Y;
         Vector3 position = BoardView.Instance != null
             ? BoardView.Instance.GridToWorldPublic(data.X, mapY) + Vector3.up * 0.7f
@@ -240,5 +244,97 @@ public sealed class StageGuideHud : MonoBehaviour
             renderer.material.color = new Color(0.25f, 0.95f, 1f, 0.85f);
 
         Destroy(marker, data.DurationMs > 0 ? data.DurationMs / 1000f : 1.2f);
+    }
+
+    private static bool TryApplySceneObjectVfx(StageVfxData data)
+    {
+        if (!StageVfxCatalog.TryGetDefinition(data.VfxKey, out var definition)
+            || definition.TargetMode != StageVfxTargetMode.ObjectPulseColor
+            || !TryResolvePulseColor(definition.Key, out Color color))
+            return false;
+
+        bool applied = false;
+        applied |= ApplyPulseToTarget(data.TargetId, color);
+        applied |= ApplyPulseToTarget(data.SecondaryTargetId, color);
+
+        if (!applied)
+        {
+            int mapY = data.Z != 0 ? data.Z : data.Y;
+            applied |= ApplyPulseAtPosition(data.X, mapY, color);
+        }
+
+        return applied;
+    }
+
+    private static bool TryResolvePulseColor(string vfxKey, out Color color)
+    {
+        switch (vfxKey)
+        {
+            case StageVfxKeys.CrystalPulseRed:
+                color = new Color(1f, 0.12f, 0.08f, 1f);
+                return true;
+
+            case StageVfxKeys.CrystalPulseBlue:
+                color = new Color(0.196f, 0.784f, 1f, 1f);
+                return true;
+
+            default:
+                color = default;
+                return false;
+        }
+    }
+
+    private static bool ApplyPulseToTarget(int targetId, Color color)
+    {
+        if (targetId <= 0 || ClientGameState.Instance == null)
+            return false;
+
+        bool applied = false;
+        foreach (var entity in ClientGameState.Instance.EnumerateEntities())
+        {
+            if (entity.EntityType != (int)EntityType.Object)
+                continue;
+
+            if (entity.GroupId == targetId || entity.EntityId == targetId)
+                applied |= ApplyPulseToEntity(entity.EntityId, color);
+        }
+
+        return applied;
+    }
+
+    private static bool ApplyPulseAtPosition(int x, int y, Color color)
+    {
+        if (ClientGameState.Instance == null)
+            return false;
+
+        bool applied = false;
+        foreach (var entity in ClientGameState.Instance.EnumerateEntities())
+        {
+            if (entity.EntityType != (int)EntityType.Object)
+                continue;
+
+            if (entity.X == x && entity.Y == y)
+                applied |= ApplyPulseToEntity(entity.EntityId, color);
+        }
+
+        return applied;
+    }
+
+    private static bool ApplyPulseToEntity(int entityId, Color color)
+    {
+        if (BoardView.Instance == null || !BoardView.Instance.TryGetEntityView(entityId, out var visual) || visual == null)
+            return false;
+
+        bool applied = false;
+        foreach (var pulse in visual.GetComponentsInChildren<ForestBeatLightPulse>(true))
+        {
+            if (pulse == null)
+                continue;
+
+            pulse.SetPulseColor(color);
+            applied = true;
+        }
+
+        return applied;
     }
 }

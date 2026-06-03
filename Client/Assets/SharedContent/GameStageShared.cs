@@ -126,6 +126,113 @@ namespace GameServer.InGame.Director.Data
         public int Y;
         public int Z;
         public int DurationMs;
+        public int TargetId;
+        public int SecondaryTargetId;
+    }
+
+    public enum StageVfxTargetMode
+    {
+        PositionMarker,
+        ObjectPulseColor
+    }
+
+    public sealed class StageVfxDefinition
+    {
+        public StageVfxDefinition(string key, string displayName, StageVfxTargetMode targetMode, string description)
+        {
+            Key = key ?? string.Empty;
+            DisplayName = displayName ?? Key;
+            TargetMode = targetMode;
+            Description = description ?? string.Empty;
+        }
+
+        public string Key { get; }
+        public string DisplayName { get; }
+        public StageVfxTargetMode TargetMode { get; }
+        public string Description { get; }
+    }
+
+    public static class StageVfxKeys
+    {
+        public const string MarkerCyan = "MarkerCyan";
+        public const string CrystalPulseRed = "CrystalPulseRed";
+        public const string CrystalPulseBlue = "CrystalPulseBlue";
+    }
+
+    public static class StageVfxCatalog
+    {
+        private static readonly StageVfxDefinition[] Definitions =
+        {
+            new StageVfxDefinition(
+                StageVfxKeys.MarkerCyan,
+                "Marker Cyan",
+                StageVfxTargetMode.PositionMarker,
+                "Position 위치에 기존 cyan VFX 마커를 표시합니다."),
+            new StageVfxDefinition(
+                StageVfxKeys.CrystalPulseRed,
+                "Crystal Pulse Red",
+                StageVfxTargetMode.ObjectPulseColor,
+                "Target Object Group/ID의 크리스탈 pulse 색을 붉은색으로 변경합니다."),
+            new StageVfxDefinition(
+                StageVfxKeys.CrystalPulseBlue,
+                "Crystal Pulse Blue",
+                StageVfxTargetMode.ObjectPulseColor,
+                "Target Object Group/ID의 크리스탈 pulse 색을 푸른색으로 변경합니다.")
+        };
+
+        private static readonly Dictionary<string, StageVfxDefinition> Lookup = BuildLookup();
+
+        public static IReadOnlyList<StageVfxDefinition> All => Definitions;
+
+        public static bool TryGetDefinition(string key, out StageVfxDefinition definition)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                definition = null;
+                return false;
+            }
+
+            return Lookup.TryGetValue(NormalizeKey(key), out definition);
+        }
+
+        public static string NormalizeKey(string key)
+            => string.IsNullOrWhiteSpace(key)
+                ? string.Empty
+                : key.Replace("_", string.Empty).Replace("-", string.Empty).Trim().ToLowerInvariant();
+
+        private static Dictionary<string, StageVfxDefinition> BuildLookup()
+        {
+            var lookup = new Dictionary<string, StageVfxDefinition>(StringComparer.Ordinal);
+            foreach (var definition in Definitions)
+                lookup[NormalizeKey(definition.Key)] = definition;
+
+            RegisterAlias(lookup, StageVfxKeys.CrystalPulseBlue, "CrystalPulse");
+            RegisterAlias(lookup, StageVfxKeys.CrystalPulseBlue, "CrystalPulseCyan");
+            RegisterAlias(lookup, StageVfxKeys.CrystalPulseRed, "CrystalRedPulse");
+            RegisterAlias(lookup, StageVfxKeys.CrystalPulseRed, "RedCrystalPulse");
+            return lookup;
+        }
+
+        private static void RegisterAlias(Dictionary<string, StageVfxDefinition> lookup, string canonicalKey, string alias)
+        {
+            if (TryFindCanonical(canonicalKey, out var definition))
+                lookup[NormalizeKey(alias)] = definition;
+        }
+
+        private static bool TryFindCanonical(string canonicalKey, out StageVfxDefinition definition)
+        {
+            foreach (var item in Definitions)
+            {
+                if (string.Equals(item.Key, canonicalKey, StringComparison.Ordinal))
+                {
+                    definition = item;
+                    return true;
+                }
+            }
+
+            definition = null;
+            return false;
+        }
     }
 
     public static class StageSignalCodec
@@ -155,7 +262,9 @@ namespace GameServer.InGame.Director.Data
                 data.X,
                 data.Y,
                 data.Z,
-                Math.Max(0, data.DurationMs));
+                Math.Max(0, data.DurationMs),
+                data.TargetId,
+                data.SecondaryTargetId);
         }
 
         public static bool TryDecodeGuide(string payload, out StageGuideData data)
@@ -194,7 +303,9 @@ namespace GameServer.InGame.Director.Data
                 X = int.TryParse(parts[2], out int x) ? x : 0,
                 Y = int.TryParse(parts[3], out int y) ? y : 0,
                 Z = int.TryParse(parts[4], out int z) ? z : 0,
-                DurationMs = int.TryParse(parts[5], out int durationMs) ? durationMs : 0
+                DurationMs = int.TryParse(parts[5], out int durationMs) ? durationMs : 0,
+                TargetId = parts.Length > 6 && int.TryParse(parts[6], out int targetId) ? targetId : 0,
+                SecondaryTargetId = parts.Length > 7 && int.TryParse(parts[7], out int secondaryTargetId) ? secondaryTargetId : 0
             };
             return true;
         }
@@ -615,7 +726,9 @@ namespace GameServer.InGame.Director.Core
                     X = _data.X,
                     Y = _data.Y,
                     Z = _data.Z,
-                    DurationMs = _data.DurationMs
+                    DurationMs = _data.DurationMs,
+                    TargetId = _data.ParamId,
+                    SecondaryTargetId = _data.GroupId
                 });
             }
         }

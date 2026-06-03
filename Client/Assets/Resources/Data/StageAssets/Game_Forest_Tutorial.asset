@@ -102,14 +102,14 @@ MonoBehaviour:
         width: 1
         height: 1
     Actions:
-    - Type: 3
+    - Type: 7
       HeaderParam: 
-      ParamId: 0
+      ParamId: 5
       Position: {x: 0, y: 0, z: 0}
       StringVal: 
-      GroupId: 0
+      GroupId: 6
       GuideTitle: 
       GuideBody: 
       GuideImageResource: 
       DurationMs: 1200
-      VfxKey: CrystalPulse
+      VfxKey: CrystalPulseRed

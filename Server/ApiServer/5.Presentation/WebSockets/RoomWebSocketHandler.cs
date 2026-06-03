@@ -429,6 +429,7 @@ public sealed class RoomWebSocketHandler
                         room.UseP2PRelay ? "steam_p2p_host" : "gameserver",
                         protocolVersion,
                         CancellationToken.None);
+                    await _waitingRoom.SetStatusAsync(roomId, "Starting");
 
                     // 4. Issue Tickets & Broadcast
                     // (Ideally, CP should support BulkIssue, but for now loop)
@@ -487,10 +488,22 @@ public sealed class RoomWebSocketHandler
                     }
 
                     if (gameStartSent)
-                        await ClearTownActiveGameRoomIfOwnerAsync(room, uid, "game_start");
+                    {
+                        await _waitingRoom.SetStatusAsync(roomId, "Started");
+                        _logger.LogInformation(
+                            "[WaitingRoom] Town active game retained reason=game_start room={RoomId} townRoom={TownRoomId} owner={OwnerUid}",
+                            roomId,
+                            room.SourceTownRoomId,
+                            room.OwnerUid);
+                    }
+                    else
+                    {
+                        await _waitingRoom.SetStatusAsync(roomId, "Open");
+                    }
                 }
                 catch (Exception ex)
                 {
+                    await _waitingRoom.SetStatusAsync(roomId, "Open");
                     await _conns.SendToAsync(roomId, uid, new { type = "Error", message = ex.Message });
                 }
             }
@@ -559,6 +572,18 @@ public sealed class RoomWebSocketHandler
             return;
         }
 
+        if (IsGameTransitionStatus(room.Status))
+        {
+            _logger.LogInformation(
+                "[WaitingRoom] Town active game clear skipped reason=game_transition status={Status} cleanupReason={Reason} townRoom={TownRoomId} gameRoom={GameRoomId} owner={OwnerUid}",
+                room.Status,
+                reason,
+                room.SourceTownRoomId,
+                room.RoomId,
+                room.OwnerUid);
+            return;
+        }
+
         var result = await _townRooms.ClearActiveGameRoomIfMatchesAsync(room.SourceTownRoomId, room.OwnerUid, room.RoomId);
         if (result.ok)
         {
@@ -578,6 +603,12 @@ public sealed class RoomWebSocketHandler
             room.RoomId,
             room.OwnerUid,
             result.error);
+    }
+
+    private static bool IsGameTransitionStatus(string? status)
+    {
+        return string.Equals(status, "Starting", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(status, "Started", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task CloseAsync(WebSocket ws, string reason)

@@ -1,0 +1,84 @@
+2026-06-03 15:46:26.685 +09:00 [WRN] WS Join Failed: Room=c25d6fd3, Uid=u_d138432c63134ebb8eadb3a205536100, Err=RoomNotFound
+2026-06-03 15:52:57.353 +09:00 [WRN] WS Join Failed: Room=0f27fd2a, Uid=u_d138432c63134ebb8eadb3a205536100, Err=RoomNotFound
+2026-06-03 15:54:37.596 +09:00 [ERR] WS Error
+System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.
+ ---> Microsoft.AspNetCore.Connections.ConnectionResetException: 현재 연결은 원격 호스트에 의해 강제로 끊겼습니다.
+ ---> System.Net.Sockets.SocketException (10054): 현재 연결은 원격 호스트에 의해 강제로 끊겼습니다.
+   --- End of inner exception stack trace ---
+   at System.IO.Pipelines.Pipe.GetReadAsyncResult()
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http.Http1UpgradeMessageBody.ReadAsyncInternalAwaited(ValueTask`1 readTask, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http.HttpRequestStream.ReadAsyncInternal(Memory`1 destination, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.IO.Stream.ReadAtLeastAsyncCore(Memory`1 buffer, Int32 minimumBytes, Boolean throwOnEndOfStream, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.EnsureBufferContainsAsync(Int32 minimumRequiredBytes, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)
+   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.CloseAsyncPrivate(WebSocketCloseStatus closeStatus, String statusDescription, CancellationToken cancellationToken)
+   at ApiServer.Presentation.WebSockets.RoomWebSocketHandler.CloseAsync(WebSocket ws, String reason) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\5.Presentation\WebSockets\RoomWebSocketHandler.cs:line 617
+   at ApiServer.Presentation.WebSockets.RoomWebSocketHandler.HandleAsync(HttpContext context) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\5.Presentation\WebSockets\RoomWebSocketHandler.cs:line 68
+2026-06-03 15:54:37.600 +09:00 [ERR] WS Error
+System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.
+ ---> Microsoft.AspNetCore.Connections.ConnectionResetException: 현재 연결은 원격 호스트에 의해 강제로 끊겼습니다.
+ ---> System.Net.Sockets.SocketException (10054): 현재 연결은 원격 호스트에 의해 강제로 끊겼습니다.
+   --- End of inner exception stack trace ---
+   at System.IO.Pipelines.Pipe.GetReadAsyncResult()
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http.Http1UpgradeMessageBody.ReadAsyncInternalAwaited(ValueTask`1 readTask, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http.HttpRequestStream.ReadAsyncInternal(Memory`1 destination, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.IO.Stream.ReadAtLeastAsyncCore(Memory`1 buffer, Int32 minimumBytes, Boolean throwOnEndOfStream, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.EnsureBufferContainsAsync(Int32 minimumRequiredBytes, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)
+   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.CloseAsyncPrivate(WebSocketCloseStatus closeStatus, String statusDescription, CancellationToken cancellationToken)
+   at ApiServer.Presentation.WebSockets.RoomWebSocketHandler.CloseAsync(WebSocket ws, String reason) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\5.Presentation\WebSockets\RoomWebSocketHandler.cs:line 617
+   at ApiServer.Presentation.WebSockets.RoomWebSocketHandler.HandleAsync(HttpContext context) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\5.Presentation\WebSockets\RoomWebSocketHandler.cs:line 68
+2026-06-03 16:13:22.832 +09:00 [WRN] WS Join Failed: Room=ec42344b, Uid=u_d138432c63134ebb8eadb3a205536100, Err=RoomNotFound
+2026-06-03 16:29:24.952 +09:00 [ERR] WS Error
+System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.
+ ---> Microsoft.AspNetCore.Connections.ConnectionResetException: 현재 연결은 원격 호스트에 의해 강제로 끊겼습니다.
+ ---> System.Net.Sockets.SocketException (10054): 현재 연결은 원격 호스트에 의해 강제로 끊겼습니다.
+   --- End of inner exception stack trace ---
+   at System.IO.Pipelines.Pipe.GetReadAsyncResult()
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http.Http1UpgradeMessageBody.ReadAsyncInternalAwaited(ValueTask`1 readTask, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http.HttpRequestStream.ReadAsyncInternal(Memory`1 destination, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.IO.Stream.ReadAtLeastAsyncCore(Memory`1 buffer, Int32 minimumBytes, Boolean throwOnEndOfStream, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.EnsureBufferContainsAsync(Int32 minimumRequiredBytes, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)
+   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.CloseAsyncPrivate(WebSocketCloseStatus closeStatus, String statusDescription, CancellationToken cancellationToken)
+   at ApiServer.Presentation.WebSockets.RoomWebSocketHandler.CloseAsync(WebSocket ws, String reason) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\5.Presentation\WebSockets\RoomWebSocketHandler.cs:line 617
+   at ApiServer.Presentation.WebSockets.RoomWebSocketHandler.HandleAsync(HttpContext context) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\5.Presentation\WebSockets\RoomWebSocketHandler.cs:line 68
+2026-06-03 16:42:18.068 +09:00 [WRN] WS Join Failed: Room=82731bc7, Uid=u_d138432c63134ebb8eadb3a205536100, Err=RoomNotFound
+2026-06-03 16:43:11.985 +09:00 [ERR] WS Error
+System.Net.WebSockets.WebSocketException (0x80004005): The remote party closed the WebSocket connection without completing the close handshake.
+ ---> Microsoft.AspNetCore.Connections.ConnectionResetException: 현재 연결은 원격 호스트에 의해 강제로 끊겼습니다.
+ ---> System.Net.Sockets.SocketException (10054): 현재 연결은 원격 호스트에 의해 강제로 끊겼습니다.
+   --- End of inner exception stack trace ---
+   at System.IO.Pipelines.Pipe.GetReadAsyncResult()
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http.Http1UpgradeMessageBody.ReadAsyncInternalAwaited(ValueTask`1 readTask, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http.HttpRequestStream.ReadAsyncInternal(Memory`1 destination, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.IO.Stream.ReadAtLeastAsyncCore(Memory`1 buffer, Int32 minimumBytes, Boolean throwOnEndOfStream, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.EnsureBufferContainsAsync(Int32 minimumRequiredBytes, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)
+   at System.Net.WebSockets.ManagedWebSocket.ReceiveAsyncPrivate[TResult](Memory`1 payloadBuffer, CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at System.Net.WebSockets.ManagedWebSocket.CloseAsyncPrivate(WebSocketCloseStatus closeStatus, String statusDescription, CancellationToken cancellationToken)
+   at ApiServer.Presentation.WebSockets.RoomWebSocketHandler.CloseAsync(WebSocket ws, String reason) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\5.Presentation\WebSockets\RoomWebSocketHandler.cs:line 617
+   at ApiServer.Presentation.WebSockets.RoomWebSocketHandler.HandleAsync(HttpContext context) in D:\Git\Server\RhythmRPG\RhythmRPG\Server\ApiServer\5.Presentation\WebSockets\RoomWebSocketHandler.cs:line 68
