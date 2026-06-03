@@ -29,9 +29,7 @@ public class EntityVisual : MonoBehaviour
 
     public void SetRotation(float yAngle)
     {
-        var e = transform.eulerAngles;
-        e.y = yAngle;
-        transform.eulerAngles = e;
+        transform.rotation = Quaternion.Euler(0f, yAngle, 0f);
     }
 
     // -------------------------------------------------------------------------

@@ -1360,15 +1360,25 @@ public sealed partial class P2PContentDirector
         if (dx == 0 && dy == 0)
             return current;
 
+        const float gameplayYawOffset = 90f;
+        float yaw;
         if (dy > 0)
-            return 0f;
-        if (dy < 0)
-            return 180f;
-        if (dx > 0)
-            return 90f;
-        if (dx < 0)
-            return 270f;
+            yaw = 0f;
+        else if (dy < 0)
+            yaw = 180f;
+        else if (dx > 0)
+            yaw = 90f;
+        else if (dx < 0)
+            yaw = 270f;
+        else
+            yaw = current;
 
-        return current;
+        return NormalizeYaw(yaw + gameplayYawOffset);
+    }
+
+    private static float NormalizeYaw(float yaw)
+    {
+        yaw %= 360f;
+        return yaw < 0f ? yaw + 360f : yaw;
     }
 }

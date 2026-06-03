@@ -1452,11 +1452,25 @@ namespace RhythmRPG.Editor.StageBuilder
         {
             GameObject root = FindPreviewRoot();
             if (root != null)
+            {
+                EnsurePreviewRuntimeVisibility(root);
                 return root;
+            }
 
             root = new GameObject(GetPreviewRootName());
             root.hideFlags = HideFlags.DontSaveInBuild;
+            EnsurePreviewRuntimeVisibility(root);
             return root;
+        }
+
+        private static void EnsurePreviewRuntimeVisibility(GameObject root)
+        {
+            if (root == null)
+                return;
+
+            root.hideFlags = HideFlags.DontSaveInBuild;
+            if (root.GetComponent<StagePreviewPlayModeVisibility>() == null)
+                root.AddComponent<StagePreviewPlayModeVisibility>();
         }
 
         private GameObject FindPreviewRoot()
@@ -1528,7 +1542,7 @@ namespace RhythmRPG.Editor.StageBuilder
                     continue;
 
                 list[i].Position = RoundVector(child.position);
-                list[i].EulerAngles = RoundVector(child.eulerAngles);
+                list[i].EulerAngles = RoundRuntimeEuler(child.eulerAngles);
                 list[i].Scale = child.localScale == Vector3.zero ? Vector3.one : child.localScale;
             }
         }
@@ -1562,9 +1576,15 @@ namespace RhythmRPG.Editor.StageBuilder
         private void ApplyPlacementTransform(Transform target, SpawnInfoSO item)
         {
             target.position = item.Position;
-            target.rotation = Quaternion.Euler(item.EulerAngles);
+            target.rotation = Quaternion.Euler(ToRuntimeEuler(item.EulerAngles));
             target.localScale = item.Scale == Vector3.zero ? Vector3.one : item.Scale;
         }
+
+        private static Vector3 ToRuntimeEuler(Vector3 eulerAngles)
+            => new Vector3(0f, eulerAngles.y, 0f);
+
+        private static Vector3 RoundRuntimeEuler(Vector3 eulerAngles)
+            => RoundVector(ToRuntimeEuler(eulerAngles));
 
         private GameObject ResolvePreviewPrefab(SpawnInfoSO item)
         {
