@@ -70,6 +70,7 @@
 			<int name="Dir"/>
 			<int name="Hp"/>
 			<int name="AppearanceId"/>
+			<float name="Rotation"/>
 		</list>
 
 		<!-- Game(리듬) 전용 초기 파라미터 (선택: 지금 너 구조랑 잘 맞음) -->

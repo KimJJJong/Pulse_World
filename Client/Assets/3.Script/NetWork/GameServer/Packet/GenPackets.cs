@@ -399,6 +399,7 @@ public class SC_InitMap : IPacket
 		public int Dir;
 		public int Hp;
 		public int AppearanceId;
+		public float Rotation;
 	
 		public void Read(ReadOnlySpan<byte> s, ref ushort count)
 		{
@@ -418,6 +419,8 @@ public class SC_InitMap : IPacket
 			count += sizeof(int);
 			this.AppearanceId = BitConverter.ToInt32(s.Slice(count, s.Length - count));
 			count += sizeof(int);
+			this.Rotation = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+			count += sizeof(float);
 		}
 	
 		public bool Write(Span<byte> s, ref ushort count)
@@ -441,6 +444,8 @@ public class SC_InitMap : IPacket
 			count += sizeof(int);
 			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.AppearanceId);
 			count += sizeof(int);
+			success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.Rotation);
+			count += sizeof(float);
 			return success;
 		}	
 	}

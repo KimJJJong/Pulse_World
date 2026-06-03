@@ -17,7 +17,7 @@
             "AI": "Enemy_Traning_Dummy",
             "Pattern": "Enemy_Traning_Dummy",
             "GroupId": 10,
-            "Rotation": 0.0
+            "Rotation": 90.0
         },
         {
             "MonsterId": 999,
@@ -37,7 +37,7 @@
             "AI": "Enemy_Traning_Dummy",
             "Pattern": "Enemy_Traning_Dummy",
             "GroupId": 10,
-            "Rotation": 0.0
+            "Rotation": 90.0
         },
         {
             "MonsterId": 999,
@@ -47,7 +47,7 @@
             "AI": "Enemy_Traning_Dummy",
             "Pattern": "Enemy_Traning_Dummy",
             "GroupId": 10,
-            "Rotation": 0.0
+            "Rotation": 90.0
         }
     ],
     "InitialObjects": [

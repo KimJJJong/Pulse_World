@@ -954,7 +954,8 @@ public sealed class P2PRelayRoom : RoomBase
                     Y = ResolveMapY(spawn.Y, spawn.Z),
                     Dir = 0,
                     Hp = entityData?.MaxHp > 0 ? entityData.MaxHp : 50,
-                    AppearanceId = spawn.MonsterId
+                    AppearanceId = spawn.MonsterId,
+                    Rotation = spawn.Rotation
                 });
             }
 
@@ -970,7 +971,8 @@ public sealed class P2PRelayRoom : RoomBase
                     Y = ResolveMapY(obj.Y, obj.Z),
                     Dir = 0,
                     Hp = 1,
-                    AppearanceId = obj.EntityId
+                    AppearanceId = obj.EntityId,
+                    Rotation = obj.Rotation
                 });
             }
         }

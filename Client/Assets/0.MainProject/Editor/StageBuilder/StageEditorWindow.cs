@@ -17,6 +17,7 @@ namespace RhythmRPG.Editor.StageBuilder
         private Vector2 _scrollPos;
         private readonly BoxBoundsHandle _boundsHandle = new BoxBoundsHandle();
         private bool _autoSyncPreview = true;
+        private bool _autoExportJson = true;
         private bool _showSceneLabels = true;
         private bool _showEventLinks = true;
 
@@ -66,8 +67,7 @@ namespace RhythmRPG.Editor.StageBuilder
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Export JSON", GUILayout.Height(30)))
             {
-                StageExporter.Export(_currentStage);
-                EditorUtility.DisplayDialog("Export Success", $"Exported {_currentStage.MapId}.json", "OK");
+                ExportCurrentStageJson(showDialog: true);
             }
 
             if (GUILayout.Button("Ping File", GUILayout.Width(100), GUILayout.Height(30)))
@@ -80,7 +80,8 @@ namespace RhythmRPG.Editor.StageBuilder
                 SerializedObject normalizeSo = new SerializedObject(_currentStage);
                 normalizeSo.Update();
                 NormalizeEventIds(normalizeSo.FindProperty("Events"));
-                normalizeSo.ApplyModifiedProperties();
+                if (normalizeSo.ApplyModifiedProperties())
+                    ExportCurrentStageJson(showDialog: false);
             }
             EditorGUILayout.EndHorizontal();
 
@@ -100,9 +101,30 @@ namespace RhythmRPG.Editor.StageBuilder
             DrawSpawnLists(so);
             DrawEventSection(so);
 
-            so.ApplyModifiedProperties();
+            if (so.ApplyModifiedProperties() && _autoExportJson)
+                ExportCurrentStageJson(showDialog: false);
 
             EditorGUILayout.EndScrollView();
+        }
+
+        private void ExportCurrentStageJson(bool showDialog)
+        {
+            if (_currentStage == null)
+                return;
+
+            StageExporter.Export(_currentStage);
+            if (showDialog)
+                EditorUtility.DisplayDialog("Export Success", $"Exported {_currentStage.MapId}.json", "OK");
+        }
+
+        private void MarkCurrentStageDirtyAndExport()
+        {
+            if (_currentStage == null)
+                return;
+
+            EditorUtility.SetDirty(_currentStage);
+            if (_autoExportJson)
+                ExportCurrentStageJson(showDialog: false);
         }
 
         private void DrawBasicInfo(SerializedObject so)
@@ -140,6 +162,7 @@ namespace RhythmRPG.Editor.StageBuilder
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             _autoSyncPreview = EditorGUILayout.ToggleLeft("Auto-sync preview objects when Stage handles move", _autoSyncPreview);
+            _autoExportJson = EditorGUILayout.ToggleLeft("Auto-export JSON when Stage data changes", _autoExportJson);
             _showSceneLabels = EditorGUILayout.ToggleLeft("Show scene labels", _showSceneLabels);
             _showEventLinks = EditorGUILayout.ToggleLeft("Show event condition/action links", _showEventLinks);
 
@@ -1224,7 +1247,7 @@ namespace RhythmRPG.Editor.StageBuilder
                 int height = Mathf.Max(1, Mathf.RoundToInt(_boundsHandle.size.z));
 
                 cond.Area = new RectInt(minX, minZ, width, height);
-                EditorUtility.SetDirty(_currentStage);
+                MarkCurrentStageDirtyAndExport();
             }
 
             DrawSceneBadge(center + Vector3.up * 1.1f, $"{GetEventSceneLabel(evt)}\nArea", areaColor);
@@ -1339,7 +1362,7 @@ namespace RhythmRPG.Editor.StageBuilder
             {
                 Undo.RecordObject(_currentStage, $"Move {kind}");
                 item.Position = RoundVector(newPos);
-                EditorUtility.SetDirty(_currentStage);
+                MarkCurrentStageDirtyAndExport();
                 if (_autoSyncPreview)
                 {
                     SyncPreviewTransform(kind, index, item);
@@ -1369,7 +1392,7 @@ namespace RhythmRPG.Editor.StageBuilder
                 {
                     Undo.RecordObject(_currentStage, "Move Action");
                     action.Position = RoundVector(newPos);
-                    EditorUtility.SetDirty(_currentStage);
+                    MarkCurrentStageDirtyAndExport();
                 }
 
                 pos = action.Position;
@@ -1434,6 +1457,8 @@ namespace RhythmRPG.Editor.StageBuilder
             PullPreviewList(root.transform, _currentStage.InitialSpawns, "Spawn");
             PullPreviewList(root.transform, _currentStage.InitialObjects, "Object");
             EditorUtility.SetDirty(_currentStage);
+            if (_autoExportJson)
+                ExportCurrentStageJson(showDialog: false);
             Repaint();
             SceneView.RepaintAll();
         }

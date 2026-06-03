@@ -223,6 +223,7 @@ public class ClientHandlers : MonoBehaviour
                 AppearanceId = e.AppearanceId,
                 X = e.X,
                 Y = e.Y,
+                Rotation = e.Rotation,
                 Hp = e.Hp,
                 GroupId = e.OwnerSlot
             });

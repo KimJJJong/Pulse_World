@@ -34,7 +34,7 @@ MonoBehaviour:
   - EntityKey: Dummy
     Label: 
     Position: {x: 48, y: -1, z: 14}
-    EulerAngles: {x: -0, y: 0, z: -0}
+    EulerAngles: {x: 0, y: 90, z: 0}
     Scale: {x: 1, y: 1, z: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
@@ -42,7 +42,7 @@ MonoBehaviour:
   - EntityKey: Dummy
     Label: 
     Position: {x: 52, y: -1, z: 17}
-    EulerAngles: {x: -0, y: 90, z: -0}
+    EulerAngles: {x: 0, y: 90, z: 0}
     Scale: {x: 1, y: 1, z: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
@@ -50,7 +50,7 @@ MonoBehaviour:
   - EntityKey: Dummy
     Label: 
     Position: {x: 48, y: -1, z: 19}
-    EulerAngles: {x: -0, y: 0, z: -0}
+    EulerAngles: {x: 0, y: 90, z: 0}
     Scale: {x: 1, y: 1, z: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
@@ -58,7 +58,7 @@ MonoBehaviour:
   - EntityKey: Dummy
     Label: 
     Position: {x: 52, y: -1, z: 22}
-    EulerAngles: {x: -0, y: 0, z: -0}
+    EulerAngles: {x: 0, y: 90, z: 0}
     Scale: {x: 1, y: 1, z: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
@@ -67,7 +67,7 @@ MonoBehaviour:
   - EntityKey: Crystal
     Label: 
     Position: {x: 18, y: 0, z: 25}
-    EulerAngles: {x: -0, y: 0, z: 0}
+    EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 1, y: 1, z: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
@@ -75,7 +75,7 @@ MonoBehaviour:
   - EntityKey: Crystal
     Label: 
     Position: {x: 18, y: 0, z: 32}
-    EulerAngles: {x: -0, y: 0, z: 0}
+    EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 1, y: 1, z: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
