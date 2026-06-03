@@ -459,6 +459,10 @@ namespace RhythmRPG.Editor.StageBuilder
                     EditorGUILayout.HelpBox("추가 파라미터가 필요 없는 종료 액션입니다.", MessageType.None);
                     break;
 
+                case ActionType.FinGame:
+                    EditorGUILayout.HelpBox("Stage Clear 결과 UI를 표시합니다. Rewards는 아직 비워 둡니다.", MessageType.None);
+                    break;
+
                 case ActionType.SpawnObject:
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("HeaderParam"), new GUIContent("Registry Key"));
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Object Entity ID"));
@@ -641,7 +645,8 @@ namespace RhythmRPG.Editor.StageBuilder
             AreaBroadcast,
             TimeReturnTown,
             TutorialGuide,
-            CrystalPair
+            CrystalPair,
+            StageClearFinGame
         }
 
         private enum ConditionQuickTemplate
@@ -663,7 +668,8 @@ namespace RhythmRPG.Editor.StageBuilder
             SpawnObject,
             ShowGuide,
             SetObjectState,
-            PlayVfx
+            PlayVfx,
+            FinGame
         }
 
         private void DrawEventQuickAddRow(SerializedProperty eventsProp, SerializedObject so)
@@ -702,6 +708,12 @@ namespace RhythmRPG.Editor.StageBuilder
             if (ColoredButton("Crystal Pair", ObjectAccent, GUILayout.Width(100)))
             {
                 AddEvent(eventsProp, EventQuickTemplate.CrystalPair);
+                so.ApplyModifiedProperties();
+            }
+
+            if (ColoredButton("Fin Game", ActionAccent, GUILayout.Width(90)))
+            {
+                AddEvent(eventsProp, EventQuickTemplate.StageClearFinGame);
                 so.ApplyModifiedProperties();
             }
 
@@ -777,6 +789,11 @@ namespace RhythmRPG.Editor.StageBuilder
                 AddAction(actionsProp, ActionQuickTemplate.ReturnToTown);
             }
 
+            if (ColoredButton("+ Fin", ActionAccent, GUILayout.Width(66)))
+            {
+                AddAction(actionsProp, ActionQuickTemplate.FinGame);
+            }
+
             if (ColoredButton("+ Obj", ObjectAccent, GUILayout.Width(70)))
             {
                 AddAction(actionsProp, ActionQuickTemplate.SpawnObject);
@@ -846,6 +863,12 @@ namespace RhythmRPG.Editor.StageBuilder
                     evtProp.FindPropertyRelative("Title").stringValue = $"Crystal Pair {nextId}";
                     AddCondition(evtProp.FindPropertyRelative("Conditions"), ConditionQuickTemplate.ObjectPairInteracted);
                     AddAction(evtProp.FindPropertyRelative("Actions"), ActionQuickTemplate.PlayVfx);
+                    break;
+
+                case EventQuickTemplate.StageClearFinGame:
+                    evtProp.FindPropertyRelative("Title").stringValue = "Stage Clear";
+                    AddCondition(evtProp.FindPropertyRelative("Conditions"), ConditionQuickTemplate.MonsterAllDead);
+                    AddAction(evtProp.FindPropertyRelative("Actions"), ActionQuickTemplate.FinGame);
                     break;
             }
 
@@ -969,6 +992,10 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 case ActionQuickTemplate.ReturnToTown:
                     actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.ReturnToTown;
+                    break;
+
+                case ActionQuickTemplate.FinGame:
+                    actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.FinGame;
                     break;
 
                 case ActionQuickTemplate.SpawnObject:
@@ -1142,6 +1169,9 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 case ActionType.ReturnToTown:
                     return "마을 복귀";
+
+                case ActionType.FinGame:
+                    return "Fin Game 결과 UI";
 
                 case ActionType.SpawnObject:
                     string objectKey = actionProp.FindPropertyRelative("HeaderParam").stringValue;

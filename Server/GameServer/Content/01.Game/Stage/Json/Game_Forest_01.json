@@ -120,7 +120,7 @@
             ],
             "Actions": [
                 {
-                    "Type": "ReturnToTown",
+                    "Type": "FinGame",
                     "ParamId": 0,
                     "X": 0,
                     "Y": 0,

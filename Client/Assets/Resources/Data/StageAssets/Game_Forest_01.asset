@@ -118,7 +118,7 @@ MonoBehaviour:
         width: 4
         height: 5
     Actions:
-    - Type: 3
+    - Type: 8
       HeaderParam: 
       ParamId: 0
       Position: {x: 0, y: 0, z: 0}

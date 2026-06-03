@@ -534,6 +534,9 @@ public class ClientHandlers : MonoBehaviour
 
     public void Handle_SC_Warn(SC_Warn p)
     {
+        if (StageClearResultHud.TryHandleWarn(p.code, p.msg))
+            return;
+
         if (StageGuideHud.TryHandleWarn(p.code, p.msg))
             return;
 

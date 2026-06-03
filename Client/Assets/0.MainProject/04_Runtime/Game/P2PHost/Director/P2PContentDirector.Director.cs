@@ -551,11 +551,62 @@ public sealed partial class P2PContentDirector
             Debug.LogWarning("[P2PContentDirector] ReturnToTown requested without host controller instance.");
     }
 
+    public void FinGame()
+    {
+        StageClearResultData data = BuildStageClearResultData();
+
+        if (P2PHostController.HasInstance)
+        {
+            P2PHostController.Instance.SendLocalAndRelay(new SC_Warn
+            {
+                code = StageSignalCodec.StageClearWarnCode,
+                msg = StageSignalCodec.EncodeStageClear(data)
+            });
+            return;
+        }
+
+        StageClearResultHud.Show(data);
+    }
+
     public void OpenGate(int x, int y)
     {
         ClientGameState.Instance?.SetTile(x, y, (int)TileKind.Floor);
         if (P2PDebugConfig.TraceContent)
             Debug.Log($"[P2PContentDirector] OpenGate at ({x},{y})");
+    }
+
+    private StageClearResultData BuildStageClearResultData()
+    {
+        long startMs = 0;
+        if (SessionContext.Instance != null && SessionContext.Instance.LastInitMap != null)
+            startMs = SessionContext.Instance.LastInitMap.SongStartServerTime;
+
+        if (startMs <= 0 && RhythmClient.Instance != null)
+            startMs = RhythmClient.Instance.ServerSongStartMs;
+
+        long clearTimeMs = startMs > 0 ? Math.Max(0, TimeSync.ServerNowMs() - startMs) : 0;
+
+        return new StageClearResultData
+        {
+            MapId = _mapId ?? string.Empty,
+            Title = "STAGE CLEAR",
+            Subtitle = "Purification Complete - Deepwood Gate Stabilized",
+            Rank = "S",
+            ClearTimeMs = (int)Math.Min(int.MaxValue, clearTimeMs),
+            RhythmSyncPercent = 98,
+            MaxCombo = 842,
+            Misses = 4,
+            EchoNodesRestored = 4,
+            EchoNodesTotal = 4,
+            CorruptionResidue = "Low",
+            GateStabilityPercent = 92,
+            HiddenEchoFound = 1,
+            FirstClearBonusActive = true,
+            RouteUnlocked = "Deepwood Gate",
+            NextArea = "Deepwood Gate",
+            RecommendedLevel = 12,
+            DangerRhythm = "Normal"
+        };
     }
 
     private void RegisterRuntimeMonster(int entityId, int appearanceId, string monsterType, int groupId, int maxHp, long beat)
@@ -843,9 +894,7 @@ public sealed partial class P2PContentDirector
                     {
                         var target = FindTargetEntity(state, action.Target, out _);
                         var targetPos = target != null ? new Vector2Int(target.Value.X, target.Value.Y) : plannedPos;
-                        float rotation = target != null
-                            ? CalculateRotation(plannedPos, targetPos, plannedRotation)
-                            : plannedRotation;
+                        float rotation = plannedRotation;
 
                         string skillId = string.IsNullOrWhiteSpace(action.SkillId) ? "Attack" : action.SkillId;
                         var skillDef = P2PCombatContentCache.GetSkillDefinition(skillId);
@@ -860,7 +909,6 @@ public sealed partial class P2PContentDirector
                             skillId,
                             executeBeat);
 
-                        plannedRotation = rotation;
                         lastBeat = Math.Max(lastBeat, executeBeat + skillDurationBeats);
                         break;
                     }

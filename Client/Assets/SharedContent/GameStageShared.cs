@@ -130,6 +130,29 @@ namespace GameServer.InGame.Director.Data
         public int SecondaryTargetId;
     }
 
+    [Serializable]
+    public class StageClearResultData
+    {
+        public string MapId = string.Empty;
+        public string Title = "STAGE CLEAR";
+        public string Subtitle = "Purification Complete";
+        public string Rank = "S";
+        public int ClearTimeMs;
+        public int RhythmSyncPercent = 98;
+        public int MaxCombo = 842;
+        public int Misses = 4;
+        public int EchoNodesRestored = 4;
+        public int EchoNodesTotal = 4;
+        public string CorruptionResidue = "Low";
+        public int GateStabilityPercent = 92;
+        public int HiddenEchoFound = 1;
+        public bool FirstClearBonusActive = true;
+        public string RouteUnlocked = "Deepwood Gate";
+        public string NextArea = "Deepwood Gate";
+        public int RecommendedLevel = 12;
+        public string DangerRhythm = "Normal";
+    }
+
     public enum StageVfxTargetMode
     {
         PositionMarker,
@@ -239,8 +262,10 @@ namespace GameServer.InGame.Director.Data
     {
         public const int GuideWarnCode = 6101;
         public const int VfxWarnCode = 6102;
+        public const int StageClearWarnCode = 6103;
         public const string GuidePrefix = "STAGE_GUIDE";
         public const string VfxPrefix = "STAGE_VFX";
+        public const string StageClearPrefix = "STAGE_CLEAR";
 
         public static string EncodeGuide(StageGuideData data)
         {
@@ -265,6 +290,31 @@ namespace GameServer.InGame.Director.Data
                 Math.Max(0, data.DurationMs),
                 data.TargetId,
                 data.SecondaryTargetId);
+        }
+
+        public static string EncodeStageClear(StageClearResultData data)
+        {
+            data ??= new StageClearResultData();
+            return string.Join("\t",
+                StageClearPrefix,
+                EncodeText(data.MapId),
+                EncodeText(data.Title),
+                EncodeText(data.Subtitle),
+                EncodeText(data.Rank),
+                Math.Max(0, data.ClearTimeMs),
+                data.RhythmSyncPercent,
+                data.MaxCombo,
+                data.Misses,
+                data.EchoNodesRestored,
+                data.EchoNodesTotal,
+                EncodeText(data.CorruptionResidue),
+                data.GateStabilityPercent,
+                data.HiddenEchoFound,
+                data.FirstClearBonusActive ? 1 : 0,
+                EncodeText(data.RouteUnlocked),
+                EncodeText(data.NextArea),
+                data.RecommendedLevel,
+                EncodeText(data.DangerRhythm));
         }
 
         public static bool TryDecodeGuide(string payload, out StageGuideData data)
@@ -306,6 +356,40 @@ namespace GameServer.InGame.Director.Data
                 DurationMs = int.TryParse(parts[5], out int durationMs) ? durationMs : 0,
                 TargetId = parts.Length > 6 && int.TryParse(parts[6], out int targetId) ? targetId : 0,
                 SecondaryTargetId = parts.Length > 7 && int.TryParse(parts[7], out int secondaryTargetId) ? secondaryTargetId : 0
+            };
+            return true;
+        }
+
+        public static bool TryDecodeStageClear(string payload, out StageClearResultData data)
+        {
+            data = null;
+            if (string.IsNullOrEmpty(payload))
+                return false;
+
+            string[] parts = payload.Split('\t');
+            if (parts.Length < 19 || !string.Equals(parts[0], StageClearPrefix, StringComparison.Ordinal))
+                return false;
+
+            data = new StageClearResultData
+            {
+                MapId = DecodeText(parts[1]),
+                Title = DecodeText(parts[2]),
+                Subtitle = DecodeText(parts[3]),
+                Rank = DecodeText(parts[4]),
+                ClearTimeMs = int.TryParse(parts[5], out int clearTimeMs) ? clearTimeMs : 0,
+                RhythmSyncPercent = int.TryParse(parts[6], out int rhythmSync) ? rhythmSync : 98,
+                MaxCombo = int.TryParse(parts[7], out int maxCombo) ? maxCombo : 842,
+                Misses = int.TryParse(parts[8], out int misses) ? misses : 4,
+                EchoNodesRestored = int.TryParse(parts[9], out int restored) ? restored : 4,
+                EchoNodesTotal = int.TryParse(parts[10], out int total) ? total : 4,
+                CorruptionResidue = DecodeText(parts[11]),
+                GateStabilityPercent = int.TryParse(parts[12], out int stability) ? stability : 92,
+                HiddenEchoFound = int.TryParse(parts[13], out int hiddenEcho) ? hiddenEcho : 1,
+                FirstClearBonusActive = int.TryParse(parts[14], out int firstClear) && firstClear != 0,
+                RouteUnlocked = DecodeText(parts[15]),
+                NextArea = DecodeText(parts[16]),
+                RecommendedLevel = int.TryParse(parts[17], out int recommendedLevel) ? recommendedLevel : 12,
+                DangerRhythm = DecodeText(parts[18])
             };
             return true;
         }
@@ -384,6 +468,7 @@ namespace GameServer.InGame.Director.Core
         void SpawnObject(SpawnObjectData data);
         void BroadcastMessage(string msg);
         void ReturnToTown();
+        void FinGame();
         void OpenGate(int x, int y);
         void SetObjectState(int targetId, int state);
         void ShowGuide(StageGuideData data);
@@ -541,6 +626,7 @@ namespace GameServer.InGame.Director.Core
                 "SpawnObject" => new ActionSpawnObject(),
                 "Broadcast" => new ActionBroadcast(),
                 "ReturnToTown" => new ActionReturnToTown(),
+                "FinGame" => new ActionFinGame(),
                 "OpenGate" => new ActionOpenGate(),
                 "ShowGuide" => new ActionShowGuide(),
                 "SetObjectState" => new ActionSetObjectState(),
@@ -683,6 +769,14 @@ namespace GameServer.InGame.Director.Core
             public override void Execute(IStageActionHost host)
             {
                 host.ReturnToTown();
+            }
+        }
+
+        private sealed class ActionFinGame : EventAction
+        {
+            public override void Execute(IStageActionHost host)
+            {
+                host.FinGame();
             }
         }
 

@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class EntityVisual : MonoBehaviour
 {
@@ -13,6 +14,8 @@ public class EntityVisual : MonoBehaviour
     [SerializeField] private Animator _animator;
     // [Fix] AudioSource/AudioClip 하드코딩 사운드 제거 — 사운드는 ClientSkillRunner의 SoundAction이 담당
     private Coroutine _resetAnimatorSpeedCoroutine;
+    private RuntimeAnimatorController _cachedParameterController;
+    private readonly HashSet<int> _animatorParameterHashes = new();
 
     private void Awake()
     {
@@ -48,7 +51,7 @@ public class EntityVisual : MonoBehaviour
         {
             duration = Mathf.Max(duration, 0.05f);
             _animator.speed = 1.0f / duration;
-            _animator.SetBool(IsMovingHash, true);
+            SetAnimatorBoolIfExists(IsMovingHash, true);
         }
 
         StartCoroutine(CoMove(start, end, duration));
@@ -71,7 +74,7 @@ public class EntityVisual : MonoBehaviour
 
         if (_animator != null)
         {
-            _animator.SetBool(IsMovingHash, false);
+            SetAnimatorBoolIfExists(IsMovingHash, false);
             _animator.speed = 1f;
         }
     }
@@ -97,7 +100,7 @@ public class EntityVisual : MonoBehaviour
         if (_animator != null)
         {
             _animator.speed = 1f;
-            _animator.SetBool(IsMovingHash, true);
+            SetAnimatorBoolIfExists(IsMovingHash, true);
         }
 
         const float bumpInDuration  = 0.07f;
@@ -127,7 +130,7 @@ public class EntityVisual : MonoBehaviour
 
         if (_animator != null)
         {
-            _animator.SetBool(IsMovingHash, false);
+            SetAnimatorBoolIfExists(IsMovingHash, false);
             _animator.speed = 1f;
         }
     }
@@ -154,13 +157,15 @@ public class EntityVisual : MonoBehaviour
             float clipLength = ResolveAttackClipLengthSeconds(out string attackStateName);
             _animator.speed = clipLength / duration;
 
-            _animator.ResetTrigger(AttackHash);
+            bool hasAttackTrigger = HasAnimatorParameter(AttackHash);
+            if (hasAttackTrigger)
+                _animator.ResetTrigger(AttackHash);
 
-            if (normalizedStart > 0.001f && TryPlayAttackStateAt(attackStateName, normalizedStart))
+            if ((!hasAttackTrigger || normalizedStart > 0.001f) && TryPlayAttackStateAt(attackStateName, normalizedStart))
             {
                 // State was positioned directly to the server-authoritative skill phase.
             }
-            else
+            else if (hasAttackTrigger)
             {
                 _animator.SetTrigger(AttackHash);
             }
@@ -262,11 +267,37 @@ public class EntityVisual : MonoBehaviour
 
     public void PlayHit()
     {
-        if (_animator != null) _animator.SetTrigger(HitHash);
+        if (_animator != null && HasAnimatorParameter(HitHash))
+            _animator.SetTrigger(HitHash);
     }
 
     public void SetDie()
     {
-        if (_animator != null) _animator.SetBool(IsDeadHash, true);
+        if (_animator != null)
+            SetAnimatorBoolIfExists(IsDeadHash, true);
+    }
+
+    private void SetAnimatorBoolIfExists(int hash, bool value)
+    {
+        if (_animator != null && HasAnimatorParameter(hash))
+            _animator.SetBool(hash, value);
+    }
+
+    private bool HasAnimatorParameter(int hash)
+    {
+        if (_animator == null)
+            return false;
+
+        var controller = _animator.runtimeAnimatorController;
+        if (_cachedParameterController != controller)
+        {
+            _cachedParameterController = controller;
+            _animatorParameterHashes.Clear();
+
+            foreach (var parameter in _animator.parameters)
+                _animatorParameterHashes.Add(parameter.nameHash);
+        }
+
+        return _animatorParameterHashes.Contains(hash);
     }
 }

@@ -151,6 +151,20 @@ namespace GameServer.InGame.Director.Core
             _session.BroadcastReturnToTown();
         }
 
+        public void FinGame()
+        {
+            var data = new StageClearResultData
+            {
+                MapId = _currentScenario?.MapId ?? string.Empty,
+                Title = "STAGE CLEAR",
+                Subtitle = "Purification Complete - Deepwood Gate Stabilized",
+                ClearTimeMs = (int)Math.Min(int.MaxValue, Math.Max(0, GetElapsedTimeMs()))
+            };
+
+            Console.WriteLine("[GameDirector] Triggering FinGame result UI");
+            _session.BroadcastStageSignal(StageSignalCodec.StageClearWarnCode, StageSignalCodec.EncodeStageClear(data));
+        }
+
         public void OpenGate(int x, int y)
         {
             var map = _session.Map;

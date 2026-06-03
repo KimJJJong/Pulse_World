@@ -2,6 +2,7 @@ using ApiServer.Application.Ports;
 using ApiServer.Domain.GameMatch;
 using ApiServer.Domain.Town;
 using ApiServer.Domain.WaitingRoom;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -65,7 +66,7 @@ public sealed class RoomWebSocketHandler
             if (!ok) 
             {
                 _logger.LogWarning("WS Join Failed: Room={roomId}, Uid={uid}, Err={err}", roomId, uid, joinErr);
-                await CloseAsync(ws, "Join Failed: " + joinErr);
+                await CloseAsync(ws, "Join Failed: " + joinErr, context.RequestAborted);
                 return;
             }
 
@@ -74,7 +75,7 @@ public sealed class RoomWebSocketHandler
             var (_, room) = await _waitingRoom.GetAsync(roomId);
             if (room == null) // Strange timing
             {
-                 await CloseAsync(ws, "Room Disappeared");
+                 await CloseAsync(ws, "Room Disappeared", context.RequestAborted);
                  return;
             }
 
@@ -165,14 +166,22 @@ public sealed class RoomWebSocketHandler
             await BroadcastHostSelectionAsync(roomId, room);
 
             var buffer = new byte[1024 * 4];
-            while (ws.State == WebSocketState.Open)
+            while (ws.State == WebSocketState.Open && !context.RequestAborted.IsCancellationRequested)
             {
-                var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), context.RequestAborted);
                 if (result.MessageType == WebSocketMessageType.Close) break;
 
                 var msg = Encoding.UTF8.GetString(buffer, 0, result.Count);
                 await ProcessMessageAsync(roomId, uid, msg);
             }
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogInformation("WS Request Aborted: Room={roomId}, Uid={uid}, State={state}", roomId, uid, ws.State);
+        }
+        catch (Exception ex) when (IsExpectedRemoteDisconnect(ex))
+        {
+            _logger.LogInformation("WS Closed By Peer: Room={roomId}, Uid={uid}, State={state}, Error={error}", roomId, uid, ws.State, ex.Message);
         }
         catch (Exception ex)
         {
@@ -611,10 +620,58 @@ public sealed class RoomWebSocketHandler
             || string.Equals(status, "Started", StringComparison.OrdinalIgnoreCase);
     }
 
-    private async Task CloseAsync(WebSocket ws, string reason)
+    private async Task CloseAsync(WebSocket ws, string reason, CancellationToken cancellationToken)
     {
-        if(ws.State == WebSocketState.Open)
-            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, reason, CancellationToken.None);
+        if (ws.State != WebSocketState.Open && ws.State != WebSocketState.CloseReceived)
+            return;
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(2));
+
+        try
+        {
+            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, reason, timeout.Token);
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        {
+            _logger.LogDebug("WS Close skipped because request was aborted or close timed out. State={state}, Reason={reason}", ws.State, reason);
+        }
+        catch (Exception ex) when (IsExpectedRemoteDisconnect(ex))
+        {
+            _logger.LogDebug("WS Close skipped because peer already disconnected. State={state}, Reason={reason}, Error={error}", ws.State, reason, ex.Message);
+        }
+    }
+
+    private static bool IsExpectedRemoteDisconnect(Exception ex)
+    {
+        for (Exception? current = ex; current != null; current = current.InnerException)
+        {
+            if (current is WebSocketException webSocketException)
+            {
+                if (webSocketException.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+                    return true;
+
+                if (current.Message.Contains("remote party closed", StringComparison.OrdinalIgnoreCase)
+                    || current.Message.Contains("without completing the close handshake", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            if (current.GetType().FullName == "Microsoft.AspNetCore.Connections.ConnectionResetException")
+                return true;
+
+            if (current is SocketException socketException
+                && (socketException.SocketErrorCode == SocketError.ConnectionReset
+                    || socketException.SocketErrorCode == SocketError.ConnectionAborted
+                    || socketException.SocketErrorCode == SocketError.NetworkReset
+                    || socketException.SocketErrorCode == SocketError.Shutdown))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async Task BroadcastHostSelectionAsync(string roomId, WaitingRoomDto? room = null)

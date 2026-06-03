@@ -87,7 +87,7 @@
             ],
             "Actions": [
                 {
-                    "Type": "ReturnToTown",
+                    "Type": "FinGame",
                     "ParamId": 5,
                     "X": 0,
                     "Y": 0,

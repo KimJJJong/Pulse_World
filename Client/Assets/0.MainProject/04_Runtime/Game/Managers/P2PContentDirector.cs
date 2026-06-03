@@ -159,7 +159,7 @@ public sealed partial class P2PContentDirector : MonoBehaviour, IStageActionHost
     public bool ShouldAutoSubmitClearOnMonsterWipe()
     {
         EnsureStageLoaded();
-        return !HasStageAction("ReturnToTown");
+        return !HasStageAction("ReturnToTown") && !HasStageAction("FinGame");
     }
 
     public void NotifyPlayerMoved(int actorId, int x, int y)

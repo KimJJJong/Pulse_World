@@ -82,7 +82,7 @@ MonoBehaviour:
     OverrideGroupId: 6
   Events:
   - Title: Crystal Pair 1
-    Notes: 
+    Notes: this be Tutorial for test Crystal interaction Practice
     Enabled: 1
     EventId: 1
     IsOneShot: 1
@@ -102,12 +102,76 @@ MonoBehaviour:
         width: 1
         height: 1
     Actions:
-    - Type: 7
+    - Type: 8
       HeaderParam: 
       ParamId: 5
       Position: {x: 0, y: 0, z: 0}
       StringVal: 
       GroupId: 6
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: CrystalPulseRed
+  - Title: Each Crystal Color Change
+    Notes: _01 Change
+    Enabled: 1
+    EventId: 2
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 3
+      TargetId: 5
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+    Actions:
+    - Type: 7
+      HeaderParam: 
+      ParamId: 5
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: CrystalPulseRed
+  - Title: Each Crystal Color Change Copy
+    Notes: _02 Change
+    Enabled: 1
+    EventId: 3
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 3
+      TargetId: 6
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+    Actions:
+    - Type: 7
+      HeaderParam: 
+      ParamId: 6
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 0
       GuideTitle: 
       GuideBody: 
       GuideImageResource: 

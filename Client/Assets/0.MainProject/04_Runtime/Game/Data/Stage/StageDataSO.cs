@@ -132,6 +132,7 @@ namespace RhythmRPG.Editor.StageBuilder
         SpawnObject,
         ShowGuide,
         SetObjectState,
-        PlayVfx
+        PlayVfx,
+        FinGame
     }
 }
