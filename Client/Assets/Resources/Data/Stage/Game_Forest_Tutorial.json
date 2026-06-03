@@ -58,7 +58,8 @@
             "Y": 0,
             "Z": 25,
             "GroupId": 5,
-            "Pattern": ""
+            "Pattern": "",
+            "Rotation": 0.0
         },
         {
             "EntityId": 500,
@@ -67,7 +68,8 @@
             "Y": 0,
             "Z": 32,
             "GroupId": 6,
-            "Pattern": ""
+            "Pattern": "",
+            "Rotation": 0.0
         }
     ],
     "Events": [
