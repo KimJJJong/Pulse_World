@@ -201,8 +201,8 @@ public class LoadingSceneController : MonoBehaviour
             if (Time.time - startTime > InitMapTimeout)
             {
                 Debug.LogWarning(
-                    $"[LoadingSceneController] InitMap wait timed out. target={TargetSceneName} role={SessionContext.Instance.Role}");
-                break;
+                    $"[LoadingSceneController] InitMap wait timed out. Still waiting. target={TargetSceneName} role={SessionContext.Instance.Role}");
+                startTime = Time.time;
             }
         }
     }

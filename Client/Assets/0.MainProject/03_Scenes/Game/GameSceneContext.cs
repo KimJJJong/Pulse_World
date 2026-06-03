@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using System.Collections;
 using UnityEngine;
 
 public sealed class GameSceneContext : BaseSceneContext
@@ -6,8 +7,12 @@ public sealed class GameSceneContext : BaseSceneContext
     [Header("Net enter")]
     [SerializeField] private bool _autoEnter = true;
     [SerializeField] private string _mapId = "";
+    [SerializeField] private float _initMapRetryIntervalSeconds = 3f;
+    [SerializeField] private int _initMapRetryLimit = 5;
+    [SerializeField] private float _initMapSlowRetryIntervalSeconds = 10f;
 
     private int _maxPlayers = 2;
+    private Coroutine _initMapRetryCoroutine;
 
     protected override void Awake()
     {
@@ -33,7 +38,11 @@ public sealed class GameSceneContext : BaseSceneContext
     /// <summary>
     /// SC_InitMap 패킷이 씬 로드 전에 먼저 도착했을 때 호출 (패킷 핸들러 경로)
     /// </summary>
-    public void OnInitMap(SC_InitMap p) => ApplyInitMapOnce(p);
+    public void OnInitMap(SC_InitMap p)
+    {
+        StopInitMapRetryLoop();
+        ApplyInitMapOnce(p);
+    }
 
     public async Task EnterGameAsync()
     {
@@ -69,6 +78,15 @@ public sealed class GameSceneContext : BaseSceneContext
         // 캐시된 InitMap이 있으면 여기서 처리 (씬 오브젝트 준비 완료 후)
         TryApplyInitMapIfAlreadyReceived();
 
+        if (SessionContext.Instance.InitMapReceived)
+            return;
+
+        SendMapEnterRequest("initial");
+        StartInitMapRetryLoop();
+    }
+
+    private void SendMapEnterRequest(string reason)
+    {
         var req = new CS_MapEnter
         {
             ClientTimeMs = NowLocalMs(),
@@ -78,8 +96,63 @@ public sealed class GameSceneContext : BaseSceneContext
             MaxPlayers = _maxPlayers
         };
 
-        Debug.Log($"[GameSceneContext] Sending CS_MapEnter... MapId={_mapId}");
+        Debug.Log($"[GameSceneContext] Sending CS_MapEnter... reason={reason} MapId={_mapId}");
         NetworkManager.Instance.Send(req.Write());
+    }
+
+    private void StartInitMapRetryLoop()
+    {
+        StopInitMapRetryLoop();
+
+        if (_initMapRetryIntervalSeconds <= 0f)
+            return;
+
+        _initMapRetryCoroutine = StartCoroutine(Co_RetryMapEnterUntilInitMap());
+    }
+
+    private void StopInitMapRetryLoop()
+    {
+        if (_initMapRetryCoroutine == null)
+            return;
+
+        StopCoroutine(_initMapRetryCoroutine);
+        _initMapRetryCoroutine = null;
+    }
+
+    private IEnumerator Co_RetryMapEnterUntilInitMap()
+    {
+        var attempts = 0;
+        var warnedAfterLimit = false;
+
+        while (!SessionContext.Instance.InitMapReceived)
+        {
+            var interval = _initMapRetryLimit > 0 && attempts >= _initMapRetryLimit
+                ? Mathf.Max(0.1f, _initMapSlowRetryIntervalSeconds)
+                : Mathf.Max(0.1f, _initMapRetryIntervalSeconds);
+            yield return new WaitForSecondsRealtime(interval);
+
+            if (SessionContext.Instance.InitMapReceived)
+                break;
+
+            if (NetworkManager.Instance == null || !NetworkManager.Instance.IsConnected)
+            {
+                Debug.LogWarning($"[GameSceneContext] CS_MapEnter retry skipped. networkConnected=False MapId={_mapId}");
+                continue;
+            }
+
+            attempts++;
+            SendMapEnterRequest($"retry#{attempts}");
+
+            if (!warnedAfterLimit && _initMapRetryLimit > 0 && attempts >= _initMapRetryLimit)
+            {
+                warnedAfterLimit = true;
+                Debug.LogWarning(
+                    $"[GameSceneContext] SC_InitMap not received after CS_MapEnter retries. " +
+                    $"Continuing slow retry. MapId={_mapId} attempts={attempts}");
+            }
+        }
+
+        _initMapRetryCoroutine = null;
     }
 
     private static bool ShouldAutoEnterFromScene()

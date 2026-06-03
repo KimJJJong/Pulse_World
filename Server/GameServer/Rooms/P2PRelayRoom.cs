@@ -611,15 +611,55 @@ public sealed class P2PRelayRoom : RoomBase
 
     private void SendInitPacketToPlayer(ClientSession s, bool isNewJoin)
     {
-        if (s == null || !s.IsConnected)
+        if (s == null)
+        {
+            _logger.LogWarning("[P2PRelayRoom] Init send skipped relayId={RelayId} reason=null_session", RelayId);
+            LogManager.Instance.LogWarning("P2PRelayRoom", $"Init send skipped relayId={RelayId} reason=null_session");
             return;
+        }
+
+        if (!s.IsConnected)
+        {
+            _logger.LogWarning(
+                "[P2PRelayRoom] Init send skipped relayId={RelayId} uid={Uid} actor={ActorId} reason=disconnected connId={ConnId}",
+                RelayId,
+                s.Uid,
+                s.ActorId,
+                s.ConnId);
+            LogManager.Instance.LogWarning(
+                "P2PRelayRoom",
+                $"Init send skipped relayId={RelayId} uid={s.Uid} actor={s.ActorId} reason=disconnected connId={s.ConnId}");
+            return;
+        }
 
         int myActorId = s.ActorId;
-        if (myActorId < 0)
+        if (myActorId <= 0)
+        {
+            _logger.LogWarning(
+                "[P2PRelayRoom] Init send skipped relayId={RelayId} uid={Uid} actor={ActorId} reason=invalid_actor connId={ConnId}",
+                RelayId,
+                s.Uid,
+                myActorId,
+                s.ConnId);
+            LogManager.Instance.LogWarning(
+                "P2PRelayRoom",
+                $"Init send skipped relayId={RelayId} uid={s.Uid} actor={myActorId} reason=invalid_actor connId={s.ConnId}");
             return;
+        }
 
         if (!_relayInitialized)
             EnsureStarted();
+
+        _logger.LogInformation(
+            "[P2PRelayRoom] Init send scheduled relayId={RelayId} uid={Uid} actor={ActorId} isNewJoin={IsNewJoin} connId={ConnId}",
+            RelayId,
+            s.Uid,
+            myActorId,
+            isNewJoin,
+            s.ConnId);
+        LogManager.Instance.LogInfo(
+            "P2PRelayRoom",
+            $"Init send scheduled relayId={RelayId} uid={s.Uid} actor={myActorId} isNewJoin={isNewJoin} connId={s.ConnId}");
 
         Task.Run(async () =>
         {
@@ -652,6 +692,14 @@ public sealed class P2PRelayRoom : RoomBase
                     return;
 
                 s.Send(init.Write());
+                _logger.LogInformation(
+                    "[P2PRelayRoom] InitMap packet queued relayId={RelayId} actor={ActorId} entities={EntityCount}",
+                    RelayId,
+                    myActorId,
+                    init.entitiess.Count);
+                LogManager.Instance.LogInfo(
+                    "P2PRelayRoom",
+                    $"InitMap packet queued relayId={RelayId} actor={myActorId} entities={init.entitiess.Count}");
                 SendSkillSlotsIfAvailable(s, states);
 
                 if (stateLoad.TimedOut)
