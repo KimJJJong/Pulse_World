@@ -191,11 +191,30 @@ namespace GameServer.InGame.Director.Core
             _session.BroadcastStageSignal(StageSignalCodec.GuideWarnCode, StageSignalCodec.EncodeGuide(data));
         }
 
+        public void ShowTutorialPanel(StageTutorialPanelData data)
+        {
+            SendTutorialPanel(data, visible: true);
+        }
+
+        public void HideTutorialPanel(StageTutorialPanelData data)
+        {
+            SendTutorialPanel(data, visible: false);
+        }
+
         public void PlayStageVfx(StageVfxData data)
         {
             data ??= new StageVfxData();
             Console.WriteLine($"[GameDirector] PlayStageVfx key='{data.VfxKey}' pos=({data.X},{ResolveMapY(data.Y, data.Z)})");
             _session.BroadcastStageSignal(StageSignalCodec.VfxWarnCode, StageSignalCodec.EncodeVfx(data));
+        }
+
+        private void SendTutorialPanel(StageTutorialPanelData data, bool visible)
+        {
+            data ??= new StageTutorialPanelData();
+            data.Visible = visible;
+
+            Console.WriteLine($"[GameDirector] {(visible ? "Show" : "Hide")}TutorialPanel panelId='{data.PanelId}' image='{data.ImageResource}'");
+            _session.BroadcastStageSignal(StageSignalCodec.TutorialPanelWarnCode, StageSignalCodec.EncodeTutorialPanel(data));
         }
 
         private static int ResolveMapY(int legacyY, int unityZ)
