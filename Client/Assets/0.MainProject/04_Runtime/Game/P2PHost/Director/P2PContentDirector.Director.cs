@@ -71,6 +71,10 @@ public sealed partial class P2PContentDirector
         _monsterStates.Clear();
         _stageObjectGroupByEntityId.Clear();
         _objectStatesByTargetId.Clear();
+        _distanceFields.Clear();
+        _moveReservationsByBeat.Clear();
+        _expiredReservationBeats.Clear();
+        _lastReservationCleanupBeat = long.MinValue;
         _stageEngine.Reset();
     }
 
@@ -681,6 +685,8 @@ public sealed partial class P2PContentDirector
 
     private void RunMonsterAI(long beat)
     {
+        CleanupMoveReservations(beat);
+
         int bucketIndex = (int)(beat % AiBucketCount);
 
         foreach (var state in _monsterStates.Values)
@@ -888,14 +894,18 @@ public sealed partial class P2PContentDirector
                             break;
                         }
 
-                        var nextPos = StepTowards(plannedPos, new Vector2Int(target.Value.X, target.Value.Y), Math.Max(1, action.MoveDistance));
-                        if (!IsMapWalkable(nextPos.x, nextPos.y))
-                            nextPos = plannedPos;
+                        var nextPos = ResolvePathToward(
+                            plannedPos,
+                            new Vector2Int(target.Value.X, target.Value.Y),
+                            Math.Max(1, action.MoveDistance),
+                            state.EntityId,
+                            executeBeat);
 
                         float rotation = CalculateRotation(plannedPos, nextPos, plannedRotation);
                         if (P2PDebugConfig.TraceContent)
                             Debug.Log($"[P2PContentDirector] AIScheduleMove actor={state.EntityId} beat={executeBeat} from=({plannedPos.x},{plannedPos.y}) to=({nextPos.x},{nextPos.y}) mode=MoveStepToward");
                         P2PHostController.Instance.EnqueueAiAction(state.EntityId, ActionKind.Move, nextPos.x, nextPos.y, rotation, "", executeBeat);
+                        ReserveMoveTarget(executeBeat, state.EntityId, nextPos, plannedPos);
 
                         plannedPos = nextPos;
                         plannedRotation = rotation;
@@ -906,16 +916,17 @@ public sealed partial class P2PContentDirector
                 case ActionType.Move:
                     {
                         Vector2Int nextPos = action.MoveDirection != MoveDirection.None
-                            ? ResolveMoveDirection(plannedPos, state, action)
-                            : ResolveMoveStrategy(plannedPos, state, action);
+                            ? ResolveMoveDirection(plannedPos, state, action, executeBeat)
+                            : ResolveMoveStrategy(plannedPos, state, action, executeBeat);
 
-                        if (!IsMapWalkable(nextPos.x, nextPos.y))
+                        if (nextPos != plannedPos && !CanEnterMoveTarget(state.EntityId, executeBeat, nextPos.x, nextPos.y))
                             nextPos = plannedPos;
 
                         float rotation = CalculateRotation(plannedPos, nextPos, plannedRotation);
                         if (P2PDebugConfig.TraceContent)
                             Debug.Log($"[P2PContentDirector] AIScheduleMove actor={state.EntityId} beat={executeBeat} from=({plannedPos.x},{plannedPos.y}) to=({nextPos.x},{nextPos.y}) mode=Move");
                         P2PHostController.Instance.EnqueueAiAction(state.EntityId, ActionKind.Move, nextPos.x, nextPos.y, rotation, "", executeBeat);
+                        ReserveMoveTarget(executeBeat, state.EntityId, nextPos, plannedPos);
 
                         plannedPos = nextPos;
                         plannedRotation = rotation;
@@ -952,15 +963,7 @@ public sealed partial class P2PContentDirector
         return lastBeat;
     }
 
-    private bool IsMapWalkable(int x, int y)
-    {
-        if (ClientGameState.Instance == null)
-            return false;
-
-        return ClientGameState.Instance.IsWalkable(x, y);
-    }
-
-    private Vector2Int ResolveMoveDirection(Vector2Int from, MonsterRuntimeState state, ActionDef action)
+    private Vector2Int ResolveMoveDirection(Vector2Int from, MonsterRuntimeState state, ActionDef action, long executeBeat)
     {
         Vector2Int pos = from;
         int steps = Math.Max(1, action.MoveDistance);
@@ -985,7 +988,9 @@ public sealed partial class P2PContentDirector
                 case MoveDirection.TowardTarget:
                     {
                         var target = FindTargetEntity(state, action.Target, out _);
-                        next = target != null ? StepTowards(pos, new Vector2Int(target.Value.X, target.Value.Y), 1) : pos;
+                        next = target != null
+                            ? ResolvePathToward(pos, new Vector2Int(target.Value.X, target.Value.Y), 1, state.EntityId, executeBeat)
+                            : pos;
                         break;
                     }
                 case MoveDirection.AwayFromTarget:
@@ -999,7 +1004,7 @@ public sealed partial class P2PContentDirector
                     break;
             }
 
-            if (!IsMapWalkable(next.x, next.y))
+            if (next != pos && !CanEnterMoveTarget(state.EntityId, executeBeat, next.x, next.y))
                 break;
 
             pos = next;
@@ -1008,7 +1013,7 @@ public sealed partial class P2PContentDirector
         return pos;
     }
 
-    private Vector2Int ResolveMoveStrategy(Vector2Int from, MonsterRuntimeState state, ActionDef action)
+    private Vector2Int ResolveMoveStrategy(Vector2Int from, MonsterRuntimeState state, ActionDef action, long executeBeat)
     {
         int dist = Math.Max(1, action.MoveDistance);
 
@@ -1024,7 +1029,7 @@ public sealed partial class P2PContentDirector
                         new Vector2Int(from.x - dist, from.y)
                     };
 
-                    candidates = candidates.Where(c => IsMapWalkable(c.x, c.y)).ToList();
+                    candidates = candidates.Where(c => CanEnterMoveTarget(state.EntityId, executeBeat, c.x, c.y)).ToList();
                     if (candidates.Count == 0)
                         return from;
 
@@ -1039,10 +1044,13 @@ public sealed partial class P2PContentDirector
 
                     int dx = from.x - target.Value.X;
                     int dy = from.y - target.Value.Y;
+                    Vector2Int next;
                     if (Math.Abs(dx) >= Math.Abs(dy))
-                        return new Vector2Int(from.x + Math.Sign(dx) * dist, from.y);
+                        next = new Vector2Int(from.x + Math.Sign(dx) * dist, from.y);
+                    else
+                        next = new Vector2Int(from.x, from.y + Math.Sign(dy) * dist);
 
-                    return new Vector2Int(from.x, from.y + Math.Sign(dy) * dist);
+                    return CanEnterMoveTarget(state.EntityId, executeBeat, next.x, next.y) ? next : from;
                 }
 
             case MoveStrategy.Forward:
@@ -1051,7 +1059,7 @@ public sealed partial class P2PContentDirector
                     if (target == null)
                         return from;
 
-                    return StepTowards(from, new Vector2Int(target.Value.X, target.Value.Y), dist);
+                    return ResolvePathToward(from, new Vector2Int(target.Value.X, target.Value.Y), dist, state.EntityId, executeBeat);
                 }
 
             case MoveStrategy.Backward:
@@ -1073,41 +1081,97 @@ public sealed partial class P2PContentDirector
                     if (sx == 0 && sy == 0)
                         sx = -1;
 
-                    return new Vector2Int(from.x + sx * dist, from.y + sy * dist);
+                    var next = new Vector2Int(from.x + sx * dist, from.y + sy * dist);
+                    return CanEnterMoveTarget(state.EntityId, executeBeat, next.x, next.y) ? next : from;
                 }
         }
 
         return from;
     }
 
-    private Vector2Int StepTowards(Vector2Int from, Vector2Int target, int distance)
+    private Vector2Int ResolvePathToward(Vector2Int from, Vector2Int target, int distance, int actorId, long executeBeat)
     {
-        Vector2Int pos = from;
-        int steps = Math.Max(1, distance);
+        if (from == target)
+            return from;
 
-        for (int i = 0; i < steps; i++)
+        var field = GetDistanceField(target);
+        if (field.GetDistance(from.x, from.y) == GridDistanceField.Unreachable)
+            return from;
+
+        return field.TryStepToward(
+            new GridPos(from.x, from.y),
+            Math.Max(1, distance),
+            (x, y) => CanEnterMoveTarget(actorId, executeBeat, x, y),
+            out var next)
+            ? new Vector2Int(next.X, next.Y)
+            : from;
+    }
+
+    private GridDistanceField GetDistanceField(Vector2Int target)
+    {
+        var key = (target.x, target.y);
+        if (_distanceFields.TryGetValue(key, out var field))
+            return field;
+
+        var state = ClientGameState.Instance;
+        int width = state != null ? state.MapWidth : 0;
+        int height = state != null ? state.MapHeight : 0;
+
+        field = new GridDistanceField(width, height);
+        field.Build(new[] { new GridPos(target.x, target.y) }, (x, y) => state != null && state.IsWalkable(x, y));
+        _distanceFields[key] = field;
+        return field;
+    }
+
+    private bool CanEnterMoveTarget(int actorId, long executeBeat, int x, int y)
+    {
+        var state = ClientGameState.Instance;
+        if (state == null || !state.IsWalkable(x, y))
+            return false;
+
+        if (IsMoveTargetReservedByOther(executeBeat, actorId, x, y))
+            return false;
+
+        return !state.IsOccupied(x, y, actorId);
+    }
+
+    private bool IsMoveTargetReservedByOther(long executeBeat, int actorId, int x, int y)
+    {
+        return _moveReservationsByBeat.TryGetValue(executeBeat, out var reservations)
+               && reservations.TryGetValue((x, y), out int reservedBy)
+               && reservedBy != actorId;
+    }
+
+    private void ReserveMoveTarget(long executeBeat, int actorId, Vector2Int target, Vector2Int from)
+    {
+        if (target == from)
+            return;
+
+        if (!_moveReservationsByBeat.TryGetValue(executeBeat, out var reservations))
         {
-            int dx = target.x - pos.x;
-            int dy = target.y - pos.y;
-
-            if (dx == 0 && dy == 0)
-                break;
-
-            Vector2Int next;
-            if (Math.Abs(dx) > Math.Abs(dy))
-                next = new Vector2Int(pos.x + Math.Sign(dx), pos.y);
-            else if (dy != 0)
-                next = new Vector2Int(pos.x, pos.y + Math.Sign(dy));
-            else
-                next = pos;
-
-            if (!IsMapWalkable(next.x, next.y))
-                break;
-
-            pos = next;
+            reservations = new Dictionary<(int x, int y), int>();
+            _moveReservationsByBeat[executeBeat] = reservations;
         }
 
-        return pos;
+        reservations[(target.x, target.y)] = actorId;
+    }
+
+    private void CleanupMoveReservations(long beat)
+    {
+        if (_lastReservationCleanupBeat == beat)
+            return;
+
+        _lastReservationCleanupBeat = beat;
+        _expiredReservationBeats.Clear();
+
+        foreach (var reservedBeat in _moveReservationsByBeat.Keys)
+        {
+            if (reservedBeat < beat)
+                _expiredReservationBeats.Add(reservedBeat);
+        }
+
+        foreach (var reservedBeat in _expiredReservationBeats)
+            _moveReservationsByBeat.Remove(reservedBeat);
     }
 
     private Vector2Int StepAway(Vector2Int from, Vector2Int threat)

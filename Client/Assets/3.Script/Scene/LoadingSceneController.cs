@@ -56,6 +56,7 @@ public class LoadingSceneController : MonoBehaviour
 
     private void Awake()
     {
+        DisableLoadingSceneRenderSources();
         PrepareLoadingCanvas();
 
         SetDisplayedProgressImmediate(0f);
@@ -113,6 +114,7 @@ public class LoadingSceneController : MonoBehaviour
         }
 
         yield return Co_MoveDisplayedProgressTo(0.5f);
+        SetTargetSceneActive();
 
         // 3. 씬 활성화 후 초기화 대기 (Map Generation 등)
         // 씬이 로드되었다고 바로 객체들이 Awake/Start 된 것은 아닐 수 있음 (프레임 대기)
@@ -388,5 +390,42 @@ public class LoadingSceneController : MonoBehaviour
         }
 
         LoadingCanvasGroup.alpha = 0f;
+    }
+
+    private void DisableLoadingSceneRenderSources()
+    {
+        var loadingScene = gameObject.scene;
+        if (!loadingScene.IsValid() || !loadingScene.isLoaded)
+            return;
+
+        foreach (var root in loadingScene.GetRootGameObjects())
+        {
+            foreach (var sceneLight in root.GetComponentsInChildren<Light>(true))
+            {
+                sceneLight.enabled = false;
+            }
+
+            foreach (var sceneCamera in root.GetComponentsInChildren<Camera>(true))
+            {
+                sceneCamera.enabled = false;
+            }
+
+            foreach (var audioListener in root.GetComponentsInChildren<AudioListener>(true))
+            {
+                audioListener.enabled = false;
+            }
+        }
+    }
+
+    private static void SetTargetSceneActive()
+    {
+        if (string.IsNullOrWhiteSpace(TargetSceneName))
+            return;
+
+        var targetScene = SceneManager.GetSceneByName(TargetSceneName);
+        if (!targetScene.IsValid() || !targetScene.isLoaded)
+            return;
+
+        SceneManager.SetActiveScene(targetScene);
     }
 }

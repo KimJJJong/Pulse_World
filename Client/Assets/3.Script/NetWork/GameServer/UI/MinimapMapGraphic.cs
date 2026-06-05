@@ -29,7 +29,7 @@ public sealed class MinimapMapGraphic : MaskableGraphic
     [SerializeField] private Color _gridColor = new Color(0.58f, 0.76f, 0.82f, 0.22f);
 
     [Header("Focus")]
-    [SerializeField, Min(1f)] private float _focusZoomScale = 1.8f;
+    [SerializeField, Min(1f)] private float _focusZoomScale = 1.55f;
     [SerializeField, Min(4f)] private float _focusedCellMinSize = 12f;
     [SerializeField, Min(1f)] private float _largeMapFollowThreshold = 14f;
     [SerializeField] private bool _followPlayerOnLargeMaps = true;
@@ -112,6 +112,16 @@ public sealed class MinimapMapGraphic : MaskableGraphic
         _focusY = y;
         _hasFocus = hasFocus;
         MarkMeshDirty(false);
+    }
+
+    public void SetZoomScale(float zoomScale)
+    {
+        float clampedScale = Mathf.Max(1f, zoomScale);
+        if (Mathf.Approximately(_focusZoomScale, clampedScale))
+            return;
+
+        _focusZoomScale = clampedScale;
+        MarkMeshDirty(true);
     }
 
     public void SetMarkers(IReadOnlyList<EntityMarker> markers)

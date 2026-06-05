@@ -47,7 +47,12 @@ public sealed partial class P2PContentDirector : MonoBehaviour, IStageActionHost
     private readonly Dictionary<int, int> _entityMaxHpByTemplateId = new();
     private readonly Dictionary<int, int> _stageObjectGroupByEntityId = new();
     private readonly Dictionary<int, int> _objectStatesByTargetId = new();
+    private readonly Dictionary<(int x, int y), GridDistanceField> _distanceFields = new();
+    private readonly Dictionary<long, Dictionary<(int x, int y), int>> _moveReservationsByBeat = new();
+    private readonly List<long> _expiredReservationBeats = new();
     private readonly StageRuntimeEngine _stageEngine = new();
+
+    private long _lastReservationCleanupBeat = long.MinValue;
 
     private string _mapId = "";
     private StageScenarioData _stage;

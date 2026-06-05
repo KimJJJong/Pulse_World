@@ -8,13 +8,16 @@ public sealed class MinimapHudView : MonoBehaviour
     [Header("References")]
     [SerializeField] private MinimapMapGraphic _mapGraphic;
     [SerializeField] private RectTransform _mapViewport;
-    [SerializeField] private Button _expandButton;
-    [SerializeField] private MinimapExpandIconGraphic _expandIcon;
 
     [Header("Layout")]
     [SerializeField] private Vector2 _compactSize = new Vector2(304f, 304f);
-    [SerializeField] private Vector2 _expandedSize = new Vector2(472f, 472f);
     [SerializeField] private Vector2 _compactAnchoredPosition = new Vector2(-56f, -52f);
+
+    [Header("Grid Zoom")]
+    [SerializeField, Min(1f)] private float _x1ZoomScale = 1.55f;
+    [SerializeField, Min(1f)] private float _x2ZoomScale = 2.3f;
+    [SerializeField, Min(1f)] private float _x3ZoomScale = 3.1f;
+    [SerializeField, Range(0, 2)] private int _defaultZoomLevel;
 
     [Header("Style")]
     [SerializeField] private Color _panelColor = new Color(0.015f, 0.04f, 0.055f, 0.88f);
@@ -23,10 +26,14 @@ public sealed class MinimapHudView : MonoBehaviour
     [SerializeField] private Color _accentColor = new Color(0.23f, 0.96f, 1f, 0.95f);
 
     private readonly List<MinimapMapGraphic.EntityMarker> _markerBuffer = new List<MinimapMapGraphic.EntityMarker>(32);
+    private readonly Button[] _zoomButtons = new Button[ZoomLevelCount];
+    private readonly Image[] _zoomButtonImages = new Image[ZoomLevelCount];
     private ClientGameState _boundState;
-    private bool _buttonBound;
-    private bool _expanded;
+    private bool _zoomButtonsBound;
+    private int _selectedZoomLevel = -1;
     private float _nextBindAttemptTime;
+
+    private const int ZoomLevelCount = 3;
 
     private void Awake()
     {
@@ -36,7 +43,7 @@ public sealed class MinimapHudView : MonoBehaviour
     private void OnEnable()
     {
         EnsureRuntimeUi();
-        BindExpandButton();
+        BindZoomButtons();
 
         if (Application.isPlaying)
             TryBindState();
@@ -66,7 +73,7 @@ public sealed class MinimapHudView : MonoBehaviour
     private void OnDisable()
     {
         UnbindState();
-        UnbindExpandButton();
+        UnbindZoomButtons();
     }
 
     public void EnsureRuntimeUi()
@@ -81,10 +88,11 @@ public sealed class MinimapHudView : MonoBehaviour
         EnsureFrame(root, "PanelFrame", 2f, _frameColor);
         EnsureTitle(root);
         EnsureHeaderLine(root);
-        EnsureExpandButton(root);
+        RemoveLegacyExpandButton(root);
+        EnsureZoomButtons(root);
         EnsureViewport(root);
 
-        ApplyExpandedState();
+        ApplyZoomLevel();
     }
 
     private void TryBindState()
@@ -252,24 +260,6 @@ public sealed class MinimapHudView : MonoBehaviour
         return MinimapMapGraphic.MarkerKind.Object;
     }
 
-    private void ToggleExpanded()
-    {
-        _expanded = !_expanded;
-        ApplyExpandedState();
-    }
-
-    private void ApplyExpandedState()
-    {
-        RectTransform root = transform as RectTransform;
-        if (root != null)
-            root.sizeDelta = _expanded ? _expandedSize : _compactSize;
-
-        if (_expandIcon != null)
-            _expandIcon.SetExpanded(_expanded);
-
-        _mapGraphic?.SetVerticesDirty();
-    }
-
     private void ConfigureRootRect(RectTransform root)
     {
         if (root.parent == null)
@@ -282,8 +272,7 @@ public sealed class MinimapHudView : MonoBehaviour
         if (root.anchoredPosition == Vector2.zero)
             root.anchoredPosition = _compactAnchoredPosition;
 
-        if (root.sizeDelta.sqrMagnitude <= 1f)
-            root.sizeDelta = _compactSize;
+        root.sizeDelta = _compactSize;
     }
 
     private void EnsureTitle(RectTransform root)
@@ -292,12 +281,12 @@ public sealed class MinimapHudView : MonoBehaviour
         title.text = "MINIMAP";
         title.fontSize = 18f;
         title.fontStyle = FontStyles.Bold;
-        title.characterSpacing = 9f;
+        title.characterSpacing = 6f;
         title.alignment = TextAlignmentOptions.Left;
         title.enableWordWrapping = false;
         title.raycastTarget = false;
         title.color = _accentColor;
-        Anchor(title.rectTransform, new Vector2(0f, 1f), new Vector2(18f, -14f), new Vector2(180f, 26f), new Vector2(0f, 1f));
+        Anchor(title.rectTransform, new Vector2(0f, 1f), new Vector2(18f, -14f), new Vector2(116f, 26f), new Vector2(0f, 1f));
     }
 
     private void EnsureHeaderLine(RectTransform root)
@@ -306,31 +295,49 @@ public sealed class MinimapHudView : MonoBehaviour
         StretchHorizontalAtTop(line, 14f, 14f, 44f, 1.5f);
     }
 
-    private void EnsureExpandButton(RectTransform root)
+    private void RemoveLegacyExpandButton(RectTransform root)
     {
-        Color normalButtonColor = new Color(0.05f, 0.09f, 0.105f, 0.9f);
-        RectTransform buttonRect = FindOrCreateImage("ExpandButton", root, normalButtonColor);
-        Anchor(buttonRect, new Vector2(1f, 1f), new Vector2(-14f, -12f), new Vector2(36f, 36f), new Vector2(1f, 1f));
+        Transform legacy = root.Find("ExpandButton");
+        if (legacy == null)
+            return;
 
-        _expandButton = GetOrAdd<Button>(buttonRect.gameObject);
-        _expandButton.transition = Selectable.Transition.ColorTint;
-        _expandButton.targetGraphic = buttonRect.GetComponent<Image>();
-        ColorBlock colors = _expandButton.colors;
-        colors.normalColor = normalButtonColor;
-        colors.highlightedColor = new Color(0.09f, 0.17f, 0.19f, 0.96f);
-        colors.pressedColor = new Color(0.04f, 0.13f, 0.16f, 1f);
-        colors.selectedColor = colors.highlightedColor;
-        colors.disabledColor = new Color(1f, 1f, 1f, 0.35f);
-        _expandButton.colors = colors;
+        if (Application.isPlaying)
+            Destroy(legacy.gameObject);
+        else
+            DestroyImmediate(legacy.gameObject);
+    }
 
-        RectTransform iconRect = FindOrCreateRect("Icon", buttonRect);
-        Stretch(iconRect, 8f);
-        GetOrAdd<CanvasRenderer>(iconRect.gameObject);
-        _expandIcon = GetOrAdd<MinimapExpandIconGraphic>(iconRect.gameObject);
-        _expandIcon.color = _accentColor;
-        _expandIcon.raycastTarget = false;
+    private void EnsureZoomButtons(RectTransform root)
+    {
+        for (int i = 0; i < ZoomLevelCount; i++)
+        {
+            RectTransform buttonRect = FindOrCreateImage($"ZoomButton_X{i + 1}", root, GetZoomButtonNormalColor(i));
+            Anchor(buttonRect, new Vector2(1f, 1f), new Vector2(-14f - 46f * i, -12f), new Vector2(42f, 28f), new Vector2(1f, 1f));
 
-        BindExpandButton();
+            Image image = buttonRect.GetComponent<Image>();
+            image.raycastTarget = true;
+            _zoomButtonImages[i] = image;
+
+            Button button = GetOrAdd<Button>(buttonRect.gameObject);
+            button.transition = Selectable.Transition.ColorTint;
+            button.targetGraphic = image;
+            _zoomButtons[i] = button;
+
+            RectTransform labelRect = FindOrCreateRect("Label", buttonRect);
+            Stretch(labelRect, 0f);
+            GetOrAdd<CanvasRenderer>(labelRect.gameObject);
+            TextMeshProUGUI label = GetOrAdd<TextMeshProUGUI>(labelRect.gameObject);
+            label.text = $"X{i + 1}";
+            label.fontSize = 13f;
+            label.fontStyle = FontStyles.Bold;
+            label.alignment = TextAlignmentOptions.Center;
+            label.enableWordWrapping = false;
+            label.raycastTarget = false;
+            label.color = _accentColor;
+        }
+
+        UpdateZoomButtonStates();
+        BindZoomButtons();
     }
 
     private void EnsureViewport(RectTransform root)
@@ -347,22 +354,120 @@ public sealed class MinimapHudView : MonoBehaviour
         _mapGraphic.raycastTarget = false;
     }
 
-    private void BindExpandButton()
+    private void SetZoomLevel1()
     {
-        if (_expandButton == null || _buttonBound)
-            return;
-
-        _expandButton.onClick.AddListener(ToggleExpanded);
-        _buttonBound = true;
+        SetZoomLevel(0);
     }
 
-    private void UnbindExpandButton()
+    private void SetZoomLevel2()
     {
-        if (_expandButton == null || !_buttonBound)
+        SetZoomLevel(1);
+    }
+
+    private void SetZoomLevel3()
+    {
+        SetZoomLevel(2);
+    }
+
+    private void SetZoomLevel(int level)
+    {
+        int clampedLevel = Mathf.Clamp(level, 0, ZoomLevelCount - 1);
+        if (_selectedZoomLevel == clampedLevel)
+        {
+            UpdateZoomButtonStates();
+            return;
+        }
+
+        _selectedZoomLevel = clampedLevel;
+        ApplyZoomLevel();
+    }
+
+    private void ApplyZoomLevel()
+    {
+        if (_selectedZoomLevel < 0)
+            _selectedZoomLevel = Mathf.Clamp(_defaultZoomLevel, 0, ZoomLevelCount - 1);
+
+        _mapGraphic?.SetZoomScale(GetZoomScale(_selectedZoomLevel));
+        UpdateZoomButtonStates();
+    }
+
+    private float GetZoomScale(int level)
+    {
+        switch (level)
+        {
+            case 1: return Mathf.Max(1f, _x2ZoomScale);
+            case 2: return Mathf.Max(1f, _x3ZoomScale);
+            default: return Mathf.Max(1f, _x1ZoomScale);
+        }
+    }
+
+    private void BindZoomButtons()
+    {
+        if (_zoomButtonsBound)
             return;
 
-        _expandButton.onClick.RemoveListener(ToggleExpanded);
-        _buttonBound = false;
+        if (_zoomButtons[0] != null)
+            _zoomButtons[0].onClick.AddListener(SetZoomLevel1);
+        if (_zoomButtons[1] != null)
+            _zoomButtons[1].onClick.AddListener(SetZoomLevel2);
+        if (_zoomButtons[2] != null)
+            _zoomButtons[2].onClick.AddListener(SetZoomLevel3);
+
+        _zoomButtonsBound = true;
+    }
+
+    private void UnbindZoomButtons()
+    {
+        if (!_zoomButtonsBound)
+            return;
+
+        if (_zoomButtons[0] != null)
+            _zoomButtons[0].onClick.RemoveListener(SetZoomLevel1);
+        if (_zoomButtons[1] != null)
+            _zoomButtons[1].onClick.RemoveListener(SetZoomLevel2);
+        if (_zoomButtons[2] != null)
+            _zoomButtons[2].onClick.RemoveListener(SetZoomLevel3);
+
+        _zoomButtonsBound = false;
+    }
+
+    private void UpdateZoomButtonStates()
+    {
+        for (int i = 0; i < ZoomLevelCount; i++)
+        {
+            bool selected = i == Mathf.Max(0, _selectedZoomLevel);
+            Color normalColor = selected ? GetZoomButtonSelectedColor() : GetZoomButtonNormalColor(i);
+            Color highlightedColor = selected
+                ? new Color(0.13f, 0.42f, 0.46f, 1f)
+                : new Color(0.09f, 0.17f, 0.19f, 0.96f);
+
+            if (_zoomButtonImages[i] != null)
+                _zoomButtonImages[i].color = normalColor;
+
+            if (_zoomButtons[i] == null)
+                continue;
+
+            ColorBlock colors = _zoomButtons[i].colors;
+            colors.normalColor = normalColor;
+            colors.highlightedColor = highlightedColor;
+            colors.pressedColor = selected
+                ? new Color(0.08f, 0.32f, 0.36f, 1f)
+                : new Color(0.04f, 0.13f, 0.16f, 1f);
+            colors.selectedColor = highlightedColor;
+            colors.disabledColor = new Color(1f, 1f, 1f, 0.35f);
+            _zoomButtons[i].colors = colors;
+        }
+    }
+
+    private Color GetZoomButtonNormalColor(int index)
+    {
+        float step = Mathf.Clamp01(index * 0.08f);
+        return new Color(0.045f + step, 0.085f + step, 0.1f + step, 0.9f);
+    }
+
+    private Color GetZoomButtonSelectedColor()
+    {
+        return new Color(0.06f, 0.28f, 0.32f, 1f);
     }
 
     private static void EnsureFrame(RectTransform parent, string prefix, float thickness, Color color)

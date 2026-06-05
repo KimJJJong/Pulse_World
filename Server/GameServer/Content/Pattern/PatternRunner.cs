@@ -16,6 +16,10 @@ public sealed class PatternRunner
 
     private readonly Dictionary<int, RuntimeState> _rt = new();
     private readonly Random _rng = new();
+    private readonly Dictionary<(int x, int y), GridDistanceField> _distanceFields = new();
+    private readonly Dictionary<long, Dictionary<(int x, int y), int>> _moveReservationsByBeat = new();
+    private readonly List<long> _expiredReservationBeats = new();
+    private long _lastReservationCleanupBeat = long.MinValue;
 
     public PatternRunner(IGameWorld world, BeatActionManager actions, TelegraphScheduler telegraph, MonsterPatternSet patterns, FrozenAttackRegistry frozen, Map2D map2D)
     {
@@ -38,6 +42,8 @@ public sealed class PatternRunner
     public void Run(long beatIndex, MapEntity monster, string monsterType, IList<MapEntity> players)
     {
         if (players.Count == 0) return;
+        CleanupMoveReservations(beatIndex);
+
         if (!_rt.TryGetValue(monster.Id, out var st))
         {
             Console.WriteLine($"[PatternRunner] no runtime state for monsterId={monster.Id}");
@@ -148,9 +154,7 @@ public sealed class PatternRunner
                         MapEntity target = FindTarget(m, players, act.Target);
                         if (target == null) break;
 
-                        var nextPos = GetPathPosition(plannedPos, target.Position, act.MoveDistance);
-                        if (!_map2d.IsWalkable(nextPos.X, nextPos.Y))
-                            nextPos = plannedPos;
+                        var nextPos = ResolvePathToward(plannedPos, target.Position, act.MoveDistance, m.Id, executeBeat);
 
                         var cmd = new PlayerActionCmd
                         {
@@ -162,6 +166,7 @@ public sealed class PatternRunner
                             ServerReceiveTimeMs = 0
                         };
                         _actions.ScheduleServerCommand(executeBeat, cmd);
+                        ReserveMoveTarget(executeBeat, m.Id, nextPos, plannedPos);
                         plannedPos = nextPos;
                         m.Rotation = cmd.Rotation; // Immediate update for next actions in timeline
                         break;
@@ -187,12 +192,15 @@ public sealed class PatternRunner
                         // 매 Beat 1칸씩 이동하게 하려면 MoveDistance=1 + AtBeatOffset 증분 사용.
                         // ─────────────────────────────────────────────────────────
                         GridPos targetPos = act.MoveDirection != MoveDirection.None
-                            ? ResolveMoveDirection(plannedPos, m, players, act)
-                            : ResolveMoveStrategy(plannedPos, m, players, act);
+                            ? ResolveMoveDirection(plannedPos, m, players, act, executeBeat)
+                            : ResolveMoveStrategy(plannedPos, m, players, act, executeBeat);
 
                         // 최종 위치 걷기 가능 여부 보정 (ResolveMoveDirection 내부에서도 체크하지만 안전망)
-                        if (!_map2d.IsWalkable(targetPos.X, targetPos.Y))
+                        if ((targetPos.X != plannedPos.X || targetPos.Y != plannedPos.Y)
+                            && !CanEnterMoveTarget(m.Id, executeBeat, targetPos.X, targetPos.Y))
+                        {
                             targetPos = plannedPos;
+                        }
 
                         var cmd = new PlayerActionCmd
                         {
@@ -204,6 +212,7 @@ public sealed class PatternRunner
                             ServerReceiveTimeMs = 0
                         };
                         _actions.ScheduleServerCommand(executeBeat, cmd);
+                        ReserveMoveTarget(executeBeat, m.Id, targetPos, plannedPos);
                         plannedPos = targetPos;
                         m.Rotation = cmd.Rotation;
                         break;
@@ -220,7 +229,7 @@ public sealed class PatternRunner
     //  각 step마다 벽 체크 → 막히면 그 자리에서 정지(안전한 위치 보장).
     //  TowardTarget / AwayFromTarget은 step마다 타겟 위치를 재계산한다.
     // ─────────────────────────────────────────────────────────────────────────
-    private GridPos ResolveMoveDirection(GridPos from, MapEntity m, IList<MapEntity> players, ActionDef act)
+    private GridPos ResolveMoveDirection(GridPos from, MapEntity m, IList<MapEntity> players, ActionDef act, long executeBeat)
     {
         GridPos pos = from;
         int steps = Math.Max(1, act.MoveDistance);
@@ -245,7 +254,7 @@ public sealed class PatternRunner
                 case MoveDirection.TowardTarget:
                     {
                         var target = FindTarget(m, players, act.Target);
-                        next = target != null ? StepTowards(pos, target.Position) : pos;
+                        next = target != null ? ResolvePathToward(pos, target.Position, 1, m.Id, executeBeat) : pos;
                         break;
                     }
                 case MoveDirection.AwayFromTarget:
@@ -259,8 +268,9 @@ public sealed class PatternRunner
                     break;
             }
 
-            // 벽이면 해당 step에서 정지 (이후 step도 진행 불가)
-            if (!_map2d.IsWalkable(next.X, next.Y))
+            // 벽/점유/예약이면 해당 step에서 정지 (이후 step도 진행 불가)
+            if ((next.X != pos.X || next.Y != pos.Y)
+                && !CanEnterMoveTarget(m.Id, executeBeat, next.X, next.Y))
             {
                 Console.WriteLine($"[PatternRunner.ResolveMoveDirection] Blocked at step {step+1}/{steps}, pos=({next.X},{next.Y}). Stopping.");
                 break;
@@ -283,7 +293,7 @@ public sealed class PatternRunner
         if (dx == 0 && dy == 0)
             return new GridPos(from.X + 1, from.Y);
 
-        // X거리가 Y거리 이상이면 X축으로 도망 (StepTowards와 동일한 축 우선 기준)
+        // X거리가 Y거리 이상이면 X축으로 도망
         if (Math.Abs(dx) >= Math.Abs(dy))
             return new GridPos(from.X + Math.Sign(dx), from.Y);
         else
@@ -293,7 +303,7 @@ public sealed class PatternRunner
     // ─────────────────────────────────────────────────────────────────────────
     //  기존 Strategy 방식 (Legacy Fallback — MoveDirection == None 일 때)
     // ─────────────────────────────────────────────────────────────────────────
-    private GridPos ResolveMoveStrategy(GridPos currentPos, MapEntity m, IList<MapEntity> players, ActionDef act)
+    private GridPos ResolveMoveStrategy(GridPos currentPos, MapEntity m, IList<MapEntity> players, ActionDef act, long executeBeat)
     {
         int dist = act.MoveDistance;
         if (dist <= 0) return currentPos;
@@ -308,7 +318,7 @@ public sealed class PatternRunner
                     for (int i = 0; i < 4; i++)
                     {
                         var cand = new GridPos(currentPos.X + dx[i] * dist, currentPos.Y + dy[i] * dist);
-                        if (_map2d.IsWalkable(cand.X, cand.Y)) valids.Add(cand);
+                        if (CanEnterMoveTarget(m.Id, executeBeat, cand.X, cand.Y)) valids.Add(cand);
                     }
                     if (valids.Count > 0) return valids[_rng.Next(valids.Count)];
                     return currentPos;
@@ -323,13 +333,14 @@ public sealed class PatternRunner
                     if (Math.Abs(dx) >= Math.Abs(dy)) sx = Math.Sign(dx);
                     else sy = Math.Sign(dy);
                     if (sx == 0 && sy == 0) sx = 1;
-                    return new GridPos(currentPos.X + sx * dist, currentPos.Y + sy * dist);
+                    var next = new GridPos(currentPos.X + sx * dist, currentPos.Y + sy * dist);
+                    return CanEnterMoveTarget(m.Id, executeBeat, next.X, next.Y) ? next : currentPos;
                 }
             case MoveStrategy.Forward:
                 {
                     var target = FindClosestPlayer(m, players, out _);
                     if (target == null) return currentPos;
-                    return GetPathPosition(currentPos, target.Position, dist);
+                    return ResolvePathToward(currentPos, target.Position, dist, m.Id, executeBeat);
                 }
             case MoveStrategy.Backward:
                 {
@@ -341,11 +352,103 @@ public sealed class PatternRunner
                     if (Math.Abs(dx) >= Math.Abs(dy)) sx = Math.Sign(dx);
                     else sy = Math.Sign(dy);
                     if (sx == 0 && sy == 0) sx = -1;
-                    return new GridPos(currentPos.X + sx * dist, currentPos.Y + sy * dist);
+                    var next = new GridPos(currentPos.X + sx * dist, currentPos.Y + sy * dist);
+                    return CanEnterMoveTarget(m.Id, executeBeat, next.X, next.Y) ? next : currentPos;
                 }
             default:
                 return currentPos;
         }
+    }
+
+    private GridPos ResolvePathToward(GridPos from, GridPos target, int distance, int actorId, long executeBeat)
+    {
+        if (from.X == target.X && from.Y == target.Y)
+            return from;
+
+        var field = GetDistanceField(target);
+        if (field.GetDistance(from.X, from.Y) == GridDistanceField.Unreachable)
+            return from;
+
+        return field.TryStepToward(
+            from,
+            Math.Max(1, distance),
+            (x, y) => CanEnterMoveTarget(actorId, executeBeat, x, y),
+            out var next)
+            ? next
+            : from;
+    }
+
+    private GridDistanceField GetDistanceField(GridPos target)
+    {
+        var key = (target.X, target.Y);
+        if (_distanceFields.TryGetValue(key, out var field))
+            return field;
+
+        field = new GridDistanceField(_map2d.Width, _map2d.Height);
+        field.Build(new[] { target }, (x, y) => _map2d.IsWalkable(x, y));
+        _distanceFields[key] = field;
+        return field;
+    }
+
+    private bool CanEnterMoveTarget(int actorId, long executeBeat, int x, int y)
+    {
+        if (!_map2d.IsWalkable(x, y))
+            return false;
+
+        if (IsMoveTargetReservedByOther(executeBeat, actorId, x, y))
+            return false;
+
+        return !IsOccupiedByOther(actorId, x, y);
+    }
+
+    private bool IsOccupiedByOther(int actorId, int x, int y)
+    {
+        foreach (var entity in _world.GetEntitiesAt(new GridPos(x, y)))
+        {
+            if (entity != null && entity.IsAlive && entity.Id != actorId)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsMoveTargetReservedByOther(long executeBeat, int actorId, int x, int y)
+    {
+        return _moveReservationsByBeat.TryGetValue(executeBeat, out var reservations)
+               && reservations.TryGetValue((x, y), out int reservedBy)
+               && reservedBy != actorId;
+    }
+
+    private void ReserveMoveTarget(long executeBeat, int actorId, GridPos target, GridPos from)
+    {
+        if (target.X == from.X && target.Y == from.Y)
+            return;
+
+        if (!_moveReservationsByBeat.TryGetValue(executeBeat, out var reservations))
+        {
+            reservations = new Dictionary<(int x, int y), int>();
+            _moveReservationsByBeat[executeBeat] = reservations;
+        }
+
+        reservations[(target.X, target.Y)] = actorId;
+    }
+
+    private void CleanupMoveReservations(long beatIndex)
+    {
+        if (_lastReservationCleanupBeat == beatIndex)
+            return;
+
+        _lastReservationCleanupBeat = beatIndex;
+        _expiredReservationBeats.Clear();
+
+        foreach (var beat in _moveReservationsByBeat.Keys)
+        {
+            if (beat < beatIndex)
+                _expiredReservationBeats.Add(beat);
+        }
+
+        foreach (var beat in _expiredReservationBeats)
+            _moveReservationsByBeat.Remove(beat);
     }
 
     private bool EvaluateWhen(WhenGroup when, MapEntity m, IList<MapEntity> players)
@@ -472,31 +575,6 @@ public sealed class PatternRunner
             if (d < dist) { dist = d; best = p; }
         }
         return best;
-    }
-
-    private GridPos GetPathPosition(GridPos from, GridPos to, int steps)
-    {
-        GridPos curr = from;
-        for (int i = 0; i < steps; i++)
-        {
-            if (curr.X == to.X && curr.Y == to.Y) break;
-            curr = StepTowards(curr, to);
-        }
-        return curr;
-    }
-
-    private GridPos StepTowards(GridPos from, GridPos to)
-    {
-        int dx = to.X - from.X;
-        int dy = to.Y - from.Y;
-
-        // X거리가 Y거리보다 크면 X축으로 1칸 — 대각선 이동 원천 불가
-        if (Math.Abs(dx) > Math.Abs(dy))
-            return new GridPos(from.X + Math.Sign(dx), from.Y);
-        else if (dy != 0)
-            return new GridPos(from.X, from.Y + Math.Sign(dy));
-        else
-            return from;
     }
 
     private void ApplyPhaseTransitions(MonsterPatternDef def, MapEntity monster, RuntimeState st, long beatIndex)
