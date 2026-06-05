@@ -202,9 +202,9 @@ MonoBehaviour:
     - Type: 9
       HeaderParam: 
       ParamId: 900
-      Position: {x: -44, y: 54, z: 0}
+      Position: {x: 24, y: 0, z: 0}
       StringVal: Tutorial_Movement
-      GroupId: 0
+      GroupId: 7
       GuideTitle: 
       GuideBody: 
       GuideImageResource: UI/UI_Tutorial/Tutorial_Movement
@@ -267,9 +267,9 @@ MonoBehaviour:
     - Type: 9
       HeaderParam: 
       ParamId: 900
-      Position: {x: -44, y: 54, z: 0}
+      Position: {x: 24, y: 0, z: 0}
       StringVal: Tutorial_Attack
-      GroupId: 0
+      GroupId: 7
       GuideTitle: 
       GuideBody: 
       GuideImageResource: UI/UI_Tutorial/Tutorial_Attack
@@ -331,9 +331,9 @@ MonoBehaviour:
     - Type: 9
       HeaderParam: 
       ParamId: 900
-      Position: {x: -44, y: 54, z: 0}
+      Position: {x: 24, y: 0, z: 0}
       StringVal: Tutorial_Crystal
-      GroupId: 0
+      GroupId: 7
       GuideTitle: 
       GuideBody: 
       GuideImageResource: UI/UI_Tutorial/Tutorial_Crystal
@@ -372,3 +372,5 @@ MonoBehaviour:
       GuideImageResource: 
       DurationMs: 180
       VfxKey: 
+
+

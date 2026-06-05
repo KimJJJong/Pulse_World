@@ -140,9 +140,9 @@ namespace GameServer.InGame.Director.Data
         public string ImageResource = string.Empty;
         public int FadeMs = 220;
         public int Width = 900;
-        public int AnchorPreset;
-        public int OffsetX = -44;
-        public int OffsetY = 54;
+        public int AnchorPreset = 7;
+        public int OffsetX = 24;
+        public int OffsetY;
     }
 
     [Serializable]
@@ -409,9 +409,9 @@ namespace GameServer.InGame.Director.Data
                 ImageResource = DecodeText(parts[3]),
                 FadeMs = int.TryParse(parts[4], out int fadeMs) ? fadeMs : 220,
                 Width = int.TryParse(parts[5], out int width) ? width : 900,
-                AnchorPreset = int.TryParse(parts[6], out int anchorPreset) ? anchorPreset : 0,
-                OffsetX = int.TryParse(parts[7], out int offsetX) ? offsetX : -44,
-                OffsetY = int.TryParse(parts[8], out int offsetY) ? offsetY : 54
+                AnchorPreset = int.TryParse(parts[6], out int anchorPreset) ? anchorPreset : 7,
+                OffsetX = int.TryParse(parts[7], out int offsetX) ? offsetX : 24,
+                OffsetY = int.TryParse(parts[8], out int offsetY) ? offsetY : 0
             };
             return true;
         }

@@ -606,7 +606,8 @@ namespace RhythmRPG.Editor.StageBuilder
                 "Top Center",
                 "Center",
                 "Bottom Left",
-                "Top Left"
+                "Top Left",
+                "Left Center"
             };
 
             int current = Mathf.Clamp(anchorProp.intValue, 0, labels.Length - 1);
@@ -1139,8 +1140,8 @@ namespace RhythmRPG.Editor.StageBuilder
                     actionProp.FindPropertyRelative("StringVal").stringValue = "TutorialPanel";
                     actionProp.FindPropertyRelative("GuideImageResource").stringValue = "UI/UI_Tutorial/Tutorial_Movement";
                     actionProp.FindPropertyRelative("ParamId").intValue = 900;
-                    actionProp.FindPropertyRelative("GroupId").intValue = 0;
-                    actionProp.FindPropertyRelative("Position").vector3Value = new Vector3(-44f, 54f, 0f);
+                    actionProp.FindPropertyRelative("GroupId").intValue = 7;
+                    actionProp.FindPropertyRelative("Position").vector3Value = new Vector3(24f, 0f, 0f);
                     actionProp.FindPropertyRelative("DurationMs").intValue = 220;
                     break;
 

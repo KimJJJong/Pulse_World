@@ -5,7 +5,6 @@ using UnityEngine.UI;
 
 public sealed class StageTutorialPanelHud : MonoBehaviour
 {
-    private const float DefaultAspect = 16f / 9f;
     private const int DefaultSortingOrder = 505;
     private const int DefaultWidth = 900;
 
@@ -116,7 +115,8 @@ public sealed class StageTutorialPanelHud : MonoBehaviour
     {
         int width = data.Width > 0 ? data.Width : DefaultWidth;
         width = Mathf.Clamp(width, 480, 1040);
-        float height = width / DefaultAspect;
+        float aspect = ResolveSpriteAspect();
+        float height = width / aspect;
 
         _panel.sizeDelta = new Vector2(width, height);
 
@@ -157,9 +157,13 @@ public sealed class StageTutorialPanelHud : MonoBehaviour
                 anchor = new Vector2(0f, 1f);
                 pivot = new Vector2(0f, 1f);
                 break;
+            case 7:
+                anchor = new Vector2(0f, 0.5f);
+                pivot = new Vector2(0f, 0.5f);
+                break;
             default:
-                anchor = new Vector2(1f, 0f);
-                pivot = new Vector2(1f, 0f);
+                anchor = new Vector2(0f, 0.5f);
+                pivot = new Vector2(0f, 0.5f);
                 break;
         }
     }
@@ -177,12 +181,22 @@ public sealed class StageTutorialPanelHud : MonoBehaviour
             return new Vector2(44f, 54f);
         if (anchor.x <= 0.01f && anchor.y >= 0.99f)
             return new Vector2(44f, -54f);
+        if (anchor.x <= 0.01f)
+            return new Vector2(44f, 0f);
         if (anchor.y <= 0.01f)
             return new Vector2(0f, 54f);
         if (anchor.y >= 0.99f)
             return new Vector2(0f, -54f);
 
         return Vector2.zero;
+    }
+
+    private float ResolveSpriteAspect()
+    {
+        if (_panelImage != null && _panelImage.sprite != null && _panelImage.sprite.rect.height > 0f)
+            return _panelImage.sprite.rect.width / _panelImage.sprite.rect.height;
+
+        return 16f / 9f;
     }
 
     private static Sprite LoadPanelSprite(string resourcePath)
