@@ -33,7 +33,7 @@ MonoBehaviour:
   InitialSpawns:
   - EntityKey: Dummy
     Label: 
-    Position: {x: 48, y: -1, z: 14}
+    Position: {x: 38, y: -1, z: 15}
     EulerAngles: {x: 0, y: 90, z: 0}
     Scale: {x: 1, y: 1, z: 1}
     PreviewPrefabOverride: {fileID: 0}
@@ -41,7 +41,7 @@ MonoBehaviour:
     OverrideGroupId: 10
   - EntityKey: Dummy
     Label: 
-    Position: {x: 52, y: -1, z: 17}
+    Position: {x: 37, y: -1, z: 22}
     EulerAngles: {x: 0, y: 90, z: 0}
     Scale: {x: 1, y: 1, z: 1}
     PreviewPrefabOverride: {fileID: 0}
@@ -49,7 +49,7 @@ MonoBehaviour:
     OverrideGroupId: 10
   - EntityKey: Dummy
     Label: 
-    Position: {x: 48, y: -1, z: 19}
+    Position: {x: 37, y: -1, z: 36}
     EulerAngles: {x: 0, y: 90, z: 0}
     Scale: {x: 1, y: 1, z: 1}
     PreviewPrefabOverride: {fileID: 0}
@@ -57,7 +57,7 @@ MonoBehaviour:
     OverrideGroupId: 10
   - EntityKey: Dummy
     Label: 
-    Position: {x: 52, y: -1, z: 22}
+    Position: {x: 40, y: -1, z: 31}
     EulerAngles: {x: 0, y: 90, z: 0}
     Scale: {x: 1, y: 1, z: 1}
     PreviewPrefabOverride: {fileID: 0}
@@ -177,3 +177,198 @@ MonoBehaviour:
       GuideImageResource: 
       DurationMs: 1200
       VfxKey: CrystalPulseRed
+  - Title: Tutorial Movement Panel Enter
+    Notes: Fade in movement tutorial panel while players stay in the start movement
+      zone.
+    Enabled: 1
+    EventId: 4
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 0.196, g: 0.784, b: 1, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 1
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 57
+        y: 7
+        width: 5
+        height: 35
+    Actions:
+    - Type: 9
+      HeaderParam: 
+      ParamId: 900
+      Position: {x: -44, y: 54, z: 0}
+      StringVal: Tutorial_Movement
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: UI/UI_Tutorial/Tutorial_Movement
+      DurationMs: 220
+      VfxKey: 
+  - Title: Tutorial Movement Panel Exit
+    Notes: Fade out movement tutorial panel when players leave the start movement
+      zone.
+    Enabled: 1
+    EventId: 5
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 0.196, g: 0.784, b: 1, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 6
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 57
+        y: 7
+        width: 5
+        height: 35
+    Actions:
+    - Type: 10
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: Tutorial_Movement
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 180
+      VfxKey: 
+  - Title: Tutorial Attack Panel Enter
+    Notes: Fade in attack tutorial panel around the training dummy zone.
+    Enabled: 1
+    EventId: 6
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 1, g: 0.18, b: 0.12, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 1
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 43
+        y: 10
+        width: 5
+        height: 29
+    Actions:
+    - Type: 9
+      HeaderParam: 
+      ParamId: 900
+      Position: {x: -44, y: 54, z: 0}
+      StringVal: Tutorial_Attack
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: UI/UI_Tutorial/Tutorial_Attack
+      DurationMs: 220
+      VfxKey: 
+  - Title: Tutorial Attack Panel Exit
+    Notes: Fade out attack tutorial panel when players leave the training dummy zone.
+    Enabled: 1
+    EventId: 7
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 1, g: 0.18, b: 0.12, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 6
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 43
+        y: 10
+        width: 5
+        height: 29
+    Actions:
+    - Type: 10
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: Tutorial_Attack
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 180
+      VfxKey: 
+  - Title: Tutorial Crystal Panel Enter
+    Notes: Fade in crystal interaction tutorial panel around the crystal zone.
+    Enabled: 1
+    EventId: 8
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 0.85, g: 0.15, b: 0.12, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 1
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 25
+        y: 10
+        width: 8
+        height: 29
+    Actions:
+    - Type: 9
+      HeaderParam: 
+      ParamId: 900
+      Position: {x: -44, y: 54, z: 0}
+      StringVal: Tutorial_Crystal
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: UI/UI_Tutorial/Tutorial_Crystal
+      DurationMs: 220
+      VfxKey: 
+  - Title: Tutorial Crystal Panel Exit
+    Notes: Fade out crystal interaction tutorial panel when players leave the crystal
+      zone.
+    Enabled: 1
+    EventId: 9
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 0.85, g: 0.15, b: 0.12, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 6
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 25
+        y: 10
+        width: 8
+        height: 29
+    Actions:
+    - Type: 10
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: Tutorial_Crystal
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 180
+      VfxKey: 

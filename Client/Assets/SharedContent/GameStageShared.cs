@@ -133,6 +133,19 @@ namespace GameServer.InGame.Director.Data
     }
 
     [Serializable]
+    public class StageTutorialPanelData
+    {
+        public bool Visible = true;
+        public string PanelId = string.Empty;
+        public string ImageResource = string.Empty;
+        public int FadeMs = 220;
+        public int Width = 900;
+        public int AnchorPreset;
+        public int OffsetX = -44;
+        public int OffsetY = 54;
+    }
+
+    [Serializable]
     public class StageClearResultData
     {
         public string MapId = string.Empty;
@@ -265,9 +278,11 @@ namespace GameServer.InGame.Director.Data
         public const int GuideWarnCode = 6101;
         public const int VfxWarnCode = 6102;
         public const int StageClearWarnCode = 6103;
+        public const int TutorialPanelWarnCode = 6104;
         public const string GuidePrefix = "STAGE_GUIDE";
         public const string VfxPrefix = "STAGE_VFX";
         public const string StageClearPrefix = "STAGE_CLEAR";
+        public const string TutorialPanelPrefix = "STAGE_TUTORIAL_PANEL";
 
         public static string EncodeGuide(StageGuideData data)
         {
@@ -292,6 +307,21 @@ namespace GameServer.InGame.Director.Data
                 Math.Max(0, data.DurationMs),
                 data.TargetId,
                 data.SecondaryTargetId);
+        }
+
+        public static string EncodeTutorialPanel(StageTutorialPanelData data)
+        {
+            data ??= new StageTutorialPanelData();
+            return string.Join("\t",
+                TutorialPanelPrefix,
+                data.Visible ? 1 : 0,
+                EncodeText(data.PanelId),
+                EncodeText(data.ImageResource),
+                Math.Max(0, data.FadeMs),
+                Math.Max(0, data.Width),
+                data.AnchorPreset,
+                data.OffsetX,
+                data.OffsetY);
         }
 
         public static string EncodeStageClear(StageClearResultData data)
@@ -358,6 +388,30 @@ namespace GameServer.InGame.Director.Data
                 DurationMs = int.TryParse(parts[5], out int durationMs) ? durationMs : 0,
                 TargetId = parts.Length > 6 && int.TryParse(parts[6], out int targetId) ? targetId : 0,
                 SecondaryTargetId = parts.Length > 7 && int.TryParse(parts[7], out int secondaryTargetId) ? secondaryTargetId : 0
+            };
+            return true;
+        }
+
+        public static bool TryDecodeTutorialPanel(string payload, out StageTutorialPanelData data)
+        {
+            data = null;
+            if (string.IsNullOrEmpty(payload))
+                return false;
+
+            string[] parts = payload.Split('\t');
+            if (parts.Length < 9 || !string.Equals(parts[0], TutorialPanelPrefix, StringComparison.Ordinal))
+                return false;
+
+            data = new StageTutorialPanelData
+            {
+                Visible = int.TryParse(parts[1], out int visible) && visible != 0,
+                PanelId = DecodeText(parts[2]),
+                ImageResource = DecodeText(parts[3]),
+                FadeMs = int.TryParse(parts[4], out int fadeMs) ? fadeMs : 220,
+                Width = int.TryParse(parts[5], out int width) ? width : 900,
+                AnchorPreset = int.TryParse(parts[6], out int anchorPreset) ? anchorPreset : 0,
+                OffsetX = int.TryParse(parts[7], out int offsetX) ? offsetX : -44,
+                OffsetY = int.TryParse(parts[8], out int offsetY) ? offsetY : 54
             };
             return true;
         }
@@ -474,6 +528,8 @@ namespace GameServer.InGame.Director.Core
         void OpenGate(int x, int y);
         void SetObjectState(int targetId, int state);
         void ShowGuide(StageGuideData data);
+        void ShowTutorialPanel(StageTutorialPanelData data);
+        void HideTutorialPanel(StageTutorialPanelData data);
         void PlayStageVfx(StageVfxData data);
     }
 
@@ -606,6 +662,7 @@ namespace GameServer.InGame.Director.Core
             {
                 "MonsterAllDead" => new ConditionMonsterAllDead(),
                 "AreaEnter" => new ConditionAreaEnter(),
+                "AreaExit" => new ConditionAreaExit(),
                 "TimeElapsed" => new ConditionTimeElapsed(),
                 "ObjectInteracted" => new ConditionObjectInteracted(),
                 "ObjectPairInteracted" => new ConditionObjectPairInteracted(),
@@ -631,6 +688,8 @@ namespace GameServer.InGame.Director.Core
                 "FinGame" => new ActionFinGame(),
                 "OpenGate" => new ActionOpenGate(),
                 "ShowGuide" => new ActionShowGuide(),
+                "ShowTutorialPanel" => new ActionShowTutorialPanel(),
+                "HideTutorialPanel" => new ActionHideTutorialPanel(),
                 "SetObjectState" => new ActionSetObjectState(),
                 "PlayVfx" => new ActionPlayVfx(),
                 _ => null
@@ -652,6 +711,8 @@ namespace GameServer.InGame.Director.Core
 
         private sealed class ConditionAreaEnter : EventCondition
         {
+            private readonly Dictionary<int, bool> _wasInsideByActor = new();
+
             public override bool Check(IStageActionHost host, GameEventContext context)
             {
                 if (context.Type != EventType.Move)
@@ -661,10 +722,39 @@ namespace GameServer.InGame.Director.Core
                 if (r == null)
                     return false;
 
-                return context.X >= r.X && context.X < r.X + r.W &&
-                       context.Y >= r.Y && context.Y < r.Y + r.H;
+                int actorKey = context.SourceActorId;
+                bool isInside = IsInsideArea(r, context.X, context.Y);
+                bool hadPrevious = _wasInsideByActor.TryGetValue(actorKey, out bool wasInside);
+                _wasInsideByActor[actorKey] = isInside;
+                return isInside && (!hadPrevious || !wasInside);
             }
         }
+
+        private sealed class ConditionAreaExit : EventCondition
+        {
+            private readonly Dictionary<int, bool> _wasInsideByActor = new();
+
+            public override bool Check(IStageActionHost host, GameEventContext context)
+            {
+                if (context.Type != EventType.Move)
+                    return false;
+
+                var r = _data.Area;
+                if (r == null)
+                    return false;
+
+                int actorKey = context.SourceActorId;
+                bool isInside = IsInsideArea(r, context.X, context.Y);
+                bool hadPrevious = _wasInsideByActor.TryGetValue(actorKey, out bool wasInside);
+                _wasInsideByActor[actorKey] = isInside;
+                return hadPrevious && wasInside && !isInside;
+            }
+        }
+
+        private static bool IsInsideArea(RectData r, int x, int y)
+            => r != null
+               && x >= r.X && x < r.X + r.W
+               && y >= r.Y && y < r.Y + r.H;
 
         private sealed class ConditionTimeElapsed : EventCondition
         {
@@ -800,6 +890,37 @@ namespace GameServer.InGame.Director.Core
                     Body = FirstNonEmpty(_data.GuideBody, _data.StringVal),
                     ImageResource = _data.GuideImageResource ?? string.Empty,
                     DurationMs = _data.DurationMs > 0 ? _data.DurationMs : 3500
+                });
+            }
+        }
+
+        private sealed class ActionShowTutorialPanel : EventAction
+        {
+            public override void Execute(IStageActionHost host)
+            {
+                host.ShowTutorialPanel(new StageTutorialPanelData
+                {
+                    Visible = true,
+                    PanelId = FirstNonEmpty(_data.StringVal, _data.GuideTitle),
+                    ImageResource = _data.GuideImageResource ?? string.Empty,
+                    FadeMs = _data.DurationMs > 0 ? _data.DurationMs : 220,
+                    Width = _data.ParamId > 0 ? _data.ParamId : 900,
+                    AnchorPreset = _data.GroupId,
+                    OffsetX = _data.X,
+                    OffsetY = _data.Y
+                });
+            }
+        }
+
+        private sealed class ActionHideTutorialPanel : EventAction
+        {
+            public override void Execute(IStageActionHost host)
+            {
+                host.HideTutorialPanel(new StageTutorialPanelData
+                {
+                    Visible = false,
+                    PanelId = FirstNonEmpty(_data.StringVal, _data.GuideTitle),
+                    FadeMs = _data.DurationMs > 0 ? _data.DurationMs : 180
                 });
             }
         }

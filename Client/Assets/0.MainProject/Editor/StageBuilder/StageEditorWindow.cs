@@ -399,6 +399,11 @@ namespace RhythmRPG.Editor.StageBuilder
                     EditorGUILayout.HelpBox("월드 X/Z 영역에 진입하면 발동합니다.", MessageType.None);
                     break;
 
+                case ConditionType.AreaExit:
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("Area"), new GUIContent("Area (X/Z)"));
+                    EditorGUILayout.HelpBox("월드 X/Z 영역을 벗어나면 발동합니다. Tutorial Panel Hide 이벤트에 사용합니다.", MessageType.None);
+                    break;
+
                 case ConditionType.TimeElapsed:
                     SerializedProperty timeProp = condProp.FindPropertyRelative("Count");
                     EditorGUILayout.PropertyField(timeProp, new GUIContent("Elapsed Time (ms)"));
@@ -503,6 +508,22 @@ namespace RhythmRPG.Editor.StageBuilder
                     EditorGUILayout.HelpBox("Image Resource는 Resources 기준 경로입니다. 예: UI/Tutorial/MoveGuide", MessageType.None);
                     break;
 
+                case ActionType.ShowTutorialPanel:
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("StringVal"), new GUIContent("Panel ID"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GuideImageResource"), new GUIContent("Panel Image Resource"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Panel Width"));
+                    DrawTutorialPanelAnchorSelector(actionProp.FindPropertyRelative("GroupId"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("Position"), new GUIContent("Screen Offset (X/Y)"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("DurationMs"), new GUIContent("Fade In (ms)"));
+                    EditorGUILayout.HelpBox("Panel Image Resource는 Resources 기준 경로입니다. 예: UI/UI_Tutorial/Tutorial_Movement", MessageType.None);
+                    break;
+
+                case ActionType.HideTutorialPanel:
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("StringVal"), new GUIContent("Panel ID"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("DurationMs"), new GUIContent("Fade Out (ms)"));
+                    EditorGUILayout.HelpBox("Panel ID가 비어 있으면 현재 표시 중인 Tutorial Panel을 숨깁니다.", MessageType.None);
+                    break;
+
                 case ActionType.SetObjectState:
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Object Group/ID"));
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GroupId"), new GUIContent("State Value"));
@@ -573,6 +594,25 @@ namespace RhythmRPG.Editor.StageBuilder
 
             if (!hasKnownDefinition && !string.IsNullOrWhiteSpace(currentKey))
                 EditorGUILayout.PropertyField(vfxKeyProp, new GUIContent("Custom VFX Key"));
+        }
+
+        private static void DrawTutorialPanelAnchorSelector(SerializedProperty anchorProp)
+        {
+            string[] labels =
+            {
+                "Bottom Right",
+                "Bottom Center",
+                "Top Right",
+                "Top Center",
+                "Center",
+                "Bottom Left",
+                "Top Left"
+            };
+
+            int current = Mathf.Clamp(anchorProp.intValue, 0, labels.Length - 1);
+            int next = EditorGUILayout.Popup(new GUIContent("Anchor"), current, labels);
+            if (next != anchorProp.intValue)
+                anchorProp.intValue = next;
         }
 
         private static void DrawSectionHeader(string title, string description, Color accent)
@@ -668,6 +708,7 @@ namespace RhythmRPG.Editor.StageBuilder
             AreaBroadcast,
             TimeReturnTown,
             TutorialGuide,
+            TutorialPanelPair,
             CrystalPair,
             StageClearFinGame
         }
@@ -676,6 +717,7 @@ namespace RhythmRPG.Editor.StageBuilder
         {
             MonsterAllDead,
             AreaEnter,
+            AreaExit,
             TimeElapsed,
             ObjectInteracted,
             ObjectPairInteracted,
@@ -690,6 +732,8 @@ namespace RhythmRPG.Editor.StageBuilder
             ReturnToTown,
             SpawnObject,
             ShowGuide,
+            ShowTutorialPanel,
+            HideTutorialPanel,
             SetObjectState,
             PlayVfx,
             FinGame
@@ -728,6 +772,12 @@ namespace RhythmRPG.Editor.StageBuilder
                 so.ApplyModifiedProperties();
             }
 
+            if (ColoredButton("Tutorial Panel", BasicAccent, GUILayout.Width(112)))
+            {
+                AddEvent(eventsProp, EventQuickTemplate.TutorialPanelPair);
+                so.ApplyModifiedProperties();
+            }
+
             if (ColoredButton("Crystal Pair", ObjectAccent, GUILayout.Width(100)))
             {
                 AddEvent(eventsProp, EventQuickTemplate.CrystalPair);
@@ -762,6 +812,11 @@ namespace RhythmRPG.Editor.StageBuilder
             if (ColoredButton("+ Area", ConditionAccent, GUILayout.Width(70)))
             {
                 AddCondition(conditionsProp, ConditionQuickTemplate.AreaEnter);
+            }
+
+            if (ColoredButton("+ Exit", ConditionAccent, GUILayout.Width(66)))
+            {
+                AddCondition(conditionsProp, ConditionQuickTemplate.AreaExit);
             }
 
             if (ColoredButton("+ Time", ActionAccent, GUILayout.Width(70)))
@@ -827,6 +882,16 @@ namespace RhythmRPG.Editor.StageBuilder
                 AddAction(actionsProp, ActionQuickTemplate.ShowGuide);
             }
 
+            if (ColoredButton("+ Panel", BasicAccent, GUILayout.Width(76)))
+            {
+                AddAction(actionsProp, ActionQuickTemplate.ShowTutorialPanel);
+            }
+
+            if (ColoredButton("+ Hide", BasicAccent, GUILayout.Width(70)))
+            {
+                AddAction(actionsProp, ActionQuickTemplate.HideTutorialPanel);
+            }
+
             if (ColoredButton("+ VFX", ConditionAccent, GUILayout.Width(70)))
             {
                 AddAction(actionsProp, ActionQuickTemplate.PlayVfx);
@@ -882,6 +947,27 @@ namespace RhythmRPG.Editor.StageBuilder
                     AddAction(evtProp.FindPropertyRelative("Actions"), ActionQuickTemplate.ShowGuide);
                     break;
 
+                case EventQuickTemplate.TutorialPanelPair:
+                    evtProp.FindPropertyRelative("Title").stringValue = $"Tutorial Panel {nextId} Enter";
+                    evtProp.FindPropertyRelative("IsOneShot").boolValue = false;
+                    SerializedProperty enterConditions = evtProp.FindPropertyRelative("Conditions");
+                    AddCondition(enterConditions, ConditionQuickTemplate.AreaEnter);
+                    SetLastConditionArea(enterConditions, new RectInt(0, 0, 6, 6));
+                    AddAction(evtProp.FindPropertyRelative("Actions"), ActionQuickTemplate.ShowTutorialPanel);
+
+                    int exitIndex = eventsProp.arraySize;
+                    eventsProp.InsertArrayElementAtIndex(exitIndex);
+                    SerializedProperty exitProp = eventsProp.GetArrayElementAtIndex(exitIndex);
+                    ResetEvent(exitProp, GetNextEventId(eventsProp));
+                    exitProp.FindPropertyRelative("Title").stringValue = $"Tutorial Panel {nextId} Exit";
+                    exitProp.FindPropertyRelative("IsOneShot").boolValue = false;
+                    SerializedProperty exitConditions = exitProp.FindPropertyRelative("Conditions");
+                    AddCondition(exitConditions, ConditionQuickTemplate.AreaExit);
+                    SetLastConditionArea(exitConditions, new RectInt(0, 0, 6, 6));
+                    AddAction(exitProp.FindPropertyRelative("Actions"), ActionQuickTemplate.HideTutorialPanel);
+                    exitProp.isExpanded = true;
+                    break;
+
                 case EventQuickTemplate.CrystalPair:
                     evtProp.FindPropertyRelative("Title").stringValue = $"Crystal Pair {nextId}";
                     AddCondition(evtProp.FindPropertyRelative("Conditions"), ConditionQuickTemplate.ObjectPairInteracted);
@@ -929,6 +1015,15 @@ namespace RhythmRPG.Editor.StageBuilder
             AddCondition(conditionsProp, ConditionQuickTemplate.MonsterAllDead);
         }
 
+        private static void SetLastConditionArea(SerializedProperty conditionsProp, RectInt area)
+        {
+            if (conditionsProp == null || conditionsProp.arraySize <= 0)
+                return;
+
+            conditionsProp.GetArrayElementAtIndex(conditionsProp.arraySize - 1)
+                .FindPropertyRelative("Area").rectIntValue = area;
+        }
+
         private static void AddCondition(SerializedProperty conditionsProp, ConditionQuickTemplate template)
         {
             int insertIndex = conditionsProp.arraySize;
@@ -943,6 +1038,12 @@ namespace RhythmRPG.Editor.StageBuilder
             {
                 case ConditionQuickTemplate.AreaEnter:
                     condProp.FindPropertyRelative("Type").enumValueIndex = (int)ConditionType.AreaEnter;
+                    condProp.FindPropertyRelative("TargetId").intValue = 0;
+                    condProp.FindPropertyRelative("Count").intValue = 0;
+                    break;
+
+                case ConditionQuickTemplate.AreaExit:
+                    condProp.FindPropertyRelative("Type").enumValueIndex = (int)ConditionType.AreaExit;
                     condProp.FindPropertyRelative("TargetId").intValue = 0;
                     condProp.FindPropertyRelative("Count").intValue = 0;
                     break;
@@ -1031,6 +1132,22 @@ namespace RhythmRPG.Editor.StageBuilder
                     actionProp.FindPropertyRelative("GuideTitle").stringValue = "Guide";
                     actionProp.FindPropertyRelative("GuideBody").stringValue = "Move with WASD and use skills on beat.";
                     actionProp.FindPropertyRelative("DurationMs").intValue = 4500;
+                    break;
+
+                case ActionQuickTemplate.ShowTutorialPanel:
+                    actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.ShowTutorialPanel;
+                    actionProp.FindPropertyRelative("StringVal").stringValue = "TutorialPanel";
+                    actionProp.FindPropertyRelative("GuideImageResource").stringValue = "UI/UI_Tutorial/Tutorial_Movement";
+                    actionProp.FindPropertyRelative("ParamId").intValue = 900;
+                    actionProp.FindPropertyRelative("GroupId").intValue = 0;
+                    actionProp.FindPropertyRelative("Position").vector3Value = new Vector3(-44f, 54f, 0f);
+                    actionProp.FindPropertyRelative("DurationMs").intValue = 220;
+                    break;
+
+                case ActionQuickTemplate.HideTutorialPanel:
+                    actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.HideTutorialPanel;
+                    actionProp.FindPropertyRelative("StringVal").stringValue = "TutorialPanel";
+                    actionProp.FindPropertyRelative("DurationMs").intValue = 180;
                     break;
 
                 case ActionQuickTemplate.SetObjectState:
@@ -1152,6 +1269,10 @@ namespace RhythmRPG.Editor.StageBuilder
                     RectInt area = condProp.FindPropertyRelative("Area").rectIntValue;
                     return $"영역 진입 ({area.x}, {area.y}, {area.width}, {area.height})";
 
+                case ConditionType.AreaExit:
+                    RectInt exitArea = condProp.FindPropertyRelative("Area").rectIntValue;
+                    return $"영역 이탈 ({exitArea.x}, {exitArea.y}, {exitArea.width}, {exitArea.height})";
+
                 case ConditionType.TimeElapsed:
                     int ms = condProp.FindPropertyRelative("Count").intValue;
                     return $"경과 시간 {ms / 1000f:0.0}s";
@@ -1205,6 +1326,17 @@ namespace RhythmRPG.Editor.StageBuilder
                 case ActionType.ShowGuide:
                     string title = actionProp.FindPropertyRelative("GuideTitle").stringValue;
                     return string.IsNullOrWhiteSpace(title) ? "가이드 UI 표시" : $"가이드: {title}";
+
+                case ActionType.ShowTutorialPanel:
+                    string panelId = actionProp.FindPropertyRelative("StringVal").stringValue;
+                    string panelImage = actionProp.FindPropertyRelative("GuideImageResource").stringValue;
+                    if (!string.IsNullOrWhiteSpace(panelId))
+                        return $"튜토리얼 패널 표시: {panelId}";
+                    return string.IsNullOrWhiteSpace(panelImage) ? "튜토리얼 패널 표시" : $"튜토리얼 패널: {panelImage}";
+
+                case ActionType.HideTutorialPanel:
+                    string hidePanelId = actionProp.FindPropertyRelative("StringVal").stringValue;
+                    return string.IsNullOrWhiteSpace(hidePanelId) ? "튜토리얼 패널 숨김" : $"튜토리얼 패널 숨김: {hidePanelId}";
 
                 case ActionType.SetObjectState:
                     return $"오브젝트 {actionProp.FindPropertyRelative("ParamId").intValue} 상태={actionProp.FindPropertyRelative("GroupId").intValue}";
@@ -1287,7 +1419,7 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 foreach (var cond in evt.Conditions)
                 {
-                    if (cond.Type == ConditionType.AreaEnter)
+                    if (cond.Type == ConditionType.AreaEnter || cond.Type == ConditionType.AreaExit)
                     {
                         DrawAreaHandle(evt, cond);
                         conditionPoints.Add(GetAreaCenter(cond));
@@ -1402,6 +1534,14 @@ namespace RhythmRPG.Editor.StageBuilder
             if (action.Type == ActionType.ShowGuide)
             {
                 DrawSceneBadge(Vector3.up * 2.1f, $"{GetEventSceneLabel(evt)}\nGuide UI", BasicAccent);
+            }
+            else if (action.Type == ActionType.ShowTutorialPanel)
+            {
+                DrawSceneBadge(Vector3.up * 2.35f, $"{GetEventSceneLabel(evt)}\nTutorial Panel In", BasicAccent);
+            }
+            else if (action.Type == ActionType.HideTutorialPanel)
+            {
+                DrawSceneBadge(Vector3.up * 2.35f, $"{GetEventSceneLabel(evt)}\nTutorial Panel Out", BasicAccent);
             }
 
             return false;

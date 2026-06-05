@@ -32,6 +32,16 @@ public sealed class StageGuideHud : MonoBehaviour
             return true;
         }
 
+        if (code == StageSignalCodec.TutorialPanelWarnCode
+            && StageSignalCodec.TryDecodeTutorialPanel(payload, out var tutorialPanel))
+        {
+            if (tutorialPanel.Visible)
+                StageTutorialPanelHud.Show(tutorialPanel);
+            else
+                StageTutorialPanelHud.Hide(tutorialPanel);
+            return true;
+        }
+
         return false;
     }
 

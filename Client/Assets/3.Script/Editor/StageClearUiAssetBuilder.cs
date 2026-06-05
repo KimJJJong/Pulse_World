@@ -8,10 +8,16 @@ using UnityEngine;
 public static class StageClearUiAssetBuilder
 {
     private const string MenuPath = "Tools/RhythmRPG/UI/Rebuild Stage Clear UI Assets";
+    private const string PrefabMenuPath = "Tools/RhythmRPG/UI/Create Stage Clear Result UI Prefab";
     private const string PreviewMenuPath = "Tools/RhythmRPG/UI/Preview Stage Clear Result UI";
     private const string RenderPreviewMenuPath = "Tools/RhythmRPG/UI/Render Stage Clear Result UI Preview PNG";
     private const string ClearPreviewMenuPath = "Tools/RhythmRPG/UI/Clear Stage Clear Result UI Preview";
     private const string AssetRoot = "Assets/Resources/UI/UI_StageClear";
+    private const string PrefabAssetPath = AssetRoot + "/StageClearResultHud.prefab";
+    private const string ReferenceAssetRoot = "Assets/3.Script/Editor/StageClearReferenceAssets";
+    private const string ReferenceButtonsPath = ReferenceAssetRoot + "/StageClear_Buttons_Source.png";
+    private const string ReferenceIconsPath = ReferenceAssetRoot + "/StageClear_Icons_Source.png";
+    private const string ReferencePanelPath = ReferenceAssetRoot + "/StageClear_Panel_Source.png";
     private const string PreviewScreenshotPath = "Assets/Screenshots/StageClear_UI_UnityRender.png";
 
     private static readonly Color Clear = new Color(0f, 0f, 0f, 0f);
@@ -25,6 +31,9 @@ public static class StageClearUiAssetBuilder
     [MenuItem(MenuPath)]
     public static void Rebuild()
     {
+        if (TryRebuildFromReference())
+            return;
+
         string projectRoot = Directory.GetParent(Application.dataPath).FullName;
         Directory.CreateDirectory(Path.Combine(projectRoot, AssetRoot));
 
@@ -63,21 +72,37 @@ public static class StageClearUiAssetBuilder
         camera.orthographicSize = 5f;
         cameraObject.tag = "MainCamera";
 
-        StageClearResultHud.Show(new StageClearResultData
-        {
-            MapId = "Game_Forest_01",
-            Title = "STAGE CLEAR",
-            Subtitle = "Purification Complete - Deepwood Gate Stabilized",
-            ClearTimeMs = 154000,
-            RhythmSyncPercent = 98,
-            MaxCombo = 842,
-            Misses = 4,
-            NextArea = "Deepwood Gate",
-            RecommendedLevel = 12,
-            DangerRhythm = "Normal"
-        });
+        StageClearResultHud.Show(CreatePreviewData());
 
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+    }
+
+    [MenuItem(PrefabMenuPath)]
+    public static void CreateOrUpdatePrefab()
+    {
+        Rebuild();
+
+        var eventSystemBefore = UnityEngine.Object.FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>();
+        StageClearResultHud hud = null;
+        try
+        {
+            hud = StageClearResultHud.CreateEditorPrefabSource(CreatePreviewData());
+            PrefabUtility.SaveAsPrefabAsset(hud.gameObject, PrefabAssetPath);
+            Debug.Log($"[StageClearUiAssetBuilder] Saved Stage Clear UI prefab: {PrefabAssetPath}");
+        }
+        finally
+        {
+            if (hud != null)
+                UnityEngine.Object.DestroyImmediate(hud.gameObject);
+            StageClearResultHud.DestroyEditorPreview();
+
+            var eventSystemAfter = UnityEngine.Object.FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>();
+            if (eventSystemBefore == null && eventSystemAfter != null)
+                UnityEngine.Object.DestroyImmediate(eventSystemAfter.gameObject);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
     }
 
     [MenuItem(RenderPreviewMenuPath)]
@@ -179,6 +204,119 @@ public static class StageClearUiAssetBuilder
         }
     }
 
+    private static StageClearResultData CreatePreviewData()
+    {
+        return new StageClearResultData
+        {
+            MapId = "Game_Forest_01",
+            Title = "STAGE CLEAR",
+            Subtitle = "Purification Complete - Deepwood Gate Stabilized",
+            ClearTimeMs = 154000,
+            RhythmSyncPercent = 98,
+            MaxCombo = 842,
+            Misses = 4,
+            NextArea = "Deepwood Gate",
+            RecommendedLevel = 12,
+            DangerRhythm = "Normal"
+        };
+    }
+
+    private static bool TryRebuildFromReference()
+    {
+        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+        if (!File.Exists(Path.Combine(projectRoot, ReferenceButtonsPath))
+            || !File.Exists(Path.Combine(projectRoot, ReferenceIconsPath))
+            || !File.Exists(Path.Combine(projectRoot, ReferencePanelPath)))
+        {
+            return false;
+        }
+
+        Directory.CreateDirectory(Path.Combine(projectRoot, AssetRoot));
+
+        WriteReferenceSprite("Panel_Frame", ReferencePanelPath, new RectInt(15, 17, 1458, 1022), new Vector4(96f, 96f, 96f, 96f), 5);
+        WriteReferenceSprite("Button_Return", ReferenceButtonsPath, new RectInt(342, 76, 950, 183), new Vector4(100f, 45f, 100f, 45f), 8, 8);
+        WriteReferenceSprite("Button_Continue", ReferenceButtonsPath, new RectInt(350, 587, 961, 165), new Vector4(100f, 45f, 100f, 45f), 8, 8);
+
+        WriteReferenceSprite("Icon_Hourglass", ReferenceIconsPath, new RectInt(147, 38, 233, 252), Vector4.zero, 8, 6);
+        WriteReferenceSprite("Icon_Rhythm", ReferenceIconsPath, new RectInt(438, 38, 240, 252), Vector4.zero, 8, 6);
+        WriteReferenceSprite("Icon_Combo", ReferenceIconsPath, new RectInt(736, 39, 238, 251), Vector4.zero, 8, 6);
+        WriteReferenceSprite("Icon_Miss", ReferenceIconsPath, new RectInt(1033, 38, 241, 252), Vector4.zero, 8, 6);
+        WriteReferenceSprite("Icon_NextGate", ReferenceIconsPath, new RectInt(288, 624, 214, 221), Vector4.zero, 8, 6);
+        WriteReferenceSprite("Icon_Level", ReferenceIconsPath, new RectInt(636, 618, 156, 218), Vector4.zero, 8, 6);
+        WriteReferenceSprite("Icon_Home", ReferenceIconsPath, new RectInt(489, 873, 162, 153), Vector4.zero, 8, 6);
+        WriteReferenceSprite("Icon_Arrow", ReferenceIconsPath, new RectInt(779, 887, 185, 122), Vector4.zero, 8, 6);
+        WriteReferenceSprite("Icon_Emblem", ReferenceIconsPath, new RectInt(927, 355, 181, 207), Vector4.zero, 8, 8);
+
+        if (!File.Exists(Path.Combine(projectRoot, $"{AssetRoot}/Hex_Slot.png")))
+            WriteSprite("Hex_Slot", 128, 128, Vector4.zero, t => DrawHexIcon(t, null, Cyan));
+        if (!File.Exists(Path.Combine(projectRoot, $"{AssetRoot}/Rank_Badge.png")))
+            WriteSprite("Rank_Badge", 180, 180, Vector4.zero, DrawRankBadge);
+        if (!File.Exists(Path.Combine(projectRoot, $"{AssetRoot}/Line_Cyan.png")))
+            WriteSprite("Line_Cyan", 256, 8, new Vector4(16f, 0f, 16f, 0f), DrawLineSprite);
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("[StageClearUiAssetBuilder] Rebuilt Stage Clear UI sprite resources from reference sheets.");
+        return true;
+    }
+
+    private static void WriteReferenceSprite(string name, string sourceAssetPath, RectInt topLeftCrop, Vector4 border, int transparentThreshold, int pad = 0)
+    {
+        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+        string fullSourcePath = Path.Combine(projectRoot, sourceAssetPath);
+
+        var source = new Texture2D(2, 2, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+
+        if (!source.LoadImage(File.ReadAllBytes(fullSourcePath)))
+        {
+            UnityEngine.Object.DestroyImmediate(source);
+            Debug.LogError($"[StageClearUiAssetBuilder] Failed to read reference sheet: {sourceAssetPath}");
+            return;
+        }
+
+        int left = Mathf.Clamp(topLeftCrop.x - pad, 0, source.width);
+        int top = Mathf.Clamp(topLeftCrop.y - pad, 0, source.height);
+        int right = Mathf.Clamp(topLeftCrop.x + topLeftCrop.width + pad, 0, source.width);
+        int bottom = Mathf.Clamp(topLeftCrop.y + topLeftCrop.height + pad, 0, source.height);
+        int width = Mathf.Max(1, right - left);
+        int height = Mathf.Max(1, bottom - top);
+
+        var texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+
+        float threshold = Mathf.Clamp01(transparentThreshold / 255f);
+        for (int y = 0; y < height; y++)
+        {
+            int sourceY = source.height - 1 - (top + y);
+            int targetY = height - 1 - y;
+            for (int x = 0; x < width; x++)
+            {
+                Color pixel = source.GetPixel(left + x, sourceY);
+                if (pixel.a <= 0.03f || Mathf.Max(pixel.r, pixel.g, pixel.b) <= threshold)
+                    pixel.a = 0f;
+                texture.SetPixel(x, targetY, pixel);
+            }
+        }
+
+        texture.Apply();
+
+        string assetPath = $"{AssetRoot}/{name}.png";
+        string fullPath = Path.Combine(projectRoot, assetPath);
+        File.WriteAllBytes(fullPath, texture.EncodeToPNG());
+        UnityEngine.Object.DestroyImmediate(texture);
+        UnityEngine.Object.DestroyImmediate(source);
+
+        AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
+        ConfigureSpriteImporter(assetPath, border);
+    }
+
     private static void WriteSprite(string name, int width, int height, Vector4 border, Action<Texture2D> draw)
     {
         var texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
@@ -197,6 +335,11 @@ public static class StageClearUiAssetBuilder
         UnityEngine.Object.DestroyImmediate(texture);
 
         AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
+        ConfigureSpriteImporter(assetPath, border);
+    }
+
+    private static void ConfigureSpriteImporter(string assetPath, Vector4 border)
+    {
         if (AssetImporter.GetAtPath(assetPath) is TextureImporter importer)
         {
             importer.textureType = TextureImporterType.Sprite;

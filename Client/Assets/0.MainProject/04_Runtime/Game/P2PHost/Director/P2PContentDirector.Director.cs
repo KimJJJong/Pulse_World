@@ -525,6 +525,37 @@ public sealed partial class P2PContentDirector
         StageGuideHud.Show(data);
     }
 
+    public void ShowTutorialPanel(StageTutorialPanelData data)
+    {
+        SendTutorialPanel(data, visible: true);
+    }
+
+    public void HideTutorialPanel(StageTutorialPanelData data)
+    {
+        SendTutorialPanel(data, visible: false);
+    }
+
+    private void SendTutorialPanel(StageTutorialPanelData data, bool visible)
+    {
+        data ??= new StageTutorialPanelData();
+        data.Visible = visible;
+
+        if (P2PHostController.HasInstance)
+        {
+            P2PHostController.Instance.SendLocalAndRelay(new SC_Warn
+            {
+                code = StageSignalCodec.TutorialPanelWarnCode,
+                msg = StageSignalCodec.EncodeTutorialPanel(data)
+            });
+            return;
+        }
+
+        if (visible)
+            StageTutorialPanelHud.Show(data);
+        else
+            StageTutorialPanelHud.Hide(data);
+    }
+
     public void PlayStageVfx(StageVfxData data)
     {
         data ??= new StageVfxData();

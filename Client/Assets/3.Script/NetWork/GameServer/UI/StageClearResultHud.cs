@@ -8,6 +8,7 @@ using UnityEngine.UI;
 public sealed class StageClearResultHud : MonoBehaviour
 {
     private const string ResourceRoot = "UI/UI_StageClear/";
+    private const string PrefabResourcePath = ResourceRoot + nameof(StageClearResultHud);
     private const int SortingOrder = 32000;
 
     private static readonly Color Cyan = new Color(0.28f, 0.96f, 1f, 1f);
@@ -33,6 +34,7 @@ public sealed class StageClearResultHud : MonoBehaviour
     private TextMeshProUGUI _statusText;
     private Button _returnButton;
     private Button _continueButton;
+    private bool _listenersBound;
     private bool _submissionInFlight;
 
     public static bool TryHandleWarn(int code, string payload)
@@ -74,13 +76,28 @@ public sealed class StageClearResultHud : MonoBehaviour
     private static StageClearResultHud EnsureInstance()
     {
         if (_instance != null)
+        {
+            _instance.EnsureRuntimeReady();
             return _instance;
+        }
+
+        var prefab = Resources.Load<StageClearResultHud>(PrefabResourcePath);
+        if (prefab != null)
+        {
+            _instance = Instantiate(prefab);
+            _instance.name = nameof(StageClearResultHud);
+            if (Application.isPlaying)
+                DontDestroyOnLoad(_instance.gameObject);
+            _instance.EnsureRuntimeReady();
+            return _instance;
+        }
 
         var go = new GameObject(nameof(StageClearResultHud));
         if (Application.isPlaying)
             DontDestroyOnLoad(go);
         _instance = go.AddComponent<StageClearResultHud>();
         _instance.BuildUi();
+        _instance.EnsureRuntimeReady();
         return _instance;
     }
 
@@ -96,6 +113,51 @@ public sealed class StageClearResultHud : MonoBehaviour
         if (Application.isPlaying)
             DontDestroyOnLoad(gameObject);
     }
+
+    private void EnsureRuntimeReady()
+    {
+        EnsureEventSystem();
+
+        if (_canvas == null)
+            _canvas = GetComponent<Canvas>();
+        if (_group == null)
+            _group = GetComponent<CanvasGroup>();
+
+        if (_root == null)
+            BindExistingUi();
+        if (_root == null)
+            BuildUi();
+
+        if (_canvas == null)
+            _canvas = GetComponent<Canvas>();
+        ConfigureTopCanvas(_canvas);
+        BindButtonListeners();
+    }
+
+    private void BindExistingUi()
+    {
+        _root = FindRect("Root");
+        _panel = FindRect("Root/StageClearPanel");
+        _clearTimeValue = FindText("Root/StageClearPanel/ClearTime/Value");
+        _syncValue = FindText("Root/StageClearPanel/RhythmSync/Value");
+        _comboValue = FindText("Root/StageClearPanel/MaxCombo/Value");
+        _missValue = FindText("Root/StageClearPanel/Misses/Value");
+        _nextAreaValue = FindText("Root/StageClearPanel/FooterNext/Value");
+        _levelValue = FindText("Root/StageClearPanel/FooterLevel/Value");
+        _dangerValue = FindText("Root/StageClearPanel/FooterDanger/Value");
+        _statusText = FindText("Root/Status");
+        _returnButton = FindButton("Root/Button_ReturnToTown");
+        _continueButton = FindButton("Root/Button_Continue");
+    }
+
+    private RectTransform FindRect(string path)
+        => transform.Find(path) as RectTransform;
+
+    private TextMeshProUGUI FindText(string path)
+        => transform.Find(path)?.GetComponent<TextMeshProUGUI>();
+
+    private Button FindButton(string path)
+        => transform.Find(path)?.GetComponent<Button>();
 
     private void BuildUi()
     {
@@ -124,7 +186,7 @@ public sealed class StageClearResultHud : MonoBehaviour
         dim.raycastTarget = true;
 
         _panel = CreateRect("StageClearPanel", _root);
-        Anchor(_panel, new Vector2(0.5f, 0.52f), Vector2.zero, new Vector2(1480f, 820f), new Vector2(0.5f, 0.5f));
+        Anchor(_panel, new Vector2(0.5f, 0.52f), new Vector2(35f, 0f), new Vector2(1530f, 870f), new Vector2(0.5f, 0.5f));
         Image panelImage = _panel.gameObject.AddComponent<Image>();
         panelImage.sprite = Load("Panel_Frame");
         panelImage.type = panelImage.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
@@ -232,8 +294,7 @@ public sealed class StageClearResultHud : MonoBehaviour
         _returnButton = BuildButton(parent, "Button_ReturnToTown", "Icon_Home", "Return to Town", Load("Button_Return"), Gold, new Vector2(-340f, 36f));
         _continueButton = BuildButton(parent, "Button_Continue", "Icon_Arrow", "Continue to Next Map", Load("Button_Continue"), Cyan, new Vector2(360f, 36f));
 
-        _returnButton.onClick.AddListener(OnReturnToTownClicked);
-        _continueButton.onClick.AddListener(OnContinueClicked);
+        BindButtonListeners();
 
         _statusText = CreateText("Status", parent, string.Empty, 18f, FontStyles.Normal, TextAlignmentOptions.Center, TextSoft);
         Anchor(_statusText.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(760f, 26f), new Vector2(0.5f, 0f));
@@ -241,8 +302,7 @@ public sealed class StageClearResultHud : MonoBehaviour
 
     private void ShowInternal(StageClearResultData data)
     {
-        if (_root == null)
-            BuildUi();
+        EnsureRuntimeReady();
 
         gameObject.SetActive(true);
         transform.SetAsLastSibling();
@@ -350,19 +410,45 @@ public sealed class StageClearResultHud : MonoBehaviour
             _continueButton.interactable = interactable;
     }
 
+    private void BindButtonListeners()
+    {
+        if (_listenersBound)
+            return;
+
+        if (_returnButton != null)
+            _returnButton.onClick.AddListener(OnReturnToTownClicked);
+        if (_continueButton != null)
+            _continueButton.onClick.AddListener(OnContinueClicked);
+
+        _listenersBound = _returnButton != null || _continueButton != null;
+    }
+
+#if UNITY_EDITOR
+    public static StageClearResultHud CreateEditorPrefabSource(StageClearResultData data)
+    {
+        DestroyEditorPreview();
+
+        var go = new GameObject(nameof(StageClearResultHud));
+        var hud = go.AddComponent<StageClearResultHud>();
+        hud.BuildUi();
+        hud.ShowInternal(data ?? new StageClearResultData());
+        return hud;
+    }
+#endif
+
     private static void BuildStat(RectTransform parent, string name, string iconName, string label, out TextMeshProUGUI valueText, Vector2 anchoredPosition)
     {
         RectTransform root = CreateRect(name, parent);
         Anchor(root, new Vector2(0f, 1f), anchoredPosition, new Vector2(236f, 102f), new Vector2(0.5f, 0.5f));
 
         Image icon = CreateImage("Icon", root, Load(iconName), Color.white);
-        Anchor(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(46f, 0f), new Vector2(78f, 78f), new Vector2(0.5f, 0.5f));
+        Anchor(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(52f, 0f), new Vector2(94f, 94f), new Vector2(0.5f, 0.5f));
 
         TextMeshProUGUI labelText = CreateText("Label", root, label, 20f, FontStyles.Normal, TextAlignmentOptions.Left, TextSoft);
-        Anchor(labelText.rectTransform, new Vector2(0f, 0.5f), new Vector2(98f, 20f), new Vector2(150f, 28f), new Vector2(0f, 0.5f));
+        Anchor(labelText.rectTransform, new Vector2(0f, 0.5f), new Vector2(112f, 20f), new Vector2(150f, 28f), new Vector2(0f, 0.5f));
 
         valueText = CreateText("Value", root, "0", 34f, FontStyles.Normal, TextAlignmentOptions.Left, TextMain);
-        Anchor(valueText.rectTransform, new Vector2(0f, 0.5f), new Vector2(98f, -18f), new Vector2(150f, 44f), new Vector2(0f, 0.5f));
+        Anchor(valueText.rectTransform, new Vector2(0f, 0.5f), new Vector2(112f, -18f), new Vector2(150f, 44f), new Vector2(0f, 0.5f));
     }
 
     private static void BuildReportRow(RectTransform parent, string label, string value, int index)
@@ -384,13 +470,13 @@ public sealed class StageClearResultHud : MonoBehaviour
         Anchor(root, new Vector2(0f, 0f), anchoredPosition, new Vector2(width, 86f), new Vector2(0.5f, 0.5f));
 
         Image icon = CreateImage("Icon", root, Load(iconName), Color.white);
-        Anchor(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(44f, 0f), new Vector2(62f, 62f), new Vector2(0.5f, 0.5f));
+        Anchor(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(46f, 0f), new Vector2(72f, 72f), new Vector2(0.5f, 0.5f));
 
         TextMeshProUGUI labelText = CreateText("Label", root, label, 17f, FontStyles.Normal, TextAlignmentOptions.Left, TextSoft);
-        Anchor(labelText.rectTransform, new Vector2(0f, 0.5f), new Vector2(88f, 18f), new Vector2(width - 92f, 24f), new Vector2(0f, 0.5f));
+        Anchor(labelText.rectTransform, new Vector2(0f, 0.5f), new Vector2(96f, 18f), new Vector2(width - 100f, 24f), new Vector2(0f, 0.5f));
 
         TextMeshProUGUI valueText = CreateText("Value", root, value, 24f, FontStyles.Normal, TextAlignmentOptions.Left, Cyan);
-        Anchor(valueText.rectTransform, new Vector2(0f, 0.5f), new Vector2(88f, -16f), new Vector2(width - 92f, 34f), new Vector2(0f, 0.5f));
+        Anchor(valueText.rectTransform, new Vector2(0f, 0.5f), new Vector2(96f, -16f), new Vector2(width - 100f, 34f), new Vector2(0f, 0.5f));
         return valueText;
     }
 
@@ -405,7 +491,8 @@ public sealed class StageClearResultHud : MonoBehaviour
         button.targetGraphic = image;
 
         Image icon = CreateImage("Icon", image.rectTransform, Load(iconName), Color.white);
-        Anchor(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(98f, 0f), new Vector2(52f, 52f), new Vector2(0.5f, 0.5f));
+        Vector2 iconSize = iconName == "Icon_Arrow" ? new Vector2(74f, 50f) : new Vector2(58f, 58f);
+        Anchor(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(98f, 0f), iconSize, new Vector2(0.5f, 0.5f));
 
         TextMeshProUGUI text = CreateText("Label", image.rectTransform, label, 25f, FontStyles.Normal, TextAlignmentOptions.Center, color);
         Anchor(text.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(46f, 0f), new Vector2(390f, 44f), new Vector2(0.5f, 0.5f));

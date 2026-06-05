@@ -120,7 +120,8 @@ namespace RhythmRPG.Editor.StageBuilder
         TimeElapsed,
         ObjectInteracted,
         ObjectPairInteracted,
-        ObjectStateEquals
+        ObjectStateEquals,
+        AreaExit
     }
 
     public enum ActionType
@@ -133,6 +134,8 @@ namespace RhythmRPG.Editor.StageBuilder
         ShowGuide,
         SetObjectState,
         PlayVfx,
-        FinGame
+        FinGame,
+        ShowTutorialPanel,
+        HideTutorialPanel
     }
 }

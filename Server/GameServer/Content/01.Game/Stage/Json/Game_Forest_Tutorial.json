@@ -11,9 +11,9 @@
     "InitialSpawns": [
         {
             "MonsterId": 999,
-            "X": 48,
+            "X": 38,
             "Y": -1,
-            "Z": 14,
+            "Z": 15,
             "AI": "Enemy_Traning_Dummy",
             "Pattern": "Enemy_Traning_Dummy",
             "GroupId": 10,
@@ -21,29 +21,29 @@
         },
         {
             "MonsterId": 999,
-            "X": 52,
-            "Y": -1,
-            "Z": 17,
-            "AI": "Enemy_Traning_Dummy",
-            "Pattern": "Enemy_Traning_Dummy",
-            "GroupId": 10,
-            "Rotation": 90.0
-        },
-        {
-            "MonsterId": 999,
-            "X": 48,
-            "Y": -1,
-            "Z": 19,
-            "AI": "Enemy_Traning_Dummy",
-            "Pattern": "Enemy_Traning_Dummy",
-            "GroupId": 10,
-            "Rotation": 90.0
-        },
-        {
-            "MonsterId": 999,
-            "X": 52,
+            "X": 37,
             "Y": -1,
             "Z": 22,
+            "AI": "Enemy_Traning_Dummy",
+            "Pattern": "Enemy_Traning_Dummy",
+            "GroupId": 10,
+            "Rotation": 90.0
+        },
+        {
+            "MonsterId": 999,
+            "X": 37,
+            "Y": -1,
+            "Z": 36,
+            "AI": "Enemy_Traning_Dummy",
+            "Pattern": "Enemy_Traning_Dummy",
+            "GroupId": 10,
+            "Rotation": 90.0
+        },
+        {
+            "MonsterId": 999,
+            "X": 40,
+            "Y": -1,
+            "Z": 31,
             "AI": "Enemy_Traning_Dummy",
             "Pattern": "Enemy_Traning_Dummy",
             "GroupId": 10,
@@ -175,6 +175,216 @@
                     "GuideImageResource": "",
                     "DurationMs": 1200,
                     "VfxKey": "CrystalPulseRed"
+                }
+            ]
+        },
+        {
+            "EventId": 4,
+            "IsOneShot": false,
+            "Conditions": [
+                {
+                    "Type": "AreaEnter",
+                    "TargetId": 0,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 0,
+                    "Area": {
+                        "X": 57,
+                        "Y": 7,
+                        "W": 5,
+                        "H": 35
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "ShowTutorialPanel",
+                    "ParamId": 900,
+                    "X": -44,
+                    "Y": 54,
+                    "Z": 0,
+                    "StringVal": "Tutorial_Movement",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "UI/UI_Tutorial/Tutorial_Movement",
+                    "DurationMs": 220,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 5,
+            "IsOneShot": false,
+            "Conditions": [
+                {
+                    "Type": "AreaExit",
+                    "TargetId": 0,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 0,
+                    "Area": {
+                        "X": 57,
+                        "Y": 7,
+                        "W": 5,
+                        "H": 35
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "HideTutorialPanel",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "Tutorial_Movement",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 180,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 6,
+            "IsOneShot": false,
+            "Conditions": [
+                {
+                    "Type": "AreaEnter",
+                    "TargetId": 0,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 0,
+                    "Area": {
+                        "X": 43,
+                        "Y": 10,
+                        "W": 5,
+                        "H": 29
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "ShowTutorialPanel",
+                    "ParamId": 900,
+                    "X": -44,
+                    "Y": 54,
+                    "Z": 0,
+                    "StringVal": "Tutorial_Attack",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "UI/UI_Tutorial/Tutorial_Attack",
+                    "DurationMs": 220,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 7,
+            "IsOneShot": false,
+            "Conditions": [
+                {
+                    "Type": "AreaExit",
+                    "TargetId": 0,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 0,
+                    "Area": {
+                        "X": 43,
+                        "Y": 10,
+                        "W": 5,
+                        "H": 29
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "HideTutorialPanel",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "Tutorial_Attack",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 180,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 8,
+            "IsOneShot": false,
+            "Conditions": [
+                {
+                    "Type": "AreaEnter",
+                    "TargetId": 0,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 0,
+                    "Area": {
+                        "X": 25,
+                        "Y": 10,
+                        "W": 8,
+                        "H": 29
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "ShowTutorialPanel",
+                    "ParamId": 900,
+                    "X": -44,
+                    "Y": 54,
+                    "Z": 0,
+                    "StringVal": "Tutorial_Crystal",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "UI/UI_Tutorial/Tutorial_Crystal",
+                    "DurationMs": 220,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 9,
+            "IsOneShot": false,
+            "Conditions": [
+                {
+                    "Type": "AreaExit",
+                    "TargetId": 0,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 0,
+                    "Area": {
+                        "X": 25,
+                        "Y": 10,
+                        "W": 8,
+                        "H": 29
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "HideTutorialPanel",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "Tutorial_Crystal",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 180,
+                    "VfxKey": ""
                 }
             ]
         }
