@@ -368,14 +368,14 @@ namespace GameServer.InGame.Manager.Beat
                 _delayedScheduler.Enqueue(cmd);
         }
 
-        public void BroadcastActionInstant(int actorId, ActionKind kind, string skillId, long startTick)
+        public void BroadcastActionInstant(int actorId, ActionKind kind, string skillId, long startTick, float rotation = 0f)
         {
             _broadcaster.Broadcast(new SC_ActionInstantBroadcast
             {
                 ActorId = actorId,
                 ActionKind = (int)kind,
                 SkillId = skillId ?? "Attack",
-                Rotation = 0,
+                Rotation = rotation,
                 StartTick = startTick
             });
         }

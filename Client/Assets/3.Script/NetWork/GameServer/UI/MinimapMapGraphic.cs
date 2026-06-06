@@ -29,7 +29,8 @@ public sealed class MinimapMapGraphic : MaskableGraphic
     [SerializeField] private Color _gridColor = new Color(0.58f, 0.76f, 0.82f, 0.22f);
 
     [Header("Focus")]
-    [SerializeField, Min(1f)] private float _focusZoomScale = 1.55f;
+    [SerializeField, Min(1f)] private float _focusZoomScale = 1.8f;
+    [SerializeField, Min(0.25f)] private float _gridZoomScale = 0.9f;
     [SerializeField, Min(4f)] private float _focusedCellMinSize = 12f;
     [SerializeField, Min(1f)] private float _largeMapFollowThreshold = 14f;
     [SerializeField] private bool _followPlayerOnLargeMaps = true;
@@ -116,11 +117,11 @@ public sealed class MinimapMapGraphic : MaskableGraphic
 
     public void SetZoomScale(float zoomScale)
     {
-        float clampedScale = Mathf.Max(1f, zoomScale);
-        if (Mathf.Approximately(_focusZoomScale, clampedScale))
+        float clampedScale = Mathf.Max(0.25f, zoomScale);
+        if (Mathf.Approximately(_gridZoomScale, clampedScale))
             return;
 
-        _focusZoomScale = clampedScale;
+        _gridZoomScale = clampedScale;
         MarkMeshDirty(true);
     }
 
@@ -165,7 +166,8 @@ public sealed class MinimapMapGraphic : MaskableGraphic
 
         Rect contentRect = new Rect(rect.xMin + _padding, rect.yMin + _padding, visibleWidth, visibleHeight);
         float fitCellSize = Mathf.Min(visibleWidth / _width, visibleHeight / _height);
-        float cellSize = Mathf.Max(fitCellSize * Mathf.Max(1f, _focusZoomScale), _focusedCellMinSize);
+        float baseCellSize = Mathf.Max(fitCellSize * Mathf.Max(1f, _focusZoomScale), _focusedCellMinSize);
+        float cellSize = baseCellSize * Mathf.Max(0.25f, _gridZoomScale);
         float mapWidth = cellSize * _width;
         float mapHeight = cellSize * _height;
         bool mapExceedsViewport = mapWidth > visibleWidth + 0.01f || mapHeight > visibleHeight + 0.01f;

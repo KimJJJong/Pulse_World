@@ -165,6 +165,7 @@ public sealed class ActionDef
 
     public TargetDef Target = new TargetDef();
     public string SkillId = "";
+    public bool LockRotation;
 
     public int TelegraphBeats;
     public byte TelegraphStyleId;

@@ -21,6 +21,9 @@ namespace RhythmRPG.Visual
         private Dictionary<int, GameObject> _spawnedEquipments = new Dictionary<int, GameObject>();
         private bool _isLocalPlayer = false;
 
+        public bool IsLocalPlayer => _isLocalPlayer;
+        public CharacterContext CurrentContext => _currentContext;
+
         private void Awake()
         {
             _sockets = GetComponent<CharacterEquipSockets>();
@@ -45,8 +48,9 @@ namespace RhythmRPG.Visual
 
         private void OnDisable()
         {
-            if (InventoryManager.Instance != null)
-                InventoryManager.Instance.OnInventoryUpdated -= RefreshFromInventory;
+            var inventoryManager = InventoryManager.ExistingInstance;
+            if (inventoryManager != null)
+                inventoryManager.OnInventoryUpdated -= RefreshFromInventory;
         }
 
         /// <summary>
@@ -87,8 +91,9 @@ namespace RhythmRPG.Visual
             }
             else
             {
-                if (InventoryManager.Instance != null)
-                    InventoryManager.Instance.OnInventoryUpdated -= RefreshFromInventory;
+                var inventoryManager = InventoryManager.ExistingInstance;
+                if (inventoryManager != null)
+                    inventoryManager.OnInventoryUpdated -= RefreshFromInventory;
                 ClearEquipments();
             }
         }

@@ -50,7 +50,7 @@ public class ClientSkillRunner : MonoBehaviour
                 if (RhythmClient.Instance != null && _visual != null)
                 {
                     float fallbackDuration = (float)(RhythmClient.Instance.GetBeatDurationMs() / 1000.0);
-                    _visual.PlaySkill(fallbackDuration, _isMine);
+                    _visual.PlaySkill(skillId, fallbackDuration, _isMine);
                 }
             }
 
@@ -168,7 +168,8 @@ public class ClientSkillRunner : MonoBehaviour
         float normalizedStart = Mathf.Clamp01(relativeTick / (float)totalDurationTicks);
         float totalDurationSec = (totalDurationTicks / 480f) * (float)rhythm.GetBeatDurationMs() / 1000f;
 
-        _visual.PlaySkill(totalDurationSec, _isMine, normalizedStart);
+        string skillId = _skillDef.Data != null ? _skillDef.Data.SkillId : "";
+        _visual.PlaySkill(skillId, totalDurationSec, _isMine, normalizedStart);
         _playbackStarted = true;
     }
 

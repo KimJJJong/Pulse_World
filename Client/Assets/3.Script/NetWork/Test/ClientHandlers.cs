@@ -454,22 +454,24 @@ public class ClientHandlers : MonoBehaviour
 
                 foreach (var u in a.hpUpdates)
                 {
-                if (GS.TryGetEntity(u.EntityId, out var info))
-                {
-                    int oldHp = info.Hp;
-                    info.Hp = u.NewHp;
-                    if (P2PDebugConfig.TraceCombat)
-                        Debug.Log($"[DamageRecv] HP_Change entity={u.EntityId} {oldHp}→{u.NewHp} (delta={u.NewHp - oldHp})");
+                    if (GS.TryGetEntity(u.EntityId, out var info))
+                    {
+                        int oldHp = info.Hp;
+                        BV?.PlayEntityDamageFeedback(u.EntityId, oldHp, u.NewHp);
 
-                    bool refreshWorldView = info.EntityType == (int)EntityType.Object;
-                    GS.UpdateEntityState(info, refreshWorldView);
-                    if (info.EntityType == (int)EntityType.Monster)
-                        P2PContentDirector.Instance?.MarkWorldDirty();
-                }
-                else
-                {
-                    if (P2PDebugConfig.TraceCombat)
-                        Debug.LogWarning($"[DamageRecv] Entity not found: {u.EntityId}");
+                        info.Hp = u.NewHp;
+                        if (P2PDebugConfig.TraceCombat)
+                            Debug.Log($"[DamageRecv] HP_Change entity={u.EntityId} {oldHp}→{u.NewHp} (delta={u.NewHp - oldHp})");
+
+                        bool refreshWorldView = info.EntityType == (int)EntityType.Object;
+                        GS.UpdateEntityState(info, refreshWorldView);
+                        if (info.EntityType == (int)EntityType.Monster)
+                            P2PContentDirector.Instance?.MarkWorldDirty();
+                    }
+                    else
+                    {
+                        if (P2PDebugConfig.TraceCombat)
+                            Debug.LogWarning($"[DamageRecv] Entity not found: {u.EntityId}");
                     }
                 }
             }

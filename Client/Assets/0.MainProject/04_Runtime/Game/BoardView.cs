@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class BoardView : MonoBehaviour, IClientWorldView
@@ -19,6 +20,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
     
     // Runtime Cache
     private Dictionary<int, GameObject> _entityPrefabCache = new Dictionary<int, GameObject>();
+    private readonly Dictionary<int, EntityAnimationProfile> _entityAnimationProfileCache = new();
 
     [Header("Rendering")]
     public float cellSize = 1.0f;
@@ -42,6 +44,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     // entityId -> EntityVisual
     private readonly Dictionary<int, EntityVisual> _entityViews = new();
+    private const string EntityAnimationProfileResourceRoot = "Data/EntityAnimationProfiles";
 
     // (x,y) -> Tile GameObject
     private GameObject[,] _tiles;
@@ -80,9 +83,22 @@ public class BoardView : MonoBehaviour, IClientWorldView
         public Color Color;
     }
 
+    private sealed class PendingVisualDespawn
+    {
+        public readonly EntityVisual Visual;
+        public readonly Coroutine Coroutine;
+
+        public PendingVisualDespawn(EntityVisual visual, Coroutine coroutine)
+        {
+            Visual = visual;
+            Coroutine = coroutine;
+        }
+    }
+
     private Dictionary<int, float> _recentInstantActions = new();
     private Dictionary<int, List<PredictedMove>> _recentPredictedMoves = new();
     private Dictionary<int, ClientSkillRunner> _activeSkillRunners = new();
+    private readonly Dictionary<int, PendingVisualDespawn> _pendingVisualDespawns = new();
     private Dictionary<Vector2Int, long> _telegraphExpiration = new Dictionary<Vector2Int, long>();
     private readonly List<Vector2Int> _expiredTelegraphBuffer = new List<Vector2Int>();
     private const string WalkableGridObjectName = "__WalkableGridOutline";
@@ -1044,6 +1060,20 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     public void OnClearEntities()
     {
+        foreach (var kv in _pendingVisualDespawns)
+        {
+            var pending = kv.Value;
+            if (pending == null)
+                continue;
+
+            if (pending.Coroutine != null)
+                StopCoroutine(pending.Coroutine);
+
+            if (pending.Visual != null)
+                Destroy(pending.Visual.gameObject);
+        }
+        _pendingVisualDespawns.Clear();
+
         foreach (var kv in _entityViews)
         {
             if (kv.Value != null)
@@ -1054,6 +1084,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     public void OnSpawnOrUpdateEntity(ClientEntityInfo info)
     {
+        CancelPendingVisualDespawn(info.EntityId);
+        var gameState = ClientGameState.Instance;
+
         bool createdNow = false;
         if (!_entityViews.TryGetValue(info.EntityId, out var visual) || visual == null)
         {
@@ -1072,26 +1105,24 @@ public class BoardView : MonoBehaviour, IClientWorldView
             if (!go.TryGetComponent<EntityVisual>(out visual))
                 visual = go.AddComponent<EntityVisual>();
 
+            EntityAnimationProfile animationProfile = ResolveEntityAnimationProfile(info.EntityType, info.AppearanceId, prefab);
+            if (animationProfile != null)
+                visual.BindAnimationProfile(animationProfile);
+
             _entityViews[info.EntityId] = visual;
             createdNow = true;
             if (info.EntityType == (int)EntityType.Player)
             {
-                bool isLocal = ClientGameState.Instance != null && info.EntityId == ClientGameState.Instance.MyActorId;
+                bool isLocal = gameState != null && info.EntityId == gameState.MyActorId;
                 Debug.Log(
                     $"[P2PPlayerSync] Player visual created actor={info.EntityId} local={isLocal} " +
                     $"prefab={prefab.name} pos=({info.X},{info.Y}) app={info.AppearanceId}");
             }
-
-            if (visual.TryGetComponent<RhythmRPG.Visual.CharacterVisualController>(out var visualCtrl))
-            {
-                visualCtrl.SetContext(RhythmRPG.Visual.CharacterContext.Game);
-
-                if (info.EntityId == ClientGameState.Instance.MyActorId)
-                    visualCtrl.SetLocalPlayer(true);
-            }
         }
 
-        if (info.EntityId == ClientGameState.Instance.MyActorId)
+        SyncCharacterVisualController(info, visual, gameState);
+
+        if (gameState != null && info.EntityId == gameState.MyActorId)
         {
             CameraBinder.Instance?.Bind(visual.transform);
             RhythmInputControllerBinder.Instance?.Bind(visual.gameObject);
@@ -1109,6 +1140,25 @@ public class BoardView : MonoBehaviour, IClientWorldView
         visual.SetRotation(info.Rotation);
     }
 
+    private static void SyncCharacterVisualController(ClientEntityInfo info, EntityVisual visual, ClientGameState gameState)
+    {
+        if (info.EntityType != (int)EntityType.Player || visual == null || gameState == null)
+            return;
+
+        var visualCtrl = visual.GetComponent<RhythmRPG.Visual.CharacterVisualController>();
+        if (visualCtrl == null)
+            visualCtrl = visual.GetComponentInChildren<RhythmRPG.Visual.CharacterVisualController>(true);
+        if (visualCtrl == null)
+            return;
+
+        if (visualCtrl.CurrentContext != RhythmRPG.Visual.CharacterContext.Game)
+            visualCtrl.SetContext(RhythmRPG.Visual.CharacterContext.Game);
+
+        bool isLocal = info.EntityId == gameState.MyActorId;
+        if (visualCtrl.IsLocalPlayer != isLocal)
+            visualCtrl.SetLocalPlayer(isLocal);
+    }
+
     public bool HasEntityView(int entityId)
         => _entityViews.TryGetValue(entityId, out var visual) && visual != null;
 
@@ -1118,8 +1168,79 @@ public class BoardView : MonoBehaviour, IClientWorldView
     public void OnDespawnEntity(int entityId)
     {
         if (_entityViews.TryGetValue(entityId, out var visual) && visual != null)
-            Destroy(visual.gameObject);
+        {
+            float delay = visual.IsDead
+                ? visual.GetRemainingDeathDelaySeconds()
+                : visual.PlayDeath();
+
+            if (delay > 0.05f && visual.HasAnimator)
+                _pendingVisualDespawns[entityId] = new PendingVisualDespawn(
+                    visual,
+                    StartCoroutine(CoDestroyVisualAfterDelay(entityId, visual, delay)));
+            else
+                Destroy(visual.gameObject);
+        }
+
         _entityViews.Remove(entityId);
+        _recentInstantActions.Remove(entityId);
+        ClearPredictedMoves(entityId);
+
+        if (_activeSkillRunners.TryGetValue(entityId, out var runner) && runner != null)
+            Destroy(runner.gameObject);
+        _activeSkillRunners.Remove(entityId);
+    }
+
+    public void PlayEntityDamageFeedback(int entityId, int oldHp, int newHp)
+    {
+        if (oldHp <= 0 || newHp >= oldHp)
+            return;
+
+        if (!_entityViews.TryGetValue(entityId, out var visual) || visual == null)
+            return;
+
+        if (newHp <= 0)
+            visual.PlayDeath();
+        else
+            visual.PlayHit(ResolveHitFeedbackDuration());
+    }
+
+    private float ResolveHitFeedbackDuration()
+    {
+        const float fallbackDuration = 0.25f;
+
+        if (RhythmClient.Instance == null)
+            return fallbackDuration;
+
+        double beatMs = RhythmClient.Instance.GetBeatDurationMs();
+        if (beatMs <= 0)
+            return fallbackDuration;
+
+        return Mathf.Clamp((float)(beatMs / 1000.0) * actionDurationRatio, 0.08f, 0.35f);
+    }
+
+    private IEnumerator CoDestroyVisualAfterDelay(int entityId, EntityVisual visual, float delay)
+    {
+        yield return new WaitForSeconds(Mathf.Max(0.05f, delay));
+
+        if (visual != null)
+            Destroy(visual.gameObject);
+
+        if (_pendingVisualDespawns.TryGetValue(entityId, out var pending) && pending.Visual == visual)
+            _pendingVisualDespawns.Remove(entityId);
+    }
+
+    private void CancelPendingVisualDespawn(int entityId)
+    {
+        if (!_pendingVisualDespawns.TryGetValue(entityId, out var pending))
+            return;
+
+        if (pending.Coroutine != null)
+            StopCoroutine(pending.Coroutine);
+
+        if (pending.Visual != null)
+            Destroy(pending.Visual.gameObject);
+
+        _pendingVisualDespawns.Remove(entityId);
     }
 
     [Header("Sync")]
@@ -1189,7 +1310,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
             if (playWalkableGridWaveOnCombat)
                 PlayWalkableGridWave(action.ToX, action.ToY);
 
-            visual.PlaySkill(duration * 0.35f, isMine);
+            visual.PlaySkill("Interact", duration * 0.35f, isMine);
             visual.SetRotation(action.Rotation);
             return;
         }
@@ -1452,6 +1573,28 @@ public class BoardView : MonoBehaviour, IClientWorldView
     #region Helper
 
     private Dictionary<int, string> _entityPathMap = new Dictionary<int, string>();
+
+    private EntityAnimationProfile ResolveEntityAnimationProfile(int entityType, int modelId, GameObject prefab)
+    {
+        int profileId = entityType == (int)EntityType.Player && modelId <= 0
+            ? 10
+            : modelId;
+
+        if (profileId > 0 && _entityAnimationProfileCache.TryGetValue(profileId, out var cached))
+            return cached;
+
+        EntityAnimationProfile profile = null;
+        if (profileId > 0)
+            profile = Resources.Load<EntityAnimationProfile>($"{EntityAnimationProfileResourceRoot}/Entity_{profileId}");
+
+        if (profile == null && prefab != null)
+            profile = Resources.Load<EntityAnimationProfile>($"{EntityAnimationProfileResourceRoot}/{prefab.name}");
+
+        if (profileId > 0)
+            _entityAnimationProfileCache[profileId] = profile;
+
+        return profile;
+    }
 
     private bool TryGetEntityGridPosition(int actorId, out Vector2Int position)
     {

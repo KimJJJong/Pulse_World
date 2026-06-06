@@ -73,8 +73,9 @@ public class HudPresenter : MonoBehaviour
             gs.PartyStateChanged -= RefreshPartyPanels;
         }
 
-        if (InventoryManager.Instance != null)
-            InventoryManager.Instance.OnInventoryUpdated -= OnInventoryUpdated;
+        var inventoryManager = InventoryManager.ExistingInstance;
+        if (inventoryManager != null)
+            inventoryManager.OnInventoryUpdated -= OnInventoryUpdated;
 
         UnbindInputController();
 

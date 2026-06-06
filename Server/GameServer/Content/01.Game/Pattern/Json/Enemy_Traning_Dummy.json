@@ -22,6 +22,7 @@
                 "RequireAlive": true
               },
               "SkillId": "Enemy_Attack_Cross",
+              "LockRotation": true,
               "TelegraphBeats": 0,
               "TelegraphStyleId": 0,
               "Area": {
@@ -48,6 +49,7 @@
                 "RequireAlive": true
               },
               "SkillId": "",
+              "LockRotation": false,
               "TelegraphBeats": 0,
               "TelegraphStyleId": 0,
               "Area": {
@@ -74,6 +76,7 @@
                 "RequireAlive": true
               },
               "SkillId": "",
+              "LockRotation": false,
               "TelegraphBeats": 0,
               "TelegraphStyleId": 0,
               "Area": {
@@ -100,6 +103,7 @@
                 "RequireAlive": true
               },
               "SkillId": "",
+              "LockRotation": false,
               "TelegraphBeats": 0,
               "TelegraphStyleId": 0,
               "Area": {

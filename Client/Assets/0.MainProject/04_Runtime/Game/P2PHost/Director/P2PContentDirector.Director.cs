@@ -939,7 +939,9 @@ public sealed partial class P2PContentDirector
                     {
                         var target = FindTargetEntity(state, action.Target, out _);
                         var targetPos = target != null ? new Vector2Int(target.Value.X, target.Value.Y) : plannedPos;
-                        float rotation = plannedRotation;
+                        float rotation = action.LockRotation
+                            ? plannedRotation
+                            : CalculateRotation(plannedPos, targetPos, plannedRotation);
 
                         string skillId = string.IsNullOrWhiteSpace(action.SkillId) ? "Attack" : action.SkillId;
                         var skillDef = P2PCombatContentCache.GetSkillDefinition(skillId);
@@ -954,6 +956,7 @@ public sealed partial class P2PContentDirector
                             skillId,
                             executeBeat);
 
+                        plannedRotation = rotation;
                         lastBeat = Math.Max(lastBeat, executeBeat + skillDurationBeats);
                         break;
                     }

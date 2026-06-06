@@ -59,6 +59,6 @@ public sealed class LoginScreen : MonoBehaviour
         }
 
         root.AuthApi.ApplyLogin(r.Data);
-        SceneRouter.Load(SceneNames.Home);
+        SceneRouter.Load(SceneNames.WorldMap);
     }
 }

@@ -31,6 +31,7 @@ MonoBehaviour:
             MaxRange: 999
             RequireAlive: 1
           SkillId: Enemy_Attack_Cross
+          LockRotation: 1
           TelegraphBeats: 0
           TelegraphStyleId: 0
           Area:
@@ -54,6 +55,7 @@ MonoBehaviour:
             MaxRange: 999
             RequireAlive: 1
           SkillId: 
+          LockRotation: 0
           TelegraphBeats: 0
           TelegraphStyleId: 0
           Area:
@@ -77,6 +79,7 @@ MonoBehaviour:
             MaxRange: 999
             RequireAlive: 1
           SkillId: 
+          LockRotation: 0
           TelegraphBeats: 0
           TelegraphStyleId: 0
           Area:
@@ -100,6 +103,7 @@ MonoBehaviour:
             MaxRange: 999
             RequireAlive: 1
           SkillId: 
+          LockRotation: 0
           TelegraphBeats: 0
           TelegraphStyleId: 0
           Area:

@@ -56,7 +56,7 @@ namespace GameServer.Content.Skill
             _nextRuntimeEventIndex = 0;
             _casterRotationSnapshot = rotation;
 
-            _beatActionManager.BroadcastActionInstant(_casterId, ActionKind.Skill, skill.SkillId, currentTick);
+            _beatActionManager.BroadcastActionInstant(_casterId, ActionKind.Skill, skill.SkillId, currentTick, rotation);
         }
 
         /// <summary>

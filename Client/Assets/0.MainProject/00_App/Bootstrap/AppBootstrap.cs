@@ -22,10 +22,10 @@ public sealed class AppBootstrap : MonoBehaviour
         if (config == null || config.ShowSteamDebugHud)
             SteamP2PDebugHud.Ensure(visibleByDefault: true);
 
-        // 앱 시작 시 토큰이 있으면 바로 Town으로, 없으면 Login으로
+        // 앱 시작 시 토큰이 있으면 바로 월드맵으로, 없으면 Login으로
         if (!ignoreToken)
         {
-            var startScene = Root.Tokens.HasRefreshToken ? SceneNames.Home : SceneNames.Login;
+            var startScene = Root.Tokens.HasRefreshToken ? SceneNames.WorldMap : SceneNames.Login;
             SceneRouter.Load(startScene);
         }
         else

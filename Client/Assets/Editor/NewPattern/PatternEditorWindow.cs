@@ -282,6 +282,7 @@ public class PatternEditorWindow : EditorWindow
             switch (action.Type)
             {
                 // ── Skill ──────────────────────────────────────────────────
+                case ActionType.Attack:
                 case ActionType.CastSkill:
                     action.SkillRef = (NewSkillSO)EditorGUILayout.ObjectField("Skill Asset", action.SkillRef, typeof(NewSkillSO), false);
                     if (action.SkillRef != null)
@@ -293,8 +294,19 @@ public class PatternEditorWindow : EditorWindow
                     }
                     else
                     {
-                        EditorGUILayout.HelpBox("Assign a NewSkillSO.", MessageType.Warning);
+                        EditorGUILayout.HelpBox("Assign a NewSkillSO or enter Skill ID manually.", MessageType.Warning);
                     }
+                    using (new EditorGUI.DisabledScope(action.SkillRef != null))
+                    {
+                        action.SkillId = EditorGUILayout.TextField("Skill ID", action.SkillId);
+                    }
+                    DrawTargetDef(action.Target);
+                    action.LockRotation = EditorGUILayout.Toggle("Lock Rotation", action.LockRotation);
+                    EditorGUILayout.HelpBox(
+                        action.LockRotation
+                            ? "Keeps the current facing direction when the attack starts."
+                            : "Faces the selected player target when the attack starts.",
+                        MessageType.Info);
                     break;
 
                 // ── Move (방향 기반 / Legacy Strategy) ────────────────────
@@ -460,6 +472,11 @@ public class PatternEditorWindow : EditorWindow
                 {
                     int clickedBeat = Mathf.FloorToInt(mousePos.x / _beatWidth);
                     GenericMenu menu = new GenericMenu();
+                    menu.AddItem(new GUIContent($"Add Attack at Beat {clickedBeat}"), false, () =>
+                    {
+                        var a = new ActionDef { Type = ActionType.Attack, AtBeatOffset = clickedBeat, SkillId = "Attack" };
+                        data.Timeline.Add(a); _selectedAction = a;
+                    });
                     menu.AddItem(new GUIContent($"Add Skill at Beat {clickedBeat}"), false, () =>
                     {
                         var a = new ActionDef { Type = ActionType.CastSkill, AtBeatOffset = clickedBeat };

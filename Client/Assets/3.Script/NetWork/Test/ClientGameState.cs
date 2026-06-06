@@ -282,6 +282,10 @@ public class ClientGameState : MonoBehaviour
         MyActorId = actorId;
         string uid = TryGetPlayerUid(actorId, out var resolvedUid) ? resolvedUid : "-";
         Debug.Log($"[P2PPlayerSync] SetMyActorId actor={actorId} uid={uid}");
+
+        if (_entities.TryGetValue(actorId, out var entity))
+            WorldView?.OnSpawnOrUpdateEntity(entity);
+
         PartyStateChanged?.Invoke();
     }
 

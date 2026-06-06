@@ -14,9 +14,9 @@ public sealed class MinimapHudView : MonoBehaviour
     [SerializeField] private Vector2 _compactAnchoredPosition = new Vector2(-56f, -52f);
 
     [Header("Grid Zoom")]
-    [SerializeField, Min(1f)] private float _x1ZoomScale = 1.55f;
-    [SerializeField, Min(1f)] private float _x2ZoomScale = 2.3f;
-    [SerializeField, Min(1f)] private float _x3ZoomScale = 3.1f;
+    [SerializeField, Min(0.25f)] private float _x1GridScale = 0.9f;
+    [SerializeField, Min(0.25f)] private float _x2GridScale = 1.6f;
+    [SerializeField, Min(0.25f)] private float _x3GridScale = 2.3f;
     [SerializeField, Range(0, 2)] private int _defaultZoomLevel;
 
     [Header("Style")]
@@ -395,9 +395,9 @@ public sealed class MinimapHudView : MonoBehaviour
     {
         switch (level)
         {
-            case 1: return Mathf.Max(1f, _x2ZoomScale);
-            case 2: return Mathf.Max(1f, _x3ZoomScale);
-            default: return Mathf.Max(1f, _x1ZoomScale);
+            case 1: return Mathf.Max(0.25f, _x2GridScale);
+            case 2: return Mathf.Max(0.25f, _x3GridScale);
+            default: return Mathf.Max(0.25f, _x1GridScale);
         }
     }
 

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c71e40680c843b4a0e16e299428f2d1, type: 3}
+  m_Name: Entity_11
+  m_EditorClassIdentifier: Assembly-CSharp::EntityAnimationProfile
+  IdleState: Idle_B
+  IdleClip: {fileID: 7400000, guid: 90e4aad7c7d6e834b8352700496c94ab, type: 2}
+  MoveState: Walking_A
+  MoveClip: {fileID: 7400000, guid: 47e6058508825d14885667715ee375e8, type: 2}
+  AttackState: Melee_2H_Attack_Slice
+  AttackClip: {fileID: 7400000, guid: b0789f66792a0a44d98e0c04a806fc7e, type: 2}
+  HitState: Hit_A
+  HitClip: {fileID: 7400000, guid: 5723a5830e34aa347a0f04446374a546, type: 2}
+  DeathState: Death_A
+  DeathClip: {fileID: 7400000, guid: b613000e3692df142b37e58b11a66b3b, type: 2}
+  DefaultCrossFade: 0.05
+  FallbackDeathDuration: 0.8000001
+  SkillAnimations:
+  - SkillId: Attack
+    StateName: Melee_2H_Attack_Slice
+    Clip: {fileID: 7400000, guid: b0789f66792a0a44d98e0c04a806fc7e, type: 2}
+    CrossFade: -1
+  - SkillId: Skill
+    StateName: Melee_2H_Attack_Slice
+    Clip: {fileID: 7400000, guid: b0789f66792a0a44d98e0c04a806fc7e, type: 2}
+    CrossFade: -1

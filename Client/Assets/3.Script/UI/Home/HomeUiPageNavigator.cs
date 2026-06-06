@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,10 +18,13 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
     [SerializeField] private Button[] _homeButtons;
     [SerializeField] private HomeSceneCameraDirector _cameraDirector;
     [SerializeField] private bool _forceCameraPresentation;
+    [SerializeField] private bool _mapOnlyMode;
     [SerializeField] private float _forcedPresentationScreenLeftOffset = 1.65f;
     [SerializeField] private float _appearancePresentationScreenLeftOffset = 1.65f;
 
     private HomePage _currentPage = HomePage.Home;
+    private bool IsMapOnlyMode => _mapOnlyMode
+                                  || string.Equals(gameObject.scene.name, SceneNames.WorldMap, StringComparison.OrdinalIgnoreCase);
 
     private enum HomePage
     {
@@ -33,6 +37,17 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
 
     private void Awake()
     {
+        if (IsMapOnlyMode)
+        {
+            SetHomeButtonsActive(false);
+            SetActive(_homeRoot, false);
+            SetActive(_equipmentRoot, false);
+            SetActive(_inventoryRoot, false);
+            SetActive(_appearanceRoot, false);
+            SetActive(_detailRoot, false);
+            return;
+        }
+
         Bind(_equipmentButton, ShowEquipment);
         Bind(_inventoryButton, ShowInventory);
         Bind(_appearanceButton, ShowAppearance);
@@ -48,26 +63,58 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
 
     private void Start()
     {
-        ShowHome();
+        if (IsMapOnlyMode)
+        {
+            ShowMap();
+            WorldMapEntryOverlay.Play(GetComponentInParent<Canvas>());
+        }
+        else
+        {
+            ShowHome();
+        }
     }
 
     public void ShowHome()
     {
+        if (IsMapOnlyMode)
+        {
+            ShowMap();
+            return;
+        }
+
         Show(HomePage.Home);
     }
 
     public void ShowEquipment()
     {
+        if (IsMapOnlyMode)
+        {
+            ShowMap();
+            return;
+        }
+
         Show(HomePage.Equipment);
     }
 
     public void ShowInventory()
     {
+        if (IsMapOnlyMode)
+        {
+            ShowMap();
+            return;
+        }
+
         Show(HomePage.Inventory);
     }
 
     public void ShowAppearance()
     {
+        if (IsMapOnlyMode)
+        {
+            ShowMap();
+            return;
+        }
+
         Show(HomePage.Appearance);
     }
 
@@ -84,6 +131,9 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
 
     private void Show(HomePage page)
     {
+        if (IsMapOnlyMode && page != HomePage.Map)
+            page = HomePage.Map;
+
         _currentPage = page;
         SetActive(_homeRoot, page == HomePage.Home);
         SetActive(_equipmentRoot, page == HomePage.Equipment);
@@ -125,5 +175,17 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
     {
         if (target != null && target.activeSelf != active)
             target.SetActive(active);
+    }
+
+    private void SetHomeButtonsActive(bool active)
+    {
+        if (_homeButtons == null)
+            return;
+
+        foreach (var button in _homeButtons)
+        {
+            if (button != null)
+                SetActive(button.gameObject, active);
+        }
     }
 }

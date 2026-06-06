@@ -9,6 +9,22 @@ using NetClient.Network.Http.Dtos;
 public class InventoryManager : MonoBehaviour
 {
     private static InventoryManager _instance;
+    private static bool _isShuttingDown;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        _instance = null;
+        _isShuttingDown = false;
+        Application.quitting -= MarkShuttingDown;
+        Application.quitting += MarkShuttingDown;
+    }
+
+    private static void MarkShuttingDown()
+    {
+        _isShuttingDown = true;
+    }
+
     public static InventoryManager ExistingInstance
     {
         get
@@ -25,6 +41,9 @@ public class InventoryManager : MonoBehaviour
     {
         get
         {
+            if (_isShuttingDown)
+                return null;
+
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<InventoryManager>();
@@ -71,6 +90,17 @@ public class InventoryManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+    }
+
+    private void OnApplicationQuit()
+    {
+        MarkShuttingDown();
+    }
+
+    private void OnDestroy()
+    {
+        if (_instance == this)
+            _instance = null;
     }
 
     // State Flag

@@ -173,11 +173,11 @@ public sealed class PatternRunner
                     }
 
                 case ActionType.Attack:
-                    ProcessSkillAction(m, act, executeBeat, ref last);
+                    ProcessSkillAction(m, players, act, plannedPos, executeBeat, ref last);
                     break;
 
                 case ActionType.CastSkill:
-                    ProcessSkillAction(m, act, executeBeat, ref last);
+                    ProcessSkillAction(m, players, act, plannedPos, executeBeat, ref last);
                     break;
 
                 case ActionType.Move:
@@ -472,6 +472,9 @@ public sealed class PatternRunner
     }
 
     private MapEntity FindTarget(MapEntity self, IList<MapEntity> players, TargetDef target)
+        => FindTarget(self.Position, players, target);
+
+    private MapEntity FindTarget(GridPos origin, IList<MapEntity> players, TargetDef target)
     {
         MapEntity best = null;
         int bestDist = int.MaxValue;
@@ -480,8 +483,8 @@ public sealed class PatternRunner
         foreach (var p in players)
         {
             if (target.RequireAlive && !p.IsAlive) continue;
-            int dist = Math.Abs(p.Position.X - self.Position.X)
-                     + Math.Abs(p.Position.Y - self.Position.Y);
+            int dist = Math.Abs(p.Position.X - origin.X)
+                     + Math.Abs(p.Position.Y - origin.Y);
             if (dist > target.MaxRange) continue;
             candidates.Add(p);
         }
@@ -493,8 +496,8 @@ public sealed class PatternRunner
             case TargetType.ClosestPlayer:
                 foreach (var p in candidates)
                 {
-                    int d = Math.Abs(p.Position.X - self.Position.X)
-                          + Math.Abs(p.Position.Y - self.Position.Y);
+                    int d = Math.Abs(p.Position.X - origin.X)
+                          + Math.Abs(p.Position.Y - origin.Y);
                     if (d < bestDist) { bestDist = d; best = p; }
                 }
                 return best;
@@ -603,23 +606,34 @@ public sealed class PatternRunner
         }
     }
 
-    private void ProcessSkillAction(MapEntity m, ActionDef act, long executeBeat, ref long last)
+    private void ProcessSkillAction(MapEntity m, IList<MapEntity> players, ActionDef act, GridPos plannedPos, long executeBeat, ref long last)
     {
         if (!GameServer.Content.Skill.NewSkillDatabase.TryGet(act.SkillId, out var skillDef))
             return;
 
-        // 스킬 시전 시 타겟이 있다면 해당 방향으로 회전 업데이트 (옵션)
-        // 여기서는 일단 현재 몬스터의 Rotation을 그대로 사용하거나, 
-        // 필요 시 타겟 방향으로 미리 돌려주는 로직을 넣을 수 있음.
+        float rotation = ResolveSkillRotation(m, players, act, plannedPos);
+        m.Rotation = rotation;
         
         var runner = new GameServer.Content.Skill.SkillRunner(m.Id, _world, _actions, _frozen, _telegraph);
-        runner.StartSkillTick(skillDef, executeBeat * 480, m.Rotation);
+        runner.StartSkillTick(skillDef, executeBeat * 480, rotation);
 
         if (_rt.TryGetValue(m.Id, out var rt))
             rt.ActiveSkills.Add(runner);
 
         long endBeat = executeBeat + Math.Max(1, (skillDef.TotalDurationTicks + 479) / 480);
         last = Math.Max(last, endBeat);
+    }
+
+    private float ResolveSkillRotation(MapEntity m, IList<MapEntity> players, ActionDef act, GridPos plannedPos)
+    {
+        if (act.LockRotation)
+            return m.Rotation;
+
+        var target = FindTarget(plannedPos, players, act.Target);
+        if (target == null)
+            return m.Rotation;
+
+        return CalculateRotation(plannedPos, target.Position, m.Rotation);
     }
 
     private float CalculateRotation(GridPos from, GridPos to, float current)

@@ -57,8 +57,9 @@ public class HomeInventoryUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (InventoryManager.Instance != null)
-            InventoryManager.Instance.OnInventoryUpdated -= Refresh;
+        var inventoryManager = InventoryManager.ExistingInstance;
+        if (inventoryManager != null)
+            inventoryManager.OnInventoryUpdated -= Refresh;
     }
 
     public void Refresh()
