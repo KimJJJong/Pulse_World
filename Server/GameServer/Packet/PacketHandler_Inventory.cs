@@ -26,7 +26,7 @@ partial class PacketHandler
                     Console.WriteLine("[CS_GetInventory] No Auth Uid");
                     return;
                 }
-                var invItems = await ServerServices.InventoryManager.LoadInventoryAsync(uid);
+                var invItems = await ServerServices.InventoryManager.LoadInventoryAsync(uid, forceReload: true);
                 
                 SendInventory(s, invItems);
             }

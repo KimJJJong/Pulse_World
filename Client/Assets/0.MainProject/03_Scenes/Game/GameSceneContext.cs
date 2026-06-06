@@ -74,6 +74,7 @@ public sealed class GameSceneContext : BaseSceneContext
 
         // 전투 중 스킬/패턴 로딩으로 프레임이 끊기지 않도록 공용 콘텐츠를 미리 워밍업한다.
         P2PCombatContentCache.WarmUpSkills();
+        InventoryNetworkController.Instance.RequestRefresh();
 
         // 캐시된 InitMap이 있으면 여기서 처리 (씬 오브젝트 준비 완료 후)
         TryApplyInitMapIfAlreadyReceived();
