@@ -8,6 +8,18 @@ using FMODUnity;
 
 public class FMODDrumSequencer : MonoBehaviour
 {
+    private static readonly HashSet<string> ValidFmodEventNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Synthwave_Dagger", "Synthwave_Greatsword", "Synthwave_Bow", "Synthwave_Parry", "Synthwave_Staff",
+        "Lofi_Dagger", "Lofi_Greatsword", "Lofi_Bow", "Lofi_Parry", "Lofi_Staff",
+        "Funk_Dagger", "Funk_Greatsword", "Funk_Bow", "Funk_Parry", "Funk_Staff",
+        "Orchestral_Dagger", "Orchestral_Greatsword", "Orchestral_Bow", "Orchestral_Parry", "Orchestral_Staff",
+        "Jazz_Dagger", "Jazz_Greatsword", "Jazz_Bow", "Jazz_Parry", "Jazz_Staff",
+        "Bass_Synthwave", "Bass_Lofi", "Bass_Funk", "Bass_Orchestral", "Bass_Jazz",
+        "Melody_Synthwave", "Melody_Lofi", "Melody_Funk", "Melody_Orchestral", "Melody_Jazz",
+        "Kick", "HiHat", "TestSmith"
+    };
+
     [Header("Rhythm Data")]
     public TextAsset rhythmJsonAsset;
 
@@ -649,6 +661,140 @@ public class FMODDrumSequencer : MonoBehaviour
             _y1 = output;
             return output;
         }
+    }
+
+    /// <summary>
+    /// 현재 클라이언트의 Playhead 위치를 기준으로 가장 최근에 발동된 ChordEvent 객체를 반환합니다.
+    /// </summary>
+    public ChordEvent GetCurrentChord()
+    {
+        if (_stageData == null || _currentBlock == null) return null;
+        if (RhythmClient.Instance == null || RhythmClient.Instance.ServerSongStartMs == 0) return null;
+
+        long currentBeatIndex = RhythmClient.Instance.GetCurrentBeatIndex();
+        if (currentBeatIndex < 0) return null;
+
+        int beatsPerMeasure = _stageData.TimeSignatureNum;
+        int totalBeatsInBlock = _currentBlock.LengthMeasures * beatsPerMeasure;
+        
+        long beatInBlock = currentBeatIndex - _blockStartBeatIndex;
+        if (beatInBlock < 0 || beatInBlock >= totalBeatsInBlock) 
+            return null;
+
+        long measureIndex = beatInBlock / beatsPerMeasure;
+        long relativeBeatInMeasure = beatInBlock % beatsPerMeasure;
+        long currentTick = relativeBeatInMeasure * _stageData.TicksPerBeat;
+
+        if (_currentBlock.ChordEvents == null || _currentBlock.ChordEvents.Count == 0)
+            return null;
+
+        ChordEvent current = _currentBlock.ChordEvents[0];
+        foreach (var chord in _currentBlock.ChordEvents)
+        {
+            if (chord.MeasureIndex < measureIndex ||
+               (chord.MeasureIndex == measureIndex && chord.Tick <= currentTick))
+            {
+                current = chord;
+            }
+            else
+            {
+                // 시간 순 정렬되어 있다고 가정
+                break;
+            }
+        }
+        return current;
+    }
+
+    public string GetDynamicFmodEventPath(string soundKey)
+    {
+        if (string.IsNullOrEmpty(soundKey)) return null;
+
+        // 1:1 이름 매칭 검증 (FMOD 이벤트 명과 완전히 동일한 경우 바로 리다이렉트 재생)
+        if (ValidFmodEventNames.TryGetValue(soundKey, out string exactName))
+        {
+            return $"event:/{exactName}";
+        }
+
+        string genre = GetCurrentGenre();
+
+        // 1. 베이스 사운드 매핑 (장르 명시형)
+        if (soundKey.StartsWith("SynthBass_", StringComparison.OrdinalIgnoreCase))
+            return "event:/Bass_Synthwave";
+        if (soundKey.StartsWith("LofiBass_", StringComparison.OrdinalIgnoreCase))
+            return "event:/Bass_Lofi";
+        if (soundKey.StartsWith("FunkBass_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("SlapBass_", StringComparison.OrdinalIgnoreCase))
+            return "event:/Bass_Funk";
+        if (soundKey.StartsWith("OrchBass_", StringComparison.OrdinalIgnoreCase))
+            return "event:/Bass_Orchestral";
+        if (soundKey.StartsWith("JazzBass_", StringComparison.OrdinalIgnoreCase))
+            return "event:/Bass_Jazz";
+
+        // 1-1. 베이스 사운드 매핑 (범용 접두어) -> 현재 스테이지 장르 기준
+        if (soundKey.StartsWith("Bass_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("BassKick", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"event:/Bass_{genre}";
+        }
+
+        // 2. 멜로디 사운드 매핑 (장르 명시형/악기명)
+        if (soundKey.StartsWith("SynthLead_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("SynthPluck_", StringComparison.OrdinalIgnoreCase))
+            return "event:/Melody_Synthwave";
+
+        if (soundKey.StartsWith("LofiFlute_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("Rhodes_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("LofiPiano_", StringComparison.OrdinalIgnoreCase))
+            return "event:/Melody_Lofi";
+
+        if (soundKey.StartsWith("Clav_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("Clavinet_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("FunkGuitar_", StringComparison.OrdinalIgnoreCase) ||
+            soundKey.StartsWith("FunkMute_", StringComparison.OrdinalIgnoreCase))
+            return "event:/Melody_Funk";
+
+        if (soundKey.StartsWith("OrchFlute_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("Violin_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("Harp_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("Cello_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("Flute_", StringComparison.OrdinalIgnoreCase))
+            return "event:/Melody_Orchestral";
+
+        if (soundKey.StartsWith("JazzSax_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("Vibraphone_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("JazzGuitar_", StringComparison.OrdinalIgnoreCase))
+            return "event:/Melody_Jazz";
+
+        // 2-1. 멜로디 사운드 매핑 (범용 접두어) -> 현재 스테이지 장르 기준
+        if (soundKey.StartsWith("Melody_", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("Lead_", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"event:/Melody_{genre}";
+        }
+
+        // 3. Kick / HiHat 기본 드럼 및 Timpani (팀파니는 킥에셋 피치 튜닝 매핑)
+        if (soundKey.Equals("Kick", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.StartsWith("Timpani_", StringComparison.OrdinalIgnoreCase))
+            return "event:/Kick";
+        if (soundKey.Equals("HiHat", StringComparison.OrdinalIgnoreCase))
+            return "event:/HiHat";
+        if (soundKey.Equals("Smith", StringComparison.OrdinalIgnoreCase) || 
+            soundKey.Equals("TestSmith", StringComparison.OrdinalIgnoreCase))
+            return "event:/TestSmith";
+
+        return null;
+    }
+
+    public string GetCurrentGenre()
+    {
+        if (_stageData == null) return "Synthwave";
+        string id = _stageData.StageId.ToLowerInvariant();
+        if (id.Contains("synth")) return "Synthwave";
+        if (id.Contains("lofi")) return "Lofi";
+        if (id.Contains("funk")) return "Funk";
+        if (id.Contains("ethereal") || id.Contains("orch")) return "Orchestral";
+        if (id.Contains("jazz")) return "Jazz";
+        return "Synthwave";
     }
 
     /// <summary>

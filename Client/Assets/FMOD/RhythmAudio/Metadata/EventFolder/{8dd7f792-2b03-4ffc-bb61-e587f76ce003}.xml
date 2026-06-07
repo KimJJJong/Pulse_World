@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="EventFolder" id="{8dd7f792-2b03-4ffc-bb61-e587f76ce003}">
+		<property name="name">
+			<value>Bass</value>
+		</property>
+		<relationship name="folder">
+			<destination>{f4fd3bbb-d58f-4378-9dbe-9f562db7944f}</destination>
+		</relationship>
+		<relationship name="items">
+			<destination>{0a80e73b-2c4f-4b76-83d9-3d37f1ea75b4}</destination>
+			<destination>{28e00066-7092-421c-805f-515f1e144f22}</destination>
+			<destination>{3836015b-9919-48a6-addf-12b56dc957ed}</destination>
+			<destination>{a2209ee9-814d-47c1-b420-224b00ee3ee0}</destination>
+			<destination>{ea970048-0bf2-4439-a7a3-28e5ce139811}</destination>
+		</relationship>
+	</object>
+</objects>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="MasterEventFolder" id="{f4fd3bbb-d58f-4378-9dbe-9f562db7944f}">
+		<property name="name">
+			<value>Master</value>
+		</property>
+		<relationship name="items">
+			<destination>{0a361163-b05e-4ba7-8d23-eb99c7c6b641}</destination>
+			<destination>{1cc4d3a2-923f-40ae-9b3d-796474d29553}</destination>
+			<destination>{8dd7f792-2b03-4ffc-bb61-e587f76ce003}</destination>
+			<destination>{990e02d6-da50-4f8c-9df3-c8a480f28852}</destination>
+		</relationship>
+	</object>
+</objects>

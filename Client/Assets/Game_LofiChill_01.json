@@ -11,43 +11,232 @@
             "DefaultNextBlock": "Lofi_Loop",
             "OverrideBpm": 0,
             "ChordEvents": [
-                { "MeasureIndex": 0, "Tick": 0, "RootNote": "C", "ChordType": "Major7", "PitchOffset": 0 },
-                { "MeasureIndex": 1, "Tick": 0, "RootNote": "A", "ChordType": "Minor7", "PitchOffset": 9 },
-                { "MeasureIndex": 2, "Tick": 0, "RootNote": "D", "ChordType": "Minor7", "PitchOffset": 2 },
-                { "MeasureIndex": 3, "Tick": 0, "RootNote": "G", "ChordType": "Dominant7", "PitchOffset": 7 }
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "RootNote": "C",
+                    "ChordType": "Major7",
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "RootNote": "A",
+                    "ChordType": "Minor7",
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "RootNote": "D",
+                    "ChordType": "Minor7",
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "RootNote": "G",
+                    "ChordType": "Dominant7",
+                    "PitchOffset": 7
+                }
             ],
             "BassPattern": [
-                { "MeasureIndex": 0, "Tick": 0, "SoundKey": "SubBass_Root", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Rhodes_Cmaj7", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 0, "Tick": 480, "SoundKey": "LofiFlute_E5", "VolumeMultiplier": 0.6 },
-                { "MeasureIndex": 0, "Tick": 720, "SoundKey": "SubBass_Third", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 0, "Tick": 960, "SoundKey": "Rhodes_Cmaj7", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "SubBass_Fifth", "VolumeMultiplier": 0.9 },
-                { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "LofiFlute_G5", "VolumeMultiplier": 0.6 },
-
-                { "MeasureIndex": 1, "Tick": 0, "SoundKey": "SubBass_Root", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 1, "Tick": 0, "SoundKey": "Rhodes_Am7", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 1, "Tick": 480, "SoundKey": "LofiFlute_C5", "VolumeMultiplier": 0.6 },
-                { "MeasureIndex": 1, "Tick": 720, "SoundKey": "SubBass_Third", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 1, "Tick": 960, "SoundKey": "Rhodes_Am7", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 1, "Tick": 1200, "SoundKey": "LofiFlute_B4", "VolumeMultiplier": 0.6 },
-                { "MeasureIndex": 1, "Tick": 1440, "SoundKey": "SubBass_Fifth", "VolumeMultiplier": 0.9 },
-
-                { "MeasureIndex": 2, "Tick": 0, "SoundKey": "SubBass_Root", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Rhodes_Dm7", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 2, "Tick": 480, "SoundKey": "LofiFlute_F5", "VolumeMultiplier": 0.6 },
-                { "MeasureIndex": 2, "Tick": 720, "SoundKey": "SubBass_Third", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 2, "Tick": 960, "SoundKey": "Rhodes_Dm7", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 2, "Tick": 1440, "SoundKey": "SubBass_Fifth", "VolumeMultiplier": 0.9 },
-                { "MeasureIndex": 2, "Tick": 1440, "SoundKey": "LofiFlute_A5", "VolumeMultiplier": 0.6 },
-
-                { "MeasureIndex": 3, "Tick": 0, "SoundKey": "SubBass_Root", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 3, "Tick": 0, "SoundKey": "Rhodes_G7", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 3, "Tick": 480, "SoundKey": "LofiFlute_D5", "VolumeMultiplier": 0.6 },
-                { "MeasureIndex": 3, "Tick": 720, "SoundKey": "SubBass_Third", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 3, "Tick": 960, "SoundKey": "Rhodes_G7", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 3, "Tick": 1200, "SoundKey": "LofiFlute_G5", "VolumeMultiplier": 0.6 },
-                { "MeasureIndex": 3, "Tick": 1440, "SoundKey": "SubBass_Pass", "VolumeMultiplier": 0.8 }
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.6,
+                    "PitchOffset": 28
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.6,
+                    "PitchOffset": 31
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.6,
+                    "PitchOffset": 24
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 12
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.6,
+                    "PitchOffset": 23
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 16
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.6,
+                    "PitchOffset": 29
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 5
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.6,
+                    "PitchOffset": 33
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.6,
+                    "PitchOffset": 26
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 10
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Lofi",
+                    "VolumeMultiplier": 0.6,
+                    "PitchOffset": 31
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Lofi",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 7
+                }
             ]
         }
     ]

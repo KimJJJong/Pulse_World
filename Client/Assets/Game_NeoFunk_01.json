@@ -11,68 +11,407 @@
             "DefaultNextBlock": "Funk_Loop",
             "OverrideBpm": 0,
             "ChordEvents": [
-                { "MeasureIndex": 0, "Tick": 0, "RootNote": "E", "ChordType": "Minor9", "PitchOffset": 4 },
-                { "MeasureIndex": 1, "Tick": 0, "RootNote": "A", "ChordType": "Dominant13", "PitchOffset": 9 },
-                { "MeasureIndex": 2, "Tick": 0, "RootNote": "D", "ChordType": "Minor9", "PitchOffset": 2 },
-                { "MeasureIndex": 3, "Tick": 0, "RootNote": "G", "ChordType": "Dominant7", "PitchOffset": 7 }
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "RootNote": "E",
+                    "ChordType": "Minor9",
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "RootNote": "A",
+                    "ChordType": "Dominant13",
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "RootNote": "D",
+                    "ChordType": "Minor9",
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "RootNote": "G",
+                    "ChordType": "Dominant7",
+                    "PitchOffset": 7
+                }
             ],
             "BassPattern": [
-                { "MeasureIndex": 0, "Tick": 0, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 0, "Tick": 240, "SoundKey": "SlapBass_Pop", "VolumeMultiplier": 0.9 },
-                { "MeasureIndex": 0, "Tick": 240, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 0, "Tick": 480, "SoundKey": "SlapBass_Ghost", "VolumeMultiplier": 0.5 },
-                { "MeasureIndex": 0, "Tick": 480, "SoundKey": "FunkGuitar", "PitchOffset": 4, "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 0, "Tick": 720, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 0, "Tick": 720, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 0, "Tick": 960, "SoundKey": "SlapBass_Ghost", "VolumeMultiplier": 0.5 },
-                { "MeasureIndex": 0, "Tick": 1200, "SoundKey": "SlapBass_Pop", "VolumeMultiplier": 0.95 },
-                { "MeasureIndex": 0, "Tick": 1200, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 0.85 },
-                { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "FunkGuitar", "PitchOffset": 7, "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 0, "Tick": 1680, "SoundKey": "SlapBass_Slap", "VolumeMultiplier": 0.9 },
-
-                { "MeasureIndex": 1, "Tick": 0, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 1, "Tick": 240, "SoundKey": "SlapBass_Pop", "VolumeMultiplier": 0.9 },
-                { "MeasureIndex": 1, "Tick": 240, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 1, "Tick": 480, "SoundKey": "SlapBass_Ghost", "VolumeMultiplier": 0.5 },
-                { "MeasureIndex": 1, "Tick": 480, "SoundKey": "FunkGuitar", "PitchOffset": 9, "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 1, "Tick": 720, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 1, "Tick": 720, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 1, "Tick": 960, "SoundKey": "SlapBass_Ghost", "VolumeMultiplier": 0.5 },
-                { "MeasureIndex": 1, "Tick": 1200, "SoundKey": "SlapBass_Pop", "VolumeMultiplier": 0.95 },
-                { "MeasureIndex": 1, "Tick": 1200, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 1, "Tick": 1440, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 0.85 },
-                { "MeasureIndex": 1, "Tick": 1440, "SoundKey": "FunkGuitar", "PitchOffset": 11, "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 1, "Tick": 1680, "SoundKey": "SlapBass_Slap", "VolumeMultiplier": 0.9 },
-
-                { "MeasureIndex": 2, "Tick": 0, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 2, "Tick": 240, "SoundKey": "SlapBass_Pop", "VolumeMultiplier": 0.9 },
-                { "MeasureIndex": 2, "Tick": 240, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 2, "Tick": 480, "SoundKey": "SlapBass_Ghost", "VolumeMultiplier": 0.5 },
-                { "MeasureIndex": 2, "Tick": 480, "SoundKey": "FunkGuitar", "PitchOffset": 2, "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 2, "Tick": 720, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 2, "Tick": 720, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 2, "Tick": 960, "SoundKey": "SlapBass_Ghost", "VolumeMultiplier": 0.5 },
-                { "MeasureIndex": 2, "Tick": 1200, "SoundKey": "SlapBass_Pop", "VolumeMultiplier": 0.95 },
-                { "MeasureIndex": 2, "Tick": 1200, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 2, "Tick": 1440, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 0.85 },
-                { "MeasureIndex": 2, "Tick": 1440, "SoundKey": "FunkGuitar", "PitchOffset": 5, "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 2, "Tick": 1680, "SoundKey": "SlapBass_Slap", "VolumeMultiplier": 0.9 },
-
-                { "MeasureIndex": 3, "Tick": 0, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 3, "Tick": 240, "SoundKey": "SlapBass_Pop", "VolumeMultiplier": 0.9 },
-                { "MeasureIndex": 3, "Tick": 240, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 3, "Tick": 480, "SoundKey": "SlapBass_Ghost", "VolumeMultiplier": 0.5 },
-                { "MeasureIndex": 3, "Tick": 480, "SoundKey": "FunkGuitar", "PitchOffset": 7, "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 3, "Tick": 720, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 3, "Tick": 720, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 3, "Tick": 960, "SoundKey": "SlapBass_Ghost", "VolumeMultiplier": 0.5 },
-                { "MeasureIndex": 3, "Tick": 1200, "SoundKey": "SlapBass_Pop", "VolumeMultiplier": 0.95 },
-                { "MeasureIndex": 3, "Tick": 1200, "SoundKey": "Clav_Chop", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 3, "Tick": 1440, "SoundKey": "SlapBass_Thumb", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 3, "Tick": 1440, "SoundKey": "FunkGuitar", "PitchOffset": 9, "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 3, "Tick": 1680, "SoundKey": "SlapBass_Ghost", "VolumeMultiplier": 0.5 },
-                { "MeasureIndex": 3, "Tick": 1800, "SoundKey": "SlapBass_Slide", "VolumeMultiplier": 0.85 }
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 16
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.5,
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Funk",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 0.7
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.5,
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.95,
+                    "PitchOffset": 16
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.85,
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Funk",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 0.7
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 21
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.5,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Funk",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 0.7
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.5,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.95,
+                    "PitchOffset": 21
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.85,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Funk",
+                    "PitchOffset": 11,
+                    "VolumeMultiplier": 0.7
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 14
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.5,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Funk",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 0.7
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.5,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.95,
+                    "PitchOffset": 14
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.85,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Funk",
+                    "PitchOffset": 5,
+                    "VolumeMultiplier": 0.7
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 19
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.5,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Funk",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 0.7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.5,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.95,
+                    "PitchOffset": 19
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Funk",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Funk",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 0.7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.5,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1800,
+                    "SoundKey": "Bass_Funk",
+                    "VolumeMultiplier": 0.85,
+                    "PitchOffset": 7
+                }
             ]
         }
     ]

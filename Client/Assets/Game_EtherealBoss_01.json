@@ -11,56 +11,314 @@
             "DefaultNextBlock": "Orchestral_Loop",
             "OverrideBpm": 0,
             "ChordEvents": [
-                { "MeasureIndex": 0, "Tick": 0, "RootNote": "D", "ChordType": "Minor", "PitchOffset": 2 },
-                { "MeasureIndex": 1, "Tick": 0, "RootNote": "Bb", "ChordType": "Major", "PitchOffset": 10 },
-                { "MeasureIndex": 2, "Tick": 0, "RootNote": "G", "ChordType": "Minor", "PitchOffset": 7 },
-                { "MeasureIndex": 3, "Tick": 0, "RootNote": "A", "ChordType": "Major", "PitchOffset": 9 }
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "RootNote": "D",
+                    "ChordType": "Minor",
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "RootNote": "Bb",
+                    "ChordType": "Major",
+                    "PitchOffset": 10
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "RootNote": "G",
+                    "ChordType": "Minor",
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "RootNote": "A",
+                    "ChordType": "Major",
+                    "PitchOffset": 9
+                }
             ],
             "BassPattern": [
-                { "MeasureIndex": 0, "Tick": 0, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Timpani_Hit", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Violin_D4", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 0, "Tick": 240, "SoundKey": "Harp_Arp_D", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 0, "Tick": 480, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 0, "Tick": 960, "SoundKey": "OrchBass_Fifth", "VolumeMultiplier": 0.9 },
-                { "MeasureIndex": 0, "Tick": 960, "SoundKey": "Timpani_Roll", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 0, "Tick": 960, "SoundKey": "Violin_E4", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 0, "Tick": 1200, "SoundKey": "Harp_Arp_D", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.75 },
-
-                { "MeasureIndex": 1, "Tick": 0, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 1, "Tick": 0, "SoundKey": "Timpani_Hit", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 1, "Tick": 0, "SoundKey": "Violin_F4", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 1, "Tick": 240, "SoundKey": "Harp_Arp_Bb", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 1, "Tick": 480, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 1, "Tick": 960, "SoundKey": "OrchBass_Fifth", "VolumeMultiplier": 0.9 },
-                { "MeasureIndex": 1, "Tick": 960, "SoundKey": "Timpani_Roll", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 1, "Tick": 960, "SoundKey": "Violin_G4", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 1, "Tick": 1200, "SoundKey": "Harp_Arp_Bb", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 1, "Tick": 1440, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.75 },
-
-                { "MeasureIndex": 2, "Tick": 0, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Timpani_Hit", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Violin_Bb4", "VolumeMultiplier": 0.85 },
-                { "MeasureIndex": 2, "Tick": 240, "SoundKey": "Harp_Arp_G", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 2, "Tick": 480, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 2, "Tick": 960, "SoundKey": "OrchBass_Fifth", "VolumeMultiplier": 0.9 },
-                { "MeasureIndex": 2, "Tick": 960, "SoundKey": "Timpani_Roll", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 2, "Tick": 960, "SoundKey": "Violin_A4", "VolumeMultiplier": 0.85 },
-                { "MeasureIndex": 2, "Tick": 1200, "SoundKey": "Harp_Arp_G", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 2, "Tick": 1440, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.75 },
-
-                { "MeasureIndex": 3, "Tick": 0, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 3, "Tick": 0, "SoundKey": "Timpani_Hit", "VolumeMultiplier": 1.0 },
-                { "MeasureIndex": 3, "Tick": 0, "SoundKey": "Violin_G4", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 3, "Tick": 240, "SoundKey": "Harp_Arp_A", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 3, "Tick": 480, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.7 },
-                { "MeasureIndex": 3, "Tick": 960, "SoundKey": "OrchBass_Fifth", "VolumeMultiplier": 0.9 },
-                { "MeasureIndex": 3, "Tick": 960, "SoundKey": "Violin_F#4", "VolumeMultiplier": 0.85 },
-                { "MeasureIndex": 3, "Tick": 1200, "SoundKey": "Timpani_Hit", "VolumeMultiplier": 0.9 },
-                { "MeasureIndex": 3, "Tick": 1200, "SoundKey": "Harp_Arp_A", "VolumeMultiplier": 0.65 },
-                { "MeasureIndex": 3, "Tick": 1440, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.8 },
-                { "MeasureIndex": 3, "Tick": 1680, "SoundKey": "Timpani_Crescendo", "VolumeMultiplier": 0.95 }
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Timpani_Hit",
+                    "VolumeMultiplier": 1
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 14
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 960,
+                    "SoundKey": "Timpani_Roll",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 16
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.75,
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 10
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "SoundKey": "Timpani_Hit",
+                    "VolumeMultiplier": 1
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 17
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 10
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 10
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 17
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 960,
+                    "SoundKey": "Timpani_Roll",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 19
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 10
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.75,
+                    "PitchOffset": 10
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Timpani_Hit",
+                    "VolumeMultiplier": 1
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.85,
+                    "PitchOffset": 22
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 14
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Timpani_Roll",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.85,
+                    "PitchOffset": 21
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.75,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "SoundKey": "Timpani_Hit",
+                    "VolumeMultiplier": 1
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 19
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.7,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 16
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.85,
+                    "PitchOffset": 18
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1200,
+                    "SoundKey": "Timpani_Hit",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Orchestral",
+                    "VolumeMultiplier": 0.65,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Orchestral",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1680,
+                    "SoundKey": "Timpani_Crescendo",
+                    "VolumeMultiplier": 0.95
+                }
             ]
         }
     ]
