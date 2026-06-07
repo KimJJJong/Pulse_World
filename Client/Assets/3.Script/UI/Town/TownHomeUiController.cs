@@ -47,10 +47,16 @@ public sealed class TownHomeUiController : MonoBehaviour
 
     private void Update()
     {
-        if (!IsOpen || ConsumedToggleThisFrame)
+        if (ConsumedToggleThisFrame)
             return;
 
-        if (Input.GetKeyDown(KeyCode.I) || Input.GetKeyDown(KeyCode.Escape))
+        if (Input.GetKeyDown(KeyCode.I))
+        {
+            ToggleHomeUi();
+            return;
+        }
+
+        if (IsOpen && Input.GetKeyDown(KeyCode.Escape))
             CloseHomeUi();
     }
 
@@ -77,7 +83,10 @@ public sealed class TownHomeUiController : MonoBehaviour
             _cameraDirector.SetUseModelFacingForPresentation(true);
             _cameraDirector.SetInvertModelFacingForPresentation(true);
             _cameraDirector.SetUseCurrentCameraOppositeForPresentation(true);
+            _cameraDirector.SetUseStagedPresentationEnter(true);
         }
+        if (_navigator != null)
+            _navigator.SetCameraDirector(_cameraDirector);
 
         EnsureAppearancePreview(target);
         SuspendRhythmInput();

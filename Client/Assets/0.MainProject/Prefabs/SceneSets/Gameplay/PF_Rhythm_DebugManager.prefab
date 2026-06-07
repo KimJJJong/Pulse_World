@@ -93,15 +93,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FMODActionSoundPlayer
   myAttackSound:
     Guid:
-      Data1: -280893345
-      Data2: 1220327491
-      Data3: 36733840
-      Data4: -1119064859
-    Path: event:/TestSmith
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
   otherAttackSound:
     Guid:
-      Data1: -280893345
-      Data2: 1220327491
-      Data3: 36733840
-      Data4: -1119064859
-    Path: event:/TestSmith
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 

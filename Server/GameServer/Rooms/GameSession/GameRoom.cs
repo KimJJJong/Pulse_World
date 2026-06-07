@@ -269,38 +269,59 @@ public sealed class GameRoom : RoomBase
         _map = MapDatabase.Get(MapId);
 
         var stageData = StageDataManager.Get(MapId);
-
-        RhythmStageData rhythmData;
-        if (ContentStore.Rhythms != null && ContentStore.Rhythms.TryGetValue(MapId, out var parsedRhythm))
-        {
-            rhythmData = parsedRhythm;
-            LogManager.Instance.LogInfo("GameRoom", $"Rhythm data found mapId={MapId} blocks={rhythmData.Blocks?.Count ?? 0}");
-        }
-        else
-        {
-            LogManager.Instance.LogWarning("GameRoom", $"Rhythm data not found mapId={MapId}. Creating dummy.");
-            rhythmData = new RhythmStageData { StageId = MapId, TicksPerBeat = 480, TimeSignatureNum = 4 };
-            rhythmData.Blocks.Add(new RhythmBlock { BlockId = "DummyPhase1", LengthMeasures = 8, DefaultNextBlock = "DummyPhase1" });
-        }
-
-        var rhythmManager = new DynamicRhythmManager(rhythmData);
         if (stageData == null)
         {
             _logger.LogError("Stage Data Not Found: {MapId}. Falling back to default Config.", MapId);
             stageData = new StageScenario
             {
                 MapId = MapId,
-                RhythmSettings = new RhythmSettingsData { Bpm = 120, ActionWindowMs = 100 },
+                RhythmSettings = new RhythmSettingsData
+                {
+                    SongKey = MapId,
+                    Bpm = 120,
+                    BaseBeatDivision = 1,
+                    ActionWindowMs = 100,
+                    StartDelayMs = 2000
+                },
                 InitialSpawns = new List<SpawnData>()
             };
         }
 
+        stageData.RhythmSettings ??= new RhythmSettingsData
+        {
+            SongKey = MapId,
+            Bpm = 120,
+            BaseBeatDivision = 1,
+            ActionWindowMs = 100,
+            StartDelayMs = 2000
+        };
+
         var rSetting = stageData.RhythmSettings;
+        string rhythmKey = ResolveRhythmKey(MapId, rSetting.SongKey);
+
+        RhythmStageData rhythmData;
+        if (TryResolveRhythmData(rhythmKey, MapId, out var parsedRhythm))
+        {
+            rhythmData = parsedRhythm!;
+            LogManager.Instance.LogInfo(
+                "GameRoom",
+                $"Rhythm data found key={rhythmKey} actualStageId={rhythmData.StageId} bpm={rhythmData.Bpm} blocks={rhythmData.Blocks?.Count ?? 0}");
+        }
+        else
+        {
+            LogManager.Instance.LogWarning("GameRoom", $"Rhythm data not found key={rhythmKey} mapId={MapId}. Creating dummy.");
+            rhythmData = new RhythmStageData { StageId = rhythmKey, Bpm = rSetting.Bpm, TicksPerBeat = 480, TimeSignatureNum = 4 };
+            rhythmData.Blocks.Add(new RhythmBlock { BlockId = "DummyPhase1", LengthMeasures = 8, DefaultNextBlock = "DummyPhase1" });
+        }
+
+        var rhythmManager = new DynamicRhythmManager(rhythmData);
+        double rhythmBpm = rhythmData.Bpm > 0 ? rhythmData.Bpm : rSetting.Bpm;
 
         _rhythmConfig = new RhythmConfig
         {
-            Bpm = rSetting.Bpm,
-            BaseBeatDivision = rSetting.BaseBeatDivision,
+            SongKey = rhythmData.StageId,
+            Bpm = rhythmBpm > 0 ? rhythmBpm : 120,
+            BaseBeatDivision = rSetting.BaseBeatDivision > 0 ? rSetting.BaseBeatDivision : 1,
             ActionWindowMs = rSetting.ActionWindowMs,
             MaxBeatLookAhead = 2,
         };
@@ -334,6 +355,37 @@ public sealed class GameRoom : RoomBase
             startAtMs,
             songStart,
             rSetting.StartDelayMs);
+    }
+
+    static string ResolveRhythmKey(string mapId, string songKey)
+    {
+        if (!string.IsNullOrWhiteSpace(songKey) &&
+            !string.Equals(songKey, "DefaultSong", StringComparison.OrdinalIgnoreCase))
+        {
+            return songKey.Trim();
+        }
+
+        return string.IsNullOrWhiteSpace(mapId) ? "DefaultSong" : mapId.Trim();
+    }
+
+    static bool TryResolveRhythmData(string rhythmKey, string mapId, out RhythmStageData? rhythmData)
+    {
+        rhythmData = null;
+        if (ContentStore.Rhythms == null)
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(rhythmKey) && ContentStore.Rhythms.TryGetValue(rhythmKey, out rhythmData))
+            return true;
+
+        if (!string.Equals(rhythmKey, mapId, StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(mapId) &&
+            ContentStore.Rhythms.TryGetValue(mapId, out rhythmData))
+        {
+            return true;
+        }
+
+        rhythmData = null;
+        return false;
     }
 
     SC_BeatSync BuildBeatSyncPacket()

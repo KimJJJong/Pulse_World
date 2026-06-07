@@ -97,58 +97,58 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     [Header("Game Options")]
     [SerializeField] private string[] _gameMapIds =
     {
+        "Game_Forest_First_Step",
         "Game_Forest_Tutorial",
         "Game_Forest_01",
-        "Game_01",
-        "Game"
+        "Game_01"
     };
 
     [SerializeField] private string[] _gameTitles =
     {
+        "포레스트 첫걸음",
         "포레스트 튜토리얼",
         "위스퍼링 포레스트",
-        "크리스탈 카번",
-        "테스트 던전"
+        "크리스탈 카번"
     };
 
     [SerializeField] private string[] _gameDescriptions =
     {
+        "첫 전투에 진입하기 전 리듬과 이동 흐름을 짧게 확인하는 시작 맵입니다.",
         "깊고 울창한 포레스트에서 기본 조작을 익힐 수 있는 입문 맵입니다.",
         "몬스터가 숨어 있는 숲길을 따라 전투 흐름을 익히는 맵입니다.",
-        "푸른 크리스탈이 빛나는 동굴에서 강한 적을 상대합니다.",
-        "개발 테스트용 기본 전투 맵입니다."
+        "푸른 크리스탈이 빛나는 동굴에서 강한 적을 상대합니다."
     };
 
     [SerializeField] private string[] _gameDifficultyLabels =
     {
+        "입문",
         "쉬움",
         "보통",
-        "어려움",
-        "테스트"
+        "어려움"
     };
 
     [SerializeField] private string[] _gamePlayerLabels =
     {
         "1~4명",
         "1~4명",
-        "2~4명",
-        "1~4명"
+        "1~4명",
+        "2~4명"
     };
 
     [SerializeField] private string[] _gameTimeLabels =
     {
+        "3~5분",
         "5~10분",
         "10~15분",
-        "15~20분",
-        "5~10분"
+        "15~20분"
     };
 
     [SerializeField] private string[] _gameGoalLabels =
     {
+        "첫 전투 완료",
         "모든 적 처치",
         "숲의 균열 정리",
-        "크리스탈 수호자 처치",
-        "테스트 완료"
+        "크리스탈 수호자 처치"
     };
 
     [Header("Polling")]
@@ -1739,7 +1739,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         return Mathf.Clamp(_selectedGameMapIndex, 0, _gameMapIds.Length - 1);
     }
 
-    private string GetMapId(int index) => GetArrayValue(_gameMapIds, index, "Game_Forest_Tutorial");
+    private string GetMapId(int index) => GetArrayValue(_gameMapIds, index, "Game_Forest_First_Step");
     private string GetMapTitle(int index) => GetArrayValue(_gameTitles, index, GetMapId(index));
     private string GetMapDescription(int index) => GetArrayValue(_gameDescriptions, index, "");
     private string GetMapDifficulty(int index) => GetArrayValue(_gameDifficultyLabels, index, "쉬움");

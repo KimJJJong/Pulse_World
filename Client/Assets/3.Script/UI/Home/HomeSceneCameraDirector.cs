@@ -100,6 +100,11 @@ public sealed class HomeSceneCameraDirector : MonoBehaviour
         _useCurrentCameraOppositeForPresentation = useCurrentCameraOpposite;
     }
 
+    public void SetUseStagedPresentationEnter(bool useStagedPresentationEnter)
+    {
+        _useStagedPresentationEnter = useStagedPresentationEnter;
+    }
+
     public float GetStagedTransitionDuration()
     {
         if (!_useStagedPresentationEnter)

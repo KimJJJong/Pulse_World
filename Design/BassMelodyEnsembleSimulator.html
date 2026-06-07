@@ -1,0 +1,2868 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RhythmRPG Ensemble Sound Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0712;
+            --panel-bg: rgba(18, 12, 28, 0.75);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --glow-gold: #ff9e00;
+            --glow-purple: #9d4edd;
+            --glow-cyan: #00f0ff;
+            --glow-green: #39ff14;
+            --glow-red: #ff3366;
+            --text-color: #f3effa;
+            --text-muted: #8b7c9e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 5% 5%, rgba(157, 78, 221, 0.15) 0px, transparent 50%),
+                radial-gradient(at 95% 95%, rgba(0, 240, 255, 0.12) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(255, 51, 102, 0.04) 0px, transparent 60%);
+            background-attachment: fixed;
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px;
+        }
+
+        header {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 16px 24px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, var(--glow-cyan), var(--glow-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 240, 255, 0.25);
+        }
+
+        .brand span {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--glow-cyan);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 240, 255, 0.2);
+        }
+
+        .main-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 10px 20px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--glow-cyan), #00b4cc);
+            border: none;
+            color: #0b0712;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #00f0ff, #39ff14);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: rgba(255, 51, 102, 0.1);
+            border: 1px solid rgba(255, 51, 102, 0.3);
+            color: var(--glow-red);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 51, 102, 0.2);
+            border-color: var(--glow-red);
+            box-shadow: 0 0 15px rgba(255, 51, 102, 0.3);
+        }
+
+        .dashboard {
+            width: 100%;
+            max-width: 1400px;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(20px);
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .panel-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--glow-cyan);
+            box-shadow: 0 0 8px var(--glow-cyan);
+        }
+
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.01);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .select-preset {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .select-preset:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+        }
+
+        .select-preset option {
+            background: #150d22;
+            color: var(--text-color);
+        }
+
+        .control-group input[type="range"] {
+            -webkit-appearance: none;
+            width: 120px;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--glow-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--glow-cyan);
+        }
+
+        .info-badge {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--glow-cyan);
+            font-family: 'Fira Code', monospace;
+        }
+
+        .sequencer-container {
+            width: 100%;
+            overflow-x: auto;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .sequencer-grid {
+            position: relative;
+            height: 200px;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 50px, 48px 100%;
+        }
+
+        .grid-header-timeline {
+            display: flex;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .timeline-bar {
+            width: 192px; /* 4 beats * 48px */
+            border-right: 1px dashed rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+            font-size: 10px;
+            font-family: 'Fira Code', monospace;
+            color: var(--text-muted);
+        }
+
+        .timeline-bar.bold-bar {
+            border-right: 1.5px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .track-row {
+            display: flex;
+            height: 80px;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .track-label-col {
+            width: 150px;
+            background: #140d22;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 8px 12px;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+
+        .track-name {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .track-row.bass .track-name { color: var(--glow-purple); }
+        .track-row.melody .track-name { color: var(--glow-gold); }
+
+        .track-desc {
+            font-size: 9px;
+            color: var(--text-muted);
+        }
+
+        .track-timeline-col {
+            position: relative;
+            flex-grow: 1;
+            height: 100%;
+        }
+
+        .note-block {
+            position: absolute;
+            height: 48px;
+            top: 16px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 9px;
+            font-weight: 800;
+            font-family: 'Fira Code', monospace;
+            padding: 0 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.12);
+            transition: transform 0.1s;
+        }
+
+        .note-block:hover {
+            transform: scale(1.05);
+            filter: brightness(1.2);
+        }
+
+        .note-block.bass {
+            background: linear-gradient(135deg, rgba(157, 78, 221, 0.55), rgba(123, 44, 191, 0.65));
+            color: #e2d2ff;
+        }
+
+        .note-block.melody {
+            background: linear-gradient(135deg, rgba(255, 158, 0, 0.55), rgba(204, 100, 0, 0.65));
+            color: #ffe6c2;
+        }
+
+        .note-block.playing-active {
+            animation: note-hit-pulse 0.25s ease-out;
+            box-shadow: 0 0 15px currentColor;
+            filter: brightness(1.5);
+        }
+
+        @keyframes note-hit-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        .playhead {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--glow-cyan);
+            box-shadow: 0 0 10px var(--glow-cyan), 0 0 3px var(--glow-cyan);
+            pointer-events: none;
+            z-index: 5;
+            left: 0;
+        }
+
+        /* Interactive Client Input Area */
+        .interaction-panel {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .input-title {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            color: var(--glow-cyan);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .input-title span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--glow-cyan);
+            border-radius: 50%;
+        }
+
+        .pads-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+
+        .pad-btn {
+            background: rgba(18, 12, 28, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pad-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: transparent;
+        }
+
+        .pad-btn:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .pad-btn.active-trigger {
+            animation: pad-hit-flash 0.2s ease-out;
+        }
+
+        @keyframes pad-hit-flash {
+            0% { filter: brightness(1.8); transform: scale(0.95); }
+            100% { filter: brightness(1); transform: scale(1); }
+        }
+
+        /* Pad Themes */
+        .pad-btn.dagger::before { background: var(--glow-cyan); }
+        .pad-btn.dagger:hover { box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+        .pad-btn.dagger.active-trigger { background: rgba(0, 240, 255, 0.2); }
+
+        .pad-btn.greatsword::before { background: var(--glow-red); }
+        .pad-btn.greatsword:hover { box-shadow: 0 0 15px rgba(255, 51, 102, 0.2); }
+        .pad-btn.greatsword.active-trigger { background: rgba(255, 51, 102, 0.2); }
+
+        .pad-btn.bow::before { background: var(--glow-gold); }
+        .pad-btn.bow:hover { box-shadow: 0 0 15px rgba(255, 158, 0, 0.2); }
+        .pad-btn.bow.active-trigger { background: rgba(255, 158, 0, 0.2); }
+
+        .pad-btn.parry::before { background: var(--glow-green); }
+        .pad-btn.parry:hover { box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); }
+        .pad-btn.parry.active-trigger { background: rgba(57, 255, 20, 0.2); }
+
+        .pad-btn.staff::before { background: var(--glow-purple); }
+        .pad-btn.staff:hover { box-shadow: 0 0 15px rgba(157, 78, 221, 0.2); }
+        .pad-btn.staff.active-trigger { background: rgba(157, 78, 221, 0.2); }
+
+        .pad-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .pad-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .pad-desc {
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .pad-key {
+            position: absolute;
+            bottom: 4px;
+            right: 6px;
+            font-family: 'Fira Code', monospace;
+            font-size: 9px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: var(--text-color);
+        }
+
+        /* Sidebar Panels */
+        .visual-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .viz-box {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            height: 120px;
+            position: relative;
+        }
+
+        .viz-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .chord-display {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+
+        .chord-display h3 {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+        }
+
+        .chord-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--glow-gold);
+            text-shadow: 0 0 15px rgba(255, 158, 0, 0.4);
+        }
+
+        .chord-info {
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            color: var(--glow-cyan);
+            margin-top: 6px;
+        }
+
+        .interactive-instructions {
+            background: rgba(0, 240, 255, 0.03);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #a8cdd8;
+        }
+
+        .interactive-instructions strong {
+            color: var(--glow-cyan);
+        }
+
+        /* Bottom Grid: Code Viewer and Live Logger */
+        .bottom-grid {
+            width: 100%;
+            max-width: 1400px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .code-container {
+            background: #06040a;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            height: 320px;
+            overflow-y: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #928ca0;
+        }
+
+        .json-line {
+            display: block;
+            white-space: pre-wrap;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .json-line.highlight {
+            background: rgba(157, 78, 221, 0.2);
+            color: #ece5ff;
+            box-shadow: inset 3px 0 0 var(--glow-purple);
+            animation: line-flash 0.25s ease-out;
+        }
+
+        @keyframes line-flash {
+            0% { background: rgba(0, 240, 255, 0.3); }
+            100% { background: rgba(157, 78, 221, 0.2); }
+        }
+
+        .log-container {
+            background: #06040a;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            height: 320px;
+            overflow-y: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            color: #88c0d0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 10px;
+            padding-bottom: 2px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            animation: log-fade-in 0.15s ease-out;
+        }
+
+        .log-time {
+            color: #5e81ac;
+            flex-shrink: 0;
+        }
+
+        .log-msg {
+            color: #eceff4;
+        }
+
+        .log-entry.bass .log-msg { color: #b48ead; }
+        .log-entry.melody .log-msg { color: #ebcb8b; }
+        .log-entry.client .log-msg { color: #88c0d0; font-weight: bold; text-shadow: 0 0 5px rgba(136,192,208,0.3); }
+
+        @keyframes log-fade-in {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Overlay */
+        .overlay-start {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(11, 7, 18, 0.96);
+            backdrop-filter: blur(20px);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            transition: opacity 0.4s ease-out;
+        }
+
+        .overlay-card {
+            background: rgba(18, 12, 28, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            max-width: 520px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .overlay-card h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--glow-cyan), var(--glow-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+
+        .overlay-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .overlay-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            animation: pulse-icon 2s infinite ease-in-out;
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+        }
+
+        @keyframes pulse-icon {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Web Audio Activation Overlay -->
+    <div class="overlay-start" id="startOverlay">
+        <div class="overlay-card">
+            <div class="overlay-icon">🎧</div>
+            <h2>RhythmRPG Ensemble Simulator</h2>
+            <p>서버 제공 사운드 레이어(베이스/얕은 멜로디) 재생 및<br>
+            유저 입력에 따른 추가적인 음역대 조화를 들어보기 위한 시뮬레이터입니다.<br>
+            아래 버튼을 눌러 오디오 엔진을 활성화하세요.</p>
+            <button class="btn btn-primary" style="font-size: 16px; padding: 12px 30px; border-radius: 12px;" id="btnEnter">시뮬레이터 로드 & 활성화</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="brand">
+            <h1>RHYTHMRPG AUDIO ENSEMBLE</h1>
+            <span>Sound Layer Preview</span>
+        </div>
+        <div class="main-controls">
+            <button class="btn btn-primary" id="btnPlay">▶ Play Loop</button>
+            <button class="btn btn-danger" id="btnReset">⏹ Reset</button>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <!-- Main Panel (Timeline & Controls) -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title"><span></span> 실시간 앙상블 리듬 시퀀서 (4마디 루프)</div>
+                <div class="info-badge" id="valStageBadge">STAGE: Game_Synthwave_01</div>
+            </div>
+
+            <!-- Controls row (BPM, Master volume, Preset selector) -->
+            <div class="controls-row">
+                <div class="control-group">
+                    <label>STAGE SELECT (음악 프리셋)</label>
+                    <select class="select-preset" id="selectStage" style="width: 250px; color: var(--glow-cyan); border-color: rgba(0, 240, 255, 0.3);">
+                        <option value="synthwave">1. Cyberpunk Synthwave (120 BPM)</option>
+                        <option value="lofichill">2. Lofi Chillhop (80 BPM)</option>
+                        <option value="neofunk">3. Neo-Funk Groove (110 BPM)</option>
+                        <option value="etherealboss">4. Ethereal RPG Boss (135 BPM)</option>
+                        <option value="jazzlounge">5. Midnight Jazz Lounge (110 BPM)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>BPM (템포)</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="range" id="sliderBpm" min="60" max="180" value="120">
+                        <span class="info-badge" style="color: var(--glow-gold); width: 45px; text-align: center;" id="valBpm">120</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>MASTER VOLUME</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="range" id="sliderVolume" min="0" max="100" value="70">
+                        <span class="info-badge" id="valVolume" style="width: 50px; text-align: center;">70%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scrollable Sequencer Grid -->
+            <div class="sequencer-container" id="gridContainer">
+                <div class="grid-header-timeline" id="gridTimelineHeader">
+                    <!-- Dynamic timeline bars rendered by JS -->
+                </div>
+                <div class="sequencer-grid" id="sequencerGrid" style="width: 768px;">
+                    <div class="playhead" id="playhead"></div>
+                    <!-- Track Row 1: Bass -->
+                    <div class="track-row bass">
+                        <div class="track-label-col">
+                            <span class="track-name">Bass Layer</span>
+                            <span class="track-desc">저음역 (베이스 루프)</span>
+                        </div>
+                        <div class="track-timeline-col" id="bassTimeline">
+                            <!-- Bass Notes Rendered dynamically -->
+                        </div>
+                    </div>
+                    <!-- Track Row 2: Melody -->
+                    <div class="track-row melody">
+                        <div class="track-label-col">
+                            <span class="track-name">Melody Layer</span>
+                            <span class="track-desc">중고음역 (얕은 멜로디)</span>
+                        </div>
+                        <div class="track-timeline-col" id="melodyTimeline">
+                            <!-- Melody Notes Rendered dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Keyboard Area -->
+            <div class="interaction-panel">
+                <div class="input-title"><span></span> 실시간 Client 입력 연동 (추가적 음역대 타격 피드백)</div>
+                <div class="pads-container">
+                    <div class="pad-btn dagger" data-weapon="dagger">
+                        <div class="pad-icon">🗡️</div>
+                        <div class="pad-name">Dagger Slash</div>
+                        <div class="pad-desc">초고음역대 노이즈 스윕</div>
+                        <span class="pad-key">Key A</span>
+                    </div>
+                    <div class="pad-btn greatsword" data-weapon="greatsword">
+                        <div class="pad-icon">🪓</div>
+                        <div class="pad-name">Greatsword</div>
+                        <div class="pad-desc">중저음 포화 소우웨이브</div>
+                        <span class="pad-key">Key S</span>
+                    </div>
+                    <div class="pad-btn bow" data-weapon="bow">
+                        <div class="pad-icon">🏹</div>
+                        <div class="pad-name">Bow Shot</div>
+                        <div class="pad-desc">고음역 맑은 사인파 딜레이</div>
+                        <span class="pad-key">Key D</span>
+                    </div>
+                    <div class="pad-btn parry" data-weapon="parry">
+                        <div class="pad-icon">🛡️</div>
+                        <div class="pad-name">Shield Parry</div>
+                        <div class="pad-desc">금속성 레조넌스 벨 링</div>
+                        <span class="pad-key">Key F</span>
+                    </div>
+                    <div class="pad-btn staff" data-weapon="staff">
+                        <div class="pad-icon">🔮</div>
+                        <div class="pad-name">Magic Staff</div>
+                        <div class="pad-desc">화성 일치 3화음 아르페지오</div>
+                        <span class="pad-key">Space</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar (Visualizer & Info Panel) -->
+        <div class="visual-panel">
+            <div class="viz-box">
+                <canvas class="viz-canvas" id="canvasWave"></canvas>
+            </div>
+            <div class="viz-box">
+                <canvas class="viz-canvas" id="canvasFreq"></canvas>
+            </div>
+
+            <div class="chord-display">
+                <h3>Current Active Chord</h3>
+                <div class="chord-name" id="chordName">A Maj</div>
+                <div class="chord-info" id="chordOffset">Pitch Offset: +9 (A)</div>
+            </div>
+
+            <div class="interactive-instructions">
+                <strong>💡 앙상블 체감 방법</strong><br>
+                1. "Play Loop" 버튼을 눌러 배경 사운드 레이어를 구동합니다.<br>
+                2. 리듬에 맞춰 키보드 <strong>A, S, D, F, Space</strong> 키를 연타하여 클라이언트 공격 액션을 발동시킵니다.<br>
+                3. 마디가 진행되며 코드 화성이 전환될 때, 클라이언트 타격음의 주파수와 악음이 실시간 변조(Pitch Shifting)되어 어우러지는 조화를 들어보실 수 있습니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Container (JSON Viewer & Logs) -->
+    <div class="bottom-grid">
+        <div class="control-group">
+            <label>JSON Data View (실시간 파싱 및 하이라이트)</label>
+            <div class="code-container" id="jsonContainer">
+                <!-- Highlighted JSON -->
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Live Audio Ensemble Log</label>
+            <div class="log-container" id="logContainer">
+                <!-- Event Logs -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SOUND PRESETS EMBEDDED IN JAVASCRIPT -->
+    <script>
+        const presets = {
+            synthwave: {
+                StageId: "Game_Synthwave_01",
+                Bpm: 120,
+                TimeSignatureNum: 4,
+                TimeSignatureDenom: 4,
+                TicksPerBeat: 480,
+                bassOscType: 'sawtooth',
+                bassFilterFreq: 280,
+                melodyOscType: 'square',
+                Blocks: [{
+                    BlockId: "Synthwave_Loop",
+                    LengthMeasures: 4,
+                    DefaultNextBlock: "Synthwave_Loop",
+                    OverrideBpm: 0,
+                    ChordEvents: [
+                        { MeasureIndex: 0, Tick: 0, RootNote: "A", ChordType: "Minor", PitchOffset: 9 },
+                        { MeasureIndex: 1, Tick: 0, RootNote: "F", ChordType: "Major", PitchOffset: 5 },
+                        { MeasureIndex: 2, Tick: 0, RootNote: "C", ChordType: "Major", PitchOffset: 0 },
+                        { MeasureIndex: 3, Tick: 0, RootNote: "G", ChordType: "Major", PitchOffset: 7 }
+                    ],
+                    BassPattern: [
+                        { MeasureIndex: 0, Tick: 0, SoundKey: "SynthBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 0, Tick: 240, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 0, Tick: 480, SoundKey: "SynthBass_Root", VolumeMultiplier: 0.9 },
+                        { MeasureIndex: 0, Tick: 480, SoundKey: "SynthLead_A4", VolumeMultiplier: 0.75 },
+                        { MeasureIndex: 0, Tick: 720, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 0, Tick: 960, SoundKey: "SynthBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 0, Tick: 960, SoundKey: "SynthLead_B4", VolumeMultiplier: 0.75 },
+                        { MeasureIndex: 0, Tick: 1200, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 0, Tick: 1440, SoundKey: "SynthBass_Root", VolumeMultiplier: 0.95 },
+                        { MeasureIndex: 0, Tick: 1440, SoundKey: "SynthLead_C5", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 0, Tick: 1680, SoundKey: "SynthBass_Fill", VolumeMultiplier: 0.85 },
+
+                        { MeasureIndex: 1, Tick: 0, SoundKey: "SynthBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 1, Tick: 240, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 1, Tick: 480, SoundKey: "SynthBass_Root", VolumeMultiplier: 0.9 },
+                        { MeasureIndex: 1, Tick: 480, SoundKey: "SynthLead_F4", VolumeMultiplier: 0.75 },
+                        { MeasureIndex: 1, Tick: 720, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 1, Tick: 960, SoundKey: "SynthBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 1, Tick: 960, SoundKey: "SynthLead_G4", VolumeMultiplier: 0.75 },
+                        { MeasureIndex: 1, Tick: 1200, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 1, Tick: 1440, SoundKey: "SynthBass_Root", VolumeMultiplier: 0.95 },
+                        { MeasureIndex: 1, Tick: 1440, SoundKey: "SynthLead_A4", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 1, Tick: 1680, SoundKey: "SynthBass_Fill", VolumeMultiplier: 0.85 },
+
+                        { MeasureIndex: 2, Tick: 0, SoundKey: "SynthBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 2, Tick: 240, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 2, Tick: 480, SoundKey: "SynthBass_Root", VolumeMultiplier: 0.9 },
+                        { MeasureIndex: 2, Tick: 480, SoundKey: "SynthLead_E4", VolumeMultiplier: 0.75 },
+                        { MeasureIndex: 2, Tick: 720, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 2, Tick: 960, SoundKey: "SynthBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 2, Tick: 960, SoundKey: "SynthLead_F4", VolumeMultiplier: 0.75 },
+                        { MeasureIndex: 2, Tick: 1200, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 2, Tick: 1440, SoundKey: "SynthBass_Root", VolumeMultiplier: 0.95 },
+                        { MeasureIndex: 2, Tick: 1440, SoundKey: "SynthLead_G4", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 2, Tick: 1680, SoundKey: "SynthBass_Fill", VolumeMultiplier: 0.85 },
+
+                        { MeasureIndex: 3, Tick: 0, SoundKey: "SynthBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 3, Tick: 240, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 3, Tick: 480, SoundKey: "SynthBass_Root", VolumeMultiplier: 0.9 },
+                        { MeasureIndex: 3, Tick: 480, SoundKey: "SynthLead_D4", VolumeMultiplier: 0.75 },
+                        { MeasureIndex: 3, Tick: 720, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 3, Tick: 960, SoundKey: "SynthBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 3, Tick: 960, SoundKey: "SynthLead_E4", VolumeMultiplier: 0.75 },
+                        { MeasureIndex: 3, Tick: 1200, SoundKey: "SynthBass_Oct", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 3, Tick: 1440, SoundKey: "SynthBass_Root", VolumeMultiplier: 0.95 },
+                        { MeasureIndex: 3, Tick: 1440, SoundKey: "SynthLead_C4", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 3, Tick: 1680, SoundKey: "SynthBass_EndFill", VolumeMultiplier: 0.9 }
+                    ]
+                }]
+            },
+            lofichill: {
+                StageId: "Game_LofiChill_01",
+                Bpm: 80,
+                TimeSignatureNum: 4,
+                TimeSignatureDenom: 4,
+                TicksPerBeat: 480,
+                bassOscType: 'triangle',
+                bassFilterFreq: 150,
+                melodyOscType: 'sine',
+                Blocks: [{
+                    BlockId: "Lofi_Loop",
+                    LengthMeasures: 4,
+                    DefaultNextBlock: "Lofi_Loop",
+                    OverrideBpm: 0,
+                    ChordEvents: [
+                        { MeasureIndex: 0, Tick: 0, RootNote: "C", ChordType: "Major7", PitchOffset: 0 },
+                        { MeasureIndex: 1, Tick: 0, RootNote: "A", ChordType: "Minor7", PitchOffset: 9 },
+                        { MeasureIndex: 2, Tick: 0, RootNote: "D", ChordType: "Minor7", PitchOffset: 2 },
+                        { MeasureIndex: 3, Tick: 0, RootNote: "G", ChordType: "Dominant7", PitchOffset: 7 }
+                    ],
+                    BassPattern: [
+                        { MeasureIndex: 0, Tick: 0, SoundKey: "SubBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 0, Tick: 0, SoundKey: "Rhodes_Cmaj7", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 0, Tick: 480, SoundKey: "LofiFlute_E5", VolumeMultiplier: 0.6 },
+                        { MeasureIndex: 0, Tick: 720, SoundKey: "SubBass_Third", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 0, Tick: 960, SoundKey: "Rhodes_Cmaj7", VolumeMultiplier: 0.65 },
+                        { MeasureIndex: 0, Tick: 1440, SoundKey: "SubBass_Fifth", VolumeMultiplier: 0.9 },
+                        { MeasureIndex: 0, Tick: 1440, SoundKey: "LofiFlute_G5", VolumeMultiplier: 0.6 },
+
+                        { MeasureIndex: 1, Tick: 0, SoundKey: "SubBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 1, Tick: 0, SoundKey: "Rhodes_Am7", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 1, Tick: 480, SoundKey: "LofiFlute_C5", VolumeMultiplier: 0.6 },
+                        { MeasureIndex: 1, Tick: 720, SoundKey: "SubBass_Third", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 1, Tick: 960, SoundKey: "Rhodes_Am7", VolumeMultiplier: 0.65 },
+                        { MeasureIndex: 1, Tick: 1200, SoundKey: "LofiFlute_B4", VolumeMultiplier: 0.6 },
+                        { MeasureIndex: 1, Tick: 1440, SoundKey: "SubBass_Fifth", VolumeMultiplier: 0.9 },
+
+                        { MeasureIndex: 2, Tick: 0, SoundKey: "SubBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 2, Tick: 0, SoundKey: "Rhodes_Dm7", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 2, Tick: 480, SoundKey: "LofiFlute_F5", VolumeMultiplier: 0.6 },
+                        { MeasureIndex: 2, Tick: 720, SoundKey: "SubBass_Third", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 2, Tick: 960, SoundKey: "Rhodes_Dm7", VolumeMultiplier: 0.65 },
+                        { MeasureIndex: 2, Tick: 1440, SoundKey: "SubBass_Fifth", VolumeMultiplier: 0.9 },
+                        { MeasureIndex: 2, Tick: 1440, SoundKey: "LofiFlute_A5", VolumeMultiplier: 0.6 },
+
+                        { MeasureIndex: 3, Tick: 0, SoundKey: "SubBass_Root", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 3, Tick: 0, SoundKey: "Rhodes_G7", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 3, Tick: 480, SoundKey: "LofiFlute_D5", VolumeMultiplier: 0.6 },
+                        { MeasureIndex: 3, Tick: 720, SoundKey: "SubBass_Third", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 3, Tick: 960, SoundKey: "Rhodes_G7", VolumeMultiplier: 0.65 },
+                        { MeasureIndex: 3, Tick: 1200, SoundKey: "LofiFlute_G5", VolumeMultiplier: 0.6 },
+                        { MeasureIndex: 3, Tick: 1440, SoundKey: "SubBass_Pass", VolumeMultiplier: 0.8 }
+                    ]
+                }]
+            },
+            neofunk: {
+                StageId: "Game_NeoFunk_01",
+                Bpm: 110,
+                TimeSignatureNum: 4,
+                TimeSignatureDenom: 4,
+                TicksPerBeat: 480,
+                bassOscType: 'sawtooth',
+                bassFilterFreq: 450,
+                melodyOscType: 'triangle',
+                Blocks: [{
+                    BlockId: "Funk_Loop",
+                    LengthMeasures: 4,
+                    DefaultNextBlock: "Funk_Loop",
+                    OverrideBpm: 0,
+                    ChordEvents: [
+                        { MeasureIndex: 0, Tick: 0, RootNote: "E", ChordType: "Minor9", PitchOffset: 4 },
+                        { MeasureIndex: 1, Tick: 0, RootNote: "A", ChordType: "Dominant13", PitchOffset: 9 },
+                        { MeasureIndex: 2, Tick: 0, RootNote: "D", ChordType: "Minor9", PitchOffset: 2 },
+                        { MeasureIndex: 3, Tick: 0, RootNote: "G", ChordType: "Dominant7", PitchOffset: 7 }
+                    ],
+                    BassPattern: [
+                        { MeasureIndex: 0, Tick: 0, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 0, Tick: 240, SoundKey: "SlapBass_Pop", VolumeMultiplier: 0.9 },
+                        { MeasureIndex: 0, Tick: 240, SoundKey: "Clav_Chop", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 0, Tick: 480, SoundKey: "SlapBass_Ghost", VolumeMultiplier: 0.5 },
+                        { MeasureIndex: 0, Tick: 480, SoundKey: "FunkGuitar_E4", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 0, Tick: 720, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 0, Tick: 720, SoundKey: "Clav_Chop", VolumeMultiplier: 0.65 },
+                        { MeasureIndex: 0, Tick: 960, SoundKey: "SlapBass_Ghost", VolumeMultiplier: 0.5 },
+                        { MeasureIndex: 0, Tick: 1200, SoundKey: "SlapBass_Pop", VolumeMultiplier: 0.95 },
+                        { MeasureIndex: 0, Tick: 1200, SoundKey: "Clav_Chop", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 0, Tick: 1440, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 0.85 },
+                        { MeasureIndex: 0, Tick: 1440, SoundKey: "FunkGuitar_G4", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 0, Tick: 1680, SoundKey: "SlapBass_Slap", VolumeMultiplier: 0.9 },
+
+                        { MeasureIndex: 1, Tick: 0, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 1, Tick: 240, SoundKey: "SlapBass_Pop", VolumeMultiplier: 0.9 },
+                        { MeasureIndex: 1, Tick: 240, SoundKey: "Clav_Chop", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 1, Tick: 480, SoundKey: "SlapBass_Ghost", VolumeMultiplier: 0.5 },
+                        { MeasureIndex: 1, Tick: 480, SoundKey: "FunkGuitar_A4", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 1, Tick: 720, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 1, Tick: 720, SoundKey: "Clav_Chop", VolumeMultiplier: 0.65 },
+                        { MeasureIndex: 1, Tick: 960, SoundKey: "SlapBass_Ghost", VolumeMultiplier: 0.5 },
+                        { MeasureIndex: 1, Tick: 1200, SoundKey: "SlapBass_Pop", VolumeMultiplier: 0.95 },
+                        { MeasureIndex: 1, Tick: 1200, SoundKey: "Clav_Chop", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 1, Tick: 1440, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 0.85 },
+                        { MeasureIndex: 1, Tick: 1440, SoundKey: "FunkGuitar_B4", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 1, Tick: 1680, SoundKey: "SlapBass_Slap", VolumeMultiplier: 0.9 },
+
+                        { MeasureIndex: 2, Tick: 0, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 2, Tick: 240, SoundKey: "SlapBass_Pop", VolumeMultiplier: 0.9 },
+                        { MeasureIndex: 2, Tick: 240, SoundKey: "Clav_Chop", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 2, Tick: 480, SoundKey: "SlapBass_Ghost", VolumeMultiplier: 0.5 },
+                        { MeasureIndex: 2, Tick: 480, SoundKey: "FunkGuitar_D4", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 2, Tick: 720, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 2, Tick: 720, SoundKey: "Clav_Chop", VolumeMultiplier: 0.65 },
+                        { MeasureIndex: 2, Tick: 960, SoundKey: "SlapBass_Ghost", VolumeMultiplier: 0.5 },
+                        { MeasureIndex: 2, Tick: 1200, SoundKey: "SlapBass_Pop", VolumeMultiplier: 0.95 },
+                        { MeasureIndex: 2, Tick: 1200, SoundKey: "Clav_Chop", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 2, Tick: 1440, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 0.85 },
+                        { MeasureIndex: 2, Tick: 1440, SoundKey: "FunkGuitar_F4", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 2, Tick: 1680, SoundKey: "SlapBass_Slap", VolumeMultiplier: 0.9 },
+
+                        { MeasureIndex: 3, Tick: 0, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 1.0 },
+                        { MeasureIndex: 3, Tick: 240, SoundKey: "SlapBass_Pop", VolumeMultiplier: 0.9 },
+                        { MeasureIndex: 3, Tick: 240, SoundKey: "Clav_Chop", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 3, Tick: 480, SoundKey: "SlapBass_Ghost", VolumeMultiplier: 0.5 },
+                        { MeasureIndex: 3, Tick: 480, SoundKey: "FunkGuitar_G4", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 3, Tick: 720, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 3, Tick: 720, SoundKey: "Clav_Chop", VolumeMultiplier: 0.65 },
+                        { MeasureIndex: 3, Tick: 960, SoundKey: "SlapBass_Ghost", VolumeMultiplier: 0.5 },
+                        { MeasureIndex: 3, Tick: 1200, SoundKey: "SlapBass_Pop", VolumeMultiplier: 0.95 },
+                        { MeasureIndex: 3, Tick: 1200, SoundKey: "Clav_Chop", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 3, Tick: 1440, SoundKey: "SlapBass_Thumb", VolumeMultiplier: 0.8 },
+                        { MeasureIndex: 3, Tick: 1440, SoundKey: "FunkGuitar_A4", VolumeMultiplier: 0.7 },
+                        { MeasureIndex: 3, Tick: 1680, SoundKey: "SlapBass_Ghost", VolumeMultiplier: 0.5 },
+                        { MeasureIndex: 3, Tick: 1800, SoundKey: "SlapBass_Slide", VolumeMultiplier: 0.85 }
+                    ]
+                }]
+            },
+            etherealboss: {
+                StageId: "Game_EtherealBoss_01",
+                Bpm: 135,
+                TimeSignatureNum: 4,
+                TimeSignatureDenom: 4,
+                TicksPerBeat: 480,
+                bassOscType: 'triangle',
+                bassFilterFreq: 180,
+                melodyOscType: 'sawtooth',
+                Blocks: [{
+                    BlockId: "Orchestral_Loop",
+                    LengthMeasures: 4,
+                    DefaultNextBlock: "Orchestral_Loop",
+                    OverrideBpm: 0,
+                    ChordEvents: [
+                        { MeasureIndex: 0, Tick: 0, RootNote: "D", ChordType: "Minor", PitchOffset: 2 },
+                        { MeasureIndex: 1, Tick: 0, RootNote: "Bb", ChordType: "Major", PitchOffset: 10 },
+                        { MeasureIndex: 2, Tick: 0, RootNote: "G", ChordType: "Minor", PitchOffset: 7 },
+                        { MeasureIndex: 3, Tick: 0, RootNote: "A", ChordType: "Major", PitchOffset: 9 }
+                    ],
+                    BassPattern: [
+                        { "MeasureIndex": 0, "Tick": 0, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Timpani_Hit", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Violin_D4", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 0, "Tick": 240, "SoundKey": "Harp_Arp_D", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 0, "Tick": 480, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 0, "Tick": 960, "SoundKey": "OrchBass_Fifth", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 960, "SoundKey": "Timpani_Roll", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 0, "Tick": 960, "SoundKey": "Violin_E4", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 0, "Tick": 1200, "SoundKey": "Harp_Arp_D", "VolumeMultiplier": 0.65 },
+                        { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.75 },
+
+                        { "MeasureIndex": 1, "Tick": 0, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 1, "Tick": 0, "SoundKey": "Timpani_Hit", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 1, "Tick": 0, "SoundKey": "Violin_F4", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 1, "Tick": 240, "SoundKey": "Harp_Arp_Bb", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 1, "Tick": 480, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 1, "Tick": 960, "SoundKey": "OrchBass_Fifth", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 1, "Tick": 960, "SoundKey": "Timpani_Roll", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 1, "Tick": 960, "SoundKey": "Violin_G4", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 1, "Tick": 1200, "SoundKey": "Harp_Arp_Bb", "VolumeMultiplier": 0.65 },
+                        { "MeasureIndex": 1, "Tick": 1440, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.75 },
+
+                        { "MeasureIndex": 2, "Tick": 0, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Timpani_Hit", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Violin_Bb4", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 2, "Tick": 240, "SoundKey": "Harp_Arp_G", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 2, "Tick": 480, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 2, "Tick": 960, "SoundKey": "OrchBass_Fifth", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 2, "Tick": 960, "SoundKey": "Timpani_Roll", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 2, "Tick": 960, "SoundKey": "Violin_A4", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 2, "Tick": 1200, "SoundKey": "Harp_Arp_G", "VolumeMultiplier": 0.65 },
+                        { "MeasureIndex": 2, "Tick": 1440, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.75 },
+
+                        { "MeasureIndex": 3, "Tick": 0, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 3, "Tick": 0, "SoundKey": "Timpani_Hit", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 3, "Tick": 0, "SoundKey": "Violin_G4", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 3, "Tick": 240, "SoundKey": "Harp_Arp_A", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 3, "Tick": 480, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.7 },
+                        { "MeasureIndex": 3, "Tick": 960, "SoundKey": "OrchBass_Fifth", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 3, "Tick": 960, "SoundKey": "Violin_F#4", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 3, "Tick": 1200, "SoundKey": "Timpani_Hit", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 3, "Tick": 1200, "SoundKey": "Harp_Arp_A", "VolumeMultiplier": 0.65 },
+                        { "MeasureIndex": 3, "Tick": 1440, "SoundKey": "OrchBass_Root", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 3, "Tick": 1680, "SoundKey": "Timpani_Crescendo", "VolumeMultiplier": 0.95 }
+                    ]
+                }]
+            },
+            jazzlounge: {
+                StageId: "Game_Jazz_01",
+                Bpm: 110,
+                TimeSignatureNum: 4,
+                TimeSignatureDenom: 4,
+                TicksPerBeat: 480,
+                bassOscType: 'triangle',
+                bassFilterFreq: 200,
+                melodyOscType: 'sine',
+                Blocks: [{
+                    BlockId: "Jazz_Groove_Loop",
+                    LengthMeasures: 4,
+                    DefaultNextBlock: "Jazz_Groove_Loop",
+                    OverrideBpm: 0,
+                    ChordEvents: [
+                        { MeasureIndex: 0, Tick: 0, RootNote: "C", ChordType: "Minor7", PitchOffset: 0 },
+                        { MeasureIndex: 1, Tick: 0, RootNote: "F", ChordType: "Dominant7", PitchOffset: 5 },
+                        { MeasureIndex: 2, Tick: 0, RootNote: "Bb", ChordType: "Major7", PitchOffset: 10 },
+                        { MeasureIndex: 3, Tick: 0, RootNote: "Eb", ChordType: "Major7", PitchOffset: 3 }
+                    ],
+                    BassPattern: [
+                        { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Bass_C2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 0, "Tick": 480, "SoundKey": "Bass_Eb2", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 960, "SoundKey": "Bass_G2", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "Bass_Gb2", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Piano_Cm7", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 0, "Tick": 720, "SoundKey": "Piano_Cm7", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 0, "Tick": 0, "SoundKey": "Sax_C4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 480, "SoundKey": "Sax_D4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 0, "Tick": 720, "SoundKey": "Sax_Eb4", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 0, "Tick": 1440, "SoundKey": "Sax_G4", "VolumeMultiplier": 0.9 },
+
+                        { "MeasureIndex": 1, "Tick": 0, "SoundKey": "Bass_F2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 1, "Tick": 480, "SoundKey": "Bass_A2", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 1, "Tick": 960, "SoundKey": "Bass_C3", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 1, "Tick": 1440, "SoundKey": "Bass_B2", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 1, "Tick": 240, "SoundKey": "Piano_F7", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 1, "Tick": 1200, "SoundKey": "Piano_F7", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 1, "Tick": 0, "SoundKey": "Sax_A4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 1, "Tick": 480, "SoundKey": "Sax_G4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 1, "Tick": 720, "SoundKey": "Sax_F4", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 1, "Tick": 1200, "SoundKey": "Sax_Eb4", "VolumeMultiplier": 0.9 },
+
+                        { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Bass_Bb2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 2, "Tick": 480, "SoundKey": "Bass_D3", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 2, "Tick": 960, "SoundKey": "Bass_F3", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 2, "Tick": 1440, "SoundKey": "Bass_E3", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Piano_Bbmaj7", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 2, "Tick": 960, "SoundKey": "Piano_Bbmaj7", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 2, "Tick": 0, "SoundKey": "Sax_D4", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 2, "Tick": 480, "SoundKey": "Sax_F4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 2, "Tick": 960, "SoundKey": "Sax_A4", "VolumeMultiplier": 0.95 },
+
+                        { "MeasureIndex": 3, "Tick": 0, "SoundKey": "Bass_Eb2", "VolumeMultiplier": 1.0 },
+                        { "MeasureIndex": 3, "Tick": 480, "SoundKey": "Bass_G2", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 3, "Tick": 960, "SoundKey": "Bass_Bb2", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 3, "Tick": 1440, "SoundKey": "Bass_A2", "VolumeMultiplier": 0.85 },
+                        { "MeasureIndex": 3, "Tick": 720, "SoundKey": "Piano_Ebmaj7", "VolumeMultiplier": 0.8 },
+                        { "MeasureIndex": 3, "Tick": 1440, "SoundKey": "Piano_Ebmaj7", "VolumeMultiplier": 0.75 },
+                        { "MeasureIndex": 3, "Tick": 0, "SoundKey": "Sax_G4", "VolumeMultiplier": 0.9 },
+                        { "MeasureIndex": 3, "Tick": 720, "SoundKey": "Sax_F4", "VolumeMultiplier": 0.95 },
+                        { "MeasureIndex": 3, "Tick": 960, "SoundKey": "Sax_G4", "VolumeMultiplier": 0.9 }
+                    ]
+                }]
+            }
+        };
+
+        // Pitch Shift mapping helper
+        const noteToMidiOffset = {
+            "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
+            "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
+        };
+
+        // Global Error Handler for UI Logger
+        window.onerror = function(message, source, lineno, colno, error) {
+            const container = document.getElementById("logContainer");
+            if (container) {
+                let entry = document.createElement("div");
+                entry.className = "log-entry client";
+                entry.style.color = "#ff3366";
+                entry.innerHTML = `<span class="log-time">[ERR]</span> <span class="log-msg">${message} (Line ${lineno}:${colno})</span>`;
+                container.appendChild(entry);
+                container.scrollTop = container.scrollHeight;
+            }
+            return false;
+        };
+
+        // Web Audio Context setup
+        let audioCtx = null;
+        let masterGain = null;
+        let analyserWave = null;
+        let analyserFreq = null;
+        let isPlaying = false;
+        let startOverlay = document.getElementById("startOverlay");
+        let btnEnter = document.getElementById("btnEnter");
+        
+        let currentStageId = "synthwave";
+        let currentPreset = presets[currentStageId];
+        let currentBpm = 120;
+        let masterVolValue = 0.7;
+
+        // Scheduler variables
+        let beatLengthSec = 60.0 / currentBpm;
+        let tickLengthSec = beatLengthSec / 480; 
+        let nextNoteTime = 0.0;
+        let currentTickPointer = 0; 
+        let scheduledNotes = [];
+        let scheduleAheadTimeSec = 0.1;
+        let lookaheadMs = 25;
+        let timerId = null;
+
+        // Log and JSON containers
+        let logContainer = document.getElementById("logContainer");
+        let jsonContainer = document.getElementById("jsonContainer");
+        let chordNameDisplay = document.getElementById("chordName");
+        let chordOffsetDisplay = document.getElementById("chordOffset");
+
+        // UI nodes
+        let selectStage = document.getElementById("selectStage");
+        let sliderBpm = document.getElementById("sliderBpm");
+        let valBpm = document.getElementById("valBpm");
+        let sliderVolume = document.getElementById("sliderVolume");
+        let valVolume = document.getElementById("valVolume");
+        let btnPlay = document.getElementById("btnPlay");
+        let btnReset = document.getElementById("btnReset");
+        let valStageBadge = document.getElementById("valStageBadge");
+
+        // Timelines nodes
+        let bassTimeline = document.getElementById("bassTimeline");
+        let melodyTimeline = document.getElementById("melodyTimeline");
+        let playhead = document.getElementById("playhead");
+        let gridContainer = document.getElementById("gridContainer");
+        let sequencerGrid = document.getElementById("sequencerGrid");
+
+        // Visualizer Setup
+        let canvasWave = document.getElementById("canvasWave");
+        let canvasFreq = document.getElementById("canvasFreq");
+        let ctxWave = canvasWave.getContext("2d");
+        let ctxFreq = canvasFreq.getContext("2d");
+
+        // Audio Context Activation
+        btnEnter.addEventListener("click", () => {
+            initAudio();
+            startOverlay.style.opacity = "0";
+            setTimeout(() => {
+                startOverlay.style.display = "none";
+            }, 400);
+        });
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.setValueAtTime(masterVolValue, audioCtx.currentTime);
+            
+            analyserWave = audioCtx.createAnalyser();
+            analyserWave.fftSize = 256;
+            
+            analyserFreq = audioCtx.createAnalyser();
+            analyserFreq.fftSize = 512;
+
+            masterGain.connect(analyserWave);
+            analyserWave.connect(analyserFreq);
+            analyserFreq.connect(audioCtx.destination);
+            
+            drawVisualizers();
+            addLog("Audio Engine Initialized successfully.", "client");
+        }
+
+        // Add Log helper
+        function addLog(msg, type = "client") {
+            let entry = document.createElement("div");
+            entry.className = `log-entry ${type}`;
+            let timeSpan = document.createElement("span");
+            timeSpan.className = "log-time";
+            
+            let date = new Date();
+            let pad = (num) => String(num).padStart(2, '0');
+            timeSpan.innerText = `[${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${String(date.getMilliseconds()).slice(0, 2)}]`;
+            
+            let msgSpan = document.createElement("span");
+            msgSpan.className = "log-msg";
+            msgSpan.innerText = msg;
+            
+            entry.appendChild(timeSpan);
+            entry.appendChild(msgSpan);
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Render JSON viewer
+        function renderJsonView() {
+            let jsonString = JSON.stringify(currentPreset, null, 4);
+            let lines = jsonString.split("\n");
+            
+            jsonContainer.innerHTML = "";
+            lines.forEach((line, index) => {
+                let span = document.createElement("span");
+                span.className = "json-line";
+                span.id = `json-line-${index}`;
+                span.innerText = line;
+                jsonContainer.appendChild(span);
+            });
+        }
+
+        // Highlight JSON lines
+        function highlightJsonLine(keyword) {
+            let children = jsonContainer.children;
+            for (let i = 0; i < children.length; i++) {
+                children[i].classList.remove("highlight");
+                if (children[i].innerText.includes(keyword)) {
+                    children[i].classList.add("highlight");
+                    // Scroll to highlight
+                    jsonContainer.scrollTop = children[i].offsetTop - 100;
+                }
+            }
+        }
+
+        // Timeline Builder
+        function buildTimeline() {
+            const block = currentPreset.Blocks[0];
+            const beatsPerMeasure = currentPreset.TimeSignatureNum;
+            const totalMeasures = block.LengthMeasures;
+            const totalBeats = totalMeasures * beatsPerMeasure;
+            
+            // Set Grid Width dynamically based on beats
+            const beatWidthPx = 48;
+            const timelineWidthPx = totalBeats * beatWidthPx;
+            sequencerGrid.style.width = timelineWidthPx + "px";
+            
+            // Build timeline header ruler
+            let timelineHeader = document.getElementById("gridTimelineHeader");
+            timelineHeader.innerHTML = "";
+            timelineHeader.style.width = timelineWidthPx + "px";
+            
+            for (let m = 0; m < totalMeasures; m++) {
+                let bar = document.createElement("div");
+                bar.className = "timeline-bar";
+                if (m === totalMeasures - 1) bar.classList.add("bold-bar");
+                bar.style.width = (beatsPerMeasure * beatWidthPx) + "px";
+                bar.innerText = `${m + 1} Measure`;
+                timelineHeader.appendChild(bar);
+            }
+
+            // Clean previous blocks
+            bassTimeline.innerHTML = "";
+            melodyTimeline.innerHTML = "";
+
+            const ticksPerMeasure = beatsPerMeasure * currentPreset.TicksPerBeat;
+            const totalTicks = totalMeasures * ticksPerMeasure;
+
+            block.BassPattern.forEach((note, index) => {
+                const absoluteTick = (note.MeasureIndex * ticksPerMeasure) + note.Tick;
+                const progressRatio = absoluteTick / totalTicks;
+                const leftPx = progressRatio * timelineWidthPx;
+                
+                let elem = document.createElement("div");
+                elem.className = "note-block";
+                elem.id = `note-${note.MeasureIndex}-${note.Tick}`;
+                elem.style.left = leftPx + "px";
+                
+                // Classify type based on SoundKey name
+                let isMelody = note.SoundKey.toLowerCase().includes("lead") || 
+                               note.SoundKey.toLowerCase().includes("flute") || 
+                               note.SoundKey.toLowerCase().includes("guitar") ||
+                               note.SoundKey.toLowerCase().includes("violin") ||
+                               note.SoundKey.toLowerCase().includes("sax") ||
+                               note.SoundKey.toLowerCase().includes("piano") ||
+                               note.SoundKey.toLowerCase().includes("rhodes");
+                
+                if (isMelody) {
+                    elem.classList.add("melody");
+                    elem.style.width = "40px";
+                    elem.innerHTML = `<span>${note.SoundKey.split('_')[1] || note.SoundKey}</span>`;
+                    melodyTimeline.appendChild(elem);
+                } else {
+                    elem.classList.add("bass");
+                    elem.style.width = "32px";
+                    elem.innerHTML = `<span>${note.SoundKey.split('_')[1] || note.SoundKey}</span>`;
+                    bassTimeline.appendChild(elem);
+                }
+            });
+        }
+
+        // Active Chord Detector
+        function getCurrentChordInfo(tick) {
+            const block = currentPreset.Blocks[0];
+            const ticksPerMeasure = currentPreset.TimeSignatureNum * currentPreset.TicksPerBeat;
+            const totalBlockTicks = block.LengthMeasures * ticksPerMeasure;
+            
+            // Wrap around loop tick
+            const loopTick = tick % totalBlockTicks;
+            const measureIndex = Math.floor(loopTick / ticksPerMeasure);
+            const beatInMeasure = Math.floor((loopTick % ticksPerMeasure) / currentPreset.TicksPerBeat);
+            const tickInBeat = loopTick % currentPreset.TicksPerBeat;
+            
+            let activeChord = block.ChordEvents[0];
+            for (let chord of block.ChordEvents) {
+                const chordAbsTick = (chord.MeasureIndex * ticksPerMeasure) + chord.Tick;
+                if (chordAbsTick <= loopTick) {
+                    activeChord = chord;
+                } else {
+                    break;
+                }
+            }
+            return activeChord;
+        }
+
+        // Playhead progress tracker
+        function updatePlayhead() {
+            if (!isPlaying) return;
+            
+            const beatsPerMeasure = currentPreset.TimeSignatureNum;
+            const totalMeasures = currentPreset.Blocks[0].LengthMeasures;
+            const totalBeats = totalMeasures * beatsPerMeasure;
+            const beatWidthPx = 48;
+            const timelineWidthPx = totalBeats * beatWidthPx;
+
+            const ticksPerMeasure = beatsPerMeasure * currentPreset.TicksPerBeat;
+            const totalTicks = totalMeasures * ticksPerMeasure;
+            
+            // Calculate playhead left px
+            const loopTick = currentTickPointer % totalTicks;
+            const ratio = loopTick / totalTicks;
+            playhead.style.left = (ratio * timelineWidthPx) + "px";
+
+            // Update Chord UI display
+            const currentChord = getCurrentChordInfo(currentTickPointer);
+            if (currentChord) {
+                chordNameDisplay.innerText = `${currentChord.RootNote} ${currentChord.ChordType}`;
+                chordOffsetDisplay.innerText = `Pitch Offset: ${currentChord.PitchOffset >= 0 ? '+' : ''}${currentChord.PitchOffset} (${currentChord.RootNote})`;
+            }
+
+            requestAnimationFrame(updatePlayhead);
+        }
+
+        // Synthesizers Web Audio Nodes
+        // 화성학적 음정 매핑 로직 (평균율 12-TET 환산)
+        // 현재 활성화된 코드의 종류에 맞게 단3도/장3도 등을 정밀 계산하여 주파수 반환
+        function getFrequencyForChordTone(chord, degree, octaveOffset = 0) {
+            const rootOffset = chord ? chord.PitchOffset : 0;
+            const type = chord ? chord.ChordType.toLowerCase() : "major";
+            
+            let degreeOffset = 0;
+            if (degree === 1) {
+                degreeOffset = 0;
+            } else if (degree === 3) {
+                // 단3도(Minor 3rd: 3반음) vs 장3도(Major 3rd: 4반음)
+                if (type.includes("minor") || type.includes("min") || type.includes("dim") || type.includes("halfdiminished")) {
+                    degreeOffset = 3;
+                } else {
+                    degreeOffset = 4;
+                }
+            } else if (degree === 5) {
+                // 감5도(Diminished 5th: 6반음) vs 완전5도(Perfect 5th: 7반음)
+                if (type.includes("dim") || type.includes("halfdiminished")) {
+                    degreeOffset = 6;
+                } else if (type.includes("aug")) {
+                    degreeOffset = 8;
+                } else {
+                    degreeOffset = 7;
+                }
+            } else if (degree === 7) {
+                // 장7도(Major 7th: 11반음) vs 단7도(Minor/Dominant 7th: 10반음)
+                if (type.includes("maj7") || type.includes("major7")) {
+                    degreeOffset = 11;
+                } else if (type.includes("dim7")) {
+                    degreeOffset = 9;
+                } else {
+                    degreeOffset = 10;
+                }
+            } else if (degree === 9) {
+                degreeOffset = 14; // 장9도 (1옥타브 + 2반음)
+            } else if (degree === 11) {
+                degreeOffset = 17; // 완전11도 (1옥타브 + 5반음)
+            }
+            
+            // C4(MIDI 60)를 기준음(C = 0)으로 계산
+            let midiNote = 60 + rootOffset + degreeOffset + (octaveOffset * 12);
+            // MIDI to Frequency 공식: f = 440 * 2^((d - 69) / 12)
+            return 440 * Math.pow(2, (midiNote - 69) / 12);
+        }
+
+        // Synthesizers Web Audio Nodes
+        function playSynthesizedBass(noteKey, tickTime, volMultiplier) {
+            if (!audioCtx) return;
+            
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            let filter = audioCtx.createBiquadFilter();
+
+            const chord = getCurrentChordInfo(currentTickPointer);
+            
+            // 화성학적 베이스 도수 및 옥타브 대역 판별
+            let degree = 1;
+            let octOffset = -2; // 베이스는 낮은 C2/C3 대역
+
+            if (noteKey.includes("Third")) {
+                degree = 3;
+            } else if (noteKey.includes("Fifth")) {
+                degree = 5;
+            } else if (noteKey.includes("Oct") || noteKey.includes("Pop") || noteKey.includes("Slide")) {
+                degree = 1;
+                octOffset = -1; // 옥타브 위 베이스
+            } else if (noteKey.includes("Fill") || noteKey.includes("Pass")) {
+                degree = (Math.random() > 0.5) ? 5 : 1;
+                octOffset = -1;
+            }
+
+            let frequency = getFrequencyForChordTone(chord, degree, octOffset);
+
+            osc.type = currentPreset.bassOscType || 'triangle';
+            osc.frequency.setValueAtTime(frequency, tickTime);
+            
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(currentPreset.bassFilterFreq || 220, tickTime);
+            filter.Q.setValueAtTime(1.5, tickTime);
+
+            let peakVol = 0.35 * volMultiplier * masterVolValue;
+            gain.gain.setValueAtTime(0.001, tickTime);
+            gain.gain.linearRampToValueAtTime(peakVol, tickTime + 0.015);
+            gain.gain.setValueAtTime(peakVol, tickTime + 0.015);
+            gain.gain.exponentialRampToValueAtTime(0.001, tickTime + 0.35);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(tickTime);
+            osc.stop(tickTime + 0.4);
+        }
+
+        function playSynthesizedMelody(noteKey, tickTime, volMultiplier) {
+            if (!audioCtx) return;
+
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            let vibrato = audioCtx.createOscillator();
+            let vibratoGain = audioCtx.createGain();
+
+            const chord = getCurrentChordInfo(currentTickPointer);
+            let frequency = 440; // Default A4
+            
+            let parts = noteKey.split('_');
+            if (parts.length > 1) {
+                // 고정 음표 파싱 (예: "LofiFlute_E5")
+                let noteName = parts[1].replace(/[0-9#]/g, ''); // "E"
+                let isSharp = parts[1].includes('#');
+                if (isSharp) noteName += '#';
+                let octave = parseInt(parts[1].replace(/[^0-9]/g, '')) || 4;
+                let semiOffset = noteToMidiOffset[noteName] || 0;
+                
+                let midi = 60 + semiOffset + (octave - 4) * 12;
+                
+                // 마이너 코드일 때 고정 멜로디의 3도 음을 화성학적으로 보정
+                if (chord) {
+                    const chordType = chord.ChordType.toLowerCase();
+                    const chordRootOffset = chord.PitchOffset;
+                    let noteOffset = semiOffset + (octave - 4) * 12;
+                    let relativeSemitone = (noteOffset - chordRootOffset + 120) % 12;
+                    
+                    if ((chordType.includes("minor") || chordType.includes("min") || chordType.includes("dim") || chordType.includes("halfdiminished")) && relativeSemitone === 4) {
+                        midi -= 1; // 단3도로 snap
+                    } else if ((chordType.includes("major") || chordType.includes("maj")) && relativeSemitone === 3) {
+                        midi += 1; // 장3도로 snap
+                    }
+                }
+                
+                frequency = 440 * Math.pow(2, (midi - 69) / 12);
+            } else {
+                // 코드 기반 즉흥 멜로디 3도/5도 자동 변환
+                frequency = getFrequencyForChordTone(chord, (Math.random() > 0.5) ? 3 : 5, 0);
+            }
+
+            osc.type = currentPreset.melodyOscType || 'sine';
+            osc.frequency.setValueAtTime(frequency, tickTime);
+
+            let vibSpeed = 5.5;
+            let vibDepth = 4;
+            if (currentStageId === "lofichill") {
+                vibSpeed = 4.2;
+                vibDepth = 6;
+            } else if (currentStageId === "etherealboss") {
+                vibSpeed = 6.2;
+                vibDepth = 3;
+            }
+
+            vibrato.frequency.setValueAtTime(vibSpeed, tickTime);
+            vibratoGain.gain.setValueAtTime(vibDepth, tickTime);
+            
+            vibrato.connect(vibratoGain);
+            vibratoGain.connect(osc.detune);
+
+            let peakVol = 0.18 * volMultiplier * masterVolValue;
+            gain.gain.setValueAtTime(0.001, tickTime);
+            gain.gain.linearRampToValueAtTime(peakVol, tickTime + 0.04);
+            gain.gain.setValueAtTime(peakVol, tickTime + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.001, tickTime + 0.5);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            vibrato.start(tickTime);
+            osc.start(tickTime);
+            vibrato.stop(tickTime + 0.6);
+            osc.stop(tickTime + 0.6);
+        }
+
+        // Trigger Client Input Sounds
+        function triggerClientWeapon(weaponType) {
+            if (!audioCtx) initAudio();
+            
+            let play = () => {
+                const chord = getCurrentChordInfo(currentTickPointer);
+                addLog(`[Client Input] Triggered weapon: ${weaponType.toUpperCase()} (Chord: ${chord ? chord.RootNote + ' ' + chord.ChordType : 'Unknown'})`, "client");
+
+                // 프리셋별 화성학/악기 조합 분기 연주
+                if (currentStageId === "synthwave") {
+                    playSynthwaveWeapon(weaponType, chord);
+                } else if (currentStageId === "lofichill") {
+                    playLofiWeapon(weaponType, chord);
+                } else if (currentStageId === "neofunk") {
+                    playFunkWeapon(weaponType, chord);
+                } else if (currentStageId === "etherealboss") {
+                    playOrchestralWeapon(weaponType, chord);
+                } else {
+                    playJazzWeapon(weaponType, chord);
+                }
+            };
+
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().then(play);
+            } else {
+                play();
+            }
+        }
+
+        // 노이즈 버퍼 생성기 (퍼커션 / 브러시 사운드용)
+        function createNoiseBuffer() {
+            if (!audioCtx) return null;
+            let bufferSize = audioCtx.sampleRate * 0.5; // 0.5초 노이즈
+            let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            let data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            return buffer;
+        }
+
+        // ==========================================
+        // 1. SYNTHWAVE WEAPONS (RETRO / FUTURISTIC)
+        // ==========================================
+        function playSynthwaveWeapon(type, chord) {
+            const now = audioCtx.currentTime;
+            switch (type) {
+                case "dagger": { // Laser Pluck - 1도 & 5도 옥타브 고음역
+                    let oscD1 = audioCtx.createOscillator();
+                    let oscD2 = audioCtx.createOscillator();
+                    let gainD = audioCtx.createGain();
+                    let filterD = audioCtx.createBiquadFilter();
+
+                    let f1 = getFrequencyForChordTone(chord, 1, 1);
+                    let f2 = getFrequencyForChordTone(chord, 5, 1);
+
+                    oscD1.type = 'sawtooth';
+                    oscD1.frequency.setValueAtTime(f1, now);
+                    oscD2.type = 'triangle';
+                    oscD2.frequency.setValueAtTime(f2, now);
+
+                    filterD.type = 'lowpass';
+                    filterD.frequency.setValueAtTime(3000, now);
+                    filterD.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+
+                    gainD.gain.setValueAtTime(0.001, now);
+                    gainD.gain.linearRampToValueAtTime(0.18 * masterVolValue, now + 0.005);
+                    gainD.gain.setValueAtTime(0.18 * masterVolValue, now + 0.005);
+                    gainD.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                    oscD1.connect(filterD);
+                    oscD2.connect(filterD);
+                    filterD.connect(gainD);
+                    gainD.connect(masterGain);
+
+                    oscD1.start(now);
+                    oscD2.start(now);
+                    oscD1.stop(now + 0.18);
+                    oscD2.stop(now + 0.18);
+                    break;
+                }
+                case "greatsword": { // Detuned Saw Bass Slash - 1도 + 5도 파워코드
+                    let oscG1 = audioCtx.createOscillator();
+                    let oscG2 = audioCtx.createOscillator();
+                    let gainG = audioCtx.createGain();
+                    let filterG = audioCtx.createBiquadFilter();
+
+                    let f1 = getFrequencyForChordTone(chord, 1, -1);
+                    let f2 = getFrequencyForChordTone(chord, 5, -1);
+
+                    oscG1.type = 'sawtooth';
+                    oscG1.frequency.setValueAtTime(f1 - 2, now); // Detuned
+                    oscG2.type = 'sawtooth';
+                    oscG2.frequency.setValueAtTime(f2 + 2, now);
+
+                    filterG.type = 'lowpass';
+                    filterG.frequency.setValueAtTime(1500, now);
+                    filterG.frequency.exponentialRampToValueAtTime(300, now + 0.25);
+
+                    gainG.gain.setValueAtTime(0.001, now);
+                    gainG.gain.linearRampToValueAtTime(0.28 * masterVolValue, now + 0.02);
+                    gainG.gain.setValueAtTime(0.28 * masterVolValue, now + 0.02);
+                    gainG.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                    oscG1.connect(filterG);
+                    oscG2.connect(filterG);
+                    filterG.connect(gainG);
+                    gainG.connect(masterGain);
+
+                    oscG1.start(now);
+                    oscG2.start(now);
+                    oscG1.stop(now + 0.35);
+                    oscG2.stop(now + 0.35);
+                    break;
+                }
+                case "bow": { // FM Crystal Bell - 3도 & 7도 투명한 종소리
+                    let carrier = audioCtx.createOscillator();
+                    let modulator = audioCtx.createOscillator();
+                    let modGain = audioCtx.createGain();
+                    let gainB = audioCtx.createGain();
+
+                    let fVal = getFrequencyForChordTone(chord, 3, 1);
+
+                    carrier.type = 'sine';
+                    carrier.frequency.setValueAtTime(fVal * 2, now);
+
+                    modulator.type = 'sine';
+                    modulator.frequency.setValueAtTime(fVal * 1.5, now);
+
+                    modGain.gain.setValueAtTime(800, now);
+                    modGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                    gainB.gain.setValueAtTime(0.001, now);
+                    gainB.gain.linearRampToValueAtTime(0.2 * masterVolValue, now + 0.005);
+                    gainB.gain.setValueAtTime(0.2 * masterVolValue, now + 0.005);
+                    gainB.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                    modulator.connect(modGain);
+                    modGain.connect(carrier.frequency);
+                    carrier.connect(gainB);
+                    gainB.connect(masterGain);
+
+                    modulator.start(now);
+                    carrier.start(now);
+                    modulator.stop(now + 0.35);
+                    carrier.stop(now + 0.35);
+                    break;
+                }
+                case "parry": { // Sync Laser Ring - 1도 기반 고속 피치 변조
+                    let oscP = audioCtx.createOscillator();
+                    let gainP = audioCtx.createGain();
+
+                    let fVal = getFrequencyForChordTone(chord, 1, 2);
+
+                    oscP.type = 'triangle';
+                    oscP.frequency.setValueAtTime(fVal * 2, now);
+                    oscP.frequency.exponentialRampToValueAtTime(fVal * 0.2, now + 0.18);
+
+                    gainP.gain.setValueAtTime(0.001, now);
+                    gainP.gain.linearRampToValueAtTime(0.22 * masterVolValue, now + 0.005);
+                    gainP.gain.setValueAtTime(0.22 * masterVolValue, now + 0.005);
+                    gainP.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+                    oscP.connect(gainP);
+                    gainP.connect(masterGain);
+
+                    oscP.start(now);
+                    oscP.stop(now + 0.25);
+                    break;
+                }
+                case "staff": { // Chiptune/Synth Arpeggiator - 1도-3도-5도-8도 빠른 16분음표 질주
+                    let intervals = [1, 3, 5, 1];
+                    let octaves = [0, 0, 0, 1];
+                    intervals.forEach((degree, idx) => {
+                        let oscS = audioCtx.createOscillator();
+                        let gainS = audioCtx.createGain();
+                        let fVal = getFrequencyForChordTone(chord, degree, octaves[idx]);
+
+                        oscS.type = 'sawtooth';
+                        oscS.frequency.setValueAtTime(fVal, now + idx * 0.05);
+
+                        gainS.gain.setValueAtTime(0.001, now + idx * 0.05);
+                        gainS.gain.linearRampToValueAtTime(0.08 * masterVolValue, now + idx * 0.05 + 0.005);
+                        gainS.gain.setValueAtTime(0.08 * masterVolValue, now + idx * 0.05 + 0.005);
+                        gainS.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.2);
+
+                        oscS.connect(gainS);
+                        gainS.connect(masterGain);
+
+                        oscS.start(now + idx * 0.05);
+                        oscS.stop(now + idx * 0.05 + 0.25);
+                    });
+                    break;
+                }
+            }
+        }
+
+        // ==========================================
+        // 2. LOFI CHILLHOP WEAPONS (WARM / ORGANIC)
+        // ==========================================
+        function playLofiWeapon(type, chord) {
+            const now = audioCtx.currentTime;
+            switch (type) {
+                case "dagger": { // Rhodes Piano Tine - 3도 고음역
+                    let oscT = audioCtx.createOscillator();
+                    let oscB = audioCtx.createOscillator();
+                    let gainT = audioCtx.createGain();
+                    let filterT = audioCtx.createBiquadFilter();
+
+                    let fVal = getFrequencyForChordTone(chord, 3, 1);
+
+                    oscT.type = 'triangle';
+                    oscT.frequency.setValueAtTime(fVal, now);
+                    
+                    oscB.type = 'sine';
+                    oscB.frequency.setValueAtTime(fVal * 5.5, now); // Tine 금속성 배음
+
+                    filterT.type = 'lowpass';
+                    filterT.frequency.setValueAtTime(900, now);
+
+                    gainT.gain.setValueAtTime(0.001, now);
+                    gainT.gain.linearRampToValueAtTime(0.22 * masterVolValue, now + 0.012);
+                    gainT.gain.setValueAtTime(0.22 * masterVolValue, now + 0.012);
+                    gainT.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                    let gainB = audioCtx.createGain();
+                    gainB.gain.setValueAtTime(0.001, now);
+                    gainB.gain.linearRampToValueAtTime(0.04 * masterVolValue, now + 0.002);
+                    gainB.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+                    oscT.connect(filterT);
+                    oscB.connect(gainB);
+                    filterT.connect(gainT);
+                    gainB.connect(masterGain);
+                    gainT.connect(masterGain);
+
+                    oscT.start(now);
+                    oscB.start(now);
+                    oscT.stop(now + 0.4);
+                    oscB.stop(now + 0.08);
+                    break;
+                }
+                case "greatsword": { // Warm Double Bass Pluck - 1도 저음역
+                    let osc = audioCtx.createOscillator();
+                    let noise = audioCtx.createBufferSource();
+                    let noiseFilter = audioCtx.createBiquadFilter();
+                    let gain = audioCtx.createGain();
+                    let noiseGain = audioCtx.createGain();
+                    let filter = audioCtx.createBiquadFilter();
+
+                    let fVal = getFrequencyForChordTone(chord, 1, -2);
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(fVal, now);
+
+                    let buf = createNoiseBuffer();
+                    if (buf) {
+                        noise.buffer = buf;
+                        noiseFilter.type = 'bandpass';
+                        noiseFilter.frequency.setValueAtTime(280, now);
+                        noiseFilter.Q.setValueAtTime(2.0, now);
+
+                        noiseGain.gain.setValueAtTime(0.001, now);
+                        noiseGain.gain.linearRampToValueAtTime(0.06 * masterVolValue, now + 0.005);
+                        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+                        noise.connect(noiseFilter);
+                        noiseFilter.connect(noiseGain);
+                        noiseGain.connect(masterGain);
+                        noise.start(now);
+                        noise.stop(now + 0.07);
+                    }
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(140, now);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.24 * masterVolValue, now + 0.02);
+                    gain.gain.setValueAtTime(0.24 * masterVolValue, now + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(masterGain);
+
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                    break;
+                }
+                case "bow": { // Wooden Marimba - 3도 중음역
+                    let oscM = audioCtx.createOscillator();
+                    let oscM2 = audioCtx.createOscillator();
+                    let gainM = audioCtx.createGain();
+                    let filterM = audioCtx.createBiquadFilter();
+
+                    let fVal = getFrequencyForChordTone(chord, 3, 0);
+
+                    oscM.type = 'sine';
+                    oscM.frequency.setValueAtTime(fVal, now);
+                    oscM2.type = 'sine';
+                    oscM2.frequency.setValueAtTime(fVal * 2, now);
+
+                    filterM.type = 'lowpass';
+                    filterM.frequency.setValueAtTime(1200, now);
+
+                    gainM.gain.setValueAtTime(0.001, now);
+                    gainM.gain.linearRampToValueAtTime(0.22 * masterVolValue, now + 0.005);
+                    gainM.gain.setValueAtTime(0.22 * masterVolValue, now + 0.005);
+                    gainM.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+                    oscM.connect(filterM);
+                    oscM2.connect(filterM);
+                    filterM.connect(gainM);
+                    gainM.connect(masterGain);
+
+                    oscM.start(now);
+                    oscM2.start(now);
+                    oscM.stop(now + 0.22);
+                    oscM2.stop(now + 0.22);
+                    break;
+                }
+                case "parry": { // Vinyl Snare/Rim - 가볍고 따뜻한 림샷
+                    let buf = createNoiseBuffer();
+                    if (buf) {
+                        let src = audioCtx.createBufferSource();
+                        let filter = audioCtx.createBiquadFilter();
+                        let gain = audioCtx.createGain();
+
+                        src.buffer = buf;
+                        filter.type = 'bandpass';
+                        filter.frequency.setValueAtTime(1200, now);
+                        filter.Q.setValueAtTime(1.5, now);
+
+                        gain.gain.setValueAtTime(0.001, now);
+                        gain.gain.linearRampToValueAtTime(0.12 * masterVolValue, now + 0.004);
+                        gain.gain.setValueAtTime(0.12 * masterVolValue, now + 0.004);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+                        src.connect(filter);
+                        filter.connect(gain);
+                        gain.connect(masterGain);
+
+                        src.start(now);
+                        src.stop(now + 0.1);
+                    }
+                    break;
+                }
+                case "staff": { // Airy Flute Swell - 숨소리가 가미된 5도 Swell
+                    let oscS = audioCtx.createOscillator();
+                    let gainS = audioCtx.createGain();
+                    let vibrato = audioCtx.createOscillator();
+                    let vibGain = audioCtx.createGain();
+                    let noise = audioCtx.createBufferSource();
+                    let noiseFilter = audioCtx.createBiquadFilter();
+                    let noiseGain = audioCtx.createGain();
+
+                    let fVal = getFrequencyForChordTone(chord, 5, 1);
+
+                    oscS.type = 'sine';
+                    oscS.frequency.setValueAtTime(fVal, now);
+
+                    vibrato.frequency.setValueAtTime(4.8, now);
+                    vibGain.gain.setValueAtTime(5, now);
+                    vibrato.connect(vibGain);
+                    vibGain.connect(oscS.detune);
+
+                    let buf = createNoiseBuffer();
+                    if (buf) {
+                        noise.buffer = buf;
+                        noiseFilter.type = 'bandpass';
+                        noiseFilter.frequency.setValueAtTime(fVal, now);
+                        noiseFilter.Q.setValueAtTime(5.0, now);
+
+                        noiseGain.gain.setValueAtTime(0.001, now);
+                        noiseGain.gain.linearRampToValueAtTime(0.05 * masterVolValue, now + 0.06);
+                        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                        noise.connect(noiseFilter);
+                        noiseFilter.connect(noiseGain);
+                        noiseGain.connect(masterGain);
+                        noise.start(now);
+                        noise.stop(now + 0.35);
+                    }
+
+                    gainS.gain.setValueAtTime(0.001, now);
+                    gainS.gain.linearRampToValueAtTime(0.18 * masterVolValue, now + 0.08);
+                    gainS.gain.setValueAtTime(0.18 * masterVolValue, now + 0.08);
+                    gainS.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                    oscS.connect(gainS);
+                    gainS.connect(masterGain);
+
+                    vibrato.start(now);
+                    oscS.start(now);
+                    vibrato.stop(now + 0.45);
+                    oscS.stop(now + 0.45);
+                    break;
+                }
+            }
+        }
+
+        // ==========================================
+        // 3. NEO-FUNK WEAPONS (RHYTHMIC / PUNCHY)
+        // ==========================================
+        function playFunkWeapon(type, chord) {
+            const now = audioCtx.currentTime;
+            switch (type) {
+                case "dagger": { // Clavinet Chop - 7도
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    let filter = audioCtx.createBiquadFilter();
+
+                    let fVal = getFrequencyForChordTone(chord, 7, 0);
+
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(fVal, now);
+
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(1100, now);
+                    filter.Q.setValueAtTime(3.0, now);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.26 * masterVolValue, now + 0.004);
+                    gain.gain.setValueAtTime(0.26 * masterVolValue, now + 0.004);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(masterGain);
+
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                    break;
+                }
+                case "greatsword": { // Slap Bass Slide down - 옥타브 1도 슬랩팝 & 슬라이드
+                    let oscS = audioCtx.createOscillator();
+                    let gainS = audioCtx.createGain();
+                    let filter = audioCtx.createBiquadFilter();
+
+                    let fVal = getFrequencyForChordTone(chord, 1, -1);
+
+                    oscS.type = 'sawtooth';
+                    oscS.frequency.setValueAtTime(fVal * 2, now);
+                    oscS.frequency.linearRampToValueAtTime(fVal * 0.8, now + 0.15);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(2500, now);
+                    filter.frequency.exponentialRampToValueAtTime(400, now + 0.12);
+
+                    gainS.gain.setValueAtTime(0.001, now);
+                    gainS.gain.linearRampToValueAtTime(0.32 * masterVolValue, now + 0.005);
+                    gainS.gain.setValueAtTime(0.32 * masterVolValue, now + 0.005);
+                    gainS.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+                    oscS.connect(filter);
+                    filter.connect(gainS);
+                    gainS.connect(masterGain);
+
+                    oscS.start(now);
+                    oscS.stop(now + 0.22);
+                    break;
+                }
+                case "bow": { // Brass Trumpet Stab - 5도 트럼펫 스탭
+                    let osc1 = audioCtx.createOscillator();
+                    let osc2 = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    let filter = audioCtx.createBiquadFilter();
+
+                    let fVal = getFrequencyForChordTone(chord, 5, 0);
+
+                    osc1.type = 'sawtooth';
+                    osc1.frequency.setValueAtTime(fVal, now);
+                    osc2.type = 'sawtooth';
+                    osc2.frequency.setValueAtTime(fVal * 2 - 4, now);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(1600, now);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.24 * masterVolValue, now + 0.012);
+                    gain.gain.setValueAtTime(0.24 * masterVolValue, now + 0.012);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+                    osc1.connect(filter);
+                    osc2.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(masterGain);
+
+                    osc1.start(now);
+                    osc2.start(now);
+                    osc1.stop(now + 0.24);
+                    osc2.stop(now + 0.24);
+                    break;
+                }
+                case "parry": { // Funk Cowbell - 특유의 금속성 링
+                    let osc1 = audioCtx.createOscillator();
+                    let osc2 = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    let filter = audioCtx.createBiquadFilter();
+
+                    let base = 560;
+                    osc1.type = 'square';
+                    osc1.frequency.setValueAtTime(base, now);
+                    osc2.type = 'square';
+                    osc2.frequency.setValueAtTime(base * 1.48, now);
+
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(1000, now);
+                    filter.Q.setValueAtTime(2.0, now);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.18 * masterVolValue, now + 0.003);
+                    gain.gain.setValueAtTime(0.18 * masterVolValue, now + 0.003);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+                    osc1.connect(filter);
+                    osc2.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(masterGain);
+
+                    osc1.start(now);
+                    osc2.start(now);
+                    osc1.stop(now + 0.18);
+                    osc2.stop(now + 0.18);
+                    break;
+                }
+                case "staff": { // Horn Section Chord - 브라스 4중 화음 잽
+                    let degrees = [1, 3, 5, 7];
+                    let volumeFactor = 0.08;
+                    degrees.forEach((deg) => {
+                        let osc = audioCtx.createOscillator();
+                        let gain = audioCtx.createGain();
+                        let filter = audioCtx.createBiquadFilter();
+                        let fVal = getFrequencyForChordTone(chord, deg, 0);
+
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(fVal, now);
+
+                        filter.type = 'lowpass';
+                        filter.frequency.setValueAtTime(1400, now);
+
+                        gain.gain.setValueAtTime(0.001, now);
+                        gain.gain.linearRampToValueAtTime(volumeFactor * masterVolValue, now + 0.015);
+                        gain.gain.setValueAtTime(volumeFactor * masterVolValue, now + 0.015);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+                        osc.connect(filter);
+                        filter.connect(gain);
+                        gain.connect(masterGain);
+
+                        osc.start(now);
+                        osc.stop(now + 0.25);
+                    });
+                    break;
+                }
+            }
+        }
+
+        // ==========================================
+        // 4. ORCHESTRAL WEAPONS (DRAMATIC / EPIC)
+        // ==========================================
+        function playOrchestralWeapon(type, chord) {
+            const now = audioCtx.currentTime;
+            switch (type) {
+                case "dagger": { // Violin Pizzicato - 3도 고음역
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+
+                    let fVal = getFrequencyForChordTone(chord, 3, 1);
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(fVal, now);
+                    osc.frequency.linearRampToValueAtTime(fVal * 0.98, now + 0.04);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.24 * masterVolValue, now + 0.002);
+                    gain.gain.setValueAtTime(0.24 * masterVolValue, now + 0.002);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                    break;
+                }
+                case "greatsword": { // Trombone & Cello Ensemble - 1도 + 5도 저음 앙상블
+                    let osc1 = audioCtx.createOscillator();
+                    let osc2 = audioCtx.createOscillator();
+                    let osc3 = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    let filter = audioCtx.createBiquadFilter();
+
+                    let f1 = getFrequencyForChordTone(chord, 1, -1);
+                    let f2 = getFrequencyForChordTone(chord, 5, -1);
+
+                    osc1.type = 'sawtooth';
+                    osc1.frequency.setValueAtTime(f1, now);
+                    osc2.type = 'triangle';
+                    osc2.frequency.setValueAtTime(f2, now);
+                    osc3.type = 'sawtooth';
+                    osc3.frequency.setValueAtTime(f1 * 0.5, now);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(300, now);
+                    filter.frequency.exponentialRampToValueAtTime(1800, now + 0.15);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.32 * masterVolValue, now + 0.08);
+                    gain.gain.setValueAtTime(0.32 * masterVolValue, now + 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+
+                    osc1.connect(filter);
+                    osc2.connect(filter);
+                    osc3.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(masterGain);
+
+                    osc1.start(now);
+                    osc2.start(now);
+                    osc3.start(now);
+                    osc1.stop(now + 0.48);
+                    osc2.stop(now + 0.48);
+                    osc3.stop(now + 0.48);
+                    break;
+                }
+                case "bow": { // Concert Harp Pluck - 7도 고음 + 스테레오 딜레이
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    let delay = audioCtx.createDelay();
+                    let feedback = audioCtx.createGain();
+
+                    let fVal = getFrequencyForChordTone(chord, 7, 1);
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(fVal, now);
+
+                    delay.delayTime.setValueAtTime(0.18, now);
+                    feedback.gain.setValueAtTime(0.4, now);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.22 * masterVolValue, now + 0.008);
+                    gain.gain.setValueAtTime(0.22 * masterVolValue, now + 0.008);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    
+                    gain.connect(delay);
+                    delay.connect(feedback);
+                    feedback.connect(delay);
+                    feedback.connect(masterGain);
+
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                    break;
+                }
+                case "parry": { // Tubular Bell - 물리 모델링 배음 6중 합산
+                    let bellHarmonics = [1.0, 1.21, 1.5, 2.0, 2.44, 3.0];
+                    let baseFreq = getFrequencyForChordTone(chord, 1, 0);
+
+                    bellHarmonics.forEach((harmonic) => {
+                        let oscP = audioCtx.createOscillator();
+                        let gainP = audioCtx.createGain();
+
+                        oscP.type = 'sine';
+                        oscP.frequency.setValueAtTime(baseFreq * harmonic, now);
+
+                        gainP.gain.setValueAtTime(0.001, now);
+                        let vol = (0.24 / bellHarmonics.length) * (1 / harmonic);
+                        gainP.gain.linearRampToValueAtTime(vol * masterVolValue, now + 0.006);
+                        gainP.gain.setValueAtTime(vol * masterVolValue, now + 0.006);
+                        gainP.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+                        oscP.connect(gainP);
+                        gainP.connect(masterGain);
+
+                        oscP.start(now);
+                        oscP.stop(now + 1.3);
+                    });
+                    break;
+                }
+                case "staff": { // Flute classical Arpeggio - 1도-3도-5도-8도-12도 아르페지오 질주
+                    let scaleDegrees = [1, 3, 5, 1, 5];
+                    let octaves = [0, 0, 0, 1, 1];
+                    scaleDegrees.forEach((degree, idx) => {
+                        let oscF = audioCtx.createOscillator();
+                        let gainF = audioCtx.createGain();
+                        let fVal = getFrequencyForChordTone(chord, degree, octaves[idx]);
+
+                        oscF.type = 'sine';
+                        oscF.frequency.setValueAtTime(fVal, now + idx * 0.035);
+
+                        gainF.gain.setValueAtTime(0.001, now + idx * 0.035);
+                        gainF.gain.linearRampToValueAtTime(0.12 * masterVolValue, now + idx * 0.035 + 0.008);
+                        gainF.gain.setValueAtTime(0.12 * masterVolValue, now + idx * 0.035 + 0.008);
+                        gainF.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.035 + 0.25);
+
+                        oscF.connect(gainF);
+                        gainF.connect(masterGain);
+
+                        oscF.start(now + idx * 0.035);
+                        oscF.stop(now + idx * 0.035 + 0.3);
+                    });
+                    break;
+                }
+            }
+        }
+
+        // ==========================================
+        // 5. JAZZ LOUNGE WEAPONS (MIDNIGHT JAZZY)
+        // ==========================================
+        function playJazzWeapon(type, chord) {
+            const now = audioCtx.currentTime;
+            switch (type) {
+                case "dagger": { // Jazz Archtop Guitar Pluck - 9도 텐션
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    let filter = audioCtx.createBiquadFilter();
+
+                    let fVal = getFrequencyForChordTone(chord, 9, 0);
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(fVal, now);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(850, now);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.24 * masterVolValue, now + 0.008);
+                    gain.gain.setValueAtTime(0.24 * masterVolValue, now + 0.008);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(masterGain);
+
+                    osc.start(now);
+                    osc.stop(now + 0.32);
+                    break;
+                }
+                case "greatsword": { // Upright Acoustic Bass Pluck - 1도 저음역
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    let filter = audioCtx.createBiquadFilter();
+
+                    let fVal = getFrequencyForChordTone(chord, 1, -2);
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(fVal, now);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(130, now);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.28 * masterVolValue, now + 0.015);
+                    gain.gain.setValueAtTime(0.28 * masterVolValue, now + 0.015);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(masterGain);
+
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                    break;
+                }
+                case "bow": { // Vibraphone Chime - 7도 + 깊은 비브라토
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    let vibrato = audioCtx.createOscillator();
+                    let vibGain = audioCtx.createGain();
+
+                    let fVal = getFrequencyForChordTone(chord, 7, 0);
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(fVal, now);
+
+                    vibrato.frequency.setValueAtTime(5.5, now);
+                    vibGain.gain.setValueAtTime(8, now);
+                    vibrato.connect(vibGain);
+                    vibGain.connect(osc.detune);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.22 * masterVolValue, now + 0.005);
+                    gain.gain.setValueAtTime(0.22 * masterVolValue, now + 0.005);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+
+                    vibrato.start(now);
+                    osc.start(now);
+                    vibrato.stop(now + 0.65);
+                    osc.stop(now + 0.65);
+                    break;
+                }
+                case "parry": { // Brush Snare swing tap - 가벼운 스윙 림 브러시
+                    let buf = createNoiseBuffer();
+                    if (buf) {
+                        let src = audioCtx.createBufferSource();
+                        let filter = audioCtx.createBiquadFilter();
+                        let gain = audioCtx.createGain();
+
+                        src.buffer = buf;
+                        filter.type = 'bandpass';
+                        filter.frequency.setValueAtTime(1600, now);
+                        filter.Q.setValueAtTime(1.0, now);
+
+                        gain.gain.setValueAtTime(0.001, now);
+                        gain.gain.linearRampToValueAtTime(0.14 * masterVolValue, now + 0.003);
+                        gain.gain.setValueAtTime(0.14 * masterVolValue, now + 0.003);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+                        src.connect(filter);
+                        filter.connect(gain);
+                        gain.connect(masterGain);
+
+                        src.start(now);
+                        src.stop(now + 0.09);
+                    }
+                    break;
+                }
+                case "staff": { // Tenor Saxophone Swell - 끈적한 블루노트 색소폰 스웰
+                    let osc1 = audioCtx.createOscillator();
+                    let osc2 = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    let filter = audioCtx.createBiquadFilter();
+                    let vibrato = audioCtx.createOscillator();
+                    let vibGain = audioCtx.createGain();
+
+                    let fVal = getFrequencyForChordTone(chord, 5, 0);
+
+                    osc1.type = 'sawtooth';
+                    osc1.frequency.setValueAtTime(fVal, now);
+                    osc2.type = 'triangle';
+                    osc2.frequency.setValueAtTime(fVal * 1.005, now);
+
+                    vibrato.frequency.setValueAtTime(6.0, now);
+                    vibGain.gain.setValueAtTime(4, now);
+                    vibrato.connect(vibGain);
+                    vibGain.connect(osc1.detune);
+                    vibGain.connect(osc2.detune);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(800, now);
+                    filter.frequency.exponentialRampToValueAtTime(1400, now + 0.12);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.24 * masterVolValue, now + 0.06);
+                    gain.gain.setValueAtTime(0.24 * masterVolValue, now + 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+                    osc1.connect(filter);
+                    osc2.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(masterGain);
+
+                    vibrato.start(now);
+                    osc1.start(now);
+                    osc2.start(now);
+                    vibrato.stop(now + 0.42);
+                    osc1.stop(now + 0.42);
+                    osc2.stop(now + 0.42);
+                    break;
+                }
+            }
+        }
+
+        // Rhythmic Scheduler loop
+        function scheduleNextNotes() {
+            // 누적 딜레이 또는 백그라운드 탭 스로틀링 대응을 위한 동기화 보정
+            if (nextNoteTime < audioCtx.currentTime) {
+                let diffSec = audioCtx.currentTime - nextNoteTime;
+                let diffTicks = Math.floor(diffSec / tickLengthSec);
+                let stepTicks = 120; // 16분음표 단위 스냅
+                let stepsToSkip = Math.ceil(diffTicks / stepTicks) * stepTicks;
+                
+                currentTickPointer += stepsToSkip;
+                nextNoteTime += stepsToSkip * tickLengthSec;
+            }
+
+            while (nextNoteTime < audioCtx.currentTime + scheduleAheadTimeSec) {
+                // Read current block patterns
+                const block = currentPreset.Blocks[0];
+                const beatsPerMeasure = currentPreset.TimeSignatureNum;
+                const totalMeasures = block.LengthMeasures;
+                const ticksPerMeasure = beatsPerMeasure * currentPreset.TicksPerBeat;
+                const totalTicks = totalMeasures * ticksPerMeasure;
+
+                // Match notes scheduled at the currentTickPointer
+                const currentLoopTick = currentTickPointer % totalTicks;
+                const matchNotes = block.BassPattern.filter(n => {
+                    const noteAbsTick = (n.MeasureIndex * ticksPerMeasure) + n.Tick;
+                    return noteAbsTick === currentLoopTick;
+                });
+
+                matchNotes.forEach(note => {
+                    let isMelody = note.SoundKey.toLowerCase().includes("lead") || 
+                                   note.SoundKey.toLowerCase().includes("flute") || 
+                                   note.SoundKey.toLowerCase().includes("guitar") ||
+                                   note.SoundKey.toLowerCase().includes("violin") ||
+                                   note.SoundKey.toLowerCase().includes("sax") ||
+                                   note.SoundKey.toLowerCase().includes("piano") ||
+                                   note.SoundKey.toLowerCase().includes("rhodes");
+                    
+                    if (isMelody) {
+                        playSynthesizedMelody(note.SoundKey, nextNoteTime, note.VolumeMultiplier || 1.0);
+                        // Trigger visual pulse in UI
+                        scheduleVisualPulse(note.MeasureIndex, note.Tick, "melody");
+                    } else {
+                        playSynthesizedBass(note.SoundKey, nextNoteTime, note.VolumeMultiplier || 1.0);
+                        scheduleVisualPulse(note.MeasureIndex, note.Tick, "bass");
+                    }
+                });
+
+                // Advance scheduler pointer (16th notes = 120 ticks)
+                // Let's step by 120 ticks (a 16th note)
+                const stepTicks = 120;
+                currentTickPointer += stepTicks;
+                
+                nextNoteTime += stepTicks * tickLengthSec;
+            }
+            
+            timerId = setTimeout(scheduleNextNotes, lookaheadMs);
+        }
+
+        // Flash visual elements in sync
+        function scheduleVisualPulse(measureIndex, tick, layerType) {
+            const timeDiff = (nextNoteTime - audioCtx.currentTime) * 1000;
+            setTimeout(() => {
+                const id = `note-${measureIndex}-${tick}`;
+                const element = document.getElementById(id);
+                if (element) {
+                    element.classList.add("playing-active");
+                    setTimeout(() => {
+                        element.classList.remove("playing-active");
+                    }, 200);
+                }
+                
+                // Real-time logger printout
+                const chord = getCurrentChordInfo(currentTickPointer - 120);
+                const chordName = chord ? `${chord.RootNote} ${chord.ChordType}` : "Unknown";
+                const tickNum = Math.floor(tick / 480) + 1;
+                addLog(`[Server Base Layer] [M:${measureIndex+1} B:${tickNum}] Played ${layerType.toUpperCase()} - Key: ${currentPreset.StageId}_Sound | Chord: ${chordName}`, layerType);
+                highlightJsonLine(`"SoundKey": "${layerType === 'bass' ? 'SynthBass' : 'SynthLead'}`);
+            }, Math.max(0, timeDiff));
+        }
+
+        // Visualizers Render Loops
+        function drawVisualizers() {
+            if (!audioCtx) return;
+
+            requestAnimationFrame(drawVisualizers);
+
+            // Canvas sizes
+            const w = canvasWave.width = canvasWave.clientWidth;
+            const h = canvasWave.height = canvasWave.clientHeight;
+            const w2 = canvasFreq.width = canvasFreq.clientWidth;
+            const h2 = canvasFreq.height = canvasFreq.clientHeight;
+
+            // 1. Oscilloscope waveform visualizer
+            let waveData = new Uint8Array(analyserWave.frequencyBinCount);
+            analyserWave.getByteTimeDomainData(waveData);
+            
+            ctxWave.fillStyle = "#0c0813";
+            ctxWave.fillRect(0, 0, w, h);
+            
+            ctxWave.lineWidth = 2.5;
+            ctxWave.strokeStyle = "rgba(0, 240, 255, 0.8)";
+            ctxWave.shadowBlur = 8;
+            ctxWave.shadowColor = "#00f0ff";
+            ctxWave.beginPath();
+            
+            let sliceWidth = w * 1.0 / waveData.length;
+            let x = 0;
+            
+            for (let i = 0; i < waveData.length; i++) {
+                let v = waveData[i] / 128.0;
+                let y = v * h / 2;
+                if (i === 0) {
+                    ctxWave.moveTo(x, y);
+                } else {
+                    ctxWave.lineTo(x, y);
+                }
+                x += sliceWidth;
+            }
+            
+            ctxWave.lineTo(w, h / 2);
+            ctxWave.stroke();
+            ctxWave.shadowBlur = 0; // reset
+
+            // 2. Frequency spectrum analyzer visualizer
+            let freqData = new Uint8Array(analyserFreq.frequencyBinCount);
+            analyserFreq.getByteFrequencyData(freqData);
+
+            ctxFreq.fillStyle = "#0c0813";
+            ctxFreq.fillRect(0, 0, w2, h2);
+
+            let barWidth = (w2 / freqData.length) * 2.5;
+            let barHeight;
+            let x2 = 0;
+
+            for (let i = 0; i < freqData.length; i++) {
+                barHeight = freqData[i] / 2;
+                
+                // Color gradient based on frequency index
+                let r = Math.floor(157 - (i * 0.4));
+                let g = Math.floor(78 + (i * 0.6));
+                let b = Math.floor(221 + (i * 0.2));
+
+                ctxFreq.fillStyle = `rgb(${r},${g},${b})`;
+                ctxFreq.fillRect(x2, h2 - barHeight, barWidth - 1, barHeight);
+                x2 += barWidth;
+            }
+        }
+
+        // Preset and control settings handlers
+        function loadPreset(stageId) {
+            currentStageId = stageId;
+            currentPreset = presets[stageId];
+            
+            valStageBadge.innerText = `STAGE: ${currentPreset.StageId}`;
+            currentBpm = currentPreset.Bpm;
+            sliderBpm.value = currentBpm;
+            valBpm.innerText = currentBpm;
+            
+            beatLengthSec = 60.0 / currentBpm;
+            tickLengthSec = beatLengthSec / 480;
+
+            buildTimeline();
+            renderJsonView();
+            addLog(`Loaded Stage Preset: ${currentPreset.StageId} | BPM: ${currentBpm}`, "client");
+        }
+
+        selectStage.addEventListener("change", (e) => {
+            loadPreset(e.target.value);
+        });
+
+        sliderBpm.addEventListener("input", (e) => {
+            currentBpm = parseInt(e.target.value);
+            valBpm.innerText = currentBpm;
+            beatLengthSec = 60.0 / currentBpm;
+            tickLengthSec = beatLengthSec / 480;
+            addLog(`Tempo adjusted to ${currentBpm} BPM`, "client");
+        });
+
+        sliderVolume.addEventListener("input", (e) => {
+            masterVolValue = parseInt(e.target.value) / 100.0;
+            valVolume.innerText = e.target.value + "%";
+            if (masterGain) {
+                masterGain.gain.setValueAtTime(masterVolValue, audioCtx.currentTime);
+            }
+        });
+
+        // Loop play trigger
+        btnPlay.addEventListener("click", () => {
+            if (!audioCtx) initAudio();
+            
+            if (isPlaying) {
+                // Pause
+                isPlaying = false;
+                btnPlay.innerText = "▶ Play Loop";
+                btnPlay.classList.remove("btn-primary");
+                clearTimeout(timerId);
+                addLog("Sound loop paused.", "client");
+            } else {
+                // Play
+                let startPlaying = () => {
+                    isPlaying = true;
+                    btnPlay.innerText = "⏸ Pause Loop";
+                    btnPlay.classList.add("btn-primary");
+                    
+                    nextNoteTime = audioCtx.currentTime + 0.05;
+                    currentTickPointer = 0;
+                    
+                    scheduleNextNotes();
+                    updatePlayhead();
+                    addLog("Sound loop started playing.", "client");
+                };
+
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume().then(startPlaying);
+                } else {
+                    startPlaying();
+                }
+            }
+        });
+
+        // Reset/Stop play trigger
+        btnReset.addEventListener("click", () => {
+            isPlaying = false;
+            btnPlay.innerText = "▶ Play Loop";
+            btnPlay.classList.remove("btn-primary");
+            clearTimeout(timerId);
+            currentTickPointer = 0;
+            playhead.style.left = "0px";
+            addLog("Ensemble playback reset to start.", "client");
+        });
+
+        // Pad Triggers event registers
+        document.querySelectorAll(".pad-btn").forEach(pad => {
+            pad.addEventListener("mousedown", () => {
+                const weapon = pad.getAttribute("data-weapon");
+                pad.classList.add("active-trigger");
+                triggerClientWeapon(weapon);
+                setTimeout(() => pad.classList.remove("active-trigger"), 200);
+            });
+        });
+
+        // Keyboard press event registers
+        window.addEventListener("keydown", (e) => {
+            let key = e.key.toLowerCase();
+            let pad = null;
+            let weapon = null;
+
+            if (key === 'a') {
+                pad = document.querySelector(".pad-btn.dagger");
+                weapon = "dagger";
+            } else if (key === 's') {
+                pad = document.querySelector(".pad-btn.greatsword");
+                weapon = "greatsword";
+            } else if (key === 'd') {
+                pad = document.querySelector(".pad-btn.bow");
+                weapon = "bow";
+            } else if (key === 'f') {
+                pad = document.querySelector(".pad-btn.parry");
+                weapon = "parry";
+            } else if (e.code === 'Space') {
+                e.preventDefault(); // prevent scroll down
+                pad = document.querySelector(".pad-btn.staff");
+                weapon = "staff";
+            }
+
+            if (pad && weapon) {
+                pad.classList.add("active-trigger");
+                triggerClientWeapon(weapon);
+                setTimeout(() => pad.classList.remove("active-trigger"), 150);
+            }
+        });
+
+        // Initial setup
+        window.onload = () => {
+            loadPreset("synthwave");
+        };
+    </script>
+</body>
+</html>

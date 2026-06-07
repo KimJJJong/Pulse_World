@@ -6,6 +6,7 @@ namespace GameServer.InGame.System.Rhythm;
 
 public sealed class RhythmConfig
 {
+    public string SongKey { get; init; } = "DefaultSong";
     public double Bpm { get; init; }
     public int BaseBeatDivision { get; init; } // 예: 4 * 4 (16분음표)
     public double ActionWindowMs { get; init; } // Beat 판정 윈도우 (+-)

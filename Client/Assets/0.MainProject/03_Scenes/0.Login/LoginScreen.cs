@@ -8,6 +8,14 @@ public sealed class LoginScreen : MonoBehaviour
 
     void Awake()
     {
+        if (AppBootstrap.Instance == null || AppBootstrap.Instance.Root == null)
+        {
+            Debug.LogWarning("LoginScreen requires AppBootstrap. Loading Bootstrap scene first.");
+            SceneRouter.Load(SceneNames.Bootstrap);
+            enabled = false;
+            return;
+        }
+
         var root = AppBootstrap.Instance.Root;
 
         view.DeviceIdText.text = root.Identity.DeviceId;
@@ -44,6 +52,12 @@ public sealed class LoginScreen : MonoBehaviour
 
     async Task OnClickLoginAsync()
     {
+        if (AppBootstrap.Instance == null || AppBootstrap.Instance.Root == null)
+        {
+            SceneRouter.Load(SceneNames.Bootstrap);
+            return;
+        }
+
         view.SetError("");
         view.SetBusy(true);
 

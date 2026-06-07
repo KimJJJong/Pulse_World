@@ -183,7 +183,7 @@ public sealed class GameSession : SessionBase
         packet.ServerTimeMs = _time.NowMs;
         packet.Mode = 2;
         packet.ActionWindowMs = _rhythmConfig.ActionWindowMs;
-        packet.SongId = "TestSong";
+        packet.SongId = _rhythmConfig.SongKey;
         packet.Bpm = _rhythmConfig.Bpm;
         packet.BaseBeatDivision = _rhythmConfig.BaseBeatDivision;
         packet.SongStartServerTime = _rhythm.SongStartServerTimeMs;

@@ -58,6 +58,9 @@ namespace Shared.Data
         // 이 문자열이 FMOD Bank의 Event 이름과 1:1 매핑됨
         public string SoundKey = "Kick";
 
+        // FMOD PitchOffset 파라미터에 전달할 반음 오프셋. 피치 변주가 필요한 SoundKey에서 사용.
+        public int PitchOffset = 0;
+
         // 0.0 ~ 1.0: 이 노트의 볼륨 배율 (강세 표현 / 약박 표현에 사용)
         public float VolumeMultiplier = 1.0f;
     }

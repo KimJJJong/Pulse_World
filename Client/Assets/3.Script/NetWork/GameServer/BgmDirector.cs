@@ -7,14 +7,18 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class BgmDirector : MonoBehaviour
 {
+    private const bool SceneBgmDisabled = true;
+
     public static BgmDirector Instance { get; private set; }
 
     [Header("Refs")]
     [SerializeField] private BgmSyncPlayer _player;
     [SerializeField] private AudioSource _audioSource;
     [SerializeField] private AudioClip _clip; // 3분+ non-loop
+    [SerializeField] private bool _disableSceneBgm = true;
 
     private long _lastStartedSongStartMs = long.MinValue;
+    private bool ShouldDisableSceneBgm => SceneBgmDisabled || _disableSceneBgm;
 
     void Awake()
     {
@@ -22,6 +26,12 @@ public sealed class BgmDirector : MonoBehaviour
 
         if (_player == null) _player = GetComponentInChildren<BgmSyncPlayer>(true);
         if (_audioSource == null) _audioSource = GetComponentInChildren<AudioSource>(true);
+
+        if (ShouldDisableSceneBgm)
+        {
+            SilenceBgm();
+            return;
+        }
 
         // 안전: 시작부터 enabled 보장
         if (_audioSource != null)
@@ -34,6 +44,9 @@ public sealed class BgmDirector : MonoBehaviour
 
     void OnEnable()
     {
+        if (ShouldDisableSceneBgm)
+            return;
+
         ClientHandlers.OnBeatSyncReady += HandleBeatSyncReady;
     }
 
@@ -44,6 +57,12 @@ public sealed class BgmDirector : MonoBehaviour
 
     private void HandleBeatSyncReady()
     {
+        if (ShouldDisableSceneBgm)
+        {
+            SilenceBgm();
+            return;
+        }
+
         var rhythm = RhythmClient.Instance;
         if (rhythm == null) return;
 
@@ -81,8 +100,19 @@ public sealed class BgmDirector : MonoBehaviour
     /// <summary>게임 종료/로비 복귀 등에서 호출</summary>
     public void StopBgm()
     {
+        SilenceBgm();
+    }
+
+    private void SilenceBgm()
+    {
         _lastStartedSongStartMs = long.MinValue;
         if (_player != null) _player.StopSync();
-        else if (_audioSource != null) _audioSource.Stop();
+        if (_audioSource != null)
+        {
+            _audioSource.Stop();
+            _audioSource.loop = false;
+            _audioSource.playOnAwake = false;
+            _audioSource.enabled = false;
+        }
     }
 }

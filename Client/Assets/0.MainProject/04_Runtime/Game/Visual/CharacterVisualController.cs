@@ -178,6 +178,7 @@ namespace RhythmRPG.Visual
                     var instance = Instantiate(prefab, targetSocket);
                     instance.transform.localPosition = Vector3.zero;
                     instance.transform.localRotation = Quaternion.identity;
+                    BindRootAuthoredEquipmentMotion(id, instance);
                     _spawnedEquipments[id] = instance;
                     Debug.Log($"[CharacterVisualController] ✅ TemplateId={id} → socket='{targetSocket.name}' on '{gameObject.name}'.");
                 }
@@ -189,6 +190,27 @@ namespace RhythmRPG.Visual
             }
 
             RefreshVisuals();
+        }
+
+        private void BindRootAuthoredEquipmentMotion(int id, GameObject instance)
+        {
+            if (instance == null || Client.Content.Item.ItemDataManager.Instance == null)
+                return;
+
+            var tmpl = Client.Content.Item.ItemDataManager.Instance.GetEquipment(id);
+            if (tmpl == null || !UsesCharacterRootSpace(tmpl.SlotEnum))
+                return;
+
+            Transform motionSocket = _sockets.GetSocket(tmpl.SlotEnum.ToString());
+            if (motionSocket == null || motionSocket == transform)
+                return;
+
+            var follower = instance.GetComponent<CharacterEquipmentSocketFollower>();
+            if (follower == null)
+                follower = instance.AddComponent<CharacterEquipmentSocketFollower>();
+
+            follower.Bind(transform, motionSocket);
+            Debug.Log($"[CharacterVisualController] Bound root-authored TemplateId={id} to animated socket='{motionSocket.name}' on '{gameObject.name}'.");
         }
 
         private Transform GetTargetSocket(int id)
@@ -204,6 +226,12 @@ namespace RhythmRPG.Visual
 
                     if (slot != Client.Content.Item.EquipmentSlot.None)
                     {
+                        if (UsesCharacterRootSpace(slot))
+                        {
+                            Debug.Log($"[CharacterVisualController] Using character root for root-authored equipment slot '{slot}' on '{gameObject.name}'.");
+                            return transform;
+                        }
+
                         Transform socket = _sockets.GetSocket(slot.ToString());
                         if (socket != null) return socket;
                         Debug.LogWarning($"[CharacterVisualController] Socket '{slot}' is null in CharacterEquipSockets. " +
@@ -236,6 +264,20 @@ namespace RhythmRPG.Visual
 
             Debug.LogWarning($"[CharacterVisualController] No socket resolved for id={id} via any method.");
             return null;
+        }
+
+        private static bool UsesCharacterRootSpace(Client.Content.Item.EquipmentSlot slot)
+        {
+            switch (slot)
+            {
+                case Client.Content.Item.EquipmentSlot.Head:
+                case Client.Content.Item.EquipmentSlot.Armor:
+                case Client.Content.Item.EquipmentSlot.Pants:
+                case Client.Content.Item.EquipmentSlot.Shoes:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private void ClearEquipments()

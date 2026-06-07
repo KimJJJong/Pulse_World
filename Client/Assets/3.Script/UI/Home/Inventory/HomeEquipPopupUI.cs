@@ -11,6 +11,7 @@ public class HomeEquipPopupUI : MonoBehaviour
     private static readonly Color ResourceParchmentText = new Color(0.10f, 0.22f, 0.20f, 1f);
     private static readonly Color ResourceParchmentMutedText = new Color(0.32f, 0.26f, 0.18f, 1f);
     private static readonly Color ResourceButtonText = new Color(0.96f, 0.92f, 0.82f, 1f);
+    private const string DetailIconFrameResourcePath = "UI/UI_Home_Equipment_Detail/UI_equipment_icon_frame_detail";
 
     [SerializeField] private Transform _content;
     [SerializeField] private GameObject _itemPrefab; // Should have HomeEquipPopupItemUI component
@@ -37,6 +38,7 @@ public class HomeEquipPopupUI : MonoBehaviour
     private RectTransform _rightFooterRoot;
     private RectTransform _detailRoot;
     private Image _detailIcon;
+    private Image _detailIconFrame;
     private Text _detailName;
     private Text _detailMeta;
     private Text _detailStats;
@@ -46,6 +48,7 @@ public class HomeEquipPopupUI : MonoBehaviour
     private Text _actionButtonText;
     private TMP_FontAsset _koreanFont;
     private static Sprite _defaultUiSprite;
+    private static Sprite _detailIconFrameSprite;
 
     private readonly List<HomeEquipPopupItemUI> _spawnedItems = new();
     private EquipmentSlot _currentSlot = EquipmentSlot.None;
@@ -351,6 +354,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         iconPanel.anchorMax = new Vector2(0f, 1f);
         iconPanel.pivot = new Vector2(0f, 1f);
         iconPanel.anchoredPosition = new Vector2(10f, -30f);
+        SetIconPanelTransparent(iconPanel);
 
         var iconObj = FindGameObject("DetailIcon") ?? CreateImage("DetailIcon", iconPanel, new Vector2(72f, 72f), Vector2.zero, new Color(1f, 1f, 1f, 1f));
         _detailIcon = iconObj.GetComponent<Image>();
@@ -359,7 +363,8 @@ public class HomeEquipPopupUI : MonoBehaviour
         iconRect.anchorMax = new Vector2(0.5f, 0.5f);
         iconRect.pivot = new Vector2(0.5f, 0.5f);
         iconRect.anchoredPosition = Vector2.zero;
-        iconRect.sizeDelta = new Vector2(68f, 68f);
+        iconRect.sizeDelta = new Vector2(64f, 64f);
+        EnsureDetailIconFrame();
 
         _detailName = CreateText("DetailName", _rightHeaderRoot, "선택된 장비 없음", 16, TextAnchor.MiddleLeft, new Vector2(96f, -28f), new Vector2(224f, 22f));
         _detailMeta = CreateText("DetailMeta", _rightHeaderRoot, "-", 12, TextAnchor.MiddleLeft, new Vector2(96f, -50f), new Vector2(224f, 16f));
@@ -469,10 +474,18 @@ public class HomeEquipPopupUI : MonoBehaviour
 
         var iconPanel = FindRect("DetailIconPanel");
         if (iconPanel != null)
-            SetTopLeftRect(iconPanel, new Rect(20f, 36f, 86f, 86f));
+        {
+            SetTopLeftRect(iconPanel, new Rect(18f, 34f, 92f, 92f));
+            SetIconPanelTransparent(iconPanel);
+        }
+
+        EnsureDetailIconFrame();
+
+        if (_detailIconFrame != null)
+            SetCenteredRect(_detailIconFrame.rectTransform, new Vector2(86f, 86f), Vector2.zero);
 
         if (_detailIcon != null)
-            SetCenteredRect(_detailIcon.rectTransform, new Vector2(72f, 72f), Vector2.zero);
+            SetCenteredRect(_detailIcon.rectTransform, new Vector2(64f, 64f), Vector2.zero);
 
         SetTextRect(_detailName, new Rect(132f, 38f, 202f, 26f), 16, TextAnchor.MiddleLeft, ResourceParchmentText);
         SetTextRect(_detailMeta, new Rect(132f, 66f, 202f, 42f), 11, TextAnchor.UpperLeft, ResourceParchmentMutedText);
@@ -545,6 +558,8 @@ public class HomeEquipPopupUI : MonoBehaviour
 
         var detailIconObject = FindGameObject("DetailIcon");
         _detailIcon = detailIconObject != null ? detailIconObject.GetComponent<Image>() : null;
+        var detailIconFrameObject = FindGameObject("DetailIconFrame");
+        _detailIconFrame = detailIconFrameObject != null ? detailIconFrameObject.GetComponent<Image>() : null;
         _actionButton = FindButton("DetailActionButton");
         _actionButtonText = _actionButton != null ? _actionButton.GetComponentInChildren<Text>(true) : null;
 
@@ -555,6 +570,7 @@ public class HomeEquipPopupUI : MonoBehaviour
             return false;
 
         ConfigureInputBlockers();
+        EnsureDetailIconFrame();
         ConfigureSceneScrollRect(_listViewport, _listContent);
         if (_rightBodyScrollContent != null)
             ConfigureSceneScrollRect(_rightBodyRoot, _rightBodyScrollContent);
@@ -620,6 +636,71 @@ public class HomeEquipPopupUI : MonoBehaviour
             image.color = new Color(0f, 0f, 0f, 0f);
             image.raycastTarget = true;
         }
+    }
+
+    private void EnsureDetailIconFrame()
+    {
+        if (_detailIcon == null)
+        {
+            var detailIconObject = FindGameObject("DetailIcon");
+            _detailIcon = detailIconObject != null ? detailIconObject.GetComponent<Image>() : null;
+        }
+
+        var iconPanel = FindRect("DetailIconPanel");
+        if (iconPanel == null && _detailIcon != null)
+            iconPanel = _detailIcon.transform.parent as RectTransform;
+
+        if (iconPanel == null)
+            return;
+
+        SetIconPanelTransparent(iconPanel);
+
+        if (_detailIconFrame == null)
+        {
+            var frameObject = FindGameObject("DetailIconFrame");
+            _detailIconFrame = frameObject != null ? frameObject.GetComponent<Image>() : null;
+        }
+
+        if (_detailIconFrame == null)
+        {
+            var frameGo = new GameObject("DetailIconFrame", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            frameGo.transform.SetParent(iconPanel, false);
+            _detailIconFrame = frameGo.GetComponent<Image>();
+        }
+        else if (_detailIconFrame.transform.parent != iconPanel)
+        {
+            _detailIconFrame.transform.SetParent(iconPanel, false);
+        }
+
+        _detailIconFrame.sprite = DetailIconFrameSprite;
+        _detailIconFrame.color = Color.white;
+        _detailIconFrame.preserveAspect = false;
+        _detailIconFrame.raycastTarget = false;
+        SetCenteredRect(_detailIconFrame.rectTransform, new Vector2(86f, 86f), Vector2.zero);
+
+        if (_detailIcon != null)
+        {
+            _detailIcon.preserveAspect = true;
+            _detailIcon.raycastTarget = false;
+            SetCenteredRect(_detailIcon.rectTransform, new Vector2(64f, 64f), Vector2.zero);
+            _detailIcon.transform.SetAsLastSibling();
+        }
+
+        _detailIconFrame.transform.SetAsLastSibling();
+    }
+
+    private static void SetIconPanelTransparent(RectTransform iconPanel)
+    {
+        if (iconPanel == null)
+            return;
+
+        var image = iconPanel.GetComponent<Image>();
+        if (image == null)
+            return;
+
+        ApplyDefaultSprite(image);
+        image.color = new Color(0f, 0f, 0f, 0f);
+        image.raycastTarget = false;
     }
 
     private void ConfigureEquipmentGrid()
@@ -902,6 +983,8 @@ public class HomeEquipPopupUI : MonoBehaviour
 
     private void RefreshDetailPanel()
     {
+        EnsureDetailIconFrame();
+
         var item = FindSelectedItem();
         if (item == null)
         {
@@ -920,6 +1003,8 @@ public class HomeEquipPopupUI : MonoBehaviour
         {
             _detailIcon.sprite = null;
             _detailIcon.enabled = false;
+            _detailIcon.preserveAspect = true;
+            _detailIcon.raycastTarget = false;
             var icon = RhythmRPG.Managers.GameResourceManager.Instance != null
                 ? RhythmRPG.Managers.GameResourceManager.Instance.GetIcon(tmpl.id)
                 : null;
@@ -934,6 +1019,12 @@ public class HomeEquipPopupUI : MonoBehaviour
                 _detailIcon.sprite = icon;
                 _detailIcon.enabled = true;
             }
+        }
+
+        if (_detailIconFrame != null)
+        {
+            _detailIconFrame.enabled = true;
+            _detailIconFrame.transform.SetAsLastSibling();
         }
 
         if (_detailName != null)
@@ -993,11 +1084,16 @@ public class HomeEquipPopupUI : MonoBehaviour
 
     private void SetDetailEmpty(string message)
     {
+        EnsureDetailIconFrame();
+
         if (_detailIcon != null)
         {
             _detailIcon.sprite = null;
             _detailIcon.enabled = false;
         }
+
+        if (_detailIconFrame != null)
+            _detailIconFrame.enabled = true;
 
         if (_detailName != null)
             _detailName.text = "장비 없음";
@@ -1425,6 +1521,17 @@ public class HomeEquipPopupUI : MonoBehaviour
 
         if (_defaultUiSprite != null)
             image.sprite = _defaultUiSprite;
+    }
+
+    private static Sprite DetailIconFrameSprite
+    {
+        get
+        {
+            if (_detailIconFrameSprite == null)
+                _detailIconFrameSprite = Resources.Load<Sprite>(DetailIconFrameResourcePath);
+
+            return _detailIconFrameSprite;
+        }
     }
 
     private RectTransform CreateEmptyRect(string name, RectTransform parent)

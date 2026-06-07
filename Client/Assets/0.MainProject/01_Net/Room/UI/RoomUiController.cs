@@ -233,7 +233,14 @@ namespace NetClient.Room.UI
             if (inputMapIds != null)
             {
                 inputMapIds.ClearOptions();
-                inputMapIds.AddOptions(new List<string> { "Game", "Game_01", "Game_Forest_01", "Game_Forest_Tutorial" });
+                inputMapIds.AddOptions(new List<string>
+                {
+                    "Game_Forest_First_Step",
+                    "Game_Forest_Tutorial",
+                    "Game_Forest_01",
+                    "Game_01",
+                    "Game"
+                });
             }
         }
 

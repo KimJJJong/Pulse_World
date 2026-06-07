@@ -37,6 +37,8 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
 
     private void Awake()
     {
+        ResolveCameraDirector();
+
         if (IsMapOnlyMode)
         {
             SetHomeButtonsActive(false);
@@ -129,6 +131,14 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         UpdateCameraPresentation(_currentPage);
     }
 
+    public void SetCameraDirector(HomeSceneCameraDirector cameraDirector)
+    {
+        if (cameraDirector == null)
+            return;
+
+        _cameraDirector = cameraDirector;
+    }
+
     private void Show(HomePage page)
     {
         if (IsMapOnlyMode && page != HomePage.Map)
@@ -147,6 +157,7 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
 
     private void UpdateCameraPresentation(HomePage page)
     {
+        ResolveCameraDirector();
         if (_cameraDirector == null)
             return;
 
@@ -160,6 +171,33 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         }
 
         _cameraDirector.SetAppearancePresentation(active);
+    }
+
+    private void ResolveCameraDirector()
+    {
+        if (_cameraDirector != null)
+            return;
+
+        _cameraDirector = GetComponent<HomeSceneCameraDirector>();
+        if (_cameraDirector != null)
+            return;
+
+        _cameraDirector = GetComponentInParent<HomeSceneCameraDirector>(true);
+        if (_cameraDirector != null)
+            return;
+
+        var directors = Resources.FindObjectsOfTypeAll<HomeSceneCameraDirector>();
+        foreach (var director in directors)
+        {
+            if (director == null || !director.gameObject.scene.IsValid())
+                continue;
+
+            if (director.gameObject.scene == gameObject.scene)
+            {
+                _cameraDirector = director;
+                return;
+            }
+        }
     }
 
     private static void Bind(Button button, UnityEngine.Events.UnityAction action)

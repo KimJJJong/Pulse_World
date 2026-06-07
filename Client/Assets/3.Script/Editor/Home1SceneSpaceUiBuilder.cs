@@ -25,12 +25,16 @@ public static class Home1SceneSpaceUiBuilder
     private const string NanumGothicFontFallbackPath = "Assets/TextMesh Pro/Resources/NanumGothic SDF.asset";
     private const string TownPassTicket = "Town Pass";
     private const string MissingMapTicket = "없음";
+    private const string DetailIconFrameResourcePath = "UI/UI_Home_Equipment_Detail/UI_equipment_icon_frame_detail";
+    private const string SlotIconFrameResourcePath = "UI/UI_Home_Equipment_Detail/UI_equipment_icon_frame_slot";
+    private const string TownInventoryPrefabPath = "Assets/0.MainProject/Prefabs/UI/Town/PF_TownInventory_UI.prefab";
 
     private static readonly Vector2 LayoutSize = new(1280f, 720f);
     private static readonly Color ParchmentText = new(0.10f, 0.22f, 0.20f, 1f);
     private static readonly Color ParchmentMutedText = new(0.32f, 0.26f, 0.18f, 1f);
     private static readonly Color GoldText = new(0.94f, 0.72f, 0.20f, 1f);
     private static readonly Color ButtonLightText = new(0.96f, 0.92f, 0.82f, 1f);
+    private static readonly Color EquipmentFrameBackground = new(0.70f, 0.53f, 0.32f, 0.76f);
     private static Sprite _defaultUiSprite;
     private static TMP_FontAsset _nanumGothicFont;
 
@@ -693,8 +697,8 @@ public static class Home1SceneSpaceUiBuilder
         Stretch(chrome);
         CreateTexture(chrome, "OwnedItemsFrame", "UI_Home_Equipment_Detail/UI_Panle_equipment_list.png", new Rect(12f, 42f, 386f, 640f));
         CreateTexture(chrome, "DetailInfoFrame", "UI_Home_Equipment_Detail/UI_Panel_equipment_detail.png", new Rect(895f, 78f, 356f, 568f));
-        CreateTexture(chrome, "CategoryButtonA", "UI_Home_Equipment_Detail/UI_Button_Category.png", new Rect(38f, 650f, 150f, 46f));
-        CreateTexture(chrome, "CategoryButtonB", "UI_Home_Equipment_Detail/UI_Button_Category.png", new Rect(202f, 650f, 150f, 46f));
+        CreateTexture(chrome, "CategoryButtonA", "UI_Home_Equipment_Detail/UI_Button_Category.png", new Rect(38f, 626f, 150f, 40f));
+        CreateTexture(chrome, "CategoryButtonB", "UI_Home_Equipment_Detail/UI_Button_Category.png", new Rect(202f, 626f, 150f, 40f));
         CreateTexture(chrome, "SwitchButtonFrame", "UI_Home_Equipment_Detail/UI_Button_equipment_switch.png", new Rect(900f, 646f, 168f, 56f));
         CreateTexture(chrome, "EnhanceButtonFrame", "UI_Home_Equipment_Detail/UI_Button_Equipment_enhance.png", new Rect(1084f, 646f, 168f, 56f));
         var close = CreateTransparentButton(root, "CloseBtn", new Rect(1120f, 14f, 148f, 48f));
@@ -722,10 +726,96 @@ public static class Home1SceneSpaceUiBuilder
         if (!isTownOverlay)
             CreateSolid(root, "SceneDim", new Color(0f, 0f, 0f, 0.24f));
 
+        var townInventory = CreateHomeTownInventory(root);
+        if (townInventory == null)
+            BuildInventoryFallback(root);
+
         var back = CreateBackButton(root, "Button_Back_Inventory");
         CreateText(root, "Title", "INVENTORY", new Rect(148f, 36f, 260f, 34f), 28f, TextAlignmentOptions.MidlineLeft, GoldText);
-        CreateTexture(root, "InventoryPanel", "UI_Home_Interface/UI_Panel.png", new Rect(116f, 116f, 1048f, 516f));
+        back.transform.SetAsLastSibling();
 
+        return back;
+    }
+
+    private static GameObject CreateHomeTownInventory(RectTransform root)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(TownInventoryPrefabPath);
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[Home1SceneSpaceUiBuilder] Town inventory prefab not found: {TownInventoryPrefabPath}");
+            return null;
+        }
+
+        var instance = PrefabUtility.InstantiatePrefab(prefab, root) as GameObject;
+        if (instance == null)
+            instance = UnityEngine.Object.Instantiate(prefab, root);
+
+        instance.name = "TownInventory_UI";
+
+        var rect = instance.GetComponent<RectTransform>();
+        if (rect == null)
+            rect = instance.AddComponent<RectTransform>();
+        Stretch(rect);
+        rect.localScale = Vector3.one;
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = Vector2.zero;
+
+        ConfigureHomeTownInventoryInstance(instance);
+        ApplyNanumGothicFontToChildren(rect);
+        return instance;
+    }
+
+    private static void ConfigureHomeTownInventoryInstance(GameObject instance)
+    {
+        if (instance == null)
+            return;
+
+        var raycaster = instance.GetComponent<GraphicRaycaster>();
+        if (raycaster != null)
+            UnityEngine.Object.DestroyImmediate(raycaster);
+
+        var scaler = instance.GetComponent<CanvasScaler>();
+        if (scaler != null)
+            UnityEngine.Object.DestroyImmediate(scaler);
+
+        var canvas = instance.GetComponent<Canvas>();
+        if (canvas != null)
+            UnityEngine.Object.DestroyImmediate(canvas);
+
+        var panel = instance.transform.Find("Panel") as RectTransform;
+        if (panel != null)
+        {
+            panel.anchorMin = new Vector2(0.10f, 0.10f);
+            panel.anchorMax = new Vector2(0.90f, 0.86f);
+            panel.offsetMin = Vector2.zero;
+            panel.offsetMax = Vector2.zero;
+            panel.localScale = Vector3.one;
+            panel.gameObject.SetActive(true);
+        }
+
+        var inventory = instance.GetComponent<TownInventoryUI>();
+        if (inventory != null)
+        {
+            var so = new SerializedObject(inventory);
+            var hotkey = so.FindProperty("_handleHotkey");
+            if (hotkey != null)
+                hotkey.boolValue = false;
+
+            var openOnEnable = so.FindProperty("_openOnEnable");
+            if (openOnEnable != null)
+                openOnEnable.boolValue = true;
+
+            var logRefresh = so.FindProperty("_logRefresh");
+            if (logRefresh != null)
+                logRefresh.boolValue = false;
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+
+    private static void BuildInventoryFallback(RectTransform root)
+    {
+        CreateTexture(root, "InventoryPanel", "UI_Home_Interface/UI_Panel.png", new Rect(116f, 116f, 1048f, 516f));
         var scroll = CreateScrollView(root, "InventoryScroll", new Rect(170f, 170f, 940f, 390f), new Vector2(900f, 820f));
         for (var i = 0; i < 24; i++)
         {
@@ -739,8 +829,6 @@ public static class Home1SceneSpaceUiBuilder
             CreateText(rowRect, "Name", $"ITEM SLOT {i + 1:00}", new Rect(18f, 12f, 220f, 22f), 15f, TextAlignmentOptions.MidlineLeft, ParchmentText);
             CreateText(rowRect, "State", "EMPTY", new Rect(760f, 12f, 110f, 22f), 13f, TextAlignmentOptions.MidlineRight, ParchmentMutedText);
         }
-
-        return back;
     }
 
     private static Button BuildAppearanceScreen(RectTransform root, bool isTownOverlay = false)
@@ -1381,9 +1469,18 @@ public static class Home1SceneSpaceUiBuilder
         var button = CreateButtonTexture(parent, name, "UI_Home_Equipment/UI_Panel_EquipmentSlot.png", rect);
         SetRectFromTopLeft(button.GetComponent<RectTransform>(), rect, sourceSize);
         var slotSize = new Vector2(rect.width, rect.height);
-        CreateTexture(button.transform, "SlotIcon", iconPath, new Rect(26f, 28f, 76f, 76f), slotSize);
-        CreateText(button.transform as RectTransform, "SlotLabel", label, new Rect(118f, 40f, rect.width - 144f, 26f), 20f, TextAlignmentOptions.MidlineLeft, ParchmentText, slotSize);
-        CreateText(button.transform as RectTransform, "SlotHint", "Tap to view", new Rect(120f, 76f, rect.width - 146f, 20f), 13f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, slotSize);
+        var slotIconBackground = CreateFlatSolid(button.transform as RectTransform, "SlotIconBackground", EquipmentFrameBackground);
+        SetRectFromTopLeft(slotIconBackground.rectTransform, new Rect(31f, 33f, 64f, 64f), slotSize);
+        var slotIcon = CreateTexture(button.transform, "SlotIcon", iconPath, new Rect(40f, 42f, 46f, 46f), slotSize);
+        var slotIconFrame = CreateImage(button.transform, "SlotIconFrame", new Rect(26f, 28f, 74f, 74f), slotSize);
+        slotIconFrame.sprite = Resources.Load<Sprite>(DetailIconFrameResourcePath);
+        slotIconFrame.preserveAspect = false;
+        slotIconFrame.raycastTarget = false;
+        slotIconBackground.transform.SetAsLastSibling();
+        slotIcon.transform.SetAsLastSibling();
+        slotIconFrame.transform.SetAsLastSibling();
+        CreateText(button.transform as RectTransform, "SlotLabel", label, new Rect(136f, 38f, rect.width - 158f, 28f), 20f, TextAlignmentOptions.MidlineLeft, ParchmentText, slotSize);
+        CreateText(button.transform as RectTransform, "SlotHint", "Tap to view", new Rect(138f, 74f, rect.width - 160f, 20f), 13f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText, slotSize);
 
         var empty = CreateRect(button.transform, "Empty");
         Stretch(empty);
@@ -1392,12 +1489,26 @@ public static class Home1SceneSpaceUiBuilder
         var filled = CreateRect(button.transform, "Filled");
         Stretch(filled);
         filled.gameObject.SetActive(false);
-        var icon = CreateImage(filled, "Icon", new Rect(28f, 26f, 76f, 76f), slotSize);
+        var iconBackground = CreateFlatSolid(filled, "IconBackground", EquipmentFrameBackground);
+        SetRectFromTopLeft(iconBackground.rectTransform, new Rect(31f, 35f, 64f, 64f), slotSize);
+        var icon = CreateImage(filled, "Icon", new Rect(34f, 38f, 58f, 58f), slotSize);
+        var iconFrame = CreateImage(filled, "IconFrame", new Rect(24f, 28f, 78f, 78f), slotSize);
+        iconFrame.sprite = Resources.Load<Sprite>(SlotIconFrameResourcePath);
+        iconFrame.preserveAspect = false;
+        iconFrame.raycastTarget = false;
+        iconBackground.transform.SetAsLastSibling();
+        icon.transform.SetAsLastSibling();
+        iconFrame.transform.SetAsLastSibling();
 
         var slotUi = button.gameObject.AddComponent<HomeEquipSlotUI>();
         var so = new SerializedObject(slotUi);
         so.FindProperty("_targetSlot").enumValueIndex = (int)slot;
         so.FindProperty("_icon").objectReferenceValue = icon;
+        so.FindProperty("_iconBackground").objectReferenceValue = iconBackground;
+        so.FindProperty("_iconFrame").objectReferenceValue = iconFrame;
+        so.FindProperty("_slotDecorationIcon").objectReferenceValue = slotIcon;
+        so.FindProperty("_slotDecorationBackground").objectReferenceValue = slotIconBackground;
+        so.FindProperty("_slotDecorationFrame").objectReferenceValue = slotIconFrame;
         so.FindProperty("_btn").objectReferenceValue = button;
         so.FindProperty("_emptyVisual").objectReferenceValue = empty.gameObject;
         so.FindProperty("_filledVisual").objectReferenceValue = filled.gameObject;
@@ -1559,11 +1670,19 @@ public static class Home1SceneSpaceUiBuilder
         layout.minHeight = 85f;
         layout.minWidth = 84f;
 
-        var icon = CreateImage(item.transform, "Icon", new Rect(13f, 13f, 58f, 58f), new Vector2(84f, 85f));
+        var icon = CreateImage(item.transform, "Icon", new Rect(15f, 15f, 54f, 54f), new Vector2(84f, 85f));
         var nameText = CreateText(itemRect, "NameText", "Item", new Rect(4f, 66f, 76f, 16f), 10f, TextAlignmentOptions.Center, ParchmentText, new Vector2(84f, 85f));
         var levelText = CreateText(itemRect, "LevelText", "+0", new Rect(6f, 68f, 72f, 14f), 10f, TextAlignmentOptions.Center, ParchmentMutedText, new Vector2(84f, 85f));
-        var mark = CreateText(itemRect, "EquippedMark", "E", new Rect(58f, 5f, 20f, 15f), 10f, TextAlignmentOptions.Center, ParchmentText, new Vector2(84f, 85f));
-        mark.gameObject.SetActive(false);
+        var markImage = CreateImage(item.transform, "EquippedMark", new Rect(54f, 5f, 24f, 18f), new Vector2(84f, 85f));
+        markImage.preserveAspect = false;
+        markImage.type = Image.Type.Sliced;
+        markImage.color = new Color(0.10f, 0.36f, 0.34f, 0.96f);
+        var mark = markImage.gameObject;
+        var markText = CreateText(markImage.rectTransform, "Label", "E", new Rect(0f, 0f, 24f, 18f), 11f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(24f, 18f));
+        markText.fontStyle = FontStyles.Bold;
+        mark.SetActive(false);
+        icon.transform.SetAsLastSibling();
+        mark.transform.SetAsLastSibling();
 
         var itemUi = item.AddComponent<HomeEquipPopupItemUI>();
         var so = new SerializedObject(itemUi);
@@ -1571,7 +1690,7 @@ public static class Home1SceneSpaceUiBuilder
         so.FindProperty("_nameText").objectReferenceValue = nameText;
         so.FindProperty("_levelText").objectReferenceValue = levelText;
         so.FindProperty("_btn").objectReferenceValue = item.GetComponent<Button>();
-        so.FindProperty("_equippedMark").objectReferenceValue = mark.gameObject;
+        so.FindProperty("_equippedMark").objectReferenceValue = mark;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         AddButtonFeedback(item.GetComponent<Button>(), itemRect, background);

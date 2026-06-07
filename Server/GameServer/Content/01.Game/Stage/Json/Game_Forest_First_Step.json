@@ -1,0 +1,14 @@
+{
+    "MapId": "Game_Forest_First_Step",
+    "Description": "",
+    "RhythmSettings": {
+        "SongKey": "Game_NeoFunk_01",
+        "Bpm": 110,
+        "BaseBeatDivision": 1,
+        "ActionWindowMs": 100,
+        "StartDelayMs": 2000
+    },
+    "InitialSpawns": [],
+    "InitialObjects": [],
+    "Events": []
+}

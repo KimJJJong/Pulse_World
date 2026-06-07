@@ -140,9 +140,74 @@ namespace RhythmRPG.Editor.StageBuilder
 
         private void DrawRhythmSettings(SerializedObject so)
         {
-            DrawSectionHeader("Rhythm Settings", "Song timing and action-window tuning.", RhythmAccent);
+            DrawSectionHeader("Rhythm Settings", "Audio timing is sourced from Rhythm Audio Data.", RhythmAccent);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.PropertyField(so.FindProperty("Rhythm"));
+
+            SerializedProperty mapIdProp = so.FindProperty("MapId");
+            SerializedProperty rhythmProp = so.FindProperty("Rhythm");
+            SerializedProperty songKeyProp = rhythmProp.FindPropertyRelative("SongKey");
+            SerializedProperty bpmProp = rhythmProp.FindPropertyRelative("Bpm");
+            SerializedProperty baseBeatDivisionProp = rhythmProp.FindPropertyRelative("BaseBeatDivision");
+            SerializedProperty actionWindowMsProp = rhythmProp.FindPropertyRelative("ActionWindowMs");
+            SerializedProperty startDelayMsProp = rhythmProp.FindPropertyRelative("StartDelayMs");
+
+            EditorGUILayout.PropertyField(songKeyProp, new GUIContent("Rhythm Audio StageId"));
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Use MapId", GUILayout.Width(92)))
+            {
+                songKeyProp.stringValue = mapIdProp.stringValue;
+            }
+
+            if (GUILayout.Button("Open Audio Editor", GUILayout.Width(132)))
+            {
+                EditorApplication.ExecuteMenuItem("RhythmRPG/Editors/Audio/Rhythm Audio Data Editor");
+            }
+            EditorGUILayout.EndHorizontal();
+
+            string rhythmKey = StageExporter.ResolveRhythmKey(mapIdProp.stringValue, songKeyProp.stringValue);
+            bool hasRhythmAudio = StageExporter.TryLoadRhythmAudioData(rhythmKey, out var rhythmAudio);
+
+            EditorGUILayout.Space(2f);
+            using (new EditorGUI.DisabledScope(true))
+            {
+                EditorGUILayout.TextField("Resolved StageId", rhythmKey);
+                if (hasRhythmAudio)
+                {
+                    EditorGUILayout.IntField("BPM (Audio)", rhythmAudio.Bpm);
+                    EditorGUILayout.TextField("Time Signature", $"{rhythmAudio.TimeSignatureNum}/{rhythmAudio.TimeSignatureDenom}");
+                    EditorGUILayout.IntField("Ticks Per Beat", rhythmAudio.TicksPerBeat);
+                    EditorGUILayout.IntField("Blocks", rhythmAudio.BlockCount);
+                }
+                else
+                {
+                    EditorGUILayout.IntField("Fallback BPM", bpmProp.intValue);
+                    EditorGUILayout.IntField("Fallback Beat Division", baseBeatDivisionProp.intValue);
+                }
+            }
+
+            if (hasRhythmAudio)
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.HelpBox("BPM and score timing will be exported from the linked Rhythm Audio Data.", MessageType.Info);
+                if (GUILayout.Button("Reveal JSON", GUILayout.Width(92), GUILayout.Height(38)))
+                {
+                    EditorUtility.RevealInFinder(rhythmAudio.Path);
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(
+                    $"Rhythm Audio Data was not found for '{rhythmKey}'. Create/export it in RhythmRPG Audio Editor. " +
+                    "Until then, export uses the legacy hidden BPM fallback.",
+                    MessageType.Warning);
+            }
+
+            EditorGUILayout.Space(4f);
+            EditorGUILayout.PropertyField(actionWindowMsProp);
+            EditorGUILayout.PropertyField(startDelayMsProp);
+
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
         }

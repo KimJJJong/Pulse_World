@@ -41,7 +41,9 @@ namespace RhythmRPG.Editor.StageBuilder
     public class RhythmSettingsSO
     {
         public string SongKey = "DefaultSong";
+        [HideInInspector]
         [Range(60, 240)] public int Bpm = 120;
+        [HideInInspector]
         public int BaseBeatDivision = 1;
         public int ActionWindowMs = 100;
         public int StartDelayMs = 2000;

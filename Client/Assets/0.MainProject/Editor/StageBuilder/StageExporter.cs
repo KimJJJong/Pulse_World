@@ -1,7 +1,9 @@
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using System;
 using System.Collections.Generic;
+using Shared.Data;
 
 namespace RhythmRPG.Editor.StageBuilder
 {
@@ -10,6 +12,8 @@ namespace RhythmRPG.Editor.StageBuilder
         private const string ClientStageJsonFolder = "Resources/Data/Stage";
         private const string ServerStageJsonRelativePath = "../Server/GameServer/Content/01.Game/Stage/Json";
         private const string ServerMapJsonRelativePath = "../Server/GameServer/Content/01.Game/Map/Json";
+        private const string ServerSoundJsonRelativePath = "../Server/GameServer/Content/01.Game/Sound/Json";
+        internal const string DefaultSongKey = "DefaultSong";
 
         public static void Export(StageDataSO stage)
         {
@@ -19,16 +23,30 @@ namespace RhythmRPG.Editor.StageBuilder
                 return;
             }
 
+            var rhythmSettings = stage.Rhythm ?? new RhythmSettingsSO();
+            string rhythmKey = ResolveRhythmKey(stage.MapId, rhythmSettings.SongKey);
+            int exportedBpm = rhythmSettings.Bpm;
+            if (TryLoadRhythmAudioData(rhythmKey, out var rhythmAudio))
+            {
+                exportedBpm = rhythmAudio.Bpm;
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"<b>[StageExporter]</b> Rhythm Audio Data not found for '{rhythmKey}'. " +
+                    $"Using legacy StageData BPM fallback ({exportedBpm}).");
+            }
+
             var dto = new StageScenarioDTO();
             dto.MapId = stage.MapId;
             dto.Description = stage.Description;
             dto.RhythmSettings = new RhythmSettingsDTO 
             {
-                SongKey = stage.Rhythm.SongKey,
-                Bpm = stage.Rhythm.Bpm,
-                BaseBeatDivision = stage.Rhythm.BaseBeatDivision,
-                ActionWindowMs = stage.Rhythm.ActionWindowMs,
-                StartDelayMs = stage.Rhythm.StartDelayMs
+                SongKey = rhythmKey,
+                Bpm = exportedBpm,
+                BaseBeatDivision = Mathf.Max(1, rhythmSettings.BaseBeatDivision),
+                ActionWindowMs = rhythmSettings.ActionWindowMs,
+                StartDelayMs = rhythmSettings.StartDelayMs
             };
             
             // 1. Build Registry Map
@@ -215,6 +233,96 @@ namespace RhythmRPG.Editor.StageBuilder
             Debug.LogWarning(
                 $"<b>[StageExporter]</b> Map JSON is missing for '{mapId}': {serverMapPath}. " +
                 "Export a MapAsset whose asset name matches this MapId.");
+        }
+
+        internal static string ResolveRhythmKey(string mapId, string songKey)
+        {
+            if (!string.IsNullOrWhiteSpace(songKey) &&
+                !string.Equals(songKey, DefaultSongKey, StringComparison.OrdinalIgnoreCase))
+            {
+                return songKey.Trim();
+            }
+
+            return string.IsNullOrWhiteSpace(mapId) ? DefaultSongKey : mapId.Trim();
+        }
+
+        internal static string GetServerSoundJsonDirectory()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            return Path.GetFullPath(Path.Combine(projectRoot, ServerSoundJsonRelativePath));
+        }
+
+        internal static bool TryLoadRhythmAudioData(string rhythmKey, out RhythmAudioSummary summary)
+        {
+            summary = null;
+            if (string.IsNullOrWhiteSpace(rhythmKey))
+                return false;
+
+            string dir = GetServerSoundJsonDirectory();
+            if (!Directory.Exists(dir))
+                return false;
+
+            string trimmedKey = rhythmKey.Trim();
+            string rhythmPath = Path.Combine(dir, $"{trimmedKey}_Rhythm.json");
+            if (TryLoadRhythmAudioDataFromPath(rhythmPath, trimmedKey, out summary))
+                return true;
+
+            string plainPath = Path.Combine(dir, $"{trimmedKey}.json");
+            if (TryLoadRhythmAudioDataFromPath(plainPath, trimmedKey, out summary))
+                return true;
+
+            foreach (string path in Directory.GetFiles(dir, "*.json", SearchOption.TopDirectoryOnly))
+            {
+                if (TryLoadRhythmAudioDataFromPath(path, trimmedKey, out summary))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryLoadRhythmAudioDataFromPath(string path, string rhythmKey, out RhythmAudioSummary summary)
+        {
+            summary = null;
+            if (!File.Exists(path))
+                return false;
+
+            try
+            {
+                var data = JsonUtility.FromJson<RhythmStageData>(File.ReadAllText(path));
+                if (data == null || string.IsNullOrWhiteSpace(data.StageId))
+                    return false;
+
+                if (!string.Equals(data.StageId, rhythmKey, StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                summary = new RhythmAudioSummary
+                {
+                    Path = path,
+                    StageId = data.StageId,
+                    Bpm = data.Bpm,
+                    TimeSignatureNum = data.TimeSignatureNum,
+                    TimeSignatureDenom = data.TimeSignatureDenom,
+                    TicksPerBeat = data.TicksPerBeat,
+                    BlockCount = data.Blocks?.Count ?? 0
+                };
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"<b>[StageExporter]</b> Failed to read Rhythm Audio Data '{path}': {ex.Message}");
+                return false;
+            }
+        }
+
+        internal sealed class RhythmAudioSummary
+        {
+            public string Path;
+            public string StageId;
+            public int Bpm;
+            public int TimeSignatureNum;
+            public int TimeSignatureDenom;
+            public int TicksPerBeat;
+            public int BlockCount;
         }
         
         // --- DTO Definition (Mirrors Server) ---

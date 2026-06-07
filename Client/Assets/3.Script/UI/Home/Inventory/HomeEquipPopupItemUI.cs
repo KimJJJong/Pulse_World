@@ -12,11 +12,13 @@ public class HomeEquipPopupItemUI : MonoBehaviour
     private static readonly Color ListCardSelected = new Color(0.07f, 0.42f, 0.40f, 0.96f);
     private static readonly Color ListText = new Color(0.10f, 0.22f, 0.20f, 1f);
     private static readonly Color ListMutedText = new Color(0.32f, 0.26f, 0.18f, 1f);
-    private static readonly Color EquippedMarkText = new Color(1f, 0.88f, 0.36f, 1f);
+    private static readonly Color EquippedMarkText = new Color(1f, 0.96f, 0.78f, 1f);
+    private static readonly Color EquippedMarkBack = new Color(0.10f, 0.36f, 0.34f, 0.96f);
     private static Sprite _defaultCardSprite;
     private static Sprite _selectedCardSprite;
 
     [SerializeField] private Image _icon;
+    [SerializeField] private Image _iconFrame;
     [SerializeField] private TextMeshProUGUI _nameText;
     [SerializeField] private TextMeshProUGUI _levelText; // +1, +2
     [SerializeField] private Button _btn;
@@ -79,13 +81,15 @@ public class HomeEquipPopupItemUI : MonoBehaviour
                 var iconRect = _icon.rectTransform;
                 if (iconRect != null)
                 {
-                    iconRect.anchorMin = gridCard ? new Vector2(0.5f, 1f) : new Vector2(0f, 0.5f);
-                    iconRect.anchorMax = gridCard ? new Vector2(0.5f, 1f) : new Vector2(0f, 0.5f);
-                    iconRect.pivot = gridCard ? new Vector2(0.5f, 1f) : new Vector2(0f, 0.5f);
-                    iconRect.sizeDelta = gridCard ? new Vector2(58f, 58f) : new Vector2(48f, 48f);
-                    iconRect.anchoredPosition = gridCard ? new Vector2(0f, -13f) : new Vector2(10f, 0f);
+                    iconRect.anchorMin = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
+                    iconRect.anchorMax = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
+                    iconRect.pivot = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
+                    iconRect.sizeDelta = gridCard ? new Vector2(54f, 54f) : new Vector2(48f, 48f);
+                    iconRect.anchoredPosition = gridCard ? new Vector2(0f, 0f) : new Vector2(10f, 0f);
                 }
             }
+
+            ConfigureIconFrame(gridCard, _icon != null && _icon.enabled);
         }
         else
         {
@@ -97,6 +101,8 @@ public class HomeEquipPopupItemUI : MonoBehaviour
                 _icon.sprite = null;
                 _icon.enabled = false;
             }
+
+            ConfigureIconFrame(UseResourceCardLayout(), false);
         }
 
         if (_levelText != null)
@@ -168,6 +174,8 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         if (_icon == null)
             _icon = FindImage("Icon", "ItemIcon", "EquipmentIcon");
 
+        EnsureIconFrame(gridCard);
+
         if (_nameText == null)
             _nameText = FindTMP("NameText", "ItemName", "Title");
 
@@ -231,12 +239,14 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         if (gridCard && _icon != null)
         {
             var iconRect = _icon.rectTransform;
-            iconRect.anchorMin = new Vector2(0.5f, 1f);
-            iconRect.anchorMax = new Vector2(0.5f, 1f);
-            iconRect.pivot = new Vector2(0.5f, 1f);
-            iconRect.sizeDelta = new Vector2(58f, 58f);
-            iconRect.anchoredPosition = new Vector2(0f, -13f);
+            iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+            iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+            iconRect.pivot = new Vector2(0.5f, 0.5f);
+            iconRect.sizeDelta = new Vector2(54f, 54f);
+            iconRect.anchoredPosition = new Vector2(0f, 0f);
         }
+
+        ConfigureIconFrame(gridCard, _icon != null && _icon.enabled);
     }
 
     private bool UseResourceCardLayout()
@@ -262,8 +272,8 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             markRect.anchorMax = new Vector2(1f, 1f);
             markRect.pivot = new Vector2(1f, 1f);
             markRect.localScale = Vector3.one;
-            markRect.anchoredPosition = gridCard ? new Vector2(-6f, -5f) : new Vector2(-10f, -25f);
-            markRect.sizeDelta = gridCard ? new Vector2(20f, 15f) : new Vector2(26f, 18f);
+            markRect.anchoredPosition = gridCard ? new Vector2(-6f, -6f) : new Vector2(-10f, -25f);
+            markRect.sizeDelta = gridCard ? new Vector2(24f, 18f) : new Vector2(26f, 18f);
         }
 
         var markImage = _equippedMark.GetComponent<Image>();
@@ -272,9 +282,10 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             markImage.raycastTarget = false;
             markImage.preserveAspect = false;
             if (markImage.sprite == null)
-                markImage.enabled = false;
-            else
-                markImage.color = Color.white;
+                markImage.sprite = DefaultCardSprite;
+            markImage.type = Image.Type.Sliced;
+            markImage.color = EquippedMarkBack;
+            markImage.enabled = true;
         }
 
         var markLabel = _equippedMark.GetComponent<TextMeshProUGUI>()
@@ -285,12 +296,15 @@ public class HomeEquipPopupItemUI : MonoBehaviour
 
         markLabel.text = "E";
         ApplyKoreanFont(markLabel);
-        markLabel.fontSize = gridCard ? 10f : 11f;
+        markLabel.fontStyle = FontStyles.Bold;
+        markLabel.fontSize = gridCard ? 11f : 11f;
         markLabel.enableAutoSizing = true;
         markLabel.fontSizeMin = 8f;
-        markLabel.fontSizeMax = gridCard ? 10f : 11f;
+        markLabel.fontSizeMax = gridCard ? 11f : 11f;
         markLabel.alignment = TextAlignmentOptions.Center;
         markLabel.color = EquippedMarkText;
+        markLabel.outlineColor = new Color(0.05f, 0.06f, 0.05f, 0.85f);
+        markLabel.outlineWidth = 0.12f;
         markLabel.raycastTarget = false;
 
         if (markLabel.gameObject != _equippedMark)
@@ -302,6 +316,44 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             labelRect.offsetMax = Vector2.zero;
             labelRect.localScale = Vector3.one;
         }
+    }
+
+    private void EnsureIconFrame(bool gridCard)
+    {
+        if (!gridCard)
+            return;
+
+        if (_iconFrame == null)
+            _iconFrame = FindImageByExactName("IconFrame", "EquipmentIconFrame");
+
+        var parent = _icon != null && _icon.transform.parent != null
+            ? _icon.transform.parent
+            : transform;
+
+        if (_iconFrame == null)
+        {
+            var frameGo = new GameObject("IconFrame", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            frameGo.transform.SetParent(parent, false);
+            _iconFrame = frameGo.GetComponent<Image>();
+        }
+    }
+
+    private void ConfigureIconFrame(bool gridCard, bool visible)
+    {
+        if (!gridCard)
+        {
+            if (_iconFrame != null)
+                _iconFrame.gameObject.SetActive(false);
+            return;
+        }
+
+        if (_iconFrame != null)
+            _iconFrame.gameObject.SetActive(false);
+
+        if (_icon != null)
+            _icon.transform.SetAsLastSibling();
+        if (_equippedMark != null)
+            _equippedMark.transform.SetAsLastSibling();
     }
 
     private static Sprite DefaultCardSprite
@@ -394,6 +446,21 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         }
 
         return smallest;
+    }
+
+    private Image FindImageByExactName(params string[] names)
+    {
+        var images = GetComponentsInChildren<Image>(true);
+        foreach (var targetName in names)
+        {
+            foreach (var img in images)
+            {
+                if (img != null && img.gameObject.name == targetName)
+                    return img;
+            }
+        }
+
+        return null;
     }
 
     private TextMeshProUGUI FindTMP(params string[] names)

@@ -19,6 +19,8 @@ public static class Home1OverlayUiBuilder
     private const string HomeAtlasPath = "Assets/Resources/UI/UI_Home_Interface/UI_Home_Interface.png";
     private const string EquipmentAtlasPath = "Assets/Resources/UI/UI_Home_Equipment/UI_Home_Equipment_Set.png";
     private const string DetailAtlasPath = "Assets/Resources/UI/UI_Home_Equipment_Detail/UI_Home_Equipment_Detail.png";
+    private const string GridIconFramePath = "Assets/Resources/UI/UI_Home_Equipment_Detail/UI_equipment_icon_frame_grid.png";
+    private const string SlotIconFramePath = "Assets/Resources/UI/UI_Home_Equipment_Detail/UI_equipment_icon_frame_slot.png";
 
     private static readonly Vector2 HomeSize = new(1280f, 720f);
     private static readonly Vector2 EquipmentSize = new(1672f, 941f);
@@ -532,15 +534,16 @@ public static class Home1OverlayUiBuilder
         Stretch(filledVisual);
         filledVisual.gameObject.SetActive(false);
 
-        var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        iconGo.transform.SetParent(filledVisual, false);
-        var iconRectTransform = iconGo.GetComponent<RectTransform>();
-        SetRectFromTopLeft(iconRectTransform, new Rect(28f, 28f, 110f, 110f), new Vector2(targetRect.width, targetRect.height));
-
-        var icon = iconGo.GetComponent<Image>();
+        var icon = CreateImage(filledVisual, "Icon", new Rect(32f, 32f, 96f, 96f), new Vector2(targetRect.width, targetRect.height));
         icon.color = Color.white;
         icon.preserveAspect = true;
         icon.raycastTarget = false;
+        var iconFrame = CreateImage(filledVisual, "IconFrame", new Rect(22f, 22f, 116f, 116f), new Vector2(targetRect.width, targetRect.height));
+        iconFrame.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(SlotIconFramePath);
+        iconFrame.preserveAspect = false;
+        iconFrame.raycastTarget = false;
+        icon.transform.SetAsLastSibling();
+        iconFrame.transform.SetAsLastSibling();
 
         CreateTmpText(slotGo.transform, "SlotLabel", label, new Rect(150f, 38f, targetRect.width - 180f, 24f), new Vector2(targetRect.width, targetRect.height), 21f, TextAlignmentOptions.MidlineLeft).color = ParchmentText;
         CreateTmpText(slotGo.transform, "SlotHint", "Tap to view", new Rect(150f, 72f, targetRect.width - 180f, 20f), new Vector2(targetRect.width, targetRect.height), 13f, TextAlignmentOptions.MidlineLeft).color = ParchmentMutedText;
@@ -549,6 +552,7 @@ public static class Home1OverlayUiBuilder
         var so = new SerializedObject(slotUi);
         so.FindProperty("_targetSlot").enumValueIndex = (int)slot;
         so.FindProperty("_icon").objectReferenceValue = icon;
+        so.FindProperty("_iconFrame").objectReferenceValue = iconFrame;
         so.FindProperty("_btn").objectReferenceValue = slotGo.GetComponent<Button>();
         so.FindProperty("_emptyVisual").objectReferenceValue = emptyVisual.gameObject;
         so.FindProperty("_filledVisual").objectReferenceValue = filledVisual.gameObject;
@@ -578,17 +582,25 @@ public static class Home1OverlayUiBuilder
         layout.minHeight = 85f;
         layout.minWidth = 84f;
 
-        var icon = CreateImage(item.transform, "Icon", new Rect(13f, 13f, 58f, 58f), new Vector2(84f, 85f));
+        var icon = CreateImage(item.transform, "Icon", new Rect(16f, 13f, 52f, 52f), new Vector2(84f, 85f));
+        var iconFrame = CreateImage(item.transform, "IconFrame", new Rect(9f, 6f, 66f, 66f), new Vector2(84f, 85f));
+        iconFrame.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(GridIconFramePath);
+        iconFrame.preserveAspect = false;
+        iconFrame.raycastTarget = false;
         var nameText = CreateTmpText(item.transform, "NameText", "Item", new Rect(4f, 66f, 76f, 16f), new Vector2(84f, 85f), 10f, TextAlignmentOptions.Center);
         nameText.color = ParchmentText;
         var levelText = CreateTmpText(item.transform, "LevelText", "+0", new Rect(6f, 68f, 72f, 14f), new Vector2(84f, 85f), 10f, TextAlignmentOptions.Center);
         levelText.color = ParchmentMutedText;
         var mark = CreateTmpText(item.transform, "EquippedMark", "E", new Rect(58f, 5f, 20f, 15f), new Vector2(84f, 85f), 10f, TextAlignmentOptions.Center);
         mark.gameObject.SetActive(false);
+        icon.transform.SetAsLastSibling();
+        iconFrame.transform.SetAsLastSibling();
+        mark.transform.SetAsLastSibling();
 
         var itemUi = item.AddComponent<HomeEquipPopupItemUI>();
         var so = new SerializedObject(itemUi);
         so.FindProperty("_icon").objectReferenceValue = icon;
+        so.FindProperty("_iconFrame").objectReferenceValue = iconFrame;
         so.FindProperty("_nameText").objectReferenceValue = nameText;
         so.FindProperty("_levelText").objectReferenceValue = levelText;
         so.FindProperty("_btn").objectReferenceValue = item.GetComponent<Button>();

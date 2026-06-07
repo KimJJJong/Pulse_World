@@ -57,13 +57,13 @@ MonoBehaviour:
     - rid: 8211689478396838121
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: event:/TestSmith
+        FmodEventPath:
         Volume: 1
         UseOwnerPerspective: 1
     - rid: 8211689540354048642
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: event:/TestSmith
+        FmodEventPath:
         Volume: 1
         UseOwnerPerspective: 1
     - rid: 8211689608741912775

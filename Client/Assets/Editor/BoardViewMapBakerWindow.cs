@@ -11,6 +11,7 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
     private AppearanceAutoTilePalette _appearancePalette;
     private bool _repositionEvenIfExists = true;
     private Material _tilePrefabBaseMaterial;
+    private const float BakedTileY = -2f;
     private static readonly Color WallAppearanceEditorTint = new Color(1.25f, 1.25f, 1.25f, 1f);
 
     [MenuItem("RhythmRPG/Editors/World/BoardView Map Baker")]
@@ -87,6 +88,15 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
     private void BakeOrUpdate()
     {
         UnityEditor.Undo.RegisterFullObjectHierarchyUndo(_boardView.gameObject, "Bake Tiles");
+        var tileRoot = ResolveTileRoot();
+        if (tileRoot == null)
+        {
+            Debug.LogError("[MapBaker] Missing tile root.");
+            return;
+        }
+
+        if (tileRoot != _boardView.transform)
+            UnityEditor.Undo.RegisterFullObjectHierarchyUndo(tileRoot.gameObject, "Bake Tiles");
 
         _mapAsset.EnsureSize();
         _mapAsset.RebuildAppearanceAutoTiles();
@@ -101,7 +111,7 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
         // 반복문에서 transform.Find("Tile_x_y")를 써도 되지만, 
         // 최적화를 위해 미리 딕셔너리에 넣어둠.
         var map = new System.Collections.Generic.Dictionary<(int x, int y), GameObject>();
-        foreach (Transform child in _boardView.transform)
+        foreach (Transform child in tileRoot)
         {
             if (ParseTileName(child.name, out int tx, out int ty))
             {
@@ -116,9 +126,9 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
             {
                 // 프리팹 인스턴스 생성
                 // (TileIndex 컴포넌트 추가 X)
-                go = (GameObject)PrefabUtility.InstantiatePrefab(ResolveTilePrefab(x, y), _boardView.transform);
+                go = (GameObject)PrefabUtility.InstantiatePrefab(ResolveTilePrefab(x, y), tileRoot);
                 go.name = $"Tile_{x}_{y}";
-                go.transform.position = _boardView.GridToWorldPublic(x, y) + new Vector3(0, -2, 0);
+                go.transform.position = GetBakedTilePosition(x, y);
 
                 ApplyColor(go, x, y);
             }
@@ -127,7 +137,7 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
                 // 있으면 재사용
                 if (_repositionEvenIfExists)
                 {
-                    go.transform.position = _boardView.GridToWorldPublic(x, y) + new Vector3(0, -2, 0);
+                    go.transform.position = GetBakedTilePosition(x, y);
                     ApplyColor(go, x, y);
                 }
             }
@@ -135,9 +145,28 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
 
         EditorUtility.SetDirty(_boardView.gameObject);
         EditorUtility.SetDirty(_boardView);
+        EditorUtility.SetDirty(tileRoot.gameObject);
         EditorUtility.SetDirty(_mapAsset);
         EditorSceneManager.MarkSceneDirty(_boardView.gameObject.scene);
         Debug.Log($"[MapBaker] Baked/Updated tiles: {width}x{height} from {_mapAsset.name} (Scriptless)");
+    }
+
+    private Transform ResolveTileRoot()
+    {
+        if (_boardView == null)
+            return null;
+
+        var serialized = new SerializedObject(_boardView);
+        var property = serialized.FindProperty("bakedTileRoot");
+        if (property != null && property.objectReferenceValue is Transform root && root != null)
+            return root;
+
+        return _boardView.transform;
+    }
+
+    private Vector3 GetBakedTilePosition(int x, int y)
+    {
+        return new Vector3(x * _boardView.cellSize, BakedTileY, y * _boardView.cellSize);
     }
 
     private GameObject ResolveTilePrefab(int x, int y)
@@ -253,11 +282,20 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
     private void DeleteAllTiles()
     {
         UnityEditor.Undo.RegisterFullObjectHierarchyUndo(_boardView.gameObject, "Delete Tiles");
+        var tileRoot = ResolveTileRoot();
+        if (tileRoot == null)
+        {
+            Debug.LogError("[MapBaker] Missing tile root.");
+            return;
+        }
+
+        if (tileRoot != _boardView.transform)
+            UnityEditor.Undo.RegisterFullObjectHierarchyUndo(tileRoot.gameObject, "Delete Tiles");
 
         // "Tile_" 로 시작하는 자식만 삭제
-        for (int i = _boardView.transform.childCount - 1; i >= 0; i--)
+        for (int i = tileRoot.childCount - 1; i >= 0; i--)
         {
-            var child = _boardView.transform.GetChild(i);
+            var child = tileRoot.GetChild(i);
             if (child.name.StartsWith("Tile_"))
             {
                 UnityEditor.Undo.DestroyObjectImmediate(child.gameObject);
@@ -265,7 +303,8 @@ public sealed class BoardViewMapBakerWindow : EditorWindow
         }
 
         EditorUtility.SetDirty(_boardView.gameObject);
-        Debug.Log("[MapBaker] Deleted all baked tiles under BoardView");
+        EditorUtility.SetDirty(tileRoot.gameObject);
+        Debug.Log($"[MapBaker] Deleted all baked tiles under {tileRoot.name}");
     }
 
     private bool ParseTileName(string name, out int x, out int y)

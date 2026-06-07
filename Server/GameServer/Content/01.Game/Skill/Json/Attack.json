@@ -39,7 +39,7 @@
           "DurationTicks": 480,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "event:/TestSmith",
+            "FmodEventPath": "",
             "Volume": 1.0,
             "UseOwnerPerspective": true
           }
@@ -54,7 +54,7 @@
           "DurationTicks": 480,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "event:/TestSmith",
+            "FmodEventPath": "",
             "Volume": 1.0,
             "UseOwnerPerspective": true
           }

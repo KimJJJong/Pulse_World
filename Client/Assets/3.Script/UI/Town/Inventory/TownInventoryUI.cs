@@ -20,6 +20,7 @@ public class TownInventoryUI : MonoBehaviour
     [SerializeField] private TMP_Dropdown _sortDropdown;
     [SerializeField] private Button[] _categoryButtons; // 0=All, 1=Equip, ...
     [SerializeField] private bool _handleHotkey = true;
+    [SerializeField] private bool _openOnEnable;
     [SerializeField] private bool _logRefresh;
 
     private Category _currentCategory = Category.All;
@@ -34,8 +35,17 @@ public class TownInventoryUI : MonoBehaviour
     private bool _warnedMissingEventSystem;
     private bool _warnedMissingRaycaster;
 
+    private void OnEnable()
+    {
+        if (_openOnEnable)
+            OpenInventory();
+    }
+
     private void Start()
     {
+        if (_openOnEnable)
+            _openRequested = true;
+
         EnsurePanelRef();
 
         // Setup Category Buttons (Index based mapping for simplicity)
@@ -205,6 +215,10 @@ public class TownInventoryUI : MonoBehaviour
 
     private static bool IsHotkeyOwnedByTownPanel()
     {
+        var home = FindSceneObject<TownHomeUiController>();
+        if (home != null && home.isActiveAndEnabled)
+            return true;
+
         var panel = FindSceneObject<TownExpeditionPanel>();
         return panel != null && panel.isActiveAndEnabled;
     }
