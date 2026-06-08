@@ -777,6 +777,19 @@ public static class TownSceneUiBuilder
         if (root == null)
             return;
 
+        root.transform.localPosition = Vector3.zero;
+        root.transform.localRotation = Quaternion.identity;
+        root.transform.localScale = Vector3.one;
+        if (root.transform is RectTransform rootRect)
+        {
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.pivot = new Vector2(0.5f, 0.5f);
+            rootRect.anchoredPosition = Vector2.zero;
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+        }
+
         var canvas = GetOrAdd<Canvas>(root);
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.overrideSorting = true;
@@ -790,10 +803,10 @@ public static class TownSceneUiBuilder
         var panel = root.transform.Find("Panel") as RectTransform;
         if (panel != null)
         {
-            panel.anchorMin = new Vector2(0.04f, 0.08f);
-            panel.anchorMax = new Vector2(0.62f, 0.92f);
-            panel.offsetMin = Vector2.zero;
-            panel.offsetMax = Vector2.zero;
+            panel.anchorMin = new Vector2(0.5f, 0.5f);
+            panel.anchorMax = new Vector2(0.5f, 0.5f);
+            panel.anchoredPosition = Vector2.zero;
+            panel.sizeDelta = new Vector2(1550f, 945f);
             panel.gameObject.SetActive(false);
         }
 

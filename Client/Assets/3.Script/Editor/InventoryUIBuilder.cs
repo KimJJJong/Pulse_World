@@ -218,7 +218,7 @@ public class InventoryUIBuilder : EditorWindow
             return;
         }
 
-        GameObject root = new GameObject("TownInventory_UI");
+        GameObject root = new GameObject("TownInventory_UI", typeof(RectTransform));
         Canvas canvas = root.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.overrideSorting = true;
@@ -230,10 +230,10 @@ public class InventoryUIBuilder : EditorWindow
 
         GameObject panel = CreateChild(root, "Panel", true);
         RectTransform panelRt = panel.GetComponent<RectTransform>();
-        panelRt.anchorMin = new Vector2(0.04f, 0.08f);
-        panelRt.anchorMax = new Vector2(0.62f, 0.92f);
-        panelRt.offsetMin = Vector2.zero;
-        panelRt.offsetMax = Vector2.zero;
+        panelRt.anchorMin = new Vector2(0.5f, 0.5f);
+        panelRt.anchorMax = new Vector2(0.5f, 0.5f);
+        panelRt.anchoredPosition = Vector2.zero;
+        panelRt.sizeDelta = new Vector2(1550f, 945f);
         
         Image bg = panel.AddComponent<Image>();
         bg.color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
@@ -575,6 +575,19 @@ public class InventoryUIBuilder : EditorWindow
         if (root == null)
             return;
 
+        root.transform.localPosition = Vector3.zero;
+        root.transform.localRotation = Quaternion.identity;
+        root.transform.localScale = Vector3.one;
+        if (root.transform is RectTransform rootRect)
+        {
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.pivot = new Vector2(0.5f, 0.5f);
+            rootRect.anchoredPosition = Vector2.zero;
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+        }
+
         var canvas = root.GetComponent<Canvas>();
         if (canvas != null)
         {
@@ -598,10 +611,10 @@ public class InventoryUIBuilder : EditorWindow
         {
             if (panel is RectTransform panelRect)
             {
-                panelRect.anchorMin = new Vector2(0.04f, 0.08f);
-                panelRect.anchorMax = new Vector2(0.62f, 0.92f);
-                panelRect.offsetMin = Vector2.zero;
-                panelRect.offsetMax = Vector2.zero;
+                panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+                panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+                panelRect.anchoredPosition = Vector2.zero;
+                panelRect.sizeDelta = new Vector2(1550f, 945f);
             }
 
             panel.gameObject.SetActive(false);

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{436b84bf-c1ab-4c6d-9ac3-dd77392bf292}">
+		<property name="assetPath">
+			<value>Lofi_Greatsword.wav</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>48</value>
+		</property>
+		<property name="channelCount">
+			<value>1</value>
+		</property>
+		<property name="length">
+			<value>0.5</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{6b6d644f-e8bc-4666-8da2-01f7130b9a94}</destination>
+		</relationship>
+	</object>
+</objects>

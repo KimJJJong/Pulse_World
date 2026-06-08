@@ -11,6 +11,7 @@ public sealed class TownHomeUiController : MonoBehaviour
     [SerializeField] private GameObject _root;
     [SerializeField] private HomeUiPageNavigator _navigator;
     [SerializeField] private HomeSceneCameraDirector _cameraDirector;
+    [SerializeField] private TownInventoryUI _townInventoryUi;
     [SerializeField] private bool _blockRhythmInput = true;
     [SerializeField] private bool _hideOtherSceneCanvasesWhileOpen = true;
     [SerializeField] private float _restoreCameraFollowDelay = 0.35f;
@@ -25,8 +26,9 @@ public sealed class TownHomeUiController : MonoBehaviour
     private InventoryManager _subscribedInventory;
     private Coroutine _restoreCameraFollowRoutine;
     private int _lastToggleFrame = -1;
+    private bool _inventoryWindowOpenFromHomeUi;
 
-    public bool IsOpen => _root != null && _root.activeSelf;
+    public bool IsOpen => (_root != null && _root.activeSelf) || _inventoryWindowOpenFromHomeUi;
     public bool ConsumedToggleThisFrame => _lastToggleFrame == Time.frameCount;
 
     private void Awake()
@@ -43,6 +45,7 @@ public sealed class TownHomeUiController : MonoBehaviour
         RestoreHiddenSceneCanvases();
         RestoreCameraFollow();
         SetCameraDirectorActive(false);
+        _inventoryWindowOpenFromHomeUi = false;
     }
 
     private void Update()
@@ -68,11 +71,30 @@ public sealed class TownHomeUiController : MonoBehaviour
             OpenHomeUi();
     }
 
+    public bool OpenTownInventoryWindow()
+    {
+        ResolveReferences();
+        var inventory = ResolveTownInventoryUi();
+        if (inventory == null)
+            return false;
+
+        _lastToggleFrame = Time.frameCount;
+        if (IsOpen)
+        {
+            _inventoryWindowOpenFromHomeUi = true;
+            SetRootActive(false);
+        }
+
+        inventory.OpenInventory();
+        return true;
+    }
+
     public void OpenHomeUi()
     {
         _lastToggleFrame = Time.frameCount;
         ResolveReferences();
         CloseTownInventory();
+        _inventoryWindowOpenFromHomeUi = false;
 
         var target = ResolvePresentationTarget();
         SetCameraDirectorActive(true);
@@ -113,6 +135,8 @@ public sealed class TownHomeUiController : MonoBehaviour
     {
         _lastToggleFrame = Time.frameCount;
         ResolveReferences();
+        CloseTownInventory();
+        _inventoryWindowOpenFromHomeUi = false;
 
         if (_navigator != null)
         {
@@ -337,9 +361,43 @@ public sealed class TownHomeUiController : MonoBehaviour
 
     private void CloseTownInventory()
     {
-        var inventory = FindSceneObject<TownInventoryUI>();
+        var inventory = ResolveTownInventoryUi();
         if (inventory != null && inventory.IsOpen)
             inventory.CloseInventory();
+    }
+
+    private TownInventoryUI ResolveTownInventoryUi()
+    {
+        if (_townInventoryUi != null && _townInventoryUi.gameObject.scene.IsValid())
+            return _townInventoryUi;
+
+        TownInventoryUI fallback = null;
+        TownInventoryUI overlayFallback = null;
+        var inventories = Resources.FindObjectsOfTypeAll<TownInventoryUI>();
+        for (int i = 0; i < inventories.Length; i++)
+        {
+            var inventory = inventories[i];
+            if (inventory == null || !inventory.gameObject.scene.IsValid())
+                continue;
+
+            var isHomeOverlayChild = _root != null && inventory.transform.IsChildOf(_root.transform);
+            if (isHomeOverlayChild)
+            {
+                overlayFallback ??= inventory;
+                continue;
+            }
+
+            if (inventory.gameObject.name == "TownInventory_UI")
+            {
+                _townInventoryUi = inventory;
+                return _townInventoryUi;
+            }
+
+            fallback ??= inventory;
+        }
+
+        _townInventoryUi = fallback != null ? fallback : overlayFallback;
+        return _townInventoryUi;
     }
 
     private void HookInventoryRefresh()

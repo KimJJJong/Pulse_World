@@ -109,6 +109,13 @@ public sealed partial class P2PContentDirector : MonoBehaviour, IStageActionHost
             Debug.Log($"[P2PContentDirector] ConfigureStage map={_mapId} loaded={_stageLoaded}");
     }
 
+    public string GetStageSongKey()
+    {
+        if (_stage == null || _stage.RhythmSettings == null)
+            return null;
+        return _stage.RhythmSettings.SongKey;
+    }
+
     public void OnHostLocalChanged(bool isHostLocal)
     {
         if (!isHostLocal)

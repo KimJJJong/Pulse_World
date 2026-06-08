@@ -26,7 +26,7 @@ public class FMODDrumSequencer : MonoBehaviour
     [Header("Settings")]
     public float lookAheadSec = 0.1f;    // 0.1초 미리 탐색해서 발동 준비
     public bool enableSequencer = true;
-    
+
     [System.Serializable]
     public struct DrumSoundMap
     {
@@ -50,6 +50,27 @@ public class FMODDrumSequencer : MonoBehaviour
     private HashSet<string> _playedNotes = new HashSet<string>();
     private readonly Dictionary<string, FMOD.Sound> _simulatorSoundCache = new Dictionary<string, FMOD.Sound>();
 
+    private struct PendingPlay
+    {
+        public double targetTimeSec;
+        public FMOD.Studio.EventInstance instance;
+        public string soundKey;
+    }
+    private readonly List<PendingPlay> _pendingPlays = new List<PendingPlay>();
+
+    private void ClearPendingPlays()
+    {
+        foreach (var p in _pendingPlays)
+        {
+            if (p.instance.isValid())
+            {
+                p.instance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
+                p.instance.release();
+            }
+        }
+        _pendingPlays.Clear();
+    }
+
     private const int SimulatorSampleRate = 48000;
     private const float SimulatorMasterVolume = 0.7f;
 
@@ -60,6 +81,8 @@ public class FMODDrumSequencer : MonoBehaviour
 
     private void OnDestroy()
     {
+        ClearPendingPlays();
+
         foreach (var sound in _simulatorSoundCache.Values)
         {
             if (sound.hasHandle())
@@ -74,14 +97,72 @@ public class FMODDrumSequencer : MonoBehaviour
 
     private void Start()
     {
-        if (rhythmJsonAsset != null)
+        InitializeIfRequired();
+    }
+
+    private void InitializeIfRequired()
+    {
+        string resolvedSongKey = null;
+        if (P2PContentDirector.Instance != null)
+        {
+            resolvedSongKey = P2PContentDirector.Instance.GetStageSongKey();
+        }
+
+        // If we already have the correct stage loaded, we don't need to do anything.
+        if (_stageData != null && !string.IsNullOrEmpty(resolvedSongKey) && string.Equals(_stageData.StageId, resolvedSongKey, System.StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Also if stage data is already loaded and resolvedSongKey is empty/null, we can keep the fallback/current data for now.
+        if (_stageData != null && string.IsNullOrEmpty(resolvedSongKey))
+        {
+            return;
+        }
+
+        string rhythmJsonText = null;
+
+        if (!string.IsNullOrEmpty(resolvedSongKey))
+        {
+            if (P2PServerContentResolver.TryLoadRhythmJson(resolvedSongKey, out string serverJson))
+            {
+                rhythmJsonText = serverJson;
+                Debug.Log($"[FMODDrumSequencer] Dynamically loaded Rhythm JSON from server content using SongKey: {resolvedSongKey}");
+            }
+            else
+            {
+                var textAsset = Resources.Load<TextAsset>(resolvedSongKey)
+                                ?? Resources.Load<TextAsset>($"Data/Stage/{resolvedSongKey}");
+                if (textAsset != null)
+                {
+                    rhythmJsonText = textAsset.text;
+                    Debug.Log($"[FMODDrumSequencer] Dynamically loaded Rhythm JSON from Resources using SongKey: {resolvedSongKey}");
+                }
+            }
+        }
+
+        if (string.IsNullOrEmpty(rhythmJsonText) && rhythmJsonAsset != null)
+        {
+            if (_stageData == null) // Only use fallback if we haven't loaded anything yet
+            {
+                rhythmJsonText = rhythmJsonAsset.text;
+                Debug.Log($"[FMODDrumSequencer] Fallback: Loaded Rhythm JSON from Inspector assigned asset.");
+            }
+        }
+
+        if (!string.IsNullOrEmpty(rhythmJsonText))
         {
             try
             {
-                _stageData = JsonConvert.DeserializeObject<RhythmStageData>(rhythmJsonAsset.text);
-                if (_stageData != null && _stageData.Blocks.Count > 0)
+                var newData = JsonConvert.DeserializeObject<RhythmStageData>(rhythmJsonText);
+                if (newData != null && newData.Blocks.Count > 0)
                 {
+                    _stageData = newData;
                     _currentBlock = _stageData.Blocks[0];
+                    _blockStartBeatIndex = 0;
+                    _playedNotes.Clear(); // Clear played notes on reload to avoid mismatch
+                    ClearPendingPlays(); // Clear pending plays on stage reload
+                    WarmSimulatorSoundCache(_stageData);
                     Debug.Log($"[FMODDrumSequencer] Loaded Stage: {_stageData.StageId} | Found {_currentBlock.BassPattern.Count} Bass Notes in Block 0.");
                 }
             }
@@ -94,17 +175,43 @@ public class FMODDrumSequencer : MonoBehaviour
 
     private void Update()
     {
+        InitializeIfRequired();
         if (!enableSequencer || _stageData == null || _currentBlock == null) return;
         if (RhythmClient.Instance == null || RhythmClient.Instance.ServerSongStartMs == 0) return;
 
         double currentServerTimeSec = RhythmClient.Instance.GetCurrentServerTimeMs() / 1000.0;
+
+        // Process pending play queue
+        for (int i = _pendingPlays.Count - 1; i >= 0; i--)
+        {
+            if (currentServerTimeSec >= _pendingPlays[i].targetTimeSec)
+            {
+                var play = _pendingPlays[i];
+                if (play.instance.isValid())
+                {
+                    double driftSec = currentServerTimeSec - play.targetTimeSec;
+                    if (driftSec > 0.002) // Only compensate if drift is greater than 2ms
+                    {
+                        int driftMs = (int)(driftSec * 1000.0);
+                        if (driftMs < 300) // Prevent clicking on heavy frame drops
+                        {
+                            play.instance.setTimelinePosition(driftMs);
+                        }
+                    }
+                    play.instance.start();
+                    play.instance.release();
+                }
+                _pendingPlays.RemoveAt(i);
+            }
+        }
+
         double lookAheadTimeSec = currentServerTimeSec + lookAheadSec;
 
         int beatsPerMeasure = _stageData.TimeSignatureNum;
         int totalBeatsInBlock = _currentBlock.LengthMeasures * beatsPerMeasure;
-        
+
         long currentBeatIndex = RhythmClient.Instance.GetCurrentBeatIndex();
-        if (currentBeatIndex < 0) return; 
+        if (currentBeatIndex < 0) return;
 
         // 1. 현재 블록의 끝나는 시간 판별
         double blockDurationSec = (totalBeatsInBlock * RhythmClient.Instance.GetBeatDurationMs()) / 1000.0;
@@ -117,7 +224,7 @@ public class FMODDrumSequencer : MonoBehaviour
             var nextBlock = _stageData.Blocks.Find(b => b.BlockId == nextId) ?? _currentBlock;
             _currentBlock = nextBlock;
             _blockStartBeatIndex += totalBeatsInBlock;
-            
+
             // 변환된 블록 기준으로 EndSec 재계산
             totalBeatsInBlock = _currentBlock.LengthMeasures * beatsPerMeasure;
             blockDurationSec = (totalBeatsInBlock * RhythmClient.Instance.GetBeatDurationMs()) / 1000.0;
@@ -145,16 +252,16 @@ public class FMODDrumSequencer : MonoBehaviour
             // 이 노트의 절대 비트 위치 계산
             long noteBeatAbsolute = blockStartAbsoluteBeat + (note.MeasureIndex * beatsPerMeasure) + (note.Tick / _stageData.TicksPerBeat);
             double noteTimeMs = RhythmClient.Instance.GetBeatTimeMs(noteBeatAbsolute);
-            
+
             // 미세 조정을 위해 Tick 단위 잔여물 계산
             double tickFraction = (note.Tick % _stageData.TicksPerBeat) / (double)_stageData.TicksPerBeat;
             noteTimeMs += tickFraction * RhythmClient.Instance.GetBeatDurationMs();
-            
+
             double noteTimeSec = noteTimeMs / 1000.0;
-            
+
             // 고유 식별자에 blockStartAbsoluteBeat를 포함시켜 루프를 100번 돌아도 겹치지 않게 함
-            string noteId = $"{blockStartAbsoluteBeat}_{note.MeasureIndex}_{note.Tick}_{note.SoundKey}_{note.PitchOffset}";
-            
+            string noteId = $"{blockStartAbsoluteBeat}_{note.MeasureIndex}_{note.Tick}_{note.SoundKey}_{GetToneKey(note)}_{note.PitchOffset}_{note.VolumeMultiplier:0.###}";
+
             // 아직 재생하지 않았고, 현재 시간 ~ LookAhead 시간 사이에 도달하는 노트인가?
             if (!_playedNotes.Contains(noteId) && noteTimeSec <= lookAheadTimeSec)
             {
@@ -166,110 +273,96 @@ public class FMODDrumSequencer : MonoBehaviour
 
     private void ScheduleFMODEvent(RhythmBlock block, BassNote note, double targetTimeSec, double currentTimeSec)
     {
-        double delaySec = targetTimeSec - currentTimeSec;
-        if (delaySec < 0) delaySec = 0; // 이미 늦었으면 즉시 재생
-
-        if (TryScheduleBassMelodySimulatorSound(block, note, delaySec))
+        if (TryScheduleBassMelodySimulatorSound(block, note, targetTimeSec))
             return;
 
-        // JSON 문자열(SoundKey)과 맵핑된 FMOD EventReference 찾기
+        FMOD.Studio.EventInstance instance = default;
+        bool hasInstance = false;
+
+        // 1. JSON 문자열(SoundKey)과 맵핑된 FMOD EventReference 찾기
         var mapping = drumMappings.Find(m => m.soundKey == note.SoundKey);
-        if (mapping.fmodEvent.IsNull)
+        if (!mapping.fmodEvent.IsNull)
         {
-            Debug.LogError($"[FMODDrum] Mapping for '{note.SoundKey}' is missing or EventReference is empty. Please set it in the Inspector.");
-            return;
+            try
+            {
+                instance = RuntimeManager.CreateInstance(mapping.fmodEvent);
+                hasInstance = true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[FMODDrum] Event Create Failed for Key {note.SoundKey} via EventReference: {e.Message}");
+                return;
+            }
+        }
+        else
+        {
+            // 2. 맵핑이 없거나 빈 경우 동적 FMOD 이벤트 경로 매핑 시도
+            string eventPath = GetDynamicFmodEventPath(note.SoundKey);
+            if (!string.IsNullOrEmpty(eventPath))
+            {
+                try
+                {
+                    instance = RuntimeManager.CreateInstance(eventPath);
+                    hasInstance = true;
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[FMODDrum] Event Create Failed for Key {note.SoundKey} via dynamic path {eventPath}: {e.Message}");
+                    return;
+                }
+            }
         }
 
-        // FMOD Studio 이벤트를 생성
-        FMOD.Studio.EventInstance instance;
-        try 
+        if (!hasInstance)
         {
-            instance = RuntimeManager.CreateInstance(mapping.fmodEvent);
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"[FMODDrum] Event Create Failed for Key {note.SoundKey}: {e.Message}");
+            Debug.LogError($"[FMODDrum] Mapping for '{note.SoundKey}' is missing or EventReference is empty, and dynamic path could not be resolved.");
             return;
         }
-        
-        // 딜레이를 주려면 FMOD Core의 시간 동기화(DSP Clock)를 사용해야 합니다.
-        RuntimeManager.CoreSystem.getMasterChannelGroup(out FMOD.ChannelGroup masterCG);
-        masterCG.getDSPClock(out ulong dspClock, out ulong parentClock);
-        
-        RuntimeManager.CoreSystem.getSoftwareFormat(out int sampleRate, out FMOD.SPEAKERMODE speakerMode, out int numRawSpeakers);
-
-        ulong delaySamples = (ulong)(delaySec * sampleRate);
-        ulong targetDSPClock = dspClock + delaySamples;
 
         // FMOD Studio API를 사용해 볼륨 파라미터 적용 (옵션)
         instance.setVolume(note.VolumeMultiplier > 0 ? note.VolumeMultiplier : 1.0f);
         if (note.PitchOffset != 0)
             instance.setParameterByName("PitchOffset", note.PitchOffset);
 
-        if (delaySec > 0)
-        {
-            instance.setPaused(true);
-            instance.start();
-
-            // FMOD Studio는 기본적으로 비동기 처리되므로 즉시 ChannelGroup을 얻으려면 Flush가 필요합니다.
-            RuntimeManager.StudioSystem.flushCommands(); 
-
-            instance.getChannelGroup(out FMOD.ChannelGroup channelGroup);
-            if (channelGroup.hasHandle())
-            {
-                channelGroup.setDelay(targetDSPClock, 0, false);
-            }
-            else
-            {
-                Debug.LogWarning($"[FMODDrum] Failed to get ChannelGroup! Fallback to instant play. (Note: {note.SoundKey})");
-            }
-
-            instance.setPaused(false);
-        }
-        else
+        double latestCurrentTimeSec = GetCurrentServerTimeSec();
+        if (targetTimeSec <= latestCurrentTimeSec)
         {
             // 지연이 없거나 이미 늦었으면 즉시 재생
             instance.start();
+            instance.release();
         }
-
-        instance.release(); // 연주 종료 시 메모리 자동 반환
-        
-        // Debug.Log($"[FMODDrum] Scheduled {note.SoundKey} in {delaySec:F3}s");
+        else if (TryStartStudioEventAtDspTime(instance, targetTimeSec))
+        {
+            // DSP clock 기반으로 예약되었으므로 프레임 Update 지터를 타지 않습니다.
+        }
+        else
+        {
+            // DSP 예약 실패 시에만 대기 큐로 폴백합니다.
+            _pendingPlays.Add(new PendingPlay
+            {
+                targetTimeSec = targetTimeSec,
+                instance = instance,
+                soundKey = note.SoundKey
+            });
+        }
     }
 
-    private bool TryScheduleBassMelodySimulatorSound(RhythmBlock block, BassNote note, double delaySec)
+    private bool TryScheduleBassMelodySimulatorSound(RhythmBlock block, BassNote note, double targetTimeSec)
     {
-        if (!IsBassMelodySimulatorSound(note.SoundKey))
+        string toneKey = GetToneKey(note);
+        if (!IsBassMelodySimulatorSound(toneKey))
             return false;
 
-        SimulatorChord chord = GetChordAt(block, note.MeasureIndex, note.Tick);
-        string cacheKey = BuildSimulatorCacheKey(note, chord);
+        if (!TryGetOrCreateSimulatorSound(block, note, out FMOD.Sound sound))
+            return true;
 
-        if (!_simulatorSoundCache.TryGetValue(cacheKey, out FMOD.Sound sound))
+        double delaySec = Math.Max(0.0, targetTimeSec - GetCurrentServerTimeSec());
+        if (!TryGetTargetDspClock(delaySec, out ulong targetDSPClock))
         {
-            byte[] wavBytes = RenderBassMelodySimulatorWav(note, chord);
-            var exInfo = new FMOD.CREATESOUNDEXINFO
-            {
-                cbsize = System.Runtime.InteropServices.Marshal.SizeOf<FMOD.CREATESOUNDEXINFO>(),
-                length = (uint)wavBytes.Length
-            };
-
-            FMOD.MODE mode = FMOD.MODE.OPENMEMORY | FMOD.MODE.CREATESAMPLE | FMOD.MODE._2D | FMOD.MODE.LOOP_OFF;
-            FMOD.RESULT createResult = RuntimeManager.CoreSystem.createSound(wavBytes, mode, ref exInfo, out sound);
-            if (createResult != FMOD.RESULT.OK)
-            {
-                Debug.LogError($"[FMODDrum] BassMelody simulator sound create failed for '{note.SoundKey}'. Result={createResult}");
-                return true;
-            }
-
-            _simulatorSoundCache[cacheKey] = sound;
+            Debug.LogError($"[FMODDrum] Could not resolve FMOD DSP clock for '{note.SoundKey}'.");
+            return true;
         }
 
-        RuntimeManager.CoreSystem.getMasterChannelGroup(out FMOD.ChannelGroup masterCG);
-        masterCG.getDSPClock(out ulong dspClock, out ulong parentClock);
-        RuntimeManager.CoreSystem.getSoftwareFormat(out int sampleRate, out FMOD.SPEAKERMODE speakerMode, out int numRawSpeakers);
-
-        ulong targetDSPClock = dspClock + (ulong)(Math.Max(0.0, delaySec) * sampleRate);
         FMOD.RESULT playResult = RuntimeManager.CoreSystem.playSound(sound, default, true, out FMOD.Channel channel);
         if (playResult != FMOD.RESULT.OK)
         {
@@ -282,6 +375,103 @@ public class FMODDrumSequencer : MonoBehaviour
             channel.setDelay(targetDSPClock, 0, false);
         channel.setPaused(false);
 
+        return true;
+    }
+
+    private void WarmSimulatorSoundCache(RhythmStageData stageData)
+    {
+        if (stageData == null || stageData.Blocks == null)
+            return;
+
+        foreach (var block in stageData.Blocks)
+        {
+            if (block?.BassPattern == null)
+                continue;
+
+            foreach (var note in block.BassPattern)
+            {
+                if (IsBassMelodySimulatorSound(GetToneKey(note)))
+                    TryGetOrCreateSimulatorSound(block, note, out _);
+            }
+        }
+    }
+
+    private bool TryGetOrCreateSimulatorSound(RhythmBlock block, BassNote note, out FMOD.Sound sound)
+    {
+        sound = default;
+
+        SimulatorChord chord = GetChordAt(block, note.MeasureIndex, note.Tick);
+        string cacheKey = BuildSimulatorCacheKey(note, chord);
+
+        if (_simulatorSoundCache.TryGetValue(cacheKey, out sound))
+            return true;
+
+        byte[] wavBytes = RenderBassMelodySimulatorWav(note, chord);
+        var exInfo = new FMOD.CREATESOUNDEXINFO
+        {
+            cbsize = System.Runtime.InteropServices.Marshal.SizeOf<FMOD.CREATESOUNDEXINFO>(),
+            length = (uint)wavBytes.Length
+        };
+
+        FMOD.MODE mode = FMOD.MODE.OPENMEMORY | FMOD.MODE.CREATESAMPLE | FMOD.MODE._2D | FMOD.MODE.LOOP_OFF;
+        FMOD.RESULT createResult = RuntimeManager.CoreSystem.createSound(wavBytes, mode, ref exInfo, out sound);
+        if (createResult != FMOD.RESULT.OK)
+        {
+            Debug.LogError($"[FMODDrum] BassMelody simulator sound create failed for '{note.SoundKey}'. Result={createResult}");
+            return false;
+        }
+
+        _simulatorSoundCache[cacheKey] = sound;
+        return true;
+    }
+
+    private bool TryStartStudioEventAtDspTime(FMOD.Studio.EventInstance instance, double targetTimeSec)
+    {
+        double delaySec = Math.Max(0.0, targetTimeSec - GetCurrentServerTimeSec());
+        if (!TryGetTargetDspClock(delaySec, out ulong targetDSPClock))
+            return false;
+
+        FMOD.RESULT scheduleResult = instance.setProperty(FMOD.Studio.EVENT_PROPERTY.SCHEDULE_DELAY, (float)targetDSPClock);
+        if (scheduleResult != FMOD.RESULT.OK)
+        {
+            Debug.LogWarning($"[FMODDrum] Studio DSP schedule failed. Result={scheduleResult}");
+            return false;
+        }
+
+        instance.start();
+        instance.release();
+        return true;
+    }
+
+    private static double GetCurrentServerTimeSec()
+    {
+        return RhythmClient.Instance != null
+            ? RhythmClient.Instance.GetCurrentServerTimeMs() / 1000.0
+            : Time.unscaledTimeAsDouble;
+    }
+
+    private static bool TryGetTargetDspClock(double delaySec, out ulong targetDSPClock)
+    {
+        targetDSPClock = 0;
+
+        RuntimeManager.CoreSystem.getMasterChannelGroup(out FMOD.ChannelGroup masterCG);
+        if (!masterCG.hasHandle())
+            return false;
+
+        FMOD.RESULT clockResult = masterCG.getDSPClock(out ulong dspClock, out ulong parentClock);
+        if (clockResult != FMOD.RESULT.OK)
+            return false;
+
+        FMOD.RESULT formatResult = RuntimeManager.CoreSystem.getSoftwareFormat(
+            out int sampleRate,
+            out FMOD.SPEAKERMODE speakerMode,
+            out int numRawSpeakers);
+
+        if (formatResult != FMOD.RESULT.OK || sampleRate <= 0)
+            sampleRate = SimulatorSampleRate;
+
+        ulong delaySamples = (ulong)Math.Max(0.0, Math.Round(delaySec * sampleRate));
+        targetDSPClock = dspClock + delaySamples;
         return true;
     }
 
@@ -317,6 +507,25 @@ public class FMODDrumSequencer : MonoBehaviour
                soundKey.Equals("Clav_Chop", StringComparison.OrdinalIgnoreCase);
     }
 
+    public static bool UsesBassMelodySimulator(BassNote note)
+    {
+        return note != null && IsBassMelodySimulatorSound(GetToneKey(note));
+    }
+
+    public static string GetRuntimeToneKey(BassNote note)
+    {
+        return note == null ? string.Empty : GetToneKey(note);
+    }
+
+    public static byte[] RenderBassMelodySimulatorPreviewWav(RhythmBlock block, BassNote note)
+    {
+        if (note == null || !UsesBassMelodySimulator(note))
+            return null;
+
+        SimulatorChord chord = GetChordAt(block, note.MeasureIndex, note.Tick);
+        return RenderBassMelodySimulatorWav(note, chord);
+    }
+
     private static bool IsBassMelodySimulatorMelody(string soundKey)
     {
         if (string.IsNullOrEmpty(soundKey))
@@ -333,7 +542,12 @@ public class FMODDrumSequencer : MonoBehaviour
 
     private static string BuildSimulatorCacheKey(BassNote note, SimulatorChord chord)
     {
-        return $"{note.SoundKey}|notePitch={note.PitchOffset}|chordPitch={chord.PitchOffset}|chordType={chord.ChordType}";
+        return $"{note.SoundKey}|tone={GetToneKey(note)}|notePitch={note.PitchOffset}|chordPitch={chord.PitchOffset}|chordType={chord.ChordType}";
+    }
+
+    private static string GetToneKey(BassNote note)
+    {
+        return !string.IsNullOrWhiteSpace(note.ToneKey) ? note.ToneKey : note.SoundKey;
     }
 
     private static SimulatorChord GetChordAt(RhythmBlock block, long measureIndex, long tick)
@@ -360,18 +574,20 @@ public class FMODDrumSequencer : MonoBehaviour
 
     private static byte[] RenderBassMelodySimulatorWav(BassNote note, SimulatorChord chord)
     {
-        float[] samples = IsBassMelodySimulatorMelody(note.SoundKey)
+        string toneKey = GetToneKey(note);
+        float[] samples = IsBassMelodySimulatorMelody(toneKey)
             ? RenderSimulatorMelody(note, chord)
-            : RenderSimulatorBass(note.SoundKey, chord);
+            : RenderSimulatorBass(note, chord);
 
         return BuildMono16Wav(samples, SimulatorSampleRate);
     }
 
-    private static float[] RenderSimulatorBass(string noteKey, SimulatorChord chord)
+    private static float[] RenderSimulatorBass(BassNote note, SimulatorChord chord)
     {
         const float durationSec = 0.4f;
         int sampleCount = Mathf.CeilToInt(durationSec * SimulatorSampleRate);
         float[] samples = new float[sampleCount];
+        string noteKey = GetToneKey(note);
 
         int degree = 1;
         int octaveOffset = -2;
@@ -430,7 +646,7 @@ public class FMODDrumSequencer : MonoBehaviour
 
     private static float ResolveSimulatorMelodyFrequency(BassNote note, SimulatorChord chord)
     {
-        if (TryParseFixedNote(note.SoundKey, out string noteName, out int octave, out int semitoneOffset))
+        if (TryParseFixedNote(GetToneKey(note), out string noteName, out int octave, out int semitoneOffset))
         {
             int midi = 60 + semitoneOffset + ((octave - 4) * 12);
             int noteOffset = semitoneOffset + ((octave - 4) * 12);
@@ -676,9 +892,9 @@ public class FMODDrumSequencer : MonoBehaviour
 
         int beatsPerMeasure = _stageData.TimeSignatureNum;
         int totalBeatsInBlock = _currentBlock.LengthMeasures * beatsPerMeasure;
-        
+
         long beatInBlock = currentBeatIndex - _blockStartBeatIndex;
-        if (beatInBlock < 0 || beatInBlock >= totalBeatsInBlock) 
+        if (beatInBlock < 0 || beatInBlock >= totalBeatsInBlock)
             return null;
 
         long measureIndex = beatInBlock / beatsPerMeasure;
@@ -712,6 +928,28 @@ public class FMODDrumSequencer : MonoBehaviour
         // 1:1 이름 매칭 검증 (FMOD 이벤트 명과 완전히 동일한 경우 바로 리다이렉트 재생)
         if (ValidFmodEventNames.TryGetValue(soundKey, out string exactName))
         {
+            if (exactName.EndsWith("_Dagger", StringComparison.OrdinalIgnoreCase) ||
+                exactName.EndsWith("_Greatsword", StringComparison.OrdinalIgnoreCase) ||
+                exactName.EndsWith("_Bow", StringComparison.OrdinalIgnoreCase) ||
+                exactName.EndsWith("_Parry", StringComparison.OrdinalIgnoreCase) ||
+                exactName.EndsWith("_Staff", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"event:/SFX/{exactName}";
+            }
+            if (exactName.StartsWith("Bass_", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"event:/Bass/{exactName}";
+            }
+            if (exactName.StartsWith("Melody_", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"event:/Melody/{exactName}";
+            }
+            if (exactName.Equals("Kick", StringComparison.OrdinalIgnoreCase) ||
+                exactName.Equals("HiHat", StringComparison.OrdinalIgnoreCase) ||
+                exactName.Equals("TestSmith", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"event:/Drums/{exactName}";
+            }
             return $"event:/{exactName}";
         }
 
@@ -719,68 +957,68 @@ public class FMODDrumSequencer : MonoBehaviour
 
         // 1. 베이스 사운드 매핑 (장르 명시형)
         if (soundKey.StartsWith("SynthBass_", StringComparison.OrdinalIgnoreCase))
-            return "event:/Bass_Synthwave";
+            return "event:/Bass/Bass_Synthwave";
         if (soundKey.StartsWith("LofiBass_", StringComparison.OrdinalIgnoreCase))
-            return "event:/Bass_Lofi";
-        if (soundKey.StartsWith("FunkBass_", StringComparison.OrdinalIgnoreCase) || 
+            return "event:/Bass/Bass_Lofi";
+        if (soundKey.StartsWith("FunkBass_", StringComparison.OrdinalIgnoreCase) ||
             soundKey.StartsWith("SlapBass_", StringComparison.OrdinalIgnoreCase))
-            return "event:/Bass_Funk";
+            return "event:/Bass/Bass_Funk";
         if (soundKey.StartsWith("OrchBass_", StringComparison.OrdinalIgnoreCase))
-            return "event:/Bass_Orchestral";
+            return "event:/Bass/Bass_Orchestral";
         if (soundKey.StartsWith("JazzBass_", StringComparison.OrdinalIgnoreCase))
-            return "event:/Bass_Jazz";
+            return "event:/Bass/Bass_Jazz";
 
         // 1-1. 베이스 사운드 매핑 (범용 접두어) -> 현재 스테이지 장르 기준
-        if (soundKey.StartsWith("Bass_", StringComparison.OrdinalIgnoreCase) || 
+        if (soundKey.StartsWith("Bass_", StringComparison.OrdinalIgnoreCase) ||
             soundKey.StartsWith("BassKick", StringComparison.OrdinalIgnoreCase))
         {
-            return $"event:/Bass_{genre}";
+            return $"event:/Bass/Bass_{genre}";
         }
 
         // 2. 멜로디 사운드 매핑 (장르 명시형/악기명)
-        if (soundKey.StartsWith("SynthLead_", StringComparison.OrdinalIgnoreCase) || 
+        if (soundKey.StartsWith("SynthLead_", StringComparison.OrdinalIgnoreCase) ||
             soundKey.StartsWith("SynthPluck_", StringComparison.OrdinalIgnoreCase))
-            return "event:/Melody_Synthwave";
+            return "event:/Melody/Melody_Synthwave";
 
-        if (soundKey.StartsWith("LofiFlute_", StringComparison.OrdinalIgnoreCase) || 
-            soundKey.StartsWith("Rhodes_", StringComparison.OrdinalIgnoreCase) || 
+        if (soundKey.StartsWith("LofiFlute_", StringComparison.OrdinalIgnoreCase) ||
+            soundKey.StartsWith("Rhodes_", StringComparison.OrdinalIgnoreCase) ||
             soundKey.StartsWith("LofiPiano_", StringComparison.OrdinalIgnoreCase))
-            return "event:/Melody_Lofi";
+            return "event:/Melody/Melody_Lofi";
 
-        if (soundKey.StartsWith("Clav_", StringComparison.OrdinalIgnoreCase) || 
-            soundKey.StartsWith("Clavinet_", StringComparison.OrdinalIgnoreCase) || 
+        if (soundKey.StartsWith("Clav_", StringComparison.OrdinalIgnoreCase) ||
+            soundKey.StartsWith("Clavinet_", StringComparison.OrdinalIgnoreCase) ||
             soundKey.StartsWith("FunkGuitar_", StringComparison.OrdinalIgnoreCase) ||
             soundKey.StartsWith("FunkMute_", StringComparison.OrdinalIgnoreCase))
-            return "event:/Melody_Funk";
+            return "event:/Melody/Melody_Funk";
 
-        if (soundKey.StartsWith("OrchFlute_", StringComparison.OrdinalIgnoreCase) || 
-            soundKey.StartsWith("Violin_", StringComparison.OrdinalIgnoreCase) || 
-            soundKey.StartsWith("Harp_", StringComparison.OrdinalIgnoreCase) || 
-            soundKey.StartsWith("Cello_", StringComparison.OrdinalIgnoreCase) || 
+        if (soundKey.StartsWith("OrchFlute_", StringComparison.OrdinalIgnoreCase) ||
+            soundKey.StartsWith("Violin_", StringComparison.OrdinalIgnoreCase) ||
+            soundKey.StartsWith("Harp_", StringComparison.OrdinalIgnoreCase) ||
+            soundKey.StartsWith("Cello_", StringComparison.OrdinalIgnoreCase) ||
             soundKey.StartsWith("Flute_", StringComparison.OrdinalIgnoreCase))
-            return "event:/Melody_Orchestral";
+            return "event:/Melody/Melody_Orchestral";
 
-        if (soundKey.StartsWith("JazzSax_", StringComparison.OrdinalIgnoreCase) || 
-            soundKey.StartsWith("Vibraphone_", StringComparison.OrdinalIgnoreCase) || 
+        if (soundKey.StartsWith("JazzSax_", StringComparison.OrdinalIgnoreCase) ||
+            soundKey.StartsWith("Vibraphone_", StringComparison.OrdinalIgnoreCase) ||
             soundKey.StartsWith("JazzGuitar_", StringComparison.OrdinalIgnoreCase))
-            return "event:/Melody_Jazz";
+            return "event:/Melody/Melody_Jazz";
 
         // 2-1. 멜로디 사운드 매핑 (범용 접두어) -> 현재 스테이지 장르 기준
-        if (soundKey.StartsWith("Melody_", StringComparison.OrdinalIgnoreCase) || 
+        if (soundKey.StartsWith("Melody_", StringComparison.OrdinalIgnoreCase) ||
             soundKey.StartsWith("Lead_", StringComparison.OrdinalIgnoreCase))
         {
-            return $"event:/Melody_{genre}";
+            return $"event:/Melody/Melody_{genre}";
         }
 
         // 3. Kick / HiHat 기본 드럼 및 Timpani (팀파니는 킥에셋 피치 튜닝 매핑)
-        if (soundKey.Equals("Kick", StringComparison.OrdinalIgnoreCase) || 
+        if (soundKey.Equals("Kick", StringComparison.OrdinalIgnoreCase) ||
             soundKey.StartsWith("Timpani_", StringComparison.OrdinalIgnoreCase))
-            return "event:/Kick";
+            return "event:/Drums/Kick";
         if (soundKey.Equals("HiHat", StringComparison.OrdinalIgnoreCase))
-            return "event:/HiHat";
-        if (soundKey.Equals("Smith", StringComparison.OrdinalIgnoreCase) || 
+            return "event:/Drums/HiHat";
+        if (soundKey.Equals("Smith", StringComparison.OrdinalIgnoreCase) ||
             soundKey.Equals("TestSmith", StringComparison.OrdinalIgnoreCase))
-            return "event:/TestSmith";
+            return "event:/Drums/TestSmith";
 
         return null;
     }
@@ -811,10 +1049,10 @@ public class FMODDrumSequencer : MonoBehaviour
 
         int beatsPerMeasure = _stageData.TimeSignatureNum;
         int totalBeatsInBlock = _currentBlock.LengthMeasures * beatsPerMeasure;
-        
+
         long beatInBlock = currentBeatIndex - _blockStartBeatIndex;
         // 블록을 넘어서거나 음수면 예외처리로 오프셋 0 반환
-        if (beatInBlock < 0 || beatInBlock >= totalBeatsInBlock) 
+        if (beatInBlock < 0 || beatInBlock >= totalBeatsInBlock)
             return 0;
 
         long measureIndex = beatInBlock / beatsPerMeasure;

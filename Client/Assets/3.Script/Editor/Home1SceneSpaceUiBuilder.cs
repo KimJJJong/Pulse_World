@@ -785,11 +785,12 @@ public static class Home1SceneSpaceUiBuilder
         var panel = instance.transform.Find("Panel") as RectTransform;
         if (panel != null)
         {
-            panel.anchorMin = new Vector2(0.10f, 0.10f);
-            panel.anchorMax = new Vector2(0.90f, 0.86f);
-            panel.offsetMin = Vector2.zero;
-            panel.offsetMax = Vector2.zero;
-            panel.localScale = Vector3.one;
+            var fitScale = GetTownInventoryPanelFitScale();
+            panel.anchorMin = new Vector2(0.5f, 0.5f);
+            panel.anchorMax = new Vector2(0.5f, 0.5f);
+            panel.anchoredPosition = Vector2.zero;
+            panel.sizeDelta = new Vector2(1550f, 945f);
+            panel.localScale = new Vector3(fitScale, fitScale, 1f);
             panel.gameObject.SetActive(true);
         }
 
@@ -811,6 +812,18 @@ public static class Home1SceneSpaceUiBuilder
 
             so.ApplyModifiedPropertiesWithoutUndo();
         }
+    }
+
+    private static float GetTownInventoryPanelFitScale()
+    {
+        const float panelWidth = 1550f;
+        const float panelHeight = 945f;
+        const float horizontalMargin = 80f;
+        const float verticalMargin = 64f;
+
+        var availableWidth = Mathf.Max(1f, LayoutSize.x - horizontalMargin);
+        var availableHeight = Mathf.Max(1f, LayoutSize.y - verticalMargin);
+        return Mathf.Min(1f, Mathf.Min(availableWidth / panelWidth, availableHeight / panelHeight));
     }
 
     private static void BuildInventoryFallback(RectTransform root)

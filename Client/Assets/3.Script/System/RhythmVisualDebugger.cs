@@ -19,9 +19,57 @@ public class RhythmVisualDebugger : MonoBehaviour
 
     private void Start()
     {
-        if (rhythmJsonAsset != null)
+        InitializeIfRequired();
+    }
+
+    private void InitializeIfRequired()
+    {
+        string resolvedSongKey = null;
+        if (P2PContentDirector.Instance != null)
         {
-            ParseRhythmData(rhythmJsonAsset.text);
+            resolvedSongKey = P2PContentDirector.Instance.GetStageSongKey();
+        }
+
+        // If stage data is already loaded and matches the resolved song key, we don't need to re-initialize.
+        if (_stageData != null && !string.IsNullOrEmpty(resolvedSongKey) && string.Equals(_stageData.StageId, resolvedSongKey, System.StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        string rhythmJsonText = null;
+
+        if (!string.IsNullOrEmpty(resolvedSongKey))
+        {
+            if (P2PServerContentResolver.TryLoadRhythmJson(resolvedSongKey, out string serverJson))
+            {
+                rhythmJsonText = serverJson;
+                Debug.Log($"[RhythmVisualDebugger] Dynamically loaded Rhythm JSON from server content using SongKey: {resolvedSongKey}");
+            }
+            else
+            {
+                var textAsset = Resources.Load<TextAsset>(resolvedSongKey) 
+                                ?? Resources.Load<TextAsset>($"Data/Stage/{resolvedSongKey}");
+                if (textAsset != null)
+                {
+                    rhythmJsonText = textAsset.text;
+                    Debug.Log($"[RhythmVisualDebugger] Dynamically loaded Rhythm JSON from Resources using SongKey: {resolvedSongKey}");
+                }
+            }
+        }
+
+        if (string.IsNullOrEmpty(rhythmJsonText) && rhythmJsonAsset != null)
+        {
+            // Only use fallback if we haven't loaded anything yet
+            if (_stageData == null)
+            {
+                rhythmJsonText = rhythmJsonAsset.text;
+                Debug.Log($"[RhythmVisualDebugger] Fallback: Loaded Rhythm JSON from Inspector assigned asset.");
+            }
+        }
+
+        if (!string.IsNullOrEmpty(rhythmJsonText))
+        {
+            ParseRhythmData(rhythmJsonText);
         }
     }
 
@@ -45,6 +93,8 @@ public class RhythmVisualDebugger : MonoBehaviour
 
     private void OnGUI()
     {
+        InitializeIfRequired();
+
         P2PDebugViewConfig.HandleRuntimeToggleEvent(Event.current);
         if (!P2PDebugViewConfig.ShowNetworkSyncOverlay)
             return;

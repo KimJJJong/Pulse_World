@@ -17,6 +17,7 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
     [SerializeField] private Button _equipmentBackButton;
     [SerializeField] private Button[] _homeButtons;
     [SerializeField] private HomeSceneCameraDirector _cameraDirector;
+    [SerializeField] private TownHomeUiController _townHomeController;
     [SerializeField] private bool _forceCameraPresentation;
     [SerializeField] private bool _mapOnlyMode;
     [SerializeField] private float _forcedPresentationScreenLeftOffset = 1.65f;
@@ -105,6 +106,9 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
             ShowMap();
             return;
         }
+
+        if (OpenTownInventoryWindowIfAvailable())
+            return;
 
         Show(HomePage.Inventory);
     }
@@ -195,6 +199,35 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
             if (director.gameObject.scene == gameObject.scene)
             {
                 _cameraDirector = director;
+                return;
+            }
+        }
+    }
+
+    private bool OpenTownInventoryWindowIfAvailable()
+    {
+        ResolveTownHomeController();
+        return _townHomeController != null && _townHomeController.OpenTownInventoryWindow();
+    }
+
+    private void ResolveTownHomeController()
+    {
+        if (_townHomeController != null && _townHomeController.gameObject.scene.IsValid())
+            return;
+
+        _townHomeController = GetComponentInParent<TownHomeUiController>(true);
+        if (_townHomeController != null)
+            return;
+
+        var controllers = Resources.FindObjectsOfTypeAll<TownHomeUiController>();
+        foreach (var controller in controllers)
+        {
+            if (controller == null || !controller.gameObject.scene.IsValid())
+                continue;
+
+            if (controller.gameObject.scene == gameObject.scene)
+            {
+                _townHomeController = controller;
                 return;
             }
         }

@@ -36,6 +36,19 @@ public static class P2PServerContentResolver
     public static bool TryLoadStageJson(string mapId, out string json)
         => TryReadServerText($"Server/GameServer/Content/01.Game/Stage/Json/{mapId}.json", out json);
 
+    public static bool TryLoadRhythmJson(string stageId, out string json)
+    {
+        json = string.Empty;
+        if (string.IsNullOrEmpty(stageId)) return false;
+        
+        if (TryReadServerText($"Server/GameServer/Content/01.Game/Sound/Json/{stageId}_Rhythm.json", out json))
+            return true;
+        if (TryReadServerText($"Server/GameServer/Content/01.Game/Sound/Json/{stageId}.json", out json))
+            return true;
+            
+        return false;
+    }
+
     public static IEnumerable<string> EnumeratePatternJsonTexts()
     {
         foreach (var relativeDir in PatternDirectories)

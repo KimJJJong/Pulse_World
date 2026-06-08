@@ -11,6 +11,10 @@ public class TownInventoryUI : MonoBehaviour
     public enum Category { All, Equipment, Consumable, Material }
     public enum SortType { Recent, Name, Grade }
 
+    private static readonly Vector2 PanelDesignSize = new Vector2(1550f, 945f);
+    private const float SafeHorizontalMargin = 80f;
+    private const float SafeVerticalMargin = 64f;
+
     [Header("UI References")]
     [SerializeField] private Transform _gridContent;
     [SerializeField] private TownInventorySlotUI _slotPrefab;
@@ -32,11 +36,20 @@ public class TownInventoryUI : MonoBehaviour
     private readonly Dictionary<int, ItemTemplate> _templateCache = new Dictionary<int, ItemTemplate>();
     private Transform _panel;
     private bool _openRequested;
+    private bool _layoutDirty;
+    private bool _applyingLayout;
     private bool _warnedMissingEventSystem;
     private bool _warnedMissingRaycaster;
 
+    private void Awake()
+    {
+        EnsureCanvasCamera(GetComponentInParent<Canvas>(true));
+        _layoutDirty = true;
+    }
+
     private void OnEnable()
     {
+        _layoutDirty = true;
         if (_openOnEnable)
             OpenInventory();
     }
@@ -82,7 +95,10 @@ public class TownInventoryUI : MonoBehaviour
         RefreshAll();
 
         if (_panel != null)
+        {
+            ApplyCameraSafeLayout();
             _panel.gameObject.SetActive(_openRequested);
+        }
     }
 
     private void Update()
@@ -94,6 +110,20 @@ public class TownInventoryUI : MonoBehaviour
         {
             ToggleInventory();
         }
+    }
+
+    private void LateUpdate()
+    {
+        if (_layoutDirty)
+            ApplyCameraSafeLayout();
+    }
+
+    private void OnRectTransformDimensionsChange()
+    {
+        if (_applyingLayout)
+            return;
+
+        _layoutDirty = true;
     }
 
     public bool IsOpen => gameObject.activeInHierarchy && EnsurePanelRef() != null && _panel.gameObject.activeSelf;
@@ -108,6 +138,7 @@ public class TownInventoryUI : MonoBehaviour
             return;
 
         EnsureUiReady();
+        ApplyCameraSafeLayout();
         _panel.gameObject.SetActive(true);
         _panel.SetAsLastSibling();
         RefreshAll();
@@ -137,11 +168,92 @@ public class TownInventoryUI : MonoBehaviour
         return _panel;
     }
 
+    private void ApplyCameraSafeLayout()
+    {
+        _layoutDirty = false;
+
+        var panel = EnsurePanelRef() as RectTransform;
+        if (panel == null)
+            return;
+
+        _applyingLayout = true;
+        try
+        {
+            ApplyRootSafeLayout();
+            panel.anchorMin = new Vector2(0.5f, 0.5f);
+            panel.anchorMax = new Vector2(0.5f, 0.5f);
+            panel.pivot = new Vector2(0.5f, 0.5f);
+            panel.anchoredPosition = Vector2.zero;
+            panel.sizeDelta = PanelDesignSize;
+
+            var fitScale = ResolvePanelFitScale(panel);
+            panel.localScale = new Vector3(fitScale, fitScale, 1f);
+        }
+        finally
+        {
+            _applyingLayout = false;
+        }
+    }
+
+    private void ApplyRootSafeLayout()
+    {
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+        transform.localScale = Vector3.one;
+
+        var root = transform as RectTransform;
+        if (root == null)
+            return;
+
+        root.anchorMin = Vector2.zero;
+        root.anchorMax = Vector2.one;
+        root.pivot = new Vector2(0.5f, 0.5f);
+        root.anchoredPosition = Vector2.zero;
+        root.offsetMin = Vector2.zero;
+        root.offsetMax = Vector2.zero;
+    }
+
+    private float ResolvePanelFitScale(RectTransform panel)
+    {
+        var availableSize = ResolveAvailableUiSize(panel);
+        if (availableSize.x <= 1f || availableSize.y <= 1f)
+            return 1f;
+
+        var availableWidth = Mathf.Max(1f, availableSize.x - SafeHorizontalMargin);
+        var availableHeight = Mathf.Max(1f, availableSize.y - SafeVerticalMargin);
+        return Mathf.Min(1f, availableWidth / PanelDesignSize.x, availableHeight / PanelDesignSize.y);
+    }
+
+    private Vector2 ResolveAvailableUiSize(RectTransform panel)
+    {
+        if (panel.parent is RectTransform parentRect)
+        {
+            var parentSize = parentRect.rect.size;
+            if (parentSize.x > 1f && parentSize.y > 1f)
+                return parentSize;
+        }
+
+        var canvas = GetComponentInParent<Canvas>(true);
+        if (canvas != null && canvas.transform is RectTransform canvasRect)
+        {
+            var canvasSize = canvasRect.rect.size;
+            if (canvasSize.x > 1f && canvasSize.y > 1f)
+                return canvasSize;
+
+            var pixelRect = canvas.pixelRect;
+            if (pixelRect.width > 1f && pixelRect.height > 1f)
+                return pixelRect.size;
+        }
+
+        return new Vector2(Screen.width, Screen.height);
+    }
+
     private void EnsureUiReady()
     {
         var canvas = GetComponentInParent<Canvas>(true);
         if (canvas != null)
         {
+            EnsureCanvasCamera(canvas);
             canvas.overrideSorting = true;
             canvas.sortingOrder = Mathf.Max(canvas.sortingOrder, 8000);
             if (canvas.GetComponent<GraphicRaycaster>() == null)
@@ -155,6 +267,38 @@ public class TownInventoryUI : MonoBehaviour
         }
 
         EnsureEventSystem();
+    }
+
+    private static void EnsureCanvasCamera(Canvas canvas)
+    {
+        if (canvas == null)
+            return;
+
+        if (canvas.renderMode != RenderMode.ScreenSpaceCamera && canvas.renderMode != RenderMode.WorldSpace)
+            return;
+
+        if (canvas.worldCamera != null)
+            return;
+
+        canvas.worldCamera = ResolveSceneCamera();
+    }
+
+    private static Camera ResolveSceneCamera()
+    {
+        if (Camera.main != null)
+            return Camera.main;
+
+        var cameras = Resources.FindObjectsOfTypeAll<Camera>();
+        for (int i = 0; i < cameras.Length; i++)
+        {
+            var camera = cameras[i];
+            if (camera == null || !camera.enabled || !camera.gameObject.activeInHierarchy || !camera.gameObject.scene.IsValid())
+                continue;
+
+            return camera;
+        }
+
+        return null;
     }
 
     private void EnsureEventSystem()

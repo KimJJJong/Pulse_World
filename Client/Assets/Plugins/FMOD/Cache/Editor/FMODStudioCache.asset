@@ -38,10 +38,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Melody/Melody_Orchestral
   Guid:
-    Data1: -606294044
-    Data2: 1174195614
-    Data3: 1742298521
-    Data4: -1602300812
+    Data1: -2048780961
+    Data2: 1216802952
+    Data3: -579800427
+    Data4: 957998676
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -90,10 +90,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Bass/Bass_Lofi
   Guid:
-    Data1: -359202744
-    Data2: 1144589298
-    Data3: -450321497
-    Data4: 295179214
+    Data1: 2002766551
+    Data2: 1287233799
+    Data3: 1518770565
+    Data4: 1932336804
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -190,10 +190,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Orchestral_Bow
   Guid:
-    Data1: -2029076007
-    Data2: 1195582640
-    Data3: 1216964774
-    Data4: 1640517911
+    Data1: -566136975
+    Data2: 1325592787
+    Data3: -1253955401
+    Data4: 1916492257
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -238,10 +238,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Funk_Bow
   Guid:
-    Data1: -4459603
-    Data2: 1237950405
-    Data3: 1175606196
-    Data4: -1348815771
+    Data1: -583070367
+    Data2: 1086584621
+    Data3: 749115290
+    Data4: 680862460
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -290,10 +290,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Funk_Greatsword
   Guid:
-    Data1: -10500748
-    Data2: 1103297131
-    Data3: 1134887062
-    Data4: 742094850
+    Data1: 96571298
+    Data2: 1209031334
+    Data3: 2100350358
+    Data4: 1595433464
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -318,10 +318,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Bass/Bass_Orchestral
   Guid:
-    Data1: -1574920471
-    Data2: 1203863885
-    Data3: 1260527796
-    Data4: -532746752
+    Data1: 1075202923
+    Data2: 1150107509
+    Data3: -1621749104
+    Data4: -587158867
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -410,10 +410,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Funk_Parry
   Guid:
-    Data1: -1090689395
-    Data2: 1099388654
-    Data3: -968048248
-    Data4: 1828164756
+    Data1: -648882403
+    Data2: 1075279339
+    Data3: 753621151
+    Data4: 969010847
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -489,10 +489,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Orchestral_Greatsword
   Guid:
-    Data1: -398172134
-    Data2: 1222776970
-    Data3: 794775436
-    Data4: 204856502
+    Data1: 1063184742
+    Data2: 1141174424
+    Data3: -1344906602
+    Data4: -1174408322
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -517,10 +517,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Jazz_Greatsword
   Guid:
-    Data1: -1529730189
-    Data2: 1102126577
-    Data3: -1410056060
-    Data4: 1817387100
+    Data1: -435724133
+    Data2: 1303219465
+    Data3: -913226317
+    Data4: -2121998
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -545,10 +545,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Jazz_Bow
   Guid:
-    Data1: -1915437610
-    Data2: 1197179730
-    Data3: -951178321
-    Data4: 263439849
+    Data1: -963524697
+    Data2: 1127327229
+    Data3: -2016964204
+    Data4: -1978748311
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -573,10 +573,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Synthwave_Staff
   Guid:
-    Data1: -1261707733
-    Data2: 1136886254
-    Data3: 377033148
-    Data4: 556657579
+    Data1: 388351041
+    Data2: 1179161561
+    Data3: 39542935
+    Data4: -1378367654
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -601,10 +601,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Melody/Melody_Jazz
   Guid:
-    Data1: -247790528
-    Data2: 1248238762
-    Data3: -1599558224
-    Data4: 877589139
+    Data1: 302711771
+    Data2: 1324715214
+    Data3: -368284009
+    Data4: -1766887813
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -708,10 +708,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Synthwave_Bow
   Guid:
-    Data1: -1820637770
-    Data2: 1200730974
-    Data3: 1024172471
-    Data4: 100766728
+    Data1: -301794471
+    Data2: 1202676732
+    Data3: 263991701
+    Data4: -579239119
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -736,10 +736,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Melody/Melody_Funk
   Guid:
-    Data1: -876098316
-    Data2: 1095129596
-    Data3: 1626653860
-    Data4: 1982157361
+    Data1: -1118263387
+    Data2: 1098723973
+    Data3: -544729456
+    Data4: -868252579
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -764,10 +764,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Funk_Dagger
   Guid:
-    Data1: 1543713165
-    Data2: 1112950544
-    Data3: -1975915127
-    Data4: -2036483612
+    Data1: 1889651817
+    Data2: 1238303902
+    Data3: 1153607079
+    Data4: -2128568389
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -792,10 +792,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Bass/Bass_Jazz
   Guid:
-    Data1: 943063387
-    Data2: 1218877721
-    Data3: -1257054291
-    Data4: -313013907
+    Data1: -1507102550
+    Data2: 1093033792
+    Data3: 507385232
+    Data4: 1927444541
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -940,10 +940,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Lofi_Bow
   Guid:
-    Data1: 1159030488
-    Data2: 1127052776
-    Data3: -1876860250
-    Data4: 1329853982
+    Data1: 200897913
+    Data2: 1149014199
+    Data3: -847176528
+    Data4: -1874843421
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1020,10 +1020,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Bass/Bass_Funk
   Guid:
-    Data1: 176219963
-    Data2: 1266035791
-    Data3: 926800259
-    Data4: -1267340559
+    Data1: 1374489771
+    Data2: 1337168120
+    Data3: 2129361340
+    Data4: -1394067364
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1194,7 +1194,7 @@ MonoBehaviour:
   StringsBanks:
   - {fileID: 2230117160535693683}
   cacheVersion: 131858
-  cacheTime: 639164656662828911
+  cacheTime: 639164722904253219
   SerializableEventsDict:
   - key: event:/Drums/TestSmith
     index: 0
@@ -1288,10 +1288,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Synthwave_Greatsword
   Guid:
-    Data1: -670302706
-    Data2: 1320923996
-    Data3: -979144042
-    Data4: -166848067
+    Data1: 1013876905
+    Data2: 1277216149
+    Data3: 841207444
+    Data4: -2087731012
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1340,10 +1340,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Orchestral_Dagger
   Guid:
-    Data1: -898300920
-    Data2: 1146088624
-    Data3: 404336556
-    Data4: 2064205856
+    Data1: -807274427
+    Data2: 1298681079
+    Data3: -571556687
+    Data4: -882562182
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1368,10 +1368,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Melody/Melody_Lofi
   Guid:
-    Data1: -306732848
-    Data2: 1115325624
-    Data3: -1206339690
-    Data4: 681956097
+    Data1: 1720933131
+    Data2: 1212904485
+    Data3: 1219496381
+    Data4: 414657155
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1396,10 +1396,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Orchestral_Parry
   Guid:
-    Data1: -1662637154
-    Data2: 1252105788
-    Data3: -953994105
-    Data4: -122088009
+    Data1: 481404752
+    Data2: 1329816280
+    Data3: 2020380342
+    Data4: 1303209983
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1472,10 +1472,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Synthwave_Parry
   Guid:
-    Data1: -337604365
-    Data2: 1138729785
-    Data3: 1731743128
-    Data4: -850461948
+    Data1: 776867855
+    Data2: 1193666740
+    Data3: -773572428
+    Data4: -952269041
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1500,10 +1500,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Jazz_Dagger
   Guid:
-    Data1: 1736271016
-    Data2: 1150674784
-    Data3: -629009280
-    Data4: -1102909770
+    Data1: 1013520143
+    Data2: 1103136229
+    Data3: 869139108
+    Data4: -1226897978
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1528,10 +1528,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Funk_Staff
   Guid:
-    Data1: 652155274
-    Data2: 1200930129
-    Data3: 1929319323
-    Data4: -2059394282
+    Data1: -727103085
+    Data2: 1277175397
+    Data3: -601856086
+    Data4: -13460054
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1577,7 +1577,7 @@ MonoBehaviour:
   Path: Assets/FMOD/RhythmAudio/Build/Desktop/Master.strings.bank
   Name: Master.strings
   StudioPath: bank:/Master.strings
-  lastModified: 639164656662828911
+  lastModified: 639164722904253219
   FileSizes:
   - Name: Desktop
     Value: 2418
@@ -1620,10 +1620,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Synthwave_Dagger
   Guid:
-    Data1: -1879073136
-    Data2: 1146725365
-    Data3: -808443008
-    Data4: -2038872571
+    Data1: 90494301
+    Data2: 1186136637
+    Data3: 1092048030
+    Data4: -1014640112
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1696,10 +1696,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Orchestral_Staff
   Guid:
-    Data1: 588895796
-    Data2: 1185246099
-    Data3: 1061809315
-    Data4: -754206394
+    Data1: -697403725
+    Data2: 1147658936
+    Data3: 350008485
+    Data4: 1466811677
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1776,10 +1776,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Lofi_Staff
   Guid:
-    Data1: 475007340
-    Data2: 1151758820
-    Data3: -533733446
-    Data4: 834656252
+    Data1: 1941582101
+    Data2: 1138518693
+    Data3: 944939150
+    Data4: -1975651969
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1804,10 +1804,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Melody/Melody_Synthwave
   Guid:
-    Data1: -1032817640
-    Data2: 1272173863
-    Data3: -417476465
-    Data4: -27918110
+    Data1: -1338344294
+    Data2: 1194769537
+    Data3: 1964787861
+    Data4: -1278928454
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1952,10 +1952,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Lofi_Greatsword
   Guid:
-    Data1: -745029260
-    Data2: 1214759634
-    Data3: -613873772
-    Data4: 1887375299
+    Data1: 1606302269
+    Data2: 1243680602
+    Data3: 263828158
+    Data4: -2102671881
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -2032,10 +2032,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Lofi_Dagger
   Guid:
-    Data1: -703685554
-    Data2: 1303549699
-    Data3: 818685831
-    Data4: -286884733
+    Data1: 1380105009
+    Data2: 1285185181
+    Data3: -888124749
+    Data4: -1666306846
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -2108,10 +2108,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Bass/Bass_Synthwave
   Guid:
-    Data1: 685768806
-    Data2: 1109160082
-    Data3: 1599168384
-    Data4: 575607838
+    Data1: 1295166143
+    Data2: 1213394753
+    Data3: 1109052585
+    Data4: 1131394447
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -2259,10 +2259,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Lofi_Parry
   Guid:
-    Data1: 1617999020
-    Data2: 1174836721
-    Data3: -1793720676
-    Data4: 283084950
+    Data1: -995653800
+    Data2: 1134698216
+    Data3: -1362097775
+    Data4: -750678345
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -2311,10 +2311,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Jazz_Parry
   Guid:
-    Data1: 1050343312
-    Data2: 1207129614
-    Data3: 1885044657
-    Data4: -1101626959
+    Data1: 382901967
+    Data2: 1272886365
+    Data3: -593268093
+    Data4: -771082893
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -2340,10 +2340,10 @@ MonoBehaviour:
   Path: Assets/FMOD/RhythmAudio/Build/Desktop/Master.bank
   Name: Master
   StudioPath: bank:/Master
-  lastModified: 639164656662801793
+  lastModified: 639164722904218032
   FileSizes:
   - Name: Desktop
-    Value: 158720
+    Value: 160800
   Exists: 1
 --- !u!114 &8048705592016037784
 MonoBehaviour:
@@ -2383,10 +2383,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Jazz_Staff
   Guid:
-    Data1: 197877300
-    Data2: 1187978317
-    Data3: 549919872
-    Data4: 580367642
+    Data1: -1340932464
+    Data2: 1190176583
+    Data3: 320914620
+    Data4: 753767700
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0

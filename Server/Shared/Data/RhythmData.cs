@@ -58,6 +58,9 @@ namespace Shared.Data
         // 이 문자열이 FMOD Bank의 Event 이름과 1:1 매핑됨
         public string SoundKey = "Kick";
 
+        // SoundKey는 FMOD 이벤트 키로 유지하고, 세부 악보/음색 구분이 필요할 때만 사용.
+        public string ToneKey = string.Empty;
+
         // FMOD PitchOffset 파라미터에 전달할 반음 오프셋. 피치 변주가 필요한 SoundKey에서 사용.
         public int PitchOffset = 0;
 
