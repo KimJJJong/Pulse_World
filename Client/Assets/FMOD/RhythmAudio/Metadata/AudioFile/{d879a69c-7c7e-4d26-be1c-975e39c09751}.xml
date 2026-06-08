@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{d879a69c-7c7e-4d26-be1c-975e39c09751}">
+		<property name="assetPath">
+			<value>Orchestral_Dagger.wav</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>48</value>
+		</property>
+		<property name="channelCount">
+			<value>1</value>
+		</property>
+		<property name="length">
+			<value>0.1</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{6b6d644f-e8bc-4666-8da2-01f7130b9a94}</destination>
+		</relationship>
+	</object>
+</objects>

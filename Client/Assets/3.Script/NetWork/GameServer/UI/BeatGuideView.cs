@@ -26,6 +26,7 @@ public class BeatGuideView : MonoBehaviour
     [SerializeField] private float fadeToFaintSeconds = 0.45f;
     [SerializeField] private float riseToClearSeconds = 0.08f;
     [SerializeField] private Color guideColor = new Color(0.88f, 0.98f, 0.92f, 1f);
+    [SerializeField] private Color inputLockGuideColor = new Color(1f, 0.28f, 0.24f, 1f);
     [SerializeField] private Color inputMarkerColor = new Color(0.88f, 0.98f, 0.92f, 1f);
 
     private float _visibilityAlpha;
@@ -189,6 +190,7 @@ public class BeatGuideView : MonoBehaviour
         if (guides == null)
             return;
 
+        RhythmInputController input = RhythmInputController.Instance;
         for (int i = 0; i < guides.Length; i++)
         {
             TextMeshProUGUI guide = guides[i];
@@ -203,10 +205,14 @@ public class BeatGuideView : MonoBehaviour
             float x = EvaluateGuideX(timeToTargetBeats);
             guide.rectTransform.anchoredPosition = new Vector2(leftSide ? -x : x, 0f);
 
+            bool isInputLockedBeat = IsInputLockedGuideBeat(input, targetBeat);
+            float visibilityAlpha = isInputLockedBeat ? clearAlpha : _visibilityAlpha;
             float alpha = _clearedBeats.Contains(targetBeat)
                 ? 0f
-                : _visibilityAlpha * EvaluateGuideEnvelope(timeToTargetBeats, timeToTargetMs, judgeWindowMs);
-            guide.color = WithAlpha(guideColor, alpha);
+                : visibilityAlpha * EvaluateGuideEnvelope(timeToTargetBeats, timeToTargetMs, judgeWindowMs);
+
+            Color activeColor = isInputLockedBeat ? inputLockGuideColor : guideColor;
+            guide.color = WithAlpha(activeColor, alpha);
         }
     }
 
@@ -305,5 +311,10 @@ public class BeatGuideView : MonoBehaviour
     {
         color.a = Mathf.Clamp01(alpha);
         return color;
+    }
+
+    private static bool IsInputLockedGuideBeat(RhythmInputController input, long targetBeat)
+    {
+        return input != null && input.IsBeatLockedByTimedInputLock(targetBeat);
     }
 }

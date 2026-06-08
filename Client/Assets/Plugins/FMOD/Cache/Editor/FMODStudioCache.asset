@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -38,10 +38,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Melody/Melody_Orchestral
   Guid:
-    Data1: -2048780961
-    Data2: 1216802952
-    Data3: -579800427
-    Data4: 957998676
+    Data1: 1826976802
+    Data2: 1302244316
+    Data3: 2071257528
+    Data4: -364916223
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -66,8 +66,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -90,10 +90,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Bass/Bass_Lofi
   Guid:
-    Data1: 2002766551
-    Data2: 1287233799
-    Data3: 1518770565
-    Data4: 1932336804
+    Data1: 1892612850
+    Data2: 1149312584
+    Data3: 1639038862
+    Data4: -806773127
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -118,8 +118,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -142,8 +142,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -166,8 +166,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -190,10 +190,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Orchestral_Bow
   Guid:
-    Data1: -566136975
-    Data2: 1325592787
-    Data3: -1253955401
-    Data4: 1916492257
+    Data1: -1357702270
+    Data2: 1186675727
+    Data3: -462128467
+    Data4: -177857251
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -238,10 +238,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Funk_Bow
   Guid:
-    Data1: -583070367
-    Data2: 1086584621
-    Data3: 749115290
-    Data4: 680862460
+    Data1: -1224544988
+    Data2: 1111016441
+    Data3: -377446750
+    Data4: -575085780
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -266,8 +266,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -290,10 +290,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Funk_Greatsword
   Guid:
-    Data1: 96571298
-    Data2: 1209031334
-    Data3: 2100350358
-    Data4: 1595433464
+    Data1: -612691732
+    Data2: 1193382164
+    Data3: 1273682079
+    Data4: 1214054072
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -318,10 +318,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Bass/Bass_Orchestral
   Guid:
-    Data1: 1075202923
-    Data2: 1150107509
-    Data3: -1621749104
-    Data4: -587158867
+    Data1: -1350877849
+    Data2: 1175597964
+    Data3: -1741688192
+    Data4: 1942766226
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -386,8 +386,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -410,10 +410,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Funk_Parry
   Guid:
-    Data1: -648882403
-    Data2: 1075279339
-    Data3: 753621151
-    Data4: 969010847
+    Data1: -601449884
+    Data2: 1218559910
+    Data3: 462587297
+    Data4: -15327188
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -438,8 +438,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -489,10 +489,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Orchestral_Greatsword
   Guid:
-    Data1: 1063184742
-    Data2: 1141174424
-    Data3: -1344906602
-    Data4: -1174408322
+    Data1: 1859067838
+    Data2: 1146247870
+    Data3: 934989231
+    Data4: -686355153
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -517,10 +517,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Jazz_Greatsword
   Guid:
-    Data1: -435724133
-    Data2: 1303219465
-    Data3: -913226317
-    Data4: -2121998
+    Data1: -668958448
+    Data2: 1232871771
+    Data3: -1027529066
+    Data4: -60717993
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -545,10 +545,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Jazz_Bow
   Guid:
-    Data1: -963524697
-    Data2: 1127327229
-    Data3: -2016964204
-    Data4: -1978748311
+    Data1: -53563552
+    Data2: 1142971516
+    Data3: -384247127
+    Data4: -1262499653
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -573,10 +573,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Synthwave_Staff
   Guid:
-    Data1: 388351041
-    Data2: 1179161561
-    Data3: 39542935
-    Data4: -1378367654
+    Data1: -1309721128
+    Data2: 1202273831
+    Data3: 411281056
+    Data4: 159974908
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -601,10 +601,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Melody/Melody_Jazz
   Guid:
-    Data1: 302711771
-    Data2: 1324715214
-    Data3: -368284009
-    Data4: -1766887813
+    Data1: 739069747
+    Data2: 1114107239
+    Data3: -1120761671
+    Data4: 1542177955
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -629,8 +629,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -708,10 +708,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Synthwave_Bow
   Guid:
-    Data1: -301794471
-    Data2: 1202676732
-    Data3: 263991701
-    Data4: -579239119
+    Data1: -726010613
+    Data2: 1104599070
+    Data3: -1261242972
+    Data4: -538178020
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -736,10 +736,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Melody/Melody_Funk
   Guid:
-    Data1: -1118263387
-    Data2: 1098723973
-    Data3: -544729456
-    Data4: -868252579
+    Data1: 500487792
+    Data2: 1154530928
+    Data3: -1944510273
+    Data4: 1830310390
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -764,10 +764,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Funk_Dagger
   Guid:
-    Data1: 1889651817
-    Data2: 1238303902
-    Data3: 1153607079
-    Data4: -2128568389
+    Data1: -1195675713
+    Data2: 1306525682
+    Data3: -621500536
+    Data4: 1066057624
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -792,10 +792,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Bass/Bass_Jazz
   Guid:
-    Data1: -1507102550
-    Data2: 1093033792
-    Data3: 507385232
-    Data4: 1927444541
+    Data1: -1239922277
+    Data2: 1211130076
+    Data3: 215127711
+    Data4: 1421319607
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -820,8 +820,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -844,8 +844,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -868,8 +868,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -892,8 +892,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -916,8 +916,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -940,10 +940,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Lofi_Bow
   Guid:
-    Data1: 200897913
-    Data2: 1149014199
-    Data3: -847176528
-    Data4: -1874843421
+    Data1: 2131168761
+    Data2: 1104510572
+    Data3: 823430019
+    Data4: -599653307
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -996,8 +996,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1020,10 +1020,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Bass/Bass_Funk
   Guid:
-    Data1: 1374489771
-    Data2: 1337168120
-    Data3: 2129361340
-    Data4: -1394067364
+    Data1: -1825487359
+    Data2: 1232988776
+    Data3: 1446581409
+    Data4: -387140109
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1075,8 +1075,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1099,8 +1099,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1123,8 +1123,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1194,7 +1194,7 @@ MonoBehaviour:
   StringsBanks:
   - {fileID: 2230117160535693683}
   cacheVersion: 131858
-  cacheTime: 639164722904253219
+  cacheTime: 639165546013442723
   SerializableEventsDict:
   - key: event:/Drums/TestSmith
     index: 0
@@ -1288,10 +1288,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Synthwave_Greatsword
   Guid:
-    Data1: 1013876905
-    Data2: 1277216149
-    Data3: 841207444
-    Data4: -2087731012
+    Data1: -1815848850
+    Data2: 1233087010
+    Data3: 329181615
+    Data4: 2095175157
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1316,8 +1316,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1340,10 +1340,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Orchestral_Dagger
   Guid:
-    Data1: -807274427
-    Data2: 1298681079
-    Data3: -571556687
-    Data4: -882562182
+    Data1: 952834144
+    Data2: 1113603230
+    Data3: 1794825357
+    Data4: 1494065323
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1368,10 +1368,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Melody/Melody_Lofi
   Guid:
-    Data1: 1720933131
-    Data2: 1212904485
-    Data3: 1219496381
-    Data4: 414657155
+    Data1: -1751386277
+    Data2: 1338096702
+    Data3: -345940575
+    Data4: -1290265841
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1396,10 +1396,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Orchestral_Parry
   Guid:
-    Data1: 481404752
-    Data2: 1329816280
-    Data3: 2020380342
-    Data4: 1303209983
+    Data1: 570338007
+    Data2: 1210645607
+    Data3: -530948709
+    Data4: 1181949233
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1424,8 +1424,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1448,8 +1448,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1472,10 +1472,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Synthwave_Parry
   Guid:
-    Data1: 776867855
-    Data2: 1193666740
-    Data3: -773572428
-    Data4: -952269041
+    Data1: -1725943212
+    Data2: 1157297543
+    Data3: 2032219318
+    Data4: 1316058503
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1500,10 +1500,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Jazz_Dagger
   Guid:
-    Data1: 1013520143
-    Data2: 1103136229
-    Data3: 869139108
-    Data4: -1226897978
+    Data1: -1892807550
+    Data2: 1108317403
+    Data3: 422949004
+    Data4: -297316376
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1528,10 +1528,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Funk_Staff
   Guid:
-    Data1: -727103085
-    Data2: 1277175397
-    Data3: -601856086
-    Data4: -13460054
+    Data1: -1681920801
+    Data2: 1236815900
+    Data3: 1485931926
+    Data4: -1580190060
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1577,7 +1577,7 @@ MonoBehaviour:
   Path: Assets/FMOD/RhythmAudio/Build/Desktop/Master.strings.bank
   Name: Master.strings
   StudioPath: bank:/Master.strings
-  lastModified: 639164722904253219
+  lastModified: 639165546013442723
   FileSizes:
   - Name: Desktop
     Value: 2418
@@ -1596,8 +1596,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1620,10 +1620,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Synthwave_Dagger
   Guid:
-    Data1: 90494301
-    Data2: 1186136637
-    Data3: 1092048030
-    Data4: -1014640112
+    Data1: 185508612
+    Data2: 1143007064
+    Data3: 1339079863
+    Data4: 1265560861
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1648,8 +1648,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1672,8 +1672,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1696,10 +1696,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Orchestral_Staff
   Guid:
-    Data1: -697403725
-    Data2: 1147658936
-    Data3: 350008485
-    Data4: 1466811677
+    Data1: 1740416352
+    Data2: 1185263637
+    Data3: 1015718049
+    Data4: -609978722
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1724,8 +1724,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1776,10 +1776,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Lofi_Staff
   Guid:
-    Data1: 1941582101
-    Data2: 1138518693
-    Data3: 944939150
-    Data4: -1975651969
+    Data1: 1810804695
+    Data2: 1231274039
+    Data3: -218772066
+    Data4: -2107681258
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1804,10 +1804,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Melody/Melody_Synthwave
   Guid:
-    Data1: -1338344294
-    Data2: 1194769537
-    Data3: 1964787861
-    Data4: -1278928454
+    Data1: 2117418314
+    Data2: 1204696105
+    Data3: 1210622910
+    Data4: -1578728454
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -1832,8 +1832,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1856,8 +1856,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1880,8 +1880,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1904,8 +1904,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1928,8 +1928,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -1952,10 +1952,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Lofi_Greatsword
   Guid:
-    Data1: 1606302269
-    Data2: 1243680602
-    Data3: 263828158
-    Data4: -2102671881
+    Data1: 219663040
+    Data2: 1102388639
+    Data3: 43885954
+    Data4: 1261757613
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -2008,8 +2008,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -2032,10 +2032,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Lofi_Dagger
   Guid:
-    Data1: 1380105009
-    Data2: 1285185181
-    Data3: -888124749
-    Data4: -1666306846
+    Data1: 1963072790
+    Data2: 1163368561
+    Data3: -507585910
+    Data4: -606351252
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -2060,8 +2060,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -2084,8 +2084,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -2108,10 +2108,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/Bass/Bass_Synthwave
   Guid:
-    Data1: 1295166143
-    Data2: 1213394753
-    Data3: 1109052585
-    Data4: 1131394447
+    Data1: -1097932164
+    Data2: 1329153761
+    Data3: -605877373
+    Data4: 1485458299
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -2136,8 +2136,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -2184,8 +2184,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -2259,10 +2259,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Lofi_Parry
   Guid:
-    Data1: -995653800
-    Data2: 1134698216
-    Data3: -1362097775
-    Data4: -750678345
+    Data1: 358622087
+    Data2: 1148756342
+    Data3: 26463624
+    Data4: 71931965
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -2287,8 +2287,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -2311,10 +2311,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Jazz_Parry
   Guid:
-    Data1: 382901967
-    Data2: 1272886365
-    Data3: -593268093
-    Data4: -771082893
+    Data1: -26130655
+    Data2: 1089475700
+    Data3: 1161356201
+    Data4: -320492631
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0
@@ -2340,7 +2340,7 @@ MonoBehaviour:
   Path: Assets/FMOD/RhythmAudio/Build/Desktop/Master.bank
   Name: Master
   StudioPath: bank:/Master
-  lastModified: 639164722904218032
+  lastModified: 639165546013402445
   FileSizes:
   - Name: Desktop
     Value: 160800
@@ -2359,8 +2359,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
   Name: PitchOffset
   StudioPath: 
-  Min: -36
-  Max: 36
+  Min: -48
+  Max: 48
   Default: 0
   ID:
     data1: 3793023307
@@ -2383,10 +2383,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
   Path: event:/SFX/Jazz_Staff
   Guid:
-    Data1: -1340932464
-    Data2: 1190176583
-    Data3: 320914620
-    Data4: 753767700
+    Data1: -921955533
+    Data2: 1301109444
+    Data3: -295310966
+    Data4: -288415613
   Banks:
   - {fileID: 7973147513669653309}
   IsStream: 0

@@ -279,11 +279,12 @@ public class ClientSkillRunner : MonoBehaviour
         if (endTick > _inputLockEndTick)
             _inputLockEndTick = endTick;
 
+        if (RhythmInputController.Instance != null)
+            RhythmInputController.Instance.ApplyTimedInputLock(_inputLockEndTick);
+
         if (!_isInputLocked)
         {
             _isInputLocked = true;
-            if (RhythmInputController.Instance != null)
-                RhythmInputController.Instance.IsInputBlocked = true;
         }
     }
 
@@ -292,7 +293,7 @@ public class ClientSkillRunner : MonoBehaviour
         if (!_isInputLocked) return;
         _isInputLocked = false;
         if (RhythmInputController.Instance != null)
-            RhythmInputController.Instance.IsInputBlocked = false;
+            RhythmInputController.Instance.ReleaseTimedInputLock(_inputLockEndTick);
         if (P2PDebugConfig.TraceCombat)
             Debug.Log($"[ClientSkillRunner] InputLock released for actor {_actorId}");
     }

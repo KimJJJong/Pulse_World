@@ -644,6 +644,33 @@ public class RhythmEditorWindow : EditorWindow
         Debug.Log($"[RhythmEditor] Preview Sound: {eventPath} (PitchOffset: {pitchOffset}, Volume: {resolvedVolume:F2})");
     }
 
+    private int GetChordPitchOffsetAt(RhythmBlock block, int measureIndex, int tick)
+    {
+        if (block == null || block.ChordEvents == null || block.ChordEvents.Count == 0)
+            return 0;
+
+        int beatsPerMeasure = stageData != null ? stageData.TimeSignatureNum : 4;
+        int ticksPerBeat = stageData != null ? stageData.TicksPerBeat : 480;
+        long noteAbsoluteTick = (measureIndex * beatsPerMeasure * ticksPerBeat) + tick;
+
+        ChordEvent bestChord = null;
+        long bestChordTick = -1;
+
+        foreach (var chord in block.ChordEvents)
+        {
+            long chordAbsoluteTick = (chord.MeasureIndex * beatsPerMeasure * ticksPerBeat) + chord.Tick;
+            if (chordAbsoluteTick <= noteAbsoluteTick)
+            {
+                if (chordAbsoluteTick > bestChordTick)
+                {
+                    bestChordTick = chordAbsoluteTick;
+                    bestChord = chord;
+                }
+            }
+        }
+        return bestChord != null ? bestChord.PitchOffset : 0;
+    }
+
     private string GetEditorFmodEventPath(string soundKey)
     {
         if (string.IsNullOrEmpty(soundKey)) return null;

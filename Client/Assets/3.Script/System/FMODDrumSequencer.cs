@@ -83,6 +83,28 @@ public class FMODDrumSequencer : MonoBehaviour
     {
         ClearPendingPlays();
 
+        // 씬 전환/파괴 시 모든 FMOD 재생 중지하여 오디오 누수 방지
+        if (FMODUnity.RuntimeManager.IsInitialized)
+        {
+            try
+            {
+                FMOD.Studio.Bus masterBus;
+                if (FMODUnity.RuntimeManager.StudioSystem.getBus("bus:/", out masterBus) == FMOD.RESULT.OK)
+                {
+                    masterBus.stopAllEvents(FMOD.Studio.STOP_MODE.IMMEDIATE);
+                }
+                FMOD.ChannelGroup masterCG;
+                if (FMODUnity.RuntimeManager.CoreSystem.getMasterChannelGroup(out masterCG) == FMOD.RESULT.OK)
+                {
+                    masterCG.stop();
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[FMODDrum] Failed to stop FMOD systems in OnDestroy: {e.Message}");
+            }
+        }
+
         foreach (var sound in _simulatorSoundCache.Values)
         {
             if (sound.hasHandle())
@@ -210,16 +232,31 @@ public class FMODDrumSequencer : MonoBehaviour
         int beatsPerMeasure = _stageData.TimeSignatureNum;
         int totalBeatsInBlock = _currentBlock.LengthMeasures * beatsPerMeasure;
 
-        long currentBeatIndex = RhythmClient.Instance.GetCurrentBeatIndex();
-        if (currentBeatIndex < 0) return;
-
         // 1. 현재 블록의 끝나는 시간 판별
         double blockDurationSec = (totalBeatsInBlock * RhythmClient.Instance.GetBeatDurationMs()) / 1000.0;
         double blockEndSec = (RhythmClient.Instance.ServerSongStartMs + _blockStartBeatIndex * RhythmClient.Instance.GetBeatDurationMs()) / 1000.0 + blockDurationSec;
 
-        // 2. 블록 전환 (현재 재생 시간이 블록 끝을 실제로 지났을 때)
-        if (currentServerTimeSec >= blockEndSec)
+        // 2. 블록 전환 (현재 실제 비트가 현재 블록의 범위를 크게 벗어났을 경우 단번에 워프하여 과거 노트 난사 방지)
+        long currentBeatIndex = RhythmClient.Instance.GetCurrentBeatIndex();
+        if (currentBeatIndex >= _blockStartBeatIndex + totalBeatsInBlock)
         {
+            while (currentBeatIndex >= _blockStartBeatIndex + totalBeatsInBlock)
+            {
+                string nextId = _currentBlock.DefaultNextBlock;
+                var nextBlock = _stageData.Blocks.Find(b => b.BlockId == nextId) ?? _currentBlock;
+                _currentBlock = nextBlock;
+                _blockStartBeatIndex += totalBeatsInBlock;
+
+                totalBeatsInBlock = _currentBlock.LengthMeasures * beatsPerMeasure;
+            }
+
+            // 워프 완료 후, 새로 계산된 블록 기준 EndSec 재계산
+            blockDurationSec = (totalBeatsInBlock * RhythmClient.Instance.GetBeatDurationMs()) / 1000.0;
+            blockEndSec = (RhythmClient.Instance.ServerSongStartMs + _blockStartBeatIndex * RhythmClient.Instance.GetBeatDurationMs()) / 1000.0 + blockDurationSec;
+        }
+        else if (currentServerTimeSec >= blockEndSec)
+        {
+            // 점진적인 일반 블록 전환 (1비트 수준 미세 초과 시)
             string nextId = _currentBlock.DefaultNextBlock;
             var nextBlock = _stageData.Blocks.Find(b => b.BlockId == nextId) ?? _currentBlock;
             _currentBlock = nextBlock;
@@ -321,8 +358,10 @@ public class FMODDrumSequencer : MonoBehaviour
 
         // FMOD Studio API를 사용해 볼륨 파라미터 적용 (옵션)
         instance.setVolume(note.VolumeMultiplier > 0 ? note.VolumeMultiplier : 1.0f);
-        if (note.PitchOffset != 0)
-            instance.setParameterByName("PitchOffset", note.PitchOffset);
+        
+        // 악보 개별 피치 오프셋에 화성 진행(Chord) 피치 오프셋을 더해 최종 조옮김 피치 전달
+        int finalPitchOffset = note.PitchOffset + GetPitchOffsetAt(block, note.MeasureIndex, note.Tick);
+        instance.setParameterByName("PitchOffset", finalPitchOffset);
 
         double latestCurrentTimeSec = GetCurrentServerTimeSec();
         if (targetTimeSec <= latestCurrentTimeSec)
@@ -428,10 +467,14 @@ public class FMODDrumSequencer : MonoBehaviour
     private bool TryStartStudioEventAtDspTime(FMOD.Studio.EventInstance instance, double targetTimeSec)
     {
         double delaySec = Math.Max(0.0, targetTimeSec - GetCurrentServerTimeSec());
-        if (!TryGetTargetDspClock(delaySec, out ulong targetDSPClock))
-            return false;
+        
+        RuntimeManager.CoreSystem.getSoftwareFormat(out int sampleRate, out _, out _);
+        if (sampleRate <= 0) sampleRate = SimulatorSampleRate;
 
-        FMOD.RESULT scheduleResult = instance.setProperty(FMOD.Studio.EVENT_PROPERTY.SCHEDULE_DELAY, (float)targetDSPClock);
+        // SCHEDULE_DELAY는 FMOD Studio 이벤트의 상대 딜레이 샘플 수를 필요로 합니다. 절대 DSP 클럭을 넘길 시 오랜 무음 딜레이가 발생합니다.
+        float delaySamples = (float)Math.Max(0.0, Math.Round(delaySec * sampleRate));
+
+        FMOD.RESULT scheduleResult = instance.setProperty(FMOD.Studio.EVENT_PROPERTY.SCHEDULE_DELAY, delaySamples);
         if (scheduleResult != FMOD.RESULT.OK)
         {
             Debug.LogWarning($"[FMODDrum] Studio DSP schedule failed. Result={scheduleResult}");
@@ -477,24 +520,30 @@ public class FMODDrumSequencer : MonoBehaviour
 
     private static int GetPitchOffsetAt(RhythmBlock block, long measureIndex, long tick)
     {
-        if (block == null || block.ChordEvents == null)
+        if (block == null || block.ChordEvents == null || block.ChordEvents.Count == 0)
             return 0;
 
-        int currentOffset = 0;
+        int beatsPerMeasure = Instance != null && Instance._stageData != null ? Instance._stageData.TimeSignatureNum : 4;
+        int ticksPerBeat = Instance != null && Instance._stageData != null ? Instance._stageData.TicksPerBeat : 480;
+        long noteAbsoluteTick = (measureIndex * beatsPerMeasure * ticksPerBeat) + tick;
+
+        ChordEvent bestChord = null;
+        long bestChordTick = -1;
+
         foreach (var chord in block.ChordEvents)
         {
-            if (chord.MeasureIndex < measureIndex ||
-                (chord.MeasureIndex == measureIndex && chord.Tick <= tick))
+            long chordAbsoluteTick = (chord.MeasureIndex * beatsPerMeasure * ticksPerBeat) + chord.Tick;
+            if (chordAbsoluteTick <= noteAbsoluteTick)
             {
-                currentOffset = chord.PitchOffset;
-            }
-            else
-            {
-                break;
+                if (chordAbsoluteTick > bestChordTick)
+                {
+                    bestChordTick = chordAbsoluteTick;
+                    bestChord = chord;
+                }
             }
         }
 
-        return currentOffset;
+        return bestChord != null ? bestChord.PitchOffset : 0;
     }
 
     private static bool IsBassMelodySimulatorSound(string soundKey)
@@ -555,21 +604,30 @@ public class FMODDrumSequencer : MonoBehaviour
         if (block == null || block.ChordEvents == null || block.ChordEvents.Count == 0)
             return new SimulatorChord(0, "Major");
 
-        ChordEvent current = block.ChordEvents[0];
+        int beatsPerMeasure = Instance != null && Instance._stageData != null ? Instance._stageData.TimeSignatureNum : 4;
+        int ticksPerBeat = Instance != null && Instance._stageData != null ? Instance._stageData.TicksPerBeat : 480;
+        long noteAbsoluteTick = (measureIndex * beatsPerMeasure * ticksPerBeat) + tick;
+
+        ChordEvent bestChord = null;
+        long bestChordTick = -1;
+
         foreach (var chord in block.ChordEvents)
         {
-            if (chord.MeasureIndex < measureIndex ||
-                (chord.MeasureIndex == measureIndex && chord.Tick <= tick))
+            long chordAbsoluteTick = (chord.MeasureIndex * beatsPerMeasure * ticksPerBeat) + chord.Tick;
+            if (chordAbsoluteTick <= noteAbsoluteTick)
             {
-                current = chord;
-            }
-            else
-            {
-                break;
+                if (chordAbsoluteTick > bestChordTick)
+                {
+                    bestChordTick = chordAbsoluteTick;
+                    bestChord = chord;
+                }
             }
         }
 
-        return new SimulatorChord(current.PitchOffset, current.ChordType);
+        if (bestChord == null)
+            bestChord = block.ChordEvents[0];
+
+        return new SimulatorChord(bestChord.PitchOffset, bestChord.ChordType);
     }
 
     private static byte[] RenderBassMelodySimulatorWav(BassNote note, SimulatorChord chord)
@@ -904,21 +962,23 @@ public class FMODDrumSequencer : MonoBehaviour
         if (_currentBlock.ChordEvents == null || _currentBlock.ChordEvents.Count == 0)
             return null;
 
-        ChordEvent current = _currentBlock.ChordEvents[0];
+        long noteAbsoluteTick = (measureIndex * beatsPerMeasure * _stageData.TicksPerBeat) + currentTick;
+        ChordEvent bestChord = null;
+        long bestChordTick = -1;
+
         foreach (var chord in _currentBlock.ChordEvents)
         {
-            if (chord.MeasureIndex < measureIndex ||
-               (chord.MeasureIndex == measureIndex && chord.Tick <= currentTick))
+            long chordAbsoluteTick = (chord.MeasureIndex * beatsPerMeasure * _stageData.TicksPerBeat) + chord.Tick;
+            if (chordAbsoluteTick <= noteAbsoluteTick)
             {
-                current = chord;
-            }
-            else
-            {
-                // 시간 순 정렬되어 있다고 가정
-                break;
+                if (chordAbsoluteTick > bestChordTick)
+                {
+                    bestChordTick = chordAbsoluteTick;
+                    bestChord = chord;
+                }
             }
         }
-        return current;
+        return bestChord ?? _currentBlock.ChordEvents[0];
     }
 
     public string GetDynamicFmodEventPath(string soundKey)

@@ -8,11 +8,11 @@
 			<destination>{f4fd3bbb-d58f-4378-9dbe-9f562db7944f}</destination>
 		</relationship>
 		<relationship name="items">
-			<destination>{40164b6b-3f75-448d-9012-569fadaa00dd}</destination>
-			<destination>{4d32aabf-ef41-4852-a9cc-1a428fb56f43}</destination>
-			<destination>{51ed0cab-90f8-4fb3-bc79-eb7e5c38e8ac}</destination>
-			<destination>{775fcad7-a107-4cb9-8599-865aa41e2d73}</destination>
-			<destination>{a62b70aa-5f40-4126-9015-3e1e3d78e272}</destination>
+			<destination>{70cefaf2-1e48-4481-8ebf-b161799ee9cf}</destination>
+			<destination>{93314601-ea68-497d-a114-3956f3b5ece8}</destination>
+			<destination>{af7b3d67-338c-4612-80f2-2f989242cc73}</destination>
+			<destination>{b618499b-60dc-4830-9f96-d20cb79db754}</destination>
+			<destination>{be8ee27c-46e1-4f39-830b-e3db7b4b8a58}</destination>
 		</relationship>
 	</object>
 </objects>

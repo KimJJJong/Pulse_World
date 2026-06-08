@@ -37,7 +37,22 @@ public class RhythmInputController : MonoBehaviour
     [SerializeField] float rotateAngle = 90f;
     [SerializeField] public GameObject targetObject = null;
 
-    public bool IsInputBlocked { get; set; } = false;
+    private bool _isInputBlocked;
+    private long _inputLockEndTick = long.MinValue;
+
+    public bool IsInputBlocked
+    {
+        get => _isInputBlocked;
+        set
+        {
+            _isInputBlocked = value;
+            if (!value)
+                _inputLockEndTick = long.MinValue;
+        }
+    }
+
+    public long InputLockEndTick => _inputLockEndTick;
+    public bool HasTimedInputLock => _isInputBlocked && _inputLockEndTick > 0;
     public InputChannel CurrentChannel => channel;
     public bool HoldAutoInputEnabled => holdAutoInput;
     public string CurrentTargetName => targetObject != null ? targetObject.name : "<null>";
@@ -87,6 +102,34 @@ public class RhythmInputController : MonoBehaviour
             return "";
 
         return _skillSlotIds[slotIndex] ?? "";
+    }
+
+    public void ApplyTimedInputLock(long endTick)
+    {
+        if (endTick > _inputLockEndTick)
+            _inputLockEndTick = endTick;
+
+        _isInputBlocked = true;
+    }
+
+    public void ReleaseTimedInputLock(long endTick)
+    {
+        if (!_isInputBlocked || _inputLockEndTick <= 0)
+            return;
+
+        if (endTick >= _inputLockEndTick)
+            IsInputBlocked = false;
+    }
+
+    public bool IsBeatLockedByTimedInputLock(long beatIndex)
+    {
+        if (!HasTimedInputLock || Rhythm == null)
+            return false;
+
+        if (Rhythm.GetCurrentServerTick() >= _inputLockEndTick)
+            return false;
+
+        return Rhythm.GetBeatTick(beatIndex) < _inputLockEndTick;
     }
 
 
