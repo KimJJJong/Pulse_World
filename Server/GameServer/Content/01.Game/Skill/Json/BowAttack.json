@@ -1,6 +1,6 @@
 {
   "SkillId": "BowAttack",
-  "TotalDurationTicks": 960,
+  "TotalDurationTicks": 1440,
   "Tracks": [
     {
       "TrackName": "Track 0",
