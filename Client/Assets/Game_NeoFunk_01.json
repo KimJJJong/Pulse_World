@@ -1,471 +1,471 @@
 {
-  "StageId": "Game_NeoFunk_01",
-  "Bpm": 110,
-  "TimeSignatureNum": 4,
-  "TimeSignatureDenom": 4,
-  "TicksPerBeat": 480,
-  "Blocks": [
-    {
-      "BlockId": "Funk_Loop",
-      "LengthMeasures": 4,
-      "DefaultNextBlock": "Funk_Loop",
-      "OverrideBpm": 0,
-      "ChordEvents": [
+    "StageId": "Game_NeoFunk_01",
+    "Bpm": 110,
+    "TimeSignatureNum": 4,
+    "TimeSignatureDenom": 4,
+    "TicksPerBeat": 480,
+    "Blocks": [
         {
-          "MeasureIndex": 0,
-          "Tick": 0,
-          "RootNote": "E",
-          "ChordType": "Minor9",
-          "PitchOffset": 4
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 0,
-          "RootNote": "A",
-          "ChordType": "Dominant13",
-          "PitchOffset": 9
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 0,
-          "RootNote": "D",
-          "ChordType": "Minor9",
-          "PitchOffset": 2
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 0,
-          "RootNote": "G",
-          "ChordType": "Dominant7",
-          "PitchOffset": 7
+            "BlockId": "Funk_Loop",
+            "LengthMeasures": 4,
+            "DefaultNextBlock": "Funk_Loop",
+            "OverrideBpm": 0,
+            "ChordEvents": [
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "RootNote": "E",
+                    "ChordType": "Major",
+                    "PitchOffset": 4
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "RootNote": "A",
+                    "ChordType": "Major",
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "RootNote": "D",
+                    "ChordType": "Major",
+                    "PitchOffset": 2
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "RootNote": "G",
+                    "ChordType": "Major",
+                    "PitchOffset": 7
+                }
+            ],
+            "BassPattern": [
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Pop",
+                    "PitchOffset": 16,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Ghost",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "FunkGuitar_E4",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Ghost",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Pop",
+                    "PitchOffset": 16,
+                    "VolumeMultiplier": 0.949999988079071
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "FunkGuitar_G4",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Slap",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Pop",
+                    "PitchOffset": 21,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Ghost",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "FunkGuitar_A4",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Ghost",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Pop",
+                    "PitchOffset": 21,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "FunkGuitar_B4",
+                    "PitchOffset": 11,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Slap",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Pop",
+                    "PitchOffset": 14,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Ghost",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "FunkGuitar_D4",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Ghost",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Pop",
+                    "PitchOffset": 14,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "FunkGuitar_F4",
+                    "PitchOffset": 5,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Slap",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Pop",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Ghost",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "FunkGuitar_G4",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Ghost",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Pop",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "Clav_Chop",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Thumb",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Funk",
+                    "ToneKey": "FunkGuitar_A4",
+                    "PitchOffset": 9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Ghost",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1800,
+                    "SoundKey": "Bass_Funk",
+                    "ToneKey": "SlapBass_Slide",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 1.0
+                }
+            ]
         }
-      ],
-      "BassPattern": [
-        {
-          "MeasureIndex": 0,
-          "Tick": 0,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 4,
-          "VolumeMultiplier": 1
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 240,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Pop",
-          "PitchOffset": 16,
-          "VolumeMultiplier": 0.9
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 240,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 4,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 480,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Ghost",
-          "PitchOffset": 4,
-          "VolumeMultiplier": 0.5
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 480,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "FunkGuitar_E4",
-          "PitchOffset": 4,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 720,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 4,
-          "VolumeMultiplier": 0.8
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 720,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 4,
-          "VolumeMultiplier": 0.65
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 960,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Ghost",
-          "PitchOffset": 4,
-          "VolumeMultiplier": 0.5
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 1200,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Pop",
-          "PitchOffset": 16,
-          "VolumeMultiplier": 0.95
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 1200,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 4,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 1440,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 4,
-          "VolumeMultiplier": 0.85
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 1440,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "FunkGuitar_G4",
-          "PitchOffset": 7,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 0,
-          "Tick": 1680,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Slap",
-          "PitchOffset": 4,
-          "VolumeMultiplier": 0.9
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 0,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 9,
-          "VolumeMultiplier": 1
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 240,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Pop",
-          "PitchOffset": 21,
-          "VolumeMultiplier": 0.9
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 240,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 9,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 480,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Ghost",
-          "PitchOffset": 9,
-          "VolumeMultiplier": 0.5
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 480,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "FunkGuitar_A4",
-          "PitchOffset": 9,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 720,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 9,
-          "VolumeMultiplier": 0.8
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 720,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 9,
-          "VolumeMultiplier": 0.65
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 960,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Ghost",
-          "PitchOffset": 9,
-          "VolumeMultiplier": 0.5
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 1200,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Pop",
-          "PitchOffset": 21,
-          "VolumeMultiplier": 0.95
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 1200,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 9,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 1440,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 9,
-          "VolumeMultiplier": 0.85
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 1440,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "FunkGuitar_B4",
-          "PitchOffset": 11,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 1,
-          "Tick": 1680,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Slap",
-          "PitchOffset": 9,
-          "VolumeMultiplier": 0.9
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 0,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 2,
-          "VolumeMultiplier": 1
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 240,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Pop",
-          "PitchOffset": 14,
-          "VolumeMultiplier": 0.9
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 240,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 2,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 480,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Ghost",
-          "PitchOffset": 2,
-          "VolumeMultiplier": 0.5
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 480,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "FunkGuitar_D4",
-          "PitchOffset": 2,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 720,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 2,
-          "VolumeMultiplier": 0.8
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 720,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 2,
-          "VolumeMultiplier": 0.65
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 960,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Ghost",
-          "PitchOffset": 2,
-          "VolumeMultiplier": 0.5
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 1200,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Pop",
-          "PitchOffset": 14,
-          "VolumeMultiplier": 0.95
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 1200,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 2,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 1440,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 2,
-          "VolumeMultiplier": 0.85
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 1440,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "FunkGuitar_F4",
-          "PitchOffset": 5,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 2,
-          "Tick": 1680,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Slap",
-          "PitchOffset": 2,
-          "VolumeMultiplier": 0.9
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 0,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 7,
-          "VolumeMultiplier": 1
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 240,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Pop",
-          "PitchOffset": 19,
-          "VolumeMultiplier": 0.9
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 240,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 7,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 480,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Ghost",
-          "PitchOffset": 7,
-          "VolumeMultiplier": 0.5
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 480,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "FunkGuitar_G4",
-          "PitchOffset": 7,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 720,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 7,
-          "VolumeMultiplier": 0.8
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 720,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 7,
-          "VolumeMultiplier": 0.65
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 960,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Ghost",
-          "PitchOffset": 7,
-          "VolumeMultiplier": 0.5
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 1200,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Pop",
-          "PitchOffset": 19,
-          "VolumeMultiplier": 0.95
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 1200,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "Clav_Chop",
-          "PitchOffset": 7,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 1440,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Thumb",
-          "PitchOffset": 7,
-          "VolumeMultiplier": 0.8
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 1440,
-          "SoundKey": "Melody_Funk",
-          "ToneKey": "FunkGuitar_A4",
-          "PitchOffset": 9,
-          "VolumeMultiplier": 0.7
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 1680,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Ghost",
-          "PitchOffset": 7,
-          "VolumeMultiplier": 0.5
-        },
-        {
-          "MeasureIndex": 3,
-          "Tick": 1800,
-          "SoundKey": "Bass_Funk",
-          "ToneKey": "SlapBass_Slide",
-          "PitchOffset": 19,
-          "VolumeMultiplier": 0.85
-        }
-      ]
-    }
-  ]
+    ]
 }
