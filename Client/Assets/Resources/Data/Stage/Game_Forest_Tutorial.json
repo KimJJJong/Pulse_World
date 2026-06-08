@@ -2,8 +2,8 @@
     "MapId": "Game_Forest_Tutorial",
     "Description": "for Tutorial \n - Forest - ",
     "RhythmSettings": {
-        "SongKey": "Game_Forest_01",
-        "Bpm": 120,
+        "SongKey": "Game_Jazz_01",
+        "Bpm": 110,
         "BaseBeatDivision": 1,
         "ActionWindowMs": 150,
         "StartDelayMs": 2000

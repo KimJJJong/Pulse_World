@@ -1,6 +1,6 @@
 {
   "SkillId": "BowAttack",
-  "TotalDurationTicks": 1440,
+  "TotalDurationTicks": 960,
   "Tracks": [
     {
       "TrackName": "Track 0",
@@ -134,7 +134,7 @@
       "TrackName": "Track 4",
       "Events": [
         {
-          "TriggerTick": 960,
+          "TriggerTick": 720,
           "DurationTicks": 480,
           "Action": {
             "Type": 6,

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
   Data:
     SkillId: BowAttack
-    TotalDurationTicks: 1440
+    TotalDurationTicks: 960
     Tracks:
     - TrackName: Track 0
       Events:
@@ -42,7 +42,7 @@ MonoBehaviour:
           rid: 4242872515865870433
     - TrackName: Track 4
       Events:
-      - TriggerTick: 960
+      - TriggerTick: 480
         DurationTicks: 480
         Action:
           rid: 4242872515865870436

@@ -16,7 +16,7 @@ MonoBehaviour:
   Description: "for Tutorial \n - Forest - "
   MapPrefab: {fileID: 0}
   Rhythm:
-    SongKey: Game_Forest_01
+    SongKey: Game_Jazz_01
     Bpm: 100
     BaseBeatDivision: 1
     ActionWindowMs: 150

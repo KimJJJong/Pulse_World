@@ -15,56 +15,56 @@
                     "MeasureIndex": 0,
                     "Tick": 0,
                     "RootNote": "C",
-                    "ChordType": "Minor7",
+                    "ChordType": "Major",
                     "PitchOffset": 0
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 0,
                     "RootNote": "F",
-                    "ChordType": "Dominant7",
+                    "ChordType": "Major",
                     "PitchOffset": 5
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 0,
-                    "RootNote": "Bb",
-                    "ChordType": "Major7",
-                    "PitchOffset": 10
+                    "RootNote": "C",
+                    "ChordType": "Major",
+                    "PitchOffset": 0
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 0,
-                    "RootNote": "Eb",
-                    "ChordType": "Major7",
-                    "PitchOffset": 3
+                    "RootNote": "C",
+                    "ChordType": "Major",
+                    "PitchOffset": 0
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 0,
-                    "RootNote": "Ab",
-                    "ChordType": "Major7",
-                    "PitchOffset": 8
+                    "RootNote": "C",
+                    "ChordType": "Major",
+                    "PitchOffset": 0
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 0,
                     "RootNote": "D",
-                    "ChordType": "HalfDiminished7",
+                    "ChordType": "Major",
                     "PitchOffset": 2
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 0,
                     "RootNote": "G",
-                    "ChordType": "Dominant7Alt",
+                    "ChordType": "Major",
                     "PitchOffset": 7
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 0,
                     "RootNote": "C",
-                    "ChordType": "Minor7",
+                    "ChordType": "Major",
                     "PitchOffset": 0
                 }
             ],
@@ -73,785 +73,897 @@
                     "MeasureIndex": 0,
                     "Tick": 0,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 1,
-                    "PitchOffset": -12
+                    "ToneKey": "",
+                    "PitchOffset": -12,
+                    "VolumeMultiplier": 1.0
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 480,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 960,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": -5
+                    "ToneKey": "",
+                    "PitchOffset": -5,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 1440,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 0,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.8,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.800000011920929
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 720,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.75,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.75
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 0,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 12
+                    "ToneKey": "",
+                    "PitchOffset": 12,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 14
+                    "ToneKey": "",
+                    "PitchOffset": 14,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 720,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 1440,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 19
+                    "ToneKey": "",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 240,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 19
+                    "ToneKey": "",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 22
+                    "ToneKey": "",
+                    "PitchOffset": 22,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 1680,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 24
+                    "ToneKey": "",
+                    "PitchOffset": 24,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 0,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 1,
-                    "PitchOffset": -7
+                    "ToneKey": "",
+                    "PitchOffset": -7,
+                    "VolumeMultiplier": 1.0
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 480,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": -3
+                    "ToneKey": "",
+                    "PitchOffset": -3,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 960,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 1440,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": -1
+                    "ToneKey": "",
+                    "PitchOffset": -1,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 240,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.8,
-                    "PitchOffset": 5
+                    "ToneKey": "",
+                    "PitchOffset": 5,
+                    "VolumeMultiplier": 0.800000011920929
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.75,
-                    "PitchOffset": 5
+                    "ToneKey": "",
+                    "PitchOffset": 5,
+                    "VolumeMultiplier": 0.75
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 0,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 21
+                    "ToneKey": "",
+                    "PitchOffset": 21,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 19
+                    "ToneKey": "",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 720,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 17
+                    "ToneKey": "",
+                    "PitchOffset": 17,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 240,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 12
+                    "ToneKey": "",
+                    "PitchOffset": 12,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 17
+                    "ToneKey": "",
+                    "PitchOffset": 17,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 960,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 0,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 1,
-                    "PitchOffset": -2
+                    "ToneKey": "",
+                    "PitchOffset": -2,
+                    "VolumeMultiplier": 1.0
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 480,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 2
+                    "ToneKey": "",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 960,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 5
+                    "ToneKey": "",
+                    "PitchOffset": 5,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 1440,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 4
+                    "ToneKey": "",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 0,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.8,
-                    "PitchOffset": 10
+                    "ToneKey": "",
+                    "PitchOffset": 10,
+                    "VolumeMultiplier": 0.800000011920929
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 960,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.75,
-                    "PitchOffset": 10
+                    "ToneKey": "",
+                    "PitchOffset": 10,
+                    "VolumeMultiplier": 0.75
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 0,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 14
+                    "ToneKey": "",
+                    "PitchOffset": 14,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 17
+                    "ToneKey": "",
+                    "PitchOffset": 17,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 960,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 21
+                    "ToneKey": "",
+                    "PitchOffset": 21,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 1680,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 22
+                    "ToneKey": "",
+                    "PitchOffset": 22,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 240,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 14
+                    "ToneKey": "",
+                    "PitchOffset": 14,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 17
+                    "ToneKey": "",
+                    "PitchOffset": 17,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 21
+                    "ToneKey": "",
+                    "PitchOffset": 21,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 1440,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 26
+                    "ToneKey": "",
+                    "PitchOffset": 26,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 0,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 1,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 1.0
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 480,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": -5
+                    "ToneKey": "",
+                    "PitchOffset": -5,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 960,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": -2
+                    "ToneKey": "",
+                    "PitchOffset": -2,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 1440,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": -3
+                    "ToneKey": "",
+                    "PitchOffset": -3,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 720,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.8,
-                    "PitchOffset": 3
+                    "ToneKey": "",
+                    "PitchOffset": 3,
+                    "VolumeMultiplier": 0.800000011920929
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 1440,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.75,
-                    "PitchOffset": 3
+                    "ToneKey": "",
+                    "PitchOffset": 3,
+                    "VolumeMultiplier": 0.75
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 0,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 19
+                    "ToneKey": "",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 720,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 17
+                    "ToneKey": "",
+                    "PitchOffset": 17,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 960,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 19
+                    "ToneKey": "",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 1440,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 22
+                    "ToneKey": "",
+                    "PitchOffset": 22,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 240,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 10
+                    "ToneKey": "",
+                    "PitchOffset": 10,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 14
+                    "ToneKey": "",
+                    "PitchOffset": 14,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 19
+                    "ToneKey": "",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 720,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 22
+                    "ToneKey": "",
+                    "PitchOffset": 22,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 0,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 1,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 1.0
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 480,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 960,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 1440,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 240,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.8,
-                    "PitchOffset": 8
+                    "ToneKey": "",
+                    "PitchOffset": 8,
+                    "VolumeMultiplier": 0.800000011920929
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.75,
-                    "PitchOffset": 8
+                    "ToneKey": "",
+                    "PitchOffset": 8,
+                    "VolumeMultiplier": 0.75
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 0,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 24
+                    "ToneKey": "",
+                    "PitchOffset": 24,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 22
+                    "ToneKey": "",
+                    "PitchOffset": 22,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 720,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 1440,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 19
+                    "ToneKey": "",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 240,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 12
+                    "ToneKey": "",
+                    "PitchOffset": 12,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 4,
                     "Tick": 1680,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 0,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 1,
-                    "PitchOffset": -10
+                    "ToneKey": "",
+                    "PitchOffset": -10,
+                    "VolumeMultiplier": 1.0
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 480,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": -7
+                    "ToneKey": "",
+                    "PitchOffset": -7,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 960,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 1440,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 0,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.8,
-                    "PitchOffset": 2
+                    "ToneKey": "",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 0.800000011920929
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 960,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.75,
-                    "PitchOffset": 2
+                    "ToneKey": "",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 0.75
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 0,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 17
+                    "ToneKey": "",
+                    "PitchOffset": 17,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 960,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 24
+                    "ToneKey": "",
+                    "PitchOffset": 24,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 26
+                    "ToneKey": "",
+                    "PitchOffset": 26,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 240,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 14
+                    "ToneKey": "",
+                    "PitchOffset": 14,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 17
+                    "ToneKey": "",
+                    "PitchOffset": 17,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 960,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 29
+                    "ToneKey": "",
+                    "PitchOffset": 29,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 0,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 1,
-                    "PitchOffset": -5
+                    "ToneKey": "",
+                    "PitchOffset": -5,
+                    "VolumeMultiplier": 1.0
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 480,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": -1
+                    "ToneKey": "",
+                    "PitchOffset": -1,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 960,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 2
+                    "ToneKey": "",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 1440,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.8,
-                    "PitchOffset": 7
+                    "ToneKey": "",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 0.800000011920929
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 1440,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.75,
-                    "PitchOffset": 7
+                    "ToneKey": "",
+                    "PitchOffset": 7,
+                    "VolumeMultiplier": 0.75
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 0,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 23
+                    "ToneKey": "",
+                    "PitchOffset": 23,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 720,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 19
+                    "ToneKey": "",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 1440,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 17
+                    "ToneKey": "",
+                    "PitchOffset": 17,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 240,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 11
+                    "ToneKey": "",
+                    "PitchOffset": 11,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 14
+                    "ToneKey": "",
+                    "PitchOffset": 14,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 19
+                    "ToneKey": "",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 960,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.8,
-                    "PitchOffset": 31
+                    "ToneKey": "",
+                    "PitchOffset": 31,
+                    "VolumeMultiplier": 0.800000011920929
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 0,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 1,
-                    "PitchOffset": -12
+                    "ToneKey": "",
+                    "PitchOffset": -12,
+                    "VolumeMultiplier": 1.0
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 480,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 960,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": -5
+                    "ToneKey": "",
+                    "PitchOffset": -5,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 1440,
                     "SoundKey": "Bass_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": -1
+                    "ToneKey": "",
+                    "PitchOffset": -1,
+                    "VolumeMultiplier": 0.8500000238418579
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 240,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.8,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.800000011920929
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.75,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.75
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 0,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.9,
-                    "PitchOffset": 14
+                    "ToneKey": "",
+                    "PitchOffset": 14,
+                    "VolumeMultiplier": 0.8999999761581421
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 960,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.95,
-                    "PitchOffset": 12
+                    "ToneKey": "",
+                    "PitchOffset": 12,
+                    "VolumeMultiplier": 0.949999988079071
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 240,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 12
+                    "ToneKey": "",
+                    "PitchOffset": 12,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 480,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 0
+                    "ToneKey": "",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 1200,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.7,
-                    "PitchOffset": 19
+                    "ToneKey": "",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.699999988079071
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 1440,
                     "SoundKey": "Melody_Jazz",
-                    "VolumeMultiplier": 0.85,
-                    "PitchOffset": 24
+                    "ToneKey": "",
+                    "PitchOffset": 24,
+                    "VolumeMultiplier": 0.8500000238418579
                 }
             ]
         }

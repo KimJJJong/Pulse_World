@@ -274,6 +274,66 @@
           }
         }
       ]
+    },
+    {
+      "TrackName": "Track 4",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "event:/SFX/Funk_Bow",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 5",
+      "Events": [
+        {
+          "TriggerTick": 240,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "event:/SFX/Funk_Bow",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 6",
+      "Events": [
+        {
+          "TriggerTick": 480,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "event:/SFX/Funk_Bow",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 7",
+      "Events": [
+        {
+          "TriggerTick": 960,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "event:/SFX/Funk_Bow",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
     }
   ]
 }
