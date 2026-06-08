@@ -34,9 +34,33 @@ MonoBehaviour:
         DurationTicks: 960
         Action:
           rid: 8211689906238652420
+    - TrackName: Track 3
+      Events:
+      - TriggerTick: 240
+        DurationTicks: 480
+        Action:
+          rid: 4242872515865870433
+    - TrackName: Track 4
+      Events:
+      - TriggerTick: 960
+        DurationTicks: 480
+        Action:
+          rid: 4242872515865870436
   references:
     version: 2
     RefIds:
+    - rid: 4242872515865870433
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: event:/SFX/Funk_Bow
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 4242872515865870436
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: event:/SFX/Funk_Bow
+        Volume: 1
+        UseOwnerPerspective: 1
     - rid: 8211689906238652416
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:

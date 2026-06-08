@@ -33,14 +33,27 @@ public class FMODActionSoundPlayer : MonoBehaviour
     /// </summary>
     public void PlayByEventPath(string fmodEventPath, float volume = 1.0f)
     {
-        if (string.IsNullOrEmpty(fmodEventPath)) return;
+        if (string.IsNullOrWhiteSpace(fmodEventPath)) return;
 
-        string weaponType = "";
-        if (fmodEventPath.IndexOf("dagger", System.StringComparison.OrdinalIgnoreCase) >= 0) weaponType = "Dagger";
-        else if (fmodEventPath.IndexOf("greatsword", System.StringComparison.OrdinalIgnoreCase) >= 0) weaponType = "Greatsword";
-        else if (fmodEventPath.IndexOf("bow", System.StringComparison.OrdinalIgnoreCase) >= 0) weaponType = "Bow";
-        else if (fmodEventPath.IndexOf("parry", System.StringComparison.OrdinalIgnoreCase) >= 0) weaponType = "Parry";
-        else if (fmodEventPath.IndexOf("staff", System.StringComparison.OrdinalIgnoreCase) >= 0) weaponType = "Staff";
+        string requestedPath = NormalizeKnownEventPath(fmodEventPath.Trim());
+        string weaponType = ResolveWeaponType(requestedPath);
+
+        if (requestedPath.StartsWith("event:/", System.StringComparison.OrdinalIgnoreCase))
+        {
+            if (weaponType == "Staff")
+            {
+                Shared.Data.ChordEvent chord = null;
+                if (FMODDrumSequencer.Instance != null)
+                    chord = FMODDrumSequencer.Instance.GetCurrentChord();
+
+                StartCoroutine(PlayStaffArpeggio(requestedPath, volume, chord));
+            }
+            else
+            {
+                PlayInstance(requestedPath, volume, requestedPath);
+            }
+            return;
+        }
 
         if (!string.IsNullOrEmpty(weaponType))
         {
@@ -48,7 +61,7 @@ public class FMODActionSoundPlayer : MonoBehaviour
             if (FMODDrumSequencer.Instance != null)
                 genre = FMODDrumSequencer.Instance.GetCurrentGenre();
 
-            string resolvedEventPath = $"event:/{genre}_{weaponType}";
+            string resolvedEventPath = $"event:/SFX/{genre}_{weaponType}";
 
             if (weaponType == "Staff")
             {
@@ -65,7 +78,42 @@ public class FMODActionSoundPlayer : MonoBehaviour
             return;
         }
 
-        PlayInstance(fmodEventPath, volume, fmodEventPath);
+        PlayInstance(requestedPath, volume, requestedPath);
+    }
+
+    private static string ResolveWeaponType(string pathOrKey)
+    {
+        if (pathOrKey.IndexOf("dagger", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Dagger";
+        if (pathOrKey.IndexOf("greatsword", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Greatsword";
+        if (pathOrKey.IndexOf("bow", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Bow";
+        if (pathOrKey.IndexOf("parry", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Parry";
+        if (pathOrKey.IndexOf("staff", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Staff";
+        return string.Empty;
+    }
+
+    private static string NormalizeKnownEventPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return string.Empty;
+
+        string[] genres = { "Synthwave", "Lofi", "Funk", "Orchestral", "Jazz" };
+        string[] weapons = { "Dagger", "Greatsword", "Bow", "Parry", "Staff" };
+
+        foreach (string genre in genres)
+        {
+            foreach (string weapon in weapons)
+            {
+                string eventName = $"{genre}_{weapon}";
+                if (path.Equals(eventName, System.StringComparison.OrdinalIgnoreCase) ||
+                    path.Equals($"event:/{eventName}", System.StringComparison.OrdinalIgnoreCase) ||
+                    path.Equals($"event:/SFX/{eventName}", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return $"event:/SFX/{eventName}";
+                }
+            }
+        }
+
+        return path;
     }
 
     private static void PlayInstance(EventReference eventReference, float volume, string logContext)
