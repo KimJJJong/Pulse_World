@@ -73,6 +73,37 @@ public class FMODDrumSequencer : MonoBehaviour
 
     private const int SimulatorSampleRate = 48000;
     private const float SimulatorMasterVolume = 0.7f;
+    private static readonly Dictionary<string, float> JazzToneFrequencies = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Bass_C2", 65.41f }, { "Bass_D2", 73.42f }, { "Bass_Eb2", 77.78f }, { "Bass_F2", 87.31f },
+        { "Bass_Gb2", 92.50f }, { "Bass_G2", 98.00f }, { "Bass_Ab2", 103.83f }, { "Bass_A2", 110.00f },
+        { "Bass_Bb2", 116.54f }, { "Bass_B2", 123.47f }, { "Bass_C3", 130.81f }, { "Bass_Db3", 138.59f },
+        { "Bass_D3", 146.83f }, { "Bass_Eb3", 155.56f }, { "Bass_E3", 164.81f }, { "Bass_F3", 174.61f },
+        { "Bass_Gb3", 185.00f }, { "Bass_G3", 196.00f }, { "Bass_Ab3", 207.65f }, { "Bass_A3", 220.00f },
+        { "Bass_Bb3", 233.08f }, { "Bass_B3", 246.94f }, { "Bass_C4", 261.63f },
+        { "Sax_C4", 261.63f }, { "Sax_D4", 293.66f }, { "Sax_Eb4", 311.13f }, { "Sax_F4", 349.23f },
+        { "Sax_Gb4", 369.99f }, { "Sax_G4", 392.00f }, { "Sax_Ab4", 415.30f }, { "Sax_A4", 440.00f },
+        { "Sax_Bb4", 466.16f }, { "Sax_B4", 493.88f }, { "Sax_C5", 523.25f }, { "Sax_Db5", 554.37f },
+        { "Sax_D5", 587.33f }, { "Sax_Eb5", 622.25f }, { "Sax_F5", 698.46f }, { "Sax_Gb5", 739.99f },
+        { "Sax_G5", 783.99f }, { "Sax_Ab5", 830.61f }, { "Sax_A5", 880.00f }, { "Sax_Bb5", 932.33f },
+        { "Sax_C6", 1046.50f }
+    };
+
+    private static readonly Dictionary<string, float[]> JazzChordFrequencies = new Dictionary<string, float[]>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Piano_Cm7", new[] { 130.81f, 155.56f, 196.00f, 233.08f } },
+        { "Piano_Cm9", new[] { 130.81f, 155.56f, 196.00f, 233.08f, 293.66f } },
+        { "Piano_F7", new[] { 174.61f, 220.00f, 261.63f, 311.13f } },
+        { "Piano_Fm7", new[] { 174.61f, 207.65f, 261.63f, 311.13f } },
+        { "Piano_Bb7", new[] { 233.08f, 293.66f, 349.23f, 415.30f } },
+        { "Piano_Bbmaj7", new[] { 116.54f, 146.83f, 174.61f, 220.00f } },
+        { "Piano_Ebmaj7", new[] { 155.56f, 196.00f, 233.08f, 293.66f } },
+        { "Piano_Abmaj7", new[] { 207.65f, 261.63f, 311.13f, 392.00f } },
+        { "Piano_Ab7#11", new[] { 207.65f, 246.94f, 311.13f, 349.23f } },
+        { "Piano_Dm7b5", new[] { 146.83f, 174.61f, 207.65f, 261.63f } },
+        { "Piano_Dbmaj7", new[] { 138.59f, 174.61f, 207.65f, 261.63f } },
+        { "Piano_G7alt", new[] { 196.00f, 246.94f, 349.23f, 415.30f } }
+    };
 
     private void Awake()
     {
@@ -553,7 +584,34 @@ public class FMODDrumSequencer : MonoBehaviour
 
         return soundKey.StartsWith("SlapBass_", StringComparison.OrdinalIgnoreCase) ||
                soundKey.StartsWith("FunkGuitar", StringComparison.OrdinalIgnoreCase) ||
-               soundKey.Equals("Clav_Chop", StringComparison.OrdinalIgnoreCase);
+               soundKey.Equals("Clav_Chop", StringComparison.OrdinalIgnoreCase) ||
+               IsEnsembleSimulatorSound(soundKey) ||
+               IsJazzSimulatorSound(soundKey);
+    }
+
+    private static bool IsEnsembleSimulatorSound(string soundKey)
+    {
+        if (string.IsNullOrEmpty(soundKey))
+            return false;
+
+        return soundKey.StartsWith("SynthBass_", StringComparison.OrdinalIgnoreCase) ||
+               soundKey.StartsWith("SynthLead_", StringComparison.OrdinalIgnoreCase) ||
+               soundKey.StartsWith("SubBass_", StringComparison.OrdinalIgnoreCase) ||
+               soundKey.StartsWith("Rhodes_", StringComparison.OrdinalIgnoreCase) ||
+               soundKey.StartsWith("LofiFlute_", StringComparison.OrdinalIgnoreCase) ||
+               soundKey.StartsWith("OrchBass_", StringComparison.OrdinalIgnoreCase) ||
+               soundKey.StartsWith("Timpani_", StringComparison.OrdinalIgnoreCase) ||
+               soundKey.StartsWith("Violin_", StringComparison.OrdinalIgnoreCase) ||
+               soundKey.StartsWith("Harp_", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsJazzSimulatorSound(string soundKey)
+    {
+        if (string.IsNullOrEmpty(soundKey))
+            return false;
+
+        return JazzToneFrequencies.ContainsKey(soundKey) ||
+               JazzChordFrequencies.ContainsKey(soundKey);
     }
 
     public static bool UsesBassMelodySimulator(BassNote note)
@@ -584,6 +642,7 @@ public class FMODDrumSequencer : MonoBehaviour
                soundKey.IndexOf("flute", StringComparison.OrdinalIgnoreCase) >= 0 ||
                soundKey.IndexOf("guitar", StringComparison.OrdinalIgnoreCase) >= 0 ||
                soundKey.IndexOf("violin", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               soundKey.IndexOf("harp", StringComparison.OrdinalIgnoreCase) >= 0 ||
                soundKey.IndexOf("sax", StringComparison.OrdinalIgnoreCase) >= 0 ||
                soundKey.IndexOf("piano", StringComparison.OrdinalIgnoreCase) >= 0 ||
                soundKey.IndexOf("rhodes", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -633,11 +692,93 @@ public class FMODDrumSequencer : MonoBehaviour
     private static byte[] RenderBassMelodySimulatorWav(BassNote note, SimulatorChord chord)
     {
         string toneKey = GetToneKey(note);
-        float[] samples = IsBassMelodySimulatorMelody(toneKey)
-            ? RenderSimulatorMelody(note, chord)
-            : RenderSimulatorBass(note, chord);
+        float[] samples = IsJazzSimulatorSound(toneKey)
+            ? RenderJazzSimulatorSound(toneKey)
+            : (IsBassMelodySimulatorMelody(toneKey)
+                ? RenderSimulatorMelody(note, chord)
+                : RenderSimulatorBass(note, chord));
 
         return BuildMono16Wav(samples, SimulatorSampleRate);
+    }
+
+    private static float[] RenderJazzSimulatorSound(string toneKey)
+    {
+        if (JazzChordFrequencies.TryGetValue(toneKey, out float[] chordFrequencies))
+            return RenderJazzChord(chordFrequencies);
+
+        if (JazzToneFrequencies.TryGetValue(toneKey, out float frequency))
+        {
+            if (toneKey.StartsWith("Bass_", StringComparison.OrdinalIgnoreCase))
+                return RenderJazzBass(frequency);
+
+            return RenderJazzMelody(frequency);
+        }
+
+        return new float[Mathf.CeilToInt(0.1f * SimulatorSampleRate)];
+    }
+
+    private static float[] RenderJazzBass(float frequency)
+    {
+        const float durationSec = 0.4f;
+        int sampleCount = Mathf.CeilToInt(durationSec * SimulatorSampleRate);
+        float[] samples = new float[sampleCount];
+        var filter = BiquadFilter.CreateLowPass(SimulatorSampleRate, 200.0f, 1.5f);
+        double phase = 0.0;
+
+        for (int i = 0; i < sampleCount; i++)
+        {
+            float time = i / (float)SimulatorSampleRate;
+            float env = Envelope(time, 0.015f, 0.35f, 0.35f * SimulatorMasterVolume * SimulatorMasterVolume);
+            float raw = Triangle(ref phase, frequency);
+            samples[i] = Mathf.Clamp(filter.Process(raw * env), -1.0f, 1.0f);
+        }
+
+        return samples;
+    }
+
+    private static float[] RenderJazzMelody(float frequency)
+    {
+        const float durationSec = 0.6f;
+        int sampleCount = Mathf.CeilToInt(durationSec * SimulatorSampleRate);
+        float[] samples = new float[sampleCount];
+        double phase = 0.0;
+
+        for (int i = 0; i < sampleCount; i++)
+        {
+            float time = i / (float)SimulatorSampleRate;
+            float detuneCents = Mathf.Sin(2.0f * Mathf.PI * 5.5f * time) * 4.0f;
+            float detunedFrequency = frequency * Mathf.Pow(2.0f, detuneCents / 1200.0f);
+            float env = Envelope(time, 0.04f, 0.5f, 0.18f * SimulatorMasterVolume * SimulatorMasterVolume);
+            float raw = Sine(ref phase, detunedFrequency);
+            samples[i] = Mathf.Clamp(raw * env, -1.0f, 1.0f);
+        }
+
+        return samples;
+    }
+
+    private static float[] RenderJazzChord(float[] frequencies)
+    {
+        const float durationSec = 0.6f;
+        int sampleCount = Mathf.CeilToInt(durationSec * SimulatorSampleRate);
+        float[] samples = new float[sampleCount];
+        double[] phases = new double[frequencies.Length];
+        float voicePeak = (0.18f * SimulatorMasterVolume * SimulatorMasterVolume) / Mathf.Max(1, frequencies.Length);
+
+        for (int i = 0; i < sampleCount; i++)
+        {
+            float time = i / (float)SimulatorSampleRate;
+            float env = Envelope(time, 0.04f, 0.5f, voicePeak);
+            float mixed = 0.0f;
+
+            for (int voice = 0; voice < frequencies.Length; voice++)
+            {
+                mixed += Sine(ref phases[voice], frequencies[voice]) * env;
+            }
+
+            samples[i] = Mathf.Clamp(mixed, -1.0f, 1.0f);
+        }
+
+        return samples;
     }
 
     private static float[] RenderSimulatorBass(BassNote note, SimulatorChord chord)
@@ -666,14 +807,15 @@ public class FMODDrumSequencer : MonoBehaviour
         }
 
         float frequency = GetFrequencyForChordTone(chord, degree, octaveOffset);
-        var filter = BiquadFilter.CreateLowPass(SimulatorSampleRate, 450.0f, 1.5f);
+        var filter = BiquadFilter.CreateLowPass(SimulatorSampleRate, GetSimulatorBassFilterFrequency(note), 1.5f);
+        SimulatorWaveform waveform = GetSimulatorBassWaveform(note);
         double phase = 0.0;
 
         for (int i = 0; i < sampleCount; i++)
         {
             float time = i / (float)SimulatorSampleRate;
             float env = Envelope(time, 0.015f, 0.35f, 0.35f * SimulatorMasterVolume * SimulatorMasterVolume);
-            float raw = Saw(ref phase, frequency);
+            float raw = Oscillate(waveform, ref phase, frequency);
             samples[i] = Mathf.Clamp(filter.Process(raw * env), -1.0f, 1.0f);
         }
 
@@ -687,15 +829,17 @@ public class FMODDrumSequencer : MonoBehaviour
         float[] samples = new float[sampleCount];
 
         float baseFrequency = ResolveSimulatorMelodyFrequency(note, chord);
+        SimulatorWaveform waveform = GetSimulatorMelodyWaveform(note);
+        GetSimulatorVibrato(note, out float vibratoSpeed, out float vibratoDepth);
         double phase = 0.0;
 
         for (int i = 0; i < sampleCount; i++)
         {
             float time = i / (float)SimulatorSampleRate;
-            float detuneCents = Mathf.Sin(2.0f * Mathf.PI * 5.5f * time) * 4.0f;
+            float detuneCents = Mathf.Sin(2.0f * Mathf.PI * vibratoSpeed * time) * vibratoDepth;
             float frequency = baseFrequency * Mathf.Pow(2.0f, detuneCents / 1200.0f);
             float env = Envelope(time, 0.04f, 0.5f, 0.18f * SimulatorMasterVolume * SimulatorMasterVolume);
-            float raw = Triangle(ref phase, frequency);
+            float raw = Oscillate(waveform, ref phase, frequency);
             samples[i] = Mathf.Clamp(raw * env, -1.0f, 1.0f);
         }
 
@@ -758,18 +902,88 @@ public class FMODDrumSequencer : MonoBehaviour
         {
             case "C": semitone = 0; return true;
             case "C#": semitone = 1; return true;
+            case "Db": semitone = 1; return true;
             case "D": semitone = 2; return true;
             case "D#": semitone = 3; return true;
+            case "Eb": semitone = 3; return true;
             case "E": semitone = 4; return true;
             case "F": semitone = 5; return true;
             case "F#": semitone = 6; return true;
+            case "Gb": semitone = 6; return true;
             case "G": semitone = 7; return true;
             case "G#": semitone = 8; return true;
+            case "Ab": semitone = 8; return true;
             case "A": semitone = 9; return true;
             case "A#": semitone = 10; return true;
+            case "Bb": semitone = 10; return true;
             case "B": semitone = 11; return true;
             default: semitone = 0; return false;
         }
+    }
+
+    private static SimulatorWaveform GetSimulatorBassWaveform(BassNote note)
+    {
+        string toneKey = GetToneKey(note);
+        if (toneKey.StartsWith("SubBass_", StringComparison.OrdinalIgnoreCase) ||
+            toneKey.StartsWith("OrchBass_", StringComparison.OrdinalIgnoreCase) ||
+            toneKey.StartsWith("Timpani_", StringComparison.OrdinalIgnoreCase))
+        {
+            return SimulatorWaveform.Triangle;
+        }
+
+        return SimulatorWaveform.Saw;
+    }
+
+    private static float GetSimulatorBassFilterFrequency(BassNote note)
+    {
+        string toneKey = GetToneKey(note);
+        if (toneKey.StartsWith("SynthBass_", StringComparison.OrdinalIgnoreCase))
+            return 280.0f;
+        if (toneKey.StartsWith("SubBass_", StringComparison.OrdinalIgnoreCase))
+            return 150.0f;
+        if (toneKey.StartsWith("OrchBass_", StringComparison.OrdinalIgnoreCase) ||
+            toneKey.StartsWith("Timpani_", StringComparison.OrdinalIgnoreCase))
+            return 180.0f;
+
+        return 450.0f;
+    }
+
+    private static SimulatorWaveform GetSimulatorMelodyWaveform(BassNote note)
+    {
+        string toneKey = GetToneKey(note);
+        if (toneKey.StartsWith("SynthLead_", StringComparison.OrdinalIgnoreCase))
+            return SimulatorWaveform.Square;
+        if (toneKey.StartsWith("LofiFlute_", StringComparison.OrdinalIgnoreCase) ||
+            toneKey.StartsWith("Rhodes_", StringComparison.OrdinalIgnoreCase))
+            return SimulatorWaveform.Sine;
+        if (toneKey.StartsWith("Violin_", StringComparison.OrdinalIgnoreCase) ||
+            toneKey.StartsWith("Harp_", StringComparison.OrdinalIgnoreCase))
+            return SimulatorWaveform.Saw;
+
+        return SimulatorWaveform.Triangle;
+    }
+
+    private static void GetSimulatorVibrato(BassNote note, out float speed, out float depth)
+    {
+        string toneKey = GetToneKey(note);
+        if (toneKey.StartsWith("LofiFlute_", StringComparison.OrdinalIgnoreCase) ||
+            toneKey.StartsWith("Rhodes_", StringComparison.OrdinalIgnoreCase))
+        {
+            speed = 4.2f;
+            depth = 6.0f;
+            return;
+        }
+
+        if (toneKey.StartsWith("Violin_", StringComparison.OrdinalIgnoreCase) ||
+            toneKey.StartsWith("Harp_", StringComparison.OrdinalIgnoreCase))
+        {
+            speed = 6.2f;
+            depth = 3.0f;
+            return;
+        }
+
+        speed = 5.5f;
+        depth = 4.0f;
     }
 
     private static float GetFrequencyForChordTone(SimulatorChord chord, int degree, int octaveOffset)
@@ -841,6 +1055,36 @@ public class FMODDrumSequencer : MonoBehaviour
         return (float)((2.0 * Math.Abs((2.0 * phase) - 1.0)) - 1.0);
     }
 
+    private static float Sine(ref double phase, float frequency)
+    {
+        phase += frequency / SimulatorSampleRate;
+        phase -= Math.Floor(phase);
+        return Mathf.Sin((float)(2.0 * Math.PI * phase));
+    }
+
+    private static float Square(ref double phase, float frequency)
+    {
+        phase += frequency / SimulatorSampleRate;
+        phase -= Math.Floor(phase);
+        return phase < 0.5 ? 1.0f : -1.0f;
+    }
+
+    private static float Oscillate(SimulatorWaveform waveform, ref double phase, float frequency)
+    {
+        switch (waveform)
+        {
+            case SimulatorWaveform.Sine:
+                return Sine(ref phase, frequency);
+            case SimulatorWaveform.Square:
+                return Square(ref phase, frequency);
+            case SimulatorWaveform.Saw:
+                return Saw(ref phase, frequency);
+            case SimulatorWaveform.Triangle:
+            default:
+                return Triangle(ref phase, frequency);
+        }
+    }
+
     private static byte[] BuildMono16Wav(float[] samples, int sampleRate)
     {
         using (var stream = new MemoryStream())
@@ -882,6 +1126,14 @@ public class FMODDrumSequencer : MonoBehaviour
             PitchOffset = pitchOffset;
             ChordType = string.IsNullOrWhiteSpace(chordType) ? "Major" : chordType;
         }
+    }
+
+    private enum SimulatorWaveform
+    {
+        Sine,
+        Square,
+        Saw,
+        Triangle
     }
 
     private struct BiquadFilter

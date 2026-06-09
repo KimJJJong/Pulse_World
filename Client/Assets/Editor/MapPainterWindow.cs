@@ -144,7 +144,8 @@ public sealed class MapPainterWindow : EditorWindow
     private Vector2 _controlScroll;
     private float _controlPanelWidth = ControlPanelMinWidth;
     private float _lastMapViewportWidth = 1f;
-    private float _lastMapContentWidth = 1f;
+    private float _lastMapViewportHeight = 1f;
+    private float _horizontalScrollbarDragOffset;
     private bool _dragPainting;
     private int _lastPaintIndex = -1;
     private bool _hasHoveredCell;
@@ -165,6 +166,8 @@ public sealed class MapPainterWindow : EditorWindow
     private int _dragPasteSelectionEndY;
     private int _dragPasteTargetX;
     private int _dragPasteTargetY;
+
+    private const int HorizontalMapScrollbarControlHint = 0x4D505848;
 
     [MenuItem("RhythmRPG/Editors/World/Map Painter")]
     public static void Open() => GetWindow<MapPainterWindow>("Map Painter");
@@ -349,11 +352,16 @@ public sealed class MapPainterWindow : EditorWindow
 
     private void FitCellSizeToVisibleMap()
     {
-        float availableMapWidth = Mathf.Max(120f, position.width - GetControlPanelWidth() - 34f);
-        float availableMapHeight = Mathf.Max(MinViewHeight, position.height - 96f);
+        float availableMapWidth = _lastMapViewportWidth > 1f
+            ? _lastMapViewportWidth
+            : Mathf.Max(120f, position.width - GetControlPanelWidth() - 34f);
+        float availableMapHeight = _lastMapViewportHeight > 1f
+            ? _lastMapViewportHeight
+            : Mathf.Max(MinViewHeight, position.height - 96f);
         float fitX = availableMapWidth / Mathf.Max(1, _map.Width);
         float fitY = availableMapHeight / Mathf.Max(1, _map.Height);
         _cellSize = Mathf.Clamp(Mathf.Floor(Mathf.Min(fitX, fitY)), MinCellSize, MaxCellSize);
+        ClampScrollToCurrentMap();
         Repaint();
     }
 
@@ -402,13 +410,39 @@ public sealed class MapPainterWindow : EditorWindow
             return 0f;
 
         float cellSize = Mathf.Clamp(_cellSize, MinCellSize, MaxCellSize);
-        float contentWidth = _lastMapContentWidth > 1f
-            ? _lastMapContentWidth
-            : _map.Width * cellSize;
+        float contentWidth = GetMapContentSize(_map.Width, cellSize);
         float viewportWidth = _lastMapViewportWidth > 1f
             ? _lastMapViewportWidth
             : GetVisibleMapAreaWidth(GetControlPanelWidth() + 12f) - GetVerticalScrollbarWidth();
         return Mathf.Max(0f, contentWidth - viewportWidth);
+    }
+
+    private void ClampScrollToCurrentMap()
+    {
+        if (_map == null)
+        {
+            _scroll = Vector2.zero;
+            return;
+        }
+
+        float cellSize = Mathf.Clamp(_cellSize, MinCellSize, MaxCellSize);
+        Rect contentRect = new Rect(
+            0f,
+            0f,
+            GetMapContentSize(_map.Width, cellSize),
+            GetMapContentSize(_map.Height, cellSize));
+        float viewportWidth = _lastMapViewportWidth > 1f
+            ? _lastMapViewportWidth
+            : Mathf.Max(1f, position.width - GetControlPanelWidth() - 34f);
+        float viewportHeight = _lastMapViewportHeight > 1f
+            ? _lastMapViewportHeight
+            : Mathf.Max(MinViewHeight, position.height - 96f);
+        _scroll = ClampMapScroll(_scroll, contentRect, viewportWidth, viewportHeight);
+    }
+
+    private static float GetMapContentSize(int cells, float cellSize)
+    {
+        return Mathf.Max(1f, Mathf.Max(1, cells) * cellSize);
     }
 
     private float GetVisibleMapAreaWidth(float mapAreaX)
@@ -445,27 +479,34 @@ public sealed class MapPainterWindow : EditorWindow
     private void DrawGridOptimized(float availableHeight)
     {
         float cellSize = Mathf.Clamp(_cellSize, MinCellSize, MaxCellSize);
-        int gridW = Mathf.RoundToInt(_map.Width * cellSize);
-        int gridH = Mathf.RoundToInt(_map.Height * cellSize);
+        float gridW = GetMapContentSize(_map.Width, cellSize);
+        float gridH = GetMapContentSize(_map.Height, cellSize);
         float scrollbarWidth = GetVerticalScrollbarWidth();
         float scrollbarHeight = GetHorizontalScrollbarHeight();
 
         Rect outerRect = GUILayoutUtility.GetRect(
             1f,
-            Mathf.Max(1f, position.width),
+            100000f,
             availableHeight,
             availableHeight,
             GUILayout.ExpandWidth(true),
             GUILayout.Height(availableHeight));
-        outerRect.width = GetVisibleMapAreaWidth(outerRect.x);
+        float visibleWidth = GetVisibleMapAreaWidth(outerRect.x);
+        outerRect.width = Mathf.Max(1f, Mathf.Min(outerRect.width, visibleWidth) - MapViewportRightPadding);
         Rect viewportRect = new Rect(
             outerRect.x,
             outerRect.y + scrollbarHeight,
             Mathf.Max(1f, outerRect.width - scrollbarWidth),
             Mathf.Max(1f, outerRect.height - scrollbarHeight));
         Rect contentRect = new Rect(0f, 0f, gridW, gridH);
-        _lastMapViewportWidth = viewportRect.width;
-        _lastMapContentWidth = contentRect.width;
+        if (Event.current.type == EventType.Layout)
+            return;
+
+        if (Event.current.type == EventType.Repaint)
+        {
+            _lastMapViewportWidth = viewportRect.width;
+            _lastMapViewportHeight = viewportRect.height;
+        }
 
         _scroll = ClampMapScroll(_scroll, contentRect, viewportRect.width, viewportRect.height);
         HandleMapScrollWheelInput(viewportRect, contentRect, viewportRect.width, viewportRect.height);
@@ -487,7 +528,6 @@ public sealed class MapPainterWindow : EditorWindow
 
         Rect gridRect = new Rect(-_scroll.x, -_scroll.y, contentRect.width, contentRect.height);
         GUI.BeginGroup(viewportRect);
-        GUI.Box(gridRect, GUIContent.none);
 
         Rect viewRect = new Rect(_scroll.x, _scroll.y, viewportRect.width, viewportRect.height);
 
@@ -498,6 +538,9 @@ public sealed class MapPainterWindow : EditorWindow
 
         if (Event.current.type == EventType.Repaint)
         {
+            Rect viewportBackgroundRect = new Rect(0f, 0f, viewportRect.width, viewportRect.height);
+            EditorGUI.DrawRect(viewportBackgroundRect, new Color(0.12f, 0.12f, 0.12f, 1f));
+
             for (int y = yMin; y < yMax; y++)
             {
                 float cy = gridRect.y + y * cellSize;
@@ -541,6 +584,7 @@ public sealed class MapPainterWindow : EditorWindow
         }
 
         GUI.EndGroup();
+        GUI.Box(viewportRect, GUIContent.none);
         DrawMapHorizontalControls(horizontalScrollbarRect, contentRect.width, viewportRect.width);
         DrawMapVerticalScrollbar(outerRect, viewportRect, contentRect, scrollbarWidth, scrollbarHeight);
         _scroll = ClampMapScroll(_scroll, contentRect, viewportRect.width, viewportRect.height);
@@ -635,16 +679,35 @@ public sealed class MapPainterWindow : EditorWindow
             outerRect.y,
             scrollbarWidth,
             scrollbarHeight);
+        float maxScrollY = Mathf.Max(0f, contentRect.height - viewportRect.height);
 
-        if (contentRect.height > viewportRect.height)
+        if (maxScrollY > 0f)
         {
-            _scroll.y = GUI.VerticalScrollbar(verticalRect, _scroll.y, viewportRect.height, 0f, contentRect.height);
+            EditorGUI.DrawRect(verticalRect, new Color(0.18f, 0.18f, 0.18f, 1f));
+            EditorGUI.BeginChangeCheck();
+            float nextScrollY = GUI.VerticalSlider(
+                verticalRect,
+                _scroll.y,
+                0f,
+                maxScrollY,
+                GUI.skin.verticalScrollbar,
+                GUI.skin.verticalScrollbarThumb);
+            if (EditorGUI.EndChangeCheck())
+                _scroll.y = Mathf.Clamp(nextScrollY, 0f, maxScrollY);
         }
         else
         {
             _scroll.y = 0f;
             using (new EditorGUI.DisabledScope(true))
-                GUI.VerticalScrollbar(verticalRect, 0f, viewportRect.height, 0f, viewportRect.height);
+            {
+                GUI.VerticalSlider(
+                    verticalRect,
+                    0f,
+                    0f,
+                    1f,
+                    GUI.skin.verticalScrollbar,
+                    GUI.skin.verticalScrollbarThumb);
+            }
         }
 
         EditorGUI.DrawRect(cornerRect, new Color(0.16f, 0.16f, 0.16f, 1f));
@@ -667,7 +730,13 @@ public sealed class MapPainterWindow : EditorWindow
         if (maxScrollX <= 0f)
         {
             _scroll.x = 0f;
-            DrawDisabledMapHorizontalControls(rect, jumpStartRect, pageLeftRect, sliderRect, pageRightRect, jumpEndRect);
+            DrawDisabledMapHorizontalControls(
+                rect,
+                jumpStartRect,
+                pageLeftRect,
+                sliderRect,
+                pageRightRect,
+                jumpEndRect);
             return;
         }
 
@@ -679,15 +748,125 @@ public sealed class MapPainterWindow : EditorWindow
         if (GUI.RepeatButton(pageLeftRect, "<", EditorStyles.miniButton))
             SetHorizontalMapScroll(_scroll.x - pageStep, maxScrollX);
 
-        EditorGUI.BeginChangeCheck();
-        float nextScrollX = GUI.HorizontalScrollbar(sliderRect, _scroll.x, viewportWidth, 0f, contentWidth);
-        if (EditorGUI.EndChangeCheck())
-            SetHorizontalMapScroll(nextScrollX, maxScrollX);
+        DrawExactHorizontalScrollbar(sliderRect, contentWidth, viewportWidth, maxScrollX);
 
         if (GUI.RepeatButton(pageRightRect, ">", EditorStyles.miniButton))
             SetHorizontalMapScroll(_scroll.x + pageStep, maxScrollX);
         if (GUI.Button(jumpEndRect, ">>", EditorStyles.miniButton))
             SetHorizontalMapScroll(maxScrollX, maxScrollX);
+    }
+
+    private void DrawExactHorizontalScrollbar(Rect rect, float contentWidth, float viewportWidth, float maxScrollX)
+    {
+        int controlId = GUIUtility.GetControlID(HorizontalMapScrollbarControlHint, FocusType.Passive, rect);
+        Rect thumbRect = GetHorizontalScrollbarThumbRect(rect, contentWidth, viewportWidth, maxScrollX, _scroll.x);
+        Event e = Event.current;
+
+        switch (e.GetTypeForControl(controlId))
+        {
+            case EventType.MouseDown:
+                if (e.button == 0 && rect.Contains(e.mousePosition))
+                {
+                    GUIUtility.hotControl = controlId;
+                    _horizontalScrollbarDragOffset = thumbRect.Contains(e.mousePosition)
+                        ? e.mousePosition.x - thumbRect.x
+                        : thumbRect.width * 0.5f;
+
+                    if (!thumbRect.Contains(e.mousePosition))
+                    {
+                        SetHorizontalMapScroll(
+                            GetHorizontalScrollbarValueFromMouse(
+                                rect,
+                                thumbRect.width,
+                                maxScrollX,
+                                e.mousePosition.x),
+                            maxScrollX);
+                    }
+
+                    e.Use();
+                }
+                break;
+
+            case EventType.MouseDrag:
+                if (GUIUtility.hotControl == controlId)
+                {
+                    SetHorizontalMapScroll(
+                        GetHorizontalScrollbarValueFromMouse(
+                            rect,
+                            thumbRect.width,
+                            maxScrollX,
+                            e.mousePosition.x - _horizontalScrollbarDragOffset + thumbRect.width * 0.5f),
+                        maxScrollX);
+                    e.Use();
+                }
+                break;
+
+            case EventType.MouseUp:
+                if (GUIUtility.hotControl == controlId)
+                {
+                    GUIUtility.hotControl = 0;
+                    e.Use();
+                }
+                break;
+
+            case EventType.Repaint:
+                DrawHorizontalScrollbarTrackAndThumb(rect, thumbRect, controlId);
+                break;
+        }
+    }
+
+    private static Rect GetHorizontalScrollbarThumbRect(
+        Rect rect,
+        float contentWidth,
+        float viewportWidth,
+        float maxScrollX,
+        float scrollX)
+    {
+        float thumbWidth = GetScrollbarThumbSize(rect.width, viewportWidth, contentWidth);
+        float travel = Mathf.Max(0f, rect.width - thumbWidth);
+        float normalized = maxScrollX > 0f ? Mathf.Clamp01(scrollX / maxScrollX) : 0f;
+        return new Rect(rect.x + travel * normalized, rect.y + 1f, thumbWidth, Mathf.Max(1f, rect.height - 2f));
+    }
+
+    private static float GetScrollbarThumbSize(float trackSize, float viewportSize, float contentSize)
+    {
+        if (trackSize <= 1f || contentSize <= 0f)
+            return Mathf.Max(1f, trackSize);
+
+        float visibleRatio = Mathf.Clamp01(viewportSize / Mathf.Max(viewportSize, contentSize));
+        float minThumbSize = Mathf.Min(28f, trackSize);
+        return Mathf.Clamp(trackSize * visibleRatio, minThumbSize, trackSize);
+    }
+
+    private static float GetHorizontalScrollbarValueFromMouse(
+        Rect rect,
+        float thumbWidth,
+        float maxScrollX,
+        float thumbCenterX)
+    {
+        float travel = Mathf.Max(0f, rect.width - thumbWidth);
+        if (travel <= 0f || maxScrollX <= 0f)
+            return 0f;
+
+        float thumbX = thumbCenterX - rect.x - thumbWidth * 0.5f;
+        return Mathf.Clamp01(thumbX / travel) * maxScrollX;
+    }
+
+    private static void DrawHorizontalScrollbarTrackAndThumb(Rect rect, Rect thumbRect, int controlId)
+    {
+        Event e = Event.current;
+        bool isDragging = GUIUtility.hotControl == controlId;
+        bool isHovering = rect.Contains(e.mousePosition);
+
+        EditorGUI.DrawRect(rect, new Color(0.13f, 0.13f, 0.13f, 1f));
+        EditorGUI.DrawRect(new Rect(rect.x, rect.y + 1f, rect.width, Mathf.Max(1f, rect.height - 2f)), new Color(0.24f, 0.24f, 0.24f, 1f));
+
+        Color thumbColor = isDragging
+            ? new Color(0.62f, 0.62f, 0.62f, 1f)
+            : isHovering
+                ? new Color(0.54f, 0.54f, 0.54f, 1f)
+                : new Color(0.45f, 0.45f, 0.45f, 1f);
+        EditorGUI.DrawRect(thumbRect, thumbColor);
     }
 
     private static void DrawDisabledMapHorizontalControls(
@@ -703,10 +882,18 @@ public sealed class MapPainterWindow : EditorWindow
         {
             GUI.Button(jumpStartRect, "<<", EditorStyles.miniButton);
             GUI.Button(pageLeftRect, "<", EditorStyles.miniButton);
-            GUI.HorizontalScrollbar(sliderRect, 0f, 1f, 0f, 1f);
+            DrawDisabledHorizontalScrollbar(sliderRect);
             GUI.Button(pageRightRect, ">", EditorStyles.miniButton);
             GUI.Button(jumpEndRect, ">>", EditorStyles.miniButton);
         }
+    }
+
+    private static void DrawDisabledHorizontalScrollbar(Rect rect)
+    {
+        EditorGUI.DrawRect(rect, new Color(0.13f, 0.13f, 0.13f, 1f));
+        EditorGUI.DrawRect(
+            new Rect(rect.x, rect.y + 1f, rect.width, Mathf.Max(1f, rect.height - 2f)),
+            new Color(0.20f, 0.20f, 0.20f, 1f));
     }
 
     private void UpdateHoveredCell(Rect viewportRect)
@@ -1538,6 +1725,8 @@ public sealed class MapPainterWindow : EditorWindow
 
         _map.RebuildAppearanceAutoTiles();
         EditorUtility.SetDirty(_map);
+        ClampScrollToCurrentMap();
+        Repaint();
     }
 
     private void DrawPalette()
