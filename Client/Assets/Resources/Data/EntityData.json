@@ -29,6 +29,13 @@
             "ResourcePath": "Data/Entity_500_Crystal"
         },
         {
+            "EntityId": 501,
+            "Name": "Entity_501_VoidWall",
+            "EntityType": 3,
+            "MaxHp": 999999,
+            "ResourcePath": "Data/Entity_501_VoidWall"
+        },
+        {
             "EntityId": 999,
             "Name": "Entity_999_Monster_TrainingDummy",
             "EntityType": 2,

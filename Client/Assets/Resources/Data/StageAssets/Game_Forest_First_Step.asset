@@ -26,6 +26,10 @@ MonoBehaviour:
     EntityDef: {fileID: 11400000, guid: 76eb659d9a9faa246872d4f4bcc295c9, type: 2}
     DefaultGroupId: 5
     PatternRef: {fileID: 0}
+  - Key: VoidWall
+    EntityDef: {fileID: 0}
+    DefaultGroupId: 5
+    PatternRef: {fileID: 0}
   InitialSpawns: []
   InitialObjects:
   - EntityKey: Crystal
@@ -44,6 +48,78 @@ MonoBehaviour:
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 6
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 41}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 40}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 39}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 38}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 37}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 36}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 35}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 43}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 42}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
   Events:
   - Title: Crystal Pair 1
     Notes: 
@@ -66,17 +142,17 @@ MonoBehaviour:
         width: 1
         height: 1
     Actions:
-    - Type: 7
+    - Type: 10
       HeaderParam: 
       ParamId: 0
       Position: {x: 0, y: 0, z: 0}
-      StringVal: 
+      StringVal: TutorialPanel
       GroupId: 0
       GuideTitle: 
       GuideBody: 
       GuideImageResource: 
-      DurationMs: 1200
-      VfxKey: MarkerCyan
+      DurationMs: 180
+      VfxKey: 
   - Title: Crystal_05 Interactor
     Notes: Crystal_05 Interactor
     Enabled: 1
@@ -101,7 +177,7 @@ MonoBehaviour:
     - Type: 7
       HeaderParam: 
       ParamId: 0
-      Position: {x: 0, y: 0, z: 0}
+      Position: {x: 0, y: 0, z: -12}
       StringVal: 
       GroupId: 0
       GuideTitle: 
@@ -133,7 +209,7 @@ MonoBehaviour:
     - Type: 7
       HeaderParam: 
       ParamId: 0
-      Position: {x: 0, y: 0, z: 0}
+      Position: {x: -9, y: 0, z: -5}
       StringVal: 
       GroupId: 0
       GuideTitle: 

@@ -29,6 +29,96 @@
             "GroupId": 6,
             "Pattern": "",
             "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 41,
+            "GroupId": 7,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 40,
+            "GroupId": 7,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 39,
+            "GroupId": 7,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 38,
+            "GroupId": 7,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 37,
+            "GroupId": 7,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 36,
+            "GroupId": 7,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 35,
+            "GroupId": 7,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 43,
+            "GroupId": 7,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 42,
+            "GroupId": 7,
+            "Pattern": "",
+            "Rotation": 0.0
         }
     ],
     "Events": [
