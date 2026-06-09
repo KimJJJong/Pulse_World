@@ -146,6 +146,24 @@ namespace GameServer.InGame.Director.Data
     }
 
     [Serializable]
+    public class StageSceneObjectData
+    {
+        public string TargetKey = string.Empty;
+        public int GroupId;
+        public bool Visible = true;
+    }
+
+    [Serializable]
+    public class StageGateDoorData
+    {
+        public string TargetKey = string.Empty;
+        public int GroupId;
+        public bool Open = true;
+        public int DurationMs = 900;
+        public int AngleDegrees;
+    }
+
+    [Serializable]
     public class StageClearResultData
     {
         public string MapId = string.Empty;
@@ -279,10 +297,14 @@ namespace GameServer.InGame.Director.Data
         public const int VfxWarnCode = 6102;
         public const int StageClearWarnCode = 6103;
         public const int TutorialPanelWarnCode = 6104;
+        public const int SceneObjectWarnCode = 6105;
+        public const int GateDoorWarnCode = 6106;
         public const string GuidePrefix = "STAGE_GUIDE";
         public const string VfxPrefix = "STAGE_VFX";
         public const string StageClearPrefix = "STAGE_CLEAR";
         public const string TutorialPanelPrefix = "STAGE_TUTORIAL_PANEL";
+        public const string SceneObjectPrefix = "STAGE_SCENE_OBJECT";
+        public const string GateDoorPrefix = "STAGE_GATE_DOOR";
 
         public static string EncodeGuide(StageGuideData data)
         {
@@ -322,6 +344,28 @@ namespace GameServer.InGame.Director.Data
                 data.AnchorPreset,
                 data.OffsetX,
                 data.OffsetY);
+        }
+
+        public static string EncodeSceneObject(StageSceneObjectData data)
+        {
+            data ??= new StageSceneObjectData();
+            return string.Join("\t",
+                SceneObjectPrefix,
+                EncodeText(data.TargetKey),
+                data.GroupId,
+                data.Visible ? 1 : 0);
+        }
+
+        public static string EncodeGateDoor(StageGateDoorData data)
+        {
+            data ??= new StageGateDoorData();
+            return string.Join("\t",
+                GateDoorPrefix,
+                EncodeText(data.TargetKey),
+                data.GroupId,
+                data.Open ? 1 : 0,
+                Math.Max(0, data.DurationMs),
+                data.AngleDegrees);
         }
 
         public static string EncodeStageClear(StageClearResultData data)
@@ -412,6 +456,46 @@ namespace GameServer.InGame.Director.Data
                 AnchorPreset = int.TryParse(parts[6], out int anchorPreset) ? anchorPreset : 7,
                 OffsetX = int.TryParse(parts[7], out int offsetX) ? offsetX : 24,
                 OffsetY = int.TryParse(parts[8], out int offsetY) ? offsetY : 0
+            };
+            return true;
+        }
+
+        public static bool TryDecodeSceneObject(string payload, out StageSceneObjectData data)
+        {
+            data = null;
+            if (string.IsNullOrEmpty(payload))
+                return false;
+
+            string[] parts = payload.Split('\t');
+            if (parts.Length < 4 || !string.Equals(parts[0], SceneObjectPrefix, StringComparison.Ordinal))
+                return false;
+
+            data = new StageSceneObjectData
+            {
+                TargetKey = DecodeText(parts[1]),
+                GroupId = int.TryParse(parts[2], out int groupId) ? groupId : 0,
+                Visible = int.TryParse(parts[3], out int visible) && visible != 0
+            };
+            return true;
+        }
+
+        public static bool TryDecodeGateDoor(string payload, out StageGateDoorData data)
+        {
+            data = null;
+            if (string.IsNullOrEmpty(payload))
+                return false;
+
+            string[] parts = payload.Split('\t');
+            if (parts.Length < 5 || !string.Equals(parts[0], GateDoorPrefix, StringComparison.Ordinal))
+                return false;
+
+            data = new StageGateDoorData
+            {
+                TargetKey = DecodeText(parts[1]),
+                GroupId = int.TryParse(parts[2], out int groupId) ? groupId : 0,
+                Open = int.TryParse(parts[3], out int open) && open != 0,
+                DurationMs = int.TryParse(parts[4], out int durationMs) ? durationMs : 900,
+                AngleDegrees = parts.Length > 5 && int.TryParse(parts[5], out int angleDegrees) ? angleDegrees : 0
             };
             return true;
         }
@@ -527,6 +611,9 @@ namespace GameServer.InGame.Director.Core
         void FinGame();
         void OpenGate(int x, int y);
         void SetObjectState(int targetId, int state);
+        void RemoveEntityGroup(int groupId);
+        void SetSceneObjectActive(StageSceneObjectData data);
+        void SetGateDoorOpen(StageGateDoorData data);
         void ShowGuide(StageGuideData data);
         void ShowTutorialPanel(StageTutorialPanelData data);
         void HideTutorialPanel(StageTutorialPanelData data);
@@ -691,6 +778,9 @@ namespace GameServer.InGame.Director.Core
                 "ShowTutorialPanel" => new ActionShowTutorialPanel(),
                 "HideTutorialPanel" => new ActionHideTutorialPanel(),
                 "SetObjectState" => new ActionSetObjectState(),
+                "RemoveEntityGroup" => new ActionRemoveEntityGroup(),
+                "SetSceneObjectActive" => new ActionSetSceneObjectActive(),
+                "SetGateDoorOpen" => new ActionSetGateDoorOpen(),
                 "PlayVfx" => new ActionPlayVfx(),
                 _ => null
             };
@@ -930,6 +1020,43 @@ namespace GameServer.InGame.Director.Core
             public override void Execute(IStageActionHost host)
             {
                 host.SetObjectState(_data.ParamId, _data.GroupId);
+            }
+        }
+
+        private sealed class ActionRemoveEntityGroup : EventAction
+        {
+            public override void Execute(IStageActionHost host)
+            {
+                int groupId = _data.ParamId > 0 ? _data.ParamId : _data.GroupId;
+                host.RemoveEntityGroup(groupId);
+            }
+        }
+
+        private sealed class ActionSetSceneObjectActive : EventAction
+        {
+            public override void Execute(IStageActionHost host)
+            {
+                host.SetSceneObjectActive(new StageSceneObjectData
+                {
+                    TargetKey = _data.StringVal ?? string.Empty,
+                    GroupId = _data.ParamId,
+                    Visible = _data.GroupId != 0
+                });
+            }
+        }
+
+        private sealed class ActionSetGateDoorOpen : EventAction
+        {
+            public override void Execute(IStageActionHost host)
+            {
+                host.SetGateDoorOpen(new StageGateDoorData
+                {
+                    TargetKey = _data.StringVal ?? string.Empty,
+                    GroupId = _data.ParamId,
+                    Open = _data.GroupId != 0,
+                    DurationMs = _data.DurationMs > 0 ? _data.DurationMs : 900,
+                    AngleDegrees = _data.X
+                });
             }
         }
 

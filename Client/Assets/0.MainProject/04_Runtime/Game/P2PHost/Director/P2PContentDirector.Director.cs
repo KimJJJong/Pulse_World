@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using GameServer.InGame.Director.Core;
 using GameServer.InGame.Director.Data;
+using RhythmRPG.Game.Stage;
 using StageEventType = GameServer.InGame.Director.Core.EventType;
 using StageScenarioData = GameServer.InGame.Director.Data.StageScenario;
 using UnityEngine;
@@ -602,6 +603,79 @@ public sealed partial class P2PContentDirector
         ClientGameState.Instance?.SetTile(x, y, (int)TileKind.Floor);
         if (P2PDebugConfig.TraceContent)
             Debug.Log($"[P2PContentDirector] OpenGate at ({x},{y})");
+    }
+
+    public void RemoveEntityGroup(int groupId)
+    {
+        if (groupId <= 0 || ClientGameState.Instance == null)
+            return;
+
+        var entityIds = ClientGameState.Instance.EnumerateEntities()
+            .Where(entity => entity.GroupId == groupId
+                             && entity.EntityType != (int)EntityType.Player)
+            .Select(entity => entity.EntityId)
+            .ToArray();
+
+        long beat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : 0;
+        foreach (int entityId in entityIds)
+        {
+            if (P2PHostController.HasInstance)
+            {
+                P2PHostController.Instance.SendLocalAndRelay(new SC_EntityDespawn
+                {
+                    BeatIndex = beat,
+                    EntityId = entityId
+                });
+            }
+            else
+            {
+                ClientGameState.Instance.RemoveEntity(entityId);
+            }
+
+            if (_monsterStates.TryGetValue(entityId, out var state))
+                state.IsAlive = false;
+
+            _stageObjectGroupByEntityId.Remove(entityId);
+        }
+
+        MarkWorldDirty();
+
+        if (P2PDebugConfig.TraceContent)
+            Debug.Log($"[P2PContentDirector] RemoveEntityGroup group={groupId} count={entityIds.Length}");
+    }
+
+    public void SetSceneObjectActive(StageSceneObjectData data)
+    {
+        data ??= new StageSceneObjectData();
+
+        if (P2PHostController.HasInstance)
+        {
+            P2PHostController.Instance.SendLocalAndRelay(new SC_Warn
+            {
+                code = StageSignalCodec.SceneObjectWarnCode,
+                msg = StageSignalCodec.EncodeSceneObject(data)
+            });
+            return;
+        }
+
+        StageSceneObjectTarget.SetActive(data);
+    }
+
+    public void SetGateDoorOpen(StageGateDoorData data)
+    {
+        data ??= new StageGateDoorData();
+
+        if (P2PHostController.HasInstance)
+        {
+            P2PHostController.Instance.SendLocalAndRelay(new SC_Warn
+            {
+                code = StageSignalCodec.GateDoorWarnCode,
+                msg = StageSignalCodec.EncodeGateDoor(data)
+            });
+            return;
+        }
+
+        StageGateStoneDoorTarget.SetOpen(data);
     }
 
     private StageClearResultData BuildStageClearResultData()

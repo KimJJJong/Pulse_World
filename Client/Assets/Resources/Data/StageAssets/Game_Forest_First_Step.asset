@@ -121,7 +121,8 @@ MonoBehaviour:
     PlaceInScene: 1
     OverrideGroupId: 7
   Events:
-  - Title: Crystal Pair 1
+  - Section: Section01
+    Title: Crystal Pair 1
     Notes: 
     Enabled: 1
     EventId: 1
@@ -142,18 +143,30 @@ MonoBehaviour:
         width: 1
         height: 1
     Actions:
-    - Type: 2
+    - Type: 11
       HeaderParam: 
-      ParamId: 0
+      ParamId: 7
       Position: {x: 0, y: 0, z: 0}
-      StringVal: TutorialPanel
+      StringVal: 
       GroupId: 0
       GuideTitle: 
       GuideBody: 
       GuideImageResource: 
-      DurationMs: 180
+      DurationMs: 3500
       VfxKey: 
-  - Title: Crystal_05 Interactor
+    - Type: 13
+      HeaderParam: 
+      ParamId: 1
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: Event triggered
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section01
+    Title: Crystal_05 Interactor
     Notes: Crystal_05 Interactor
     Enabled: 1
     EventId: 2
@@ -185,7 +198,8 @@ MonoBehaviour:
       GuideImageResource: 
       DurationMs: 1200
       VfxKey: CrystalPulseRed
-  - Title: Crystal_06 Interactor
+  - Section: Section01
+    Title: Crystal_06 Interactor
     Notes: Crystal_06 Interactor
     Enabled: 1
     EventId: 3

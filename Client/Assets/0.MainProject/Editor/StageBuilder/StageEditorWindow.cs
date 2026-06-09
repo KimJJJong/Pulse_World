@@ -12,14 +12,18 @@ namespace RhythmRPG.Editor.StageBuilder
     {
         private const string DefaultStageAssetFolder = "Assets/Resources/Data/StageAssets";
         private const string PreviewRootPrefix = "__StagePreview_";
+        private const string DefaultEventSectionName = "Default";
 
         private StageDataSO _currentStage;
         private Vector2 _scrollPos;
         private readonly BoxBoundsHandle _boundsHandle = new BoxBoundsHandle();
+        private readonly Dictionary<string, bool> _eventSectionFoldouts = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         private bool _autoSyncPreview = true;
         private bool _autoExportJson = true;
         private bool _showSceneLabels = true;
         private bool _showEventLinks = true;
+        private bool _groupEventsBySection = true;
+        private string _newEventSectionName = DefaultEventSectionName;
 
         private static readonly Color BasicAccent = new Color(0.42f, 0.57f, 0.86f, 1f);
         private static readonly Color RhythmAccent = new Color(0.26f, 0.70f, 0.62f, 1f);
@@ -283,6 +287,7 @@ namespace RhythmRPG.Editor.StageBuilder
             DrawSectionHeader("Events", "Conditions and actions are grouped here.", EventAccent);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
+            DrawEventSectionControls(eventsProp);
             DrawEventQuickAddRow(eventsProp, so);
 
             EditorGUILayout.HelpBox(
@@ -298,18 +303,173 @@ namespace RhythmRPG.Editor.StageBuilder
                 EditorGUILayout.HelpBox("중복된 Event ID가 있습니다. ID 정리를 눌러 순서대로 다시 맞추는 것을 권장합니다.", MessageType.Warning);
             }
 
-            for (int i = 0; i < eventsProp.arraySize; i++)
+            if (_groupEventsBySection)
             {
-                DrawEventCard(eventsProp, i);
+                DrawGroupedEventCards(eventsProp);
+            }
+            else
+            {
+                for (int i = 0; i < eventsProp.arraySize; i++)
+                {
+                    if (DrawEventCard(eventsProp, i))
+                        break;
+                }
             }
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space();
         }
 
-        private void DrawEventCard(SerializedProperty eventsProp, int index)
+        private void DrawEventSectionControls(SerializedProperty eventsProp)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.BeginHorizontal();
+            _groupEventsBySection = EditorGUILayout.ToggleLeft("Group by Section", _groupEventsBySection, GUILayout.Width(140));
+            GUILayout.Label("New Events Section", GUILayout.Width(118));
+            _newEventSectionName = EditorGUILayout.TextField(NormalizeEventSection(_newEventSectionName));
+
+            if (GUILayout.Button("Normalize Empty", GUILayout.Width(118)))
+            {
+                NormalizeEmptyEventSections(eventsProp);
+            }
+            EditorGUILayout.EndHorizontal();
+
+            List<EventSectionView> sections = BuildEventSections(eventsProp);
+            if (sections.Count > 0)
+            {
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Label("Sections", EditorStyles.miniBoldLabel, GUILayout.Width(64));
+                foreach (var section in sections)
+                {
+                    if (GUILayout.Button($"{section.Name} ({section.EventIndexes.Count})", EditorStyles.miniButton, GUILayout.MaxWidth(150)))
+                    {
+                        _newEventSectionName = section.Name;
+                        _eventSectionFoldouts[section.Name] = true;
+                    }
+                }
+                GUILayout.FlexibleSpace();
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.HelpBox("Section은 Editor 전용 분류입니다. Export JSON과 런타임 이벤트 순서는 바뀌지 않습니다.", MessageType.None);
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(2);
+        }
+
+        private void DrawGroupedEventCards(SerializedProperty eventsProp)
+        {
+            List<EventSectionView> sections = BuildEventSections(eventsProp);
+            foreach (var section in sections)
+            {
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                DrawCardAccent(EventAccent);
+
+                bool expanded = GetEventSectionFoldout(section.Name);
+                EditorGUILayout.BeginHorizontal();
+                expanded = EditorGUILayout.Foldout(expanded, $"{section.Name}  ({section.EventIndexes.Count} events, {section.EnabledCount} enabled)", true);
+                _eventSectionFoldouts[section.Name] = expanded;
+                GUILayout.FlexibleSpace();
+
+                using (new GUIBackgroundColorScope(string.Equals(_newEventSectionName, section.Name, StringComparison.OrdinalIgnoreCase) ? SpawnAccent : BasicAccent))
+                {
+                    if (GUILayout.Button("Target", EditorStyles.miniButton, GUILayout.Width(58)))
+                    {
+                        _newEventSectionName = section.Name;
+                        _eventSectionFoldouts[section.Name] = true;
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+
+                if (expanded)
+                {
+                    EditorGUI.indentLevel++;
+                    foreach (int eventIndex in section.EventIndexes)
+                    {
+                        if (eventIndex >= eventsProp.arraySize)
+                            continue;
+
+                        if (DrawEventCard(eventsProp, eventIndex))
+                        {
+                            EditorGUI.indentLevel--;
+                            EditorGUILayout.EndVertical();
+                            return;
+                        }
+                    }
+                    EditorGUI.indentLevel--;
+                }
+
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(4);
+            }
+        }
+
+        private bool GetEventSectionFoldout(string sectionName)
+        {
+            sectionName = NormalizeEventSection(sectionName);
+            if (!_eventSectionFoldouts.TryGetValue(sectionName, out bool expanded))
+            {
+                expanded = true;
+                _eventSectionFoldouts[sectionName] = true;
+            }
+
+            return expanded;
+        }
+
+        private static List<EventSectionView> BuildEventSections(SerializedProperty eventsProp)
+        {
+            var sections = new List<EventSectionView>();
+            var sectionByName = new Dictionary<string, EventSectionView>(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < eventsProp.arraySize; i++)
+            {
+                SerializedProperty evtProp = eventsProp.GetArrayElementAtIndex(i);
+                string sectionName = GetEventSection(evtProp);
+                if (!sectionByName.TryGetValue(sectionName, out var section))
+                {
+                    section = new EventSectionView(sectionName);
+                    sectionByName[sectionName] = section;
+                    sections.Add(section);
+                }
+
+                section.EventIndexes.Add(i);
+                if (evtProp.FindPropertyRelative("Enabled").boolValue)
+                    section.EnabledCount++;
+            }
+
+            return sections;
+        }
+
+        private static string GetEventSection(SerializedProperty evtProp)
+        {
+            SerializedProperty sectionProp = evtProp.FindPropertyRelative("Section");
+            return NormalizeEventSection(sectionProp != null ? sectionProp.stringValue : string.Empty);
+        }
+
+        private static void SetEventSection(SerializedProperty evtProp, string sectionName)
+        {
+            SerializedProperty sectionProp = evtProp.FindPropertyRelative("Section");
+            if (sectionProp != null)
+                sectionProp.stringValue = NormalizeEventSection(sectionName);
+        }
+
+        private static string NormalizeEventSection(string sectionName)
+            => string.IsNullOrWhiteSpace(sectionName) ? DefaultEventSectionName : sectionName.Trim();
+
+        private static void NormalizeEmptyEventSections(SerializedProperty eventsProp)
+        {
+            for (int i = 0; i < eventsProp.arraySize; i++)
+            {
+                SerializedProperty evtProp = eventsProp.GetArrayElementAtIndex(i);
+                SerializedProperty sectionProp = evtProp.FindPropertyRelative("Section");
+                if (sectionProp != null && string.IsNullOrWhiteSpace(sectionProp.stringValue))
+                    sectionProp.stringValue = DefaultEventSectionName;
+            }
+        }
+
+        private bool DrawEventCard(SerializedProperty eventsProp, int index)
         {
             SerializedProperty evtProp = eventsProp.GetArrayElementAtIndex(index);
+            SerializedProperty sectionProp = evtProp.FindPropertyRelative("Section");
             SerializedProperty titleProp = evtProp.FindPropertyRelative("Title");
             SerializedProperty notesProp = evtProp.FindPropertyRelative("Notes");
             SerializedProperty enabledProp = evtProp.FindPropertyRelative("Enabled");
@@ -329,6 +489,7 @@ namespace RhythmRPG.Editor.StageBuilder
             EditorGUILayout.BeginHorizontal();
             evtProp.isExpanded = EditorGUILayout.Foldout(evtProp.isExpanded, $"{idProp.intValue}. {displayTitle}", true);
             GUILayout.FlexibleSpace();
+            bool structureChanged = false;
             using (new GUIBackgroundColorScope(enabledProp.boolValue ? SpawnAccent : new Color(0.62f, 0.62f, 0.62f, 1f)))
             {
                 enabledProp.boolValue = GUILayout.Toggle(enabledProp.boolValue, enabledProp.boolValue ? "Enabled" : "Disabled", EditorStyles.miniButton, GUILayout.Width(78));
@@ -337,25 +498,36 @@ namespace RhythmRPG.Editor.StageBuilder
             if (GUILayout.Button("▲", EditorStyles.miniButtonLeft, GUILayout.Width(24)) && index > 0)
             {
                 eventsProp.MoveArrayElement(index, index - 1);
+                structureChanged = true;
             }
 
             if (GUILayout.Button("▼", EditorStyles.miniButtonMid, GUILayout.Width(24)) && index < eventsProp.arraySize - 1)
             {
                 eventsProp.MoveArrayElement(index, index + 1);
+                structureChanged = true;
             }
 
             if (GUILayout.Button("Duplicate", EditorStyles.miniButtonMid, GUILayout.Width(72)))
             {
                 DuplicateEvent(eventsProp, index);
+                structureChanged = true;
             }
 
             if (GUILayout.Button("Delete", EditorStyles.miniButtonRight, GUILayout.Width(60)))
             {
                 DeleteEvent(eventsProp, index);
+                EditorGUILayout.EndHorizontal();
                 EditorGUILayout.EndVertical();
-                return;
+                return true;
             }
             EditorGUILayout.EndHorizontal();
+
+            if (structureChanged)
+            {
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(4);
+                return true;
+            }
 
             EditorGUILayout.LabelField($"{conditionSummary}  ->  {actionSummary}", EditorStyles.miniLabel);
 
@@ -364,6 +536,7 @@ namespace RhythmRPG.Editor.StageBuilder
                 EditorGUI.indentLevel++;
                 DrawSubHeader("Event Settings", BasicAccent, "Name, memo, and life-cycle");
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                EditorGUILayout.PropertyField(sectionProp, new GUIContent("Section"));
                 EditorGUILayout.PropertyField(titleProp, new GUIContent("Title"));
                 EditorGUILayout.PropertyField(notesProp, new GUIContent("Notes"));
                 EditorGUILayout.PropertyField(idProp, new GUIContent("Event ID"));
@@ -380,6 +553,7 @@ namespace RhythmRPG.Editor.StageBuilder
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space(4);
+            return false;
         }
 
         private void DrawConditionsSection(SerializedProperty conditionsProp)
@@ -594,6 +768,36 @@ namespace RhythmRPG.Editor.StageBuilder
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GroupId"), new GUIContent("State Value"));
                     break;
 
+                case ActionType.RemoveEntityGroup:
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Target Entity Group ID"));
+                    EditorGUILayout.HelpBox("해당 Group ID를 가진 몬스터/오브젝트 엔티티를 despawn합니다. Player는 제거하지 않습니다.", MessageType.None);
+                    break;
+
+                case ActionType.SetSceneObjectActive:
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("StringVal"), new GUIContent("Scene Target Key"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Scene Target Group ID"));
+                    SerializedProperty sceneObjectActiveProp = actionProp.FindPropertyRelative("GroupId");
+                    bool sceneObjectActive = sceneObjectActiveProp.intValue != 0;
+                    sceneObjectActive = EditorGUILayout.Toggle(new GUIContent("Active"), sceneObjectActive);
+                    sceneObjectActiveProp.intValue = sceneObjectActive ? 1 : 0;
+                    EditorGUILayout.HelpBox("맵에 직접 배치된 안개/길막/장식 오브젝트 root에 StageSceneObjectTarget을 붙이고 Key 또는 Group ID를 맞추면 토글됩니다.", MessageType.Info);
+                    break;
+
+                case ActionType.SetGateDoorOpen:
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("StringVal"), new GUIContent("Gate Target Key"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Gate Group ID"));
+                    SerializedProperty gateOpenProp = actionProp.FindPropertyRelative("GroupId");
+                    bool gateOpen = gateOpenProp.intValue != 0;
+                    gateOpen = EditorGUILayout.Toggle(new GUIContent("Open"), gateOpen);
+                    gateOpenProp.intValue = gateOpen ? 1 : 0;
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("DurationMs"), new GUIContent("Duration (ms)"));
+                    SerializedProperty gateAngleProp = actionProp.FindPropertyRelative("Position");
+                    Vector3 gateAngle = gateAngleProp.vector3Value;
+                    gateAngle.x = EditorGUILayout.IntField(new GUIContent("Angle Override", "0이면 StageGateStoneDoorTarget의 Open Angle을 사용합니다."), Mathf.RoundToInt(gateAngle.x));
+                    gateAngleProp.vector3Value = gateAngle;
+                    EditorGUILayout.HelpBox("Gate_Stone root에 StageGateStoneDoorTarget을 붙이고 DoorTransform을 자식 문으로 지정합니다. PivotTransform은 돌탑 root를 사용합니다.", MessageType.Info);
+                    break;
+
                 case ActionType.PlayVfx:
                     SerializedProperty vfxKeyProp = actionProp.FindPropertyRelative("VfxKey");
                     DrawVfxKeySelector(vfxKeyProp);
@@ -767,6 +971,18 @@ namespace RhythmRPG.Editor.StageBuilder
             }
         }
 
+        private sealed class EventSectionView
+        {
+            public readonly string Name;
+            public readonly List<int> EventIndexes = new List<int>();
+            public int EnabledCount;
+
+            public EventSectionView(string name)
+            {
+                Name = name;
+            }
+        }
+
         private enum EventQuickTemplate
         {
             Empty,
@@ -802,6 +1018,9 @@ namespace RhythmRPG.Editor.StageBuilder
             HideTutorialPanel,
             SetObjectState,
             PlayVfx,
+            RemoveEntityGroup,
+            SetSceneObjectActive,
+            SetGateDoorOpen,
             FinGame
         }
 
@@ -963,6 +1182,21 @@ namespace RhythmRPG.Editor.StageBuilder
                 AddAction(actionsProp, ActionQuickTemplate.PlayVfx);
             }
 
+            if (ColoredButton("+ KillGrp", ActionAccent, GUILayout.Width(78)))
+            {
+                AddAction(actionsProp, ActionQuickTemplate.RemoveEntityGroup);
+            }
+
+            if (ColoredButton("+ Deco", ObjectAccent, GUILayout.Width(72)))
+            {
+                AddAction(actionsProp, ActionQuickTemplate.SetSceneObjectActive);
+            }
+
+            if (ColoredButton("+ Gate", ActionAccent, GUILayout.Width(72)))
+            {
+                AddAction(actionsProp, ActionQuickTemplate.SetGateDoorOpen);
+            }
+
             GUILayout.FlexibleSpace();
 
             if (ColoredButton("+ Action", EventAccent, GUILayout.Width(90)))
@@ -986,6 +1220,7 @@ namespace RhythmRPG.Editor.StageBuilder
 
             SerializedProperty evtProp = eventsProp.GetArrayElementAtIndex(insertIndex);
             ResetEvent(evtProp, nextId);
+            SetEventSection(evtProp, _newEventSectionName);
 
             switch (template)
             {
@@ -1025,6 +1260,7 @@ namespace RhythmRPG.Editor.StageBuilder
                     eventsProp.InsertArrayElementAtIndex(exitIndex);
                     SerializedProperty exitProp = eventsProp.GetArrayElementAtIndex(exitIndex);
                     ResetEvent(exitProp, GetNextEventId(eventsProp));
+                    SetEventSection(exitProp, GetEventSection(evtProp));
                     exitProp.FindPropertyRelative("Title").stringValue = $"Tutorial Panel {nextId} Exit";
                     exitProp.FindPropertyRelative("IsOneShot").boolValue = false;
                     SerializedProperty exitConditions = exitProp.FindPropertyRelative("Conditions");
@@ -1067,6 +1303,7 @@ namespace RhythmRPG.Editor.StageBuilder
 
         private static void ResetEvent(SerializedProperty evtProp, int eventId)
         {
+            SetEventSection(evtProp, DefaultEventSectionName);
             evtProp.FindPropertyRelative("Title").stringValue = $"Event {eventId}";
             evtProp.FindPropertyRelative("Notes").stringValue = string.Empty;
             evtProp.FindPropertyRelative("Enabled").boolValue = true;
@@ -1220,6 +1457,27 @@ namespace RhythmRPG.Editor.StageBuilder
                     actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.SetObjectState;
                     actionProp.FindPropertyRelative("ParamId").intValue = 1;
                     actionProp.FindPropertyRelative("GroupId").intValue = 1;
+                    break;
+
+                case ActionQuickTemplate.RemoveEntityGroup:
+                    actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.RemoveEntityGroup;
+                    actionProp.FindPropertyRelative("ParamId").intValue = 1;
+                    break;
+
+                case ActionQuickTemplate.SetSceneObjectActive:
+                    actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.SetSceneObjectActive;
+                    actionProp.FindPropertyRelative("StringVal").stringValue = "FogBlocker";
+                    actionProp.FindPropertyRelative("ParamId").intValue = 1;
+                    actionProp.FindPropertyRelative("GroupId").intValue = 0;
+                    break;
+
+                case ActionQuickTemplate.SetGateDoorOpen:
+                    actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.SetGateDoorOpen;
+                    actionProp.FindPropertyRelative("StringVal").stringValue = "";
+                    actionProp.FindPropertyRelative("ParamId").intValue = 1;
+                    actionProp.FindPropertyRelative("GroupId").intValue = 1;
+                    actionProp.FindPropertyRelative("DurationMs").intValue = 900;
+                    actionProp.FindPropertyRelative("Position").vector3Value = Vector3.zero;
                     break;
 
                 case ActionQuickTemplate.PlayVfx:
@@ -1406,6 +1664,27 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 case ActionType.SetObjectState:
                     return $"오브젝트 {actionProp.FindPropertyRelative("ParamId").intValue} 상태={actionProp.FindPropertyRelative("GroupId").intValue}";
+
+                case ActionType.RemoveEntityGroup:
+                    return $"Group {actionProp.FindPropertyRelative("ParamId").intValue} 제거";
+
+                case ActionType.SetSceneObjectActive:
+                    string sceneTargetKey = actionProp.FindPropertyRelative("StringVal").stringValue;
+                    int sceneTargetGroup = actionProp.FindPropertyRelative("ParamId").intValue;
+                    bool sceneTargetActive = actionProp.FindPropertyRelative("GroupId").intValue != 0;
+                    string sceneTarget = !string.IsNullOrWhiteSpace(sceneTargetKey)
+                        ? sceneTargetKey
+                        : $"Group {sceneTargetGroup}";
+                    return $"Scene Object {sceneTarget} {(sceneTargetActive ? "표시" : "숨김")}";
+
+                case ActionType.SetGateDoorOpen:
+                    string gateTargetKey = actionProp.FindPropertyRelative("StringVal").stringValue;
+                    int gateTargetGroup = actionProp.FindPropertyRelative("ParamId").intValue;
+                    bool gateOpen = actionProp.FindPropertyRelative("GroupId").intValue != 0;
+                    string gateTarget = !string.IsNullOrWhiteSpace(gateTargetKey)
+                        ? gateTargetKey
+                        : $"Group {gateTargetGroup}";
+                    return $"Gate {gateTarget} {(gateOpen ? "열기" : "닫기")}";
 
                 case ActionType.PlayVfx:
                     string vfxKey = actionProp.FindPropertyRelative("VfxKey").stringValue;
@@ -1931,6 +2210,12 @@ namespace RhythmRPG.Editor.StageBuilder
                 case ActionType.SpawnObject:
                     return ObjectAccent;
                 case ActionType.OpenGate:
+                    return ActionAccent;
+                case ActionType.RemoveEntityGroup:
+                    return ActionAccent;
+                case ActionType.SetSceneObjectActive:
+                    return ObjectAccent;
+                case ActionType.SetGateDoorOpen:
                     return ActionAccent;
                 case ActionType.PlayVfx:
                     return ConditionAccent;

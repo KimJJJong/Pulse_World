@@ -184,6 +184,29 @@ namespace GameServer.InGame.Director.Core
             Console.WriteLine($"[GameDirector] SetObjectState target={targetId} state={state}");
         }
 
+        public void RemoveEntityGroup(int groupId)
+        {
+            if (groupId <= 0)
+                return;
+
+            int removed = _session.RemoveEntityGroupInternal(groupId);
+            Console.WriteLine($"[GameDirector] RemoveEntityGroup group={groupId} removed={removed}");
+        }
+
+        public void SetSceneObjectActive(StageSceneObjectData data)
+        {
+            data ??= new StageSceneObjectData();
+            Console.WriteLine($"[GameDirector] SetSceneObjectActive key='{data.TargetKey}' group={data.GroupId} visible={data.Visible}");
+            _session.BroadcastStageSignal(StageSignalCodec.SceneObjectWarnCode, StageSignalCodec.EncodeSceneObject(data));
+        }
+
+        public void SetGateDoorOpen(StageGateDoorData data)
+        {
+            data ??= new StageGateDoorData();
+            Console.WriteLine($"[GameDirector] SetGateDoorOpen key='{data.TargetKey}' group={data.GroupId} open={data.Open} duration={data.DurationMs}");
+            _session.BroadcastStageSignal(StageSignalCodec.GateDoorWarnCode, StageSignalCodec.EncodeGateDoor(data));
+        }
+
         public void ShowGuide(StageGuideData data)
         {
             data ??= new StageGuideData();

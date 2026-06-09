@@ -174,6 +174,28 @@ public sealed class GameSession : SessionBase
         }
     }
 
+    public int RemoveEntityGroupInternal(int groupId)
+    {
+        if (groupId <= 0)
+            return 0;
+
+        var targets = _monsters
+            .FindAll(entity => entity != null
+                               && entity.IsAlive
+                               && entity.Type != EntityType.Player
+                               && entity.GetState<int>("GroupId") == groupId);
+
+        foreach (var entity in targets)
+        {
+            _monsterAI.UnregisterMonster(entity.Id);
+            _idGen.Release(entity.Id);
+            World2D.Despawn(entity.Id);
+        }
+
+        _monsters.RemoveAll(entity => entity == null || !entity.IsAlive);
+        return targets.Count;
+    }
+
     // ===============================
     // Init Packet 빌드
     // ===============================

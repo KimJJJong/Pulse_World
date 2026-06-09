@@ -70,6 +70,7 @@ namespace RhythmRPG.Editor.StageBuilder
     [System.Serializable]
     public class EventInfoSO
     {
+        public string Section = "Default";
         public string Title = "New Event";
         [TextArea(2, 4)] public string Notes;
         public bool Enabled = true;
@@ -138,6 +139,9 @@ namespace RhythmRPG.Editor.StageBuilder
         PlayVfx,
         FinGame,
         ShowTutorialPanel,
-        HideTutorialPanel
+        HideTutorialPanel,
+        RemoveEntityGroup,
+        SetSceneObjectActive,
+        SetGateDoorOpen
     }
 }

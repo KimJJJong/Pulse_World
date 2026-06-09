@@ -142,17 +142,31 @@
             ],
             "Actions": [
                 {
-                    "Type": "OpenGate",
-                    "ParamId": 0,
+                    "Type": "RemoveEntityGroup",
+                    "ParamId": 7,
                     "X": 0,
                     "Y": 0,
                     "Z": 0,
-                    "StringVal": "TutorialPanel",
+                    "StringVal": "",
                     "GroupId": 0,
                     "GuideTitle": "",
                     "GuideBody": "",
                     "GuideImageResource": "",
-                    "DurationMs": 180,
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetGateDoorOpen",
+                    "ParamId": 1,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "Event triggered",
+                    "GroupId": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
                     "VfxKey": ""
                 }
             ]

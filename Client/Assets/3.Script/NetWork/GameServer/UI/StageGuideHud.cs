@@ -1,5 +1,6 @@
 using System.Collections;
 using GameServer.InGame.Director.Data;
+using RhythmRPG.Game.Stage;
 using RhythmRPG.Game.Visual.SceneEffects;
 using TMPro;
 using UnityEngine;
@@ -39,6 +40,20 @@ public sealed class StageGuideHud : MonoBehaviour
                 StageTutorialPanelHud.Show(tutorialPanel);
             else
                 StageTutorialPanelHud.Hide(tutorialPanel);
+            return true;
+        }
+
+        if (code == StageSignalCodec.SceneObjectWarnCode
+            && StageSignalCodec.TryDecodeSceneObject(payload, out var sceneObject))
+        {
+            StageSceneObjectTarget.SetActive(sceneObject);
+            return true;
+        }
+
+        if (code == StageSignalCodec.GateDoorWarnCode
+            && StageSignalCodec.TryDecodeGateDoor(payload, out var gateDoor))
+        {
+            StageGateStoneDoorTarget.SetOpen(gateDoor);
             return true;
         }
 
