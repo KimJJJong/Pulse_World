@@ -962,6 +962,7 @@ public sealed class P2PRelayRoom : RoomBase
             foreach (var obj in _stage.InitialObjects ?? new List<SpawnObjectData>())
             {
                 var entityType = ResolveRelayStageObjectType(obj.EntityType);
+                var entityData = EntityDataManager.Instance.Get(obj.EntityId);
                 packet.entitiess.Add(new SC_InitMap.Entities
                 {
                     EntityId = AllocateRelayStageEntityId(stageEntityIds, usedEntityIds, entityType),
@@ -970,7 +971,7 @@ public sealed class P2PRelayRoom : RoomBase
                     X = obj.X,
                     Y = ResolveMapY(obj.Y, obj.Z),
                     Dir = 0,
-                    Hp = 1,
+                    Hp = entityData?.MaxHp > 0 ? entityData.MaxHp : 10,
                     AppearanceId = obj.EntityId,
                     Rotation = obj.Rotation
                 });
