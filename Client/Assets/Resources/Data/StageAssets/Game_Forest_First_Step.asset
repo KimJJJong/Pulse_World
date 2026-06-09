@@ -27,8 +27,8 @@ MonoBehaviour:
     DefaultGroupId: 5
     PatternRef: {fileID: 0}
   - Key: VoidWall
-    EntityDef: {fileID: 0}
-    DefaultGroupId: 5
+    EntityDef: {fileID: 11400000, guid: e8201576667862f489b2a94e39408d18, type: 2}
+    DefaultGroupId: 7
     PatternRef: {fileID: 0}
   InitialSpawns: []
   InitialObjects:
@@ -142,7 +142,7 @@ MonoBehaviour:
         width: 1
         height: 1
     Actions:
-    - Type: 10
+    - Type: 2
       HeaderParam: 
       ParamId: 0
       Position: {x: 0, y: 0, z: 0}
@@ -176,7 +176,7 @@ MonoBehaviour:
     Actions:
     - Type: 7
       HeaderParam: 
-      ParamId: 0
+      ParamId: 5
       Position: {x: 0, y: 0, z: -12}
       StringVal: 
       GroupId: 0
@@ -208,12 +208,12 @@ MonoBehaviour:
     Actions:
     - Type: 7
       HeaderParam: 
-      ParamId: 0
-      Position: {x: -9, y: 0, z: -5}
+      ParamId: 6
+      Position: {x: 0, y: 0, z: 0}
       StringVal: 
       GroupId: 0
       GuideTitle: 
       GuideBody: 
       GuideImageResource: 
-      DurationMs: 1200
+      DurationMs: 3500
       VfxKey: CrystalPulseRed

@@ -343,17 +343,7 @@ public sealed partial class P2PContentDirector
 
     public int GetObjectState(int targetId)
     {
-        if (_objectStatesByTargetId.TryGetValue(targetId, out int state))
-            return state;
-
-        if (ClientGameState.Instance != null
-            && ClientGameState.Instance.TryGetEntity(targetId, out var entity)
-            && entity.EntityType == (int)EntityType.Object)
-        {
-            return entity.Hp;
-        }
-
-        return 0;
+        return _objectStatesByTargetId.TryGetValue(targetId, out int state) ? state : 0;
     }
 
     public void SetObjectState(int targetId, int state)
@@ -481,6 +471,7 @@ public sealed partial class P2PContentDirector
         if (entityId > 0 && data.GroupId > 0)
             _stageObjectGroupByEntityId[entityId] = data.GroupId;
 
+        int maxHp = ResolveMaxHp(data.EntityId);
         long beat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : 0;
         var pkt = new SC_EntitySpawn
         {
@@ -489,13 +480,13 @@ public sealed partial class P2PContentDirector
             EntityType = data.EntityType <= 0 ? (int)EntityType.Object : data.EntityType,
             X = data.X,
             Y = ResolveMapY(data.Y, data.Z),
-            Hp = 1,
+            Hp = maxHp,
             AppearanceId = data.EntityId,
             Rotation = data.Rotation
         };
 
         if (P2PDebugConfig.TraceContent)
-            Debug.Log($"[P2PContentDirector] SpawnObject entity={entityId} appearance={data.EntityId} type={pkt.EntityType} group={data.GroupId} pos=({data.X},{pkt.Y})");
+            Debug.Log($"[P2PContentDirector] SpawnObject entity={entityId} appearance={data.EntityId} type={pkt.EntityType} group={data.GroupId} pos=({data.X},{pkt.Y}) hp={maxHp}");
 
         P2PHostController.Instance.SendLocalAndRelay(pkt);
     }

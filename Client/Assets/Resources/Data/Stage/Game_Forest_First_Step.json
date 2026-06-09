@@ -142,7 +142,7 @@
             ],
             "Actions": [
                 {
-                    "Type": "HideTutorialPanel",
+                    "Type": "OpenGate",
                     "ParamId": 0,
                     "X": 0,
                     "Y": 0,
@@ -178,7 +178,7 @@
             "Actions": [
                 {
                     "Type": "PlayVfx",
-                    "ParamId": 0,
+                    "ParamId": 5,
                     "X": 0,
                     "Y": 0,
                     "Z": -12,
@@ -213,16 +213,16 @@
             "Actions": [
                 {
                     "Type": "PlayVfx",
-                    "ParamId": 0,
-                    "X": -9,
+                    "ParamId": 6,
+                    "X": 0,
                     "Y": 0,
-                    "Z": -5,
+                    "Z": 0,
                     "StringVal": "",
                     "GroupId": 0,
                     "GuideTitle": "",
                     "GuideBody": "",
                     "GuideImageResource": "",
-                    "DurationMs": 1200,
+                    "DurationMs": 3500,
                     "VfxKey": "CrystalPulseRed"
                 }
             ]
