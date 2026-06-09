@@ -9,6 +9,133 @@
         "StartDelayMs": 2000
     },
     "InitialSpawns": [],
-    "InitialObjects": [],
-    "Events": []
+    "InitialObjects": [
+        {
+            "EntityId": 500,
+            "EntityType": 3,
+            "X": 47,
+            "Y": 0,
+            "Z": 36,
+            "GroupId": 5,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 500,
+            "EntityType": 3,
+            "X": 47,
+            "Y": 0,
+            "Z": 42,
+            "GroupId": 6,
+            "Pattern": "",
+            "Rotation": 0.0
+        }
+    ],
+    "Events": [
+        {
+            "EventId": 1,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectPairInteracted",
+                    "TargetId": 5,
+                    "SecondaryTargetId": 6,
+                    "TargetKey": "",
+                    "Count": 0,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 1,
+                        "H": 1
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "HideTutorialPanel",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "TutorialPanel",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 180,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 2,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectInteracted",
+                    "TargetId": 5,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 1,
+                        "H": 1
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "PlayVfx",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": -12,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 1200,
+                    "VfxKey": "CrystalPulseRed"
+                }
+            ]
+        },
+        {
+            "EventId": 3,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectInteracted",
+                    "TargetId": 6,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 1,
+                        "H": 1
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "PlayVfx",
+                    "ParamId": 0,
+                    "X": -9,
+                    "Y": 0,
+                    "Z": -5,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 1200,
+                    "VfxKey": "CrystalPulseRed"
+                }
+            ]
+        }
+    ]
 }

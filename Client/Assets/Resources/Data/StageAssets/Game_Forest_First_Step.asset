@@ -21,7 +21,123 @@ MonoBehaviour:
     BaseBeatDivision: 1
     ActionWindowMs: 100
     StartDelayMs: 2000
-  Registry: []
+  Registry:
+  - Key: Crystal
+    EntityDef: {fileID: 11400000, guid: 76eb659d9a9faa246872d4f4bcc295c9, type: 2}
+    DefaultGroupId: 5
+    PatternRef: {fileID: 0}
   InitialSpawns: []
-  InitialObjects: []
-  Events: []
+  InitialObjects:
+  - EntityKey: Crystal
+    Label: 
+    Position: {x: 47, y: 0, z: 36}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 5
+  - EntityKey: Crystal
+    Label: 
+    Position: {x: 47, y: 0, z: 42}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 6
+  Events:
+  - Title: Crystal Pair 1
+    Notes: 
+    Enabled: 1
+    EventId: 1
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 4
+      TargetId: 5
+      SecondaryTargetId: 6
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+    Actions:
+    - Type: 7
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: MarkerCyan
+  - Title: Crystal_05 Interactor
+    Notes: Crystal_05 Interactor
+    Enabled: 1
+    EventId: 2
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 3
+      TargetId: 5
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+    Actions:
+    - Type: 7
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: CrystalPulseRed
+  - Title: Crystal_06 Interactor
+    Notes: Crystal_06 Interactor
+    Enabled: 1
+    EventId: 3
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 3
+      TargetId: 6
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+    Actions:
+    - Type: 7
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: CrystalPulseRed
