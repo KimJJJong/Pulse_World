@@ -168,6 +168,20 @@
                     "GuideImageResource": "",
                     "DurationMs": 3500,
                     "VfxKey": ""
+                },
+                {
+                    "Type": "SetSceneObjectActive",
+                    "ParamId": 7,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "Event triggered",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
                 }
             ]
         },
