@@ -234,6 +234,7 @@ namespace GameServer.InGame.Director.Data
     {
         public const string MarkerCyan = "MarkerCyan";
         public const string CrystalPulseRed = "CrystalPulseRed";
+        public const string CrystalPulseEmerald = "CrystalPulseEmerald";
         public const string CrystalPulseBlue = "CrystalPulseBlue";
     }
 
@@ -251,6 +252,11 @@ namespace GameServer.InGame.Director.Data
                 "Crystal Pulse Red",
                 StageVfxTargetMode.ObjectPulseColor,
                 "Target Object Group/ID의 크리스탈 pulse 색을 붉은색으로 변경합니다."),
+            new StageVfxDefinition(
+                StageVfxKeys.CrystalPulseEmerald,
+                "Crystal Pulse Emerald",
+                StageVfxTargetMode.ObjectPulseColor,
+                "Target Object Group/ID의 크리스탈 pulse 색을 에메랄드색으로 변경합니다."),
             new StageVfxDefinition(
                 StageVfxKeys.CrystalPulseBlue,
                 "Crystal Pulse Blue",
@@ -286,6 +292,9 @@ namespace GameServer.InGame.Director.Data
 
             RegisterAlias(lookup, StageVfxKeys.CrystalPulseBlue, "CrystalPulse");
             RegisterAlias(lookup, StageVfxKeys.CrystalPulseBlue, "CrystalPulseCyan");
+            RegisterAlias(lookup, StageVfxKeys.CrystalPulseEmerald, "CrystalPulseGreen");
+            RegisterAlias(lookup, StageVfxKeys.CrystalPulseEmerald, "EmeraldCrystalPulse");
+            RegisterAlias(lookup, StageVfxKeys.CrystalPulseEmerald, "CrystalEmeraldPulse");
             RegisterAlias(lookup, StageVfxKeys.CrystalPulseRed, "CrystalRedPulse");
             RegisterAlias(lookup, StageVfxKeys.CrystalPulseRed, "RedCrystalPulse");
             return lookup;

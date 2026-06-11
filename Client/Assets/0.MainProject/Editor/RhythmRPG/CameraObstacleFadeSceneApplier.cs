@@ -10,10 +10,12 @@ using Object = UnityEngine.Object;
 
 public static class CameraObstacleFadeSceneApplier
 {
+    private const int DefaultLayer = 0;
     private const int WallLayer = 7;
     private const float MaxDistanceFromWalkableTile = 5.5f;
     private const float MinOccluderHeight = 0.65f;
     private const string WallLayerName = "Wall";
+    private const string FadeTriggerName = "__CameraFadeTrigger";
 
     private static readonly SceneConfig[] TargetScenes =
     {
@@ -89,14 +91,16 @@ public static class CameraObstacleFadeSceneApplier
     {
         var totalAddedColliders = 0;
         var totalUpdatedColliders = 0;
-        var totalLayeredObjects = 0;
+        var totalRestoredVisualLayers = 0;
+        var totalRemovedLegacyColliders = 0;
 
         foreach (var config in TargetScenes)
         {
             var result = ApplyToScene(config, saveScene: true);
             totalAddedColliders += result.AddedColliders;
             totalUpdatedColliders += result.UpdatedColliders;
-            totalLayeredObjects += result.LayeredObjects;
+            totalRestoredVisualLayers += result.RestoredVisualLayers;
+            totalRemovedLegacyColliders += result.RemovedLegacyColliders;
         }
 
         AssetDatabase.SaveAssets();
@@ -105,7 +109,8 @@ public static class CameraObstacleFadeSceneApplier
         Debug.Log(
             "[CameraObstacleFadeSceneApplier] Applied camera obstacle fade targets. " +
             $"Scenes={TargetScenes.Length}, AddedColliders={totalAddedColliders}, " +
-            $"UpdatedColliders={totalUpdatedColliders}, LayeredObjects={totalLayeredObjects}.");
+            $"UpdatedColliders={totalUpdatedColliders}, RestoredVisualLayers={totalRestoredVisualLayers}, " +
+            $"RemovedLegacyColliders={totalRemovedLegacyColliders}.");
     }
 
     [MenuItem("RhythmRPG/Editors/World/Validate Camera Obstacle Fade Targets")]
@@ -118,15 +123,28 @@ public static class CameraObstacleFadeSceneApplier
             var wallLayerObjects = Object.FindObjectsByType<Collider>(FindObjectsSortMode.None)
                 .Where(collider => collider != null && collider.gameObject.scene == scene && collider.gameObject.layer == WallLayer)
                 .ToArray();
+            var fadeTriggerColliders = wallLayerObjects.Count(collider => collider.GetComponent<CameraObstacleFadeTarget>() != null);
             var triggerColliders = wallLayerObjects.Count(collider => collider.isTrigger);
             var blockingColliders = wallLayerObjects.Length - triggerColliders;
+            var wallLayerRenderers = Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None)
+                .Count(renderer => renderer != null
+                                   && renderer.gameObject.scene == scene
+                                   && renderer.gameObject.layer == WallLayer
+                                   && renderer.GetComponent<CameraObstacleFadeTarget>() == null);
 
             Debug.Log(
                 "[CameraObstacleFadeSceneApplier] Validation " +
                 $"Scene={scene.name}, HasFade={fade != null}, " +
                 $"ObstacleLayer={(fade != null ? fade.obstacleLayer.value : 0)}, " +
                 $"WallColliders={wallLayerObjects.Length}, " +
+                $"FadeTriggerColliders={fadeTriggerColliders}, " +
                 $"FadeTriggers={triggerColliders}, BlockingWallColliders={blockingColliders}.");
+            if (wallLayerRenderers > 0)
+            {
+                Debug.LogWarning(
+                    "[CameraObstacleFadeSceneApplier] Wall-layer visual renderers remain. " +
+                    $"Scene={scene.name}, WallLayerRenderers={wallLayerRenderers}.");
+            }
         }
     }
 
@@ -146,7 +164,8 @@ public static class CameraObstacleFadeSceneApplier
 
         var addedColliders = 0;
         var updatedColliders = 0;
-        var layeredObjects = 0;
+        var restoredVisualLayers = 0;
+        var removedLegacyColliders = 0;
         var targets = CollectFadeTargets(scene, config, walkableLookup, mapAsset).ToArray();
 
         foreach (var renderer in targets)
@@ -154,23 +173,28 @@ public static class CameraObstacleFadeSceneApplier
             var gameObject = renderer.gameObject;
             if (gameObject.layer != WallLayer)
             {
-                gameObject.layer = WallLayer;
-                layeredObjects++;
-                EditorUtility.SetDirty(gameObject);
-            }
-
-            if (!gameObject.TryGetComponent<BoxCollider>(out var collider))
-            {
-                collider = gameObject.AddComponent<BoxCollider>();
-                addedColliders++;
+                // Existing visual layer is already safe; only the trigger child needs Wall.
             }
             else
             {
-                updatedColliders++;
+                gameObject.layer = DefaultLayer;
+                restoredVisualLayers++;
+                EditorUtility.SetDirty(gameObject);
             }
 
+            removedLegacyColliders += RemoveLegacyFadeColliders(renderer);
+
+            var collider = EnsureFadeTriggerCollider(renderer, out var createdCollider);
+            if (createdCollider)
+                addedColliders++;
+            else
+                updatedColliders++;
             ConfigureCollider(collider, renderer);
         }
+
+        var cleanup = CleanupLegacyWallLayerVisuals(scene);
+        restoredVisualLayers += cleanup.RestoredVisualLayers;
+        removedLegacyColliders += cleanup.RemovedLegacyColliders;
 
         if (fade != null)
         {
@@ -186,9 +210,10 @@ public static class CameraObstacleFadeSceneApplier
         Debug.Log(
             "[CameraObstacleFadeSceneApplier] Applied " +
             $"Scene={scene.name}, Targets={targets.Length}, AddedColliders={addedColliders}, " +
-            $"UpdatedColliders={updatedColliders}, LayeredObjects={layeredObjects}.");
+            $"UpdatedColliders={updatedColliders}, RestoredVisualLayers={restoredVisualLayers}, " +
+            $"RemovedLegacyColliders={removedLegacyColliders}.");
 
-        return new ApplyResult(addedColliders, updatedColliders, layeredObjects);
+        return new ApplyResult(addedColliders, updatedColliders, restoredVisualLayers, removedLegacyColliders);
     }
 
     private static Scene OpenScene(string scenePath)
@@ -336,16 +361,114 @@ public static class CameraObstacleFadeSceneApplier
 
     private static void ConfigureCollider(BoxCollider collider, MeshRenderer renderer)
     {
-        var meshFilter = renderer.GetComponent<MeshFilter>();
-        var localBounds = meshFilter != null && meshFilter.sharedMesh != null
-            ? meshFilter.sharedMesh.bounds
-            : new Bounds(renderer.transform.InverseTransformPoint(renderer.bounds.center), Vector3.one);
+        var localBounds = GetRendererLocalBounds(renderer);
 
         collider.isTrigger = true;
         collider.center = localBounds.center;
         collider.size = localBounds.size;
         EditorUtility.SetDirty(collider);
     }
+
+    private static BoxCollider EnsureFadeTriggerCollider(MeshRenderer renderer, out bool createdCollider)
+    {
+        var trigger = FindDirectChild(renderer.transform, FadeTriggerName);
+        if (trigger == null)
+        {
+            var triggerObject = new GameObject(FadeTriggerName);
+            trigger = triggerObject.transform;
+            trigger.SetParent(renderer.transform, false);
+        }
+
+        trigger.localPosition = Vector3.zero;
+        trigger.localRotation = Quaternion.identity;
+        trigger.localScale = Vector3.one;
+        trigger.gameObject.layer = WallLayer;
+
+        var target = trigger.GetComponent<CameraObstacleFadeTarget>();
+        if (target == null)
+            target = trigger.gameObject.AddComponent<CameraObstacleFadeTarget>();
+
+        target.TargetRenderer = renderer;
+        EditorUtility.SetDirty(target);
+
+        var collider = trigger.GetComponent<BoxCollider>();
+        createdCollider = collider == null;
+        if (collider == null)
+            collider = trigger.gameObject.AddComponent<BoxCollider>();
+
+        EditorUtility.SetDirty(trigger.gameObject);
+        return collider;
+    }
+
+    private static int RemoveLegacyFadeColliders(MeshRenderer renderer)
+    {
+        var collider = renderer != null ? renderer.GetComponent<BoxCollider>() : null;
+        if (collider == null || !collider.isTrigger)
+            return 0;
+
+        var localBounds = GetRendererLocalBounds(renderer);
+        if (!Approximately(collider.center, localBounds.center) || !Approximately(collider.size, localBounds.size))
+            return 0;
+
+        Object.DestroyImmediate(collider);
+        EditorUtility.SetDirty(renderer.gameObject);
+        return 1;
+    }
+
+    private static ApplyResult CleanupLegacyWallLayerVisuals(Scene scene)
+    {
+        var restoredVisualLayers = 0;
+        var removedLegacyColliders = 0;
+        foreach (var renderer in Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+        {
+            if (renderer == null
+                || renderer.gameObject.scene != scene
+                || renderer.gameObject.layer != WallLayer
+                || renderer.GetComponent<CameraObstacleFadeTarget>() != null
+                || renderer.name.Equals(FadeTriggerName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            int removed = RemoveLegacyFadeColliders(renderer);
+            bool hasRemainingCollider = renderer.GetComponent<Collider>() != null;
+            if (removed <= 0 && hasRemainingCollider)
+                continue;
+
+            renderer.gameObject.layer = DefaultLayer;
+            restoredVisualLayers++;
+            removedLegacyColliders += removed;
+            EditorUtility.SetDirty(renderer.gameObject);
+        }
+
+        return new ApplyResult(0, 0, restoredVisualLayers, removedLegacyColliders);
+    }
+
+    private static Bounds GetRendererLocalBounds(MeshRenderer renderer)
+    {
+        var meshFilter = renderer.GetComponent<MeshFilter>();
+        return meshFilter != null && meshFilter.sharedMesh != null
+            ? meshFilter.sharedMesh.bounds
+            : new Bounds(renderer.transform.InverseTransformPoint(renderer.bounds.center), Vector3.one);
+    }
+
+    private static Transform FindDirectChild(Transform parent, string childName)
+    {
+        if (parent == null)
+            return null;
+
+        for (var i = 0; i < parent.childCount; i++)
+        {
+            var child = parent.GetChild(i);
+            if (child != null && child.name.Equals(childName, StringComparison.Ordinal))
+                return child;
+        }
+
+        return null;
+    }
+
+    private static bool Approximately(Vector3 lhs, Vector3 rhs)
+        => Vector3.SqrMagnitude(lhs - rhs) <= 0.000001f;
 
     private static bool IsUnderConfiguredRoot(Transform transform, HashSet<string> rootNames)
     {
@@ -407,13 +530,19 @@ public static class CameraObstacleFadeSceneApplier
     {
         public readonly int AddedColliders;
         public readonly int UpdatedColliders;
-        public readonly int LayeredObjects;
+        public readonly int RestoredVisualLayers;
+        public readonly int RemovedLegacyColliders;
 
-        public ApplyResult(int addedColliders, int updatedColliders, int layeredObjects)
+        public ApplyResult(
+            int addedColliders,
+            int updatedColliders,
+            int restoredVisualLayers,
+            int removedLegacyColliders)
         {
             AddedColliders = addedColliders;
             UpdatedColliders = updatedColliders;
-            LayeredObjects = layeredObjects;
+            RestoredVisualLayers = restoredVisualLayers;
+            RemovedLegacyColliders = removedLegacyColliders;
         }
     }
 }

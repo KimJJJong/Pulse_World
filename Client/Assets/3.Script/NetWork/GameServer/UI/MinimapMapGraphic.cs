@@ -18,6 +18,8 @@ public sealed class MinimapMapGraphic : MaskableGraphic
         public MarkerKind Kind;
         public int X;
         public int Y;
+        public int SizeX;
+        public int SizeY;
         public float Rotation;
     }
 
@@ -260,6 +262,12 @@ public sealed class MinimapMapGraphic : MaskableGraphic
             if (marker.Kind != pass || marker.X < 0 || marker.Y < 0 || marker.X >= _width || marker.Y >= _height)
                 continue;
 
+            if (marker.Kind == MarkerKind.Object)
+            {
+                DrawObjectMarker(vh, clipRect, originX, originY, cellSize, marker);
+                continue;
+            }
+
             Vector2 center = new Vector2(
                 originX + (marker.X + 0.5f) * cellSize,
                 originY + (marker.Y + 0.5f) * cellSize);
@@ -287,6 +295,30 @@ public sealed class MinimapMapGraphic : MaskableGraphic
                     break;
             }
         }
+    }
+
+    private void DrawObjectMarker(VertexHelper vh, Rect clipRect, float originX, float originY, float cellSize, EntityMarker marker)
+    {
+        int sizeX = Mathf.Clamp(Mathf.Max(1, marker.SizeX), 1, _width - marker.X);
+        int sizeY = Mathf.Clamp(Mathf.Max(1, marker.SizeY), 1, _height - marker.Y);
+        Rect markerRect = new Rect(
+            originX + marker.X * cellSize,
+            originY + marker.Y * cellSize,
+            sizeX * cellSize,
+            sizeY * cellSize);
+
+        if (!markerRect.Overlaps(clipRect))
+            return;
+
+        float outerInset = Mathf.Min(1.0f, cellSize * 0.05f);
+        float innerInset = Mathf.Min(
+            Mathf.Clamp(cellSize * 0.14f, 1.2f, 3.2f),
+            Mathf.Min(markerRect.width, markerRect.height) * 0.36f);
+        Rect outer = Inset(markerRect, outerInset);
+        Rect inner = Inset(markerRect, innerInset);
+
+        AddQuad(vh, outer.xMin, outer.yMin, outer.xMax, outer.yMax, _markerOutlineColor);
+        AddQuad(vh, inner.xMin, inner.yMin, inner.xMax, inner.yMax, GetMarkerColor(MarkerKind.Object));
     }
 
     private bool TryGetVisibleTileBounds(Rect clipRect, float originX, float originY, float cellSize, out int minX, out int maxX, out int minY, out int maxY)
@@ -394,6 +426,16 @@ public sealed class MinimapMapGraphic : MaskableGraphic
     {
         float half = size * 0.5f;
         AddQuad(vh, center.x - half, center.y - half, center.x + half, center.y + half, color);
+    }
+
+    private static Rect Inset(Rect rect, float inset)
+    {
+        inset = Mathf.Max(0f, inset);
+        return new Rect(
+            rect.xMin + inset,
+            rect.yMin + inset,
+            Mathf.Max(0f, rect.width - inset * 2f),
+            Mathf.Max(0f, rect.height - inset * 2f));
     }
 
     private static void AddTriangleRaw(VertexHelper vh, Vector2 a, Vector2 b, Vector2 c, Color color)

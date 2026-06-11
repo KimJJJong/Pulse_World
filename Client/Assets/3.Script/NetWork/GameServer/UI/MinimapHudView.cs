@@ -233,6 +233,8 @@ public sealed class MinimapHudView : MonoBehaviour
                 Kind = ResolveMarkerKind(info),
                 X = info.X,
                 Y = info.Y,
+                SizeX = Mathf.Max(1, info.SizeX),
+                SizeY = Mathf.Max(1, info.SizeY),
                 Rotation = info.Rotation
             });
         }

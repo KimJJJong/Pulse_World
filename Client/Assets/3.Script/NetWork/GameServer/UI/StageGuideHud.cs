@@ -306,6 +306,10 @@ public sealed class StageGuideHud : MonoBehaviour
                 color = new Color(1f, 0.12f, 0.08f, 1f);
                 return true;
 
+            case StageVfxKeys.CrystalPulseEmerald:
+                color = new Color(0.12f, 0.88f, 0.58f, 1f);
+                return true;
+
             case StageVfxKeys.CrystalPulseBlue:
                 color = new Color(0.196f, 0.784f, 1f, 1f);
                 return true;

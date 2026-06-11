@@ -13,7 +13,7 @@ namespace RhythmRPG.Game.Stage
         public LineRenderer Line;
         public Light LinkLight;
         public GameObject[] LinkedObjects = Array.Empty<GameObject>();
-        public Color BeamColor = new(0.72f, 0.46f, 1f, 0.9f);
+        public Color BeamColor = new(0.18f, 0.92f, 0.72f, 0.88f);
         public float BeamWidth = 0.08f;
         public float SourceYOffset;
         public float TargetYOffset;
@@ -252,9 +252,9 @@ namespace RhythmRPG.Game.Stage
 
         private static Gradient CreateBeamGradient(Color color)
         {
-            Color start = new(color.r, color.g, color.b, color.a * 0.38f);
-            Color middle = new(0.88f, 0.96f, 1f, Mathf.Clamp01(color.a));
-            Color end = new(0.64f, 0.92f, 1f, color.a * 0.58f);
+            Color start = new(0.16f, 0.95f, 0.72f, color.a * 0.44f);
+            Color middle = new(0.78f, 1f, 0.92f, Mathf.Clamp01(color.a));
+            Color end = new(0.18f, 0.75f, 1f, color.a * 0.58f);
 
             var gradient = new Gradient();
             gradient.SetKeys(

@@ -296,7 +296,7 @@ namespace RhythmRPG.Editor.StageBuilder
             lightTransform.localPosition = Vector3.zero;
             var linkLight = EnsureComponent<Light>(lightTransform.gameObject);
             linkLight.type = LightType.Point;
-            linkLight.color = new Color(0.72f, 0.46f, 1f, 1f);
+            linkLight.color = new Color(0.18f, 0.92f, 0.72f, 1f);
             linkLight.range = 7.5f;
             linkLight.intensity = 1.8f;
 
@@ -305,8 +305,8 @@ namespace RhythmRPG.Editor.StageBuilder
             line.positionCount = 2;
             line.startWidth = 0.08f;
             line.endWidth = 0.11f;
-            line.startColor = new Color(0.72f, 0.46f, 1f, 0.9f);
-            line.endColor = new Color(0.68f, 0.95f, 1f, 0.72f);
+            line.startColor = new Color(0.18f, 0.92f, 0.72f, 0.88f);
+            line.endColor = new Color(0.18f, 0.75f, 1f, 0.68f);
 
             var beam = EnsureComponent<StageCrystalLinkBeam>(link.gameObject);
             beam.Source = crystal;
@@ -316,7 +316,7 @@ namespace RhythmRPG.Editor.StageBuilder
             beam.Line = line;
             beam.LinkLight = linkLight;
             beam.LinkedObjects = linkedFxObjects;
-            beam.BeamColor = new Color(0.72f, 0.46f, 1f, 0.9f);
+            beam.BeamColor = new Color(0.18f, 0.92f, 0.72f, 0.88f);
             beam.BeamWidth = 0.075f;
             beam.SourceYOffset = 0f;
             beam.TargetYOffset = 0f;

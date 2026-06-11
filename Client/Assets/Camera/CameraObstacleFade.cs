@@ -36,6 +36,16 @@ public class CameraObstacleFade : MonoBehaviour
     private static readonly int MainTexPropID = Shader.PropertyToID("_MainTex");
     private static readonly int BaseColorPropID = Shader.PropertyToID("_BaseColor");
     private static readonly int ColorPropID = Shader.PropertyToID("_Color");
+    private static readonly int BumpMapPropID = Shader.PropertyToID("_BumpMap");
+    private static readonly int BumpScalePropID = Shader.PropertyToID("_BumpScale");
+    private static readonly int MetallicPropID = Shader.PropertyToID("_Metallic");
+    private static readonly int SmoothnessPropID = Shader.PropertyToID("_Smoothness");
+    private static readonly int MetallicGlossMapPropID = Shader.PropertyToID("_MetallicGlossMap");
+    private static readonly int EmissionColorPropID = Shader.PropertyToID("_EmissionColor");
+    private static readonly int EmissionMapPropID = Shader.PropertyToID("_EmissionMap");
+    private static readonly int OcclusionStrengthPropID = Shader.PropertyToID("_OcclusionStrength");
+    private static readonly int OcclusionMapPropID = Shader.PropertyToID("_OcclusionMap");
+    private static readonly int ReceiveShadowsPropID = Shader.PropertyToID("_ReceiveShadows");
     private const string DitherShaderName = "RhythmRPG/TopDown/DitherTransparentPBR";
 
     void Awake()
@@ -97,9 +107,11 @@ public class CameraObstacleFade : MonoBehaviour
 
             if (!_colliderRendererCache.TryGetValue(col, out Renderer r))
             {
-                r = col.GetComponent<Renderer>();
-                if (r == null)
-                    r = col.GetComponentInChildren<Renderer>();
+                var fadeTarget = col.GetComponent<CameraObstacleFadeTarget>();
+                r = fadeTarget != null ? fadeTarget.TargetRenderer : null;
+                if (r == null) r = col.GetComponent<Renderer>();
+                if (r == null) r = col.GetComponentInParent<Renderer>();
+                if (r == null) r = col.GetComponentInChildren<Renderer>();
                 _colliderRendererCache[col] = r;
             }
 
@@ -239,6 +251,16 @@ public class CameraObstacleFade : MonoBehaviour
                 : material.HasProperty(ColorPropID)
                     ? material.GetColor(ColorPropID)
                     : Color.white;
+            var bumpMap = GetTexture(material, BumpMapPropID);
+            var metallicGlossMap = GetTexture(material, MetallicGlossMapPropID);
+            var emissionMap = GetTexture(material, EmissionMapPropID);
+            var occlusionMap = GetTexture(material, OcclusionMapPropID);
+            var bumpScale = GetFloat(material, BumpScalePropID, 1.0f);
+            var metallic = GetFloat(material, MetallicPropID, 0.0f);
+            var smoothness = GetFloat(material, SmoothnessPropID, 0.5f);
+            var emissionColor = GetColor(material, EmissionColorPropID, Color.black);
+            var occlusionStrength = GetFloat(material, OcclusionStrengthPropID, 1.0f);
+            var receiveShadows = GetFloat(material, ReceiveShadowsPropID, 1.0f);
 
             material.shader = _ditherShader;
 
@@ -252,8 +274,62 @@ public class CameraObstacleFade : MonoBehaviour
                 material.SetColor(BaseColorPropID, baseColor);
             }
 
+            SetTexture(material, BumpMapPropID, bumpMap);
+            SetTexture(material, MetallicGlossMapPropID, metallicGlossMap);
+            SetTexture(material, EmissionMapPropID, emissionMap);
+            SetTexture(material, OcclusionMapPropID, occlusionMap);
+            SetFloat(material, BumpScalePropID, bumpScale);
+            SetFloat(material, MetallicPropID, metallic);
+            SetFloat(material, SmoothnessPropID, smoothness);
+            SetColor(material, EmissionColorPropID, emissionColor);
+            SetFloat(material, OcclusionStrengthPropID, occlusionStrength);
+            SetFloat(material, ReceiveShadowsPropID, receiveShadows);
+            SetKeyword(material, "_NORMALMAP", bumpMap != null);
+            SetKeyword(material, "_METALLICSPECGLOSSMAP", metallicGlossMap != null);
+            SetKeyword(material, "_EMISSION", emissionMap != null || emissionColor.maxColorComponent > 0.001f);
+            SetKeyword(material, "_OCCLUSIONMAP", occlusionMap != null);
+            SetKeyword(material, "_RECEIVE_SHADOWS_OFF", receiveShadows <= 0.5f);
+
             material.SetFloat(DitherPropID, 1.0f);
         }
+    }
+
+    private static Texture GetTexture(Material material, int propertyId)
+        => material != null && material.HasProperty(propertyId) ? material.GetTexture(propertyId) : null;
+
+    private static float GetFloat(Material material, int propertyId, float fallback)
+        => material != null && material.HasProperty(propertyId) ? material.GetFloat(propertyId) : fallback;
+
+    private static Color GetColor(Material material, int propertyId, Color fallback)
+        => material != null && material.HasProperty(propertyId) ? material.GetColor(propertyId) : fallback;
+
+    private static void SetTexture(Material material, int propertyId, Texture value)
+    {
+        if (material != null && value != null && material.HasProperty(propertyId))
+            material.SetTexture(propertyId, value);
+    }
+
+    private static void SetFloat(Material material, int propertyId, float value)
+    {
+        if (material != null && material.HasProperty(propertyId))
+            material.SetFloat(propertyId, value);
+    }
+
+    private static void SetColor(Material material, int propertyId, Color value)
+    {
+        if (material != null && material.HasProperty(propertyId))
+            material.SetColor(propertyId, value);
+    }
+
+    private static void SetKeyword(Material material, string keyword, bool enabled)
+    {
+        if (material == null)
+            return;
+
+        if (enabled)
+            material.EnableKeyword(keyword);
+        else
+            material.DisableKeyword(keyword);
     }
     
     // Helper to draw wire capsule
