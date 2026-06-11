@@ -18,6 +18,13 @@ namespace RhythmRPG.Game.Stage
         public float SourceYOffset;
         public float TargetYOffset;
         public bool UseRendererBoundsEndpoints = true;
+        [Range(4, 48)] public int SegmentCount = 18;
+        public float ArcHeight = 0.55f;
+        public float DistanceArcFactor = 0.025f;
+        public float WaveAmplitude = 0.08f;
+        public float WaveFrequency = 1.6f;
+        public float PulseFrequency = 1.25f;
+        [Range(0f, 0.6f)] public float PulseStrength = 0.22f;
 
         private static Material _lineMaterial;
 
@@ -79,7 +86,7 @@ namespace RhythmRPG.Game.Stage
                 Line = gameObject.AddComponent<LineRenderer>();
 
             Line.useWorldSpace = true;
-            Line.positionCount = 2;
+            Line.positionCount = Mathf.Max(4, SegmentCount);
             Line.startWidth = BeamWidth;
             Line.endWidth = BeamWidth * 1.35f;
             Line.startColor = BeamColor;
@@ -87,6 +94,9 @@ namespace RhythmRPG.Game.Stage
             Line.numCapVertices = 6;
             Line.numCornerVertices = 4;
             Line.textureMode = LineTextureMode.Stretch;
+            Line.alignment = LineAlignment.View;
+            Line.widthCurve = CreateBeamWidthCurve();
+            Line.colorGradient = CreateBeamGradient(BeamColor);
             Line.material = GetLineMaterial();
         }
 
@@ -95,8 +105,40 @@ namespace RhythmRPG.Game.Stage
             if (Line == null || Source == null || Target == null)
                 return;
 
-            Line.SetPosition(0, ResolveEndpoint(Source, SourceYOffset));
-            Line.SetPosition(1, ResolveEndpoint(Target, TargetYOffset));
+            Vector3 start = ResolveEndpoint(Source, SourceYOffset);
+            Vector3 end = ResolveEndpoint(Target, TargetYOffset);
+            int segmentCount = Mathf.Max(4, SegmentCount);
+            if (Line.positionCount != segmentCount)
+                Line.positionCount = segmentCount;
+
+            float distance = Vector3.Distance(start, end);
+            Vector3 direction = end - start;
+            Vector3 horizontalDirection = new Vector3(direction.x, 0f, direction.z);
+            Vector3 side = horizontalDirection.sqrMagnitude > 0.0001f
+                ? Vector3.Cross(Vector3.up, horizontalDirection.normalized)
+                : transform.right;
+
+            float arc = ArcHeight + distance * DistanceArcFactor;
+            float time = Time.time;
+            float pulse = 1f + Mathf.Sin(time * Mathf.PI * 2f * PulseFrequency) * PulseStrength;
+
+            for (int i = 0; i < segmentCount; i++)
+            {
+                float t = segmentCount <= 1 ? 0f : i / (segmentCount - 1f);
+                Vector3 point = Vector3.Lerp(start, end, t);
+                float arcT = Mathf.Sin(t * Mathf.PI);
+                float wave = Mathf.Sin((t * Mathf.PI * 2f) + time * WaveFrequency) * WaveAmplitude * arcT;
+                point += Vector3.up * (arc * arcT);
+                point += side * wave;
+                Line.SetPosition(i, point);
+            }
+
+            Line.widthMultiplier = pulse;
+            if (LinkLight != null)
+            {
+                float normalizedPulse = Mathf.InverseLerp(1f - PulseStrength, 1f + PulseStrength, pulse);
+                LinkLight.intensity = Mathf.Lerp(1.45f, 2.15f, normalizedPulse);
+            }
         }
 
         private Vector3 ResolveEndpoint(Transform endpointRoot, float yOffset)
@@ -196,6 +238,41 @@ namespace RhythmRPG.Game.Stage
                 _lineMaterial.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
 
             return _lineMaterial;
+        }
+
+        private static AnimationCurve CreateBeamWidthCurve()
+        {
+            return new AnimationCurve(
+                new Keyframe(0f, 0.18f),
+                new Keyframe(0.12f, 0.75f),
+                new Keyframe(0.5f, 1.25f),
+                new Keyframe(0.88f, 0.82f),
+                new Keyframe(1f, 0.24f));
+        }
+
+        private static Gradient CreateBeamGradient(Color color)
+        {
+            Color start = new(color.r, color.g, color.b, color.a * 0.38f);
+            Color middle = new(0.88f, 0.96f, 1f, Mathf.Clamp01(color.a));
+            Color end = new(0.64f, 0.92f, 1f, color.a * 0.58f);
+
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[]
+                {
+                    new GradientColorKey(start, 0f),
+                    new GradientColorKey(color, 0.35f),
+                    new GradientColorKey(middle, 0.62f),
+                    new GradientColorKey(end, 1f)
+                },
+                new[]
+                {
+                    new GradientAlphaKey(start.a, 0f),
+                    new GradientAlphaKey(color.a, 0.35f),
+                    new GradientAlphaKey(middle.a, 0.62f),
+                    new GradientAlphaKey(end.a, 1f)
+                });
+            return gradient;
         }
     }
 }

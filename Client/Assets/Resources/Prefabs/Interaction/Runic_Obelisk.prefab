@@ -5374,10 +5374,17 @@ MonoBehaviour:
   - {fileID: 4384865556350109493}
   - {fileID: 1165338572604921601}
   BeamColor: {r: 0.72, g: 0.46, b: 1, a: 0.9}
-  BeamWidth: 0.08
+  BeamWidth: 0.075
   SourceYOffset: 0
   TargetYOffset: 0
   UseRendererBoundsEndpoints: 1
+  SegmentCount: 20
+  ArcHeight: 0.42
+  DistanceArcFactor: 0.018
+  WaveAmplitude: 0.055
+  WaveFrequency: 1.35
+  PulseFrequency: 1.15
+  PulseStrength: 0.16
 --- !u!114 &3070924667706545891
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -311,10 +311,17 @@ namespace RhythmRPG.Editor.StageBuilder
             beam.LinkLight = linkLight;
             beam.LinkedObjects = linkedFxObjects;
             beam.BeamColor = new Color(0.72f, 0.46f, 1f, 0.9f);
-            beam.BeamWidth = 0.08f;
+            beam.BeamWidth = 0.075f;
             beam.SourceYOffset = 0f;
             beam.TargetYOffset = 0f;
             beam.UseRendererBoundsEndpoints = true;
+            beam.SegmentCount = 20;
+            beam.ArcHeight = 0.42f;
+            beam.DistanceArcFactor = 0.018f;
+            beam.WaveAmplitude = 0.055f;
+            beam.WaveFrequency = 1.35f;
+            beam.PulseFrequency = 1.15f;
+            beam.PulseStrength = 0.16f;
 
             var linkTarget = EnsureComponent<StageSceneObjectTarget>(link.gameObject);
             linkTarget.TargetKey = "RunicTowerLink";

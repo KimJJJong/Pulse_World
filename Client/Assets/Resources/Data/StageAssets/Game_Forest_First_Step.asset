@@ -92,7 +92,7 @@ MonoBehaviour:
     OverrideGroupId: 7
   - EntityKey: VoidWall
     Label: 
-    Position: {x: 48, y: 1, z: 37}
+    Position: {x: 48, y: 0, z: 37}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
     ObjectSize: {x: 1, y: 1}
@@ -468,7 +468,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: VoidWall
       ParamId: 0
-      Position: {x: 48, y: 1, z: 37}
+      Position: {x: 48, y: 0, z: 37}
       ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 7
@@ -540,7 +540,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 69, y: 0, z: 50}
+      Position: {x: 69, y: 0, z: 52}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 31
@@ -552,7 +552,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 80, y: 0, z: 39}
+      Position: {x: 83, y: 0, z: 39}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 32
@@ -564,7 +564,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 69, y: 0, z: 28}
+      Position: {x: 69, y: 0, z: 27}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 33
@@ -576,7 +576,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 59, y: 0, z: 39}
+      Position: {x: 56, y: 0, z: 39}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 34
@@ -631,21 +631,37 @@ MonoBehaviour:
       TargetKey: RunicTowerLink_North
       Count: 8
       Area:
-        x: 69
-        y: 49
+        x: 86
+        y: 64
         width: 3
         height: 3
       AreaShape: 1
       AreaCells:
-      - {x: 69, y: 49}
-      - {x: 70, y: 49}
-      - {x: 71, y: 49}
+      - {x: 67, y: 50}
+      - {x: 68, y: 50}
       - {x: 69, y: 50}
       - {x: 70, y: 50}
       - {x: 71, y: 50}
+      - {x: 67, y: 51}
+      - {x: 68, y: 51}
       - {x: 69, y: 51}
       - {x: 70, y: 51}
       - {x: 71, y: 51}
+      - {x: 67, y: 52}
+      - {x: 68, y: 52}
+      - {x: 69, y: 52}
+      - {x: 70, y: 52}
+      - {x: 71, y: 52}
+      - {x: 67, y: 53}
+      - {x: 68, y: 53}
+      - {x: 69, y: 53}
+      - {x: 70, y: 53}
+      - {x: 71, y: 53}
+      - {x: 67, y: 54}
+      - {x: 68, y: 54}
+      - {x: 69, y: 54}
+      - {x: 70, y: 54}
+      - {x: 71, y: 54}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
@@ -698,21 +714,37 @@ MonoBehaviour:
       TargetKey: RunicTowerLink_East
       Count: 8
       Area:
-        x: 79
-        y: 38
-        width: 3
-        height: 3
+        x: 81
+        y: 37
+        width: 5
+        height: 5
       AreaShape: 1
       AreaCells:
-      - {x: 79, y: 38}
-      - {x: 80, y: 38}
+      - {x: 81, y: 37}
+      - {x: 82, y: 37}
+      - {x: 83, y: 37}
+      - {x: 84, y: 37}
+      - {x: 85, y: 37}
       - {x: 81, y: 38}
-      - {x: 79, y: 39}
-      - {x: 80, y: 39}
+      - {x: 82, y: 38}
+      - {x: 83, y: 38}
+      - {x: 84, y: 38}
+      - {x: 85, y: 38}
       - {x: 81, y: 39}
-      - {x: 79, y: 40}
-      - {x: 80, y: 40}
+      - {x: 82, y: 39}
+      - {x: 83, y: 39}
+      - {x: 84, y: 39}
+      - {x: 85, y: 39}
       - {x: 81, y: 40}
+      - {x: 82, y: 40}
+      - {x: 83, y: 40}
+      - {x: 84, y: 40}
+      - {x: 85, y: 40}
+      - {x: 81, y: 41}
+      - {x: 82, y: 41}
+      - {x: 83, y: 41}
+      - {x: 84, y: 41}
+      - {x: 85, y: 41}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
@@ -823,21 +855,37 @@ MonoBehaviour:
       TargetKey: RunicTowerLink_South
       Count: 8
       Area:
-        x: 69
-        y: 28
+        x: 56
+        y: 14
         width: 3
         height: 3
       AreaShape: 1
       AreaCells:
+      - {x: 67, y: 25}
+      - {x: 68, y: 25}
+      - {x: 69, y: 25}
+      - {x: 70, y: 25}
+      - {x: 71, y: 25}
+      - {x: 67, y: 26}
+      - {x: 68, y: 26}
+      - {x: 69, y: 26}
+      - {x: 70, y: 26}
+      - {x: 71, y: 26}
+      - {x: 67, y: 27}
+      - {x: 68, y: 27}
+      - {x: 69, y: 27}
+      - {x: 70, y: 27}
+      - {x: 71, y: 27}
+      - {x: 67, y: 28}
+      - {x: 68, y: 28}
       - {x: 69, y: 28}
       - {x: 70, y: 28}
       - {x: 71, y: 28}
+      - {x: 67, y: 29}
+      - {x: 68, y: 29}
       - {x: 69, y: 29}
       - {x: 70, y: 29}
       - {x: 71, y: 29}
-      - {x: 69, y: 30}
-      - {x: 70, y: 30}
-      - {x: 71, y: 30}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
@@ -890,21 +938,37 @@ MonoBehaviour:
       TargetKey: RunicTowerLink_West
       Count: 8
       Area:
-        x: 58
+        x: 28
         y: 38
         width: 3
         height: 3
       AreaShape: 1
       AreaCells:
+      - {x: 54, y: 37}
+      - {x: 55, y: 37}
+      - {x: 56, y: 37}
+      - {x: 57, y: 37}
+      - {x: 58, y: 37}
+      - {x: 54, y: 38}
+      - {x: 55, y: 38}
+      - {x: 56, y: 38}
+      - {x: 57, y: 38}
       - {x: 58, y: 38}
-      - {x: 59, y: 38}
-      - {x: 60, y: 38}
+      - {x: 54, y: 39}
+      - {x: 55, y: 39}
+      - {x: 56, y: 39}
+      - {x: 57, y: 39}
       - {x: 58, y: 39}
-      - {x: 59, y: 39}
-      - {x: 60, y: 39}
+      - {x: 54, y: 40}
+      - {x: 55, y: 40}
+      - {x: 56, y: 40}
+      - {x: 57, y: 40}
       - {x: 58, y: 40}
-      - {x: 59, y: 40}
-      - {x: 60, y: 40}
+      - {x: 54, y: 41}
+      - {x: 55, y: 41}
+      - {x: 56, y: 41}
+      - {x: 57, y: 41}
+      - {x: 58, y: 41}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
