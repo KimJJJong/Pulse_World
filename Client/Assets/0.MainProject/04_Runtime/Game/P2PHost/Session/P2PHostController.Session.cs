@@ -1047,7 +1047,7 @@ public sealed partial class P2PHostController
             if (_hostPositions.ContainsKey(entity.EntityId))
                 continue;
 
-            if (entity.X == targetX && entity.Y == targetY)
+            if (ClientGameState.EntityOccupiesCell(entity, targetX, targetY))
                 return true;
         }
 

@@ -241,6 +241,14 @@ public class ClientGameState : MonoBehaviour
         return kind == TileKind.Floor || kind == TileKind.Spawn;
     }
 
+    public static bool EntityOccupiesCell(ClientEntityInfo entity, int x, int y)
+    {
+        int sizeX = Mathf.Max(1, entity.SizeX);
+        int sizeY = Mathf.Max(1, entity.SizeY);
+        return x >= entity.X && x < entity.X + sizeX
+               && y >= entity.Y && y < entity.Y + sizeY;
+    }
+
     public bool IsOccupied(int x, int y, int ignoreEntityId = -1)
     {
         foreach (var kv in _entities)
@@ -251,10 +259,7 @@ public class ClientGameState : MonoBehaviour
             if (kv.Value.Hp <= 0)
                 continue;
 
-            int sizeX = Mathf.Max(1, kv.Value.SizeX);
-            int sizeY = Mathf.Max(1, kv.Value.SizeY);
-            if (x >= kv.Value.X && x < kv.Value.X + sizeX
-                && y >= kv.Value.Y && y < kv.Value.Y + sizeY)
+            if (EntityOccupiesCell(kv.Value, x, y))
                 return true;
         }
 
@@ -416,17 +421,24 @@ public class ClientGameState : MonoBehaviour
 
     private ClientEntityInfo ResolveMaxHp(ClientEntityInfo info)
     {
-        if (info.MaxHp > 0)
-            return info;
-
-        if (_entities.TryGetValue(info.EntityId, out var previous) && previous.MaxHp > 0)
+        if (_entities.TryGetValue(info.EntityId, out var previous))
         {
-            info.MaxHp = previous.MaxHp;
-            return info;
+            if (info.MaxHp <= 0 && previous.MaxHp > 0)
+                info.MaxHp = previous.MaxHp;
+            if (info.SizeX <= 0 && previous.SizeX > 0)
+                info.SizeX = previous.SizeX;
+            if (info.SizeY <= 0 && previous.SizeY > 0)
+                info.SizeY = previous.SizeY;
         }
 
         // Current packets do not carry MaxHp. Keep the first positive HP snapshot as the HUD baseline.
-        info.MaxHp = Mathf.Max(0, info.Hp);
+        if (info.MaxHp <= 0)
+            info.MaxHp = Mathf.Max(0, info.Hp);
+        if (info.SizeX <= 0)
+            info.SizeX = 1;
+        if (info.SizeY <= 0)
+            info.SizeY = 1;
+
         return info;
     }
 

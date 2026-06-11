@@ -5107,6 +5107,11 @@ MonoBehaviour:
   Target: {fileID: 6613681826424850380}
   DelayMs: 900
   DurationMs: 950
+  ShakeCameraOnReveal: 0
+  ShakeDelaySeconds: 0
+  CameraShakeDuration: 0.55
+  CameraShakeStrength: 0.085
+  CameraShakeFrequency: 24
 --- !u!1 &4384865556350109493
 GameObject:
   m_ObjectHideFlags: 0
@@ -5692,6 +5697,11 @@ MonoBehaviour:
   Target: {fileID: 1187179943025561657}
   DelayMs: 0
   DurationMs: 1300
+  ShakeCameraOnReveal: 1
+  ShakeDelaySeconds: 0.08
+  CameraShakeDuration: 0.55
+  CameraShakeStrength: 0.085
+  CameraShakeFrequency: 24
 --- !u!1001 &6052876877535596217
 PrefabInstance:
   m_ObjectHideFlags: 0

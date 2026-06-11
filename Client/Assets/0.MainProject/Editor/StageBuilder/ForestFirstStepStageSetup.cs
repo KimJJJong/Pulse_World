@@ -217,6 +217,11 @@ namespace RhythmRPG.Editor.StageBuilder
             autoReveal.Target = target;
             autoReveal.DelayMs = 0;
             autoReveal.DurationMs = target.DefaultDurationMs;
+            autoReveal.ShakeCameraOnReveal = true;
+            autoReveal.ShakeDelaySeconds = 0.08f;
+            autoReveal.CameraShakeDuration = 0.55f;
+            autoReveal.CameraShakeStrength = 0.085f;
+            autoReveal.CameraShakeFrequency = 24f;
 
             EditorUtility.SetDirty(autoReveal);
             EditorUtility.SetDirty(target);
@@ -257,6 +262,7 @@ namespace RhythmRPG.Editor.StageBuilder
             autoReveal.Target = crystalTarget;
             autoReveal.DelayMs = 900;
             autoReveal.DurationMs = crystalTarget.DefaultDurationMs;
+            autoReveal.ShakeCameraOnReveal = false;
 
             EditorUtility.SetDirty(autoReveal);
             EditorUtility.SetDirty(crystalTarget);

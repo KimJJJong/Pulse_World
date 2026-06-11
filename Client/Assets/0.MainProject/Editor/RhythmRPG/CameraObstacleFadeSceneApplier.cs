@@ -24,6 +24,10 @@ public static class CameraObstacleFadeSceneApplier
         new(
             "Assets/0.MainProject/Scenes/Game/Game_Forest_Tutorial.unity",
             "Assets/Resources/Data/Map/Game_Forest_Tutorial.asset",
+            new[] { "Forest_Decoration_Set" }),
+        new(
+            "Assets/0.MainProject/Scenes/Game/Game_Forest_First_Step.unity",
+            "Assets/Resources/Data/Map/Game_Forest_First_Step.asset",
             new[] { "Forest_Decoration_Set" })
     };
 
