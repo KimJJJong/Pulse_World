@@ -132,7 +132,8 @@ namespace RhythmRPG.Editor.StageBuilder
         ObjectPairInteracted,
         ObjectStateEquals,
         AreaExit,
-        AreaPlayerCount
+        AreaPlayerCount,
+        AreaHoldBeats
     }
 
     public enum StageAreaShapeType

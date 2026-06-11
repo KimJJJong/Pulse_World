@@ -21,6 +21,10 @@ namespace RhythmRPG.Game.Stage
         public bool UseWorldUpMotion;
         public Transform[] MotionRoots = Array.Empty<Transform>();
 
+        [Header("Initial State")]
+        public bool StartHidden;
+        public bool CurrentPoseIsHidden;
+
         [Header("Rise")]
         public bool EnableRiseFromGround;
         public bool ReplayShowAnimationWhenAlreadyVisible;
@@ -71,7 +75,7 @@ namespace RhythmRPG.Game.Stage
                 if (currentlyVisible != data.Visible)
                     changed++;
 
-                target.SetVisible(data.Visible, data.DurationMs);
+                target.SetVisible(data.Visible, data.DurationMs, data.DelayMs);
             }
 
             Debug.Log($"[StageSceneObjectTarget] SetActive visible={data.Visible} key='{targetKey}' group={groupId} changed={changed}");
@@ -81,6 +85,12 @@ namespace RhythmRPG.Game.Stage
         private void Awake()
         {
             CacheShownPose();
+        }
+
+        private void Start()
+        {
+            if (StartHidden)
+                ApplyStartHidden();
         }
 
         private void OnValidate()
@@ -129,7 +139,7 @@ namespace RhythmRPG.Game.Stage
                 StartIdleFloat();
         }
 
-        private void SetVisible(bool visible, int durationMs)
+        private void SetVisible(bool visible, int durationMs, int delayMs = 0)
         {
             CacheShownPose();
             StopIdleFloat();
@@ -143,6 +153,20 @@ namespace RhythmRPG.Game.Stage
 
             if (visible && !gameObject.activeSelf)
                 gameObject.SetActive(true);
+
+            int resolvedDelayMs = Math.Max(0, delayMs);
+            if (resolvedDelayMs > 0 && isActiveAndEnabled)
+            {
+                if (visible)
+                {
+                    ApplyVisibility(0f);
+                    if (DisableCollidersWhenHidden)
+                        SetCollidersEnabled(false);
+                }
+
+                _visibilityRoutine = StartCoroutine(CoSetVisibleAfterDelay(visible, resolvedDurationMs, resolvedDelayMs / 1000f));
+                return;
+            }
 
             if (DisableCollidersWhenHidden && !visible)
                 SetCollidersEnabled(false);
@@ -171,6 +195,14 @@ namespace RhythmRPG.Game.Stage
             }
 
             _visibilityRoutine = StartCoroutine(AnimateVisibility(visible, resolvedDurationMs / 1000f, replayShow));
+        }
+
+        private IEnumerator CoSetVisibleAfterDelay(bool visible, int durationMs, float delaySeconds)
+        {
+            yield return new WaitForSeconds(Mathf.Max(0f, delaySeconds));
+
+            _visibilityRoutine = null;
+            SetVisible(visible, durationMs);
         }
 
         private IEnumerator AnimateVisibility(bool visible, float durationSeconds, bool replayShow)
@@ -223,8 +255,37 @@ namespace RhythmRPG.Game.Stage
             for (int i = 0; i < _motionTargets.Length; i++)
             {
                 Transform motionTarget = _motionTargets[i];
-                _shownLocalPositions[i] = motionTarget != null ? motionTarget.localPosition : Vector3.zero;
-                _shownWorldPositions[i] = motionTarget != null ? motionTarget.position : Vector3.zero;
+                if (motionTarget == null)
+                {
+                    _shownLocalPositions[i] = Vector3.zero;
+                    _shownWorldPositions[i] = Vector3.zero;
+                    _shownLocalScales[i] = Vector3.one;
+                    continue;
+                }
+
+                Vector3 shownLocalPosition = motionTarget.localPosition;
+                Vector3 shownWorldPosition = motionTarget.position;
+                if (CurrentPoseIsHidden)
+                {
+                    float hiddenYOffset = GetHiddenYOffset();
+                    if (UseWorldUpMotion)
+                    {
+                        shownWorldPosition -= Vector3.up * hiddenYOffset;
+                        shownLocalPosition = motionTarget.parent != null
+                            ? motionTarget.parent.InverseTransformPoint(shownWorldPosition)
+                            : shownWorldPosition;
+                    }
+                    else
+                    {
+                        shownLocalPosition -= Vector3.up * hiddenYOffset;
+                        shownWorldPosition = motionTarget.parent != null
+                            ? motionTarget.parent.TransformPoint(shownLocalPosition)
+                            : shownLocalPosition;
+                    }
+                }
+
+                _shownLocalPositions[i] = shownLocalPosition;
+                _shownWorldPositions[i] = shownWorldPosition;
                 _shownLocalScales[i] = motionTarget != null ? motionTarget.localScale : Vector3.one;
             }
 
@@ -277,7 +338,7 @@ namespace RhythmRPG.Game.Stage
 
         private void ApplyMotionVisibility(float amount, bool showRiseArc)
         {
-            float hiddenYOffset = EnableRiseFromGround ? RiseHiddenYOffset : HiddenYOffset;
+            float hiddenYOffset = GetHiddenYOffset();
             float riseArc = showRiseArc && EnableRiseFromGround
                 ? Mathf.Sin(amount * Mathf.PI) * RiseOvershootHeight
                 : 0f;
@@ -360,6 +421,19 @@ namespace RhythmRPG.Game.Stage
             float blend = FloatBlendInSeconds > 0f ? Mathf.Clamp01(elapsed / FloatBlendInSeconds) : 1f;
             return wave * FloatAmplitude * blend;
         }
+
+        private void ApplyStartHidden()
+        {
+            _visibleAmount = 0f;
+            _isFloating = false;
+            ApplyVisibility(0f);
+
+            if (DisableCollidersWhenHidden)
+                SetCollidersEnabled(false);
+        }
+
+        private float GetHiddenYOffset()
+            => EnableRiseFromGround ? RiseHiddenYOffset : HiddenYOffset;
 
         private bool HasFogZones()
             => _fogZones != null && _fogZones.Length > 0;

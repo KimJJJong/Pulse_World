@@ -663,6 +663,29 @@ namespace RhythmRPG.Editor.StageBuilder
                     EditorGUILayout.HelpBox("영역 안의 살아있는 Player 수가 조건을 만족하면 발동합니다. Participant Count를 선택하면 현재 게임 참여 인원이 n이 됩니다.", MessageType.None);
                     break;
 
+                case ConditionType.AreaHoldBeats:
+                    DrawAreaConditionFields(condProp);
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("Count"), new GUIContent("Required Hold Beats"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("CountRequirement"), new GUIContent("Required Player Source"));
+                    if ((StageCountRequirementMode)condProp.FindPropertyRelative("CountRequirement").enumValueIndex == StageCountRequirementMode.FixedCount)
+                    {
+                        EditorGUILayout.PropertyField(condProp.FindPropertyRelative("TargetId"), new GUIContent("Required Players"));
+                    }
+                    else
+                    {
+                        using (new EditorGUI.DisabledScope(true))
+                            EditorGUILayout.IntField("Required Players", 0);
+                        EditorGUILayout.HelpBox("런타임의 게임 참여 인원 수를 필요 인원으로 사용합니다.", MessageType.None);
+                    }
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("TargetKey"), new GUIContent("Linked Scene Effect Key"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("SecondaryTargetId"), new GUIContent("Linked Scene Effect Group ID"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("ProgressLabel"), new GUIContent("Progress Label"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("ProgressDurationMs"), new GUIContent("Text Duration (ms)"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("ShowProgressUi"), new GUIContent("Show Center Progress UI"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("ShowAreaOutline"), new GUIContent("Show Area Outline"));
+                    EditorGUILayout.HelpBox("영역 안에 있을 때만 Beat 진행도가 쌓입니다. 영역을 벗어나면 진행도는 유지된 채 정지하고, 완료 전에는 연결 연출을 끕니다.", MessageType.None);
+                    break;
+
                 case ConditionType.TimeElapsed:
                     SerializedProperty timeProp = condProp.FindPropertyRelative("Count");
                     EditorGUILayout.PropertyField(timeProp, new GUIContent("Elapsed Time (ms)"));
@@ -909,7 +932,11 @@ namespace RhythmRPG.Editor.StageBuilder
                     sceneObjectActive = EditorGUILayout.Toggle(new GUIContent("Active"), sceneObjectActive);
                     sceneObjectActiveProp.intValue = sceneObjectActive ? 1 : 0;
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("DurationMs"), new GUIContent("Fade Duration (ms)"));
-                    EditorGUILayout.HelpBox("맵에 직접 배치된 안개/길막/장식 오브젝트 root에 StageSceneObjectTarget을 붙이고 Key 또는 Group ID를 맞추면 자연스럽게 표시/숨김 처리됩니다.", MessageType.Info);
+                    SerializedProperty sceneObjectDelayProp = actionProp.FindPropertyRelative("Position");
+                    Vector3 sceneObjectDelay = sceneObjectDelayProp.vector3Value;
+                    sceneObjectDelay.x = EditorGUILayout.IntField(new GUIContent("Delay (ms)", "SetSceneObjectActive에서만 Position X를 지연 시간으로 사용합니다."), Mathf.RoundToInt(sceneObjectDelay.x));
+                    sceneObjectDelayProp.vector3Value = sceneObjectDelay;
+                    EditorGUILayout.HelpBox("맵에 직접 배치된 안개/길막/장식 오브젝트 root에 StageSceneObjectTarget을 붙이고 Key 또는 Group ID를 맞추면 자연스럽게 표시/숨김 처리됩니다. Delay를 넣으면 지정 시간 후 시작합니다.", MessageType.Info);
                     break;
 
                 case ActionType.SetGateDoorOpen:
@@ -1130,6 +1157,7 @@ namespace RhythmRPG.Editor.StageBuilder
             AreaEnter,
             AreaExit,
             AreaPlayerCount,
+            AreaHoldBeats,
             TimeElapsed,
             ObjectInteracted,
             ObjectPairInteracted,
@@ -1237,6 +1265,11 @@ namespace RhythmRPG.Editor.StageBuilder
             if (ColoredButton("+ Count", ConditionAccent, GUILayout.Width(76)))
             {
                 AddCondition(conditionsProp, ConditionQuickTemplate.AreaPlayerCount);
+            }
+
+            if (ColoredButton("+ Hold", ConditionAccent, GUILayout.Width(70)))
+            {
+                AddCondition(conditionsProp, ConditionQuickTemplate.AreaHoldBeats);
             }
 
             if (ColoredButton("+ Time", ActionAccent, GUILayout.Width(70)))
@@ -1501,6 +1534,14 @@ namespace RhythmRPG.Editor.StageBuilder
                     condProp.FindPropertyRelative("ProgressLabel").stringValue = "Gather";
                     break;
 
+                case ConditionQuickTemplate.AreaHoldBeats:
+                    condProp.FindPropertyRelative("Type").enumValueIndex = (int)ConditionType.AreaHoldBeats;
+                    condProp.FindPropertyRelative("TargetId").intValue = 1;
+                    condProp.FindPropertyRelative("Count").intValue = 8;
+                    condProp.FindPropertyRelative("CountRequirement").enumValueIndex = (int)StageCountRequirementMode.FixedCount;
+                    condProp.FindPropertyRelative("ProgressLabel").stringValue = "Hold";
+                    break;
+
                 case ConditionQuickTemplate.TimeElapsed:
                     condProp.FindPropertyRelative("Type").enumValueIndex = (int)ConditionType.TimeElapsed;
                     condProp.FindPropertyRelative("TargetId").intValue = 0;
@@ -1754,6 +1795,10 @@ namespace RhythmRPG.Editor.StageBuilder
                     string required = useParticipants ? "참여 인원" : condProp.FindPropertyRelative("Count").intValue.ToString();
                     return $"영역 인원 {required}명 ({countArea.x}, {countArea.y}, {countArea.width}, {countArea.height})";
 
+                case ConditionType.AreaHoldBeats:
+                    RectInt holdArea = condProp.FindPropertyRelative("Area").rectIntValue;
+                    return $"영역 체류 {condProp.FindPropertyRelative("Count").intValue} Beat ({holdArea.x}, {holdArea.y}, {holdArea.width}, {holdArea.height})";
+
                 case ConditionType.TimeElapsed:
                     int ms = condProp.FindPropertyRelative("Count").intValue;
                     return $"경과 시간 {ms / 1000f:0.0}s";
@@ -1915,7 +1960,9 @@ namespace RhythmRPG.Editor.StageBuilder
 
             DrawAreaOutline(cond, areaColor);
 
-            string label = cond.Type == ConditionType.AreaPlayerCount ? "Area Count" : "Area";
+            string label = cond.Type == ConditionType.AreaPlayerCount
+                ? "Area Count"
+                : cond.Type == ConditionType.AreaHoldBeats ? "Hold Area" : "Area";
             DrawSceneBadge(center + Vector3.up * 1.1f, $"{GetEventSceneLabel(evt)}\n{label}", areaColor);
         }
 
@@ -2023,7 +2070,8 @@ namespace RhythmRPG.Editor.StageBuilder
                 {
                     if (cond.Type == ConditionType.AreaEnter
                         || cond.Type == ConditionType.AreaExit
-                        || cond.Type == ConditionType.AreaPlayerCount)
+                        || cond.Type == ConditionType.AreaPlayerCount
+                        || cond.Type == ConditionType.AreaHoldBeats)
                     {
                         DrawAreaHandle(evt, cond);
                         conditionPoints.Add(GetAreaCenter(cond));

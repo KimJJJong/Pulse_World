@@ -286,10 +286,10 @@
                     "SecondaryTargetId": 0,
                     "TargetKey": "",
                     "Count": 1,
-                    "UseParticipantCount": true,
+                    "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
-                    "ProgressLabel": "Area",
+                    "ProgressLabel": "Area Count",
                     "ProgressDurationMs": 1200,
                     "Area": {
                         "X": 0,
@@ -596,7 +596,21 @@
                 {
                     "Type": "SetGateDoorOpen",
                     "ParamId": 1,
-                    "X": -90,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 900,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSceneObjectActive",
+                    "ParamId": 7,
+                    "X": 0,
                     "Y": 0,
                     "Z": 0,
                     "StringVal": "",
@@ -605,6 +619,132 @@
                     "GuideBody": "",
                     "GuideImageResource": "",
                     "DurationMs": 900,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 41,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 40,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 39,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 38,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 1,
+                    "Z": 37,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 36,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 35,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 43,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 42,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
                     "VfxKey": ""
                 },
                 {
@@ -619,6 +759,568 @@
                     "GuideBody": "",
                     "GuideImageResource": "",
                     "DurationMs": 1400,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSceneObjectActive",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "RunicTower",
+                    "GroupId": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 1300,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSceneObjectActive",
+                    "ParamId": 0,
+                    "X": 900,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "RunicTowerCrystal",
+                    "GroupId": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 950,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 100,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 5,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 100,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "AreaHoldBeats",
+                    "TargetId": 1,
+                    "SecondaryTargetId": 31,
+                    "TargetKey": "RunicTowerLink_North",
+                    "Count": 8,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "North Tower",
+                    "ProgressDurationMs": 1000,
+                    "Area": {
+                        "X": 69,
+                        "Y": 49,
+                        "W": 3,
+                        "H": 3,
+                        "Shape": "CustomCells",
+                        "Cells": [
+                            {
+                                "X": 69,
+                                "Y": 49
+                            },
+                            {
+                                "X": 70,
+                                "Y": 49
+                            },
+                            {
+                                "X": 71,
+                                "Y": 49
+                            },
+                            {
+                                "X": 69,
+                                "Y": 50
+                            },
+                            {
+                                "X": 70,
+                                "Y": 50
+                            },
+                            {
+                                "X": 71,
+                                "Y": 50
+                            },
+                            {
+                                "X": 69,
+                                "Y": 51
+                            },
+                            {
+                                "X": 70,
+                                "Y": 51
+                            },
+                            {
+                                "X": 71,
+                                "Y": 51
+                            }
+                        ]
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 101,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 6,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 100,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "AreaHoldBeats",
+                    "TargetId": 1,
+                    "SecondaryTargetId": 32,
+                    "TargetKey": "RunicTowerLink_East",
+                    "Count": 8,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "East Tower",
+                    "ProgressDurationMs": 1000,
+                    "Area": {
+                        "X": 79,
+                        "Y": 38,
+                        "W": 3,
+                        "H": 3,
+                        "Shape": "CustomCells",
+                        "Cells": [
+                            {
+                                "X": 79,
+                                "Y": 38
+                            },
+                            {
+                                "X": 80,
+                                "Y": 38
+                            },
+                            {
+                                "X": 81,
+                                "Y": 38
+                            },
+                            {
+                                "X": 79,
+                                "Y": 39
+                            },
+                            {
+                                "X": 80,
+                                "Y": 39
+                            },
+                            {
+                                "X": 81,
+                                "Y": 39
+                            },
+                            {
+                                "X": 79,
+                                "Y": 40
+                            },
+                            {
+                                "X": 80,
+                                "Y": 40
+                            },
+                            {
+                                "X": 81,
+                                "Y": 40
+                            }
+                        ]
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 102,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 7,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 101,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 102,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 100,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 2,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 8,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 100,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 2,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "AreaHoldBeats",
+                    "TargetId": 1,
+                    "SecondaryTargetId": 33,
+                    "TargetKey": "RunicTowerLink_South",
+                    "Count": 8,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "South Tower",
+                    "ProgressDurationMs": 1000,
+                    "Area": {
+                        "X": 69,
+                        "Y": 28,
+                        "W": 3,
+                        "H": 3,
+                        "Shape": "CustomCells",
+                        "Cells": [
+                            {
+                                "X": 69,
+                                "Y": 28
+                            },
+                            {
+                                "X": 70,
+                                "Y": 28
+                            },
+                            {
+                                "X": 71,
+                                "Y": 28
+                            },
+                            {
+                                "X": 69,
+                                "Y": 29
+                            },
+                            {
+                                "X": 70,
+                                "Y": 29
+                            },
+                            {
+                                "X": 71,
+                                "Y": 29
+                            },
+                            {
+                                "X": 69,
+                                "Y": 30
+                            },
+                            {
+                                "X": 70,
+                                "Y": 30
+                            },
+                            {
+                                "X": 71,
+                                "Y": 30
+                            }
+                        ]
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 103,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 9,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 100,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 2,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "AreaHoldBeats",
+                    "TargetId": 1,
+                    "SecondaryTargetId": 34,
+                    "TargetKey": "RunicTowerLink_West",
+                    "Count": 8,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "West Tower",
+                    "ProgressDurationMs": 1000,
+                    "Area": {
+                        "X": 58,
+                        "Y": 38,
+                        "W": 3,
+                        "H": 3,
+                        "Shape": "CustomCells",
+                        "Cells": [
+                            {
+                                "X": 58,
+                                "Y": 38
+                            },
+                            {
+                                "X": 59,
+                                "Y": 38
+                            },
+                            {
+                                "X": 60,
+                                "Y": 38
+                            },
+                            {
+                                "X": 58,
+                                "Y": 39
+                            },
+                            {
+                                "X": 59,
+                                "Y": 39
+                            },
+                            {
+                                "X": 60,
+                                "Y": 39
+                            },
+                            {
+                                "X": 58,
+                                "Y": 40
+                            },
+                            {
+                                "X": 59,
+                                "Y": 40
+                            },
+                            {
+                                "X": 60,
+                                "Y": 40
+                            }
+                        ]
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 104,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 10,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 103,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 104,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 100,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 3,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
                     "VfxKey": ""
                 }
             ]

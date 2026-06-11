@@ -264,7 +264,7 @@ MonoBehaviour:
       DurationMs: 3500
       VfxKey: CrystalPulseRed
   - Section: Section02
-    Title: Enter Area
+    Title: Enter Center Seal
     Notes: 
     Enabled: 1
     EventId: 4
@@ -355,10 +355,10 @@ MonoBehaviour:
       - {x: 67, y: 43}
       - {x: 67, y: 41}
       - {x: 68, y: 41}
-      CountRequirement: 1
+      CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
-      ProgressLabel: Area
+      ProgressLabel: Area Count
       ProgressDurationMs: 1200
     Actions:
     - Type: 7
@@ -375,13 +375,123 @@ MonoBehaviour:
     - Type: 13
       HeaderParam: 
       ParamId: 1
-      Position: {x: -90, y: 0, z: 0}
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 900
+      VfxKey: 
+    - Type: 12
+      HeaderParam: 
+      ParamId: 7
+      Position: {x: 0, y: 0, z: 0}
       StringVal: 
       GroupId: 1
       GuideTitle: 
       GuideBody: 
       GuideImageResource: 
       DurationMs: 900
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 41}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 40}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 39}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 38}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 1, z: 37}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 36}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 35}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 43}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 42}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
       VfxKey: 
     - Type: 12
       HeaderParam: 
@@ -393,4 +503,415 @@ MonoBehaviour:
       GuideBody: 
       GuideImageResource: 
       DurationMs: 1400
+      VfxKey: 
+    - Type: 12
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: RunicTower
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1300
+      VfxKey: 
+    - Type: 12
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 900, y: 0, z: 0}
+      StringVal: RunicTowerCrystal
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 950
+      VfxKey: 
+    - Type: 6
+      HeaderParam: 
+      ParamId: 100
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: North Tower Hold
+    Notes: 
+    Enabled: 1
+    EventId: 5
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 100
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 8
+      TargetId: 1
+      SecondaryTargetId: 31
+      TargetKey: RunicTowerLink_North
+      Count: 8
+      Area:
+        x: 69
+        y: 49
+        width: 3
+        height: 3
+      AreaShape: 1
+      AreaCells:
+      - {x: 69, y: 49}
+      - {x: 70, y: 49}
+      - {x: 71, y: 49}
+      - {x: 69, y: 50}
+      - {x: 70, y: 50}
+      - {x: 71, y: 50}
+      - {x: 69, y: 51}
+      - {x: 70, y: 51}
+      - {x: 71, y: 51}
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: North Tower
+      ProgressDurationMs: 1000
+    Actions:
+    - Type: 6
+      HeaderParam: 
+      ParamId: 101
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: East Tower Hold
+    Notes: 
+    Enabled: 1
+    EventId: 6
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 100
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 8
+      TargetId: 1
+      SecondaryTargetId: 32
+      TargetKey: RunicTowerLink_East
+      Count: 8
+      Area:
+        x: 79
+        y: 38
+        width: 3
+        height: 3
+      AreaShape: 1
+      AreaCells:
+      - {x: 79, y: 38}
+      - {x: 80, y: 38}
+      - {x: 81, y: 38}
+      - {x: 79, y: 39}
+      - {x: 80, y: 39}
+      - {x: 81, y: 39}
+      - {x: 79, y: 40}
+      - {x: 80, y: 40}
+      - {x: 81, y: 40}
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: East Tower
+      ProgressDurationMs: 1000
+    Actions:
+    - Type: 6
+      HeaderParam: 
+      ParamId: 102
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: Unlock South West Tower Holds
+    Notes: 
+    Enabled: 1
+    EventId: 7
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 101
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 5
+      TargetId: 102
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 6
+      HeaderParam: 
+      ParamId: 100
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 2
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: South Tower Hold
+    Notes: 
+    Enabled: 1
+    EventId: 8
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 100
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 2
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 8
+      TargetId: 1
+      SecondaryTargetId: 33
+      TargetKey: RunicTowerLink_South
+      Count: 8
+      Area:
+        x: 69
+        y: 28
+        width: 3
+        height: 3
+      AreaShape: 1
+      AreaCells:
+      - {x: 69, y: 28}
+      - {x: 70, y: 28}
+      - {x: 71, y: 28}
+      - {x: 69, y: 29}
+      - {x: 70, y: 29}
+      - {x: 71, y: 29}
+      - {x: 69, y: 30}
+      - {x: 70, y: 30}
+      - {x: 71, y: 30}
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: South Tower
+      ProgressDurationMs: 1000
+    Actions:
+    - Type: 6
+      HeaderParam: 
+      ParamId: 103
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: West Tower Hold
+    Notes: 
+    Enabled: 1
+    EventId: 9
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 100
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 2
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 8
+      TargetId: 1
+      SecondaryTargetId: 34
+      TargetKey: RunicTowerLink_West
+      Count: 8
+      Area:
+        x: 58
+        y: 38
+        width: 3
+        height: 3
+      AreaShape: 1
+      AreaCells:
+      - {x: 58, y: 38}
+      - {x: 59, y: 38}
+      - {x: 60, y: 38}
+      - {x: 58, y: 39}
+      - {x: 59, y: 39}
+      - {x: 60, y: 39}
+      - {x: 58, y: 40}
+      - {x: 59, y: 40}
+      - {x: 60, y: 40}
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: West Tower
+      ProgressDurationMs: 1000
+    Actions:
+    - Type: 6
+      HeaderParam: 
+      ParamId: 104
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: Tower Holds Complete
+    Notes: 
+    Enabled: 1
+    EventId: 10
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 103
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 5
+      TargetId: 104
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 6
+      HeaderParam: 
+      ParamId: 100
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 3
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
       VfxKey: 

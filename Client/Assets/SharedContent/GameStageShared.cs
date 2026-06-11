@@ -168,6 +168,7 @@ namespace GameServer.InGame.Director.Data
         public int GroupId;
         public bool Visible = true;
         public int DurationMs = 650;
+        public int DelayMs;
     }
 
     [Serializable]
@@ -373,7 +374,8 @@ namespace GameServer.InGame.Director.Data
                 EncodeText(data.TargetKey),
                 data.GroupId,
                 data.Visible ? 1 : 0,
-                Math.Max(0, data.DurationMs));
+                Math.Max(0, data.DurationMs),
+                Math.Max(0, data.DelayMs));
         }
 
         public static string EncodeGateDoor(StageGateDoorData data)
@@ -513,7 +515,8 @@ namespace GameServer.InGame.Director.Data
                 TargetKey = DecodeText(parts[1]),
                 GroupId = int.TryParse(parts[2], out int groupId) ? groupId : 0,
                 Visible = int.TryParse(parts[3], out int visible) && visible != 0,
-                DurationMs = parts.Length > 4 && int.TryParse(parts[4], out int durationMs) ? durationMs : 650
+                DurationMs = parts.Length > 4 && int.TryParse(parts[4], out int durationMs) ? durationMs : 650,
+                DelayMs = parts.Length > 5 && int.TryParse(parts[5], out int delayMs) ? delayMs : 0
             };
             return true;
         }
@@ -902,6 +905,7 @@ namespace GameServer.InGame.Director.Core
                 "AreaEnter" => new ConditionAreaEnter(),
                 "AreaExit" => new ConditionAreaExit(),
                 "AreaPlayerCount" => new ConditionAreaPlayerCount(),
+                "AreaHoldBeats" => new ConditionAreaHoldBeats(),
                 "TimeElapsed" => new ConditionTimeElapsed(),
                 "ObjectInteracted" => new ConditionObjectInteracted(),
                 "ObjectPairInteracted" => new ConditionObjectPairInteracted(),
@@ -1044,6 +1048,88 @@ namespace GameServer.InGame.Director.Core
                     return Math.Max(1, host.GetParticipantPlayerCount());
 
                 return Math.Max(1, _data.Count);
+            }
+        }
+
+        private sealed class ConditionAreaHoldBeats : EventCondition
+        {
+            private int _heldBeats;
+            private int _lastCurrent = int.MinValue;
+            private int _lastRequired = int.MinValue;
+            private bool _wasInside;
+            private bool _completed;
+            private bool _effectVisible;
+
+            public override bool Check(IStageActionHost host, GameEventContext context)
+            {
+                if (context.Type != EventType.GameStart
+                    && context.Type != EventType.Move
+                    && context.Type != EventType.Beat
+                    && context.Type != EventType.TimeTick)
+                {
+                    return false;
+                }
+
+                RectData area = _data.Area;
+                if (area == null)
+                    return false;
+
+                int requiredBeats = Math.Max(1, _data.Count);
+                int requiredPlayers = ResolveRequiredPlayers(host);
+                int currentPlayers = host.CountAlivePlayersInArea(area);
+                bool inside = currentPlayers >= requiredPlayers;
+
+                if (!_completed && inside && context.Type == EventType.Beat)
+                    _heldBeats = Math.Min(requiredBeats, _heldBeats + 1);
+
+                _completed = _heldBeats >= requiredBeats;
+                bool desiredEffectVisible = _completed || inside;
+                if (desiredEffectVisible != _effectVisible || inside != _wasInside)
+                {
+                    SetLinkedEffect(host, desiredEffectVisible);
+                    _effectVisible = desiredEffectVisible;
+                }
+
+                if (_data.ShowProgressUi
+                    && (_heldBeats != _lastCurrent || requiredBeats != _lastRequired || inside != _wasInside || _completed))
+                {
+                    host.ShowAreaProgress(new StageAreaProgressData
+                    {
+                        Label = string.IsNullOrWhiteSpace(_data.ProgressLabel) ? "Hold" : _data.ProgressLabel,
+                        CurrentCount = _heldBeats,
+                        RequiredCount = requiredBeats,
+                        DurationMs = _data.ProgressDurationMs > 0 ? _data.ProgressDurationMs : 1200,
+                        ShowAreaOutline = _data.ShowAreaOutline && !_completed,
+                        Area = area
+                    });
+                }
+
+                _lastCurrent = _heldBeats;
+                _lastRequired = requiredBeats;
+                _wasInside = inside;
+                return _completed;
+            }
+
+            private int ResolveRequiredPlayers(IStageActionHost host)
+            {
+                if (_data.UseParticipantCount)
+                    return Math.Max(1, host.GetParticipantPlayerCount());
+
+                return Math.Max(1, _data.TargetId > 0 ? _data.TargetId : 1);
+            }
+
+            private void SetLinkedEffect(IStageActionHost host, bool visible)
+            {
+                if (string.IsNullOrWhiteSpace(_data.TargetKey) && _data.SecondaryTargetId <= 0)
+                    return;
+
+                host.SetSceneObjectActive(new StageSceneObjectData
+                {
+                    TargetKey = _data.TargetKey ?? string.Empty,
+                    GroupId = _data.SecondaryTargetId,
+                    Visible = visible,
+                    DurationMs = 220
+                });
             }
         }
 
@@ -1242,7 +1328,8 @@ namespace GameServer.InGame.Director.Core
                     TargetKey = _data.StringVal ?? string.Empty,
                     GroupId = _data.ParamId,
                     Visible = _data.GroupId != 0,
-                    DurationMs = _data.DurationMs > 0 ? _data.DurationMs : 650
+                    DurationMs = _data.DurationMs > 0 ? _data.DurationMs : 650,
+                    DelayMs = _data.X > 0 ? _data.X : 0
                 });
             }
         }
