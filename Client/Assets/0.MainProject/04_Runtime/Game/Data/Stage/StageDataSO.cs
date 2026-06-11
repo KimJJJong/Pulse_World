@@ -57,6 +57,7 @@ namespace RhythmRPG.Editor.StageBuilder
         public Vector3 Position;
         public Vector3 EulerAngles;
         public Vector3 Scale = Vector3.one;
+        public Vector2Int ObjectSize = Vector2Int.one;
         public GameObject PreviewPrefabOverride;
         public bool PlaceInScene = true;
         
@@ -114,6 +115,7 @@ namespace RhythmRPG.Editor.StageBuilder
         public string HeaderParam; // EntityKey, MapId, etc.
         public int ParamId; // (Deprecated or for specific IDs?)
         public Vector3 Position;
+        public Vector2Int ObjectSize = Vector2Int.one;
         public string StringVal; // (Deprecated or Extra)
         public int GroupId; // Override?
         public string GuideTitle;

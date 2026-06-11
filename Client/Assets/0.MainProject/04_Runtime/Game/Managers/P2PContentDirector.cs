@@ -46,6 +46,8 @@ public sealed partial class P2PContentDirector : MonoBehaviour, IStageActionHost
     private readonly Dictionary<int, MonsterRuntimeState> _monsterStates = new();
     private readonly Dictionary<int, int> _entityMaxHpByTemplateId = new();
     private readonly Dictionary<int, int> _stageObjectGroupByEntityId = new();
+    private readonly Dictionary<int, StageObjectMetadata> _stageObjectMetadataByEntityId = new();
+    private readonly Dictionary<string, StageObjectMetadata> _stageObjectMetadataBySpawnSignature = new(StringComparer.Ordinal);
     private readonly Dictionary<int, int> _objectStatesByTargetId = new();
     private readonly Dictionary<(int x, int y), GridDistanceField> _distanceFields = new();
     private readonly Dictionary<long, Dictionary<(int x, int y), int>> _moveReservationsByBeat = new();

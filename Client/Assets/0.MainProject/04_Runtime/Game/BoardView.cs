@@ -1162,7 +1162,15 @@ public class BoardView : MonoBehaviour, IClientWorldView
         }
 
         visual.transform.position = ResolveEntityWorldPosition(info, visual.transform);
-        visual.SetRotation(info.Rotation);
+        if (info.EntityType == (int)EntityType.Object)
+        {
+            Vector3 euler = visual.transform.eulerAngles;
+            visual.transform.rotation = Quaternion.Euler(euler.x, info.Rotation, euler.z);
+        }
+        else
+        {
+            visual.SetRotation(info.Rotation);
+        }
 
         if (createdNow)
             BindStageSceneObjectTargets(info, visual);
@@ -1767,6 +1775,11 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         if (info.EntityType != (int)EntityType.Object || visualTransform == null)
             return position;
+
+        int sizeX = Mathf.Max(1, info.SizeX);
+        int sizeY = Mathf.Max(1, info.SizeY);
+        position.x += (sizeX - 1) * cellSize * 0.5f;
+        position.z += (sizeY - 1) * cellSize * 0.5f;
 
         visualTransform.position = position;
         if (TryGetObjectGroundingBounds(visualTransform, out Bounds bounds))

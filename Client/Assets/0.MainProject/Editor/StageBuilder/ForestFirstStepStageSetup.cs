@@ -14,13 +14,16 @@ namespace RhythmRPG.Editor.StageBuilder
         private const string ScenePath = "Assets/0.MainProject/Scenes/Game/Game_Forest_First_Step.unity";
         private const string StageDataPath = "Assets/Resources/Data/StageAssets/Game_Forest_First_Step.asset";
         private const string ObeliskPrefabPath = "Assets/Resources/Prefabs/Interaction/Runic_Obelisk.prefab";
+        private const string TowerEntityAssetPath = "Assets/Resources/Data/Entity_502_Runic_Obelisk.asset";
+        private const string TowerEntityKey = "RunicTower";
+        private const int TowerEntityId = 502;
         private const string TowerTargetKey = "RunicTower";
         private const string TowerCrystalTargetKey = "RunicTowerCrystal";
         private const int TowerPhaseStateId = 100;
 
         private static readonly Vector3 ObeliskRotation = new(270f, 0f, 0f);
         private static readonly Vector3 ObeliskScale = new(200f, 200f, 200f);
-        private static readonly Vector3 CenterCrystalPosition = new(69.66f, 0f, 39.44f);
+        private static readonly Vector3 CenterCrystalPosition = new(69.66f, 1.15f, 39.44f);
 
         private static readonly TowerSpec[] Towers =
         {
@@ -42,9 +45,9 @@ namespace RhythmRPG.Editor.StageBuilder
                 return;
             }
 
-            GameObject template = GameObject.Find("Runic_Obelisk");
-            if (template != null && GameObject.Find(Towers[0].ObjectName) == null)
-                template.name = Towers[0].ObjectName;
+            ConfigureCenterCrystal(centerCrystal);
+            EntityDefinitionSO towerEntity = EnsureRunicTowerEntityDefinition();
+            ConfigureTowerPrefab();
 
             foreach (TowerSpec tower in Towers)
             {
@@ -57,7 +60,9 @@ namespace RhythmRPG.Editor.StageBuilder
                 EditorUtility.SetDirty(towerRoot);
             }
 
-            ConfigureStageData();
+            RemoveSceneTowerInstances();
+            ConfigureStageData(towerEntity);
+            EntityExporter.Export();
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
             EditorSceneManager.SaveOpenScenes();
             AssetDatabase.SaveAssets();
@@ -100,9 +105,90 @@ namespace RhythmRPG.Editor.StageBuilder
             return clone;
         }
 
-        private static void ConfigureTowerRoot(GameObject towerRoot, TowerSpec tower)
+        private static void ConfigureCenterCrystal(Transform centerCrystal)
         {
-            towerRoot.transform.SetPositionAndRotation(tower.Position, Quaternion.Euler(ObeliskRotation));
+            centerCrystal.position = CenterCrystalPosition;
+
+            var target = EnsureComponent<StageSceneObjectTarget>(centerCrystal.gameObject);
+            target.TargetKey = "Crystal";
+            target.GroupId = 1;
+            target.DefaultDurationMs = 1400;
+            target.HiddenScale = 0.88f;
+            target.HiddenYOffset = -0.35f;
+            target.DisableCollidersWhenHidden = false;
+            target.UseWorldUpMotion = true;
+            target.StartHidden = true;
+            target.CurrentPoseIsHidden = false;
+            target.EnableRiseFromGround = true;
+            target.ReplayShowAnimationWhenAlreadyVisible = false;
+            target.RiseHiddenYOffset = -2.15f;
+            target.RiseOvershootHeight = 0.14f;
+            target.EnableIdleFloat = true;
+            target.FloatAmplitude = 0.10f;
+            target.FloatPeriodSeconds = 2.6f;
+            target.FloatBlendInSeconds = 0.35f;
+            target.UseParabolicFloat = true;
+            target.MotionRoots = System.Array.Empty<Transform>();
+
+            EditorUtility.SetDirty(centerCrystal.gameObject);
+            EditorUtility.SetDirty(target);
+        }
+
+        private static EntityDefinitionSO EnsureRunicTowerEntityDefinition()
+        {
+            var entity = AssetDatabase.LoadAssetAtPath<EntityDefinitionSO>(TowerEntityAssetPath);
+            if (entity == null)
+            {
+                entity = ScriptableObject.CreateInstance<EntityDefinitionSO>();
+                AssetDatabase.CreateAsset(entity, TowerEntityAssetPath);
+            }
+
+            entity.EntityId = TowerEntityId;
+            entity.EntityName = "Entity_502_Runic_Obelisk";
+            entity.Type = EntityType.Object;
+            entity.Prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ObeliskPrefabPath);
+            entity.AnimatorController = null;
+            entity.MaxHp = 999999;
+            EditorUtility.SetDirty(entity);
+            return entity;
+        }
+
+        private static void ConfigureTowerPrefab()
+        {
+            GameObject prefabRoot = PrefabUtility.LoadPrefabContents(ObeliskPrefabPath);
+            if (prefabRoot == null)
+            {
+                Debug.LogError($"[ForestFirstStepStageSetup] Prefab missing: {ObeliskPrefabPath}");
+                return;
+            }
+
+            ConfigureTowerRoot(prefabRoot, Towers[0], applyTransform: false);
+            ConfigureTowerCrystal(prefabRoot, Towers[0], null);
+            PrefabUtility.SaveAsPrefabAsset(prefabRoot, ObeliskPrefabPath);
+            PrefabUtility.UnloadPrefabContents(prefabRoot);
+        }
+
+        private static void RemoveSceneTowerInstances()
+        {
+            foreach (TowerSpec tower in Towers)
+            {
+                GameObject existing = GameObject.Find(tower.ObjectName);
+                if (existing != null)
+                    Object.DestroyImmediate(existing);
+            }
+
+            GameObject legacy = GameObject.Find("Runic_Obelisk");
+            if (legacy != null)
+                Object.DestroyImmediate(legacy);
+        }
+
+        private static void ConfigureTowerRoot(GameObject towerRoot, TowerSpec tower, bool applyTransform = true)
+        {
+            if (applyTransform)
+                towerRoot.transform.SetPositionAndRotation(tower.Position, Quaternion.Euler(ObeliskRotation));
+            else
+                towerRoot.transform.localRotation = Quaternion.Euler(ObeliskRotation);
+
             towerRoot.transform.localScale = ObeliskScale;
 
             var pulse = towerRoot.GetComponent<ForestBeatLightPulse>();
@@ -112,6 +198,7 @@ namespace RhythmRPG.Editor.StageBuilder
             var target = EnsureComponent<StageSceneObjectTarget>(towerRoot);
             target.TargetKey = TowerTargetKey;
             target.GroupId = 0;
+            target.BindRuntimeGroup = false;
             target.DefaultDurationMs = 1300;
             target.HiddenScale = 1f;
             target.HiddenYOffset = -0.35f;
@@ -126,6 +213,12 @@ namespace RhythmRPG.Editor.StageBuilder
             target.EnableIdleFloat = false;
             target.MotionRoots = System.Array.Empty<Transform>();
 
+            var autoReveal = EnsureComponent<StageSceneObjectAutoReveal>(towerRoot);
+            autoReveal.Target = target;
+            autoReveal.DelayMs = 0;
+            autoReveal.DurationMs = target.DefaultDurationMs;
+
+            EditorUtility.SetDirty(autoReveal);
             EditorUtility.SetDirty(target);
         }
 
@@ -141,6 +234,7 @@ namespace RhythmRPG.Editor.StageBuilder
             var crystalTarget = EnsureComponent<StageSceneObjectTarget>(crystal.gameObject);
             crystalTarget.TargetKey = TowerCrystalTargetKey;
             crystalTarget.GroupId = 0;
+            crystalTarget.BindRuntimeGroup = false;
             crystalTarget.DefaultDurationMs = 950;
             crystalTarget.HiddenScale = 0.12f;
             crystalTarget.HiddenYOffset = -0.35f;
@@ -158,6 +252,13 @@ namespace RhythmRPG.Editor.StageBuilder
             crystalTarget.FloatBlendInSeconds = 0.35f;
             crystalTarget.UseParabolicFloat = true;
             crystalTarget.MotionRoots = System.Array.Empty<Transform>();
+
+            var autoReveal = EnsureComponent<StageSceneObjectAutoReveal>(crystal.gameObject);
+            autoReveal.Target = crystalTarget;
+            autoReveal.DelayMs = 900;
+            autoReveal.DurationMs = crystalTarget.DefaultDurationMs;
+
+            EditorUtility.SetDirty(autoReveal);
             EditorUtility.SetDirty(crystalTarget);
 
             ConfigureLinkEffect(crystal, tower, centerCrystal);
@@ -204,17 +305,21 @@ namespace RhythmRPG.Editor.StageBuilder
             var beam = EnsureComponent<StageCrystalLinkBeam>(link.gameObject);
             beam.Source = crystal;
             beam.Target = centerCrystal;
+            beam.SourcePath = "Crystal";
+            beam.TargetPath = "Runic_Circle_Platform/Crystal";
             beam.Line = line;
             beam.LinkLight = linkLight;
             beam.LinkedObjects = linkedFxObjects;
             beam.BeamColor = new Color(0.72f, 0.46f, 1f, 0.9f);
             beam.BeamWidth = 0.08f;
-            beam.SourceYOffset = 0.65f;
-            beam.TargetYOffset = 1.20f;
+            beam.SourceYOffset = 0f;
+            beam.TargetYOffset = 0f;
+            beam.UseRendererBoundsEndpoints = true;
 
             var linkTarget = EnsureComponent<StageSceneObjectTarget>(link.gameObject);
-            linkTarget.TargetKey = tower.LinkTargetKey;
-            linkTarget.GroupId = tower.LinkGroupId;
+            linkTarget.TargetKey = "RunicTowerLink";
+            linkTarget.GroupId = 0;
+            linkTarget.BindRuntimeGroup = true;
             linkTarget.DefaultDurationMs = 220;
             linkTarget.HiddenScale = 1f;
             linkTarget.HiddenYOffset = 0f;
@@ -243,7 +348,7 @@ namespace RhythmRPG.Editor.StageBuilder
             return fxChildren.ToArray();
         }
 
-        private static void ConfigureStageData()
+        private static void ConfigureStageData(EntityDefinitionSO towerEntity)
         {
             StageDataSO stage = AssetDatabase.LoadAssetAtPath<StageDataSO>(StageDataPath);
             if (stage == null)
@@ -251,6 +356,8 @@ namespace RhythmRPG.Editor.StageBuilder
                 Debug.LogError($"[ForestFirstStepStageSetup] Stage data missing: {StageDataPath}");
                 return;
             }
+
+            EnsureTowerRegistry(stage, towerEntity);
 
             EventInfoSO centerEvent = EnsureEvent(stage, 4, "Section02", "Enter Center Seal");
             EnsureCenterAreaCondition(centerEvent);
@@ -260,8 +367,8 @@ namespace RhythmRPG.Editor.StageBuilder
             centerEvent.Actions.Add(SetSceneObject(string.Empty, 7, visible: true, durationMs: 900));
             AddVoidWallRespawns(centerEvent.Actions);
             centerEvent.Actions.Add(SetSceneObject("Crystal", 0, visible: true, durationMs: 1400));
-            centerEvent.Actions.Add(SetSceneObject(TowerTargetKey, 0, visible: true, durationMs: 1300));
-            centerEvent.Actions.Add(SetSceneObject(TowerCrystalTargetKey, 0, visible: true, durationMs: 950, delayMs: 900));
+            foreach (TowerSpec tower in Towers)
+                centerEvent.Actions.Add(SpawnTower(tower));
             centerEvent.Actions.Add(SetObjectState(TowerPhaseStateId, 1));
 
             ConfigureHoldEvent(stage, 5, "Section03", "North Tower Hold", Towers[0], phase: 1);
@@ -286,6 +393,21 @@ namespace RhythmRPG.Editor.StageBuilder
 
             EditorUtility.SetDirty(stage);
             StageExporter.Export(stage);
+        }
+
+        private static void EnsureTowerRegistry(StageDataSO stage, EntityDefinitionSO towerEntity)
+        {
+            StageRegisteredEntity registry = stage.Registry.Find(item => item != null && item.Key == TowerEntityKey);
+            if (registry == null)
+            {
+                registry = new StageRegisteredEntity();
+                stage.Registry.Add(registry);
+            }
+
+            registry.Key = TowerEntityKey;
+            registry.EntityDef = towerEntity;
+            registry.DefaultGroupId = 0;
+            registry.PatternRef = null;
         }
 
         private static EventInfoSO EnsureEvent(StageDataSO stage, int eventId, string section, string title)
@@ -403,6 +525,19 @@ namespace RhythmRPG.Editor.StageBuilder
             };
         }
 
+        private static ActionInfoSO SpawnTower(TowerSpec tower)
+        {
+            return new ActionInfoSO
+            {
+                Type = ActionType.SpawnObject,
+                HeaderParam = TowerEntityKey,
+                Position = new Vector3(Mathf.FloorToInt(tower.Position.x), 0f, Mathf.FloorToInt(tower.Position.z)),
+                ObjectSize = new Vector2Int(2, 2),
+                GroupId = tower.LinkGroupId,
+                DurationMs = 3500
+            };
+        }
+
         private static ActionInfoSO PlayVfx(string key, int durationMs)
         {
             return new ActionInfoSO
@@ -435,6 +570,7 @@ namespace RhythmRPG.Editor.StageBuilder
                     Type = ActionType.SpawnObject,
                     HeaderParam = "VoidWall",
                     Position = new Vector3(wallCells[i, 0], wallCells[i, 1], wallCells[i, 2]),
+                    ObjectSize = Vector2Int.one,
                     GroupId = 7,
                     DurationMs = 3500
                 });

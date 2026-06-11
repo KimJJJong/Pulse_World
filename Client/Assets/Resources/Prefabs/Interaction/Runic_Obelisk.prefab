@@ -17,7 +17,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4156964929773637351
 Transform:
   m_ObjectHideFlags: 0
@@ -109,7 +109,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5913435660161941663
 Transform:
   m_ObjectHideFlags: 0
@@ -5031,6 +5031,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8731880977103595866}
+  - component: {fileID: 6613681826424850380}
+  - component: {fileID: 5540686630018755143}
   m_Layer: 0
   m_Name: Crystal
   m_TagString: Untagged
@@ -5055,8 +5057,56 @@ Transform:
   - {fileID: 5913435660161941663}
   - {fileID: 9165893433138649244}
   - {fileID: 4156964929773637351}
+  - {fileID: 3426929738486232532}
   m_Father: {fileID: 1213745140229994819}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6613681826424850380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2593697052441647929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f5b8325dfc44864aa736cc11c99f75a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageSceneObjectTarget
+  TargetKey: RunicTowerCrystal
+  GroupId: 0
+  BindRuntimeGroup: 0
+  DefaultDurationMs: 950
+  HiddenScale: 0.12
+  HiddenYOffset: -0.35
+  DisableCollidersWhenHidden: 0
+  UseWorldUpMotion: 1
+  MotionRoots: []
+  StartHidden: 1
+  CurrentPoseIsHidden: 0
+  EnableRiseFromGround: 1
+  ReplayShowAnimationWhenAlreadyVisible: 0
+  RiseHiddenYOffset: -1.2
+  RiseOvershootHeight: 0.12
+  EnableIdleFloat: 1
+  FloatAmplitude: 0.08
+  FloatPeriodSeconds: 2.2
+  FloatBlendInSeconds: 0.35
+  UseParabolicFloat: 1
+--- !u!114 &5540686630018755143
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2593697052441647929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2998f2896179b984cb7c4907e15074a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageSceneObjectAutoReveal
+  Target: {fileID: 6613681826424850380}
+  DelayMs: 900
+  DurationMs: 950
 --- !u!1 &4384865556350109493
 GameObject:
   m_ObjectHideFlags: 0
@@ -5074,7 +5124,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &9165893433138649244
 Transform:
   m_ObjectHideFlags: 0
@@ -5147,6 +5197,316 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &5005163534159227442
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3426929738486232532}
+  - component: {fileID: 3378760356458133104}
+  - component: {fileID: 6034326646426188971}
+  - component: {fileID: 3070924667706545891}
+  m_Layer: 0
+  m_Name: CrystalLinkEffect
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &3426929738486232532
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5005163534159227442}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6710714466886627081}
+  m_Father: {fileID: 8731880977103595866}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!120 &3378760356458133104
+LineRenderer:
+  serializedVersion: 3
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5005163534159227442}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 0
+  m_LightProbeUsage: 0
+  m_ReflectionProbeUsage: 0
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_Positions:
+  - {x: 0, y: 0, z: 0}
+  - {x: 0, y: 0, z: 1}
+  m_Parameters:
+    serializedVersion: 3
+    widthMultiplier: 1
+    widthCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.08
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 0.11
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    colorGradient:
+      serializedVersion: 2
+      key0: {r: 0.72156864, g: 0.45882353, b: 1, a: 0.9019608}
+      key1: {r: 0.6784314, g: 0.9490196, b: 1, a: 0.72156864}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_ColorSpace: -1
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    numCornerVertices: 0
+    numCapVertices: 0
+    alignment: 0
+    textureMode: 0
+    textureScale: {x: 1, y: 1}
+    shadowBias: 0.5
+    generateLightingData: 0
+  m_UseWorldSpace: 1
+  m_Loop: 0
+  m_ApplyActiveColorSpace: 1
+--- !u!114 &6034326646426188971
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5005163534159227442}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75163555aa2965743a0600aa16ceb836, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageCrystalLinkBeam
+  Source: {fileID: 8731880977103595866}
+  Target: {fileID: 0}
+  SourcePath: Crystal
+  TargetPath: Runic_Circle_Platform/Crystal
+  Line: {fileID: 3378760356458133104}
+  LinkLight: {fileID: 1959923454215339026}
+  LinkedObjects:
+  - {fileID: 2005712956079484580}
+  - {fileID: 4384865556350109493}
+  - {fileID: 1165338572604921601}
+  BeamColor: {r: 0.72, g: 0.46, b: 1, a: 0.9}
+  BeamWidth: 0.08
+  SourceYOffset: 0
+  TargetYOffset: 0
+  UseRendererBoundsEndpoints: 1
+--- !u!114 &3070924667706545891
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5005163534159227442}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f5b8325dfc44864aa736cc11c99f75a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageSceneObjectTarget
+  TargetKey: RunicTowerLink
+  GroupId: 0
+  BindRuntimeGroup: 1
+  DefaultDurationMs: 220
+  HiddenScale: 1
+  HiddenYOffset: 0
+  DisableCollidersWhenHidden: 0
+  UseWorldUpMotion: 0
+  MotionRoots: []
+  StartHidden: 0
+  CurrentPoseIsHidden: 0
+  EnableRiseFromGround: 0
+  ReplayShowAnimationWhenAlreadyVisible: 0
+  RiseHiddenYOffset: -1.45
+  RiseOvershootHeight: 0.14
+  EnableIdleFloat: 0
+  FloatAmplitude: 0.16
+  FloatPeriodSeconds: 2.4
+  FloatBlendInSeconds: 0.35
+  UseParabolicFloat: 1
+--- !u!1 &6655902426363126202
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6710714466886627081}
+  - component: {fileID: 1959923454215339026}
+  m_Layer: 0
+  m_Name: LinkPointLight
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6710714466886627081
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6655902426363126202}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3426929738486232532}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!108 &1959923454215339026
+Light:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6655902426363126202}
+  m_Enabled: 1
+  serializedVersion: 12
+  m_Type: 2
+  m_Color: {r: 0.72, g: 0.46, b: 1, a: 1}
+  m_Intensity: 1.8
+  m_Range: 7.5
+  m_SpotAngle: 30
+  m_InnerSpotAngle: 21.80208
+  m_CookieSize2D: {x: 0.5, y: 0.5}
+  m_Shadows:
+    m_Type: 0
+    m_Resolution: -1
+    m_CustomResolution: -1
+    m_Strength: 1
+    m_Bias: 0.05
+    m_NormalBias: 0.4
+    m_NearPlane: 0.2
+    m_CullingMatrixOverride:
+      e00: 1
+      e01: 0
+      e02: 0
+      e03: 0
+      e10: 0
+      e11: 1
+      e12: 0
+      e13: 0
+      e20: 0
+      e21: 0
+      e22: 1
+      e23: 0
+      e30: 0
+      e31: 0
+      e32: 0
+      e33: 1
+    m_UseCullingMatrixOverride: 0
+  m_Cookie: {fileID: 0}
+  m_DrawHalo: 0
+  m_Flare: {fileID: 0}
+  m_RenderMode: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingLayerMask: 1
+  m_Lightmapping: 4
+  m_LightShadowCasterMode: 0
+  m_AreaSize: {x: 1, y: 1}
+  m_BounceIntensity: 1
+  m_ColorTemperature: 6570
+  m_UseColorTemperature: 0
+  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_UseBoundingSphereOverride: 0
+  m_UseViewFrustumForShadowCasterCull: 1
+  m_ForceVisible: 0
+  m_ShadowRadius: 0
+  m_ShadowAngle: 0
+  m_LightUnit: 1
+  m_LuxAtDistance: 1
+  m_EnableSpotReflector: 1
 --- !u!1001 &1680598829830676136
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5181,11 +5541,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a2ace8c149633ec46b86553dc4613834, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071068
+      value: -0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a2ace8c149633ec46b86553dc4613834, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.7071068
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a2ace8c149633ec46b86553dc4613834, type: 3}
       propertyPath: m_LocalRotation.y
@@ -5193,7 +5553,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a2ace8c149633ec46b86553dc4613834, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a2ace8c149633ec46b86553dc4613834, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -5225,6 +5585,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a2ace8c149633ec46b86553dc4613834, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7950546150715681839}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a2ace8c149633ec46b86553dc4613834, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1187179943025561657}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a2ace8c149633ec46b86553dc4613834, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4738806096179889863}
   m_SourcePrefab: {fileID: 100100000, guid: a2ace8c149633ec46b86553dc4613834, type: 3}
 --- !u!4 &1213745140229994819 stripped
 Transform:
@@ -5243,7 +5609,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1987150021886452729}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0a07184fecfe4334ea1f8170615367e5, type: 3}
   m_Name: 
@@ -5272,6 +5638,53 @@ MonoBehaviour:
   fallbackBpm: 120
   useRhythmClient: 1
   collectTargetsOnAwake: 0
+--- !u!114 &1187179943025561657
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1987150021886452729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f5b8325dfc44864aa736cc11c99f75a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageSceneObjectTarget
+  TargetKey: RunicTower
+  GroupId: 0
+  BindRuntimeGroup: 0
+  DefaultDurationMs: 1300
+  HiddenScale: 1
+  HiddenYOffset: -0.35
+  DisableCollidersWhenHidden: 0
+  UseWorldUpMotion: 1
+  MotionRoots: []
+  StartHidden: 1
+  CurrentPoseIsHidden: 0
+  EnableRiseFromGround: 1
+  ReplayShowAnimationWhenAlreadyVisible: 0
+  RiseHiddenYOffset: -1.8
+  RiseOvershootHeight: 0.1
+  EnableIdleFloat: 0
+  FloatAmplitude: 0.16
+  FloatPeriodSeconds: 2.4
+  FloatBlendInSeconds: 0.35
+  UseParabolicFloat: 1
+--- !u!114 &4738806096179889863
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1987150021886452729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2998f2896179b984cb7c4907e15074a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageSceneObjectAutoReveal
+  Target: {fileID: 1187179943025561657}
+  DelayMs: 0
+  DurationMs: 1300
 --- !u!1001 &6052876877535596217
 PrefabInstance:
   m_ObjectHideFlags: 0

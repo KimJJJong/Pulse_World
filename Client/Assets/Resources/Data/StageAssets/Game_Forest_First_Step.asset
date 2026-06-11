@@ -30,6 +30,10 @@ MonoBehaviour:
     EntityDef: {fileID: 11400000, guid: e8201576667862f489b2a94e39408d18, type: 2}
     DefaultGroupId: 7
     PatternRef: {fileID: 0}
+  - Key: RunicTower
+    EntityDef: {fileID: 11400000, guid: 560296df3625de548b615585ebbe56ba, type: 2}
+    DefaultGroupId: 0
+    PatternRef: {fileID: 0}
   InitialSpawns: []
   InitialObjects:
   - EntityKey: Crystal
@@ -37,6 +41,7 @@ MonoBehaviour:
     Position: {x: 47, y: 0, z: 36}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 5
@@ -45,6 +50,7 @@ MonoBehaviour:
     Position: {x: 47, y: 0, z: 42}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 6
@@ -53,6 +59,7 @@ MonoBehaviour:
     Position: {x: 48, y: 0, z: 41}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 7
@@ -61,6 +68,7 @@ MonoBehaviour:
     Position: {x: 48, y: 0, z: 40}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 7
@@ -69,6 +77,7 @@ MonoBehaviour:
     Position: {x: 48, y: 0, z: 39}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 7
@@ -77,6 +86,7 @@ MonoBehaviour:
     Position: {x: 48, y: 0, z: 38}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 7
@@ -85,6 +95,7 @@ MonoBehaviour:
     Position: {x: 48, y: 1, z: 37}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 7
@@ -93,6 +104,7 @@ MonoBehaviour:
     Position: {x: 48, y: 0, z: 36}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 7
@@ -101,6 +113,7 @@ MonoBehaviour:
     Position: {x: 48, y: 0, z: 35}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 7
@@ -109,6 +122,7 @@ MonoBehaviour:
     Position: {x: 48, y: 0, z: 43}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 7
@@ -117,6 +131,7 @@ MonoBehaviour:
     Position: {x: 48, y: 0, z: 42}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
     PreviewPrefabOverride: {fileID: 0}
     PlaceInScene: 1
     OverrideGroupId: 7
@@ -154,6 +169,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 7
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 0
       GuideTitle: 
@@ -165,6 +181,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 1
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: Event triggered
       GroupId: 1
       GuideTitle: 
@@ -176,6 +193,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 7
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: Event triggered
       GroupId: 0
       GuideTitle: 
@@ -216,6 +234,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 5
       Position: {x: 0, y: 0, z: -12}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 0
       GuideTitle: 
@@ -256,6 +275,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 6
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 0
       GuideTitle: 
@@ -365,6 +385,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 0
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 0
       GuideTitle: 
@@ -376,6 +397,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 1
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 0
       GuideTitle: 
@@ -387,6 +409,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 7
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 1
       GuideTitle: 
@@ -398,6 +421,7 @@ MonoBehaviour:
       HeaderParam: VoidWall
       ParamId: 0
       Position: {x: 48, y: 0, z: 41}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 7
       GuideTitle: 
@@ -409,6 +433,7 @@ MonoBehaviour:
       HeaderParam: VoidWall
       ParamId: 0
       Position: {x: 48, y: 0, z: 40}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 7
       GuideTitle: 
@@ -420,6 +445,7 @@ MonoBehaviour:
       HeaderParam: VoidWall
       ParamId: 0
       Position: {x: 48, y: 0, z: 39}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 7
       GuideTitle: 
@@ -431,6 +457,7 @@ MonoBehaviour:
       HeaderParam: VoidWall
       ParamId: 0
       Position: {x: 48, y: 0, z: 38}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 7
       GuideTitle: 
@@ -442,6 +469,7 @@ MonoBehaviour:
       HeaderParam: VoidWall
       ParamId: 0
       Position: {x: 48, y: 1, z: 37}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 7
       GuideTitle: 
@@ -453,6 +481,7 @@ MonoBehaviour:
       HeaderParam: VoidWall
       ParamId: 0
       Position: {x: 48, y: 0, z: 36}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 7
       GuideTitle: 
@@ -464,6 +493,7 @@ MonoBehaviour:
       HeaderParam: VoidWall
       ParamId: 0
       Position: {x: 48, y: 0, z: 35}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 7
       GuideTitle: 
@@ -475,6 +505,7 @@ MonoBehaviour:
       HeaderParam: VoidWall
       ParamId: 0
       Position: {x: 48, y: 0, z: 43}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 7
       GuideTitle: 
@@ -486,6 +517,7 @@ MonoBehaviour:
       HeaderParam: VoidWall
       ParamId: 0
       Position: {x: 48, y: 0, z: 42}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 7
       GuideTitle: 
@@ -497,6 +529,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 0
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: Crystal
       GroupId: 1
       GuideTitle: 
@@ -504,32 +537,59 @@ MonoBehaviour:
       GuideImageResource: 
       DurationMs: 1400
       VfxKey: 
-    - Type: 12
-      HeaderParam: 
+    - Type: 4
+      HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 0, y: 0, z: 0}
-      StringVal: RunicTower
-      GroupId: 1
+      Position: {x: 69, y: 0, z: 50}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 31
       GuideTitle: 
       GuideBody: 
       GuideImageResource: 
-      DurationMs: 1300
+      DurationMs: 3500
       VfxKey: 
-    - Type: 12
-      HeaderParam: 
+    - Type: 4
+      HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 900, y: 0, z: 0}
-      StringVal: RunicTowerCrystal
-      GroupId: 1
+      Position: {x: 80, y: 0, z: 39}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 32
       GuideTitle: 
       GuideBody: 
       GuideImageResource: 
-      DurationMs: 950
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: RunicTower
+      ParamId: 0
+      Position: {x: 69, y: 0, z: 28}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 33
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: RunicTower
+      ParamId: 0
+      Position: {x: 59, y: 0, z: 39}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 34
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
       VfxKey: 
     - Type: 6
       HeaderParam: 
       ParamId: 100
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 1
       GuideTitle: 
@@ -596,6 +656,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 101
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 1
       GuideTitle: 
@@ -662,6 +723,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 102
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 1
       GuideTitle: 
@@ -719,6 +781,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 100
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 2
       GuideTitle: 
@@ -785,6 +848,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 103
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 1
       GuideTitle: 
@@ -851,6 +915,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 104
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 1
       GuideTitle: 
@@ -908,6 +973,7 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 100
       Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 3
       GuideTitle: 

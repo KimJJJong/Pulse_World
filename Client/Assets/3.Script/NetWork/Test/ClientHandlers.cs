@@ -216,7 +216,7 @@ public class ClientHandlers : MonoBehaviour
         {
             if (P2PDebugConfig.TraceCombat)
                 Debug.Log($"Spawn Entity: ID={e.EntityId} Type={(EntityType)e.EntityType} Pos=({e.X},{e.Y}) HP={e.Hp}");
-            GS.SpawnOrUpdateEntity(new ClientEntityInfo
+            var entity = new ClientEntityInfo
             {
                 EntityId = e.EntityId,
                 EntityType = e.EntityType,
@@ -226,7 +226,9 @@ public class ClientHandlers : MonoBehaviour
                 Rotation = e.Rotation,
                 Hp = e.Hp,
                 GroupId = e.OwnerSlot
-            });
+            };
+            P2PContentDirector.Instance.TryEnrichStageObjectInfo(ref entity);
+            GS.SpawnOrUpdateEntity(entity);
         }
 
         GS.OnInitGameCompleted();
@@ -632,6 +634,7 @@ public class ClientHandlers : MonoBehaviour
             EnsureManifestRosterApplied();
 
         var entity = spawn.ToEntityInfo();
+        P2PContentDirector.Instance.TryEnrichStageObjectInfo(ref entity);
 
         GS.SpawnOrUpdateEntity(entity);
 

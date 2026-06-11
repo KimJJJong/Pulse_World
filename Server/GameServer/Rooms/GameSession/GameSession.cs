@@ -151,7 +151,7 @@ public sealed class GameSession : SessionBase
     }
     
     // Director 전용 엔티티(몬스터/오브젝트) 소환
-    public void SpawnEntityInternal(int entityId, EntityType type, int x, int y, int groupId, string aiKeyOrPattern)
+    public void SpawnEntityInternal(int entityId, EntityType type, int x, int y, int groupId, string aiKeyOrPattern, int sizeX = 1, int sizeY = 1)
     {
         int newId = _idGen.Generate(type);
         var e = new MapEntity(newId, type, new GridPos(x, y));
@@ -171,6 +171,8 @@ public sealed class GameSession : SessionBase
 
         e.SetState("HP", maxHp);
         e.SetState("GroupId", groupId);
+        e.SetState("SizeX", Math.Max(1, sizeX));
+        e.SetState("SizeY", Math.Max(1, sizeY));
 
         if (type == EntityType.Monster && !string.IsNullOrEmpty(aiKeyOrPattern))
              _monsterAI.RegisterMonster(e, aiKeyOrPattern);

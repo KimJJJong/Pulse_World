@@ -12,6 +12,7 @@ namespace RhythmRPG.Game.Stage
     {
         public string TargetKey = string.Empty;
         public int GroupId;
+        public bool BindRuntimeGroup = true;
 
         [Header("Visibility")]
         public int DefaultDurationMs = 650;
@@ -119,7 +120,7 @@ namespace RhythmRPG.Game.Stage
 
         public void BindRuntimeTarget(int groupId, string targetKey = null)
         {
-            if (groupId > 0)
+            if (BindRuntimeGroup && groupId > 0)
                 GroupId = groupId;
 
             if (!string.IsNullOrWhiteSpace(targetKey))
@@ -139,7 +140,7 @@ namespace RhythmRPG.Game.Stage
                 StartIdleFloat();
         }
 
-        private void SetVisible(bool visible, int durationMs, int delayMs = 0)
+        public void SetVisible(bool visible, int durationMs, int delayMs = 0)
         {
             CacheShownPose();
             StopIdleFloat();

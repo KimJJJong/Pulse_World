@@ -11,6 +11,14 @@ public sealed partial class P2PContentDirector
         public int MaxHp;
     }
 
+    private struct StageObjectMetadata
+    {
+        public int AppearanceId;
+        public int GroupId;
+        public int SizeX;
+        public int SizeY;
+    }
+
     [Serializable]
     private sealed class EntityDataRoot
     {

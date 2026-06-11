@@ -885,6 +885,7 @@ namespace RhythmRPG.Editor.StageBuilder
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("HeaderParam"), new GUIContent("Registry Key"));
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Object Entity ID"));
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("Position"), new GUIContent("Spawn Position"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ObjectSize"), new GUIContent("Object Size"));
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GroupId"), new GUIContent("Group ID"));
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("StringVal"), new GUIContent("Pattern/State"));
                     EditorGUILayout.HelpBox("Registry Key가 있으면 Export 시 Object Entity ID가 자동으로 채워집니다.", MessageType.None);
@@ -2131,12 +2132,16 @@ namespace RhythmRPG.Editor.StageBuilder
 
             Vector3 pos = item.Position;
             Handles.color = accent;
+            Vector2Int footprint = ResolveObjectSize(item.ObjectSize);
+            Vector3 footprintCenter = pos + new Vector3((footprint.x - 1) * 0.5f, 0.05f, (footprint.y - 1) * 0.5f);
+            Handles.DrawWireCube(footprintCenter, new Vector3(footprint.x, 0.02f, footprint.y));
             Handles.DrawWireDisc(pos + Vector3.up * 0.05f, Vector3.up, 0.42f);
             Handles.SphereHandleCap(0, pos + Vector3.up * 0.12f, Quaternion.identity, 0.18f, EventType.Repaint);
 
             if (_showSceneLabels)
             {
-                string label = $"{icon} {kind} {index}\n{GetPlacementDisplayName(item)}";
+                string sizeLabel = footprint.x > 1 || footprint.y > 1 ? $"\n{footprint.x}x{footprint.y}" : "";
+                string label = $"{icon} {kind} {index}\n{GetPlacementDisplayName(item)}{sizeLabel}";
                 DrawSceneBadge(pos + Vector3.up * 1.25f, label, accent);
             }
 
@@ -2166,6 +2171,13 @@ namespace RhythmRPG.Editor.StageBuilder
             {
                 Color accent = GetActionSceneColor(action.Type);
                 Handles.color = accent;
+                if (action.Type == ActionType.SpawnObject)
+                {
+                    Vector2Int footprint = ResolveObjectSize(action.ObjectSize);
+                    Handles.DrawWireCube(
+                        pos + new Vector3((footprint.x - 1) * 0.5f, 0.08f, (footprint.y - 1) * 0.5f),
+                        new Vector3(footprint.x, 0.02f, footprint.y));
+                }
                 Handles.DrawWireDisc(pos + Vector3.up * 0.08f, Vector3.up, 0.36f);
 
                 EditorGUI.BeginChangeCheck();
@@ -2402,6 +2414,9 @@ namespace RhythmRPG.Editor.StageBuilder
 
         private static Vector3 RoundRuntimeEuler(Vector3 eulerAngles)
             => RoundVector(ToRuntimeEuler(eulerAngles));
+
+        private static Vector2Int ResolveObjectSize(Vector2Int objectSize)
+            => new Vector2Int(Mathf.Max(1, objectSize.x), Mathf.Max(1, objectSize.y));
 
         private GameObject ResolvePreviewPrefab(SpawnInfoSO item)
         {

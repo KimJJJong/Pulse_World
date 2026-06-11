@@ -155,7 +155,15 @@ namespace GameServer.InGame.Director.Core
                 return;
             }
 
-            _session.SpawnEntityInternal(data.EntityId, (EntityType)data.EntityType, mapX, mapY, data.GroupId, data.Pattern);
+            _session.SpawnEntityInternal(
+                data.EntityId,
+                (EntityType)data.EntityType,
+                mapX,
+                mapY,
+                data.GroupId,
+                data.Pattern,
+                data.SizeX,
+                data.SizeY);
         }
 
         public void BroadcastMessage(string msg)

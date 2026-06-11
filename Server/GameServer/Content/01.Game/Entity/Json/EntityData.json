@@ -36,6 +36,13 @@
             "ResourcePath": "Data/Entity_501_VoidWall"
         },
         {
+            "EntityId": 502,
+            "Name": "Entity_502_Runic_Obelisk",
+            "EntityType": 3,
+            "MaxHp": 999999,
+            "ResourcePath": "Data/Entity_502_Runic_Obelisk"
+        },
+        {
             "EntityId": 999,
             "Name": "Entity_999_Monster_TrainingDummy",
             "EntityType": 2,

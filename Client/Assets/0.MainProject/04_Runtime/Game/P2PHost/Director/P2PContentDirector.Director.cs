@@ -196,17 +196,109 @@ public sealed partial class P2PContentDirector
     private void BuildStageObjectIndex(StageScenarioData stage)
     {
         _stageObjectGroupByEntityId.Clear();
+        _stageObjectMetadataByEntityId.Clear();
+        _stageObjectMetadataBySpawnSignature.Clear();
 
-        if (stage?.InitialObjects == null)
+        if (stage == null)
             return;
 
-        foreach (var obj in stage.InitialObjects)
+        foreach (var obj in stage.InitialObjects ?? new List<SpawnObjectData>())
         {
             if (obj == null || obj.EntityId <= 0 || obj.GroupId <= 0)
                 continue;
 
             _stageObjectGroupByEntityId[obj.EntityId] = obj.GroupId;
+            RegisterStageObjectMetadata(
+                obj.EntityId,
+                obj.EntityId,
+                obj.GroupId,
+                obj.X,
+                ResolveMapY(obj.Y, obj.Z),
+                obj.SizeX,
+                obj.SizeY);
         }
+
+        foreach (var evt in stage.Events ?? new List<EventData>())
+        {
+            if (evt?.Actions == null)
+                continue;
+
+            foreach (var action in evt.Actions)
+            {
+                if (action == null
+                    || !string.Equals(action.Type, "SpawnObject", StringComparison.Ordinal)
+                    || action.ParamId <= 0)
+                {
+                    continue;
+                }
+
+                RegisterStageObjectMetadata(
+                    0,
+                    action.ParamId,
+                    action.GroupId,
+                    action.X,
+                    ResolveMapY(action.Y, action.Z),
+                    action.SizeX,
+                    action.SizeY);
+            }
+        }
+    }
+
+    private void RegisterStageObjectMetadata(
+        int entityId,
+        int appearanceId,
+        int groupId,
+        int x,
+        int y,
+        int sizeX,
+        int sizeY)
+    {
+        if (appearanceId <= 0)
+            return;
+
+        var metadata = new StageObjectMetadata
+        {
+            AppearanceId = appearanceId,
+            GroupId = groupId,
+            SizeX = Math.Max(1, sizeX),
+            SizeY = Math.Max(1, sizeY)
+        };
+
+        if (entityId > 0)
+            _stageObjectMetadataByEntityId[entityId] = metadata;
+
+        _stageObjectMetadataBySpawnSignature[BuildObjectSpawnKey(appearanceId, x, y)] = metadata;
+    }
+
+    private static string BuildObjectSpawnKey(int appearanceId, int x, int y)
+        => $"{appearanceId}:{x}:{y}";
+
+    public bool TryEnrichStageObjectInfo(ref ClientEntityInfo info)
+    {
+        if (info.EntityType != (int)EntityType.Object)
+            return false;
+
+        EnsureStageLoaded();
+
+        StageObjectMetadata metadata;
+        bool found = _stageObjectMetadataByEntityId.TryGetValue(info.EntityId, out metadata);
+        if (!found)
+            found = _stageObjectMetadataBySpawnSignature.TryGetValue(
+                BuildObjectSpawnKey(info.AppearanceId, info.X, info.Y),
+                out metadata);
+
+        if (!found)
+            return false;
+
+        if (info.GroupId <= 0 && metadata.GroupId > 0)
+            info.GroupId = metadata.GroupId;
+
+        if (info.SizeX <= 0)
+            info.SizeX = metadata.SizeX;
+        if (info.SizeY <= 0)
+            info.SizeY = metadata.SizeY;
+
+        return true;
     }
 
     private void RegisterTemplate(int appearanceId, string monsterType, int groupId, int x = int.MinValue, int y = int.MinValue)
@@ -476,6 +568,20 @@ public sealed partial class P2PContentDirector
         if (_stageObjectGroupByEntityId.TryGetValue(targetInfo.EntityId, out int groupId) && groupId > 0)
             return groupId;
 
+        if (_stageObjectMetadataByEntityId.TryGetValue(targetInfo.EntityId, out var entityMetadata)
+            && entityMetadata.GroupId > 0)
+        {
+            return entityMetadata.GroupId;
+        }
+
+        if (_stageObjectMetadataBySpawnSignature.TryGetValue(
+                BuildObjectSpawnKey(targetInfo.AppearanceId, targetInfo.X, targetInfo.Y),
+                out var spawnMetadata)
+            && spawnMetadata.GroupId > 0)
+        {
+            return spawnMetadata.GroupId;
+        }
+
         return targetInfo.EntityId;
     }
 
@@ -521,6 +627,14 @@ public sealed partial class P2PContentDirector
         int entityId = GenerateSpawnEntityId();
         if (entityId > 0 && data.GroupId > 0)
             _stageObjectGroupByEntityId[entityId] = data.GroupId;
+        RegisterStageObjectMetadata(
+            entityId,
+            data.EntityId,
+            data.GroupId,
+            data.X,
+            ResolveMapY(data.Y, data.Z),
+            data.SizeX,
+            data.SizeY);
 
         int maxHp = ResolveMaxHp(data.EntityId);
         long beat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : 0;

@@ -69,6 +69,8 @@ namespace GameServer.InGame.Director.Data
         public int Y;
         public int Z;
         public int GroupId;
+        public int SizeX = 1;
+        public int SizeY = 1;
         public float Rotation = 0f;
         public string Pattern = string.Empty;
     }
@@ -109,6 +111,8 @@ namespace GameServer.InGame.Director.Data
         public int Z;
         public string StringVal = string.Empty;
         public int GroupId;
+        public int SizeX = 1;
+        public int SizeY = 1;
         public string GuideTitle = string.Empty;
         public string GuideBody = string.Empty;
         public string GuideImageResource = string.Empty;
@@ -1219,6 +1223,8 @@ namespace GameServer.InGame.Director.Core
                     Y = _data.Y,
                     Z = _data.Z,
                     GroupId = _data.GroupId,
+                    SizeX = Math.Max(1, _data.SizeX),
+                    SizeY = Math.Max(1, _data.SizeY),
                     Pattern = _data.StringVal
                 };
                 host.SpawnObject(spawnData);

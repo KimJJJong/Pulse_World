@@ -115,6 +115,8 @@ namespace RhythmRPG.Editor.StageBuilder
                         Y = (int)s.Position.y,
                         Z = (int)s.Position.z, // [NEW]
                         GroupId = groupId,
+                        SizeX = Mathf.Max(1, s.ObjectSize.x),
+                        SizeY = Mathf.Max(1, s.ObjectSize.y),
                         Pattern = ai_pattern,
                         Rotation = s.EulerAngles.y
                     });
@@ -189,6 +191,8 @@ namespace RhythmRPG.Editor.StageBuilder
                         Z = (int)a.Position.z, // [NEW]
                         StringVal = ai_pattern, // Use resolved pattern
                         GroupId = a.GroupId,
+                        SizeX = Mathf.Max(1, a.ObjectSize.x),
+                        SizeY = Mathf.Max(1, a.ObjectSize.y),
                         GuideTitle = a.GuideTitle,
                         GuideBody = a.GuideBody,
                         GuideImageResource = a.GuideImageResource,
@@ -401,6 +405,8 @@ namespace RhythmRPG.Editor.StageBuilder
             public int Y;
             public int Z; // [NEW] Unity Z
             public int GroupId;
+            public int SizeX = 1;
+            public int SizeY = 1;
             public string Pattern;
             public float Rotation;
         }
@@ -440,6 +446,8 @@ namespace RhythmRPG.Editor.StageBuilder
             public int Z; // [NEW] Unity Z
             public string StringVal;
             public int GroupId;
+            public int SizeX = 1;
+            public int SizeY = 1;
             public string GuideTitle;
             public string GuideBody;
             public string GuideImageResource;

@@ -251,7 +251,10 @@ public class ClientGameState : MonoBehaviour
             if (kv.Value.Hp <= 0)
                 continue;
 
-            if (kv.Value.X == x && kv.Value.Y == y)
+            int sizeX = Mathf.Max(1, kv.Value.SizeX);
+            int sizeY = Mathf.Max(1, kv.Value.SizeY);
+            if (x >= kv.Value.X && x < kv.Value.X + sizeX
+                && y >= kv.Value.Y && y < kv.Value.Y + sizeY)
                 return true;
         }
 
@@ -521,6 +524,8 @@ public struct ClientEntityInfo
     public int Hp;
     public int MaxHp;
     public int GroupId;
+    public int SizeX;
+    public int SizeY;
 }
 
 public struct ClientBeatAction

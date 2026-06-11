@@ -28,33 +28,47 @@ public sealed class MapWorld2D : IGameWorld
 
     public bool TrySpawn(MapEntity entity, GridPos at)
     {
-        if (!_map.InBounds(at.X, at.Y))
-        {
-            Console.WriteLine($"[ TrySpawn ] _map.InBounds(at.X, at.Y) ");
-            return false;
-        }
-        if (!_map.IsWalkable(at.X, at.Y))
-        {
-            Console.WriteLine($"[ TrySpawn ] _map.IsWalkable(at.X, at.Y) ");
-
-            return false;
-        }
         if (_entities.ContainsKey(entity.Id))
         {
             Console.WriteLine($"[ TrySpawn ] _entities.ContainsKey(entity.Id) ");
             return false;
         }
 
+        var cells = BuildFootprintCells(entity, at);
+        foreach (var cell in cells)
+        {
+            if (!_map.InBounds(cell.X, cell.Y))
+            {
+                Console.WriteLine($"[ TrySpawn ] _map.InBounds({cell.X}, {cell.Y}) ");
+                return false;
+            }
+
+            if (!_map.IsWalkable(cell.X, cell.Y))
+            {
+                Console.WriteLine($"[ TrySpawn ] _map.IsWalkable({cell.X}, {cell.Y}) ");
+                return false;
+            }
+
+            if (HasLiveOccupant(cell.X, cell.Y, entity.Id))
+            {
+                Console.WriteLine($"[ TrySpawn ] occupied ({cell.X}, {cell.Y}) ");
+                return false;
+            }
+        }
+
         entity.Position = at;
         _entities[entity.Id] = entity;
 
-        var key = (at.X, at.Y);
-        if (!_entitiesByGrid.TryGetValue(key, out var set))
+        foreach (var cell in cells)
         {
-            set = new HashSet<int>();
-            _entitiesByGrid[key] = set;
+            var key = (cell.X, cell.Y);
+            if (!_entitiesByGrid.TryGetValue(key, out var set))
+            {
+                set = new HashSet<int>();
+                _entitiesByGrid[key] = set;
+            }
+            set.Add(entity.Id);
         }
-        set.Add(entity.Id);
         return true;
     }
 
@@ -63,25 +77,22 @@ public sealed class MapWorld2D : IGameWorld
         if (!_entities.TryGetValue(entityId, out var e))
             return false;
 
-        // grid 정리(있으면)
-        var pos = e.Position;
-        var key = (pos.X, pos.Y);
         bool removedFromGrid = false;
 
-        if (_entitiesByGrid.TryGetValue(key, out var set))
+        foreach (var cell in BuildFootprintCells(e, e.Position))
         {
-            if (set.Remove(entityId))
+            var key = (cell.X, cell.Y);
+            if (_entitiesByGrid.TryGetValue(key, out var set) && set.Remove(entityId))
             {
                 removedFromGrid = true;
-                if (set.Count == 0)
-                    _entitiesByGrid.Remove(key);
+                if (set.Count == 0) _entitiesByGrid.Remove(key);
             }
         }
 
         // Fast remove failed -> Scan all (Safety Fallback)
         if (!removedFromGrid)
         {
-            Console.WriteLine($"[Despawn] Fast remove failed for {entityId} at ({pos.X},{pos.Y}). Scanning grid...");
+            Console.WriteLine($"[Despawn] Fast remove failed for {entityId} at ({e.Position.X},{e.Position.Y}). Scanning grid...");
             var keysToRemove = new List<(int, int)>();
             foreach (var kv in _entitiesByGrid)
             {
@@ -304,69 +315,83 @@ public sealed class MapWorld2D : IGameWorld
             return false;
         }
 
-        // 2) 통행 가능
-        if (!_map.IsWalkable(target.X, target.Y))
+        var targetCells = BuildFootprintCells(e, target);
+        foreach (var cell in targetCells)
         {
-            if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL Blocked actor={actorId} from=({from.X},{from.Y}) target=({target.X},{target.Y}) tile={_map.Get(target.X, target.Y)}");
-            return false;
-        }
-
-        // 3) 인접(4방) - Optional
-
-        // 4) 점유 (Robust Logic)
-        var targetKey = (target.X, target.Y);
-        if (_entitiesByGrid.TryGetValue(targetKey, out var occ) && occ.Count > 0)
-        {
-            // 실제 존재하는 Entity인지, 살아있는지 확인 (Ghost Cleanup)
-            bool actualCollision = false;
-            int blockerId = -1;
-            List<int> ghosts = null;
-
-            foreach (var occupantId in occ)
+            if (!_map.InBounds(cell.X, cell.Y))
             {
-                if (_entities.TryGetValue(occupantId, out var occupant) && occupant.IsAlive)
+                if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL OOB actor={actorId} from=({from.X},{from.Y}) target=({target.X},{target.Y}) footprint=({cell.X},{cell.Y}) map=({_map.Width}x{_map.Height})");
+                return false;
+            }
+
+            if (!_map.IsWalkable(cell.X, cell.Y))
+            {
+                if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL Blocked actor={actorId} from=({from.X},{from.Y}) target=({target.X},{target.Y}) footprint=({cell.X},{cell.Y}) tile={_map.Get(cell.X, cell.Y)}");
+                return false;
+            }
+
+            var targetKey = (cell.X, cell.Y);
+            if (_entitiesByGrid.TryGetValue(targetKey, out var occ) && occ.Count > 0)
+            {
+                bool actualCollision = false;
+                int blockerId = -1;
+                List<int> ghosts = null;
+
+                foreach (var occupantId in occ)
                 {
-                    actualCollision = true;
-                    blockerId = occupantId;
-                    break; 
-                }
-                else
-                {
-                    // Ghost detected (not in _entities or !IsAlive)
+                    if (occupantId == actorId)
+                        continue;
+
+                    if (_entities.TryGetValue(occupantId, out var occupant) && occupant.IsAlive)
+                    {
+                        actualCollision = true;
+                        blockerId = occupantId;
+                        break;
+                    }
+
                     if (ghosts == null) ghosts = new List<int>();
                     ghosts.Add(occupantId);
                 }
-            }
 
-            // Lazy Cleanup
-            if (ghosts != null)
-            {
-                foreach (var g in ghosts)
+                if (ghosts != null)
                 {
-                    occ.Remove(g);
-                    Console.WriteLine($"[TryMove] Cleaned up Ghost {g} at ({target.X},{target.Y})");
+                    foreach (var g in ghosts)
+                    {
+                        occ.Remove(g);
+                        Console.WriteLine($"[TryMove] Cleaned up Ghost {g} at ({cell.X},{cell.Y})");
+                    }
+                    if (occ.Count == 0) _entitiesByGrid.Remove(targetKey);
                 }
-                if (occ.Count == 0) _entitiesByGrid.Remove(targetKey);
-            }
 
-            if (actualCollision)
-            {
-                //if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL Occupied actor={actorId} target=({target.X},{target.Y}) by={blockerId}");
-                return false;
+                if (actualCollision)
+                {
+                    if (DBG_MOVE_FAIL) MoveLog($"[MOVE] FAIL Occupied actor={actorId} target=({cell.X},{cell.Y}) by={blockerId}");
+                    return false;
+                }
             }
         }
 
         // 5) 반영
-        var fromKey = (from.X, from.Y);
-        if (_entitiesByGrid.TryGetValue(fromKey, out var fromSet))
-            fromSet.Remove(actorId);
-
-        if (!_entitiesByGrid.TryGetValue(targetKey, out var toSet))
+        foreach (var cell in BuildFootprintCells(e, from))
         {
-            toSet = new HashSet<int>();
-            _entitiesByGrid[targetKey] = toSet;
+            var fromKey = (cell.X, cell.Y);
+            if (_entitiesByGrid.TryGetValue(fromKey, out var fromSet))
+            {
+                fromSet.Remove(actorId);
+                if (fromSet.Count == 0) _entitiesByGrid.Remove(fromKey);
+            }
         }
-        toSet.Add(actorId);
+
+        foreach (var cell in targetCells)
+        {
+            var targetKey = (cell.X, cell.Y);
+            if (!_entitiesByGrid.TryGetValue(targetKey, out var toSet))
+            {
+                toSet = new HashSet<int>();
+                _entitiesByGrid[targetKey] = toSet;
+            }
+            toSet.Add(actorId);
+        }
 
         e.Position = target;
 
@@ -439,6 +464,38 @@ public sealed class MapWorld2D : IGameWorld
 
     // ==== 내부 유틸 ====
     private bool IsInside(int x, int y) => _map.InBounds(x, y);
+
+    private static List<GridPos> BuildFootprintCells(MapEntity entity, GridPos origin)
+    {
+        int sizeX = Math.Max(1, entity.GetState<int>("SizeX"));
+        int sizeY = Math.Max(1, entity.GetState<int>("SizeY"));
+        var cells = new List<GridPos>(sizeX * sizeY);
+        for (int y = 0; y < sizeY; y++)
+        {
+            for (int x = 0; x < sizeX; x++)
+                cells.Add(new GridPos(origin.X + x, origin.Y + y));
+        }
+
+        return cells;
+    }
+
+    private bool HasLiveOccupant(int x, int y, int ignoreEntityId)
+    {
+        var key = (x, y);
+        if (!_entitiesByGrid.TryGetValue(key, out var set))
+            return false;
+
+        foreach (int entityId in set)
+        {
+            if (entityId == ignoreEntityId)
+                continue;
+
+            if (_entities.TryGetValue(entityId, out var entity) && entity.IsAlive)
+                return true;
+        }
+
+        return false;
+    }
 
 
 
