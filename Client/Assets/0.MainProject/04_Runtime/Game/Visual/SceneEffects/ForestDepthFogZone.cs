@@ -23,6 +23,7 @@ namespace RhythmRPG.Game.Visual.SceneEffects
         public Vector4 ShapeParams => new(width * 0.5f, length * 0.5f, edgeBlendDistance, density);
         public Vector4 NoiseParams => new(noiseStrength, noiseScale, 0f, 0f);
         public Vector4 FogColor => fogColor;
+        public float Density => density;
 
         public void Configure(
             float zoneWidth,
@@ -40,6 +41,17 @@ namespace RhythmRPG.Game.Visual.SceneEffects
             noiseStrength = boundaryNoiseStrength;
             noiseScale = boundaryNoiseScale;
             fogColor = color;
+        }
+
+        public void SetDensity(float fogDensity, bool applyImmediately = true)
+        {
+            density = Mathf.Max(0f, fogDensity);
+
+            if (applyImmediately)
+            {
+                var controller = GetComponentInParent<ForestDepthFogZoneController>(true);
+                controller?.ApplyNow();
+            }
         }
 
         private void OnValidate()

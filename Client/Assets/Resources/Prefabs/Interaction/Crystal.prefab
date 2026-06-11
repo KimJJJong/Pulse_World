@@ -5144,6 +5144,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5903062299081183995}
   - component: {fileID: 5897277561342573404}
+  - component: {fileID: 7007334795148123456}
   m_Layer: 0
   m_Name: Crystal
   m_TagString: Untagged
@@ -5205,6 +5206,38 @@ MonoBehaviour:
   fallbackBpm: 120
   useRhythmClient: 1
   collectTargetsOnAwake: 0
+--- !u!114 &7007334795148123456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8230207703448353896}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f5b8325dfc44864aa736cc11c99f75a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageSceneObjectTarget
+  TargetKey: Crystal
+  GroupId: 0
+  DefaultDurationMs: 1400
+  HiddenScale: 0.92
+  HiddenYOffset: -0.35
+  DisableCollidersWhenHidden: 1
+  MotionRoots:
+  - {fileID: 244221335764423335}
+  - {fileID: 2208175003933210176}
+  - {fileID: 340178327598676699}
+  - {fileID: 8347194324631669803}
+  EnableRiseFromGround: 1
+  ReplayShowAnimationWhenAlreadyVisible: 1
+  RiseHiddenYOffset: -1.45
+  RiseOvershootHeight: 0.14
+  EnableIdleFloat: 1
+  FloatAmplitude: 0.16
+  FloatPeriodSeconds: 2.4
+  FloatBlendInSeconds: 0.35
+  UseParabolicFloat: 1
 --- !u!1001 &353848679040431436
 PrefabInstance:
   m_ObjectHideFlags: 0

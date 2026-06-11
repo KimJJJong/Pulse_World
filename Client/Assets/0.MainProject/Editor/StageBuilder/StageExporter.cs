@@ -143,7 +143,12 @@ namespace RhythmRPG.Editor.StageBuilder
                         SecondaryTargetId = c.SecondaryTargetId,
                         TargetKey = c.TargetKey,
                         Count = c.Count,
-                        Area = new RectDTO { X=c.Area.x, Y=c.Area.y, W=c.Area.width, H=c.Area.height }
+                        UseParticipantCount = c.CountRequirement == StageCountRequirementMode.ParticipantCount,
+                        ShowProgressUi = c.ShowProgressUi,
+                        ShowAreaOutline = c.ShowAreaOutline,
+                        ProgressLabel = c.ProgressLabel,
+                        ProgressDurationMs = c.ProgressDurationMs,
+                        Area = BuildAreaDTO(c)
                     });
                 }
 
@@ -220,6 +225,32 @@ namespace RhythmRPG.Editor.StageBuilder
 
             File.WriteAllText(path, content);
             Debug.Log($"<b>[StageExporter]</b> Exported to {path}");
+        }
+
+        private static RectDTO BuildAreaDTO(ConditionInfoSO condition)
+        {
+            var area = new RectDTO
+            {
+                X = condition.Area.x,
+                Y = condition.Area.y,
+                W = condition.Area.width,
+                H = condition.Area.height,
+                Shape = condition.AreaShape.ToString()
+            };
+
+            if (condition.AreaShape == StageAreaShapeType.CustomCells && condition.AreaCells != null)
+            {
+                var seen = new HashSet<Vector2Int>();
+                foreach (var cell in condition.AreaCells)
+                {
+                    if (!seen.Add(cell))
+                        continue;
+
+                    area.Cells.Add(new GridPointDTO { X = cell.x, Y = cell.y });
+                }
+            }
+
+            return area;
         }
 
         private static void WarnIfMapJsonMissing(string projectRoot, string mapId)
@@ -391,6 +422,11 @@ namespace RhythmRPG.Editor.StageBuilder
             public int SecondaryTargetId;
             public string TargetKey;
             public int Count;
+            public bool UseParticipantCount;
+            public bool ShowProgressUi = true;
+            public bool ShowAreaOutline = true;
+            public string ProgressLabel;
+            public int ProgressDurationMs;
             public RectDTO Area;
         }
 
@@ -415,6 +451,15 @@ namespace RhythmRPG.Editor.StageBuilder
         public class RectDTO
         {
             public int X, Y, W, H;
+            public string Shape;
+            public List<GridPointDTO> Cells = new List<GridPointDTO>();
+        }
+
+        [System.Serializable]
+        public class GridPointDTO
+        {
+            public int X;
+            public int Y;
         }
     }
 }

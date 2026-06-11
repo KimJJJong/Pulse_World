@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using RhythmRPG.Game.Stage;
 
 public class BoardView : MonoBehaviour, IClientWorldView
 {
@@ -1138,6 +1139,25 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         visual.transform.position = ResolveEntityWorldPosition(info, visual.transform);
         visual.SetRotation(info.Rotation);
+
+        if (createdNow)
+            BindStageSceneObjectTargets(info, visual);
+    }
+
+    private static void BindStageSceneObjectTargets(ClientEntityInfo info, EntityVisual visual)
+    {
+        if (visual == null || info.EntityType != (int)EntityType.Object)
+            return;
+
+        var targets = visual.GetComponentsInChildren<StageSceneObjectTarget>(true);
+        if (targets == null || targets.Length == 0)
+            return;
+
+        foreach (var target in targets)
+        {
+            if (target != null)
+                target.BindRuntimeTarget(info.GroupId);
+        }
     }
 
     private static void SyncCharacterVisualController(ClientEntityInfo info, EntityVisual visual, ClientGameState gameState)

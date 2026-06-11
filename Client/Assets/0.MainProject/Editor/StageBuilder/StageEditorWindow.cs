@@ -634,13 +634,33 @@ namespace RhythmRPG.Editor.StageBuilder
                     break;
 
                 case ConditionType.AreaEnter:
-                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("Area"), new GUIContent("Area (X/Z)"));
+                    DrawAreaConditionFields(condProp);
                     EditorGUILayout.HelpBox("월드 X/Z 영역에 진입하면 발동합니다.", MessageType.None);
                     break;
 
                 case ConditionType.AreaExit:
-                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("Area"), new GUIContent("Area (X/Z)"));
+                    DrawAreaConditionFields(condProp);
                     EditorGUILayout.HelpBox("월드 X/Z 영역을 벗어나면 발동합니다. Tutorial Panel Hide 이벤트에 사용합니다.", MessageType.None);
+                    break;
+
+                case ConditionType.AreaPlayerCount:
+                    DrawAreaConditionFields(condProp);
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("CountRequirement"), new GUIContent("Required Count Source"));
+                    if ((StageCountRequirementMode)condProp.FindPropertyRelative("CountRequirement").enumValueIndex == StageCountRequirementMode.FixedCount)
+                    {
+                        EditorGUILayout.PropertyField(condProp.FindPropertyRelative("Count"), new GUIContent("Required Players"));
+                    }
+                    else
+                    {
+                        using (new EditorGUI.DisabledScope(true))
+                            EditorGUILayout.IntField("Required Players", 0);
+                        EditorGUILayout.HelpBox("런타임의 게임 참여 인원 수를 필요 인원으로 사용합니다.", MessageType.None);
+                    }
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("ProgressLabel"), new GUIContent("Progress Label"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("ProgressDurationMs"), new GUIContent("Text Duration (ms)"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("ShowProgressUi"), new GUIContent("Show Center Count UI"));
+                    EditorGUILayout.PropertyField(condProp.FindPropertyRelative("ShowAreaOutline"), new GUIContent("Show Area Outline"));
+                    EditorGUILayout.HelpBox("영역 안의 살아있는 Player 수가 조건을 만족하면 발동합니다. Participant Count를 선택하면 현재 게임 참여 인원이 n이 됩니다.", MessageType.None);
                     break;
 
                 case ConditionType.TimeElapsed:
@@ -670,6 +690,114 @@ namespace RhythmRPG.Editor.StageBuilder
             }
 
             EditorGUILayout.EndVertical();
+        }
+
+        private static void DrawAreaConditionFields(SerializedProperty condProp)
+        {
+            SerializedProperty areaProp = condProp.FindPropertyRelative("Area");
+            SerializedProperty shapeProp = condProp.FindPropertyRelative("AreaShape");
+
+            EditorGUILayout.PropertyField(areaProp, new GUIContent("Area Bounds (X/Z)"));
+            EditorGUILayout.PropertyField(shapeProp, new GUIContent("Area Shape"));
+
+            StageAreaShapeType shape = (StageAreaShapeType)shapeProp.enumValueIndex;
+            if (shape != StageAreaShapeType.CustomCells)
+                return;
+
+            SerializedProperty cellsProp = condProp.FindPropertyRelative("AreaCells");
+            EditorGUILayout.PropertyField(cellsProp, new GUIContent("Custom Cells"), true);
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Seed From Bounds", EditorStyles.miniButtonLeft))
+            {
+                SeedAreaCellsFromBounds(condProp);
+            }
+
+            if (GUILayout.Button("Fit Bounds", EditorStyles.miniButtonMid))
+            {
+                FitBoundsToAreaCells(condProp);
+            }
+
+            if (GUILayout.Button("Normalize", EditorStyles.miniButtonRight))
+            {
+                NormalizeAreaCells(condProp);
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.HelpBox("Custom Cells는 지정한 타일들의 외곽선만 표시하고, 런타임 조건도 해당 셀 목록 기준으로 판정합니다.", MessageType.None);
+        }
+
+        private static void SeedAreaCellsFromBounds(SerializedProperty condProp)
+        {
+            SerializedProperty areaProp = condProp.FindPropertyRelative("Area");
+            SerializedProperty cellsProp = condProp.FindPropertyRelative("AreaCells");
+            RectInt area = areaProp.rectIntValue;
+
+            int width = Mathf.Max(1, area.width);
+            int height = Mathf.Max(1, area.height);
+            cellsProp.arraySize = width * height;
+
+            int index = 0;
+            for (int y = area.y; y < area.y + height; y++)
+            {
+                for (int x = area.x; x < area.x + width; x++)
+                {
+                    cellsProp.GetArrayElementAtIndex(index).vector2IntValue = new Vector2Int(x, y);
+                    index++;
+                }
+            }
+        }
+
+        private static void FitBoundsToAreaCells(SerializedProperty condProp)
+        {
+            SerializedProperty cellsProp = condProp.FindPropertyRelative("AreaCells");
+            if (cellsProp.arraySize <= 0)
+                return;
+
+            Vector2Int first = cellsProp.GetArrayElementAtIndex(0).vector2IntValue;
+            int minX = first.x;
+            int minY = first.y;
+            int maxX = first.x;
+            int maxY = first.y;
+
+            for (int i = 1; i < cellsProp.arraySize; i++)
+            {
+                Vector2Int cell = cellsProp.GetArrayElementAtIndex(i).vector2IntValue;
+                minX = Mathf.Min(minX, cell.x);
+                minY = Mathf.Min(minY, cell.y);
+                maxX = Mathf.Max(maxX, cell.x);
+                maxY = Mathf.Max(maxY, cell.y);
+            }
+
+            condProp.FindPropertyRelative("Area").rectIntValue = new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+        }
+
+        private static void NormalizeAreaCells(SerializedProperty condProp)
+        {
+            SerializedProperty cellsProp = condProp.FindPropertyRelative("AreaCells");
+            if (cellsProp.arraySize <= 1)
+                return;
+
+            var cells = new List<Vector2Int>();
+            var seen = new HashSet<Vector2Int>();
+            for (int i = 0; i < cellsProp.arraySize; i++)
+            {
+                Vector2Int cell = cellsProp.GetArrayElementAtIndex(i).vector2IntValue;
+                if (seen.Add(cell))
+                    cells.Add(cell);
+            }
+
+            cells.Sort((a, b) =>
+            {
+                int yCompare = a.y.CompareTo(b.y);
+                return yCompare != 0 ? yCompare : a.x.CompareTo(b.x);
+            });
+
+            cellsProp.arraySize = cells.Count;
+            for (int i = 0; i < cells.Count; i++)
+                cellsProp.GetArrayElementAtIndex(i).vector2IntValue = cells[i];
+
+            FitBoundsToAreaCells(condProp);
         }
 
         private void DrawActionRow(SerializedProperty actionsProp, int index)
@@ -780,7 +908,8 @@ namespace RhythmRPG.Editor.StageBuilder
                     bool sceneObjectActive = sceneObjectActiveProp.intValue != 0;
                     sceneObjectActive = EditorGUILayout.Toggle(new GUIContent("Active"), sceneObjectActive);
                     sceneObjectActiveProp.intValue = sceneObjectActive ? 1 : 0;
-                    EditorGUILayout.HelpBox("맵에 직접 배치된 안개/길막/장식 오브젝트 root에 StageSceneObjectTarget을 붙이고 Key 또는 Group ID를 맞추면 토글됩니다.", MessageType.Info);
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("DurationMs"), new GUIContent("Fade Duration (ms)"));
+                    EditorGUILayout.HelpBox("맵에 직접 배치된 안개/길막/장식 오브젝트 root에 StageSceneObjectTarget을 붙이고 Key 또는 Group ID를 맞추면 자연스럽게 표시/숨김 처리됩니다.", MessageType.Info);
                     break;
 
                 case ActionType.SetGateDoorOpen:
@@ -1000,6 +1129,7 @@ namespace RhythmRPG.Editor.StageBuilder
             MonsterAllDead,
             AreaEnter,
             AreaExit,
+            AreaPlayerCount,
             TimeElapsed,
             ObjectInteracted,
             ObjectPairInteracted,
@@ -1102,6 +1232,11 @@ namespace RhythmRPG.Editor.StageBuilder
             if (ColoredButton("+ Exit", ConditionAccent, GUILayout.Width(66)))
             {
                 AddCondition(conditionsProp, ConditionQuickTemplate.AreaExit);
+            }
+
+            if (ColoredButton("+ Count", ConditionAccent, GUILayout.Width(76)))
+            {
+                AddCondition(conditionsProp, ConditionQuickTemplate.AreaPlayerCount);
             }
 
             if (ColoredButton("+ Time", ActionAccent, GUILayout.Width(70)))
@@ -1334,8 +1469,15 @@ namespace RhythmRPG.Editor.StageBuilder
 
             SerializedProperty condProp = conditionsProp.GetArrayElementAtIndex(insertIndex);
             condProp.FindPropertyRelative("Area").rectIntValue = new RectInt(0, 0, 1, 1);
+            condProp.FindPropertyRelative("AreaShape").enumValueIndex = (int)StageAreaShapeType.Rectangle;
+            condProp.FindPropertyRelative("AreaCells").arraySize = 0;
             condProp.FindPropertyRelative("TargetKey").stringValue = string.Empty;
             condProp.FindPropertyRelative("SecondaryTargetId").intValue = 0;
+            condProp.FindPropertyRelative("CountRequirement").enumValueIndex = (int)StageCountRequirementMode.FixedCount;
+            condProp.FindPropertyRelative("ShowProgressUi").boolValue = true;
+            condProp.FindPropertyRelative("ShowAreaOutline").boolValue = true;
+            condProp.FindPropertyRelative("ProgressLabel").stringValue = "Area";
+            condProp.FindPropertyRelative("ProgressDurationMs").intValue = 1200;
 
             switch (template)
             {
@@ -1349,6 +1491,14 @@ namespace RhythmRPG.Editor.StageBuilder
                     condProp.FindPropertyRelative("Type").enumValueIndex = (int)ConditionType.AreaExit;
                     condProp.FindPropertyRelative("TargetId").intValue = 0;
                     condProp.FindPropertyRelative("Count").intValue = 0;
+                    break;
+
+                case ConditionQuickTemplate.AreaPlayerCount:
+                    condProp.FindPropertyRelative("Type").enumValueIndex = (int)ConditionType.AreaPlayerCount;
+                    condProp.FindPropertyRelative("TargetId").intValue = 0;
+                    condProp.FindPropertyRelative("Count").intValue = 1;
+                    condProp.FindPropertyRelative("CountRequirement").enumValueIndex = (int)StageCountRequirementMode.ParticipantCount;
+                    condProp.FindPropertyRelative("ProgressLabel").stringValue = "Gather";
                     break;
 
                 case ConditionQuickTemplate.TimeElapsed:
@@ -1469,6 +1619,7 @@ namespace RhythmRPG.Editor.StageBuilder
                     actionProp.FindPropertyRelative("StringVal").stringValue = "FogBlocker";
                     actionProp.FindPropertyRelative("ParamId").intValue = 1;
                     actionProp.FindPropertyRelative("GroupId").intValue = 0;
+                    actionProp.FindPropertyRelative("DurationMs").intValue = 650;
                     break;
 
                 case ActionQuickTemplate.SetGateDoorOpen:
@@ -1597,6 +1748,12 @@ namespace RhythmRPG.Editor.StageBuilder
                     RectInt exitArea = condProp.FindPropertyRelative("Area").rectIntValue;
                     return $"영역 이탈 ({exitArea.x}, {exitArea.y}, {exitArea.width}, {exitArea.height})";
 
+                case ConditionType.AreaPlayerCount:
+                    RectInt countArea = condProp.FindPropertyRelative("Area").rectIntValue;
+                    bool useParticipants = (StageCountRequirementMode)condProp.FindPropertyRelative("CountRequirement").enumValueIndex == StageCountRequirementMode.ParticipantCount;
+                    string required = useParticipants ? "참여 인원" : condProp.FindPropertyRelative("Count").intValue.ToString();
+                    return $"영역 인원 {required}명 ({countArea.x}, {countArea.y}, {countArea.width}, {countArea.height})";
+
                 case ConditionType.TimeElapsed:
                     int ms = condProp.FindPropertyRelative("Count").intValue;
                     return $"경과 시간 {ms / 1000f:0.0}s";
@@ -1704,30 +1861,130 @@ namespace RhythmRPG.Editor.StageBuilder
 
         private void DrawAreaHandle(EventInfoSO evt, ConditionInfoSO cond)
         {
-            Vector3 center = new Vector3(cond.Area.x + cond.Area.width * 0.5f, 0, cond.Area.y + cond.Area.height * 0.5f);
-            Vector3 size = new Vector3(cond.Area.width, 1.0f, cond.Area.height);
-
-            _boundsHandle.center = center;
-            _boundsHandle.size = size;
             Color areaColor = evt != null && evt.Visual != null ? evt.Visual.SceneColor : ConditionAccent;
-            _boundsHandle.SetColor(WithAlpha(areaColor, 0.5f));
+            Vector3 center = GetAreaCenter(cond);
 
-            EditorGUI.BeginChangeCheck();
-            _boundsHandle.DrawHandle();
-            if (EditorGUI.EndChangeCheck())
+            if (cond.AreaShape == StageAreaShapeType.CustomCells && cond.AreaCells != null && cond.AreaCells.Count > 0)
             {
-                Undo.RecordObject(_currentStage, "Resize Area");
+                EditorGUI.BeginChangeCheck();
+                Vector3 movedCenter = Handles.PositionHandle(center, Quaternion.identity);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Vector3 delta = RoundVector(movedCenter - center);
+                    int dx = Mathf.RoundToInt(delta.x);
+                    int dz = Mathf.RoundToInt(delta.z);
+                    if (dx != 0 || dz != 0)
+                    {
+                        Undo.RecordObject(_currentStage, "Move Custom Area");
+                        cond.Area = new RectInt(cond.Area.x + dx, cond.Area.y + dz, cond.Area.width, cond.Area.height);
+                        for (int i = 0; i < cond.AreaCells.Count; i++)
+                        {
+                            Vector2Int cell = cond.AreaCells[i];
+                            cond.AreaCells[i] = new Vector2Int(cell.x + dx, cell.y + dz);
+                        }
+                        MarkCurrentStageDirtyAndExport();
+                        center = GetAreaCenter(cond);
+                    }
+                }
+            }
+            else
+            {
+                Vector3 size = new Vector3(Mathf.Max(1, cond.Area.width), 1.0f, Mathf.Max(1, cond.Area.height));
+                center = new Vector3(cond.Area.x + size.x * 0.5f, 0, cond.Area.y + size.z * 0.5f);
 
-                int minX = Mathf.RoundToInt(_boundsHandle.center.x - _boundsHandle.size.x * 0.5f);
-                int minZ = Mathf.RoundToInt(_boundsHandle.center.z - _boundsHandle.size.z * 0.5f);
-                int width = Mathf.Max(1, Mathf.RoundToInt(_boundsHandle.size.x));
-                int height = Mathf.Max(1, Mathf.RoundToInt(_boundsHandle.size.z));
+                _boundsHandle.center = center;
+                _boundsHandle.size = size;
+                _boundsHandle.SetColor(WithAlpha(areaColor, 0.45f));
 
-                cond.Area = new RectInt(minX, minZ, width, height);
-                MarkCurrentStageDirtyAndExport();
+                EditorGUI.BeginChangeCheck();
+                _boundsHandle.DrawHandle();
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(_currentStage, "Resize Area");
+
+                    int minX = Mathf.RoundToInt(_boundsHandle.center.x - _boundsHandle.size.x * 0.5f);
+                    int minZ = Mathf.RoundToInt(_boundsHandle.center.z - _boundsHandle.size.z * 0.5f);
+                    int width = Mathf.Max(1, Mathf.RoundToInt(_boundsHandle.size.x));
+                    int height = Mathf.Max(1, Mathf.RoundToInt(_boundsHandle.size.z));
+
+                    cond.Area = new RectInt(minX, minZ, width, height);
+                    MarkCurrentStageDirtyAndExport();
+                    center = GetAreaCenter(cond);
+                }
             }
 
-            DrawSceneBadge(center + Vector3.up * 1.1f, $"{GetEventSceneLabel(evt)}\nArea", areaColor);
+            DrawAreaOutline(cond, areaColor);
+
+            string label = cond.Type == ConditionType.AreaPlayerCount ? "Area Count" : "Area";
+            DrawSceneBadge(center + Vector3.up * 1.1f, $"{GetEventSceneLabel(evt)}\n{label}", areaColor);
+        }
+
+        private static void DrawAreaOutline(ConditionInfoSO cond, Color areaColor)
+        {
+            List<Vector2Int> cells = BuildAreaCells(cond);
+            if (cells.Count == 0)
+                return;
+
+            var cellSet = new HashSet<Vector2Int>(cells);
+            Color outlineColor = Color.Lerp(areaColor, Color.white, 0.35f);
+            outlineColor.a = 0.95f;
+            Handles.color = outlineColor;
+
+            foreach (var cell in cells)
+            {
+                if (!cellSet.Contains(new Vector2Int(cell.x - 1, cell.y)))
+                    DrawAreaOutlineEdge(cell.x, cell.y, cell.x, cell.y + 1);
+
+                if (!cellSet.Contains(new Vector2Int(cell.x + 1, cell.y)))
+                    DrawAreaOutlineEdge(cell.x + 1, cell.y, cell.x + 1, cell.y + 1);
+
+                if (!cellSet.Contains(new Vector2Int(cell.x, cell.y - 1)))
+                    DrawAreaOutlineEdge(cell.x, cell.y, cell.x + 1, cell.y);
+
+                if (!cellSet.Contains(new Vector2Int(cell.x, cell.y + 1)))
+                    DrawAreaOutlineEdge(cell.x, cell.y + 1, cell.x + 1, cell.y + 1);
+            }
+        }
+
+        private static void DrawAreaOutlineEdge(float x0, float z0, float x1, float z1)
+        {
+            const float outlineHeight = 0.08f;
+            Vector3 start = new Vector3(x0, outlineHeight, z0);
+            Vector3 end = new Vector3(x1, outlineHeight, z1);
+            Handles.DrawAAPolyLine(5f, start, end);
+        }
+
+        private static List<Vector2Int> BuildAreaCells(ConditionInfoSO cond)
+        {
+            var cells = new List<Vector2Int>();
+            if (cond == null)
+                return cells;
+
+            var seen = new HashSet<Vector2Int>();
+            if (cond.AreaShape == StageAreaShapeType.CustomCells && cond.AreaCells != null && cond.AreaCells.Count > 0)
+            {
+                for (int i = 0; i < cond.AreaCells.Count; i++)
+                {
+                    Vector2Int cell = cond.AreaCells[i];
+                    if (seen.Add(cell))
+                        cells.Add(cell);
+                }
+                return cells;
+            }
+
+            int width = Mathf.Max(1, cond.Area.width);
+            int height = Mathf.Max(1, cond.Area.height);
+            for (int y = cond.Area.y; y < cond.Area.y + height; y++)
+            {
+                for (int x = cond.Area.x; x < cond.Area.x + width; x++)
+                {
+                    Vector2Int cell = new Vector2Int(x, y);
+                    if (seen.Add(cell))
+                        cells.Add(cell);
+                }
+            }
+
+            return cells;
         }
 
         private void OnSceneGUI(SceneView sceneView)
@@ -1764,7 +2021,9 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 foreach (var cond in evt.Conditions)
                 {
-                    if (cond.Type == ConditionType.AreaEnter || cond.Type == ConditionType.AreaExit)
+                    if (cond.Type == ConditionType.AreaEnter
+                        || cond.Type == ConditionType.AreaExit
+                        || cond.Type == ConditionType.AreaPlayerCount)
                     {
                         DrawAreaHandle(evt, cond);
                         conditionPoints.Add(GetAreaCenter(cond));
@@ -2182,6 +2441,32 @@ namespace RhythmRPG.Editor.StageBuilder
 
         private static Vector3 GetAreaCenter(ConditionInfoSO cond)
         {
+            if (cond != null
+                && cond.AreaShape == StageAreaShapeType.CustomCells
+                && cond.AreaCells != null
+                && cond.AreaCells.Count > 0)
+            {
+                Vector2Int first = cond.AreaCells[0];
+                int minX = first.x;
+                int minY = first.y;
+                int maxX = first.x;
+                int maxY = first.y;
+
+                for (int i = 1; i < cond.AreaCells.Count; i++)
+                {
+                    Vector2Int cell = cond.AreaCells[i];
+                    minX = Mathf.Min(minX, cell.x);
+                    minY = Mathf.Min(minY, cell.y);
+                    maxX = Mathf.Max(maxX, cell.x);
+                    maxY = Mathf.Max(maxY, cell.y);
+                }
+
+                return new Vector3(
+                    minX + (maxX - minX + 1) * 0.5f,
+                    0f,
+                    minY + (maxY - minY + 1) * 0.5f);
+            }
+
             return new Vector3(
                 cond.Area.x + cond.Area.width * 0.5f,
                 0f,

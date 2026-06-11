@@ -74,7 +74,7 @@
             "EntityId": 501,
             "EntityType": 3,
             "X": 48,
-            "Y": 0,
+            "Y": 1,
             "Z": 37,
             "GroupId": 7,
             "Pattern": "",
@@ -132,11 +132,18 @@
                     "SecondaryTargetId": 6,
                     "TargetKey": "",
                     "Count": 0,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
                     "Area": {
                         "X": 0,
                         "Y": 0,
                         "W": 1,
-                        "H": 1
+                        "H": 1,
+                        "Shape": "Rectangle",
+                        "Cells": []
                     }
                 }
             ],
@@ -195,11 +202,18 @@
                     "SecondaryTargetId": 0,
                     "TargetKey": "",
                     "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
                     "Area": {
                         "X": 0,
                         "Y": 0,
                         "W": 1,
-                        "H": 1
+                        "H": 1,
+                        "Shape": "Rectangle",
+                        "Cells": []
                     }
                 }
             ],
@@ -230,11 +244,18 @@
                     "SecondaryTargetId": 0,
                     "TargetKey": "",
                     "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
                     "Area": {
                         "X": 0,
                         "Y": 0,
                         "W": 1,
-                        "H": 1
+                        "H": 1,
+                        "Shape": "Rectangle",
+                        "Cells": []
                     }
                 }
             ],
@@ -252,6 +273,353 @@
                     "GuideImageResource": "",
                     "DurationMs": 3500,
                     "VfxKey": "CrystalPulseRed"
+                }
+            ]
+        },
+        {
+            "EventId": 4,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "AreaPlayerCount",
+                    "TargetId": 0,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": true,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 1,
+                        "H": 1,
+                        "Shape": "CustomCells",
+                        "Cells": [
+                            {
+                                "X": 67,
+                                "Y": 35
+                            },
+                            {
+                                "X": 68,
+                                "Y": 35
+                            },
+                            {
+                                "X": 69,
+                                "Y": 35
+                            },
+                            {
+                                "X": 70,
+                                "Y": 35
+                            },
+                            {
+                                "X": 71,
+                                "Y": 35
+                            },
+                            {
+                                "X": 66,
+                                "Y": 36
+                            },
+                            {
+                                "X": 67,
+                                "Y": 36
+                            },
+                            {
+                                "X": 68,
+                                "Y": 36
+                            },
+                            {
+                                "X": 69,
+                                "Y": 36
+                            },
+                            {
+                                "X": 70,
+                                "Y": 36
+                            },
+                            {
+                                "X": 71,
+                                "Y": 36
+                            },
+                            {
+                                "X": 72,
+                                "Y": 36
+                            },
+                            {
+                                "X": 65,
+                                "Y": 37
+                            },
+                            {
+                                "X": 66,
+                                "Y": 37
+                            },
+                            {
+                                "X": 67,
+                                "Y": 37
+                            },
+                            {
+                                "X": 68,
+                                "Y": 37
+                            },
+                            {
+                                "X": 69,
+                                "Y": 37
+                            },
+                            {
+                                "X": 70,
+                                "Y": 37
+                            },
+                            {
+                                "X": 71,
+                                "Y": 37
+                            },
+                            {
+                                "X": 72,
+                                "Y": 37
+                            },
+                            {
+                                "X": 73,
+                                "Y": 37
+                            },
+                            {
+                                "X": 65,
+                                "Y": 38
+                            },
+                            {
+                                "X": 66,
+                                "Y": 38
+                            },
+                            {
+                                "X": 67,
+                                "Y": 38
+                            },
+                            {
+                                "X": 68,
+                                "Y": 38
+                            },
+                            {
+                                "X": 69,
+                                "Y": 38
+                            },
+                            {
+                                "X": 70,
+                                "Y": 38
+                            },
+                            {
+                                "X": 71,
+                                "Y": 38
+                            },
+                            {
+                                "X": 72,
+                                "Y": 38
+                            },
+                            {
+                                "X": 73,
+                                "Y": 38
+                            },
+                            {
+                                "X": 65,
+                                "Y": 39
+                            },
+                            {
+                                "X": 66,
+                                "Y": 39
+                            },
+                            {
+                                "X": 67,
+                                "Y": 39
+                            },
+                            {
+                                "X": 68,
+                                "Y": 39
+                            },
+                            {
+                                "X": 69,
+                                "Y": 39
+                            },
+                            {
+                                "X": 70,
+                                "Y": 39
+                            },
+                            {
+                                "X": 71,
+                                "Y": 39
+                            },
+                            {
+                                "X": 72,
+                                "Y": 39
+                            },
+                            {
+                                "X": 73,
+                                "Y": 39
+                            },
+                            {
+                                "X": 66,
+                                "Y": 40
+                            },
+                            {
+                                "X": 67,
+                                "Y": 40
+                            },
+                            {
+                                "X": 68,
+                                "Y": 40
+                            },
+                            {
+                                "X": 69,
+                                "Y": 40
+                            },
+                            {
+                                "X": 69,
+                                "Y": 41
+                            },
+                            {
+                                "X": 69,
+                                "Y": 42
+                            },
+                            {
+                                "X": 66,
+                                "Y": 41
+                            },
+                            {
+                                "X": 65,
+                                "Y": 40
+                            },
+                            {
+                                "X": 65,
+                                "Y": 41
+                            },
+                            {
+                                "X": 66,
+                                "Y": 42
+                            },
+                            {
+                                "X": 67,
+                                "Y": 42
+                            },
+                            {
+                                "X": 68,
+                                "Y": 42
+                            },
+                            {
+                                "X": 70,
+                                "Y": 42
+                            },
+                            {
+                                "X": 71,
+                                "Y": 42
+                            },
+                            {
+                                "X": 72,
+                                "Y": 42
+                            },
+                            {
+                                "X": 72,
+                                "Y": 41
+                            },
+                            {
+                                "X": 72,
+                                "Y": 40
+                            },
+                            {
+                                "X": 73,
+                                "Y": 40
+                            },
+                            {
+                                "X": 73,
+                                "Y": 41
+                            },
+                            {
+                                "X": 70,
+                                "Y": 41
+                            },
+                            {
+                                "X": 71,
+                                "Y": 41
+                            },
+                            {
+                                "X": 71,
+                                "Y": 40
+                            },
+                            {
+                                "X": 70,
+                                "Y": 40
+                            },
+                            {
+                                "X": 70,
+                                "Y": 43
+                            },
+                            {
+                                "X": 71,
+                                "Y": 43
+                            },
+                            {
+                                "X": 69,
+                                "Y": 43
+                            },
+                            {
+                                "X": 68,
+                                "Y": 43
+                            },
+                            {
+                                "X": 67,
+                                "Y": 43
+                            },
+                            {
+                                "X": 67,
+                                "Y": 41
+                            },
+                            {
+                                "X": 68,
+                                "Y": 41
+                            }
+                        ]
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "PlayVfx",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 1200,
+                    "VfxKey": "MarkerCyan"
+                },
+                {
+                    "Type": "SetGateDoorOpen",
+                    "ParamId": 1,
+                    "X": -90,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 900,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSceneObjectActive",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
                 }
             ]
         }

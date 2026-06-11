@@ -68,6 +68,7 @@ public sealed class GameSession : SessionBase
 
         Director = new GameDirector(this);
         BeatActions.InteractResolved += OnInteractResolvedHandler;
+        BeatActions.MoveResolved += OnMoveResolvedHandler;
     }
 
     protected override void CleanupActor(int actorId)
@@ -116,6 +117,25 @@ public sealed class GameSession : SessionBase
         });
 
         Console.WriteLine($"[GameSession] Reported Interact actor={cmd.ActorId} targetEntity={targetEntityId} targetId={targetId}");
+    }
+
+    private void OnMoveResolvedHandler(int actorId, int x, int y, bool accepted)
+    {
+        if (!accepted)
+            return;
+
+        var player = _players.Find(p => p != null && p.Id == actorId);
+        if (player == null || player.Type != EntityType.Player)
+            return;
+
+        Director.NotifyEvent(new GameEventContext
+        {
+            Type = EventType.Move,
+            SourceActorId = actorId,
+            X = x,
+            Y = y,
+            TimeMs = AppRef.ServerTimeMs()
+        });
     }
 
     // =====================================================

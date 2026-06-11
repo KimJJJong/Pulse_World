@@ -91,6 +91,11 @@ namespace GameServer.InGame.Director.Data
         public int SecondaryTargetId;
         public string TargetKey = string.Empty;
         public int Count;
+        public bool UseParticipantCount;
+        public bool ShowProgressUi = true;
+        public bool ShowAreaOutline = true;
+        public string ProgressLabel = string.Empty;
+        public int ProgressDurationMs = 1200;
         public RectData Area;
     }
 
@@ -133,6 +138,17 @@ namespace GameServer.InGame.Director.Data
     }
 
     [Serializable]
+    public class StageAreaProgressData
+    {
+        public string Label = string.Empty;
+        public int CurrentCount;
+        public int RequiredCount;
+        public int DurationMs = 1200;
+        public bool ShowAreaOutline = true;
+        public RectData Area;
+    }
+
+    [Serializable]
     public class StageTutorialPanelData
     {
         public bool Visible = true;
@@ -151,6 +167,7 @@ namespace GameServer.InGame.Director.Data
         public string TargetKey = string.Empty;
         public int GroupId;
         public bool Visible = true;
+        public int DurationMs = 650;
     }
 
     [Serializable]
@@ -299,12 +316,14 @@ namespace GameServer.InGame.Director.Data
         public const int TutorialPanelWarnCode = 6104;
         public const int SceneObjectWarnCode = 6105;
         public const int GateDoorWarnCode = 6106;
+        public const int AreaProgressWarnCode = 6107;
         public const string GuidePrefix = "STAGE_GUIDE";
         public const string VfxPrefix = "STAGE_VFX";
         public const string StageClearPrefix = "STAGE_CLEAR";
         public const string TutorialPanelPrefix = "STAGE_TUTORIAL_PANEL";
         public const string SceneObjectPrefix = "STAGE_SCENE_OBJECT";
         public const string GateDoorPrefix = "STAGE_GATE_DOOR";
+        public const string AreaProgressPrefix = "STAGE_AREA_PROGRESS";
 
         public static string EncodeGuide(StageGuideData data)
         {
@@ -353,7 +372,8 @@ namespace GameServer.InGame.Director.Data
                 SceneObjectPrefix,
                 EncodeText(data.TargetKey),
                 data.GroupId,
-                data.Visible ? 1 : 0);
+                data.Visible ? 1 : 0,
+                Math.Max(0, data.DurationMs));
         }
 
         public static string EncodeGateDoor(StageGateDoorData data)
@@ -391,6 +411,24 @@ namespace GameServer.InGame.Director.Data
                 EncodeText(data.NextArea),
                 data.RecommendedLevel,
                 EncodeText(data.DangerRhythm));
+        }
+
+        public static string EncodeAreaProgress(StageAreaProgressData data)
+        {
+            data ??= new StageAreaProgressData();
+            RectData area = data.Area ?? new RectData();
+            return string.Join("\t",
+                AreaProgressPrefix,
+                EncodeText(data.Label),
+                data.CurrentCount,
+                data.RequiredCount,
+                Math.Max(0, data.DurationMs),
+                data.ShowAreaOutline ? 1 : 0,
+                area.X,
+                area.Y,
+                area.W,
+                area.H,
+                EncodeText(EncodeAreaCells(area)));
         }
 
         public static bool TryDecodeGuide(string payload, out StageGuideData data)
@@ -474,7 +512,8 @@ namespace GameServer.InGame.Director.Data
             {
                 TargetKey = DecodeText(parts[1]),
                 GroupId = int.TryParse(parts[2], out int groupId) ? groupId : 0,
-                Visible = int.TryParse(parts[3], out int visible) && visible != 0
+                Visible = int.TryParse(parts[3], out int visible) && visible != 0,
+                DurationMs = parts.Length > 4 && int.TryParse(parts[4], out int durationMs) ? durationMs : 650
             };
             return true;
         }
@@ -534,6 +573,39 @@ namespace GameServer.InGame.Director.Data
             return true;
         }
 
+        public static bool TryDecodeAreaProgress(string payload, out StageAreaProgressData data)
+        {
+            data = null;
+            if (string.IsNullOrEmpty(payload))
+                return false;
+
+            string[] parts = payload.Split('\t');
+            if (parts.Length < 10 || !string.Equals(parts[0], AreaProgressPrefix, StringComparison.Ordinal))
+                return false;
+
+            var area = new RectData
+            {
+                X = int.TryParse(parts[6], out int x) ? x : 0,
+                Y = int.TryParse(parts[7], out int y) ? y : 0,
+                W = int.TryParse(parts[8], out int w) ? w : 0,
+                H = int.TryParse(parts[9], out int h) ? h : 0
+            };
+
+            if (parts.Length > 10)
+                DecodeAreaCells(DecodeText(parts[10]), area);
+
+            data = new StageAreaProgressData
+            {
+                Label = DecodeText(parts[1]),
+                CurrentCount = int.TryParse(parts[2], out int current) ? current : 0,
+                RequiredCount = int.TryParse(parts[3], out int required) ? required : 0,
+                DurationMs = int.TryParse(parts[4], out int durationMs) ? durationMs : 1200,
+                ShowAreaOutline = int.TryParse(parts[5], out int showOutline) && showOutline != 0,
+                Area = area
+            };
+            return true;
+        }
+
         private static string EncodeText(string value)
             => Convert.ToBase64String(Encoding.UTF8.GetBytes(value ?? string.Empty));
 
@@ -551,6 +623,49 @@ namespace GameServer.InGame.Director.Data
                 return string.Empty;
             }
         }
+
+        private static string EncodeAreaCells(RectData area)
+        {
+            if (area?.Cells == null || area.Cells.Count == 0)
+                return string.Empty;
+
+            var builder = new StringBuilder();
+            for (int i = 0; i < area.Cells.Count; i++)
+            {
+                GridPointData cell = area.Cells[i];
+                if (i > 0)
+                    builder.Append(';');
+
+                builder.Append(cell.X);
+                builder.Append(',');
+                builder.Append(cell.Y);
+            }
+
+            return builder.ToString();
+        }
+
+        private static void DecodeAreaCells(string encodedCells, RectData area)
+        {
+            if (area == null || string.IsNullOrWhiteSpace(encodedCells))
+                return;
+
+            area.Cells ??= new List<GridPointData>();
+            area.Cells.Clear();
+
+            string[] cells = encodedCells.Split(';');
+            foreach (string cellText in cells)
+            {
+                if (string.IsNullOrWhiteSpace(cellText))
+                    continue;
+
+                string[] xy = cellText.Split(',');
+                if (xy.Length != 2)
+                    continue;
+
+                if (int.TryParse(xy[0], out int x) && int.TryParse(xy[1], out int y))
+                    area.Cells.Add(new GridPointData { X = x, Y = y });
+            }
+        }
     }
 
     [Serializable]
@@ -560,6 +675,39 @@ namespace GameServer.InGame.Director.Data
         public int Y;
         public int W;
         public int H;
+        public string Shape = string.Empty;
+        public List<GridPointData> Cells = new List<GridPointData>();
+    }
+
+    [Serializable]
+    public class GridPointData
+    {
+        public int X;
+        public int Y;
+    }
+
+    public static class StageAreaUtility
+    {
+        public static bool Contains(RectData area, int x, int y)
+        {
+            if (area == null)
+                return false;
+
+            if (area.Cells != null && area.Cells.Count > 0)
+            {
+                for (int i = 0; i < area.Cells.Count; i++)
+                {
+                    GridPointData cell = area.Cells[i];
+                    if (cell != null && cell.X == x && cell.Y == y)
+                        return true;
+                }
+
+                return false;
+            }
+
+            return x >= area.X && x < area.X + area.W
+                   && y >= area.Y && y < area.Y + area.H;
+        }
     }
 }
 
@@ -603,6 +751,8 @@ namespace GameServer.InGame.Director.Core
         int GetDeadMonsterCount(int groupId);
         long GetElapsedTimeMs();
         int GetObjectState(int targetId);
+        int GetParticipantPlayerCount();
+        int CountAlivePlayersInArea(RectData area);
 
         void SpawnMonster(SpawnData data);
         void SpawnObject(SpawnObjectData data);
@@ -618,6 +768,7 @@ namespace GameServer.InGame.Director.Core
         void ShowTutorialPanel(StageTutorialPanelData data);
         void HideTutorialPanel(StageTutorialPanelData data);
         void PlayStageVfx(StageVfxData data);
+        void ShowAreaProgress(StageAreaProgressData data);
     }
 
     public abstract class EventCondition
@@ -750,6 +901,7 @@ namespace GameServer.InGame.Director.Core
                 "MonsterAllDead" => new ConditionMonsterAllDead(),
                 "AreaEnter" => new ConditionAreaEnter(),
                 "AreaExit" => new ConditionAreaExit(),
+                "AreaPlayerCount" => new ConditionAreaPlayerCount(),
                 "TimeElapsed" => new ConditionTimeElapsed(),
                 "ObjectInteracted" => new ConditionObjectInteracted(),
                 "ObjectPairInteracted" => new ConditionObjectPairInteracted(),
@@ -813,7 +965,7 @@ namespace GameServer.InGame.Director.Core
                     return false;
 
                 int actorKey = context.SourceActorId;
-                bool isInside = IsInsideArea(r, context.X, context.Y);
+                bool isInside = StageAreaUtility.Contains(r, context.X, context.Y);
                 bool hadPrevious = _wasInsideByActor.TryGetValue(actorKey, out bool wasInside);
                 _wasInsideByActor[actorKey] = isInside;
                 return isInside && (!hadPrevious || !wasInside);
@@ -834,17 +986,66 @@ namespace GameServer.InGame.Director.Core
                     return false;
 
                 int actorKey = context.SourceActorId;
-                bool isInside = IsInsideArea(r, context.X, context.Y);
+                bool isInside = StageAreaUtility.Contains(r, context.X, context.Y);
                 bool hadPrevious = _wasInsideByActor.TryGetValue(actorKey, out bool wasInside);
                 _wasInsideByActor[actorKey] = isInside;
                 return hadPrevious && wasInside && !isInside;
             }
         }
 
-        private static bool IsInsideArea(RectData r, int x, int y)
-            => r != null
-               && x >= r.X && x < r.X + r.W
-               && y >= r.Y && y < r.Y + r.H;
+        private sealed class ConditionAreaPlayerCount : EventCondition
+        {
+            private int _lastCurrentCount = int.MinValue;
+            private int _lastRequiredCount = int.MinValue;
+            private bool _wasSatisfied;
+
+            public override bool Check(IStageActionHost host, GameEventContext context)
+            {
+                if (context.Type != EventType.GameStart
+                    && context.Type != EventType.Move
+                    && context.Type != EventType.TimeTick)
+                {
+                    return false;
+                }
+
+                RectData area = _data.Area;
+                if (area == null)
+                    return false;
+
+                int requiredCount = ResolveRequiredCount(host);
+                int currentCount = host.CountAlivePlayersInArea(area);
+                bool satisfied = currentCount >= requiredCount;
+
+                if (_data.ShowProgressUi
+                    && (currentCount != _lastCurrentCount || requiredCount != _lastRequiredCount))
+                {
+                    host.ShowAreaProgress(new StageAreaProgressData
+                    {
+                        Label = string.IsNullOrWhiteSpace(_data.ProgressLabel) ? "Area" : _data.ProgressLabel,
+                        CurrentCount = currentCount,
+                        RequiredCount = requiredCount,
+                        DurationMs = _data.ProgressDurationMs > 0 ? _data.ProgressDurationMs : 1200,
+                        ShowAreaOutline = _data.ShowAreaOutline && !satisfied,
+                        Area = area
+                    });
+                }
+
+                _lastCurrentCount = currentCount;
+                _lastRequiredCount = requiredCount;
+
+                bool justSatisfied = satisfied && !_wasSatisfied;
+                _wasSatisfied = satisfied;
+                return justSatisfied;
+            }
+
+            private int ResolveRequiredCount(IStageActionHost host)
+            {
+                if (_data.UseParticipantCount)
+                    return Math.Max(1, host.GetParticipantPlayerCount());
+
+                return Math.Max(1, _data.Count);
+            }
+        }
 
         private sealed class ConditionTimeElapsed : EventCondition
         {
@@ -1040,7 +1241,8 @@ namespace GameServer.InGame.Director.Core
                 {
                     TargetKey = _data.StringVal ?? string.Empty,
                     GroupId = _data.ParamId,
-                    Visible = _data.GroupId != 0
+                    Visible = _data.GroupId != 0,
+                    DurationMs = _data.DurationMs > 0 ? _data.DurationMs : 650
                 });
             }
         }

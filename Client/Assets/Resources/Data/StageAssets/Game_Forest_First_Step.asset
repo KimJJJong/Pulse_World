@@ -82,7 +82,7 @@ MonoBehaviour:
     OverrideGroupId: 7
   - EntityKey: VoidWall
     Label: 
-    Position: {x: 48, y: 0, z: 37}
+    Position: {x: 48, y: 1, z: 37}
     EulerAngles: {x: 0, y: 0, z: 0}
     Scale: {x: 0, y: 0, z: 0}
     PreviewPrefabOverride: {fileID: 0}
@@ -142,6 +142,13 @@ MonoBehaviour:
         y: 0
         width: 1
         height: 1
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
     Actions:
     - Type: 11
       HeaderParam: 
@@ -160,6 +167,17 @@ MonoBehaviour:
       Position: {x: 0, y: 0, z: 0}
       StringVal: Event triggered
       GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 12
+      HeaderParam: 
+      ParamId: 7
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: Event triggered
+      GroupId: 0
       GuideTitle: 
       GuideBody: 
       GuideImageResource: 
@@ -186,6 +204,13 @@ MonoBehaviour:
         y: 0
         width: 1
         height: 1
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
     Actions:
     - Type: 7
       HeaderParam: 
@@ -219,6 +244,13 @@ MonoBehaviour:
         y: 0
         width: 1
         height: 1
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
     Actions:
     - Type: 7
       HeaderParam: 
@@ -231,3 +263,134 @@ MonoBehaviour:
       GuideImageResource: 
       DurationMs: 3500
       VfxKey: CrystalPulseRed
+  - Section: Section02
+    Title: Enter Area
+    Notes: 
+    Enabled: 1
+    EventId: 4
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 7
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+      AreaShape: 1
+      AreaCells:
+      - {x: 67, y: 35}
+      - {x: 68, y: 35}
+      - {x: 69, y: 35}
+      - {x: 70, y: 35}
+      - {x: 71, y: 35}
+      - {x: 66, y: 36}
+      - {x: 67, y: 36}
+      - {x: 68, y: 36}
+      - {x: 69, y: 36}
+      - {x: 70, y: 36}
+      - {x: 71, y: 36}
+      - {x: 72, y: 36}
+      - {x: 65, y: 37}
+      - {x: 66, y: 37}
+      - {x: 67, y: 37}
+      - {x: 68, y: 37}
+      - {x: 69, y: 37}
+      - {x: 70, y: 37}
+      - {x: 71, y: 37}
+      - {x: 72, y: 37}
+      - {x: 73, y: 37}
+      - {x: 65, y: 38}
+      - {x: 66, y: 38}
+      - {x: 67, y: 38}
+      - {x: 68, y: 38}
+      - {x: 69, y: 38}
+      - {x: 70, y: 38}
+      - {x: 71, y: 38}
+      - {x: 72, y: 38}
+      - {x: 73, y: 38}
+      - {x: 65, y: 39}
+      - {x: 66, y: 39}
+      - {x: 67, y: 39}
+      - {x: 68, y: 39}
+      - {x: 69, y: 39}
+      - {x: 70, y: 39}
+      - {x: 71, y: 39}
+      - {x: 72, y: 39}
+      - {x: 73, y: 39}
+      - {x: 66, y: 40}
+      - {x: 67, y: 40}
+      - {x: 68, y: 40}
+      - {x: 69, y: 40}
+      - {x: 69, y: 41}
+      - {x: 69, y: 42}
+      - {x: 66, y: 41}
+      - {x: 65, y: 40}
+      - {x: 65, y: 41}
+      - {x: 66, y: 42}
+      - {x: 67, y: 42}
+      - {x: 68, y: 42}
+      - {x: 70, y: 42}
+      - {x: 71, y: 42}
+      - {x: 72, y: 42}
+      - {x: 72, y: 41}
+      - {x: 72, y: 40}
+      - {x: 73, y: 40}
+      - {x: 73, y: 41}
+      - {x: 70, y: 41}
+      - {x: 71, y: 41}
+      - {x: 71, y: 40}
+      - {x: 70, y: 40}
+      - {x: 70, y: 43}
+      - {x: 71, y: 43}
+      - {x: 69, y: 43}
+      - {x: 68, y: 43}
+      - {x: 67, y: 43}
+      - {x: 67, y: 41}
+      - {x: 68, y: 41}
+      CountRequirement: 1
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 7
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: MarkerCyan
+    - Type: 13
+      HeaderParam: 
+      ParamId: 1
+      Position: {x: -90, y: 0, z: 0}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 900
+      VfxKey: 
+    - Type: 12
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 

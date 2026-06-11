@@ -98,6 +98,13 @@ namespace RhythmRPG.Editor.StageBuilder
         public string TargetKey;
         public int Count;
         public RectInt Area;
+        public StageAreaShapeType AreaShape = StageAreaShapeType.Rectangle;
+        public List<Vector2Int> AreaCells = new List<Vector2Int>();
+        public StageCountRequirementMode CountRequirement = StageCountRequirementMode.FixedCount;
+        public bool ShowProgressUi = true;
+        public bool ShowAreaOutline = true;
+        public string ProgressLabel = "Area";
+        public int ProgressDurationMs = 1200;
     }
 
     [System.Serializable]
@@ -124,7 +131,20 @@ namespace RhythmRPG.Editor.StageBuilder
         ObjectInteracted,
         ObjectPairInteracted,
         ObjectStateEquals,
-        AreaExit
+        AreaExit,
+        AreaPlayerCount
+    }
+
+    public enum StageAreaShapeType
+    {
+        Rectangle,
+        CustomCells
+    }
+
+    public enum StageCountRequirementMode
+    {
+        FixedCount,
+        ParticipantCount
     }
 
     public enum ActionType

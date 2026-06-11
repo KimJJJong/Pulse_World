@@ -26,6 +26,7 @@ namespace GameServer.InGame.Manager.Beat
         private readonly int _maxBeatLookAhead;
 
         public event Action<PlayerActionCmd, int, int>? InteractResolved;
+        public event Action<int, int, int, bool>? MoveResolved;
 
         // Move Frequency Limiter
         private readonly Dictionary<int, long> _lastActionBeat = new();
@@ -204,6 +205,8 @@ namespace GameServer.InGame.Manager.Beat
             
             if (!accepted)
                 toPos = fromPos;
+            else
+                MoveResolved?.Invoke(cmd.ActorId, toPos.X, toPos.Y, true);
 
             _broadcaster.Broadcast(new SC_BeatActions
             {
@@ -386,6 +389,9 @@ namespace GameServer.InGame.Manager.Beat
         /// </summary>
         public void BroadcastMoveResult(int actorId, long beatIndex, int fromX, int fromY, int toX, int toY, float rotation, bool accepted)
         {
+            if (accepted)
+                MoveResolved?.Invoke(actorId, toX, toY, true);
+
             _broadcaster.Broadcast(new SC_BeatActions
             {
                 BeatIndex = beatIndex,
@@ -459,7 +465,10 @@ namespace GameServer.InGame.Manager.Beat
                     case ActionKind.Move:
                         toPos = cmd.TargetCell;
                         accepted = _world.TryMove(cmd.ActorId, toPos);
-                        if (!accepted) toPos = fromPos;
+                        if (!accepted)
+                            toPos = fromPos;
+                        else
+                            MoveResolved?.Invoke(cmd.ActorId, toPos.X, toPos.Y, true);
                         break;
 
                     case ActionKind.Interact:

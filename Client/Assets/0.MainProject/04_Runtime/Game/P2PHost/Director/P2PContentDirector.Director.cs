@@ -347,6 +347,56 @@ public sealed partial class P2PContentDirector
         return _objectStatesByTargetId.TryGetValue(targetId, out int state) ? state : 0;
     }
 
+    public int GetParticipantPlayerCount()
+    {
+        if (ClientGameState.Instance == null)
+            return 1;
+
+        var actorIds = new HashSet<int>();
+        ClientGameState gs = ClientGameState.Instance;
+
+        if (gs.PlayerActorIds != null)
+        {
+            for (int i = 0; i < gs.PlayerActorIds.Length; i++)
+            {
+                if (gs.PlayerActorIds[i] > 0)
+                    actorIds.Add(gs.PlayerActorIds[i]);
+            }
+        }
+
+        foreach (var entry in gs.EnumeratePlayerRoster())
+        {
+            if (entry.ActorId > 0)
+                actorIds.Add(entry.ActorId);
+        }
+
+        foreach (var entity in gs.EnumerateEntities())
+        {
+            if (entity.EntityType == (int)EntityType.Player && entity.EntityId > 0)
+                actorIds.Add(entity.EntityId);
+        }
+
+        return Math.Max(1, actorIds.Count);
+    }
+
+    public int CountAlivePlayersInArea(RectData area)
+    {
+        if (ClientGameState.Instance == null || area == null)
+            return 0;
+
+        int count = 0;
+        foreach (var entity in ClientGameState.Instance.EnumerateEntities())
+        {
+            if (entity.EntityType != (int)EntityType.Player || entity.Hp <= 0)
+                continue;
+
+            if (StageAreaUtility.Contains(area, entity.X, entity.Y))
+                count++;
+        }
+
+        return count;
+    }
+
     public void SetObjectState(int targetId, int state)
     {
         if (targetId <= 0)
@@ -519,6 +569,23 @@ public sealed partial class P2PContentDirector
         }
 
         StageGuideHud.Show(data);
+    }
+
+    public void ShowAreaProgress(StageAreaProgressData data)
+    {
+        data ??= new StageAreaProgressData();
+
+        if (P2PHostController.HasInstance)
+        {
+            P2PHostController.Instance.SendLocalAndRelay(new SC_Warn
+            {
+                code = StageSignalCodec.AreaProgressWarnCode,
+                msg = StageSignalCodec.EncodeAreaProgress(data)
+            });
+            return;
+        }
+
+        StageGuideHud.TryHandleWarn(StageSignalCodec.AreaProgressWarnCode, StageSignalCodec.EncodeAreaProgress(data));
     }
 
     public void ShowTutorialPanel(StageTutorialPanelData data)

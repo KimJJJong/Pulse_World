@@ -43,6 +43,13 @@ public sealed class StageGuideHud : MonoBehaviour
             return true;
         }
 
+        if (code == StageSignalCodec.AreaProgressWarnCode
+            && StageSignalCodec.TryDecodeAreaProgress(payload, out var areaProgress))
+        {
+            StageAreaProgressHud.Show(areaProgress);
+            return true;
+        }
+
         if (code == StageSignalCodec.SceneObjectWarnCode
             && StageSignalCodec.TryDecodeSceneObject(payload, out var sceneObject))
         {

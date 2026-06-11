@@ -99,6 +99,29 @@ namespace GameServer.InGame.Director.Core
             return _objectStates.TryGetValue(targetId, out var state) ? state : 0;
         }
 
+        public int GetParticipantPlayerCount()
+        {
+            return Math.Max(1, _session?.Players?.Count ?? 0);
+        }
+
+        public int CountAlivePlayersInArea(RectData area)
+        {
+            if (area == null || _session?.Players == null)
+                return 0;
+
+            int count = 0;
+            foreach (var player in _session.Players)
+            {
+                if (player == null || !player.IsAlive || player.Type != EntityType.Player)
+                    continue;
+
+                if (StageAreaUtility.Contains(area, player.Position.X, player.Position.Y))
+                    count++;
+            }
+
+            return count;
+        }
+
         public void SpawnMonster(SpawnData data)
         {
             if (data == null)
@@ -212,6 +235,13 @@ namespace GameServer.InGame.Director.Core
             data ??= new StageGuideData();
             Console.WriteLine($"[GameDirector] ShowGuide title='{data.Title}' body='{data.Body}'");
             _session.BroadcastStageSignal(StageSignalCodec.GuideWarnCode, StageSignalCodec.EncodeGuide(data));
+        }
+
+        public void ShowAreaProgress(StageAreaProgressData data)
+        {
+            data ??= new StageAreaProgressData();
+            Console.WriteLine($"[GameDirector] ShowAreaProgress label='{data.Label}' progress={data.CurrentCount}/{data.RequiredCount}");
+            _session.BroadcastStageSignal(StageSignalCodec.AreaProgressWarnCode, StageSignalCodec.EncodeAreaProgress(data));
         }
 
         public void ShowTutorialPanel(StageTutorialPanelData data)
