@@ -42,6 +42,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
     [SerializeField, Min(0.05f)] private float walkableGridWaveDuration = 0.55f;
     [SerializeField, Min(0.25f)] private float walkableGridWaveRadiusTiles = 5f;
     [SerializeField, Min(0.05f)] private float walkableGridWaveWidthTiles = 0.7f;
+    [SerializeField, Range(15f, 60f)] private float walkableGridEffectRefreshRate = 30f;
 
     // entityId -> EntityVisual
     private readonly Dictionary<int, EntityVisual> _entityViews = new();
@@ -116,6 +117,11 @@ public class BoardView : MonoBehaviour, IClientWorldView
     private Color _walkableGridTintColor;
     private readonly List<WalkableGridTile> _walkableGridTiles = new List<WalkableGridTile>();
     private readonly List<WalkableGridWave> _walkableGridWaves = new List<WalkableGridWave>();
+    private readonly List<Vector3> _walkableGridVertices = new List<Vector3>(4096);
+    private readonly List<int> _walkableGridTriangles = new List<int>(6144);
+    private readonly List<Color32> _walkableGridBuildColors = new List<Color32>(4096);
+    private readonly HashSet<Vector3Int> _walkableGridDrawnEdges = new HashSet<Vector3Int>();
+    private float _nextWalkableGridEffectTime;
 
     #region Debug
     private const bool DBG_POS = false;
@@ -574,6 +580,13 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (!hasBeatPulse && !hasTint && _walkableGridWaves.Count == 0 && !hadWaves && !hadTint)
             return;
 
+        float now = Time.time;
+        float refreshInterval = 1f / Mathf.Max(15f, walkableGridEffectRefreshRate);
+        if (now < _nextWalkableGridEffectTime)
+            return;
+
+        _nextWalkableGridEffectTime = now + refreshInterval;
+
         Color baseColor = EvaluateWalkableGridBaseColor(hasTint);
         for (int i = 0; i < _walkableGridTiles.Count; i++)
         {
@@ -598,10 +611,10 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         EnsureWalkableGridRenderer();
 
-        var vertices = new List<Vector3>();
-        var triangles = new List<int>();
-        var colors = new List<Color32>();
-        var drawnEdges = new HashSet<Vector3Int>();
+        _walkableGridVertices.Clear();
+        _walkableGridTriangles.Clear();
+        _walkableGridBuildColors.Clear();
+        _walkableGridDrawnEdges.Clear();
         Color baseColor = EvaluateWalkableGridBaseColor(IsWalkableGridTintActive());
 
         int width = _tiles.GetLength(0);
@@ -618,7 +631,15 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 if (renderer == null)
                     continue;
 
-                AddWalkableGridEdgesForTile(x, y, renderer.bounds, drawnEdges, vertices, triangles, colors, baseColor);
+                AddWalkableGridEdgesForTile(
+                    x,
+                    y,
+                    renderer.bounds,
+                    _walkableGridDrawnEdges,
+                    _walkableGridVertices,
+                    _walkableGridTriangles,
+                    _walkableGridBuildColors,
+                    baseColor);
             }
         }
 
@@ -627,15 +648,17 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         _walkableGridMesh.Clear();
         _walkableGridMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-        _walkableGridMesh.SetVertices(vertices);
-        _walkableGridMesh.SetTriangles(triangles, 0);
-        _walkableGridMesh.SetColors(colors);
+        _walkableGridMesh.SetVertices(_walkableGridVertices);
+        _walkableGridMesh.SetTriangles(_walkableGridTriangles, 0);
+        _walkableGridMesh.SetColors(_walkableGridBuildColors);
         _walkableGridMesh.RecalculateBounds();
         _walkableGridMeshFilter.sharedMesh = _walkableGridMesh;
-        _walkableGridColors = colors.ToArray();
+        if (_walkableGridColors == null || _walkableGridColors.Length != _walkableGridBuildColors.Count)
+            _walkableGridColors = new Color32[_walkableGridBuildColors.Count];
+        _walkableGridBuildColors.CopyTo(_walkableGridColors);
 
         if (_walkableGridRenderer != null)
-            _walkableGridRenderer.enabled = showWalkableGrid && vertices.Count > 0;
+            _walkableGridRenderer.enabled = showWalkableGrid && _walkableGridVertices.Count > 0;
     }
 
     private void AddWalkableGridEdgesForTile(
@@ -1020,9 +1043,10 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     private Dictionary<(int x, int y), GameObject> CollectSceneTilesByName()
     {
-        var map = new Dictionary<(int x, int y), GameObject>();
+        Transform tileRoot = GetTileRoot();
+        var map = new Dictionary<(int x, int y), GameObject>(tileRoot != null ? tileRoot.childCount : 0);
 
-        foreach (Transform child in GetTileRoot())
+        foreach (Transform child in tileRoot)
         {
             if (ParseTileName(child.name, out int x, out int y))
                 map[(x, y)] = child.gameObject;

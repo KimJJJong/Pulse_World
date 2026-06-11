@@ -32,8 +32,11 @@ public sealed class MinimapHudView : MonoBehaviour
     private bool _zoomButtonsBound;
     private int _selectedZoomLevel = -1;
     private float _nextBindAttemptTime;
+    private bool _entitiesDirty;
+    private float _nextEntityRefreshTime;
 
     private const int ZoomLevelCount = 3;
+    private const float EntityRefreshInterval = 0.05f;
 
     private void Awake()
     {
@@ -60,14 +63,26 @@ public sealed class MinimapHudView : MonoBehaviour
 
     private void Update()
     {
-        if (!Application.isPlaying || _boundState != null)
+        if (!Application.isPlaying)
             return;
 
-        if (Time.unscaledTime < _nextBindAttemptTime)
-            return;
+        if (_boundState == null)
+        {
+            if (Time.unscaledTime >= _nextBindAttemptTime)
+            {
+                _nextBindAttemptTime = Time.unscaledTime + 0.25f;
+                TryBindState();
+            }
 
-        _nextBindAttemptTime = Time.unscaledTime + 0.25f;
-        TryBindState();
+            return;
+        }
+
+        if (_entitiesDirty && Time.unscaledTime >= _nextEntityRefreshTime)
+        {
+            _entitiesDirty = false;
+            _nextEntityRefreshTime = Time.unscaledTime + EntityRefreshInterval;
+            RefreshEntities();
+        }
     }
 
     private void OnDisable()
@@ -127,6 +142,7 @@ public sealed class MinimapHudView : MonoBehaviour
         _boundState.EntitiesCleared -= HandleEntitiesCleared;
         _boundState.PartyStateChanged -= HandlePartyStateChanged;
         _boundState = null;
+        _entitiesDirty = false;
     }
 
     private void HandleMapCreated(int width, int height)
@@ -145,12 +161,12 @@ public sealed class MinimapHudView : MonoBehaviour
 
     private void HandleEntityChanged(ClientEntityInfo info)
     {
-        RefreshEntities();
+        MarkEntitiesDirty();
     }
 
     private void HandleEntityRemoved(int entityId)
     {
-        RefreshEntities();
+        MarkEntitiesDirty();
     }
 
     private void HandleEntitiesCleared()
@@ -161,7 +177,18 @@ public sealed class MinimapHudView : MonoBehaviour
 
     private void HandlePartyStateChanged()
     {
-        RefreshEntities();
+        MarkEntitiesDirty();
+    }
+
+    private void MarkEntitiesDirty()
+    {
+        if (!Application.isPlaying)
+        {
+            RefreshEntities();
+            return;
+        }
+
+        _entitiesDirty = true;
     }
 
     private void RefreshFromState()

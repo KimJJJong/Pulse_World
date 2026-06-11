@@ -42,6 +42,7 @@ public class ClientGameState : MonoBehaviour
 
     public bool IsMapGenerationComplete { get; private set; } = false;
     public float MapGenProgress { get; private set; } = 0f;
+    [SerializeField, Min(64)] private int _mapTilesPerFrame = 1000;
 
     #region 맵
 
@@ -70,8 +71,6 @@ public class ClientGameState : MonoBehaviour
         asset.EnsureSize();
 
         yield return null;
-        yield return null;
-        yield return null;
 
         CreateMap(asset.Width, asset.Height);
         WorldView?.OnSetAppearancePalette(asset.AppearancePalette);
@@ -79,7 +78,7 @@ public class ClientGameState : MonoBehaviour
 
         int totalTiles = asset.Width * asset.Height;
         int processedCount = 0;
-        int tilesPerFrame = 200;
+        int tilesPerFrame = Mathf.Max(64, _mapTilesPerFrame);
 
         for (int y = 0; y < asset.Height; y++)
         {
@@ -117,8 +116,6 @@ public class ClientGameState : MonoBehaviour
         }
 
         yield return null;
-        yield return null;
-        yield return null;
 
         CreateMap(mapJson.width, mapJson.height);
         bool hasAppearanceData = HasAppearanceData(mapJson);
@@ -128,7 +125,7 @@ public class ClientGameState : MonoBehaviour
 
         int totalTiles = mapJson.width * mapJson.height;
         int processedCount = 0;
-        int tilesPerFrame = 200;
+        int tilesPerFrame = Mathf.Max(64, _mapTilesPerFrame);
 
         for (int y = 0; y < mapJson.height; y++)
         {
@@ -393,7 +390,6 @@ public class ClientGameState : MonoBehaviour
 
         EntityChanged?.Invoke(info);
         NotifyMyEntityChanged(info.EntityId);
-        PartyStateChanged?.Invoke();
     }
 
     public void UpdateEntityState(ClientEntityInfo info, bool refreshWorldView = true)
@@ -404,7 +400,6 @@ public class ClientGameState : MonoBehaviour
             WorldView?.OnSpawnOrUpdateEntity(info);
         EntityChanged?.Invoke(info);
         NotifyMyEntityChanged(info.EntityId);
-        PartyStateChanged?.Invoke();
     }
 
     public bool RemoveEntity(int entityId)
@@ -480,7 +475,6 @@ public class ClientGameState : MonoBehaviour
         WorldView?.OnBeatAction(action, entity);
         EntityChanged?.Invoke(entity);
         NotifyMyEntityChanged(action.ActorId);
-        PartyStateChanged?.Invoke();
     }
 
     private bool ShouldTracePlayerBeatAction(int actorId)

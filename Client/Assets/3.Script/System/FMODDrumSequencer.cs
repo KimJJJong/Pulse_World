@@ -47,8 +47,11 @@ public class FMODDrumSequencer : MonoBehaviour
     private long _blockStartBeatIndex = 0;
 
     // 이미 스케줄링(재생)한 노트들을 추적 (Measure, Tick 베이스)
-    private HashSet<string> _playedNotes = new HashSet<string>();
+    private readonly HashSet<ScheduledNoteKey> _playedNotes = new HashSet<ScheduledNoteKey>();
+    private readonly Dictionary<string, RhythmBlock> _blocksById = new Dictionary<string, RhythmBlock>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, EventReference> _drumMappingsByKey = new Dictionary<string, EventReference>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, FMOD.Sound> _simulatorSoundCache = new Dictionary<string, FMOD.Sound>();
+    private float _nextInitializeAttemptTime;
 
     private struct PendingPlay
     {
@@ -57,6 +60,37 @@ public class FMODDrumSequencer : MonoBehaviour
         public string soundKey;
     }
     private readonly List<PendingPlay> _pendingPlays = new List<PendingPlay>();
+    private const float InitializeRetryInterval = 0.5f;
+
+    private readonly struct ScheduledNoteKey : IEquatable<ScheduledNoteKey>
+    {
+        private readonly long _blockStartBeat;
+        private readonly BassNote _note;
+
+        public ScheduledNoteKey(long blockStartBeat, BassNote note)
+        {
+            _blockStartBeat = blockStartBeat;
+            _note = note;
+        }
+
+        public bool Equals(ScheduledNoteKey other)
+        {
+            return _blockStartBeat == other._blockStartBeat && ReferenceEquals(_note, other._note);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is ScheduledNoteKey other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (_blockStartBeat.GetHashCode() * 397) ^ (_note != null ? _note.GetHashCode() : 0);
+            }
+        }
+    }
 
     private void ClearPendingPlays()
     {
@@ -108,7 +142,15 @@ public class FMODDrumSequencer : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        RebuildDrumMappingCache();
     }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        RebuildDrumMappingCache();
+    }
+#endif
 
     private void OnDestroy()
     {
@@ -215,6 +257,8 @@ public class FMODDrumSequencer : MonoBehaviour
                     _blockStartBeatIndex = 0;
                     _playedNotes.Clear(); // Clear played notes on reload to avoid mismatch
                     ClearPendingPlays(); // Clear pending plays on stage reload
+                    RebuildBlockCache(_stageData);
+                    RebuildDrumMappingCache();
                     WarmSimulatorSoundCache(_stageData);
                     Debug.Log($"[FMODDrumSequencer] Loaded Stage: {_stageData.StageId} | Found {_currentBlock.BassPattern.Count} Bass Notes in Block 0.");
                 }
@@ -228,7 +272,12 @@ public class FMODDrumSequencer : MonoBehaviour
 
     private void Update()
     {
-        InitializeIfRequired();
+        if (Time.unscaledTime >= _nextInitializeAttemptTime)
+        {
+            _nextInitializeAttemptTime = Time.unscaledTime + InitializeRetryInterval;
+            InitializeIfRequired();
+        }
+
         if (!enableSequencer || _stageData == null || _currentBlock == null) return;
         if (RhythmClient.Instance == null || RhythmClient.Instance.ServerSongStartMs == 0) return;
 
@@ -273,8 +322,7 @@ public class FMODDrumSequencer : MonoBehaviour
         {
             while (currentBeatIndex >= _blockStartBeatIndex + totalBeatsInBlock)
             {
-                string nextId = _currentBlock.DefaultNextBlock;
-                var nextBlock = _stageData.Blocks.Find(b => b.BlockId == nextId) ?? _currentBlock;
+                var nextBlock = ResolveNextBlock(_currentBlock);
                 _currentBlock = nextBlock;
                 _blockStartBeatIndex += totalBeatsInBlock;
 
@@ -288,8 +336,7 @@ public class FMODDrumSequencer : MonoBehaviour
         else if (currentServerTimeSec >= blockEndSec)
         {
             // 점진적인 일반 블록 전환 (1비트 수준 미세 초과 시)
-            string nextId = _currentBlock.DefaultNextBlock;
-            var nextBlock = _stageData.Blocks.Find(b => b.BlockId == nextId) ?? _currentBlock;
+            var nextBlock = ResolveNextBlock(_currentBlock);
             _currentBlock = nextBlock;
             _blockStartBeatIndex += totalBeatsInBlock;
 
@@ -305,10 +352,47 @@ public class FMODDrumSequencer : MonoBehaviour
         // 4. 미리보기(Look-Ahead) 윈도우가 다음 블록 영역을 침범할 경우 딜레이 방지를 위해 미래 블록도 미리 스케줄링!
         if (lookAheadTimeSec >= blockEndSec)
         {
-            string nextId = _currentBlock.DefaultNextBlock;
-            var nextBlock = _stageData.Blocks.Find(b => b.BlockId == nextId) ?? _currentBlock;
+            var nextBlock = ResolveNextBlock(_currentBlock);
             ScheduleNotesForBlock(nextBlock, _blockStartBeatIndex + totalBeatsInBlock, currentServerTimeSec, lookAheadTimeSec);
         }
+    }
+
+    private void RebuildBlockCache(RhythmStageData stageData)
+    {
+        _blocksById.Clear();
+        if (stageData?.Blocks == null)
+            return;
+
+        for (int i = 0; i < stageData.Blocks.Count; i++)
+        {
+            RhythmBlock block = stageData.Blocks[i];
+            if (block != null && !string.IsNullOrEmpty(block.BlockId))
+                _blocksById[block.BlockId] = block;
+        }
+    }
+
+    private void RebuildDrumMappingCache()
+    {
+        _drumMappingsByKey.Clear();
+        if (drumMappings == null)
+            return;
+
+        for (int i = 0; i < drumMappings.Count; i++)
+        {
+            DrumSoundMap mapping = drumMappings[i];
+            if (!string.IsNullOrEmpty(mapping.soundKey))
+                _drumMappingsByKey[mapping.soundKey] = mapping.fmodEvent;
+        }
+    }
+
+    private RhythmBlock ResolveNextBlock(RhythmBlock block)
+    {
+        if (block == null || string.IsNullOrEmpty(block.DefaultNextBlock))
+            return block;
+
+        return _blocksById.TryGetValue(block.DefaultNextBlock, out RhythmBlock nextBlock) && nextBlock != null
+            ? nextBlock
+            : block;
     }
 
     private void ScheduleNotesForBlock(RhythmBlock block, long blockStartAbsoluteBeat, double currentTimeSec, double lookAheadTimeSec)
@@ -327,8 +411,7 @@ public class FMODDrumSequencer : MonoBehaviour
 
             double noteTimeSec = noteTimeMs / 1000.0;
 
-            // 고유 식별자에 blockStartAbsoluteBeat를 포함시켜 루프를 100번 돌아도 겹치지 않게 함
-            string noteId = $"{blockStartAbsoluteBeat}_{note.MeasureIndex}_{note.Tick}_{note.SoundKey}_{GetToneKey(note)}_{note.PitchOffset}_{note.VolumeMultiplier:0.###}";
+            var noteId = new ScheduledNoteKey(blockStartAbsoluteBeat, note);
 
             // 아직 재생하지 않았고, 현재 시간 ~ LookAhead 시간 사이에 도달하는 노트인가?
             if (!_playedNotes.Contains(noteId) && noteTimeSec <= lookAheadTimeSec)
@@ -348,12 +431,11 @@ public class FMODDrumSequencer : MonoBehaviour
         bool hasInstance = false;
 
         // 1. JSON 문자열(SoundKey)과 맵핑된 FMOD EventReference 찾기
-        var mapping = drumMappings.Find(m => m.soundKey == note.SoundKey);
-        if (!mapping.fmodEvent.IsNull)
+        if (_drumMappingsByKey.TryGetValue(note.SoundKey, out EventReference mappedEvent) && !mappedEvent.IsNull)
         {
             try
             {
-                instance = RuntimeManager.CreateInstance(mapping.fmodEvent);
+                instance = RuntimeManager.CreateInstance(mappedEvent);
                 hasInstance = true;
             }
             catch (System.Exception e)

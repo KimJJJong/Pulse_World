@@ -18,6 +18,7 @@ namespace RhythmRPG.Game.Stage
         public float HiddenScale = 0.88f;
         public float HiddenYOffset = -0.35f;
         public bool DisableCollidersWhenHidden = true;
+        public bool UseWorldUpMotion;
         public Transform[] MotionRoots = Array.Empty<Transform>();
 
         [Header("Rise")]
@@ -35,6 +36,7 @@ namespace RhythmRPG.Game.Stage
 
         private Transform[] _motionTargets = Array.Empty<Transform>();
         private Vector3[] _shownLocalPositions = Array.Empty<Vector3>();
+        private Vector3[] _shownWorldPositions = Array.Empty<Vector3>();
         private Vector3[] _shownLocalScales = Array.Empty<Vector3>();
         private bool _hasShownPose;
         private float _visibleAmount = 1f;
@@ -216,11 +218,13 @@ namespace RhythmRPG.Game.Stage
 
             _motionTargets = ResolveMotionTargets();
             _shownLocalPositions = new Vector3[_motionTargets.Length];
+            _shownWorldPositions = new Vector3[_motionTargets.Length];
             _shownLocalScales = new Vector3[_motionTargets.Length];
             for (int i = 0; i < _motionTargets.Length; i++)
             {
                 Transform motionTarget = _motionTargets[i];
                 _shownLocalPositions[i] = motionTarget != null ? motionTarget.localPosition : Vector3.zero;
+                _shownWorldPositions[i] = motionTarget != null ? motionTarget.position : Vector3.zero;
                 _shownLocalScales[i] = motionTarget != null ? motionTarget.localScale : Vector3.one;
             }
 
@@ -285,10 +289,20 @@ namespace RhythmRPG.Game.Stage
                     continue;
 
                 Vector3 shownPosition = i < _shownLocalPositions.Length ? _shownLocalPositions[i] : motionTarget.localPosition;
+                Vector3 shownWorldPosition = i < _shownWorldPositions.Length ? _shownWorldPositions[i] : motionTarget.position;
                 Vector3 shownScale = i < _shownLocalScales.Length ? _shownLocalScales[i] : motionTarget.localScale;
 
-                motionTarget.localPosition = Vector3.Lerp(shownPosition + Vector3.up * hiddenYOffset, shownPosition, amount)
-                                             + Vector3.up * riseArc;
+                if (UseWorldUpMotion)
+                {
+                    motionTarget.position = Vector3.Lerp(shownWorldPosition + Vector3.up * hiddenYOffset, shownWorldPosition, amount)
+                                            + Vector3.up * riseArc;
+                }
+                else
+                {
+                    motionTarget.localPosition = Vector3.Lerp(shownPosition + Vector3.up * hiddenYOffset, shownPosition, amount)
+                                                 + Vector3.up * riseArc;
+                }
+
                 motionTarget.localScale = Vector3.Lerp(shownScale * HiddenScale, shownScale, amount);
             }
         }
@@ -324,8 +338,13 @@ namespace RhythmRPG.Game.Stage
                     continue;
 
                 Vector3 shownPosition = i < _shownLocalPositions.Length ? _shownLocalPositions[i] : motionTarget.localPosition;
+                Vector3 shownWorldPosition = i < _shownWorldPositions.Length ? _shownWorldPositions[i] : motionTarget.position;
                 Vector3 shownScale = i < _shownLocalScales.Length ? _shownLocalScales[i] : motionTarget.localScale;
-                motionTarget.localPosition = shownPosition + Vector3.up * offset;
+                if (UseWorldUpMotion)
+                    motionTarget.position = shownWorldPosition + Vector3.up * offset;
+                else
+                    motionTarget.localPosition = shownPosition + Vector3.up * offset;
+
                 motionTarget.localScale = shownScale;
             }
         }

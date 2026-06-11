@@ -20,9 +20,12 @@ public class CameraObstacleFade : MonoBehaviour
     public bool debugMode = false;
 
     // Internal
-    private Dictionary<Renderer, float> _fadingRenderers = new Dictionary<Renderer, float>();
-    private HashSet<Renderer> _ditherReadyRenderers = new HashSet<Renderer>();
-    private List<Renderer> _hitRenderers = new List<Renderer>();
+    private readonly Dictionary<Renderer, float> _fadingRenderers = new Dictionary<Renderer, float>();
+    private readonly HashSet<Renderer> _ditherReadyRenderers = new HashSet<Renderer>();
+    private readonly HashSet<Renderer> _hitRenderers = new HashSet<Renderer>();
+    private readonly List<Renderer> _fadingRendererKeys = new List<Renderer>(32);
+    private readonly List<Renderer> _renderersToRemove = new List<Renderer>(16);
+    private readonly Dictionary<Collider, Renderer> _colliderRendererCache = new Dictionary<Collider, Renderer>();
     private Collider[] _hitColliders = new Collider[50]; // Changed from RaycastHit to Collider
     
     // Cache
@@ -92,8 +95,13 @@ public class CameraObstacleFade : MonoBehaviour
             // Skip target or its children
             if (col.transform == target || col.transform.IsChildOf(target)) continue;
 
-            Renderer r = col.GetComponent<Renderer>();
-            if (r == null) r = col.GetComponentInChildren<Renderer>(); 
+            if (!_colliderRendererCache.TryGetValue(col, out Renderer r))
+            {
+                r = col.GetComponent<Renderer>();
+                if (r == null)
+                    r = col.GetComponentInChildren<Renderer>();
+                _colliderRendererCache[col] = r;
+            }
 
             if (r != null)
             {
@@ -112,14 +120,17 @@ public class CameraObstacleFade : MonoBehaviour
         }
 
         // 2. Update Dither Values
-        List<Renderer> toRemove = new List<Renderer>();
-        var keys = new List<Renderer>(_fadingRenderers.Keys);
+        _renderersToRemove.Clear();
+        _fadingRendererKeys.Clear();
+        foreach (var key in _fadingRenderers.Keys)
+            _fadingRendererKeys.Add(key);
 
-        foreach (var r in keys)
+        for (int i = 0; i < _fadingRendererKeys.Count; i++)
         {
+            var r = _fadingRendererKeys[i];
             if (r == null) 
             {
-                toRemove.Add(r);
+                _renderersToRemove.Add(r);
                 continue;
             }
 
@@ -145,13 +156,14 @@ public class CameraObstacleFade : MonoBehaviour
 
                 if (!isHit && targetVal >= 0.99f)
                 {
-                    toRemove.Add(r);
+                    _renderersToRemove.Add(r);
                 }
             }
         }
 
-        foreach (var r in toRemove)
+        for (int i = 0; i < _renderersToRemove.Count; i++)
         {
+            var r = _renderersToRemove[i];
             if (r != null)
             {
                 _fadingRenderers.Remove(r);

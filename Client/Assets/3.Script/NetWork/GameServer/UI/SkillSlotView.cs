@@ -12,6 +12,7 @@ public class SkillSlotView : MonoBehaviour
     private float _cooldownDuration;
     private bool _running;
     private string _idleLabel = "";
+    private int _lastCooldownLabelSeconds = -1;
 
     void Awake()
     {
@@ -51,7 +52,12 @@ public class SkillSlotView : MonoBehaviour
 
         float rate = remain / _cooldownDuration; // 1 -> 0
         if (cooldownMask != null) cooldownMask.fillAmount = Mathf.Clamp01(rate);
-        if (cooldownText != null) cooldownText.text = $"{Mathf.CeilToInt(remain)}";
+        int remainSeconds = Mathf.CeilToInt(remain);
+        if (cooldownText != null && _lastCooldownLabelSeconds != remainSeconds)
+        {
+            _lastCooldownLabelSeconds = remainSeconds;
+            cooldownText.SetText("{0}", remainSeconds);
+        }
     }
 
     public void SetIcon(Sprite s)
@@ -86,13 +92,15 @@ public class SkillSlotView : MonoBehaviour
         if (cooldownText != null)
         {
             cooldownText.gameObject.SetActive(true);
-            cooldownText.text = $"{Mathf.CeilToInt(duration)}";
+            _lastCooldownLabelSeconds = Mathf.CeilToInt(duration);
+            cooldownText.SetText("{0}", _lastCooldownLabelSeconds);
         }
     }
 
     public void StopCooldown()
     {
         _running = false;
+        _lastCooldownLabelSeconds = -1;
         if (cooldownMask != null) cooldownMask.gameObject.SetActive(false);
         if (cooldownText != null)
         {

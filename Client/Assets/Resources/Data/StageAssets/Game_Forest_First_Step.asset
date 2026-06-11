@@ -387,10 +387,10 @@ MonoBehaviour:
       HeaderParam: 
       ParamId: 0
       Position: {x: 0, y: 0, z: 0}
-      StringVal: 
+      StringVal: Crystal
       GroupId: 1
       GuideTitle: 
       GuideBody: 
       GuideImageResource: 
-      DurationMs: 3500
+      DurationMs: 1400
       VfxKey: 

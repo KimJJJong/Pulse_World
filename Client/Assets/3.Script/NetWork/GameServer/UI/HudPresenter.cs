@@ -47,8 +47,16 @@ public class HudPresenter : MonoBehaviour
         var gs = ClientGameState.Instance;
         if (gs != null)
         {
+            gs.MyEntityChanged -= OnMyEntityChanged;
             gs.MyEntityChanged += OnMyEntityChanged;
+            gs.PartyStateChanged -= RefreshPartyPanels;
             gs.PartyStateChanged += RefreshPartyPanels;
+            gs.EntityChanged -= OnPartyEntityChanged;
+            gs.EntityChanged += OnPartyEntityChanged;
+            gs.EntityRemoved -= OnPartyEntityRemoved;
+            gs.EntityRemoved += OnPartyEntityRemoved;
+            gs.EntitiesCleared -= RefreshPartyPanels;
+            gs.EntitiesCleared += RefreshPartyPanels;
         }
 
         // 인벤토리 업데이트 이벤트 구독
@@ -71,6 +79,9 @@ public class HudPresenter : MonoBehaviour
         {
             gs.MyEntityChanged -= OnMyEntityChanged;
             gs.PartyStateChanged -= RefreshPartyPanels;
+            gs.EntityChanged -= OnPartyEntityChanged;
+            gs.EntityRemoved -= OnPartyEntityRemoved;
+            gs.EntitiesCleared -= RefreshPartyPanels;
         }
 
         var inventoryManager = InventoryManager.ExistingInstance;
@@ -93,6 +104,12 @@ public class HudPresenter : MonoBehaviour
             ClientGameState.Instance.MyEntityChanged += OnMyEntityChanged;
             ClientGameState.Instance.PartyStateChanged -= RefreshPartyPanels;
             ClientGameState.Instance.PartyStateChanged += RefreshPartyPanels;
+            ClientGameState.Instance.EntityChanged -= OnPartyEntityChanged;
+            ClientGameState.Instance.EntityChanged += OnPartyEntityChanged;
+            ClientGameState.Instance.EntityRemoved -= OnPartyEntityRemoved;
+            ClientGameState.Instance.EntityRemoved += OnPartyEntityRemoved;
+            ClientGameState.Instance.EntitiesCleared -= RefreshPartyPanels;
+            ClientGameState.Instance.EntitiesCleared += RefreshPartyPanels;
 
             if (ClientGameState.Instance.TryGetMyEntity(out var info))
                 OnMyEntityChanged(info);
@@ -728,6 +745,17 @@ public class HudPresenter : MonoBehaviour
                 maxHp,
                 actorId == gs.MyActorId);
         }
+    }
+
+    private void OnPartyEntityChanged(ClientEntityInfo info)
+    {
+        if (info.EntityType == (int)EntityType.Player)
+            RefreshPartyPanels();
+    }
+
+    private void OnPartyEntityRemoved(int entityId)
+    {
+        RefreshPartyPanels();
     }
 
     private List<int> CollectPartyActorIds(ClientGameState gs)
