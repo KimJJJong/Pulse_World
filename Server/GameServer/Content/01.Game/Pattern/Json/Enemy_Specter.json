@@ -7,7 +7,7 @@
       "Selectors": [
         {
           "Id": "DefaultMovement",
-          "Weight": 2,
+          "Weight": 1,
           "CooldownBeats": 0,
           "When": {
             "All": []
@@ -47,12 +47,7 @@
           "Weight": 1,
           "CooldownBeats": 0,
           "When": {
-            "All": [
-              {
-                "Type": 0,
-                "Value": 3
-              }
-            ]
+            "All": []
           },
           "Timeline": [
             {
