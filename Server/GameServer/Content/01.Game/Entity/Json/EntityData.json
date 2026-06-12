@@ -186,7 +186,7 @@
             "EntityId": 1027,
             "Name": "Entity_1027_Monster_Specter",
             "EntityType": 2,
-            "MaxHp": 10,
+            "MaxHp": 50,
             "ResourcePath": "Data/Entity_1027_Monster_Specter"
         },
         {
