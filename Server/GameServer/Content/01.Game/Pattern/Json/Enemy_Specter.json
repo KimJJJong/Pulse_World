@@ -45,9 +45,14 @@
         {
           "Id": "SkillMoment",
           "Weight": 1,
-          "CooldownBeats": 2,
+          "CooldownBeats": 0,
           "When": {
-            "All": []
+            "All": [
+              {
+                "Type": 0,
+                "Value": 3
+              }
+            ]
           },
           "Timeline": [
             {
