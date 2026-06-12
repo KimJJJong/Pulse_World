@@ -9,6 +9,7 @@ namespace GameServer.InGame.Director.Data
     {
         public string MapId = string.Empty;
         public string Description = string.Empty;
+        public bool DisableAutoClearOnMonsterWipe;
 
         public RhythmSettingsData RhythmSettings = new RhythmSettingsData();
 

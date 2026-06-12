@@ -40,6 +40,7 @@ namespace RhythmRPG.Editor.StageBuilder
             var dto = new StageScenarioDTO();
             dto.MapId = stage.MapId;
             dto.Description = stage.Description;
+            dto.DisableAutoClearOnMonsterWipe = stage.DisableAutoClearOnMonsterWipe;
             dto.RhythmSettings = new RhythmSettingsDTO 
             {
                 SongKey = rhythmKey,
@@ -367,6 +368,7 @@ namespace RhythmRPG.Editor.StageBuilder
         {
             public string MapId;
             public string Description;
+            public bool DisableAutoClearOnMonsterWipe;
             public RhythmSettingsDTO RhythmSettings;
             public List<SpawnDataDTO> InitialSpawns = new List<SpawnDataDTO>();
             public List<SpawnObjectDTO> InitialObjects = new List<SpawnObjectDTO>(); // [NEW]

@@ -14,6 +14,8 @@ public static class CameraObstacleFadeSceneApplier
     private const int WallLayer = 7;
     private const float MaxDistanceFromWalkableTile = 5.5f;
     private const float MinOccluderHeight = 0.65f;
+    private const float FadeTargetAlpha = 0.28f;
+    private const float FadeRayRadius = 0.8f;
     private const string WallLayerName = "Wall";
     private const string FadeTriggerName = "__CameraFadeTrigger";
 
@@ -131,14 +133,27 @@ public static class CameraObstacleFadeSceneApplier
                                    && renderer.gameObject.scene == scene
                                    && renderer.gameObject.layer == WallLayer
                                    && renderer.GetComponent<CameraObstacleFadeTarget>() == null);
+            var fadeSettingsOk = fade != null
+                                 && Mathf.Approximately(fade.targetAlpha, FadeTargetAlpha)
+                                 && Mathf.Approximately(fade.rayRadius, FadeRayRadius);
 
             Debug.Log(
                 "[CameraObstacleFadeSceneApplier] Validation " +
                 $"Scene={scene.name}, HasFade={fade != null}, " +
                 $"ObstacleLayer={(fade != null ? fade.obstacleLayer.value : 0)}, " +
+                $"TargetAlpha={(fade != null ? fade.targetAlpha : 0f)}, " +
+                $"RayRadius={(fade != null ? fade.rayRadius : 0f)}, " +
+                $"FadeSettingsOk={fadeSettingsOk}, " +
                 $"WallColliders={wallLayerObjects.Length}, " +
                 $"FadeTriggerColliders={fadeTriggerColliders}, " +
                 $"FadeTriggers={triggerColliders}, BlockingWallColliders={blockingColliders}.");
+            if (!fadeSettingsOk)
+            {
+                Debug.LogError(
+                    "[CameraObstacleFadeSceneApplier] Fade settings mismatch. " +
+                    $"Scene={scene.name}, ExpectedTargetAlpha={FadeTargetAlpha}, ExpectedRayRadius={FadeRayRadius}.");
+            }
+
             if (wallLayerRenderers > 0)
             {
                 Debug.LogWarning(
@@ -260,9 +275,9 @@ public static class CameraObstacleFadeSceneApplier
         }
 
         fade.fadeSpeed = 5f;
-        fade.targetAlpha = 0.1f;
+        fade.targetAlpha = FadeTargetAlpha;
         fade.targetHeightOffset = 1f;
-        fade.rayRadius = 3f;
+        fade.rayRadius = FadeRayRadius;
         fade.debugMode = false;
 
         return fade;

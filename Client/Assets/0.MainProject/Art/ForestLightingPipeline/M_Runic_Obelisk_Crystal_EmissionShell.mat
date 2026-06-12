@@ -30,15 +30,15 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Alpha: 0.22
+    - _Alpha: 0.2
     - _BaseStrength: 0.09
     - _FresnelPower: 1.7
-    - _FresnelStrength: 0.78
-    - _Intensity: 1.65
+    - _FresnelStrength: 0.68
+    - _Intensity: 1.35
     - _UseFresnel: 1
     - _UseTextureAlpha: 0
     - _UseTextureMask: 0
     m_Colors:
-    - _GlowColor: {r: 0.1, g: 0.88, b: 0.58, a: 1}
+    - _GlowColor: {r: 0.08, g: 0.78, b: 0.48, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

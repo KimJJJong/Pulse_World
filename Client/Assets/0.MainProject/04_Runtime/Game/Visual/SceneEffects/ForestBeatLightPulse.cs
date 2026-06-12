@@ -11,6 +11,7 @@ namespace RhythmRPG.Game.Visual.SceneEffects
         [SerializeField] private Renderer[] targetRenderers = Array.Empty<Renderer>();
         [SerializeField] private ParticleSystem[] targetParticles = Array.Empty<ParticleSystem>();
         [SerializeField] private Color emissionColor = Color.white;
+        [SerializeField] private bool tintRendererBaseColor;
         [SerializeField, Min(0f)] private float lightBaseMultiplier = 1f;
         [SerializeField, Min(0f)] private float rendererBaseMultiplier = 1f;
         [SerializeField, Min(0f)] private float particleBaseMultiplier = 1f;
@@ -28,6 +29,11 @@ namespace RhythmRPG.Game.Visual.SceneEffects
         [SerializeField] private bool collectTargetsOnAwake = true;
 
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        private static readonly int MainTexId = Shader.PropertyToID("_MainTex");
+        private static readonly int EmissionMapId = Shader.PropertyToID("_EmissionMap");
         private static readonly int GlowColorId = Shader.PropertyToID("_GlowColor");
         private static readonly int GlowIntensityId = Shader.PropertyToID("_Intensity");
         private static readonly int GlowAlphaId = Shader.PropertyToID("_Alpha");
@@ -58,12 +64,14 @@ namespace RhythmRPG.Game.Visual.SceneEffects
             float offsetBeats = 0f,
             float lightBase = 1f,
             float rendererBase = 1f,
-            float particleBase = 1f)
+            float particleBase = 1f,
+            bool tintBaseColor = false)
         {
             targetLights = Compact(lights);
             targetRenderers = Compact(renderers);
             targetParticles = Compact(particles);
             emissionColor = color;
+            tintRendererBaseColor = tintBaseColor;
             lightBaseMultiplier = Mathf.Max(0f, lightBase);
             rendererBaseMultiplier = Mathf.Max(0f, rendererBase);
             particleBaseMultiplier = Mathf.Max(0f, particleBase);
@@ -121,9 +129,10 @@ namespace RhythmRPG.Game.Visual.SceneEffects
             fallbackBpm = Mathf.Max(1f, bpm);
         }
 
-        public void SetPulseColor(Color color)
+        public void SetPulseColor(Color color, bool tintBaseColor = true)
         {
             emissionColor = color;
+            tintRendererBaseColor = tintBaseColor;
 
             foreach (var light in Compact(targetLights))
             {
@@ -140,7 +149,17 @@ namespace RhythmRPG.Game.Visual.SceneEffects
                 main.startColor = color;
             }
 
+            if (tintRendererBaseColor)
+            {
+                EnsureTintableRendererTargets();
+            }
+
             RebuildCaches();
+
+            if (tintRendererBaseColor)
+            {
+                ApplyRendererColorImmediately();
+            }
         }
 
         private void Reset()
@@ -220,7 +239,7 @@ namespace RhythmRPG.Game.Visual.SceneEffects
             _renderers.Clear();
             foreach (var rendererTarget in Compact(targetRenderers))
             {
-                _renderers.Add(new RendererState(rendererTarget, emissionColor));
+                _renderers.Add(new RendererState(rendererTarget, emissionColor, tintRendererBaseColor));
             }
 
             _particles.Clear();
@@ -253,6 +272,35 @@ namespace RhythmRPG.Game.Visual.SceneEffects
             return (targetLights == null || targetLights.Length == 0)
                 && (targetRenderers == null || targetRenderers.Length == 0)
                 && (targetParticles == null || targetParticles.Length == 0);
+        }
+
+        private void EnsureTintableRendererTargets()
+        {
+            var renderers = new List<Renderer>(Compact(targetRenderers));
+            foreach (var rendererTarget in GetComponentsInChildren<Renderer>(true))
+            {
+                if (rendererTarget == null || renderers.Contains(rendererTarget))
+                {
+                    continue;
+                }
+
+                if (IsTintableCrystalRenderer(rendererTarget))
+                {
+                    renderers.Add(rendererTarget);
+                }
+            }
+
+            targetRenderers = renderers.ToArray();
+        }
+
+        private void ApplyRendererColorImmediately()
+        {
+            var emissionScale = Mathf.Max(1f, rendererBaseMultiplier);
+            var alphaScale = Mathf.Max(1f, rendererBaseMultiplier);
+            for (var i = 0; i < _renderers.Count; i++)
+            {
+                _renderers[i].Apply(emissionColor, emissionScale, alphaScale);
+            }
         }
 
         private float CalculatePulse01()
@@ -335,6 +383,71 @@ namespace RhythmRPG.Game.Visual.SceneEffects
             return false;
         }
 
+        private static bool IsTintableCrystalRenderer(Renderer rendererTarget)
+        {
+            if (rendererTarget is ParticleSystemRenderer || rendererTarget is TrailRenderer || rendererTarget is LineRenderer)
+            {
+                return false;
+            }
+
+            var materials = rendererTarget.sharedMaterials;
+            return HasTintableColorProperty(materials)
+                && (HasCrystalVisualName(rendererTarget.gameObject.name) || HasCrystalVisualMaterial(materials));
+        }
+
+        private static bool HasTintableColorProperty(Material[] materials)
+        {
+            if (materials == null)
+            {
+                return false;
+            }
+
+            foreach (var material in materials)
+            {
+                if (material != null
+                    && (material.HasProperty(BaseColorId)
+                        || material.HasProperty(ColorId)
+                        || material.HasProperty(EmissionColorId)
+                        || material.HasProperty(GlowColorId)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasCrystalVisualMaterial(Material[] materials)
+        {
+            if (materials == null)
+            {
+                return false;
+            }
+
+            foreach (var material in materials)
+            {
+                if (material != null && HasCrystalVisualName(material.name))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasCrystalVisualName(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return false;
+            }
+
+            return value.IndexOf("Crystal", StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf("Prism", StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf("Gem", StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf("Emerald", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
         private static T[] Compact<T>(T[] values) where T : UnityEngine.Object
         {
             if (values == null || values.Length == 0)
@@ -386,17 +499,29 @@ namespace RhythmRPG.Game.Visual.SceneEffects
         {
             private readonly Renderer _renderer;
             private readonly MaterialPropertyBlock _block = new();
+            private readonly bool _tintBaseColor;
             private readonly bool _hasEmissionColor;
+            private readonly bool _hasBaseColor;
+            private readonly bool _hasColor;
+            private readonly bool _hasBaseMap;
+            private readonly bool _hasMainTex;
+            private readonly bool _hasEmissionMap;
             private readonly bool _hasGlowColor;
             private readonly bool _hasGlowIntensity;
             private readonly bool _hasGlowAlpha;
+            private readonly Color _baseColor = Color.white;
+            private readonly Color _color = Color.white;
+            private readonly Texture _baseMap;
+            private readonly Texture _mainTex;
+            private readonly Texture _emissionMap;
             private float _baseEmissionIntensity = 2f;
             private readonly float _baseGlowIntensity = 1f;
             private readonly float _baseGlowAlpha = 1f;
 
-            public RendererState(Renderer renderer, Color fallbackColor)
+            public RendererState(Renderer renderer, Color fallbackColor, bool tintBaseColor)
             {
                 _renderer = renderer;
+                _tintBaseColor = tintBaseColor;
                 _baseEmissionIntensity = Mathf.Max(1f, fallbackColor.maxColorComponent * 2f);
 
                 var materials = renderer != null ? renderer.sharedMaterials : null;
@@ -410,6 +535,36 @@ namespace RhythmRPG.Game.Visual.SceneEffects
                     if (material == null)
                     {
                         continue;
+                    }
+
+                    if (!_hasBaseColor && material.HasProperty(BaseColorId))
+                    {
+                        _hasBaseColor = true;
+                        _baseColor = material.GetColor(BaseColorId);
+                    }
+
+                    if (!_hasColor && material.HasProperty(ColorId))
+                    {
+                        _hasColor = true;
+                        _color = material.GetColor(ColorId);
+                    }
+
+                    if (!_hasBaseMap && material.HasProperty(BaseMapId))
+                    {
+                        _hasBaseMap = true;
+                        _baseMap = material.GetTexture(BaseMapId);
+                    }
+
+                    if (!_hasMainTex && material.HasProperty(MainTexId))
+                    {
+                        _hasMainTex = true;
+                        _mainTex = material.GetTexture(MainTexId);
+                    }
+
+                    if (!_hasEmissionMap && material.HasProperty(EmissionMapId))
+                    {
+                        _hasEmissionMap = true;
+                        _emissionMap = material.GetTexture(EmissionMapId);
                     }
 
                     if (!_hasEmissionColor && material.HasProperty(EmissionColorId))
@@ -449,6 +604,21 @@ namespace RhythmRPG.Game.Visual.SceneEffects
 
                 _renderer.GetPropertyBlock(_block);
 
+                if (_tintBaseColor && _hasBaseColor)
+                {
+                    _block.SetColor(BaseColorId, TintColor(tint, _baseColor.a, alphaScale));
+                }
+
+                if (_tintBaseColor && _hasColor)
+                {
+                    _block.SetColor(ColorId, TintColor(tint, _color.a, alphaScale));
+                }
+
+                if (_tintBaseColor && (_hasBaseColor || _hasColor))
+                {
+                    ApplyTintTextures();
+                }
+
                 if (_hasEmissionColor)
                 {
                     var emission = tint * _baseEmissionIntensity * emissionScale;
@@ -477,6 +647,63 @@ namespace RhythmRPG.Game.Visual.SceneEffects
             public void Restore(Color tint)
             {
                 Apply(tint, 1f, 1f);
+                if (!_tintBaseColor || _renderer == null)
+                {
+                    return;
+                }
+
+                _renderer.GetPropertyBlock(_block);
+
+                if (_hasBaseColor)
+                {
+                    _block.SetColor(BaseColorId, _baseColor);
+                }
+
+                if (_hasColor)
+                {
+                    _block.SetColor(ColorId, _color);
+                }
+
+                RestoreTintTextures();
+                _renderer.SetPropertyBlock(_block);
+            }
+
+            private void ApplyTintTextures()
+            {
+                var whiteTexture = Texture2D.whiteTexture;
+
+                if (_hasBaseMap)
+                {
+                    _block.SetTexture(BaseMapId, whiteTexture);
+                }
+
+                if (_hasMainTex)
+                {
+                    _block.SetTexture(MainTexId, whiteTexture);
+                }
+
+                if (_hasEmissionMap)
+                {
+                    _block.SetTexture(EmissionMapId, whiteTexture);
+                }
+            }
+
+            private void RestoreTintTextures()
+            {
+                if (_hasBaseMap)
+                {
+                    _block.SetTexture(BaseMapId, _baseMap);
+                }
+
+                if (_hasMainTex)
+                {
+                    _block.SetTexture(MainTexId, _mainTex);
+                }
+
+                if (_hasEmissionMap)
+                {
+                    _block.SetTexture(EmissionMapId, _emissionMap);
+                }
             }
 
             private static Color Hdr(Color color, float exposureValue)
@@ -484,6 +711,15 @@ namespace RhythmRPG.Game.Visual.SceneEffects
                 var hdr = color * Mathf.Pow(2f, exposureValue);
                 hdr.a = 1f;
                 return hdr;
+            }
+
+            private static Color TintColor(Color tint, float baseAlpha, float alphaScale)
+            {
+                return new Color(
+                    Mathf.Clamp01(tint.r),
+                    Mathf.Clamp01(tint.g),
+                    Mathf.Clamp01(tint.b),
+                    Mathf.Clamp01(baseAlpha * alphaScale));
             }
         }
 

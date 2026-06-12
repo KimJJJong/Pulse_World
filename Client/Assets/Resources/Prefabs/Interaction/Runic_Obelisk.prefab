@@ -200,7 +200,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
   m_UsePipelineSettings: 1
   m_AdditionalLightsShadowResolutionTier: 2
@@ -5070,7 +5070,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8f5b8325dfc44864aa736cc11c99f75a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageSceneObjectTarget
   TargetKey: RunicTowerCrystal
   GroupId: 0
@@ -5102,7 +5102,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2998f2896179b984cb7c4907e15074a3, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageSceneObjectAutoReveal
   Target: {fileID: 6613681826424850380}
   DelayMs: 900
@@ -5131,7 +5131,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &9038250595252637153
 Transform:
   m_ObjectHideFlags: 0
@@ -5157,9 +5157,9 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 2
-  m_Color: {r: 0.1, g: 0.88, b: 0.58, a: 1}
-  m_Intensity: 3.2
-  m_Range: 7
+  m_Color: {r: 0.08, g: 0.78, b: 0.48, a: 1}
+  m_Intensity: 2.35
+  m_Range: 5.8
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -5222,7 +5222,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
   m_UsePipelineSettings: 1
   m_AdditionalLightsShadowResolutionTier: 2
@@ -5430,8 +5430,8 @@ ParticleSystem:
     startColor:
       serializedVersion: 2
       minMaxState: 2
-      minColor: {r: 0.42, g: 1, b: 0.68, a: 0.3}
-      maxColor: {r: 0.08, g: 0.56, b: 0.36, a: 0.04}
+      minColor: {r: 0.3, g: 0.92, b: 0.56, a: 0.28}
+      maxColor: {r: 0.06, g: 0.44, b: 0.28, a: 0.04}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -6516,8 +6516,8 @@ ParticleSystem:
       maxColor: {r: 1, g: 1, b: 1, a: 1}
       maxGradient:
         serializedVersion: 2
-        key0: {r: 0.72, g: 1, b: 0.76, a: 0}
-        key1: {r: 0.08, g: 1, b: 0.36, a: 0.34}
+        key0: {r: 0.62, g: 1, b: 0.68, a: 0}
+        key1: {r: 0.06, g: 0.86, b: 0.34, a: 0.34}
         key2: {r: 0, g: 0, b: 0, a: 0}
         key3: {r: 0, g: 0, b: 0, a: 0}
         key4: {r: 0, g: 0, b: 0, a: 0}
@@ -10250,8 +10250,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0.18039216, g: 0.92156863, b: 0.72156864, a: 0.8784314}
-      key1: {r: 0.18039216, g: 0.7490196, b: 1, a: 0.6784314}
+      key0: {r: 0.16078432, g: 0.8784314, b: 0.5411765, a: 0.9019608}
+      key1: {r: 0.41960785, g: 1, b: 0.65882355, a: 0.72156864}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -10298,7 +10298,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 75163555aa2965743a0600aa16ceb836, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageCrystalLinkBeam
   Source: {fileID: 8731880977103595866}
   Target: {fileID: 0}
@@ -10310,8 +10310,9 @@ MonoBehaviour:
   - {fileID: 2005712956079484580}
   - {fileID: 4384865556350109493}
   - {fileID: 1165338572604921601}
-  BeamColor: {r: 0.18, g: 0.92, b: 0.72, a: 0.88}
-  BeamWidth: 0.075
+  - {fileID: 4094479842962723681}
+  BeamColor: {r: 0.16, g: 0.88, b: 0.54, a: 0.9}
+  BeamWidth: 0.085
   SourceYOffset: 0
   TargetYOffset: 0
   UseRendererBoundsEndpoints: 1
@@ -10321,7 +10322,9 @@ MonoBehaviour:
   WaveAmplitude: 0.055
   WaveFrequency: 1.35
   PulseFrequency: 1.15
-  PulseStrength: 0.16
+  PulseStrength: 0.22
+  LinkLightMinIntensity: 1.65
+  LinkLightMaxIntensity: 2.75
 --- !u!114 &3070924667706545891
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10332,7 +10335,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8f5b8325dfc44864aa736cc11c99f75a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageSceneObjectTarget
   TargetKey: RunicTowerLink
   GroupId: 0
@@ -10396,9 +10399,9 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 2
-  m_Color: {r: 0.18, g: 0.92, b: 0.72, a: 1}
-  m_Intensity: 1.8
-  m_Range: 7.5
+  m_Color: {r: 0.14, g: 0.85, b: 0.48, a: 1}
+  m_Intensity: 1.75
+  m_Range: 7.15
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -10513,7 +10516,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7511558181221131132, guid: a2ace8c149633ec46b86553dc4613834, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 9e0339aeb52e9334baada04383ae58ee, type: 2}
     - target: {fileID: 919132149155446097, guid: a2ace8c149633ec46b86553dc4613834, type: 3}
       propertyPath: m_Name
@@ -10559,7 +10562,7 @@ MonoBehaviour:
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0a07184fecfe4334ea1f8170615367e5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Visual.SceneEffects.ForestBeatLightPulse
   targetLights:
   - {fileID: 3791074363304613541}
@@ -10569,14 +10572,15 @@ MonoBehaviour:
   - {fileID: 8560671260084676655}
   targetParticles:
   - {fileID: 1898604227613292076}
-  emissionColor: {r: 0.1, g: 0.88, b: 0.58, a: 1}
-  lightBaseMultiplier: 0.72
-  rendererBaseMultiplier: 0.72
-  particleBaseMultiplier: 0.78
-  lightPeakMultiplier: 2
-  emissionPeakMultiplier: 2.45
-  alphaPeakMultiplier: 1.8
-  particlePeakMultiplier: 2.1
+  emissionColor: {r: 0.08, g: 0.78, b: 0.48, a: 1}
+  tintRendererBaseColor: 1
+  lightBaseMultiplier: 0.86
+  rendererBaseMultiplier: 0.88
+  particleBaseMultiplier: 0.82
+  lightPeakMultiplier: 1.65
+  emissionPeakMultiplier: 1.95
+  alphaPeakMultiplier: 1.35
+  particlePeakMultiplier: 1.6
   pulseDurationBeats: 0.42
   falloffPower: 2.1
   flickerAmount: 0.018
@@ -10595,7 +10599,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8f5b8325dfc44864aa736cc11c99f75a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageSceneObjectTarget
   TargetKey: RunicTower
   GroupId: 0
@@ -10627,7 +10631,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2998f2896179b984cb7c4907e15074a3, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Game.Stage.StageSceneObjectAutoReveal
   Target: {fileID: 1187179943025561657}
   DelayMs: 0
@@ -10707,7 +10711,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7511558181221131132, guid: f49159a032709f04691c4f95a2bc9098, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: b637ece8a7e38ea418f9666f20b82fd7, type: 2}
     - target: {fileID: 919132149155446097, guid: f49159a032709f04691c4f95a2bc9098, type: 3}
       propertyPath: m_Name

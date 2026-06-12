@@ -1,6 +1,7 @@
 {
     "MapId": "Game_Forest_First_Step",
     "Description": "",
+    "DisableAutoClearOnMonsterWipe": true,
     "RhythmSettings": {
         "SongKey": "Game_NeoFunk_01",
         "Bpm": 110,
@@ -8,7 +9,18 @@
         "ActionWindowMs": 100,
         "StartDelayMs": 2000
     },
-    "InitialSpawns": [],
+    "InitialSpawns": [
+        {
+            "MonsterId": 1027,
+            "X": 43,
+            "Y": 0,
+            "Z": 41,
+            "AI": "Enemy_Specter",
+            "Pattern": "Enemy_Specter",
+            "GroupId": 1000,
+            "Rotation": 0.0
+        }
+    ],
     "InitialObjects": [
         {
             "EntityId": 500,
@@ -249,7 +261,7 @@
                 {
                     "Type": "PlayVfx",
                     "ParamId": 5,
-                    "X": 0,
+                    "X": -3,
                     "Y": 0,
                     "Z": -12,
                     "StringVal": "",
@@ -295,7 +307,7 @@
                     "ParamId": 6,
                     "X": 0,
                     "Y": 0,
-                    "Z": 0,
+                    "Z": 2,
                     "StringVal": "",
                     "GroupId": 0,
                     "SizeX": 1,
@@ -616,7 +628,7 @@
                     "ParamId": 0,
                     "X": 0,
                     "Y": 0,
-                    "Z": 0,
+                    "Z": -2,
                     "StringVal": "",
                     "GroupId": 0,
                     "SizeX": 1,
@@ -824,7 +836,7 @@
                     "ParamId": 502,
                     "X": 69,
                     "Y": 0,
-                    "Z": 50,
+                    "Z": 53,
                     "StringVal": "",
                     "GroupId": 31,
                     "SizeX": 2,
@@ -838,7 +850,7 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 502,
-                    "X": 80,
+                    "X": 85,
                     "Y": 0,
                     "Z": 39,
                     "StringVal": "",
@@ -856,7 +868,7 @@
                     "ParamId": 502,
                     "X": 69,
                     "Y": 0,
-                    "Z": 28,
+                    "Z": 27,
                     "StringVal": "",
                     "GroupId": 33,
                     "SizeX": 2,
@@ -870,7 +882,7 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 502,
-                    "X": 59,
+                    "X": 55,
                     "Y": 0,
                     "Z": 39,
                     "StringVal": "",
@@ -930,56 +942,19 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 31,
                     "TargetKey": "RunicTowerLink_North",
-                    "Count": 8,
+                    "Count": 80,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "North Tower",
                     "ProgressDurationMs": 1000,
                     "Area": {
-                        "X": 69,
-                        "Y": 49,
-                        "W": 3,
-                        "H": 3,
-                        "Shape": "CustomCells",
-                        "Cells": [
-                            {
-                                "X": 69,
-                                "Y": 49
-                            },
-                            {
-                                "X": 70,
-                                "Y": 49
-                            },
-                            {
-                                "X": 71,
-                                "Y": 49
-                            },
-                            {
-                                "X": 69,
-                                "Y": 50
-                            },
-                            {
-                                "X": 70,
-                                "Y": 50
-                            },
-                            {
-                                "X": 71,
-                                "Y": 50
-                            },
-                            {
-                                "X": 69,
-                                "Y": 51
-                            },
-                            {
-                                "X": 70,
-                                "Y": 51
-                            },
-                            {
-                                "X": 71,
-                                "Y": 51
-                            }
-                        ]
+                        "X": 66,
+                        "Y": 50,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
                     }
                 }
             ],
@@ -1031,56 +1006,19 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 32,
                     "TargetKey": "RunicTowerLink_East",
-                    "Count": 8,
+                    "Count": 80,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "East Tower",
                     "ProgressDurationMs": 1000,
                     "Area": {
-                        "X": 79,
-                        "Y": 38,
-                        "W": 3,
-                        "H": 3,
-                        "Shape": "CustomCells",
-                        "Cells": [
-                            {
-                                "X": 79,
-                                "Y": 38
-                            },
-                            {
-                                "X": 80,
-                                "Y": 38
-                            },
-                            {
-                                "X": 81,
-                                "Y": 38
-                            },
-                            {
-                                "X": 79,
-                                "Y": 39
-                            },
-                            {
-                                "X": 80,
-                                "Y": 39
-                            },
-                            {
-                                "X": 81,
-                                "Y": 39
-                            },
-                            {
-                                "X": 79,
-                                "Y": 40
-                            },
-                            {
-                                "X": 80,
-                                "Y": 40
-                            },
-                            {
-                                "X": 81,
-                                "Y": 40
-                            }
-                        ]
+                        "X": 82,
+                        "Y": 36,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
                     }
                 }
             ],
@@ -1196,56 +1134,19 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 33,
                     "TargetKey": "RunicTowerLink_South",
-                    "Count": 8,
+                    "Count": 80,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "South Tower",
                     "ProgressDurationMs": 1000,
                     "Area": {
-                        "X": 69,
-                        "Y": 28,
-                        "W": 3,
-                        "H": 3,
-                        "Shape": "CustomCells",
-                        "Cells": [
-                            {
-                                "X": 69,
-                                "Y": 28
-                            },
-                            {
-                                "X": 70,
-                                "Y": 28
-                            },
-                            {
-                                "X": 71,
-                                "Y": 28
-                            },
-                            {
-                                "X": 69,
-                                "Y": 29
-                            },
-                            {
-                                "X": 70,
-                                "Y": 29
-                            },
-                            {
-                                "X": 71,
-                                "Y": 29
-                            },
-                            {
-                                "X": 69,
-                                "Y": 30
-                            },
-                            {
-                                "X": 70,
-                                "Y": 30
-                            },
-                            {
-                                "X": 71,
-                                "Y": 30
-                            }
-                        ]
+                        "X": 66,
+                        "Y": 24,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
                     }
                 }
             ],
@@ -1297,56 +1198,19 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 34,
                     "TargetKey": "RunicTowerLink_West",
-                    "Count": 8,
+                    "Count": 80,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "West Tower",
                     "ProgressDurationMs": 1000,
                     "Area": {
-                        "X": 58,
-                        "Y": 38,
-                        "W": 3,
-                        "H": 3,
-                        "Shape": "CustomCells",
-                        "Cells": [
-                            {
-                                "X": 58,
-                                "Y": 38
-                            },
-                            {
-                                "X": 59,
-                                "Y": 38
-                            },
-                            {
-                                "X": 60,
-                                "Y": 38
-                            },
-                            {
-                                "X": 58,
-                                "Y": 39
-                            },
-                            {
-                                "X": 59,
-                                "Y": 39
-                            },
-                            {
-                                "X": 60,
-                                "Y": 39
-                            },
-                            {
-                                "X": 58,
-                                "Y": 40
-                            },
-                            {
-                                "X": 59,
-                                "Y": 40
-                            },
-                            {
-                                "X": 60,
-                                "Y": 40
-                            }
-                        ]
+                        "X": 52,
+                        "Y": 36,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
                     }
                 }
             ],

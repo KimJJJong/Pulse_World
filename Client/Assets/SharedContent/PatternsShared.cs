@@ -112,7 +112,9 @@ public sealed class WhenGroup
 public enum ConditionType
 {
     DistanceToClosestPlayerLE,
-    DistanceToClosestPlayerGT
+    DistanceToClosestPlayerGT,
+    AlignedWithClosestPlayer,
+    NotAlignedWithClosestPlayer
 }
 
 [Serializable]

@@ -23,7 +23,7 @@ namespace RhythmRPG.Editor.StageBuilder
 
         private static readonly Vector3 ObeliskRotation = new(270f, 0f, 0f);
         private static readonly Vector3 ObeliskScale = new(200f, 200f, 200f);
-        private static readonly Vector3 CenterCrystalPosition = new(69.66f, 1.15f, 39.44f);
+        private static readonly Vector3 CenterCrystalPosition = new(69.66f, 2.35f, 39.44f);
 
         private static readonly TowerSpec[] Towers =
         {
@@ -112,6 +112,7 @@ namespace RhythmRPG.Editor.StageBuilder
             var target = EnsureComponent<StageSceneObjectTarget>(centerCrystal.gameObject);
             target.TargetKey = "Crystal";
             target.GroupId = 1;
+            target.BindRuntimeGroup = true;
             target.DefaultDurationMs = 1400;
             target.HiddenScale = 0.88f;
             target.HiddenYOffset = -0.35f;
@@ -132,6 +133,40 @@ namespace RhythmRPG.Editor.StageBuilder
 
             EditorUtility.SetDirty(centerCrystal.gameObject);
             EditorUtility.SetDirty(target);
+        }
+
+        [MenuItem("Tools/RhythmRPG/Stage/Validate Forest First Step Center Crystal")]
+        public static void ValidateCenterCrystal()
+        {
+            EnsureSceneLoaded();
+
+            Transform centerCrystal = GameObject.Find("Runic_Circle_Platform/Crystal")?.transform;
+            if (centerCrystal == null)
+            {
+                Debug.LogError("[ForestFirstStepStageSetup] Center crystal validation failed: object not found.");
+                return;
+            }
+
+            var target = centerCrystal.GetComponent<StageSceneObjectTarget>();
+            var positionOk = Vector3.Distance(centerCrystal.position, CenterCrystalPosition) <= 0.05f;
+            var targetOk = target != null
+                           && string.Equals(target.TargetKey, "Crystal", System.StringComparison.OrdinalIgnoreCase)
+                           && target.GroupId == 1
+                           && target.StartHidden
+                           && !target.CurrentPoseIsHidden
+                           && target.EnableRiseFromGround
+                           && target.UseWorldUpMotion
+                           && Mathf.Abs(target.RiseHiddenYOffset - -2.15f) <= 0.01f;
+
+            if (!positionOk || !targetOk)
+            {
+                Debug.LogError(
+                    "[ForestFirstStepStageSetup] Center crystal validation failed. " +
+                    $"Position={centerCrystal.position}, Expected={CenterCrystalPosition}, TargetOk={targetOk}.");
+                return;
+            }
+
+            Debug.Log("[ForestFirstStepStageSetup] Center crystal validation OK. It rises from below to the altar-top pose.");
         }
 
         private static EntityDefinitionSO EnsureRunicTowerEntityDefinition()
@@ -296,17 +331,17 @@ namespace RhythmRPG.Editor.StageBuilder
             lightTransform.localPosition = Vector3.zero;
             var linkLight = EnsureComponent<Light>(lightTransform.gameObject);
             linkLight.type = LightType.Point;
-            linkLight.color = new Color(0.18f, 0.92f, 0.72f, 1f);
-            linkLight.range = 7.5f;
-            linkLight.intensity = 1.8f;
+            linkLight.color = new Color(0.14f, 0.85f, 0.48f, 1f);
+            linkLight.range = 7.15f;
+            linkLight.intensity = 1.75f;
 
             var line = EnsureComponent<LineRenderer>(link.gameObject);
             line.useWorldSpace = true;
             line.positionCount = 2;
             line.startWidth = 0.08f;
             line.endWidth = 0.11f;
-            line.startColor = new Color(0.18f, 0.92f, 0.72f, 0.88f);
-            line.endColor = new Color(0.18f, 0.75f, 1f, 0.68f);
+            line.startColor = new Color(0.16f, 0.88f, 0.54f, 0.90f);
+            line.endColor = new Color(0.42f, 1f, 0.66f, 0.72f);
 
             var beam = EnsureComponent<StageCrystalLinkBeam>(link.gameObject);
             beam.Source = crystal;
@@ -316,8 +351,8 @@ namespace RhythmRPG.Editor.StageBuilder
             beam.Line = line;
             beam.LinkLight = linkLight;
             beam.LinkedObjects = linkedFxObjects;
-            beam.BeamColor = new Color(0.18f, 0.92f, 0.72f, 0.88f);
-            beam.BeamWidth = 0.075f;
+            beam.BeamColor = new Color(0.16f, 0.88f, 0.54f, 0.90f);
+            beam.BeamWidth = 0.085f;
             beam.SourceYOffset = 0f;
             beam.TargetYOffset = 0f;
             beam.UseRendererBoundsEndpoints = true;
@@ -327,7 +362,9 @@ namespace RhythmRPG.Editor.StageBuilder
             beam.WaveAmplitude = 0.055f;
             beam.WaveFrequency = 1.35f;
             beam.PulseFrequency = 1.15f;
-            beam.PulseStrength = 0.16f;
+            beam.PulseStrength = 0.22f;
+            beam.LinkLightMinIntensity = 1.65f;
+            beam.LinkLightMaxIntensity = 2.75f;
 
             var linkTarget = EnsureComponent<StageSceneObjectTarget>(link.gameObject);
             linkTarget.TargetKey = "RunicTowerLink";
@@ -357,6 +394,11 @@ namespace RhythmRPG.Editor.StageBuilder
                 if (child.name.StartsWith("FX_Runic_Crystal_", System.StringComparison.Ordinal))
                     fxChildren.Add(child.gameObject);
             }
+
+            Transform towerRoot = sourceParent.root;
+            Transform rootGlow = towerRoot != null ? towerRoot.Find("FX_Runic_Crystal_Glow") : null;
+            if (rootGlow != null && !fxChildren.Contains(rootGlow.gameObject))
+                fxChildren.Add(rootGlow.gameObject);
 
             return fxChildren.ToArray();
         }

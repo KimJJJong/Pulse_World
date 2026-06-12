@@ -247,11 +247,12 @@ Shader "RhythmRPG/TopDown/DitherTransparentPBR"
             {
                 float4 positionCS   : SV_POSITION;
                 float2 uv           : TEXCOORD0;
+                float4 screenPos    : TEXCOORD1;
             };
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseMap_ST;
-                // No Dither var needed here as we want solid shadows
+                half _DitherInternal;
             CBUFFER_END
             
             float3 _LightDirection;
@@ -278,11 +279,34 @@ Shader "RhythmRPG/TopDown/DitherTransparentPBR"
                 #endif
 
                 output.positionCS = positionCS;
+                output.screenPos = ComputeScreenPos(positionCS);
                 return output;
+            }
+
+            void DoDitherClip(float4 screenPos, float ditherThreshold)
+            {
+                float2 screenUV = screenPos.xy / screenPos.w;
+                float2 ditherCoord = screenUV * _ScreenParams.xy;
+
+                const float4x4 ditherM = float4x4(
+                    0.0, 8.0, 2.0, 10.0,
+                    12.0, 4.0, 14.0, 6.0,
+                    3.0, 11.0, 1.0, 9.0,
+                    15.0, 7.0, 13.0, 5.0
+                ) / 16.0;
+
+                int x = (int)ditherCoord.x % 4;
+                int y = (int)ditherCoord.y % 4;
+                if (x < 0) x += 4;
+                if (y < 0) y += 4;
+
+                float matrixValue = ditherM[y][x];
+                clip(ditherThreshold - matrixValue - 0.0001);
             }
 
             half4 ShadowPassFragment(Varyings input) : SV_Target
             {
+                DoDitherClip(input.screenPos, _DitherInternal);
                 return 0;
             }
             ENDHLSL

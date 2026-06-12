@@ -9,6 +9,7 @@ namespace RhythmRPG.Editor.StageBuilder
         [Header("Basic Info")]
         public string MapId;
         [TextArea] public string Description;
+        public bool DisableAutoClearOnMonsterWipe;
         public GameObject MapPrefab; // [NEW] For Scene View Editing
 
         [Header("Rhythm Settings")]

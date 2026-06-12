@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Editor.StageBuilder.StageDataSO
   MapId: Game_Forest_First_Step
   Description: 
+  DisableAutoClearOnMonsterWipe: 1
   MapPrefab: {fileID: 0}
   Rhythm:
     SongKey: Game_NeoFunk_01
@@ -34,7 +35,20 @@ MonoBehaviour:
     EntityDef: {fileID: 11400000, guid: 560296df3625de548b615585ebbe56ba, type: 2}
     DefaultGroupId: 0
     PatternRef: {fileID: 0}
-  InitialSpawns: []
+  - Key: Specter
+    EntityDef: {fileID: 11400000, guid: f6f677115c6d3884aa2efa7a26001295, type: 2}
+    DefaultGroupId: 1000
+    PatternRef: {fileID: 11400000, guid: 9995e0cc51bbd3b48b61c20bcd1dc605, type: 2}
+  InitialSpawns:
+  - EntityKey: Specter
+    Label: 
+    Position: {x: 43, y: 0, z: 41}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 0, y: 0}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 0
+    OverrideGroupId: 0
   InitialObjects:
   - EntityKey: Crystal
     Label: 
@@ -233,7 +247,7 @@ MonoBehaviour:
     - Type: 7
       HeaderParam: 
       ParamId: 5
-      Position: {x: 0, y: 0, z: -12}
+      Position: {x: -3, y: 0, z: -12}
       ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 0
@@ -274,7 +288,7 @@ MonoBehaviour:
     - Type: 7
       HeaderParam: 
       ParamId: 6
-      Position: {x: 0, y: 0, z: 0}
+      Position: {x: 0, y: 0, z: 2}
       ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 0
@@ -384,7 +398,7 @@ MonoBehaviour:
     - Type: 7
       HeaderParam: 
       ParamId: 0
-      Position: {x: 0, y: 0, z: 0}
+      Position: {x: 0, y: 0, z: -2}
       ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 0
@@ -540,7 +554,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 69, y: 0, z: 50}
+      Position: {x: 69, y: 0, z: 53}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 31
@@ -552,7 +566,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 80, y: 0, z: 39}
+      Position: {x: 85, y: 0, z: 39}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 32
@@ -564,7 +578,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 69, y: 0, z: 28}
+      Position: {x: 69, y: 0, z: 27}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 33
@@ -576,7 +590,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 59, y: 0, z: 39}
+      Position: {x: 55, y: 0, z: 39}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 34
@@ -629,13 +643,13 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 31
       TargetKey: RunicTowerLink_North
-      Count: 8
+      Count: 80
       Area:
-        x: 69
-        y: 49
-        width: 3
-        height: 3
-      AreaShape: 1
+        x: 66
+        y: 50
+        width: 7
+        height: 7
+      AreaShape: 0
       AreaCells:
       - {x: 69, y: 49}
       - {x: 70, y: 49}
@@ -696,13 +710,13 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 32
       TargetKey: RunicTowerLink_East
-      Count: 8
+      Count: 80
       Area:
-        x: 79
-        y: 38
-        width: 3
-        height: 3
-      AreaShape: 1
+        x: 82
+        y: 36
+        width: 7
+        height: 7
+      AreaShape: 0
       AreaCells:
       - {x: 79, y: 38}
       - {x: 80, y: 38}
@@ -821,23 +835,23 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 33
       TargetKey: RunicTowerLink_South
-      Count: 8
+      Count: 80
       Area:
-        x: 69
-        y: 28
-        width: 3
-        height: 3
-      AreaShape: 1
+        x: 66
+        y: 24
+        width: 7
+        height: 7
+      AreaShape: 0
       AreaCells:
+      - {x: 68, y: 27}
+      - {x: 69, y: 27}
+      - {x: 70, y: 27}
+      - {x: 68, y: 28}
       - {x: 69, y: 28}
       - {x: 70, y: 28}
-      - {x: 71, y: 28}
+      - {x: 68, y: 29}
       - {x: 69, y: 29}
       - {x: 70, y: 29}
-      - {x: 71, y: 29}
-      - {x: 69, y: 30}
-      - {x: 70, y: 30}
-      - {x: 71, y: 30}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
@@ -888,23 +902,23 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 34
       TargetKey: RunicTowerLink_West
-      Count: 8
+      Count: 80
       Area:
-        x: 58
-        y: 38
-        width: 3
-        height: 3
-      AreaShape: 1
+        x: 52
+        y: 36
+        width: 7
+        height: 7
+      AreaShape: 0
       AreaCells:
-      - {x: 58, y: 38}
-      - {x: 59, y: 38}
-      - {x: 60, y: 38}
-      - {x: 58, y: 39}
-      - {x: 59, y: 39}
-      - {x: 60, y: 39}
-      - {x: 58, y: 40}
-      - {x: 59, y: 40}
-      - {x: 60, y: 40}
+      - {x: 54, y: 38}
+      - {x: 55, y: 38}
+      - {x: 56, y: 38}
+      - {x: 54, y: 39}
+      - {x: 55, y: 39}
+      - {x: 56, y: 39}
+      - {x: 54, y: 40}
+      - {x: 55, y: 40}
+      - {x: 56, y: 40}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1

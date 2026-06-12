@@ -13,7 +13,7 @@ namespace RhythmRPG.Game.Stage
         public LineRenderer Line;
         public Light LinkLight;
         public GameObject[] LinkedObjects = Array.Empty<GameObject>();
-        public Color BeamColor = new(0.18f, 0.92f, 0.72f, 0.88f);
+        public Color BeamColor = new(0.16f, 0.86f, 0.54f, 0.84f);
         public float BeamWidth = 0.08f;
         public float SourceYOffset;
         public float TargetYOffset;
@@ -25,6 +25,8 @@ namespace RhythmRPG.Game.Stage
         public float WaveFrequency = 1.6f;
         public float PulseFrequency = 1.25f;
         [Range(0f, 0.6f)] public float PulseStrength = 0.22f;
+        public float LinkLightMinIntensity = 1.45f;
+        public float LinkLightMaxIntensity = 2.15f;
 
         private static Material _lineMaterial;
 
@@ -137,7 +139,7 @@ namespace RhythmRPG.Game.Stage
             if (LinkLight != null)
             {
                 float normalizedPulse = Mathf.InverseLerp(1f - PulseStrength, 1f + PulseStrength, pulse);
-                LinkLight.intensity = Mathf.Lerp(1.45f, 2.15f, normalizedPulse);
+                LinkLight.intensity = Mathf.Lerp(LinkLightMinIntensity, LinkLightMaxIntensity, normalizedPulse);
             }
         }
 
@@ -252,9 +254,9 @@ namespace RhythmRPG.Game.Stage
 
         private static Gradient CreateBeamGradient(Color color)
         {
-            Color start = new(0.16f, 0.95f, 0.72f, color.a * 0.44f);
-            Color middle = new(0.78f, 1f, 0.92f, Mathf.Clamp01(color.a));
-            Color end = new(0.18f, 0.75f, 1f, color.a * 0.58f);
+            Color start = new(0.10f, 0.76f, 0.42f, color.a * 0.42f);
+            Color middle = new(0.72f, 1f, 0.72f, Mathf.Clamp01(color.a));
+            Color end = new(0.24f, 0.92f, 0.62f, color.a * 0.55f);
 
             var gradient = new Gradient();
             gradient.SetKeys(

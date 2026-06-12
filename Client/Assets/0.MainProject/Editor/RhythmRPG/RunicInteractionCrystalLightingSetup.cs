@@ -14,8 +14,8 @@ public static class RunicInteractionCrystalLightingSetup
     private const string TransparentLitShaderName = "Universal Render Pipeline/Lit";
     private const string ParticleMaterialPath = AssetFolder + "/M_Particle_Cyan_Dust.mat";
 
-    private static readonly Color CrystalColor = new(0.10f, 0.88f, 0.58f, 1f);
-    private static readonly Color CrystalGlassTint = new(0.30f, 0.95f, 0.66f, 0.42f);
+    private static readonly Color CrystalColor = new(0.08f, 0.78f, 0.48f, 1f);
+    private static readonly Color CrystalGlassTint = new(0.12f, 0.72f, 0.45f, 0.58f);
 
     private static readonly PrefabSpec[] Prefabs =
     {
@@ -25,16 +25,16 @@ public static class RunicInteractionCrystalLightingSetup
             AssetFolder + "/M_Runic_Circle_Platform_Crystal_GlassGlow.mat",
             AssetFolder + "/M_Runic_Circle_Platform_Crystal_EmissionShell.mat",
             AssetFolder + "/M_Runic_Circle_Platform_Crystal_VolumeGlow.mat",
-            3.4f,
-            7.4f),
+            2.5f,
+            6.2f),
         new(
             "Assets/Resources/Prefabs/Interaction/Runic_Obelisk.prefab",
             "EmeraldCrystal",
             AssetFolder + "/M_Runic_Obelisk_Crystal_GlassGlow.mat",
             AssetFolder + "/M_Runic_Obelisk_Crystal_EmissionShell.mat",
             AssetFolder + "/M_Runic_Obelisk_Crystal_VolumeGlow.mat",
-            3.2f,
-            7.0f)
+            2.35f,
+            5.8f)
     };
 
     [MenuItem("RhythmRPG/Editors/Interaction/Apply Runic Crystal Lighting")]
@@ -100,10 +100,10 @@ public static class RunicInteractionCrystalLightingSetup
                 "FX_Runic_Crystal_EmissionShell",
                 spec.ShellMaterialPath,
                 scaleMultiplier: 1.025f,
-                intensity: 1.65f,
-                alpha: 0.22f,
+                intensity: 1.35f,
+                alpha: 0.20f,
                 baseStrength: 0.09f,
-                fresnelStrength: 0.78f,
+                fresnelStrength: 0.68f,
                 fresnelPower: 1.7f);
             var volumeRenderer = CreateOrUpdateEmissionMesh(
                 prefabRoot,
@@ -111,10 +111,10 @@ public static class RunicInteractionCrystalLightingSetup
                 "FX_Runic_Crystal_VolumeGlow",
                 spec.VolumeMaterialPath,
                 scaleMultiplier: 1.065f,
-                intensity: 0.62f,
-                alpha: 0.07f,
+                intensity: 0.44f,
+                alpha: 0.055f,
                 baseStrength: 0.05f,
-                fresnelStrength: 0.32f,
+                fresnelStrength: 0.26f,
                 fresnelPower: 2.3f);
             var pulseRenderers = crystalRenderers.Concat(new[] { shellRenderer, volumeRenderer }).ToArray();
             var pulse = prefabRoot.GetComponent<ForestBeatLightPulse>();
@@ -128,16 +128,17 @@ public static class RunicInteractionCrystalLightingSetup
                 pulseRenderers,
                 new[] { particles },
                 CrystalColor,
-                lightPeak: 2.0f,
-                emissionPeak: 2.45f,
-                alphaPeak: 1.8f,
-                particlePeak: 2.1f,
+                lightPeak: 1.65f,
+                emissionPeak: 1.95f,
+                alphaPeak: 1.35f,
+                particlePeak: 1.6f,
                 durationBeats: 0.42f,
                 falloff: 2.1f,
                 flicker: 0.018f,
-                lightBase: 0.72f,
-                rendererBase: 0.72f,
-                particleBase: 0.78f);
+                lightBase: 0.86f,
+                rendererBase: 0.88f,
+                particleBase: 0.82f,
+                tintBaseColor: true);
             pulse.ConfigureTiming(true, 120f);
             EditorUtility.SetDirty(pulse);
 
@@ -196,11 +197,11 @@ public static class RunicInteractionCrystalLightingSetup
         SetFloat(material, "_Cull", (float)CullMode.Off);
         SetFloat(material, "_ReceiveShadows", 0f);
         SetFloat(material, "_Metallic", 0f);
-        SetFloat(material, "_Smoothness", 0.82f);
+        SetFloat(material, "_Smoothness", 0.76f);
 
         if (material.HasProperty("_EmissionColor"))
         {
-            material.SetColor("_EmissionColor", Hdr(CrystalColor, 1.1f));
+            material.SetColor("_EmissionColor", Hdr(CrystalColor, 0.75f));
         }
 
         material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
@@ -388,8 +389,8 @@ public static class RunicInteractionCrystalLightingSetup
         main.startSpeed = new ParticleSystem.MinMaxCurve(0.025f, 0.12f);
         main.startSize = new ParticleSystem.MinMaxCurve(0.014f, 0.04f);
         main.startColor = new ParticleSystem.MinMaxGradient(
-            new Color(0.42f, 1f, 0.68f, 0.30f),
-            new Color(0.08f, 0.56f, 0.36f, 0.04f));
+            new Color(0.30f, 0.92f, 0.56f, 0.28f),
+            new Color(0.06f, 0.44f, 0.28f, 0.04f));
         main.maxParticles = 28;
         main.simulationSpace = ParticleSystemSimulationSpace.Local;
 
@@ -408,8 +409,8 @@ public static class RunicInteractionCrystalLightingSetup
         gradient.SetKeys(
             new[]
             {
-                new GradientColorKey(new Color(0.72f, 1f, 0.76f, 1f), 0f),
-                new GradientColorKey(new Color(0.08f, 1f, 0.36f, 1f), 1f)
+                new GradientColorKey(new Color(0.62f, 1f, 0.68f, 1f), 0f),
+                new GradientColorKey(new Color(0.06f, 0.86f, 0.34f, 1f), 1f)
             },
             new[]
             {
@@ -440,7 +441,7 @@ public static class RunicInteractionCrystalLightingSetup
                 && material.HasProperty("_Surface")
                 && Mathf.Approximately(material.GetFloat("_Surface"), 1f)
                 && material.HasProperty("_BaseColor")
-                && material.GetColor("_BaseColor").a < 0.55f
+                && material.GetColor("_BaseColor").a < 0.75f
                 && material.HasProperty("_EmissionColor")
                 && material.GetColor("_EmissionColor").maxColorComponent > 0.65f));
 

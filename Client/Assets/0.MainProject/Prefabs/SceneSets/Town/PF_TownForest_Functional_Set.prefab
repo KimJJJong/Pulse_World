@@ -911,9 +911,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   fadeSpeed: 5
-  targetAlpha: 0.1
+  targetAlpha: 0.28
   targetHeightOffset: 1
-  rayRadius: 0.6
+  rayRadius: 0.8
   debugMode: 0
 --- !u!1 &709056831308732385
 GameObject:

@@ -10,7 +10,7 @@ public class CameraObstacleFade : MonoBehaviour
     public Transform target;          // The player (or target) transform
     public LayerMask obstacleLayer;   // Layers to check for obstacles
     public float fadeSpeed = 5f;      // How fast to fade in/out
-    public float targetAlpha = 0.2f;  // The alpha/dither value when faded
+    public float targetAlpha = 0.28f; // The alpha/dither value when faded
     public float targetHeightOffset = 1.0f; // Offset to aim for body instead of feet
 
     [Header("Raycast")]
@@ -21,6 +21,7 @@ public class CameraObstacleFade : MonoBehaviour
 
     // Internal
     private readonly Dictionary<Renderer, float> _fadingRenderers = new Dictionary<Renderer, float>();
+    private readonly Dictionary<Renderer, RendererMaterialState> _originalMaterialStates = new Dictionary<Renderer, RendererMaterialState>();
     private readonly HashSet<Renderer> _ditherReadyRenderers = new HashSet<Renderer>();
     private readonly HashSet<Renderer> _hitRenderers = new HashSet<Renderer>();
     private readonly List<Renderer> _fadingRendererKeys = new List<Renderer>(32);
@@ -52,6 +53,11 @@ public class CameraObstacleFade : MonoBehaviour
     {
         _propBlock = new MaterialPropertyBlock();
         FindTargetIfNull();
+    }
+
+    void OnDisable()
+    {
+        RestoreAllRenderers();
     }
 
     void Reset()
@@ -179,7 +185,7 @@ public class CameraObstacleFade : MonoBehaviour
             if (r != null)
             {
                 _fadingRenderers.Remove(r);
-                SetDitherValue(r, 1.0f); 
+                RestoreRenderer(r);
             }
             else
             {
@@ -191,6 +197,11 @@ public class CameraObstacleFade : MonoBehaviour
     private void SetDitherValue(Renderer r, float val)
     {
         EnsureDitherReady(r);
+        if (!_ditherReadyRenderers.Contains(r))
+        {
+            return;
+        }
+
         r.GetPropertyBlock(_propBlock);
         _propBlock.SetFloat(DitherPropID, val);
         r.SetPropertyBlock(_propBlock);
@@ -203,9 +214,8 @@ public class CameraObstacleFade : MonoBehaviour
             return;
         }
 
-        _ditherReadyRenderers.Add(r);
-
         var sharedMaterials = r.sharedMaterials;
+        var originalSharedMaterials = CopyMaterials(sharedMaterials);
         bool allMaterialsSupportDither = true;
         foreach (var material in sharedMaterials)
         {
@@ -218,6 +228,8 @@ public class CameraObstacleFade : MonoBehaviour
 
         if (allMaterialsSupportDither)
         {
+            CacheOriginalRendererState(r, originalSharedMaterials);
+            _ditherReadyRenderers.Add(r);
             return;
         }
 
@@ -232,7 +244,11 @@ public class CameraObstacleFade : MonoBehaviour
             return;
         }
 
+        var state = CacheOriginalRendererState(r, originalSharedMaterials);
         var materials = r.materials;
+        state.RuntimeMaterials = materials;
+        _ditherReadyRenderers.Add(r);
+
         foreach (var material in materials)
         {
             if (material == null || material.HasProperty(DitherPropID))
@@ -240,11 +256,15 @@ public class CameraObstacleFade : MonoBehaviour
                 continue;
             }
 
-            var baseTexture = material.HasProperty(BaseMapPropID)
-                ? material.GetTexture(BaseMapPropID)
-                : material.HasProperty(MainTexPropID)
-                    ? material.GetTexture(MainTexPropID)
-                    : null;
+            var baseTexture = GetTexture(material, BaseMapPropID);
+            var baseScale = GetTextureScale(material, BaseMapPropID, Vector2.one);
+            var baseOffset = GetTextureOffset(material, BaseMapPropID, Vector2.zero);
+            if (baseTexture == null)
+            {
+                baseTexture = GetTexture(material, MainTexPropID);
+                baseScale = GetTextureScale(material, MainTexPropID, Vector2.one);
+                baseOffset = GetTextureOffset(material, MainTexPropID, Vector2.zero);
+            }
 
             var baseColor = material.HasProperty(BaseColorPropID)
                 ? material.GetColor(BaseColorPropID)
@@ -267,6 +287,8 @@ public class CameraObstacleFade : MonoBehaviour
             if (baseTexture != null && material.HasProperty(BaseMapPropID))
             {
                 material.SetTexture(BaseMapPropID, baseTexture);
+                material.SetTextureScale(BaseMapPropID, baseScale);
+                material.SetTextureOffset(BaseMapPropID, baseOffset);
             }
 
             if (material.HasProperty(BaseColorPropID))
@@ -294,6 +316,159 @@ public class CameraObstacleFade : MonoBehaviour
         }
     }
 
+    private RendererMaterialState CacheOriginalRendererState(Renderer renderer, Material[] originalSharedMaterials)
+    {
+        if (_originalMaterialStates.TryGetValue(renderer, out var state))
+        {
+            return state;
+        }
+
+        var originalBlock = new MaterialPropertyBlock();
+        renderer.GetPropertyBlock(originalBlock);
+        state = new RendererMaterialState(originalSharedMaterials, originalBlock);
+        _originalMaterialStates.Add(renderer, state);
+        return state;
+    }
+
+    private void RestoreRenderer(Renderer renderer)
+    {
+        if (ReferenceEquals(renderer, null))
+        {
+            return;
+        }
+
+        if (renderer == null)
+        {
+            _originalMaterialStates.Remove(renderer);
+            _ditherReadyRenderers.Remove(renderer);
+            return;
+        }
+
+        if (_originalMaterialStates.TryGetValue(renderer, out var state))
+        {
+            renderer.sharedMaterials = state.SharedMaterials;
+            if (state.PropertyBlock != null && !state.PropertyBlock.isEmpty)
+            {
+                renderer.SetPropertyBlock(state.PropertyBlock);
+            }
+            else
+            {
+                renderer.SetPropertyBlock(null);
+            }
+
+            DestroyRuntimeMaterials(state);
+            _originalMaterialStates.Remove(renderer);
+        }
+        else if (_ditherReadyRenderers.Contains(renderer))
+        {
+            renderer.GetPropertyBlock(_propBlock);
+            _propBlock.SetFloat(DitherPropID, 1.0f);
+            renderer.SetPropertyBlock(_propBlock);
+        }
+
+        _ditherReadyRenderers.Remove(renderer);
+    }
+
+    private void RestoreAllRenderers()
+    {
+        _fadingRendererKeys.Clear();
+        foreach (var renderer in _fadingRenderers.Keys)
+        {
+            AddUniqueRenderer(_fadingRendererKeys, renderer);
+        }
+
+        foreach (var renderer in _ditherReadyRenderers)
+        {
+            AddUniqueRenderer(_fadingRendererKeys, renderer);
+        }
+
+        foreach (var renderer in _originalMaterialStates.Keys)
+        {
+            AddUniqueRenderer(_fadingRendererKeys, renderer);
+        }
+
+        for (int i = 0; i < _fadingRendererKeys.Count; i++)
+        {
+            RestoreRenderer(_fadingRendererKeys[i]);
+        }
+
+        _fadingRenderers.Clear();
+        _hitRenderers.Clear();
+        _ditherReadyRenderers.Clear();
+        _originalMaterialStates.Clear();
+        _colliderRendererCache.Clear();
+    }
+
+    private static void AddUniqueRenderer(List<Renderer> renderers, Renderer renderer)
+    {
+        if (!renderers.Contains(renderer))
+        {
+            renderers.Add(renderer);
+        }
+    }
+
+    private static Material[] CopyMaterials(Material[] materials)
+    {
+        if (materials == null)
+        {
+            return null;
+        }
+
+        var copy = new Material[materials.Length];
+        for (int i = 0; i < materials.Length; i++)
+        {
+            copy[i] = materials[i];
+        }
+
+        return copy;
+    }
+
+    private static void DestroyRuntimeMaterials(RendererMaterialState state)
+    {
+        if (state == null || state.RuntimeMaterials == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < state.RuntimeMaterials.Length; i++)
+        {
+            var material = state.RuntimeMaterials[i];
+            if (material == null || ContainsMaterial(state.SharedMaterials, material))
+            {
+                continue;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(material);
+            }
+            else
+            {
+                DestroyImmediate(material);
+            }
+        }
+
+        state.RuntimeMaterials = null;
+    }
+
+    private static bool ContainsMaterial(Material[] materials, Material material)
+    {
+        if (materials == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < materials.Length; i++)
+        {
+            if (materials[i] == material)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static Texture GetTexture(Material material, int propertyId)
         => material != null && material.HasProperty(propertyId) ? material.GetTexture(propertyId) : null;
 
@@ -302,6 +477,12 @@ public class CameraObstacleFade : MonoBehaviour
 
     private static Color GetColor(Material material, int propertyId, Color fallback)
         => material != null && material.HasProperty(propertyId) ? material.GetColor(propertyId) : fallback;
+
+    private static Vector2 GetTextureScale(Material material, int propertyId, Vector2 fallback)
+        => material != null && material.HasProperty(propertyId) ? material.GetTextureScale(propertyId) : fallback;
+
+    private static Vector2 GetTextureOffset(Material material, int propertyId, Vector2 fallback)
+        => material != null && material.HasProperty(propertyId) ? material.GetTextureOffset(propertyId) : fallback;
 
     private static void SetTexture(Material material, int propertyId, Texture value)
     {
@@ -330,6 +511,19 @@ public class CameraObstacleFade : MonoBehaviour
             material.EnableKeyword(keyword);
         else
             material.DisableKeyword(keyword);
+    }
+
+    private sealed class RendererMaterialState
+    {
+        public readonly Material[] SharedMaterials;
+        public readonly MaterialPropertyBlock PropertyBlock;
+        public Material[] RuntimeMaterials;
+
+        public RendererMaterialState(Material[] sharedMaterials, MaterialPropertyBlock propertyBlock)
+        {
+            SharedMaterials = sharedMaterials;
+            PropertyBlock = propertyBlock;
+        }
     }
     
     // Helper to draw wire capsule

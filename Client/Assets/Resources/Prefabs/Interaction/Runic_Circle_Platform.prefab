@@ -5157,9 +5157,9 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 2
-  m_Color: {r: 0.1, g: 0.88, b: 0.58, a: 1}
-  m_Intensity: 3.4
-  m_Range: 7.4
+  m_Color: {r: 0.08, g: 0.78, b: 0.48, a: 1}
+  m_Intensity: 2.5
+  m_Range: 6.2
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -5430,8 +5430,8 @@ ParticleSystem:
     startColor:
       serializedVersion: 2
       minMaxState: 2
-      minColor: {r: 0.42, g: 1, b: 0.68, a: 0.3}
-      maxColor: {r: 0.08, g: 0.56, b: 0.36, a: 0.04}
+      minColor: {r: 0.3, g: 0.92, b: 0.56, a: 0.28}
+      maxColor: {r: 0.06, g: 0.44, b: 0.28, a: 0.04}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -6516,8 +6516,8 @@ ParticleSystem:
       maxColor: {r: 1, g: 1, b: 1, a: 1}
       maxGradient:
         serializedVersion: 2
-        key0: {r: 0.72, g: 1, b: 0.76, a: 0}
-        key1: {r: 0.08, g: 1, b: 0.36, a: 0.34}
+        key0: {r: 0.62, g: 1, b: 0.68, a: 0}
+        key1: {r: 0.06, g: 0.86, b: 0.34, a: 0.34}
         key2: {r: 0, g: 0, b: 0, a: 0}
         key3: {r: 0, g: 0, b: 0, a: 0}
         key4: {r: 0, g: 0, b: 0, a: 0}
@@ -10186,14 +10186,15 @@ MonoBehaviour:
   - {fileID: 5923184533264001704}
   targetParticles:
   - {fileID: 453063135219744364}
-  emissionColor: {r: 0.1, g: 0.88, b: 0.58, a: 1}
-  lightBaseMultiplier: 0.72
-  rendererBaseMultiplier: 0.72
-  particleBaseMultiplier: 0.78
-  lightPeakMultiplier: 2
-  emissionPeakMultiplier: 2.45
-  alphaPeakMultiplier: 1.8
-  particlePeakMultiplier: 2.1
+  emissionColor: {r: 0.08, g: 0.78, b: 0.48, a: 1}
+  tintRendererBaseColor: 1
+  lightBaseMultiplier: 0.86
+  rendererBaseMultiplier: 0.88
+  particleBaseMultiplier: 0.82
+  lightPeakMultiplier: 1.65
+  emissionPeakMultiplier: 1.95
+  alphaPeakMultiplier: 1.35
+  particlePeakMultiplier: 1.6
   pulseDurationBeats: 0.42
   falloffPower: 2.1
   flickerAmount: 0.018

@@ -31,7 +31,7 @@ public static class TownForestSceneSetup
 
     private const string ForestAssetFolder = "Assets/0.MainProject/Art/ForestLightingPipeline";
     private const string SkyboxPath = ForestAssetFolder + "/M_Forest_Night_Skybox.mat";
-    private const string VolumeProfilePath = ForestAssetFolder + "/PP_ForestLightingPipeline_Bloom_ACES.asset";
+    private const string VolumeProfilePath = ForestAssetFolder + "/PP_TownForest_Bloom_ACES.asset";
     private const string FogMaterialPath = ForestAssetFolder + "/M_Tutorial_ForestDepthBoundaryFog.mat";
     private const string FogShaderName = "RhythmRPG/Effects/ForestDepthBoundaryFog";
     private const string RendererFeatureName = "Forest Depth Boundary Fog";
@@ -133,6 +133,32 @@ public static class TownForestSceneSetup
         Debug.Log("[TownForestSceneSetup] Town_Forest lighting, fog, shader pipeline, and separated hierarchy are ready.");
     }
 
+    [MenuItem("RhythmRPG/Editors/Town/Apply Town Forest Lighting")]
+    public static void ApplyLightingOnly()
+    {
+        var scene = SceneManager.GetActiveScene();
+        if (!scene.IsValid() || scene.path != ScenePath)
+        {
+            scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        }
+
+        var lightingRoot = EnsureRoot(LightingRootName);
+        var skybox = AssetDatabase.LoadAssetAtPath<Material>(SkyboxPath);
+        ConfigureRenderSettings(skybox);
+        ConfigureMainCamera();
+        CreatePostProcessVolume(lightingRoot.transform);
+        ConfigureMoonLight(lightingRoot.transform);
+        CreateCoolFillLight(lightingRoot.transform);
+        SortHierarchy();
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
+        Debug.Log("[TownForestSceneSetup] Applied Town_Forest lighting/post-process only.");
+    }
+
     [MenuItem("RhythmRPG/Editors/Town/Validate Town Forest Scene")]
     public static void Validate()
     {
@@ -164,7 +190,7 @@ public static class TownForestSceneSetup
         Report(boardView != null, "BoardView exists.", "Missing BoardView.", ref hasError);
         Report(tileRoot != null && actualTiles == expectedTiles, $"Appearance tiles baked: {actualTiles}.", $"Tile count mismatch. Expected={expectedTiles}, Actual={actualTiles}.", ref hasError);
         Report(RenderSettings.skybox != null && RenderSettings.skybox.name == "M_Forest_Night_Skybox", "Forest tutorial skybox applied.", "Forest night skybox is not assigned.", ref hasError);
-        Report(volume != null && volume.sharedProfile != null, "Global post-process volume exists.", "Missing global post-process volume.", ref hasError);
+        Report(IsValidPostProcessVolume(volume), "Global post-process volume exists.", "Missing or invalid global post-process volume.", ref hasError);
         Report(fogRoot != null && fogRoot.GetComponent<ForestDepthFogZoneController>() != null, "Depth fog controller exists.", "Missing depth fog controller.", ref hasError);
         Report(material != null && material.shader != null && material.shader.name == FogShaderName, "Depth fog shader material exists.", "Depth fog material/shader is invalid.", ref hasError);
         Report(HasRendererFeature(PcRendererPath), "PC renderer has depth fog feature.", "PC renderer is missing depth fog feature.", ref hasError);
@@ -647,10 +673,12 @@ public static class TownForestSceneSetup
             DynamicGI.UpdateEnvironment();
         }
 
-        RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.043f, 0.102f, 0.094f, 1f);
-        RenderSettings.ambientIntensity = 0.32f;
-        RenderSettings.reflectionIntensity = 0.35f;
+        RenderSettings.ambientMode = AmbientMode.Trilight;
+        RenderSettings.ambientSkyColor = new Color(0.105f, 0.170f, 0.205f, 1f);
+        RenderSettings.ambientEquatorColor = new Color(0.060f, 0.130f, 0.115f, 1f);
+        RenderSettings.ambientGroundColor = new Color(0.030f, 0.043f, 0.038f, 1f);
+        RenderSettings.ambientIntensity = 0.62f;
+        RenderSettings.reflectionIntensity = 0.20f;
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
         RenderSettings.fog = false;
         RenderSettings.fogMode = FogMode.ExponentialSquared;
@@ -679,21 +707,94 @@ public static class TownForestSceneSetup
 
     private static void CreatePostProcessVolume(Transform parent)
     {
-        var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(VolumeProfilePath);
-        if (profile == null)
-        {
-            Debug.LogWarning("[TownForestSceneSetup] Volume profile missing: " + VolumeProfilePath);
-            return;
-        }
+        var profile = CreateOrUpdateVolumeProfile();
 
-        var volumeObject = new GameObject(PostProcessName);
+        var volumeTransform = FindDirectChild(parent, PostProcessName);
+        var volumeObject = volumeTransform != null ? volumeTransform.gameObject : new GameObject(PostProcessName);
         volumeObject.transform.SetParent(parent, false);
 
-        var volume = volumeObject.AddComponent<Volume>();
+        var volume = volumeObject.GetComponent<Volume>();
+        if (volume == null)
+        {
+            volume = volumeObject.AddComponent<Volume>();
+        }
+
         volume.isGlobal = true;
         volume.priority = 35f;
         volume.weight = 1f;
         volume.sharedProfile = profile;
+        EditorUtility.SetDirty(volumeObject);
+        EditorUtility.SetDirty(volume);
+    }
+
+    private static VolumeProfile CreateOrUpdateVolumeProfile()
+    {
+        var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(VolumeProfilePath);
+        if (profile == null)
+        {
+            profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            AssetDatabase.CreateAsset(profile, VolumeProfilePath);
+        }
+
+        var bloom = GetOrAddVolumeComponent<Bloom>(profile);
+        bloom.threshold.Override(1.32f);
+        bloom.intensity.Override(0.82f);
+        bloom.scatter.Override(0.52f);
+        bloom.tint.Override(Color.white);
+        bloom.highQualityFiltering.Override(true);
+
+        var tonemapping = GetOrAddVolumeComponent<Tonemapping>(profile);
+        tonemapping.mode.Override(TonemappingMode.ACES);
+
+        var colorAdjustments = GetOrAddVolumeComponent<ColorAdjustments>(profile);
+        colorAdjustments.postExposure.Override(-0.08f);
+        colorAdjustments.contrast.Override(4f);
+        colorAdjustments.saturation.Override(-8f);
+
+        var shadowsMidtonesHighlights = GetOrAddVolumeComponent<ShadowsMidtonesHighlights>(profile);
+        shadowsMidtonesHighlights.shadows.Override(new Vector4(0.92f, 1.02f, 1.06f, 0.08f));
+        shadowsMidtonesHighlights.midtones.Override(new Vector4(0.98f, 1.02f, 1.01f, 0.00f));
+        shadowsMidtonesHighlights.highlights.Override(new Vector4(0.96f, 0.95f, 0.90f, 0f));
+        shadowsMidtonesHighlights.shadowsStart.Override(0f);
+        shadowsMidtonesHighlights.shadowsEnd.Override(0.38f);
+        shadowsMidtonesHighlights.highlightsStart.Override(0.65f);
+        shadowsMidtonesHighlights.highlightsEnd.Override(1f);
+
+        EditorUtility.SetDirty(profile);
+        return profile;
+    }
+
+    private static T GetOrAddVolumeComponent<T>(VolumeProfile profile) where T : VolumeComponent
+    {
+        profile.components.RemoveAll(component => component == null);
+
+        if (!profile.TryGet<T>(out var component))
+        {
+            component = ScriptableObject.CreateInstance<T>();
+            component.name = typeof(T).Name;
+            component.active = true;
+            profile.components.Add(component);
+            AssetDatabase.AddObjectToAsset(component, profile);
+        }
+
+        component.active = true;
+        EditorUtility.SetDirty(component);
+        return component;
+    }
+
+    private static bool IsValidPostProcessVolume(Volume volume)
+    {
+        if (volume == null || !volume.isGlobal || volume.sharedProfile == null)
+        {
+            return false;
+        }
+
+        return volume.sharedProfile.TryGet<Bloom>(out var bloom)
+            && bloom.active
+            && volume.sharedProfile.TryGet<Tonemapping>(out var tonemapping)
+            && tonemapping.active
+            && volume.sharedProfile.TryGet<ColorAdjustments>(out var colorAdjustments)
+            && colorAdjustments.active;
     }
 
     private static void ConfigureMoonLight(Transform parent)
@@ -713,9 +814,9 @@ public static class TownForestSceneSetup
         var light = lightObject.GetComponent<Light>();
         light.type = LightType.Directional;
         light.color = MoonColor;
-        light.intensity = 1.98f;
+        light.intensity = 1.42f;
         light.shadows = LightShadows.Soft;
-        light.shadowStrength = 1f;
+        light.shadowStrength = 0.74f;
         light.lightmapBakeType = LightmapBakeType.Mixed;
         RenderSettings.sun = light;
         EditorUtility.SetDirty(light);
@@ -723,17 +824,25 @@ public static class TownForestSceneSetup
 
     private static void CreateCoolFillLight(Transform parent)
     {
-        var lightObject = new GameObject(CoolFillLightName);
+        var lightTransform = FindDirectChild(parent, CoolFillLightName);
+        var lightObject = lightTransform != null ? lightTransform.gameObject : new GameObject(CoolFillLightName);
         lightObject.transform.SetParent(parent, false);
         lightObject.transform.position = new Vector3(25f, 0f, 16f);
         lightObject.transform.rotation = Quaternion.Euler(58f, 326f, 0f);
 
-        var light = lightObject.AddComponent<Light>();
+        var light = lightObject.GetComponent<Light>();
+        if (light == null)
+        {
+            light = lightObject.AddComponent<Light>();
+        }
+
         light.type = LightType.Directional;
         light.color = CoolFillColor;
-        light.intensity = 0.71f;
+        light.intensity = 0.42f;
         light.shadows = LightShadows.None;
         light.lightmapBakeType = LightmapBakeType.Realtime;
+        EditorUtility.SetDirty(lightObject);
+        EditorUtility.SetDirty(light);
     }
 
     private static void CreateTownLightingProps(Transform parent, MapAsset mapAsset)

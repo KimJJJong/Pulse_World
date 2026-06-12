@@ -1074,16 +1074,26 @@ public sealed partial class P2PContentDirector
         if (condition == null)
             return false;
 
-        if (condition.Type != ConditionType.DistanceToClosestPlayerLE && condition.Type != ConditionType.DistanceToClosestPlayerGT)
+        bool requiresClosestPlayer =
+            condition.Type == ConditionType.DistanceToClosestPlayerLE ||
+            condition.Type == ConditionType.DistanceToClosestPlayerGT ||
+            condition.Type == ConditionType.AlignedWithClosestPlayer ||
+            condition.Type == ConditionType.NotAlignedWithClosestPlayer;
+
+        if (!requiresClosestPlayer)
             return true;
 
         if (!TryFindClosestPlayer(self, out var target, out int distance))
             return false;
 
+        bool aligned = target.HasValue && (self.X == target.Value.X || self.Y == target.Value.Y);
+
         return condition.Type switch
         {
             ConditionType.DistanceToClosestPlayerLE => distance <= condition.Value,
             ConditionType.DistanceToClosestPlayerGT => distance > condition.Value,
+            ConditionType.AlignedWithClosestPlayer => aligned,
+            ConditionType.NotAlignedWithClosestPlayer => !aligned,
             _ => true
         };
     }
