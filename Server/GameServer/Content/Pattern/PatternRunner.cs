@@ -467,8 +467,15 @@ public sealed class PatternRunner
         {
             ConditionType.DistanceToClosestPlayerLE => dist <= c.Value,
             ConditionType.DistanceToClosestPlayerGT => dist > c.Value,
+            ConditionType.AlignedWithClosestPlayer => IsAligned(m.Position, target.Position),
+            ConditionType.NotAlignedWithClosestPlayer => !IsAligned(m.Position, target.Position),
             _ => true
         };
+    }
+
+    private static bool IsAligned(GridPos a, GridPos b)
+    {
+        return a.X == b.X || a.Y == b.Y;
     }
 
     private MapEntity FindTarget(MapEntity self, IList<MapEntity> players, TargetDef target)

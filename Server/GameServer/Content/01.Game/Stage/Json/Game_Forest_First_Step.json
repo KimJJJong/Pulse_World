@@ -1,6 +1,7 @@
 {
     "MapId": "Game_Forest_First_Step",
     "Description": "",
+    "DisableAutoClearOnMonsterWipe": true,
     "RhythmSettings": {
         "SongKey": "Game_NeoFunk_01",
         "Bpm": 110,
@@ -16,7 +17,7 @@
             "Z": 41,
             "AI": "Enemy_Specter",
             "Pattern": "Enemy_Specter",
-            "GroupId": 0,
+            "GroupId": 1000,
             "Rotation": 0.0
         }
     ],
