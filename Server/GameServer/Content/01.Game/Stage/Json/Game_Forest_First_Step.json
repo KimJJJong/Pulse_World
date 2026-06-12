@@ -8,7 +8,18 @@
         "ActionWindowMs": 100,
         "StartDelayMs": 2000
     },
-    "InitialSpawns": [],
+    "InitialSpawns": [
+        {
+            "MonsterId": 1027,
+            "X": 43,
+            "Y": 0,
+            "Z": 41,
+            "AI": "",
+            "Pattern": "",
+            "GroupId": 0,
+            "Rotation": 0.0
+        }
+    ],
     "InitialObjects": [
         {
             "EntityId": 500,
@@ -249,7 +260,7 @@
                 {
                     "Type": "PlayVfx",
                     "ParamId": 5,
-                    "X": 0,
+                    "X": -3,
                     "Y": 0,
                     "Z": -12,
                     "StringVal": "",
@@ -295,7 +306,7 @@
                     "ParamId": 6,
                     "X": 0,
                     "Y": 0,
-                    "Z": 0,
+                    "Z": 2,
                     "StringVal": "",
                     "GroupId": 0,
                     "SizeX": 1,
@@ -616,7 +627,7 @@
                     "ParamId": 0,
                     "X": 0,
                     "Y": 0,
-                    "Z": 0,
+                    "Z": -2,
                     "StringVal": "",
                     "GroupId": 0,
                     "SizeX": 1,
@@ -930,7 +941,7 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 31,
                     "TargetKey": "RunicTowerLink_North",
-                    "Count": 8,
+                    "Count": 80,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
@@ -939,7 +950,7 @@
                     "Area": {
                         "X": 66,
                         "Y": 50,
-                        "W": 6,
+                        "W": 7,
                         "H": 7,
                         "Shape": "Rectangle",
                         "Cells": []
@@ -994,7 +1005,7 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 32,
                     "TargetKey": "RunicTowerLink_East",
-                    "Count": 8,
+                    "Count": 80,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
@@ -1122,7 +1133,7 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 33,
                     "TargetKey": "RunicTowerLink_South",
-                    "Count": 8,
+                    "Count": 80,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
@@ -1186,7 +1197,7 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 34,
                     "TargetKey": "RunicTowerLink_West",
-                    "Count": 8,
+                    "Count": 80,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
