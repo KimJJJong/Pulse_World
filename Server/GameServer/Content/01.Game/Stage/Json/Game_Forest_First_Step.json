@@ -14,8 +14,8 @@
             "X": 43,
             "Y": 0,
             "Z": 41,
-            "AI": "",
-            "Pattern": "",
+            "AI": "Enemy_Specter",
+            "Pattern": "Enemy_Specter",
             "GroupId": 0,
             "Rotation": 0.0
         }

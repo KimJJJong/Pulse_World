@@ -10,7 +10,12 @@
           "Weight": 1,
           "CooldownBeats": 0,
           "When": {
-            "All": []
+            "All": [
+              {
+                "Type": 1,
+                "Value": 3
+              }
+            ]
           },
           "Timeline": [
             {
@@ -47,7 +52,12 @@
           "Weight": 1,
           "CooldownBeats": 0,
           "When": {
-            "All": []
+            "All": [
+              {
+                "Type": 0,
+                "Value": 3
+              }
+            ]
           },
           "Timeline": [
             {
@@ -55,7 +65,7 @@
               "AtBeatOffset": 0,
               "Target": {
                 "Type": 0,
-                "MaxRange": 2,
+                "MaxRange": 3,
                 "RequireAlive": true
               },
               "SkillId": "Enemy_Dash3Block_Attack",
