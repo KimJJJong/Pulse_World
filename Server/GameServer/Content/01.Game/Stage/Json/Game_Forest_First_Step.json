@@ -6,7 +6,7 @@
         "SongKey": "Game_NeoFunk_01",
         "Bpm": 110,
         "BaseBeatDivision": 1,
-        "ActionWindowMs": 100,
+        "ActionWindowMs": 150,
         "StartDelayMs": 2000
     },
     "InitialSpawns": [
@@ -836,7 +836,7 @@
                     "ParamId": 502,
                     "X": 69,
                     "Y": 0,
-                    "Z": 54,
+                    "Z": 53,
                     "StringVal": "",
                     "GroupId": 31,
                     "SizeX": 2,
@@ -850,7 +850,7 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 502,
-                    "X": 84,
+                    "X": 82,
                     "Y": 0,
                     "Z": 39,
                     "StringVal": "",
@@ -868,7 +868,7 @@
                     "ParamId": 502,
                     "X": 69,
                     "Y": 0,
-                    "Z": 26,
+                    "Z": 25,
                     "StringVal": "",
                     "GroupId": 33,
                     "SizeX": 2,
@@ -898,9 +898,9 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 503,
-                    "X": 81,
+                    "X": 79,
                     "Y": 0,
-                    "Z": 51,
+                    "Z": 48,
                     "StringVal": "",
                     "GroupId": 2101,
                     "SizeX": 2,
@@ -914,9 +914,9 @@
                 {
                     "Type": "SetSummonPortalActive",
                     "ParamId": 2201,
-                    "X": 81,
+                    "X": 79,
                     "Y": 0,
-                    "Z": 51,
+                    "Z": 48,
                     "StringVal": "Section2_NormalSummonRing_North",
                     "GroupId": 1,
                     "SizeX": 2,
@@ -930,9 +930,9 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 503,
-                    "X": 81,
+                    "X": 79,
                     "Y": 0,
-                    "Z": 30,
+                    "Z": 31,
                     "StringVal": "",
                     "GroupId": 2102,
                     "SizeX": 2,
@@ -946,9 +946,9 @@
                 {
                     "Type": "SetSummonPortalActive",
                     "ParamId": 2202,
-                    "X": 81,
+                    "X": 79,
                     "Y": 0,
-                    "Z": 30,
+                    "Z": 31,
                     "StringVal": "Section2_NormalSummonRing_East",
                     "GroupId": 1,
                     "SizeX": 1,
@@ -1006,19 +1006,120 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 31,
                     "TargetKey": "RunicTowerLink_North",
-                    "Count": 60,
+                    "Count": 8,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "North Tower",
                     "ProgressDurationMs": 1000,
                     "Area": {
-                        "X": 66,
+                        "X": 68,
                         "Y": 51,
-                        "W": 7,
-                        "H": 7,
-                        "Shape": "Rectangle",
-                        "Cells": []
+                        "W": 5,
+                        "H": 5,
+                        "Shape": "CustomCells",
+                        "Cells": [
+                            {
+                                "X": 68,
+                                "Y": 51
+                            },
+                            {
+                                "X": 69,
+                                "Y": 51
+                            },
+                            {
+                                "X": 70,
+                                "Y": 51
+                            },
+                            {
+                                "X": 71,
+                                "Y": 51
+                            },
+                            {
+                                "X": 72,
+                                "Y": 51
+                            },
+                            {
+                                "X": 68,
+                                "Y": 52
+                            },
+                            {
+                                "X": 69,
+                                "Y": 52
+                            },
+                            {
+                                "X": 70,
+                                "Y": 52
+                            },
+                            {
+                                "X": 71,
+                                "Y": 52
+                            },
+                            {
+                                "X": 72,
+                                "Y": 52
+                            },
+                            {
+                                "X": 68,
+                                "Y": 53
+                            },
+                            {
+                                "X": 69,
+                                "Y": 53
+                            },
+                            {
+                                "X": 70,
+                                "Y": 53
+                            },
+                            {
+                                "X": 71,
+                                "Y": 53
+                            },
+                            {
+                                "X": 72,
+                                "Y": 53
+                            },
+                            {
+                                "X": 68,
+                                "Y": 54
+                            },
+                            {
+                                "X": 69,
+                                "Y": 54
+                            },
+                            {
+                                "X": 70,
+                                "Y": 54
+                            },
+                            {
+                                "X": 71,
+                                "Y": 54
+                            },
+                            {
+                                "X": 72,
+                                "Y": 54
+                            },
+                            {
+                                "X": 68,
+                                "Y": 55
+                            },
+                            {
+                                "X": 69,
+                                "Y": 55
+                            },
+                            {
+                                "X": 70,
+                                "Y": 55
+                            },
+                            {
+                                "X": 71,
+                                "Y": 55
+                            },
+                            {
+                                "X": 72,
+                                "Y": 55
+                            }
+                        ]
                     }
                 }
             ],
@@ -1070,7 +1171,7 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 32,
                     "TargetKey": "RunicTowerLink_East",
-                    "Count": 60,
+                    "Count": 8,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
@@ -1078,11 +1179,112 @@
                     "ProgressDurationMs": 1000,
                     "Area": {
                         "X": 81,
-                        "Y": 36,
-                        "W": 7,
-                        "H": 7,
-                        "Shape": "Rectangle",
-                        "Cells": []
+                        "Y": 37,
+                        "W": 5,
+                        "H": 5,
+                        "Shape": "CustomCells",
+                        "Cells": [
+                            {
+                                "X": 81,
+                                "Y": 37
+                            },
+                            {
+                                "X": 82,
+                                "Y": 37
+                            },
+                            {
+                                "X": 83,
+                                "Y": 37
+                            },
+                            {
+                                "X": 84,
+                                "Y": 37
+                            },
+                            {
+                                "X": 85,
+                                "Y": 37
+                            },
+                            {
+                                "X": 81,
+                                "Y": 38
+                            },
+                            {
+                                "X": 82,
+                                "Y": 38
+                            },
+                            {
+                                "X": 83,
+                                "Y": 38
+                            },
+                            {
+                                "X": 84,
+                                "Y": 38
+                            },
+                            {
+                                "X": 85,
+                                "Y": 38
+                            },
+                            {
+                                "X": 81,
+                                "Y": 39
+                            },
+                            {
+                                "X": 82,
+                                "Y": 39
+                            },
+                            {
+                                "X": 83,
+                                "Y": 39
+                            },
+                            {
+                                "X": 84,
+                                "Y": 39
+                            },
+                            {
+                                "X": 85,
+                                "Y": 39
+                            },
+                            {
+                                "X": 81,
+                                "Y": 40
+                            },
+                            {
+                                "X": 82,
+                                "Y": 40
+                            },
+                            {
+                                "X": 83,
+                                "Y": 40
+                            },
+                            {
+                                "X": 84,
+                                "Y": 40
+                            },
+                            {
+                                "X": 85,
+                                "Y": 40
+                            },
+                            {
+                                "X": 81,
+                                "Y": 41
+                            },
+                            {
+                                "X": 82,
+                                "Y": 41
+                            },
+                            {
+                                "X": 83,
+                                "Y": 41
+                            },
+                            {
+                                "X": 84,
+                                "Y": 41
+                            },
+                            {
+                                "X": 85,
+                                "Y": 41
+                            }
+                        ]
                     }
                 }
             ],
@@ -1170,9 +1372,9 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 503,
-                    "X": 59,
+                    "X": 61,
                     "Y": 0,
-                    "Z": 29,
+                    "Z": 31,
                     "StringVal": "",
                     "GroupId": 2103,
                     "SizeX": 2,
@@ -1186,9 +1388,9 @@
                 {
                     "Type": "SetSummonPortalActive",
                     "ParamId": 2203,
-                    "X": 59,
+                    "X": 61,
                     "Y": 0,
-                    "Z": 29,
+                    "Z": 31,
                     "StringVal": "Section2_NormalSummonRing_South",
                     "GroupId": 1,
                     "SizeX": 1,
@@ -1202,9 +1404,9 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 503,
-                    "X": 60,
+                    "X": 61,
                     "Y": 0,
-                    "Z": 49,
+                    "Z": 48,
                     "StringVal": "",
                     "GroupId": 2104,
                     "SizeX": 2,
@@ -1218,9 +1420,9 @@
                 {
                     "Type": "SetSummonPortalActive",
                     "ParamId": 2204,
-                    "X": 60,
+                    "X": 61,
                     "Y": 0,
-                    "Z": 49,
+                    "Z": 48,
                     "StringVal": "Section2_NormalSummonRing_West",
                     "GroupId": 1,
                     "SizeX": 1,
@@ -1262,19 +1464,120 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 33,
                     "TargetKey": "RunicTowerLink_South",
-                    "Count": 60,
+                    "Count": 8,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "South Tower",
                     "ProgressDurationMs": 1000,
                     "Area": {
-                        "X": 66,
-                        "Y": 23,
-                        "W": 7,
-                        "H": 7,
-                        "Shape": "Rectangle",
-                        "Cells": []
+                        "X": 68,
+                        "Y": 24,
+                        "W": 5,
+                        "H": 5,
+                        "Shape": "CustomCells",
+                        "Cells": [
+                            {
+                                "X": 68,
+                                "Y": 24
+                            },
+                            {
+                                "X": 69,
+                                "Y": 24
+                            },
+                            {
+                                "X": 70,
+                                "Y": 24
+                            },
+                            {
+                                "X": 71,
+                                "Y": 24
+                            },
+                            {
+                                "X": 72,
+                                "Y": 24
+                            },
+                            {
+                                "X": 68,
+                                "Y": 25
+                            },
+                            {
+                                "X": 69,
+                                "Y": 25
+                            },
+                            {
+                                "X": 70,
+                                "Y": 25
+                            },
+                            {
+                                "X": 71,
+                                "Y": 25
+                            },
+                            {
+                                "X": 72,
+                                "Y": 25
+                            },
+                            {
+                                "X": 68,
+                                "Y": 26
+                            },
+                            {
+                                "X": 69,
+                                "Y": 26
+                            },
+                            {
+                                "X": 70,
+                                "Y": 26
+                            },
+                            {
+                                "X": 71,
+                                "Y": 26
+                            },
+                            {
+                                "X": 72,
+                                "Y": 26
+                            },
+                            {
+                                "X": 68,
+                                "Y": 27
+                            },
+                            {
+                                "X": 69,
+                                "Y": 27
+                            },
+                            {
+                                "X": 70,
+                                "Y": 27
+                            },
+                            {
+                                "X": 71,
+                                "Y": 27
+                            },
+                            {
+                                "X": 72,
+                                "Y": 27
+                            },
+                            {
+                                "X": 68,
+                                "Y": 28
+                            },
+                            {
+                                "X": 69,
+                                "Y": 28
+                            },
+                            {
+                                "X": 70,
+                                "Y": 28
+                            },
+                            {
+                                "X": 71,
+                                "Y": 28
+                            },
+                            {
+                                "X": 72,
+                                "Y": 28
+                            }
+                        ]
                     }
                 }
             ],
@@ -1326,19 +1629,120 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 34,
                     "TargetKey": "RunicTowerLink_West",
-                    "Count": 60,
+                    "Count": 8,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "West Tower",
                     "ProgressDurationMs": 1000,
                     "Area": {
-                        "X": 53,
-                        "Y": 36,
-                        "W": 7,
-                        "H": 7,
-                        "Shape": "Rectangle",
-                        "Cells": []
+                        "X": 55,
+                        "Y": 37,
+                        "W": 5,
+                        "H": 5,
+                        "Shape": "CustomCells",
+                        "Cells": [
+                            {
+                                "X": 55,
+                                "Y": 37
+                            },
+                            {
+                                "X": 56,
+                                "Y": 37
+                            },
+                            {
+                                "X": 57,
+                                "Y": 37
+                            },
+                            {
+                                "X": 58,
+                                "Y": 37
+                            },
+                            {
+                                "X": 59,
+                                "Y": 37
+                            },
+                            {
+                                "X": 55,
+                                "Y": 38
+                            },
+                            {
+                                "X": 56,
+                                "Y": 38
+                            },
+                            {
+                                "X": 57,
+                                "Y": 38
+                            },
+                            {
+                                "X": 58,
+                                "Y": 38
+                            },
+                            {
+                                "X": 59,
+                                "Y": 38
+                            },
+                            {
+                                "X": 55,
+                                "Y": 39
+                            },
+                            {
+                                "X": 56,
+                                "Y": 39
+                            },
+                            {
+                                "X": 57,
+                                "Y": 39
+                            },
+                            {
+                                "X": 58,
+                                "Y": 39
+                            },
+                            {
+                                "X": 59,
+                                "Y": 39
+                            },
+                            {
+                                "X": 55,
+                                "Y": 40
+                            },
+                            {
+                                "X": 56,
+                                "Y": 40
+                            },
+                            {
+                                "X": 57,
+                                "Y": 40
+                            },
+                            {
+                                "X": 58,
+                                "Y": 40
+                            },
+                            {
+                                "X": 59,
+                                "Y": 40
+                            },
+                            {
+                                "X": 55,
+                                "Y": 41
+                            },
+                            {
+                                "X": 56,
+                                "Y": 41
+                            },
+                            {
+                                "X": 57,
+                                "Y": 41
+                            },
+                            {
+                                "X": 58,
+                                "Y": 41
+                            },
+                            {
+                                "X": 59,
+                                "Y": 41
+                            }
+                        ]
                     }
                 }
             ],
@@ -1410,9 +1814,9 @@
                 {
                     "Type": "SetSummonPortalActive",
                     "ParamId": 2201,
-                    "X": 81,
+                    "X": 79,
                     "Y": 0,
-                    "Z": 51,
+                    "Z": 48,
                     "StringVal": "Section2_NormalSummonRing_North",
                     "GroupId": 0,
                     "SizeX": 2,
@@ -1442,9 +1846,9 @@
                 {
                     "Type": "SetSummonPortalActive",
                     "ParamId": 2202,
-                    "X": 81,
+                    "X": 79,
                     "Y": 0,
-                    "Z": 30,
+                    "Z": 31,
                     "StringVal": "Section2_NormalSummonRing_East",
                     "GroupId": 0,
                     "SizeX": 1,
@@ -1474,9 +1878,9 @@
                 {
                     "Type": "SetSummonPortalActive",
                     "ParamId": 2203,
-                    "X": 59,
+                    "X": 61,
                     "Y": 0,
-                    "Z": 29,
+                    "Z": 31,
                     "StringVal": "Section2_NormalSummonRing_South",
                     "GroupId": 0,
                     "SizeX": 1,
@@ -1506,9 +1910,9 @@
                 {
                     "Type": "SetSummonPortalActive",
                     "ParamId": 2204,
-                    "X": 60,
+                    "X": 61,
                     "Y": 0,
-                    "Z": 49,
+                    "Z": 48,
                     "StringVal": "Section2_NormalSummonRing_West",
                     "GroupId": 0,
                     "SizeX": 1,
@@ -1618,7 +2022,7 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 504,
-                    "X": 78,
+                    "X": 70,
                     "Y": 0,
                     "Z": 39,
                     "StringVal": "",
