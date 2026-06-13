@@ -215,7 +215,7 @@ namespace GameServer.InGame.Director.Core
             Console.WriteLine($"[GameDirector] SetObjectState target={targetId} state={state}");
         }
 
-        public void RemoveEntityGroup(int groupId)
+        public void RemoveEntityGroup(int groupId, int delayMs = 0)
         {
             if (groupId <= 0)
                 return;
@@ -229,6 +229,14 @@ namespace GameServer.InGame.Director.Core
             data ??= new StageSceneObjectData();
             Console.WriteLine($"[GameDirector] SetSceneObjectActive key='{data.TargetKey}' group={data.GroupId} visible={data.Visible}");
             _session.BroadcastStageSignal(StageSignalCodec.SceneObjectWarnCode, StageSignalCodec.EncodeSceneObject(data));
+        }
+
+        public void SetSummonPortalActive(StageSummonPortalData data)
+        {
+            data ??= new StageSummonPortalData();
+            Console.WriteLine(
+                $"[GameDirector] SetSummonPortalActive key='{data.PortalKey}' active={data.Active} group={data.SpawnGroupId} " +
+                $"pos=({data.SpawnX},{ResolveMapY(data.SpawnY, data.SpawnZ)}) maxAlive={data.MaxAlive} interval={data.IntervalBeats}");
         }
 
         public void SetGateDoorOpen(StageGateDoorData data)
