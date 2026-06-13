@@ -34,6 +34,7 @@ namespace GameServer.InGame.Manager.Beat
 
         // Optimized Buffer
         private readonly List<PlayerActionCmd> _cmdBuffer = new(64);
+        private long _lastJudgeWindowBeat = long.MinValue;
 
         public BeatActionManager(
             IServerTime time,
@@ -128,22 +129,10 @@ namespace GameServer.InGame.Manager.Beat
                 // [Fix] SlotIndex -1 (일반공격 Space키) 포함 SkillId 결정
                 ResolveSkillId(cmd);
 
-                _delayedScheduler.Enqueue(cmd);
                 Console.WriteLine($"[BeatActionManager] [Resolve] Kind={cmd.Kind} Slot={cmd.SlotIndex} -> SkillId={cmd.SkillId}");
 
-                // 즉각적인 공격 액션 브로드캐스트 (클라이언트 선행 애니메이션용)
-                // [Fix] Attack→Skill 통일 후 Skill만 체크
-                if (cmd.Kind == ActionKind.Skill)
-                {
-                    _broadcaster.Broadcast(new SC_ActionInstantBroadcast
-                    {
-                        ActorId = cmd.ActorId,
-                        ActionKind = (int)cmd.Kind,
-                        SkillId = cmd.SkillId ?? "Attack",
-                        Rotation = cmd.Rotation,
-                        StartTick = judge.ExecuteBeat * 480
-                    });
-                }
+                BroadcastSkillInstant(cmd, judge.ExecuteBeat);
+                EnqueueOrProcessDelayedCommand(cmd, judge.ExecuteBeat, "Game");
             }
         }
 
@@ -265,19 +254,8 @@ namespace GameServer.InGame.Manager.Beat
             else
             {
                 ResolveSkillId(cmd);
-                _delayedScheduler.Enqueue(cmd);
-                
-                if (cmd.Kind == ActionKind.Skill)
-                {
-                    _broadcaster.Broadcast(new SC_ActionInstantBroadcast
-                    {
-                        ActorId = cmd.ActorId,
-                        ActionKind = (int)cmd.Kind,
-                        SkillId = cmd.SkillId ?? "Attack",
-                        Rotation = cmd.Rotation,
-                        StartTick = judge.ExecuteBeat * 480
-                    });
-                }
+                BroadcastSkillInstant(cmd, judge.ExecuteBeat);
+                EnqueueOrProcessDelayedCommand(cmd, judge.ExecuteBeat, "Town");
             }
 
             Console.WriteLine($"[ServerAction] ACCEPT | ClientTime={now} ServerRecv={_time.NowMs} Diff={judge.DiffMs}ms Kind={cmd.Kind}");
@@ -381,6 +359,36 @@ namespace GameServer.InGame.Manager.Beat
             });
         }
 
+        private void BroadcastSkillInstant(PlayerActionCmd cmd, long beatIndex)
+        {
+            if (cmd.Kind != ActionKind.Skill)
+                return;
+
+            _broadcaster.Broadcast(new SC_ActionInstantBroadcast
+            {
+                ActorId = cmd.ActorId,
+                ActionKind = (int)cmd.Kind,
+                SkillId = cmd.SkillId ?? "Attack",
+                Rotation = cmd.Rotation,
+                StartTick = beatIndex * 480
+            });
+        }
+
+        private void EnqueueOrProcessDelayedCommand(PlayerActionCmd cmd, long beatIndex, string source)
+        {
+            if (_lastJudgeWindowBeat != long.MinValue && beatIndex <= _lastJudgeWindowBeat)
+            {
+                Console.WriteLine(
+                    $"[BeatActionManager] [LateResolve] source={source} actor={cmd.ActorId} kind={cmd.Kind} " +
+                    $"beat={beatIndex} lastJudgeBeat={_lastJudgeWindowBeat} skill={cmd.SkillId}");
+
+                ProcessBatchActions(beatIndex, new List<PlayerActionCmd>(1) { cmd });
+                return;
+            }
+
+            _delayedScheduler.Enqueue(cmd);
+        }
+
         /// <summary>
         /// Dash/Blink 등 스킬 이동 결과를 SC_BeatActions(Move kind)로 클라이언트에 전달.
         /// 클라이언트 OnBeatAction의 Move 처리경로(StartMove)가 타서 애니메이션이 실행됨.
@@ -433,6 +441,8 @@ namespace GameServer.InGame.Manager.Beat
             _delayedScheduler.PopActions(beatIndex, _cmdBuffer);
             if (_cmdBuffer.Count > 0)
                 ProcessBatchActions(beatIndex, _cmdBuffer);
+
+            _lastJudgeWindowBeat = Math.Max(_lastJudgeWindowBeat, beatIndex);
         }
 
         private void ProcessBatchActions(long beatIndex, List<PlayerActionCmd> cmds)

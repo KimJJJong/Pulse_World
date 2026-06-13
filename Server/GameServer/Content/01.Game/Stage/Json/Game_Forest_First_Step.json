@@ -921,10 +921,10 @@
                     "GroupId": 1,
                     "SizeX": 2,
                     "SizeY": 2,
-                    "GuideTitle": "1010,1012",
-                    "GuideBody": "Enemy_Bat,Enemy_EvilMage",
+                    "GuideTitle": "1010",
+                    "GuideBody": "Enemy_Bat",
                     "GuideImageResource": "",
-                    "DurationMs": 8,
+                    "DurationMs": 15,
                     "VfxKey": ""
                 },
                 {
@@ -951,12 +951,12 @@
                     "Z": 30,
                     "StringVal": "Section2_NormalSummonRing_East",
                     "GroupId": 1,
-                    "SizeX": 2,
+                    "SizeX": 1,
                     "SizeY": 4,
-                    "GuideTitle": "1010,1012",
-                    "GuideBody": "Enemy_Bat,Enemy_EvilMage",
+                    "GuideTitle": "1012",
+                    "GuideBody": "Enemy_EvilMage",
                     "GuideImageResource": "",
-                    "DurationMs": 8,
+                    "DurationMs": 15,
                     "VfxKey": ""
                 },
                 {
@@ -1191,12 +1191,12 @@
                     "Z": 29,
                     "StringVal": "Section2_NormalSummonRing_South",
                     "GroupId": 1,
-                    "SizeX": 2,
+                    "SizeX": 1,
                     "SizeY": 2,
-                    "GuideTitle": "1010,1012,1027",
-                    "GuideBody": "Enemy_Bat,Enemy_EvilMage,Enemy_Specter",
+                    "GuideTitle": "1027",
+                    "GuideBody": "Enemy_Specter",
                     "GuideImageResource": "",
-                    "DurationMs": 8,
+                    "DurationMs": 15,
                     "VfxKey": ""
                 },
                 {
@@ -1223,12 +1223,12 @@
                     "Z": 49,
                     "StringVal": "Section2_NormalSummonRing_West",
                     "GroupId": 1,
-                    "SizeX": 2,
+                    "SizeX": 1,
                     "SizeY": 4,
                     "GuideTitle": "1010,1012,1027",
                     "GuideBody": "Enemy_Bat,Enemy_EvilMage,Enemy_Specter",
                     "GuideImageResource": "",
-                    "DurationMs": 8,
+                    "DurationMs": 15,
                     "VfxKey": ""
                 }
             ]
@@ -1416,11 +1416,11 @@
                     "StringVal": "Section2_NormalSummonRing_North",
                     "GroupId": 0,
                     "SizeX": 2,
-                    "SizeY": 15,
+                    "SizeY": 2,
                     "GuideTitle": "1010",
                     "GuideBody": "Enemy_Bat",
                     "GuideImageResource": "",
-                    "DurationMs": 8,
+                    "DurationMs": 15,
                     "VfxKey": ""
                 },
                 {
@@ -1448,11 +1448,11 @@
                     "StringVal": "Section2_NormalSummonRing_East",
                     "GroupId": 0,
                     "SizeX": 1,
-                    "SizeY": 15,
+                    "SizeY": 4,
                     "GuideTitle": "1012",
                     "GuideBody": "Enemy_EvilMage",
                     "GuideImageResource": "",
-                    "DurationMs": 8,
+                    "DurationMs": 15,
                     "VfxKey": ""
                 },
                 {
@@ -1480,11 +1480,11 @@
                     "StringVal": "Section2_NormalSummonRing_South",
                     "GroupId": 0,
                     "SizeX": 1,
-                    "SizeY": 10,
-                    "GuideTitle": "1010,1012,1027",
+                    "SizeY": 2,
+                    "GuideTitle": "1027",
                     "GuideBody": "Enemy_Specter",
                     "GuideImageResource": "",
-                    "DurationMs": 8,
+                    "DurationMs": 15,
                     "VfxKey": ""
                 },
                 {
@@ -1512,11 +1512,11 @@
                     "StringVal": "Section2_NormalSummonRing_West",
                     "GroupId": 0,
                     "SizeX": 1,
-                    "SizeY": 15,
+                    "SizeY": 4,
                     "GuideTitle": "1010,1012,1027",
                     "GuideBody": "Enemy_Bat,Enemy_EvilMage,Enemy_Specter",
                     "GuideImageResource": "",
-                    "DurationMs": 8,
+                    "DurationMs": 15,
                     "VfxKey": ""
                 },
                 {
