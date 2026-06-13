@@ -1548,8 +1548,6 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         bool isMine = (ClientGameState.Instance != null && actorId == ClientGameState.Instance.MyActorId);
 
-        _recentInstantActions[actorId] = Time.time;
-
         if (!_activeSkillRunners.TryGetValue(actorId, out var runner) || runner == null)
         {
             GameObject go = new GameObject($"SkillRunner_{actorId}_{skillId}");
@@ -1562,7 +1560,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
             runner.gameObject.name = $"SkillRunner_{actorId}_{skillId}";
         }
 
-        runner.Initialize(this, actorId, visual, skillId, startTick, isMine, rotation);
+        if (runner.Initialize(this, actorId, visual, skillId, startTick, isMine, rotation))
+            _recentInstantActions[actorId] = Time.time;
 
         visual.SetRotation(rotation);
 

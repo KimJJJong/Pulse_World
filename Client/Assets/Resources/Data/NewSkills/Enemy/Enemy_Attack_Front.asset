@@ -61,4 +61,6 @@ MonoBehaviour:
       data:
         CasterSize: 1
         RotateWithCaster: 1
-        Cells: []
+        Cells:
+        - X: 0
+          Y: -1

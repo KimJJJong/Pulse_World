@@ -1908,8 +1908,8 @@ MonoBehaviour:
   MaxAlive: 2
   SpawnIntervalBeats: 8
   InitialDelayBeats: 1
-  MonsterIdsCsv: 1027
-  MonsterPattern: Enemy_Specter
+  MonsterIdsCsv: 1010,1012,1027
+  MonsterPattern: Enemy_Bat,Enemy_EvilMage,Enemy_Specter
   DrawEditorLink: 1
 --- !u!1 &1632331166028499321
 GameObject:
@@ -19630,7 +19630,7 @@ PrefabInstance:
     - {fileID: 1387721139600630365, guid: be7d828b8428b194a897f0f6ede4f8f0, type: 3}
     - {fileID: 8337155578486077962, guid: be7d828b8428b194a897f0f6ede4f8f0, type: 3}
     m_RemovedGameObjects:
-    - {fileID: 3268064026988661994, guid: be7d828b8428b194a897f0f6ede4f8f0, type: 3}
+    - {fileID: 9059913959390480429, guid: be7d828b8428b194a897f0f6ede4f8f0, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 5585158719075983251, guid: be7d828b8428b194a897f0f6ede4f8f0, type: 3}
       insertIndex: -1

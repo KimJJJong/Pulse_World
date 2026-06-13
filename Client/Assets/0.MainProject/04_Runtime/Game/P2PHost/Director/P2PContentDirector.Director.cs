@@ -10,6 +10,8 @@ using UnityEngine;
 
 public sealed partial class P2PContentDirector
 {
+    private const long RuntimeSpawnBindGraceBeats = 2;
+
     private void LoadStageContent()
     {
         if (string.IsNullOrWhiteSpace(_mapId) || _stageLoaded || string.Equals(_lastStageLoadAttemptMapId, _mapId, StringComparison.OrdinalIgnoreCase))
@@ -351,16 +353,23 @@ public sealed partial class P2PContentDirector
             if (seen.Contains(kv.Key))
                 continue;
 
+            if (currentBeat - kv.Value.SpawnBeat <= RuntimeSpawnBindGraceBeats)
+                continue;
+
             kv.Value.IsAlive = false;
         }
     }
 
     private void BindMonsterEntity(ClientEntityInfo entity, long? spawnBeat = null)
     {
-        if (!TryResolveMonsterTemplate(entity.AppearanceId, entity.GroupId, entity.X, entity.Y, out var template))
+        _monsterStates.TryGetValue(entity.EntityId, out var existingState);
+        int lookupGroupId = entity.GroupId > 0 ? entity.GroupId : existingState != null ? existingState.GroupId : 0;
+
+        if (!TryResolveMonsterTemplate(entity.AppearanceId, lookupGroupId, entity.X, entity.Y, out var template))
             return;
 
-        if (!_monsterStates.TryGetValue(entity.EntityId, out var state))
+        var state = existingState;
+        if (state == null)
         {
             state = new MonsterRuntimeState();
             _monsterStates[entity.EntityId] = state;
@@ -370,7 +379,7 @@ public sealed partial class P2PContentDirector
 
         state.EntityId = entity.EntityId;
         state.AppearanceId = entity.AppearanceId;
-        int groupId = entity.GroupId > 0 ? entity.GroupId : template.GroupId;
+        int groupId = entity.GroupId > 0 ? entity.GroupId : state.GroupId > 0 ? state.GroupId : template.GroupId;
         if (groupId > 0)
             state.GroupId = groupId;
 
@@ -980,11 +989,16 @@ public sealed partial class P2PContentDirector
             if (!state.IsAlive)
                 continue;
 
-            if (ClientGameState.Instance != null &&
-                (!ClientGameState.Instance.TryGetEntity(state.EntityId, out var entity) || entity.Hp <= 0))
+            if (ClientGameState.Instance != null)
             {
-                state.IsAlive = false;
-                continue;
+                if (!ClientGameState.Instance.TryGetEntity(state.EntityId, out var entity))
+                    continue;
+
+                if (entity.Hp <= 0)
+                {
+                    state.IsAlive = false;
+                    continue;
+                }
             }
 
             if (beat < state.LockedUntilBeat)

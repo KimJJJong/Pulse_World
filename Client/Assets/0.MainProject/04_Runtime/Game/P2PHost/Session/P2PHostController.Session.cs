@@ -768,19 +768,16 @@ public sealed partial class P2PHostController
         int toY = req.TargetY;
 
         bool accepted = TryMoveActor(actorId, toX, toY, out string rejectReason);
-        if (!accepted)
-        {
-            toX = fromX;
-            toY = fromY;
-        }
-        else
+        int finalX = accepted ? toX : fromX;
+        int finalY = accepted ? toY : fromY;
+        if (accepted)
         {
             _hostPositions[actorId] = new Vector2Int(toX, toY);
             NotifyStageMoveIfPlayer(actorInfo, actorId, toX, toY);
         }
 
         if (P2PDebugConfig.LogOverheadEnabled && ShouldTraceHostPlayerActor(actorId))
-            Debug.Log($"[P2PHostController] MoveResult actor={actorId} beat={beat} from=({fromX},{fromY}) reqTo=({req.TargetX},{req.TargetY}) finalTo=({toX},{toY}) accepted={accepted} reason={(accepted ? "OK" : rejectReason)}");
+            Debug.Log($"[P2PHostController] MoveResult actor={actorId} beat={beat} from=({fromX},{fromY}) reqTo=({req.TargetX},{req.TargetY}) finalTo=({finalX},{finalY}) accepted={accepted} reason={(accepted ? "OK" : rejectReason)}");
 
         if (P2PRelayClientBridge.HasInstance
             && actorId != (SessionContext.Instance?.MyActorId ?? 0))
@@ -792,8 +789,8 @@ public sealed partial class P2PHostController
                 ResolveMoveResultReason(accepted, rejectReason),
                 beat,
                 0,
-                toX,
-                toY);
+                finalX,
+                finalY);
         }
 
         var result = new SC_BeatActions.BeatActionResult
@@ -952,7 +949,10 @@ public sealed partial class P2PHostController
             return;
 
         foreach (var deadId in _batchedDeadEntities)
+        {
+            _hostPositions.Remove(deadId);
             BroadcastAndRelay(new SC_EntityDespawn { BeatIndex = beat, EntityId = deadId });
+        }
 
         _batchedDeadEntities.Clear();
     }
@@ -972,8 +972,16 @@ public sealed partial class P2PHostController
 
     private void BroadcastAndRelay(IPacket packet)
     {
+        if (packet == null)
+            return;
+
+        if (packet is SC_EntityDespawn despawn)
+        {
+            _hostPositions.Remove(despawn.EntityId);
+        }
+
         var bridge = P2PRelayClientBridge.Instance;
-        if (packet == null || !bridge.IsRelayMode)
+        if (bridge == null || !bridge.IsRelayMode)
             return;
 
         if (P2PDebugConfig.LogOverheadEnabled)
@@ -1028,20 +1036,39 @@ public sealed partial class P2PHostController
 
     private bool IsTileOccupied(int targetX, int targetY, int ignoreActorId)
     {
+        var current = ClientGameState.Instance;
+        List<int> staleHostPositionIds = null;
+
         foreach (var kv in _hostPositions)
         {
             if (kv.Key == ignoreActorId)
                 continue;
+
+            if (!CanHostPositionBlock(current, kv.Key))
+            {
+                staleHostPositionIds ??= new List<int>();
+                staleHostPositionIds.Add(kv.Key);
+                continue;
+            }
+
             if (kv.Value.x == targetX && kv.Value.y == targetY)
                 return true;
         }
 
-        if (ClientGameState.Instance == null)
+        if (staleHostPositionIds != null)
+        {
+            foreach (int entityId in staleHostPositionIds)
+                _hostPositions.Remove(entityId);
+        }
+
+        if (current == null)
             return false;
 
-        foreach (var entity in ClientGameState.Instance.EnumerateEntities())
+        foreach (var entity in current.EnumerateEntities())
         {
-            if (entity.Hp <= 0 || entity.EntityId == ignoreActorId)
+            if (entity.Hp <= 0
+                || entity.EntityId == ignoreActorId
+                || _batchedDeadEntities.Contains(entity.EntityId))
                 continue;
 
             if (_hostPositions.ContainsKey(entity.EntityId))
@@ -1052,6 +1079,17 @@ public sealed partial class P2PHostController
         }
 
         return false;
+    }
+
+    private bool CanHostPositionBlock(ClientGameState current, int entityId)
+    {
+        if (_batchedDeadEntities.Contains(entityId))
+            return false;
+
+        if (current == null)
+            return true;
+
+        return current.TryGetEntity(entityId, out var entity) && entity.Hp > 0;
     }
 
     private bool TryMoveActor(int actorId, int targetX, int targetY)
@@ -1129,6 +1167,9 @@ public sealed partial class P2PHostController
 
         foreach (var entity in ClientGameState.Instance.EnumerateEntities())
         {
+            if (entity.Hp <= 0 || _batchedDeadEntities.Contains(entity.EntityId))
+                continue;
+
             int cx = _hostPositions.TryGetValue(entity.EntityId, out var p) ? p.x : entity.X;
             int cy = _hostPositions.TryGetValue(entity.EntityId, out p) ? p.y : entity.Y;
 

@@ -562,7 +562,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 69, y: 0, z: 50}
+      Position: {x: 69, y: 0, z: 54}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 31
@@ -574,7 +574,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 80, y: 0, z: 39}
+      Position: {x: 84, y: 0, z: 39}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 32
@@ -586,7 +586,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 69, y: 0, z: 28}
+      Position: {x: 69, y: 0, z: 26}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 33
@@ -598,7 +598,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 59, y: 0, z: 39}
+      Position: {x: 56, y: 0, z: 39}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 34
@@ -610,7 +610,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: StageSummonRing
       ParamId: 0
-      Position: {x: 59, y: 0, z: 51}
+      Position: {x: 81, y: 0, z: 51}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 2101
@@ -622,19 +622,19 @@ MonoBehaviour:
     - Type: 14
       HeaderParam: 
       ParamId: 2201
-      Position: {x: 60, y: 0, z: 52}
+      Position: {x: 81, y: 0, z: 51}
       ObjectSize: {x: 2, y: 2}
       StringVal: Section2_NormalSummonRing_North
       GroupId: 1
-      GuideTitle: 1027
-      GuideBody: Enemy_Specter
+      GuideTitle: 1010,1012
+      GuideBody: Enemy_Bat,Enemy_EvilMage
       GuideImageResource: 
       DurationMs: 8
       VfxKey: 
     - Type: 4
       HeaderParam: StageSummonRing
       ParamId: 0
-      Position: {x: 82, y: 0, z: 50}
+      Position: {x: 81, y: 0, z: 30}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 2102
@@ -646,12 +646,12 @@ MonoBehaviour:
     - Type: 14
       HeaderParam: 
       ParamId: 2202
-      Position: {x: 82, y: 0, z: 50}
+      Position: {x: 81, y: 0, z: 30}
       ObjectSize: {x: 2, y: 4}
       StringVal: Section2_NormalSummonRing_East
       GroupId: 1
-      GuideTitle: 1027
-      GuideBody: Enemy_Specter
+      GuideTitle: 1010,1012
+      GuideBody: Enemy_Bat,Enemy_EvilMage
       GuideImageResource: 
       DurationMs: 8
       VfxKey: 
@@ -699,23 +699,39 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 31
       TargetKey: RunicTowerLink_North
-      Count: 8
+      Count: 60
       Area:
-        x: 69
-        y: 49
-        width: 3
-        height: 3
-      AreaShape: 1
+        x: 66
+        y: 51
+        width: 7
+        height: 7
+      AreaShape: 0
       AreaCells:
-      - {x: 69, y: 49}
-      - {x: 70, y: 49}
-      - {x: 71, y: 49}
-      - {x: 69, y: 50}
-      - {x: 70, y: 50}
-      - {x: 71, y: 50}
+      - {x: 68, y: 51}
       - {x: 69, y: 51}
       - {x: 70, y: 51}
       - {x: 71, y: 51}
+      - {x: 72, y: 51}
+      - {x: 68, y: 52}
+      - {x: 69, y: 52}
+      - {x: 70, y: 52}
+      - {x: 71, y: 52}
+      - {x: 72, y: 52}
+      - {x: 68, y: 53}
+      - {x: 69, y: 53}
+      - {x: 70, y: 53}
+      - {x: 71, y: 53}
+      - {x: 72, y: 53}
+      - {x: 68, y: 54}
+      - {x: 69, y: 54}
+      - {x: 70, y: 54}
+      - {x: 71, y: 54}
+      - {x: 72, y: 54}
+      - {x: 68, y: 55}
+      - {x: 69, y: 55}
+      - {x: 70, y: 55}
+      - {x: 71, y: 55}
+      - {x: 72, y: 55}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
@@ -766,23 +782,39 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 32
       TargetKey: RunicTowerLink_East
-      Count: 8
+      Count: 60
       Area:
-        x: 79
-        y: 38
-        width: 3
-        height: 3
-      AreaShape: 1
+        x: 81
+        y: 36
+        width: 7
+        height: 7
+      AreaShape: 0
       AreaCells:
-      - {x: 79, y: 38}
-      - {x: 80, y: 38}
-      - {x: 81, y: 38}
-      - {x: 79, y: 39}
-      - {x: 80, y: 39}
-      - {x: 81, y: 39}
-      - {x: 79, y: 40}
-      - {x: 80, y: 40}
-      - {x: 81, y: 40}
+      - {x: 82, y: 37}
+      - {x: 83, y: 37}
+      - {x: 84, y: 37}
+      - {x: 85, y: 37}
+      - {x: 86, y: 37}
+      - {x: 82, y: 38}
+      - {x: 83, y: 38}
+      - {x: 84, y: 38}
+      - {x: 85, y: 38}
+      - {x: 86, y: 38}
+      - {x: 82, y: 39}
+      - {x: 83, y: 39}
+      - {x: 84, y: 39}
+      - {x: 85, y: 39}
+      - {x: 86, y: 39}
+      - {x: 82, y: 40}
+      - {x: 83, y: 40}
+      - {x: 84, y: 40}
+      - {x: 85, y: 40}
+      - {x: 86, y: 40}
+      - {x: 82, y: 41}
+      - {x: 83, y: 41}
+      - {x: 84, y: 41}
+      - {x: 85, y: 41}
+      - {x: 86, y: 41}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
@@ -862,7 +894,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: StageSummonRing
       ParamId: 0
-      Position: {x: 80, y: 0, z: 29}
+      Position: {x: 59, y: 0, z: 29}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 2103
@@ -874,19 +906,19 @@ MonoBehaviour:
     - Type: 14
       HeaderParam: 
       ParamId: 2203
-      Position: {x: 80, y: 0, z: 29}
+      Position: {x: 59, y: 0, z: 29}
       ObjectSize: {x: 2, y: 2}
       StringVal: Section2_NormalSummonRing_South
       GroupId: 1
-      GuideTitle: 1027
-      GuideBody: Enemy_Specter
+      GuideTitle: 1010,1012,1027
+      GuideBody: Enemy_Bat,Enemy_EvilMage,Enemy_Specter
       GuideImageResource: 
       DurationMs: 8
       VfxKey: 
     - Type: 4
       HeaderParam: StageSummonRing
       ParamId: 0
-      Position: {x: 58, y: 0, z: 26}
+      Position: {x: 60, y: 0, z: 49}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 2104
@@ -898,12 +930,12 @@ MonoBehaviour:
     - Type: 14
       HeaderParam: 
       ParamId: 2204
-      Position: {x: 58, y: 0, z: 26}
+      Position: {x: 60, y: 0, z: 49}
       ObjectSize: {x: 2, y: 4}
       StringVal: Section2_NormalSummonRing_West
       GroupId: 1
-      GuideTitle: 1027
-      GuideBody: Enemy_Specter
+      GuideTitle: 1010,1012,1027
+      GuideBody: Enemy_Bat,Enemy_EvilMage,Enemy_Specter
       GuideImageResource: 
       DurationMs: 8
       VfxKey: 
@@ -939,23 +971,39 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 33
       TargetKey: RunicTowerLink_South
-      Count: 8
+      Count: 60
       Area:
-        x: 69
-        y: 28
-        width: 3
-        height: 3
-      AreaShape: 1
+        x: 66
+        y: 23
+        width: 7
+        height: 7
+      AreaShape: 0
       AreaCells:
+      - {x: 68, y: 24}
+      - {x: 69, y: 24}
+      - {x: 70, y: 24}
+      - {x: 71, y: 24}
+      - {x: 72, y: 24}
+      - {x: 68, y: 25}
+      - {x: 69, y: 25}
+      - {x: 70, y: 25}
+      - {x: 71, y: 25}
+      - {x: 72, y: 25}
+      - {x: 68, y: 26}
+      - {x: 69, y: 26}
+      - {x: 70, y: 26}
+      - {x: 71, y: 26}
+      - {x: 72, y: 26}
+      - {x: 68, y: 27}
+      - {x: 69, y: 27}
+      - {x: 70, y: 27}
+      - {x: 71, y: 27}
+      - {x: 72, y: 27}
+      - {x: 68, y: 28}
       - {x: 69, y: 28}
       - {x: 70, y: 28}
       - {x: 71, y: 28}
-      - {x: 69, y: 29}
-      - {x: 70, y: 29}
-      - {x: 71, y: 29}
-      - {x: 69, y: 30}
-      - {x: 70, y: 30}
-      - {x: 71, y: 30}
+      - {x: 72, y: 28}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
@@ -1006,23 +1054,39 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 34
       TargetKey: RunicTowerLink_West
-      Count: 8
+      Count: 60
       Area:
-        x: 58
-        y: 38
-        width: 3
-        height: 3
-      AreaShape: 1
+        x: 53
+        y: 36
+        width: 7
+        height: 7
+      AreaShape: 0
       AreaCells:
+      - {x: 55, y: 37}
+      - {x: 56, y: 37}
+      - {x: 57, y: 37}
+      - {x: 58, y: 37}
+      - {x: 59, y: 37}
+      - {x: 55, y: 38}
+      - {x: 56, y: 38}
+      - {x: 57, y: 38}
       - {x: 58, y: 38}
       - {x: 59, y: 38}
-      - {x: 60, y: 38}
+      - {x: 55, y: 39}
+      - {x: 56, y: 39}
+      - {x: 57, y: 39}
       - {x: 58, y: 39}
       - {x: 59, y: 39}
-      - {x: 60, y: 39}
+      - {x: 55, y: 40}
+      - {x: 56, y: 40}
+      - {x: 57, y: 40}
       - {x: 58, y: 40}
       - {x: 59, y: 40}
-      - {x: 60, y: 40}
+      - {x: 55, y: 41}
+      - {x: 56, y: 41}
+      - {x: 57, y: 41}
+      - {x: 58, y: 41}
+      - {x: 59, y: 41}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
@@ -1090,12 +1154,12 @@ MonoBehaviour:
     - Type: 14
       HeaderParam: 
       ParamId: 2201
-      Position: {x: 60, y: 0, z: 52}
-      ObjectSize: {x: 2, y: 2}
+      Position: {x: 81, y: 0, z: 51}
+      ObjectSize: {x: 2, y: 15}
       StringVal: Section2_NormalSummonRing_North
       GroupId: 0
-      GuideTitle: 1027
-      GuideBody: Enemy_Specter
+      GuideTitle: 1010
+      GuideBody: Enemy_Bat
       GuideImageResource: 
       DurationMs: 8
       VfxKey: 
@@ -1114,12 +1178,12 @@ MonoBehaviour:
     - Type: 14
       HeaderParam: 
       ParamId: 2202
-      Position: {x: 82, y: 0, z: 50}
-      ObjectSize: {x: 2, y: 4}
+      Position: {x: 81, y: 0, z: 30}
+      ObjectSize: {x: 1, y: 15}
       StringVal: Section2_NormalSummonRing_East
       GroupId: 0
-      GuideTitle: 1027
-      GuideBody: Enemy_Specter
+      GuideTitle: 1012
+      GuideBody: Enemy_EvilMage
       GuideImageResource: 
       DurationMs: 8
       VfxKey: 
@@ -1138,11 +1202,11 @@ MonoBehaviour:
     - Type: 14
       HeaderParam: 
       ParamId: 2203
-      Position: {x: 80, y: 0, z: 29}
-      ObjectSize: {x: 2, y: 2}
+      Position: {x: 59, y: 0, z: 29}
+      ObjectSize: {x: 1, y: 10}
       StringVal: Section2_NormalSummonRing_South
       GroupId: 0
-      GuideTitle: 1027
+      GuideTitle: 1010,1012,1027
       GuideBody: Enemy_Specter
       GuideImageResource: 
       DurationMs: 8
@@ -1162,12 +1226,12 @@ MonoBehaviour:
     - Type: 14
       HeaderParam: 
       ParamId: 2204
-      Position: {x: 58, y: 0, z: 26}
-      ObjectSize: {x: 2, y: 4}
+      Position: {x: 60, y: 0, z: 49}
+      ObjectSize: {x: 1, y: 15}
       StringVal: Section2_NormalSummonRing_West
       GroupId: 0
-      GuideTitle: 1027
-      GuideBody: Enemy_Specter
+      GuideTitle: 1010,1012,1027
+      GuideBody: Enemy_Bat,Enemy_EvilMage,Enemy_Specter
       GuideImageResource: 
       DurationMs: 8
       VfxKey: 
@@ -1246,7 +1310,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: StageEliteSummonGate
       ParamId: 0
-      Position: {x: 70, y: 0, z: 39}
+      Position: {x: 78, y: 0, z: 39}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 2190

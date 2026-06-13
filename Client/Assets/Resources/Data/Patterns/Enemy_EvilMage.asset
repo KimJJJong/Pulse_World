@@ -20,7 +20,7 @@ MonoBehaviour:
       Selectors:
       - Id: DefaultMovement
         Weight: 1
-        CooldownBeats: 0
+        CooldownBeats: 2
         When:
           All:
           - Type: 1
@@ -88,7 +88,7 @@ MonoBehaviour:
           SkillRef: {fileID: 11400000, guid: 188488d829fff574097bd0194902d5ea, type: 2}
       - Id: Movement
         Weight: 1
-        CooldownBeats: 0
+        CooldownBeats: 2
         When:
           All:
           - Type: 1

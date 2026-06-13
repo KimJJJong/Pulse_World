@@ -27,7 +27,7 @@ public class ClientSkillRunner : MonoBehaviour
     // InputLock 이벤트의 종료 Tick (DurationTicks 기준으로 계산)
     private long _inputLockEndTick = 0;
 
-    public void Initialize(BoardView boardView, int actorId, EntityVisual visual, string skillId, long startTick, bool isMine, float casterRotation = 0f)
+    public bool Initialize(BoardView boardView, int actorId, EntityVisual visual, string skillId, long startTick, bool isMine, float casterRotation = 0f)
     {
         ResetRuntimeState();
 
@@ -44,18 +44,9 @@ public class ClientSkillRunner : MonoBehaviour
         {
             Debug.LogError($"[ClientSkillRunner] Skill {skillId} not found in Resources/Data/NewSkills/");
 
-            // Fallback for Prediction/Missing JSONs
-            if (skillId == "Attack" || skillId == "Skill")
-            {
-                if (RhythmClient.Instance != null && _visual != null)
-                {
-                    float fallbackDuration = (float)(RhythmClient.Instance.GetBeatDurationMs() / 1000.0);
-                    _visual.PlaySkill(skillId, fallbackDuration, _isMine);
-                }
-            }
-
+            bool fallbackPlayed = PlayFallbackSkillAnimation(skillId);
             Destroy(gameObject);
-            return;
+            return fallbackPlayed;
         }
 
         // [Fix] 스킬이 이미 만료된 상태로 도착했다면 (원격 RTT 지연) 즉시 폐기.
@@ -67,9 +58,10 @@ public class ClientSkillRunner : MonoBehaviour
             if (relativeTick > _skillDef.Data.TotalDurationTicks)
             {
 /*                Debug.LogWarning($"[ClientSkillRunner] Skill {skillId} already expired on arrival. " +
-                                 $"RelativeTick={relativeTick} > TotalDuration={_skillDef.Data.TotalDurationTicks}. Discarding.");*/
+                                  $"RelativeTick={relativeTick} > TotalDuration={_skillDef.Data.TotalDurationTicks}. Discarding.");*/
+                bool fallbackPlayed = PlayFallbackSkillAnimation(skillId);
                 Destroy(gameObject);
-                return;
+                return fallbackPlayed;
             }
         }
 
@@ -80,6 +72,21 @@ public class ClientSkillRunner : MonoBehaviour
         {
             TryStartPlayback(RhythmClient.Instance.GetCurrentServerTick());
         }
+
+        return true;
+    }
+
+    private bool PlayFallbackSkillAnimation(string skillId)
+    {
+        if (_visual == null || RhythmClient.Instance == null)
+            return false;
+
+        float fallbackDuration = (float)(RhythmClient.Instance.GetBeatDurationMs() / 1000.0);
+        fallbackDuration = Mathf.Max(0.15f, fallbackDuration);
+        string fallbackSkillId = string.IsNullOrWhiteSpace(skillId) ? "Attack" : skillId;
+        _visual.PlaySkill(fallbackSkillId, fallbackDuration, _isMine);
+        _playbackStarted = true;
+        return true;
     }
 
     private void ResetRuntimeState()

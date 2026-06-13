@@ -62,6 +62,7 @@ MonoBehaviour:
             MaxRange: 999
             RequireAlive: 1
           SkillId: Enemy_Attack_Front
+          LockRotation: 0
           TelegraphBeats: 0
           TelegraphStyleId: 0
           Area:

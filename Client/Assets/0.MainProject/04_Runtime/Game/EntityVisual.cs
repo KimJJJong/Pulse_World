@@ -247,6 +247,7 @@ public class EntityVisual : MonoBehaviour
 
             StopAnimatorSpeedReset();
             StopReturnToIdle();
+            SetAnimatorBoolIfExists(IsMovingHash, false);
 
             bool playedDirectly = TryPlayRoleState(
                 AnimationRole.Attack,

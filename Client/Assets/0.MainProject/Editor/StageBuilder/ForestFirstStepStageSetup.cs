@@ -36,11 +36,14 @@ namespace RhythmRPG.Editor.StageBuilder
         private const string EliteSummonGateEntityPrefabPath = SummonPortalPrefabFolder + "/PF_Entity_StageSummon_RunicStoneGate.prefab";
         private const string NormalSummonTargetKey = "Section2_NormalSummonRing";
         private const string EliteSummonTargetKey = "Section2_EliteSummonGate";
-        private const string SummonMonsterIdsCsv = "1027";
-        private const string SummonMonsterPattern = "Enemy_Specter";
+        private const string FirstPhaseSummonMonsterIdsCsv = "1010,1012";
+        private const string FirstPhaseSummonMonsterPatternCsv = "Enemy_Bat,Enemy_EvilMage";
+        private const string SecondPhaseSummonMonsterIdsCsv = "1010,1012,1027";
+        private const string SecondPhaseSummonMonsterPatternCsv = "Enemy_Bat,Enemy_EvilMage,Enemy_Specter";
         private const int EliteGateSceneGroupId = 2190;
         private const int NormalSummonMaxAlive = 2;
         private const int NormalSummonIntervalBeats = 8;
+        private const int TowerHoldAreaRadius = 2;
 
         private static readonly Vector3 ObeliskRotation = new(270f, 0f, 0f);
         private static readonly Vector3 ObeliskScale = new(200f, 200f, 200f);
@@ -51,18 +54,18 @@ namespace RhythmRPG.Editor.StageBuilder
 
         private static readonly TowerSpec[] Towers =
         {
-            new("North", "Runic_Obelisk_North", new Vector3(69.66f, 0.83f, 50.40f), new Vector2Int(70, 50), "RunicTowerLink_North", 31, 101),
-            new("East", "Runic_Obelisk_East", new Vector3(80.00f, 0.83f, 39.44f), new Vector2Int(80, 39), "RunicTowerLink_East", 32, 102),
-            new("South", "Runic_Obelisk_South", new Vector3(69.66f, 0.83f, 28.50f), new Vector2Int(70, 29), "RunicTowerLink_South", 33, 103),
-            new("West", "Runic_Obelisk_West", new Vector3(59.30f, 0.83f, 39.44f), new Vector2Int(59, 39), "RunicTowerLink_West", 34, 104)
+            new("North", "Runic_Obelisk_North", new Vector3(69.66f, 0.83f, 53.20f), new Vector2Int(70, 53), "RunicTowerLink_North", 31, 101),
+            new("East", "Runic_Obelisk_East", new Vector3(82.80f, 0.83f, 39.44f), new Vector2Int(83, 39), "RunicTowerLink_East", 32, 102),
+            new("South", "Runic_Obelisk_South", new Vector3(69.66f, 0.83f, 25.70f), new Vector2Int(70, 26), "RunicTowerLink_South", 33, 103),
+            new("West", "Runic_Obelisk_West", new Vector3(56.50f, 0.83f, 39.44f), new Vector2Int(57, 39), "RunicTowerLink_West", 34, 104)
         };
 
         private static readonly SummonRingSpec[] SummonRings =
         {
-            new("North", "Section2_NormalSummonRing_North", new Vector3(69.66f, 0.06f, 45.95f), new Vector3Int(70, 0, 46), 2101, 2201, 2),
-            new("East", "Section2_NormalSummonRing_East", new Vector3(76.15f, 0.06f, 39.44f), new Vector3Int(76, 0, 39), 2102, 2202, 4),
-            new("South", "Section2_NormalSummonRing_South", new Vector3(69.66f, 0.06f, 32.95f), new Vector3Int(70, 0, 33), 2103, 2203, 2),
-            new("West", "Section2_NormalSummonRing_West", new Vector3(63.15f, 0.06f, 39.44f), new Vector3Int(63, 0, 39), 2104, 2204, 4)
+            new("North", "Section2_NormalSummonRing_North", new Vector3(78.70f, 0.06f, 48.35f), new Vector3Int(79, 0, 48), 2101, 2201, 2, FirstPhaseSummonMonsterIdsCsv, FirstPhaseSummonMonsterPatternCsv),
+            new("East", "Section2_NormalSummonRing_East", new Vector3(78.70f, 0.06f, 30.55f), new Vector3Int(79, 0, 31), 2102, 2202, 4, FirstPhaseSummonMonsterIdsCsv, FirstPhaseSummonMonsterPatternCsv),
+            new("South", "Section2_NormalSummonRing_South", new Vector3(60.65f, 0.06f, 30.55f), new Vector3Int(61, 0, 31), 2103, 2203, 2, SecondPhaseSummonMonsterIdsCsv, SecondPhaseSummonMonsterPatternCsv),
+            new("West", "Section2_NormalSummonRing_West", new Vector3(60.65f, 0.06f, 48.35f), new Vector3Int(61, 0, 48), 2104, 2204, 4, SecondPhaseSummonMonsterIdsCsv, SecondPhaseSummonMonsterPatternCsv)
         };
 
         [MenuItem("Tools/RhythmRPG/Stage/Setup Forest First Step Towers")]
@@ -354,8 +357,8 @@ namespace RhythmRPG.Editor.StageBuilder
             marker.MaxAlive = NormalSummonMaxAlive;
             marker.SpawnIntervalBeats = NormalSummonIntervalBeats;
             marker.InitialDelayBeats = 1;
-            marker.MonsterIdsCsv = SummonMonsterIdsCsv;
-            marker.MonsterPattern = SummonMonsterPattern;
+            marker.MonsterIdsCsv = SecondPhaseSummonMonsterIdsCsv;
+            marker.MonsterPattern = SecondPhaseSummonMonsterPatternCsv;
 
             PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
             Object.DestroyImmediate(root);
@@ -397,11 +400,12 @@ namespace RhythmRPG.Editor.StageBuilder
             {
                 var go = new GameObject(objectName);
                 existing = go.transform;
-                existing.position = new Vector3(ring.SpawnCell.x, ring.SpawnCell.y, ring.SpawnCell.z);
             }
 
             if (parent != null && existing.parent != parent)
                 existing.SetParent(parent, true);
+
+            existing.position = new Vector3(ring.SpawnCell.x, ring.SpawnCell.y, ring.SpawnCell.z);
 
             StageSummonSpawnPointMarker marker = existing.GetComponent<StageSummonSpawnPointMarker>();
             bool markerCreated = marker == null;
@@ -415,18 +419,18 @@ namespace RhythmRPG.Editor.StageBuilder
                 marker.MaxAlive = NormalSummonMaxAlive;
                 marker.SpawnIntervalBeats = NormalSummonIntervalBeats;
                 marker.InitialDelayBeats = ring.InitialDelayBeats;
-                marker.MonsterIdsCsv = SummonMonsterIdsCsv;
-                marker.MonsterPattern = SummonMonsterPattern;
+                marker.MonsterIdsCsv = ring.MonsterIdsCsv;
+                marker.MonsterPattern = ring.MonsterPatternCsv;
             }
             else
             {
                 marker.MaxAlive = Mathf.Max(1, marker.MaxAlive);
                 marker.SpawnIntervalBeats = Mathf.Max(1, marker.SpawnIntervalBeats);
                 marker.InitialDelayBeats = Mathf.Max(0, marker.InitialDelayBeats);
-                if (string.IsNullOrWhiteSpace(marker.MonsterIdsCsv))
-                    marker.MonsterIdsCsv = SummonMonsterIdsCsv;
-                if (string.IsNullOrWhiteSpace(marker.MonsterPattern))
-                    marker.MonsterPattern = SummonMonsterPattern;
+                if (ShouldReplaceGeneratedSummonMonsterIds(marker.MonsterIdsCsv))
+                    marker.MonsterIdsCsv = ring.MonsterIdsCsv;
+                if (ShouldReplaceGeneratedSummonMonsterPattern(marker.MonsterPattern))
+                    marker.MonsterPattern = ring.MonsterPatternCsv;
             }
 
             EditorUtility.SetDirty(marker);
@@ -505,9 +509,39 @@ namespace RhythmRPG.Editor.StageBuilder
             marker.MaxAlive = NormalSummonMaxAlive;
             marker.SpawnIntervalBeats = NormalSummonIntervalBeats;
             marker.InitialDelayBeats = 1;
-            marker.MonsterIdsCsv = SummonMonsterIdsCsv;
-            marker.MonsterPattern = SummonMonsterPattern;
+            marker.MonsterIdsCsv = SecondPhaseSummonMonsterIdsCsv;
+            marker.MonsterPattern = SecondPhaseSummonMonsterPatternCsv;
             EditorUtility.SetDirty(marker);
+        }
+
+        private static bool ShouldReplaceGeneratedSummonMonsterIds(string value)
+        {
+            string normalized = NormalizeCsv(value);
+            return string.IsNullOrWhiteSpace(normalized)
+                   || normalized == "1027"
+                   || normalized == NormalizeCsv(FirstPhaseSummonMonsterIdsCsv)
+                   || normalized == NormalizeCsv(SecondPhaseSummonMonsterIdsCsv);
+        }
+
+        private static bool ShouldReplaceGeneratedSummonMonsterPattern(string value)
+        {
+            string normalized = NormalizeCsv(value);
+            return string.IsNullOrWhiteSpace(normalized)
+                   || normalized == NormalizeCsv("Enemy_Specter")
+                   || normalized == NormalizeCsv(FirstPhaseSummonMonsterPatternCsv)
+                   || normalized == NormalizeCsv(SecondPhaseSummonMonsterPatternCsv);
+        }
+
+        private static string NormalizeCsv(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            string[] tokens = value.Split(new[] { ',', ';', '|', ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < tokens.Length; i++)
+                tokens[i] = tokens[i].Trim().ToLowerInvariant();
+
+            return string.Join(",", tokens);
         }
 
         private static EntityDefinitionSO EnsureRunicTowerEntityDefinition()
@@ -938,7 +972,7 @@ namespace RhythmRPG.Editor.StageBuilder
 
         private static ConditionInfoSO HoldArea(TowerSpec tower, int requiredBeats)
         {
-            List<Vector2Int> cells = BuildSquareCells(tower.AreaCenter, 1);
+            List<Vector2Int> cells = BuildSquareCells(tower.AreaCenter, TowerHoldAreaRadius);
             RectInt bounds = CalculateBounds(cells);
             return new ConditionInfoSO
             {
@@ -992,10 +1026,10 @@ namespace RhythmRPG.Editor.StageBuilder
             int initialDelayBeats = marker != null ? Mathf.Max(0, marker.InitialDelayBeats) : ring.InitialDelayBeats;
             string monsterIds = marker != null && !string.IsNullOrWhiteSpace(marker.MonsterIdsCsv)
                 ? marker.MonsterIdsCsv
-                : SummonMonsterIdsCsv;
+                : ring.MonsterIdsCsv;
             string pattern = marker != null && !string.IsNullOrWhiteSpace(marker.MonsterPattern)
                 ? marker.MonsterPattern
-                : SummonMonsterPattern;
+                : ring.MonsterPatternCsv;
             string portalKey = marker != null && !string.IsNullOrWhiteSpace(marker.PortalKey)
                 ? marker.PortalKey
                 : ring.ObjectName;
@@ -1198,6 +1232,8 @@ namespace RhythmRPG.Editor.StageBuilder
             public readonly int SceneGroupId;
             public readonly int SpawnGroupId;
             public readonly int InitialDelayBeats;
+            public readonly string MonsterIdsCsv;
+            public readonly string MonsterPatternCsv;
 
             public SummonRingSpec(
                 string label,
@@ -1206,7 +1242,9 @@ namespace RhythmRPG.Editor.StageBuilder
                 Vector3Int spawnCell,
                 int sceneGroupId,
                 int spawnGroupId,
-                int initialDelayBeats)
+                int initialDelayBeats,
+                string monsterIdsCsv,
+                string monsterPatternCsv)
             {
                 Label = label;
                 ObjectName = objectName;
@@ -1215,6 +1253,8 @@ namespace RhythmRPG.Editor.StageBuilder
                 SceneGroupId = sceneGroupId;
                 SpawnGroupId = spawnGroupId;
                 InitialDelayBeats = initialDelayBeats;
+                MonsterIdsCsv = monsterIdsCsv;
+                MonsterPatternCsv = monsterPatternCsv;
             }
         }
     }

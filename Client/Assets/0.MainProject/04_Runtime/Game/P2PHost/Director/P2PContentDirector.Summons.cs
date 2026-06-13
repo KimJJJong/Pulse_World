@@ -47,7 +47,7 @@ public sealed partial class P2PContentDirector
         portal.SpawnX = data.SpawnX;
         portal.SpawnY = spawnMapY;
         portal.MonsterIds = monsterIds;
-        portal.PatternKey = data.PatternKey ?? string.Empty;
+        portal.PatternKeys = ParsePatternKeys(data.PatternKey);
 
         if (resetTiming)
             portal.NextSpawnBeat = currentBeat + Math.Max(0, data.InitialDelayBeats);
@@ -87,9 +87,11 @@ public sealed partial class P2PContentDirector
                 continue;
             }
 
+            int pickIndex = portal.MonsterIds.Length > 0 ? _rng.Next(portal.MonsterIds.Length) : 0;
             int monsterId = portal.MonsterIds.Length > 0
-                ? portal.MonsterIds[_rng.Next(portal.MonsterIds.Length)]
+                ? portal.MonsterIds[pickIndex]
                 : DefaultSummonMonsterId;
+            string patternKey = ResolveSummonPatternKey(portal.PatternKeys, pickIndex);
 
             SpawnMonster(new SpawnData
             {
@@ -97,10 +99,10 @@ public sealed partial class P2PContentDirector
                 X = portal.SpawnX,
                 Y = 0,
                 Z = portal.SpawnY,
-                AI = portal.PatternKey,
-                Pattern = portal.PatternKey,
-                PatternId = portal.PatternKey,
-                PatternKey = portal.PatternKey,
+                AI = patternKey,
+                Pattern = patternKey,
+                PatternId = patternKey,
+                PatternKey = patternKey,
                 GroupId = portal.SpawnGroupId
             });
 
@@ -119,13 +121,15 @@ public sealed partial class P2PContentDirector
             if (!state.IsAlive)
                 continue;
 
-            if (ClientGameState.Instance != null)
+            if (ClientGameState.Instance != null && ClientGameState.Instance.TryGetEntity(state.EntityId, out var entity))
             {
-                if (!ClientGameState.Instance.TryGetEntity(state.EntityId, out var entity) || entity.Hp <= 0)
+                if (entity.Hp <= 0)
                 {
                     state.IsAlive = false;
                     continue;
                 }
+
+                state.LastKnownHp = entity.Hp;
             }
 
             count++;
@@ -159,6 +163,37 @@ public sealed partial class P2PContentDirector
         return ids.Count > 0 ? ids.ToArray() : new[] { DefaultSummonMonsterId };
     }
 
+    private static string[] ParsePatternKeys(string csv)
+    {
+        if (string.IsNullOrWhiteSpace(csv))
+            return Array.Empty<string>();
+
+        string[] tokens = csv.Split(new[] { ',', ';', '|', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        var keys = new List<string>(tokens.Length);
+        foreach (string token in tokens)
+        {
+            string key = token.Trim();
+            if (!string.IsNullOrWhiteSpace(key))
+                keys.Add(key);
+        }
+
+        return keys.ToArray();
+    }
+
+    private static string ResolveSummonPatternKey(string[] patternKeys, int pickIndex)
+    {
+        if (patternKeys == null || patternKeys.Length == 0)
+            return string.Empty;
+
+        if (patternKeys.Length == 1)
+            return patternKeys[0];
+
+        if (pickIndex >= 0 && pickIndex < patternKeys.Length)
+            return patternKeys[pickIndex];
+
+        return patternKeys[patternKeys.Length - 1];
+    }
+
     private sealed class StageSummonPortalRuntime
     {
         public string PortalKey = string.Empty;
@@ -170,6 +205,6 @@ public sealed partial class P2PContentDirector
         public int SpawnX;
         public int SpawnY;
         public int[] MonsterIds = Array.Empty<int>();
-        public string PatternKey = string.Empty;
+        public string[] PatternKeys = Array.Empty<string>();
     }
 }

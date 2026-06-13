@@ -133,8 +133,8 @@ public sealed class TownP2PHostController : MonoBehaviour
             ActionKind = req.ActionKind,
             FromX = fromX,
             FromY = fromY,
-            ToX = accepted ? toX : fromX,
-            ToY = accepted ? toY : fromY,
+            ToX = toX,
+            ToY = toY,
             Rotation = req.Rotation,
             Accepted = accepted
         });

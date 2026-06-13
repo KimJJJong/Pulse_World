@@ -953,7 +953,7 @@ namespace RhythmRPG.Editor.StageBuilder
                     summonActiveProp.intValue = summonActive ? 1 : 0;
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("Position"), new GUIContent("Spawn Cell"));
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GuideTitle"), new GUIContent("Monster IDs CSV"));
-                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GuideBody"), new GUIContent("Monster Pattern"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GuideBody"), new GUIContent("Monster Pattern CSV"));
                     SerializedProperty summonSizeProp = actionProp.FindPropertyRelative("ObjectSize");
                     Vector2Int summonSize = summonSizeProp.vector2IntValue;
                     summonSize.x = Mathf.Max(1, EditorGUILayout.IntField(new GUIContent("Max Alive"), Mathf.Max(1, summonSize.x)));
