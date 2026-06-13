@@ -202,10 +202,8 @@ namespace GameServer.InGame.Manager.Beat
 
             var toPos = cmd.TargetCell;
             bool accepted = _world.TryMove(cmd.ActorId, toPos);
-            
-            if (!accepted)
-                toPos = fromPos;
-            else
+
+            if (accepted)
                 MoveResolved?.Invoke(cmd.ActorId, toPos.X, toPos.Y, true);
 
             _broadcaster.Broadcast(new SC_BeatActions
@@ -465,9 +463,7 @@ namespace GameServer.InGame.Manager.Beat
                     case ActionKind.Move:
                         toPos = cmd.TargetCell;
                         accepted = _world.TryMove(cmd.ActorId, toPos);
-                        if (!accepted)
-                            toPos = fromPos;
-                        else
+                        if (accepted)
                             MoveResolved?.Invoke(cmd.ActorId, toPos.X, toPos.Y, true);
                         break;
 
