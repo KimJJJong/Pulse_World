@@ -63,6 +63,7 @@
                 "RequireAlive": true
               },
               "SkillId": "Enemy_Attack_Front",
+              "LockRotation": false,
               "TelegraphBeats": 0,
               "TelegraphStyleId": 0,
               "Area": {

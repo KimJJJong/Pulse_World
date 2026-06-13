@@ -8,7 +8,7 @@
         {
           "Id": "DefaultMovement",
           "Weight": 1,
-          "CooldownBeats": 0,
+          "CooldownBeats": 2,
           "When": {
             "All": [
               {
@@ -100,7 +100,7 @@
         {
           "Id": "Movement",
           "Weight": 1,
-          "CooldownBeats": 0,
+          "CooldownBeats": 2,
           "When": {
             "All": [
               {

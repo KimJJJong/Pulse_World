@@ -12,7 +12,12 @@
             "Type": 2,
             "Shape": {
               "ShapeType": 3,
-              "Cells": [],
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
               "CasterSize": 1,
               "RotateWithCaster": true
             },
