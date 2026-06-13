@@ -63,6 +63,7 @@ public sealed partial class P2PContentDirector
 
     private void ResetStageRuntime()
     {
+        CancelPendingEntityGroupRemovals();
         _stage = null;
         _stageLoaded = false;
         _lastStageLoadAttemptMapId = "";
@@ -72,6 +73,7 @@ public sealed partial class P2PContentDirector
         _monsterStates.Clear();
         _stageObjectGroupByEntityId.Clear();
         _objectStatesByTargetId.Clear();
+        ResetSummonPortals();
         _distanceFields.Clear();
         _moveReservationsByBeat.Clear();
         _expiredReservationBeats.Clear();
@@ -416,6 +418,7 @@ public sealed partial class P2PContentDirector
         _lastProcessedBeat = beat;
         _stageEngine.NotifyEvent(new GameEventContext(StageEventType.Beat, timeMs: serverNow), this);
         _stageEngine.NotifyEvent(new GameEventContext(StageEventType.TimeTick, timeMs: serverNow), this);
+        TickSummonPortals(beat);
 
         if (P2PHostController.HasInstance && ShouldAutoSubmitClearOnMonsterWipe())
             P2PHostController.Instance.CheckAndSubmitGameResultIfCleared();
@@ -786,13 +789,50 @@ public sealed partial class P2PContentDirector
             Debug.Log($"[P2PContentDirector] OpenGate at ({x},{y})");
     }
 
-    public void RemoveEntityGroup(int groupId)
+    public void RemoveEntityGroup(int groupId, int delayMs = 0)
+    {
+        if (delayMs > 0 && isActiveAndEnabled)
+        {
+            Coroutine coroutine = null;
+            coroutine = StartCoroutine(CoRemoveEntityGroupAfterDelay(groupId, delayMs, () =>
+            {
+                if (coroutine != null)
+                    _pendingEntityGroupRemovals.Remove(coroutine);
+            }));
+            _pendingEntityGroupRemovals.Add(coroutine);
+            return;
+        }
+
+        RemoveEntityGroupNow(groupId);
+    }
+
+    private System.Collections.IEnumerator CoRemoveEntityGroupAfterDelay(int groupId, int delayMs, Action onComplete)
+    {
+        yield return new WaitForSeconds(Mathf.Max(0f, delayMs / 1000f));
+        RemoveEntityGroupNow(groupId);
+        onComplete?.Invoke();
+    }
+
+    private void CancelPendingEntityGroupRemovals()
+    {
+        foreach (Coroutine coroutine in _pendingEntityGroupRemovals)
+        {
+            if (coroutine != null)
+                StopCoroutine(coroutine);
+        }
+
+        _pendingEntityGroupRemovals.Clear();
+    }
+
+    private void RemoveEntityGroupNow(int groupId)
     {
         if (groupId <= 0 || ClientGameState.Instance == null)
             return;
 
         var entityIds = ClientGameState.Instance.EnumerateEntities()
-            .Where(entity => entity.GroupId == groupId
+            .Where(entity => (entity.GroupId == groupId
+                              || (_monsterStates.TryGetValue(entity.EntityId, out var monsterState)
+                                  && monsterState.GroupId == groupId))
                              && entity.EntityType != (int)EntityType.Player)
             .Select(entity => entity.EntityId)
             .ToArray();

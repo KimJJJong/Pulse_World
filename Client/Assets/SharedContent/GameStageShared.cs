@@ -177,6 +177,22 @@ namespace GameServer.InGame.Director.Data
     }
 
     [Serializable]
+    public class StageSummonPortalData
+    {
+        public string PortalKey = string.Empty;
+        public bool Active = true;
+        public int SpawnGroupId;
+        public int MaxAlive = 2;
+        public int IntervalBeats = 8;
+        public int InitialDelayBeats = 1;
+        public int SpawnX;
+        public int SpawnY;
+        public int SpawnZ;
+        public string MonsterIdsCsv = string.Empty;
+        public string PatternKey = string.Empty;
+    }
+
+    [Serializable]
     public class StageGateDoorData
     {
         public string TargetKey = string.Empty;
@@ -778,8 +794,9 @@ namespace GameServer.InGame.Director.Core
         void FinGame();
         void OpenGate(int x, int y);
         void SetObjectState(int targetId, int state);
-        void RemoveEntityGroup(int groupId);
+        void RemoveEntityGroup(int groupId, int delayMs = 0);
         void SetSceneObjectActive(StageSceneObjectData data);
+        void SetSummonPortalActive(StageSummonPortalData data);
         void SetGateDoorOpen(StageGateDoorData data);
         void ShowGuide(StageGuideData data);
         void ShowTutorialPanel(StageTutorialPanelData data);
@@ -950,6 +967,7 @@ namespace GameServer.InGame.Director.Core
                 "SetObjectState" => new ActionSetObjectState(),
                 "RemoveEntityGroup" => new ActionRemoveEntityGroup(),
                 "SetSceneObjectActive" => new ActionSetSceneObjectActive(),
+                "SetSummonPortalActive" => new ActionSetSummonPortalActive(),
                 "SetGateDoorOpen" => new ActionSetGateDoorOpen(),
                 "PlayVfx" => new ActionPlayVfx(),
                 _ => null
@@ -1331,7 +1349,7 @@ namespace GameServer.InGame.Director.Core
             public override void Execute(IStageActionHost host)
             {
                 int groupId = _data.ParamId > 0 ? _data.ParamId : _data.GroupId;
-                host.RemoveEntityGroup(groupId);
+                host.RemoveEntityGroup(groupId, Math.Max(0, _data.X));
             }
         }
 
@@ -1346,6 +1364,27 @@ namespace GameServer.InGame.Director.Core
                     Visible = _data.GroupId != 0,
                     DurationMs = _data.DurationMs > 0 ? _data.DurationMs : 650,
                     DelayMs = _data.X > 0 ? _data.X : 0
+                });
+            }
+        }
+
+        private sealed class ActionSetSummonPortalActive : EventAction
+        {
+            public override void Execute(IStageActionHost host)
+            {
+                host.SetSummonPortalActive(new StageSummonPortalData
+                {
+                    PortalKey = _data.StringVal ?? string.Empty,
+                    Active = _data.GroupId != 0,
+                    SpawnGroupId = _data.ParamId,
+                    MaxAlive = Math.Max(1, _data.SizeX),
+                    IntervalBeats = Math.Max(1, _data.DurationMs),
+                    InitialDelayBeats = Math.Max(0, _data.SizeY),
+                    SpawnX = _data.X,
+                    SpawnY = _data.Y,
+                    SpawnZ = _data.Z,
+                    MonsterIdsCsv = _data.GuideTitle ?? string.Empty,
+                    PatternKey = _data.GuideBody ?? string.Empty
                 });
             }
         }

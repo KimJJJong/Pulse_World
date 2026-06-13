@@ -39,6 +39,14 @@ MonoBehaviour:
     EntityDef: {fileID: 11400000, guid: f6f677115c6d3884aa2efa7a26001295, type: 2}
     DefaultGroupId: 1000
     PatternRef: {fileID: 11400000, guid: 9995e0cc51bbd3b48b61c20bcd1dc605, type: 2}
+  - Key: StageSummonRing
+    EntityDef: {fileID: 11400000, guid: a8c8002069dcd684a85f4ced56ee2997, type: 2}
+    DefaultGroupId: 0
+    PatternRef: {fileID: 0}
+  - Key: StageEliteSummonGate
+    EntityDef: {fileID: 11400000, guid: 4ac44ee1ca453fa4aaec9b1db2f1c078, type: 2}
+    DefaultGroupId: 0
+    PatternRef: {fileID: 0}
   InitialSpawns:
   - EntityKey: Specter
     Label: 
@@ -398,7 +406,7 @@ MonoBehaviour:
     - Type: 7
       HeaderParam: 
       ParamId: 0
-      Position: {x: 0, y: 0, z: -2}
+      Position: {x: 0, y: 0, z: 0}
       ObjectSize: {x: 1, y: 1}
       StringVal: 
       GroupId: 0
@@ -554,7 +562,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 69, y: 0, z: 53}
+      Position: {x: 69, y: 0, z: 50}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 31
@@ -566,7 +574,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 85, y: 0, z: 39}
+      Position: {x: 80, y: 0, z: 39}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 32
@@ -578,7 +586,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 69, y: 0, z: 27}
+      Position: {x: 69, y: 0, z: 28}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 33
@@ -590,7 +598,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 55, y: 0, z: 39}
+      Position: {x: 59, y: 0, z: 39}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 34
@@ -598,6 +606,54 @@ MonoBehaviour:
       GuideBody: 
       GuideImageResource: 
       DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: StageSummonRing
+      ParamId: 0
+      Position: {x: 59, y: 0, z: 51}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 2101
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2201
+      Position: {x: 60, y: 0, z: 52}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: Section2_NormalSummonRing_North
+      GroupId: 1
+      GuideTitle: 1027
+      GuideBody: Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 8
+      VfxKey: 
+    - Type: 4
+      HeaderParam: StageSummonRing
+      ParamId: 0
+      Position: {x: 82, y: 0, z: 50}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 2102
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2202
+      Position: {x: 82, y: 0, z: 50}
+      ObjectSize: {x: 2, y: 4}
+      StringVal: Section2_NormalSummonRing_East
+      GroupId: 1
+      GuideTitle: 1027
+      GuideBody: Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 8
       VfxKey: 
     - Type: 6
       HeaderParam: 
@@ -643,13 +699,13 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 31
       TargetKey: RunicTowerLink_North
-      Count: 80
+      Count: 8
       Area:
-        x: 66
-        y: 50
-        width: 7
-        height: 7
-      AreaShape: 0
+        x: 69
+        y: 49
+        width: 3
+        height: 3
+      AreaShape: 1
       AreaCells:
       - {x: 69, y: 49}
       - {x: 70, y: 49}
@@ -710,13 +766,13 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 32
       TargetKey: RunicTowerLink_East
-      Count: 80
+      Count: 8
       Area:
-        x: 82
-        y: 36
-        width: 7
-        height: 7
-      AreaShape: 0
+        x: 79
+        y: 38
+        width: 3
+        height: 3
+      AreaShape: 1
       AreaCells:
       - {x: 79, y: 38}
       - {x: 80, y: 38}
@@ -803,6 +859,54 @@ MonoBehaviour:
       GuideImageResource: 
       DurationMs: 3500
       VfxKey: 
+    - Type: 4
+      HeaderParam: StageSummonRing
+      ParamId: 0
+      Position: {x: 80, y: 0, z: 29}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 2103
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2203
+      Position: {x: 80, y: 0, z: 29}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: Section2_NormalSummonRing_South
+      GroupId: 1
+      GuideTitle: 1027
+      GuideBody: Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 8
+      VfxKey: 
+    - Type: 4
+      HeaderParam: StageSummonRing
+      ParamId: 0
+      Position: {x: 58, y: 0, z: 26}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 2104
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2204
+      Position: {x: 58, y: 0, z: 26}
+      ObjectSize: {x: 2, y: 4}
+      StringVal: Section2_NormalSummonRing_West
+      GroupId: 1
+      GuideTitle: 1027
+      GuideBody: Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 8
+      VfxKey: 
   - Section: Section03
     Title: South Tower Hold
     Notes: 
@@ -835,23 +939,23 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 33
       TargetKey: RunicTowerLink_South
-      Count: 80
+      Count: 8
       Area:
-        x: 66
-        y: 24
-        width: 7
-        height: 7
-      AreaShape: 0
+        x: 69
+        y: 28
+        width: 3
+        height: 3
+      AreaShape: 1
       AreaCells:
-      - {x: 68, y: 27}
-      - {x: 69, y: 27}
-      - {x: 70, y: 27}
-      - {x: 68, y: 28}
       - {x: 69, y: 28}
       - {x: 70, y: 28}
-      - {x: 68, y: 29}
+      - {x: 71, y: 28}
       - {x: 69, y: 29}
       - {x: 70, y: 29}
+      - {x: 71, y: 29}
+      - {x: 69, y: 30}
+      - {x: 70, y: 30}
+      - {x: 71, y: 30}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
@@ -902,23 +1006,23 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 34
       TargetKey: RunicTowerLink_West
-      Count: 80
+      Count: 8
       Area:
-        x: 52
-        y: 36
-        width: 7
-        height: 7
-      AreaShape: 0
+        x: 58
+        y: 38
+        width: 3
+        height: 3
+      AreaShape: 1
       AreaCells:
-      - {x: 54, y: 38}
-      - {x: 55, y: 38}
-      - {x: 56, y: 38}
-      - {x: 54, y: 39}
-      - {x: 55, y: 39}
-      - {x: 56, y: 39}
-      - {x: 54, y: 40}
-      - {x: 55, y: 40}
-      - {x: 56, y: 40}
+      - {x: 58, y: 38}
+      - {x: 59, y: 38}
+      - {x: 60, y: 38}
+      - {x: 58, y: 39}
+      - {x: 59, y: 39}
+      - {x: 60, y: 39}
+      - {x: 58, y: 40}
+      - {x: 59, y: 40}
+      - {x: 60, y: 40}
       CountRequirement: 0
       ShowProgressUi: 1
       ShowAreaOutline: 1
@@ -983,6 +1087,174 @@ MonoBehaviour:
       ProgressLabel: Area
       ProgressDurationMs: 1200
     Actions:
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2201
+      Position: {x: 60, y: 0, z: 52}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: Section2_NormalSummonRing_North
+      GroupId: 0
+      GuideTitle: 1027
+      GuideBody: Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 8
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2201
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2202
+      Position: {x: 82, y: 0, z: 50}
+      ObjectSize: {x: 2, y: 4}
+      StringVal: Section2_NormalSummonRing_East
+      GroupId: 0
+      GuideTitle: 1027
+      GuideBody: Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 8
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2202
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2203
+      Position: {x: 80, y: 0, z: 29}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: Section2_NormalSummonRing_South
+      GroupId: 0
+      GuideTitle: 1027
+      GuideBody: Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 8
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2203
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2204
+      Position: {x: 58, y: 0, z: 26}
+      ObjectSize: {x: 2, y: 4}
+      StringVal: Section2_NormalSummonRing_West
+      GroupId: 0
+      GuideTitle: 1027
+      GuideBody: Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 8
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2204
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 12
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: Section2_NormalSummonRing
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 850
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2101
+      Position: {x: 950, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2102
+      Position: {x: 950, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2103
+      Position: {x: 950, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2104
+      Position: {x: 950, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: StageEliteSummonGate
+      ParamId: 0
+      Position: {x: 70, y: 0, z: 39}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 2190
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
     - Type: 6
       HeaderParam: 
       ParamId: 100

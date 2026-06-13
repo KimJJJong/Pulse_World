@@ -166,6 +166,7 @@ namespace RhythmRPG.Editor.StageBuilder
         HideTutorialPanel,
         RemoveEntityGroup,
         SetSceneObjectActive,
-        SetGateDoorOpen
+        SetGateDoorOpen,
+        SetSummonPortalActive
     }
 }

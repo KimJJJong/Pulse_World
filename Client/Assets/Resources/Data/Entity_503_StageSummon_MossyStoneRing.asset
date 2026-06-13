@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05afbcdf4a596b44ad55b7d951602b2, type: 3}
+  m_Name: Entity_503_StageSummon_MossyStoneRing
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Editor.StageBuilder.EntityDefinitionSO
+  EntityId: 503
+  EntityName: Entity_503_StageSummon_MossyStoneRing
+  Type: 3
+  Prefab: {fileID: 6051467815660372650, guid: 348968d921ebc9f47bba71de5c6574da, type: 3}
+  AnimatorController: {fileID: 0}
+  MaxHp: 999999

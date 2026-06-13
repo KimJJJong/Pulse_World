@@ -922,6 +922,10 @@ namespace RhythmRPG.Editor.StageBuilder
 
                 case ActionType.RemoveEntityGroup:
                     EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Target Entity Group ID"));
+                    SerializedProperty removeGroupDelayProp = actionProp.FindPropertyRelative("Position");
+                    Vector3 removeGroupDelay = removeGroupDelayProp.vector3Value;
+                    removeGroupDelay.x = EditorGUILayout.IntField(new GUIContent("Delay (ms)", "RemoveEntityGroup에서만 Position X를 지연 시간으로 사용합니다."), Mathf.Max(0, Mathf.RoundToInt(removeGroupDelay.x)));
+                    removeGroupDelayProp.vector3Value = removeGroupDelay;
                     EditorGUILayout.HelpBox("해당 Group ID를 가진 몬스터/오브젝트 엔티티를 despawn합니다. Player는 제거하지 않습니다.", MessageType.None);
                     break;
 
@@ -938,6 +942,27 @@ namespace RhythmRPG.Editor.StageBuilder
                     sceneObjectDelay.x = EditorGUILayout.IntField(new GUIContent("Delay (ms)", "SetSceneObjectActive에서만 Position X를 지연 시간으로 사용합니다."), Mathf.RoundToInt(sceneObjectDelay.x));
                     sceneObjectDelayProp.vector3Value = sceneObjectDelay;
                     EditorGUILayout.HelpBox("맵에 직접 배치된 안개/길막/장식 오브젝트 root에 StageSceneObjectTarget을 붙이고 Key 또는 Group ID를 맞추면 자연스럽게 표시/숨김 처리됩니다. Delay를 넣으면 지정 시간 후 시작합니다.", MessageType.Info);
+                    break;
+
+                case ActionType.SetSummonPortalActive:
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("StringVal"), new GUIContent("Portal Key"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("ParamId"), new GUIContent("Spawn Group ID"));
+                    SerializedProperty summonActiveProp = actionProp.FindPropertyRelative("GroupId");
+                    bool summonActive = summonActiveProp.intValue != 0;
+                    summonActive = EditorGUILayout.Toggle(new GUIContent("Active"), summonActive);
+                    summonActiveProp.intValue = summonActive ? 1 : 0;
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("Position"), new GUIContent("Spawn Cell"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GuideTitle"), new GUIContent("Monster IDs CSV"));
+                    EditorGUILayout.PropertyField(actionProp.FindPropertyRelative("GuideBody"), new GUIContent("Monster Pattern"));
+                    SerializedProperty summonSizeProp = actionProp.FindPropertyRelative("ObjectSize");
+                    Vector2Int summonSize = summonSizeProp.vector2IntValue;
+                    summonSize.x = Mathf.Max(1, EditorGUILayout.IntField(new GUIContent("Max Alive"), Mathf.Max(1, summonSize.x)));
+                    summonSize.y = Mathf.Max(0, EditorGUILayout.IntField(new GUIContent("Initial Delay Beats"), Mathf.Max(0, summonSize.y)));
+                    summonSizeProp.vector2IntValue = summonSize;
+                    actionProp.FindPropertyRelative("DurationMs").intValue = Mathf.Max(
+                        1,
+                        EditorGUILayout.IntField(new GUIContent("Interval Beats"), Mathf.Max(1, actionProp.FindPropertyRelative("DurationMs").intValue)));
+                    EditorGUILayout.HelpBox("Host 전용 Beat 소환 액션입니다. Ring/Gate 표시 자체는 SetSceneObjectActive로 별도 처리하고, 이 액션은 해당 위치에 주기적으로 몬스터를 생성합니다.", MessageType.Info);
                     break;
 
                 case ActionType.SetGateDoorOpen:
@@ -1179,6 +1204,7 @@ namespace RhythmRPG.Editor.StageBuilder
             PlayVfx,
             RemoveEntityGroup,
             SetSceneObjectActive,
+            SetSummonPortalActive,
             SetGateDoorOpen,
             FinGame
         }
@@ -1359,6 +1385,11 @@ namespace RhythmRPG.Editor.StageBuilder
             if (ColoredButton("+ Deco", ObjectAccent, GUILayout.Width(72)))
             {
                 AddAction(actionsProp, ActionQuickTemplate.SetSceneObjectActive);
+            }
+
+            if (ColoredButton("+ Summon", SpawnAccent, GUILayout.Width(86)))
+            {
+                AddAction(actionsProp, ActionQuickTemplate.SetSummonPortalActive);
             }
 
             if (ColoredButton("+ Gate", ActionAccent, GUILayout.Width(72)))
@@ -1664,6 +1695,18 @@ namespace RhythmRPG.Editor.StageBuilder
                     actionProp.FindPropertyRelative("DurationMs").intValue = 650;
                     break;
 
+                case ActionQuickTemplate.SetSummonPortalActive:
+                    actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.SetSummonPortalActive;
+                    actionProp.FindPropertyRelative("StringVal").stringValue = "SummonRing";
+                    actionProp.FindPropertyRelative("ParamId").intValue = 2101;
+                    actionProp.FindPropertyRelative("GroupId").intValue = 1;
+                    actionProp.FindPropertyRelative("Position").vector3Value = Vector3.zero;
+                    actionProp.FindPropertyRelative("ObjectSize").vector2IntValue = new Vector2Int(2, 1);
+                    actionProp.FindPropertyRelative("GuideTitle").stringValue = "1027";
+                    actionProp.FindPropertyRelative("GuideBody").stringValue = "Enemy_Specter";
+                    actionProp.FindPropertyRelative("DurationMs").intValue = 8;
+                    break;
+
                 case ActionQuickTemplate.SetGateDoorOpen:
                     actionProp.FindPropertyRelative("Type").enumValueIndex = (int)ActionType.SetGateDoorOpen;
                     actionProp.FindPropertyRelative("StringVal").stringValue = "";
@@ -1879,6 +1922,13 @@ namespace RhythmRPG.Editor.StageBuilder
                         ? sceneTargetKey
                         : $"Group {sceneTargetGroup}";
                     return $"Scene Object {sceneTarget} {(sceneTargetActive ? "표시" : "숨김")}";
+
+                case ActionType.SetSummonPortalActive:
+                    string portalKey = actionProp.FindPropertyRelative("StringVal").stringValue;
+                    int summonGroup = actionProp.FindPropertyRelative("ParamId").intValue;
+                    bool portalActive = actionProp.FindPropertyRelative("GroupId").intValue != 0;
+                    string portalLabel = string.IsNullOrWhiteSpace(portalKey) ? $"Group {summonGroup}" : portalKey;
+                    return $"Summon Portal {portalLabel} {(portalActive ? "시작" : "중지")}";
 
                 case ActionType.SetGateDoorOpen:
                     string gateTargetKey = actionProp.FindPropertyRelative("StringVal").stringValue;
@@ -2546,6 +2596,7 @@ namespace RhythmRPG.Editor.StageBuilder
             return type == ActionType.SpawnMonster
                    || type == ActionType.SpawnObject
                    || type == ActionType.OpenGate
+                   || type == ActionType.SetSummonPortalActive
                    || type == ActionType.PlayVfx;
         }
 
@@ -2554,6 +2605,8 @@ namespace RhythmRPG.Editor.StageBuilder
             switch (type)
             {
                 case ActionType.SpawnMonster:
+                    return SpawnAccent;
+                case ActionType.SetSummonPortalActive:
                     return SpawnAccent;
                 case ActionType.SpawnObject:
                     return ObjectAccent;

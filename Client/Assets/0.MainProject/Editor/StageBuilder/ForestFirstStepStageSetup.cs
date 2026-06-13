@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using GameServer.InGame.Director.Data;
 using RhythmRPG.Game.Stage;
 using RhythmRPG.Game.Visual.SceneEffects;
@@ -17,13 +18,36 @@ namespace RhythmRPG.Editor.StageBuilder
         private const string TowerEntityAssetPath = "Assets/Resources/Data/Entity_502_Runic_Obelisk.asset";
         private const string TowerEntityKey = "RunicTower";
         private const int TowerEntityId = 502;
+        private const string NormalSummonRingEntityAssetPath = "Assets/Resources/Data/Entity_503_StageSummon_MossyStoneRing.asset";
+        private const string EliteSummonGateEntityAssetPath = "Assets/Resources/Data/Entity_504_StageSummon_RunicStoneGate.asset";
+        private const string NormalSummonRingEntityKey = "StageSummonRing";
+        private const string EliteSummonGateEntityKey = "StageEliteSummonGate";
+        private const int NormalSummonRingEntityId = 503;
+        private const int EliteSummonGateEntityId = 504;
         private const string TowerTargetKey = "RunicTower";
         private const string TowerCrystalTargetKey = "RunicTowerCrystal";
         private const int TowerPhaseStateId = 100;
+        private const string SummonPortalRootName = "Section2_SummonPortals";
+        private const string SummonSpawnPointRootName = "Section2_SummonSpawnPoints";
+        private const string SummonPortalPrefabFolder = "Assets/Resources/Prefabs/StageSummons";
+        private const string NormalSummonRingPrefabPath = SummonPortalPrefabFolder + "/PF_StageSummon_MossyStoneRing.prefab";
+        private const string EliteSummonGatePrefabPath = SummonPortalPrefabFolder + "/PF_StageSummon_RunicStoneGate.prefab";
+        private const string NormalSummonRingEntityPrefabPath = SummonPortalPrefabFolder + "/PF_Entity_StageSummon_MossyStoneRing.prefab";
+        private const string EliteSummonGateEntityPrefabPath = SummonPortalPrefabFolder + "/PF_Entity_StageSummon_RunicStoneGate.prefab";
+        private const string NormalSummonTargetKey = "Section2_NormalSummonRing";
+        private const string EliteSummonTargetKey = "Section2_EliteSummonGate";
+        private const string SummonMonsterIdsCsv = "1027";
+        private const string SummonMonsterPattern = "Enemy_Specter";
+        private const int EliteGateSceneGroupId = 2190;
+        private const int NormalSummonMaxAlive = 2;
+        private const int NormalSummonIntervalBeats = 8;
 
         private static readonly Vector3 ObeliskRotation = new(270f, 0f, 0f);
         private static readonly Vector3 ObeliskScale = new(200f, 200f, 200f);
         private static readonly Vector3 CenterCrystalPosition = new(69.66f, 2.35f, 39.44f);
+        private static readonly Vector3 EliteGatePosition = new(69.66f, 5.95f, 39.44f);
+        private static readonly Vector3 EliteGateRotation = new(294.648254f, 270f, 180f);
+        private static readonly Vector3 EliteGateScale = new(180.43f, 180.43f, 180.43f);
 
         private static readonly TowerSpec[] Towers =
         {
@@ -31,6 +55,14 @@ namespace RhythmRPG.Editor.StageBuilder
             new("East", "Runic_Obelisk_East", new Vector3(80.00f, 0.83f, 39.44f), new Vector2Int(80, 39), "RunicTowerLink_East", 32, 102),
             new("South", "Runic_Obelisk_South", new Vector3(69.66f, 0.83f, 28.50f), new Vector2Int(70, 29), "RunicTowerLink_South", 33, 103),
             new("West", "Runic_Obelisk_West", new Vector3(59.30f, 0.83f, 39.44f), new Vector2Int(59, 39), "RunicTowerLink_West", 34, 104)
+        };
+
+        private static readonly SummonRingSpec[] SummonRings =
+        {
+            new("North", "Section2_NormalSummonRing_North", new Vector3(69.66f, 0.06f, 45.95f), new Vector3Int(70, 0, 46), 2101, 2201, 2),
+            new("East", "Section2_NormalSummonRing_East", new Vector3(76.15f, 0.06f, 39.44f), new Vector3Int(76, 0, 39), 2102, 2202, 4),
+            new("South", "Section2_NormalSummonRing_South", new Vector3(69.66f, 0.06f, 32.95f), new Vector3Int(70, 0, 33), 2103, 2203, 2),
+            new("West", "Section2_NormalSummonRing_West", new Vector3(63.15f, 0.06f, 39.44f), new Vector3Int(63, 0, 39), 2104, 2204, 4)
         };
 
         [MenuItem("Tools/RhythmRPG/Stage/Setup Forest First Step Towers")]
@@ -48,6 +80,17 @@ namespace RhythmRPG.Editor.StageBuilder
             ConfigureCenterCrystal(centerCrystal);
             EntityDefinitionSO towerEntity = EnsureRunicTowerEntityDefinition();
             ConfigureTowerPrefab();
+            ConfigureSummonPortals();
+            EntityDefinitionSO normalSummonRingEntity = EnsureSummonEntityDefinition(
+                NormalSummonRingEntityAssetPath,
+                NormalSummonRingEntityId,
+                "Entity_503_StageSummon_MossyStoneRing",
+                NormalSummonRingEntityPrefabPath);
+            EntityDefinitionSO eliteSummonGateEntity = EnsureSummonEntityDefinition(
+                EliteSummonGateEntityAssetPath,
+                EliteSummonGateEntityId,
+                "Entity_504_StageSummon_RunicStoneGate",
+                EliteSummonGateEntityPrefabPath);
 
             foreach (TowerSpec tower in Towers)
             {
@@ -61,7 +104,7 @@ namespace RhythmRPG.Editor.StageBuilder
             }
 
             RemoveSceneTowerInstances();
-            ConfigureStageData(towerEntity);
+            ConfigureStageData(towerEntity, normalSummonRingEntity, eliteSummonGateEntity);
             EntityExporter.Export();
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
             EditorSceneManager.SaveOpenScenes();
@@ -169,6 +212,304 @@ namespace RhythmRPG.Editor.StageBuilder
             Debug.Log("[ForestFirstStepStageSetup] Center crystal validation OK. It rises from below to the altar-top pose.");
         }
 
+        private static void ConfigureSummonPortals()
+        {
+            EnsureSummonPortalFolder();
+
+            GameObject ringVisualPrefab = EnsureSummonPortalPrefab(
+                "Mossy_Stone_Ring",
+                NormalSummonRingPrefabPath,
+                StageSummonPortalKind.NormalRing);
+            GameObject gateVisualPrefab = EnsureSummonPortalPrefab(
+                "Runic_Stone_Gate",
+                EliteSummonGatePrefabPath,
+                StageSummonPortalKind.EliteGate);
+
+            if (ringVisualPrefab == null || gateVisualPrefab == null)
+                return;
+
+            EnsureSummonEntityPrefab(
+                ringVisualPrefab,
+                NormalSummonRingEntityPrefabPath,
+                StageSummonPortalKind.NormalRing,
+                new Vector3(0f, 0.06f, 0f),
+                new Vector3(270f, 0f, 0f),
+                new Vector3(100f, 100f, 100f),
+                NormalSummonTargetKey);
+            EnsureSummonEntityPrefab(
+                gateVisualPrefab,
+                EliteSummonGateEntityPrefabPath,
+                StageSummonPortalKind.EliteGate,
+                new Vector3(0f, EliteGatePosition.y, 0f),
+                EliteGateRotation,
+                EliteGateScale,
+                EliteSummonTargetKey);
+
+            Transform spawnRoot = EnsureSummonSpawnPointRoot();
+            DestroyLooseSceneObject("Mossy_Stone_Ring", null);
+            DestroyLooseSceneObject("Runic_Stone_Gate", null);
+            DestroySummonPortalSceneRoot();
+
+            foreach (SummonRingSpec ring in SummonRings)
+                EnsureSummonSpawnPoint(spawnRoot, ring);
+
+            EditorUtility.SetDirty(spawnRoot.gameObject);
+        }
+
+        private static void EnsureSummonPortalFolder()
+        {
+            if (!AssetDatabase.IsValidFolder("Assets/Resources/Prefabs"))
+                AssetDatabase.CreateFolder("Assets/Resources", "Prefabs");
+
+            if (!AssetDatabase.IsValidFolder(SummonPortalPrefabFolder))
+                AssetDatabase.CreateFolder("Assets/Resources/Prefabs", "StageSummons");
+        }
+
+        private static GameObject EnsureSummonPortalPrefab(string sourceObjectName, string prefabPath, StageSummonPortalKind kind)
+        {
+            GameObject source = GameObject.Find(sourceObjectName);
+            if (source != null)
+            {
+                GameObject clone = Object.Instantiate(source);
+                clone.name = Path.GetFileNameWithoutExtension(prefabPath);
+                ConfigureSummonPortalTarget(
+                    clone,
+                    kind,
+                    kind == StageSummonPortalKind.NormalRing ? NormalSummonTargetKey : EliteSummonTargetKey,
+                    kind == StageSummonPortalKind.NormalRing ? 0 : EliteGateSceneGroupId);
+                ConfigurePrefabMarker(clone, kind);
+                PrefabUtility.SaveAsPrefabAsset(clone, prefabPath);
+                Object.DestroyImmediate(clone);
+            }
+
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab == null)
+            {
+                Debug.LogError($"[ForestFirstStepStageSetup] Summon prefab missing and source not found: {prefabPath}");
+                return null;
+            }
+
+            GameObject prefabRoot = PrefabUtility.LoadPrefabContents(prefabPath);
+            ConfigureSummonPortalTarget(
+                prefabRoot,
+                kind,
+                kind == StageSummonPortalKind.NormalRing ? NormalSummonTargetKey : EliteSummonTargetKey,
+                kind == StageSummonPortalKind.NormalRing ? 0 : EliteGateSceneGroupId);
+            ConfigurePrefabMarker(prefabRoot, kind);
+            PrefabUtility.SaveAsPrefabAsset(prefabRoot, prefabPath);
+            PrefabUtility.UnloadPrefabContents(prefabRoot);
+            return AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        }
+
+        private static GameObject EnsureSummonEntityPrefab(
+            GameObject visualPrefab,
+            string prefabPath,
+            StageSummonPortalKind kind,
+            Vector3 visualLocalPosition,
+            Vector3 visualLocalRotation,
+            Vector3 visualLocalScale,
+            string targetKey)
+        {
+            if (visualPrefab == null)
+                return null;
+
+            var root = new GameObject(Path.GetFileNameWithoutExtension(prefabPath));
+            GameObject visual = InstantiatePrefab(visualPrefab, root.transform);
+            if (visual != null)
+            {
+                visual.name = "Visual";
+                visual.transform.localPosition = visualLocalPosition;
+                visual.transform.localRotation = Quaternion.Euler(visualLocalRotation);
+                visual.transform.localScale = visualLocalScale;
+                RemoveComponentIfExists<StageSceneObjectTarget>(visual);
+                RemoveComponentIfExists<StageSceneObjectAutoReveal>(visual);
+                RemoveComponentIfExists<StageSummonPortalMarker>(visual);
+            }
+
+            StageSceneObjectTarget target = ConfigureSummonPortalTarget(
+                root,
+                kind,
+                targetKey,
+                0,
+                bindRuntimeGroup: true,
+                motionRoot: visual != null ? visual.transform : null);
+
+            var autoReveal = EnsureComponent<StageSceneObjectAutoReveal>(root);
+            autoReveal.Target = target;
+            autoReveal.DelayMs = 0;
+            autoReveal.DurationMs = target.DefaultDurationMs;
+            autoReveal.ShakeCameraOnReveal = kind == StageSummonPortalKind.EliteGate;
+            autoReveal.ShakeDelaySeconds = kind == StageSummonPortalKind.EliteGate ? 0.08f : 0f;
+            autoReveal.CameraShakeDuration = 0.48f;
+            autoReveal.CameraShakeStrength = kind == StageSummonPortalKind.EliteGate ? 0.075f : 0.035f;
+            autoReveal.CameraShakeFrequency = 22f;
+
+            var marker = EnsureComponent<StageSummonPortalMarker>(root);
+            marker.Kind = kind;
+            marker.PortalKey = kind == StageSummonPortalKind.NormalRing ? NormalSummonTargetKey : EliteSummonTargetKey;
+            marker.SceneGroupId = 0;
+            marker.SpawnGroupId = 0;
+            marker.SpawnPoint = null;
+            marker.SpawnCell = Vector3Int.zero;
+            marker.MaxAlive = NormalSummonMaxAlive;
+            marker.SpawnIntervalBeats = NormalSummonIntervalBeats;
+            marker.InitialDelayBeats = 1;
+            marker.MonsterIdsCsv = SummonMonsterIdsCsv;
+            marker.MonsterPattern = SummonMonsterPattern;
+
+            PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            Object.DestroyImmediate(root);
+            return AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        }
+
+        private static void RemoveComponentIfExists<T>(GameObject go) where T : Component
+        {
+            if (go == null)
+                return;
+
+            T component = go.GetComponent<T>();
+            if (component != null)
+                Object.DestroyImmediate(component);
+        }
+
+        private static Transform EnsureSummonSpawnPointRoot()
+        {
+            GameObject root = GameObject.Find(SummonSpawnPointRootName);
+            if (root == null)
+                root = new GameObject(SummonSpawnPointRootName);
+
+            return root.transform;
+        }
+
+        private static StageSummonSpawnPointMarker EnsureSummonSpawnPoint(Transform parent, SummonRingSpec ring)
+        {
+            string objectName = GetSummonSpawnPointName(ring);
+            Transform existing = parent != null ? parent.Find(objectName) : null;
+            if (existing == null)
+            {
+                GameObject loose = GameObject.Find(objectName);
+                if (loose != null)
+                    existing = loose.transform;
+            }
+
+            bool created = existing == null;
+            if (created)
+            {
+                var go = new GameObject(objectName);
+                existing = go.transform;
+                existing.position = new Vector3(ring.SpawnCell.x, ring.SpawnCell.y, ring.SpawnCell.z);
+            }
+
+            if (parent != null && existing.parent != parent)
+                existing.SetParent(parent, true);
+
+            StageSummonSpawnPointMarker marker = existing.GetComponent<StageSummonSpawnPointMarker>();
+            bool markerCreated = marker == null;
+            if (marker == null)
+                marker = existing.gameObject.AddComponent<StageSummonSpawnPointMarker>();
+
+            marker.PortalKey = ring.ObjectName;
+            marker.SpawnGroupId = ring.SpawnGroupId;
+            if (created || markerCreated)
+            {
+                marker.MaxAlive = NormalSummonMaxAlive;
+                marker.SpawnIntervalBeats = NormalSummonIntervalBeats;
+                marker.InitialDelayBeats = ring.InitialDelayBeats;
+                marker.MonsterIdsCsv = SummonMonsterIdsCsv;
+                marker.MonsterPattern = SummonMonsterPattern;
+            }
+            else
+            {
+                marker.MaxAlive = Mathf.Max(1, marker.MaxAlive);
+                marker.SpawnIntervalBeats = Mathf.Max(1, marker.SpawnIntervalBeats);
+                marker.InitialDelayBeats = Mathf.Max(0, marker.InitialDelayBeats);
+                if (string.IsNullOrWhiteSpace(marker.MonsterIdsCsv))
+                    marker.MonsterIdsCsv = SummonMonsterIdsCsv;
+                if (string.IsNullOrWhiteSpace(marker.MonsterPattern))
+                    marker.MonsterPattern = SummonMonsterPattern;
+            }
+
+            EditorUtility.SetDirty(marker);
+            EditorUtility.SetDirty(existing.gameObject);
+            return marker;
+        }
+
+        private static string GetSummonSpawnPointName(SummonRingSpec ring)
+            => "SP_" + ring.ObjectName;
+
+        private static GameObject InstantiatePrefab(GameObject prefab, Transform parent)
+        {
+            var instance = PrefabUtility.InstantiatePrefab(prefab, parent) as GameObject;
+            if (instance != null)
+                return instance;
+
+            return Object.Instantiate(prefab, parent);
+        }
+
+        private static void DestroyLooseSceneObject(string objectName, Transform preserveRoot)
+        {
+            GameObject existing = GameObject.Find(objectName);
+            if (existing == null)
+                return;
+
+            if (preserveRoot != null && (existing.transform == preserveRoot || existing.transform.parent == preserveRoot))
+                return;
+
+            Object.DestroyImmediate(existing);
+        }
+
+        private static void DestroySummonPortalSceneRoot()
+        {
+            GameObject root = GameObject.Find(SummonPortalRootName);
+            if (root != null)
+                Object.DestroyImmediate(root);
+        }
+
+        private static StageSceneObjectTarget ConfigureSummonPortalTarget(
+            GameObject root,
+            StageSummonPortalKind kind,
+            string targetKey,
+            int sceneGroupId,
+            bool bindRuntimeGroup = false,
+            Transform motionRoot = null)
+        {
+            var target = EnsureComponent<StageSceneObjectTarget>(root);
+            target.TargetKey = targetKey;
+            target.GroupId = sceneGroupId;
+            target.BindRuntimeGroup = bindRuntimeGroup;
+            target.DefaultDurationMs = kind == StageSummonPortalKind.EliteGate ? 1500 : 950;
+            target.HiddenScale = kind == StageSummonPortalKind.EliteGate ? 0.72f : 0.64f;
+            target.HiddenYOffset = -0.35f;
+            target.DisableCollidersWhenHidden = true;
+            target.UseWorldUpMotion = true;
+            target.StartHidden = true;
+            target.CurrentPoseIsHidden = false;
+            target.EnableRiseFromGround = true;
+            target.ReplayShowAnimationWhenAlreadyVisible = kind == StageSummonPortalKind.EliteGate;
+            target.RiseHiddenYOffset = kind == StageSummonPortalKind.EliteGate ? -2.3f : -0.75f;
+            target.RiseOvershootHeight = kind == StageSummonPortalKind.EliteGate ? 0.18f : 0.08f;
+            target.EnableIdleFloat = false;
+            target.MotionRoots = motionRoot != null ? new[] { motionRoot } : System.Array.Empty<Transform>();
+            EditorUtility.SetDirty(target);
+            return target;
+        }
+
+        private static void ConfigurePrefabMarker(GameObject root, StageSummonPortalKind kind)
+        {
+            var marker = EnsureComponent<StageSummonPortalMarker>(root);
+            marker.Kind = kind;
+            marker.PortalKey = kind == StageSummonPortalKind.NormalRing ? "SummonRing" : "EliteSummonGate";
+            marker.SceneGroupId = kind == StageSummonPortalKind.NormalRing ? 0 : EliteGateSceneGroupId;
+            marker.SpawnGroupId = 0;
+            marker.SpawnCell = Vector3Int.zero;
+            marker.MaxAlive = NormalSummonMaxAlive;
+            marker.SpawnIntervalBeats = NormalSummonIntervalBeats;
+            marker.InitialDelayBeats = 1;
+            marker.MonsterIdsCsv = SummonMonsterIdsCsv;
+            marker.MonsterPattern = SummonMonsterPattern;
+            EditorUtility.SetDirty(marker);
+        }
+
         private static EntityDefinitionSO EnsureRunicTowerEntityDefinition()
         {
             var entity = AssetDatabase.LoadAssetAtPath<EntityDefinitionSO>(TowerEntityAssetPath);
@@ -182,6 +523,29 @@ namespace RhythmRPG.Editor.StageBuilder
             entity.EntityName = "Entity_502_Runic_Obelisk";
             entity.Type = EntityType.Object;
             entity.Prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ObeliskPrefabPath);
+            entity.AnimatorController = null;
+            entity.MaxHp = 999999;
+            EditorUtility.SetDirty(entity);
+            return entity;
+        }
+
+        private static EntityDefinitionSO EnsureSummonEntityDefinition(
+            string assetPath,
+            int entityId,
+            string entityName,
+            string prefabPath)
+        {
+            var entity = AssetDatabase.LoadAssetAtPath<EntityDefinitionSO>(assetPath);
+            if (entity == null)
+            {
+                entity = ScriptableObject.CreateInstance<EntityDefinitionSO>();
+                AssetDatabase.CreateAsset(entity, assetPath);
+            }
+
+            entity.EntityId = entityId;
+            entity.EntityName = entityName;
+            entity.Type = EntityType.Object;
+            entity.Prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             entity.AnimatorController = null;
             entity.MaxHp = 999999;
             EditorUtility.SetDirty(entity);
@@ -403,7 +767,10 @@ namespace RhythmRPG.Editor.StageBuilder
             return fxChildren.ToArray();
         }
 
-        private static void ConfigureStageData(EntityDefinitionSO towerEntity)
+        private static void ConfigureStageData(
+            EntityDefinitionSO towerEntity,
+            EntityDefinitionSO normalSummonRingEntity,
+            EntityDefinitionSO eliteSummonGateEntity)
         {
             StageDataSO stage = AssetDatabase.LoadAssetAtPath<StageDataSO>(StageDataPath);
             if (stage == null)
@@ -413,6 +780,7 @@ namespace RhythmRPG.Editor.StageBuilder
             }
 
             EnsureTowerRegistry(stage, towerEntity);
+            EnsureSummonRegistry(stage, normalSummonRingEntity, eliteSummonGateEntity);
 
             EventInfoSO centerEvent = EnsureEvent(stage, 4, "Section02", "Enter Center Seal");
             EnsureCenterAreaCondition(centerEvent);
@@ -424,6 +792,10 @@ namespace RhythmRPG.Editor.StageBuilder
             centerEvent.Actions.Add(SetSceneObject("Crystal", 0, visible: true, durationMs: 1400));
             foreach (TowerSpec tower in Towers)
                 centerEvent.Actions.Add(SpawnTower(tower));
+            centerEvent.Actions.Add(SpawnSummonRing(SummonRings[0]));
+            centerEvent.Actions.Add(SetSummonPortal(SummonRings[0], active: true));
+            centerEvent.Actions.Add(SpawnSummonRing(SummonRings[1]));
+            centerEvent.Actions.Add(SetSummonPortal(SummonRings[1], active: true));
             centerEvent.Actions.Add(SetObjectState(TowerPhaseStateId, 1));
 
             ConfigureHoldEvent(stage, 5, "Section03", "North Tower Hold", Towers[0], phase: 1);
@@ -435,6 +807,10 @@ namespace RhythmRPG.Editor.StageBuilder
             unlockSecondPair.Conditions.Add(ObjectState(Towers[1].CompleteStateId, 1));
             unlockSecondPair.Actions.Clear();
             unlockSecondPair.Actions.Add(SetObjectState(TowerPhaseStateId, 2));
+            unlockSecondPair.Actions.Add(SpawnSummonRing(SummonRings[2]));
+            unlockSecondPair.Actions.Add(SetSummonPortal(SummonRings[2], active: true));
+            unlockSecondPair.Actions.Add(SpawnSummonRing(SummonRings[3]));
+            unlockSecondPair.Actions.Add(SetSummonPortal(SummonRings[3], active: true));
 
             ConfigureHoldEvent(stage, 8, "Section03", "South Tower Hold", Towers[2], phase: 2);
             ConfigureHoldEvent(stage, 9, "Section03", "West Tower Hold", Towers[3], phase: 2);
@@ -444,6 +820,16 @@ namespace RhythmRPG.Editor.StageBuilder
             completeTowers.Conditions.Add(ObjectState(Towers[2].CompleteStateId, 1));
             completeTowers.Conditions.Add(ObjectState(Towers[3].CompleteStateId, 1));
             completeTowers.Actions.Clear();
+            foreach (SummonRingSpec ring in SummonRings)
+            {
+                completeTowers.Actions.Add(SetSummonPortal(ring, active: false));
+                completeTowers.Actions.Add(RemoveEntityGroup(ResolveSummonSpawnGroupId(ring)));
+            }
+
+            completeTowers.Actions.Add(SetSceneObject(NormalSummonTargetKey, 0, visible: false, durationMs: 850));
+            foreach (SummonRingSpec ring in SummonRings)
+                completeTowers.Actions.Add(RemoveEntityGroup(ring.SceneGroupId, delayMs: 950));
+            completeTowers.Actions.Add(SpawnEliteSummonGate());
             completeTowers.Actions.Add(SetObjectState(TowerPhaseStateId, 3));
 
             EditorUtility.SetDirty(stage);
@@ -461,6 +847,33 @@ namespace RhythmRPG.Editor.StageBuilder
 
             registry.Key = TowerEntityKey;
             registry.EntityDef = towerEntity;
+            registry.DefaultGroupId = 0;
+            registry.PatternRef = null;
+        }
+
+        private static void EnsureSummonRegistry(
+            StageDataSO stage,
+            EntityDefinitionSO normalSummonRingEntity,
+            EntityDefinitionSO eliteSummonGateEntity)
+        {
+            EnsureRegistryEntry(stage, NormalSummonRingEntityKey, normalSummonRingEntity);
+            EnsureRegistryEntry(stage, EliteSummonGateEntityKey, eliteSummonGateEntity);
+        }
+
+        private static void EnsureRegistryEntry(StageDataSO stage, string key, EntityDefinitionSO entity)
+        {
+            if (stage == null || string.IsNullOrWhiteSpace(key))
+                return;
+
+            StageRegisteredEntity registry = stage.Registry.Find(item => item != null && item.Key == key);
+            if (registry == null)
+            {
+                registry = new StageRegisteredEntity();
+                stage.Registry.Add(registry);
+            }
+
+            registry.Key = key;
+            registry.EntityDef = entity;
             registry.DefaultGroupId = 0;
             registry.PatternRef = null;
         }
@@ -569,6 +982,65 @@ namespace RhythmRPG.Editor.StageBuilder
             };
         }
 
+        private static ActionInfoSO SetSummonPortal(SummonRingSpec ring, bool active)
+        {
+            StageSummonSpawnPointMarker marker = FindSummonSpawnPoint(ring);
+            Vector3Int spawnCell = marker != null ? marker.GetCell() : ring.SpawnCell;
+            int spawnGroupId = marker != null && marker.SpawnGroupId > 0 ? marker.SpawnGroupId : ring.SpawnGroupId;
+            int maxAlive = marker != null ? Mathf.Max(1, marker.MaxAlive) : NormalSummonMaxAlive;
+            int intervalBeats = marker != null ? Mathf.Max(1, marker.SpawnIntervalBeats) : NormalSummonIntervalBeats;
+            int initialDelayBeats = marker != null ? Mathf.Max(0, marker.InitialDelayBeats) : ring.InitialDelayBeats;
+            string monsterIds = marker != null && !string.IsNullOrWhiteSpace(marker.MonsterIdsCsv)
+                ? marker.MonsterIdsCsv
+                : SummonMonsterIdsCsv;
+            string pattern = marker != null && !string.IsNullOrWhiteSpace(marker.MonsterPattern)
+                ? marker.MonsterPattern
+                : SummonMonsterPattern;
+            string portalKey = marker != null && !string.IsNullOrWhiteSpace(marker.PortalKey)
+                ? marker.PortalKey
+                : ring.ObjectName;
+
+            return new ActionInfoSO
+            {
+                Type = ActionType.SetSummonPortalActive,
+                StringVal = portalKey,
+                ParamId = spawnGroupId,
+                GroupId = active ? 1 : 0,
+                Position = new Vector3(spawnCell.x, spawnCell.y, spawnCell.z),
+                ObjectSize = new Vector2Int(maxAlive, initialDelayBeats),
+                GuideTitle = monsterIds,
+                GuideBody = pattern,
+                DurationMs = intervalBeats
+            };
+        }
+
+        private static int ResolveSummonSpawnGroupId(SummonRingSpec ring)
+        {
+            StageSummonSpawnPointMarker marker = FindSummonSpawnPoint(ring);
+            return marker != null && marker.SpawnGroupId > 0 ? marker.SpawnGroupId : ring.SpawnGroupId;
+        }
+
+        private static StageSummonSpawnPointMarker FindSummonSpawnPoint(SummonRingSpec ring)
+        {
+            string objectName = GetSummonSpawnPointName(ring);
+            Transform root = GameObject.Find(SummonSpawnPointRootName)?.transform;
+            Transform target = root != null ? root.Find(objectName) : null;
+            if (target == null)
+                target = GameObject.Find(objectName)?.transform;
+
+            return target != null ? target.GetComponent<StageSummonSpawnPointMarker>() : null;
+        }
+
+        private static ActionInfoSO RemoveEntityGroup(int groupId, int delayMs = 0)
+        {
+            return new ActionInfoSO
+            {
+                Type = ActionType.RemoveEntityGroup,
+                ParamId = groupId,
+                Position = new Vector3(delayMs, 0f, 0f)
+            };
+        }
+
         private static ActionInfoSO SetGateDoor(bool open, int durationMs)
         {
             return new ActionInfoSO
@@ -589,6 +1061,32 @@ namespace RhythmRPG.Editor.StageBuilder
                 Position = new Vector3(Mathf.FloorToInt(tower.Position.x), 0f, Mathf.FloorToInt(tower.Position.z)),
                 ObjectSize = new Vector2Int(2, 2),
                 GroupId = tower.LinkGroupId,
+                DurationMs = 3500
+            };
+        }
+
+        private static ActionInfoSO SpawnSummonRing(SummonRingSpec ring)
+        {
+            return new ActionInfoSO
+            {
+                Type = ActionType.SpawnObject,
+                HeaderParam = NormalSummonRingEntityKey,
+                Position = new Vector3(Mathf.RoundToInt(ring.Position.x), 0f, Mathf.RoundToInt(ring.Position.z)),
+                ObjectSize = new Vector2Int(2, 2),
+                GroupId = ring.SceneGroupId,
+                DurationMs = 3500
+            };
+        }
+
+        private static ActionInfoSO SpawnEliteSummonGate()
+        {
+            return new ActionInfoSO
+            {
+                Type = ActionType.SpawnObject,
+                HeaderParam = EliteSummonGateEntityKey,
+                Position = new Vector3(Mathf.RoundToInt(EliteGatePosition.x), 0f, Mathf.RoundToInt(EliteGatePosition.z)),
+                ObjectSize = new Vector2Int(2, 2),
+                GroupId = EliteGateSceneGroupId,
                 DurationMs = 3500
             };
         }
@@ -688,6 +1186,35 @@ namespace RhythmRPG.Editor.StageBuilder
                 LinkTargetKey = linkTargetKey;
                 LinkGroupId = linkGroupId;
                 CompleteStateId = completeStateId;
+            }
+        }
+
+        private readonly struct SummonRingSpec
+        {
+            public readonly string Label;
+            public readonly string ObjectName;
+            public readonly Vector3 Position;
+            public readonly Vector3Int SpawnCell;
+            public readonly int SceneGroupId;
+            public readonly int SpawnGroupId;
+            public readonly int InitialDelayBeats;
+
+            public SummonRingSpec(
+                string label,
+                string objectName,
+                Vector3 position,
+                Vector3Int spawnCell,
+                int sceneGroupId,
+                int spawnGroupId,
+                int initialDelayBeats)
+            {
+                Label = label;
+                ObjectName = objectName;
+                Position = position;
+                SpawnCell = spawnCell;
+                SceneGroupId = sceneGroupId;
+                SpawnGroupId = spawnGroupId;
+                InitialDelayBeats = initialDelayBeats;
             }
         }
     }

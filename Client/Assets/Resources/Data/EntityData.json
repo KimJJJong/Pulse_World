@@ -43,6 +43,20 @@
             "ResourcePath": "Data/Entity_502_Runic_Obelisk"
         },
         {
+            "EntityId": 503,
+            "Name": "Entity_503_StageSummon_MossyStoneRing",
+            "EntityType": 3,
+            "MaxHp": 999999,
+            "ResourcePath": "Data/Entity_503_StageSummon_MossyStoneRing"
+        },
+        {
+            "EntityId": 504,
+            "Name": "Entity_504_StageSummon_RunicStoneGate",
+            "EntityType": 3,
+            "MaxHp": 999999,
+            "ResourcePath": "Data/Entity_504_StageSummon_RunicStoneGate"
+        },
+        {
             "EntityId": 999,
             "Name": "Entity_999_Monster_TrainingDummy",
             "EntityType": 2,

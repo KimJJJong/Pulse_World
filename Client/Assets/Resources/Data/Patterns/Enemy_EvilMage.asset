@@ -18,11 +18,15 @@ MonoBehaviour:
     Phases:
     - Id: P1
       Selectors:
-      - Id: New Pattern
-        Weight: 2
+      - Id: DefaultMovement
+        Weight: 1
         CooldownBeats: 0
         When:
-          All: []
+          All:
+          - Type: 1
+            Value: 2
+          - Type: 3
+            Value: 0
         Timeline:
         - AtBeatOffset: 0
           Type: 1
@@ -31,6 +35,7 @@ MonoBehaviour:
             MaxRange: 999
             RequireAlive: 1
           SkillId: 
+          LockRotation: 0
           TelegraphBeats: 0
           TelegraphStyleId: 0
           Area:
@@ -47,13 +52,15 @@ MonoBehaviour:
           MoveStrategy: 0
           MoveDirection: 0
           SkillRef: {fileID: 0}
-      - Id: New Pattern
+      - Id: Skill
         Weight: 1
         CooldownBeats: 0
         When:
           All:
           - Type: 0
             Value: 2
+          - Type: 2
+            Value: 0
         Timeline:
         - AtBeatOffset: 0
           Type: 3
@@ -62,6 +69,7 @@ MonoBehaviour:
             MaxRange: 999
             RequireAlive: 1
           SkillId: Enemy_EvilMage_Attack
+          LockRotation: 0
           TelegraphBeats: 0
           TelegraphStyleId: 0
           Area:
@@ -78,4 +86,36 @@ MonoBehaviour:
           MoveStrategy: 0
           MoveDirection: 0
           SkillRef: {fileID: 11400000, guid: 188488d829fff574097bd0194902d5ea, type: 2}
+      - Id: Movement
+        Weight: 1
+        CooldownBeats: 0
+        When:
+          All:
+          - Type: 1
+            Value: 2
+        Timeline:
+        - AtBeatOffset: 0
+          Type: 1
+          Target:
+            Type: 0
+            MaxRange: 999
+            RequireAlive: 1
+          SkillId: 
+          LockRotation: 0
+          TelegraphBeats: 0
+          TelegraphStyleId: 0
+          Area:
+            Shape: 1
+            OriginType: 1
+            OriginX: 0
+            OriginY: 0
+            ParamA: 0
+            ParamB: 0
+            DirType: 0
+            FixedDir: 0
+            Cells: []
+          MoveDistance: 1
+          MoveStrategy: 0
+          MoveDirection: 0
+          SkillRef: {fileID: 0}
     Transitions: []

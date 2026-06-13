@@ -146,6 +146,7 @@ namespace RhythmRPG.Game.Stage
             StopIdleFloat();
 
             int resolvedDurationMs = durationMs > 0 ? durationMs : DefaultDurationMs;
+            bool wasInactive = !gameObject.activeSelf;
             if (_visibilityRoutine != null && isActiveAndEnabled)
             {
                 StopCoroutine(_visibilityRoutine);
@@ -177,6 +178,8 @@ namespace RhythmRPG.Game.Stage
                               && gameObject.activeSelf
                               && _visibleAmount > 0.99f
                               && !HasFogZones();
+            if (visible && wasInactive && StartHidden && !HasFogZones())
+                replayShow = true;
 
             if (!isActiveAndEnabled || resolvedDurationMs <= 0)
             {

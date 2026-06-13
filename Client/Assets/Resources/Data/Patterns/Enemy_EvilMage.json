@@ -6,11 +6,20 @@
       "Id": "P1",
       "Selectors": [
         {
-          "Id": "New Pattern",
-          "Weight": 2,
+          "Id": "DefaultMovement",
+          "Weight": 1,
           "CooldownBeats": 0,
           "When": {
-            "All": []
+            "All": [
+              {
+                "Type": 1,
+                "Value": 2
+              },
+              {
+                "Type": 3,
+                "Value": 0
+              }
+            ]
           },
           "Timeline": [
             {
@@ -22,6 +31,7 @@
                 "RequireAlive": true
               },
               "SkillId": "",
+              "LockRotation": false,
               "TelegraphBeats": 0,
               "TelegraphStyleId": 0,
               "Area": {
@@ -42,7 +52,7 @@
           ]
         },
         {
-          "Id": "New Pattern",
+          "Id": "Skill",
           "Weight": 1,
           "CooldownBeats": 0,
           "When": {
@@ -50,6 +60,10 @@
               {
                 "Type": 0,
                 "Value": 2
+              },
+              {
+                "Type": 2,
+                "Value": 0
               }
             ]
           },
@@ -63,6 +77,49 @@
                 "RequireAlive": true
               },
               "SkillId": "Enemy_EvilMage_Attack",
+              "LockRotation": false,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            }
+          ]
+        },
+        {
+          "Id": "Movement",
+          "Weight": 1,
+          "CooldownBeats": 0,
+          "When": {
+            "All": [
+              {
+                "Type": 1,
+                "Value": 2
+              }
+            ]
+          },
+          "Timeline": [
+            {
+              "Type": 1,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "LockRotation": false,
               "TelegraphBeats": 0,
               "TelegraphStyleId": 0,
               "Area": {
