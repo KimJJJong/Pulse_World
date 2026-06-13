@@ -144,9 +144,6 @@ public class ClientHandlers : MonoBehaviour
         {
             RhythmClient.Instance.judgeWindowMs = (float)p.ActionWindowMs;
 
-            if (p.ServerTimeMs > 0)
-                TimeSync.Reset();
-
             if (RhythmSyncCoordinator.TryApplyBeatSync(
                 rhythm: RhythmClient.Instance,
                 serverSendTimeMs: p.ServerTimeMs,
@@ -320,7 +317,7 @@ public class ClientHandlers : MonoBehaviour
                 Accepted = a.Accepted
             };
 
-            GS.OnBeatAction(action);
+            GS.OnTownBeatAction(action);
         }
     }
 
@@ -459,14 +456,20 @@ public class ClientHandlers : MonoBehaviour
                     if (GS.TryGetEntity(u.EntityId, out var info))
                     {
                         int oldHp = info.Hp;
+                        info.Hp = u.NewHp;
+
+                        bool refreshWorldView = info.EntityType == (int)EntityType.Object
+                                             || (info.EntityType == (int)EntityType.Monster && u.NewHp <= 0);
+                        if (refreshWorldView)
+                            GS.UpdateEntityState(info, true);
+
                         BV?.PlayEntityDamageFeedback(u.EntityId, oldHp, u.NewHp);
 
-                        info.Hp = u.NewHp;
                         if (P2PDebugConfig.TraceCombat)
                             Debug.Log($"[DamageRecv] HP_Change entity={u.EntityId} {oldHp}→{u.NewHp} (delta={u.NewHp - oldHp})");
 
-                        bool refreshWorldView = info.EntityType == (int)EntityType.Object;
-                        GS.UpdateEntityState(info, refreshWorldView);
+                        if (!refreshWorldView)
+                            GS.UpdateEntityState(info, false);
                         if (info.EntityType == (int)EntityType.Monster)
                             P2PContentDirector.Instance?.MarkWorldDirty();
                     }

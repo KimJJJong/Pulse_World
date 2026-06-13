@@ -293,6 +293,7 @@ public sealed class StageGuideHud : MonoBehaviour
         {
             int mapY = data.Z != 0 ? data.Z : data.Y;
             applied |= ApplyPulseAtPosition(data.X, mapY, color);
+            applied |= ApplyPulseToSceneTargetsAtPosition(data.X, mapY, color);
         }
 
         return applied;
@@ -361,8 +362,38 @@ public sealed class StageGuideHud : MonoBehaviour
         if (BoardView.Instance == null || !BoardView.Instance.TryGetEntityView(entityId, out var visual) || visual == null)
             return false;
 
+        return ApplyPulseToTransform(visual.transform, color);
+    }
+
+    private static bool ApplyPulseToSceneTargetsAtPosition(int x, int y, Color color)
+    {
         bool applied = false;
-        foreach (var pulse in visual.GetComponentsInChildren<ForestBeatLightPulse>(true))
+        var targets = UnityEngine.Object.FindObjectsByType<StageSceneObjectTarget>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+
+        foreach (var target in targets)
+        {
+            if (target == null)
+                continue;
+
+            Vector3 position = target.transform.position;
+            if (Mathf.RoundToInt(position.x) != x || Mathf.RoundToInt(position.z) != y)
+                continue;
+
+            applied |= ApplyPulseToTransform(target.transform, color);
+        }
+
+        return applied;
+    }
+
+    private static bool ApplyPulseToTransform(Transform root, Color color)
+    {
+        if (root == null)
+            return false;
+
+        bool applied = false;
+        foreach (var pulse in root.GetComponentsInChildren<ForestBeatLightPulse>(true))
         {
             if (pulse == null)
                 continue;

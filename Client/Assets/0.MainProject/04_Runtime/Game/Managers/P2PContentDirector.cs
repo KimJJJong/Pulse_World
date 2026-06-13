@@ -149,10 +149,20 @@ public sealed partial class P2PContentDirector : MonoBehaviour, IStageActionHost
 
     public void OnEntitySpawned(ClientEntityInfo info)
     {
-        if (!ShouldDriveHostContent() || info.EntityType != (int)EntityType.Monster)
+        if (!ShouldDriveHostContent())
             return;
 
         EnsureStageLoaded();
+        if (info.EntityType == (int)EntityType.Object)
+        {
+            _distanceFields.Clear();
+            MarkWorldDirty();
+            return;
+        }
+
+        if (info.EntityType != (int)EntityType.Monster)
+            return;
+
         long currentBeat = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : 0;
         BindMonsterEntity(info, currentBeat);
         MarkWorldDirty();
@@ -163,11 +173,13 @@ public sealed partial class P2PContentDirector : MonoBehaviour, IStageActionHost
         if (_monsterStates.TryGetValue(entityId, out var state))
             state.IsAlive = false;
 
+        _distanceFields.Clear();
         MarkWorldDirty();
     }
 
     public void MarkWorldDirty()
     {
+        _distanceFields.Clear();
         _bindingsDirty = true;
     }
 

@@ -75,6 +75,9 @@ class PacketHandler
 
             );
 
+        // 새 서버 핸드셰이크 기준으로 이전 방/서버의 RTT 샘플을 버리고 bootstrap부터 다시 잡는다.
+        TimeSync.Reset();
+
         // Ping/Pong 워밍업 전에도 핸드셰이크 시각으로 1차 보정해 시작 구간 오차를 줄인다.
         RhythmSyncCoordinator.ApplyHandshakeClock(p.ServerTimeMs);
 

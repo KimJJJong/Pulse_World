@@ -57,7 +57,7 @@ public class RhythmInputController : MonoBehaviour
     public bool HoldAutoInputEnabled => holdAutoInput;
     public string CurrentTargetName => targetObject != null ? targetObject.name : "<null>";
 
-    public event Action<long> CombatInputAccepted;
+    public event Action<long, string> CombatInputAccepted;
     public event Action CombatInputMissed;
     public event Action<int, string> SkillSlotInputAccepted;
 
@@ -68,6 +68,7 @@ public class RhythmInputController : MonoBehaviour
     ActionKind _holdKind = ActionKind.Move;
 
     long _lastFiredBeatIndex = long.MinValue;
+    long _nextHoldAutoInputServerTimeMs = long.MinValue;
     long _lastAttackPredictionBeat = long.MinValue;
 
     public static long LastAttackInputServerTimeMs { get; private set; }
@@ -167,6 +168,7 @@ public class RhythmInputController : MonoBehaviour
         _holdDir = Vector2Int.zero;
         _holdKind = ActionKind.Move;
         _lastFiredBeatIndex = long.MinValue;
+        _nextHoldAutoInputServerTimeMs = long.MinValue;
         _lastAttackPredictionBeat = long.MinValue;
         _lastActionBeatIndex = -1;
         _hasLoggedFirstSend = false;
@@ -201,10 +203,10 @@ public class RhythmInputController : MonoBehaviour
             _attackAction.started  += OnAttackPerformed;
             _interactAction.started += OnInteractPerformed;
 
-            _skillHAction.started += (ctx) => OnSkillSlotPerformed(0);
-            _skillJAction.started += (ctx) => OnSkillSlotPerformed(1);
-            _skillKAction.started += (ctx) => OnSkillSlotPerformed(2);
-            _skillLAction.started += (ctx) => OnSkillSlotPerformed(3);
+            _skillHAction.started += (ctx) => OnSkillSlotPerformed(0, ctx);
+            _skillJAction.started += (ctx) => OnSkillSlotPerformed(1, ctx);
+            _skillKAction.started += (ctx) => OnSkillSlotPerformed(2, ctx);
+            _skillLAction.started += (ctx) => OnSkillSlotPerformed(3, ctx);
 
             _rotateLeftAction.started  += (ctx) => Rotate(-rotateAngle);
             _rotateRightAction.started += (ctx) => Rotate(+rotateAngle);
@@ -264,7 +266,7 @@ public class RhythmInputController : MonoBehaviour
 
     void OnMovePerformed(InputAction.CallbackContext ctx)
     {
-        if (holdAutoInput) return;
+        if (holdAutoInput && channel != InputChannel.Town) return;
         HandleMoveInputEvent(ctx);
     }
 
@@ -272,7 +274,7 @@ public class RhythmInputController : MonoBehaviour
     {
         if (holdAutoInput) return;
         // Space = 일반공격. ActionKind.Skill + SlotIndex=-1 로 전송해 Skill 경로로 통일한다.
-        HandleAttackInputEvent(_normalAttackSkillId);
+        HandleAttackInputEvent(_normalAttackSkillId, ctx);
     }
 
     void OnInteractPerformed(InputAction.CallbackContext ctx)
@@ -281,11 +283,11 @@ public class RhythmInputController : MonoBehaviour
         HandleInteractInputEvent(ctx);
     }
 
-    void OnSkillSlotPerformed(int slotIndex)
+    void OnSkillSlotPerformed(int slotIndex, InputAction.CallbackContext ctx)
     {
         if (holdAutoInput) return;
         if (slotIndex < 0 || slotIndex >= _skillSlotIds.Length) return;
-        HandleSkillInputEvent(_skillSlotIds[slotIndex], slotIndex);
+        HandleSkillInputEvent(_skillSlotIds[slotIndex], slotIndex, ctx);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -303,9 +305,7 @@ public class RhythmInputController : MonoBehaviour
 
         if (dir == Vector2Int.zero) return;
 
-        double unityTimeNow = Time.realtimeSinceStartupAsDouble;
-        double ageSec = unityTimeNow - ctx.time;
-        long trueLocalNowMs = LocalNowMs() - (long)(ageSec * 1000.0);
+        long trueLocalNowMs = GetInputEventLocalNowMs(ctx);
 
         if (!PassCooldown(trueLocalNowMs)) return;
 
@@ -321,6 +321,21 @@ public class RhythmInputController : MonoBehaviour
         int ty = originY + rdir.y;
 
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
+
+        if (channel == InputChannel.Town)
+        {
+            if (P2PDebugConfig.TraceRealtimeInputVerbose)
+            {
+                Debug.Log(
+                    $"[TownInputMove] actor={me.EntityId} from=({me.X},{me.Y}) target=({tx},{ty}) " +
+                    $"rawDir=({dir.x},{dir.y}) rotDir=({rdir.x},{rdir.y}) serverNow={serverNow} {DescribeP2PRoute()}");
+            }
+
+            SendActionRouted(ActionKind.Move, tx, ty, serverNow, -1);
+            MarkHoldAutoInputFired(serverNow);
+            _lastSendLocalMs = trueLocalNowMs;
+            return;
+        }
 
         long actionBeat = -1;
         long diff = 0;
@@ -377,9 +392,7 @@ public class RhythmInputController : MonoBehaviour
         int tx = me.X + rdir.x;
         int ty = me.Y + rdir.y;
 
-        double unityTimeNow = Time.realtimeSinceStartupAsDouble;
-        double ageSec = unityTimeNow - ctx.time;
-        long trueLocalNowMs = LocalNowMs() - (long)(ageSec * 1000.0);
+        long trueLocalNowMs = GetInputEventLocalNowMs(ctx);
         if (!PassCooldown(trueLocalNowMs)) return;
 
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
@@ -419,7 +432,7 @@ public class RhythmInputController : MonoBehaviour
     /// - 잘못된 타이밍의 입력은 애니메이션/전송 모두 하지 않음
     /// - 중복 비트 차단은 _lastAttackPredictionBeat 로 별도 관리
     /// </summary>
-    void HandleAttackInputEvent(string skillId)
+    void HandleAttackInputEvent(string skillId, InputAction.CallbackContext ctx)
     {
         if (!TryBeginInput("Attack")) return;
         if (string.IsNullOrEmpty(skillId))
@@ -438,7 +451,7 @@ public class RhythmInputController : MonoBehaviour
         int tx = me.X + rdir.x;
         int ty = me.Y + rdir.y;
 
-        long trueLocalNowMs = LocalNowMs();
+        long trueLocalNowMs = GetInputEventLocalNowMs(ctx);
         if (!PassCooldown(trueLocalNowMs)) return;
 
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
@@ -487,7 +500,7 @@ public class RhythmInputController : MonoBehaviour
         if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
 
         // [Fix] ActionKind.Skill + SlotIndex=-1 로 통일 전송 (서버 ResolveSkillId에서 normalAttack으로 처리)
-        NotifyCombatInputAccepted(predictionBeat);
+        NotifyCombatInputAccepted(predictionBeat, skillId);
         SendActionRouted(ActionKind.Skill, tx, ty, serverNow, -1);
         _lastSendLocalMs = trueLocalNowMs;
     }
@@ -496,7 +509,7 @@ public class RhythmInputController : MonoBehaviour
     /// HandleAttackInputEvent와 동일한 원칙.
     /// judge window 밖 입력은 클라이언트에서 즉시 차단한다.
     /// </summary>
-    void HandleSkillInputEvent(string skillId, int slotIndex)
+    void HandleSkillInputEvent(string skillId, int slotIndex, InputAction.CallbackContext ctx)
     {
         if (!TryBeginInput($"Skill[{slotIndex}]")) return;
 
@@ -517,7 +530,7 @@ public class RhythmInputController : MonoBehaviour
         int tx = me.X + rdir.x;
         int ty = me.Y + rdir.y;
 
-        long trueLocalNowMs = LocalNowMs();
+        long trueLocalNowMs = GetInputEventLocalNowMs(ctx);
         if (!PassCooldown(trueLocalNowMs)) return;
 
         long serverNow = trueLocalNowMs + (long)TimeSync.OffsetMs;
@@ -563,7 +576,7 @@ public class RhythmInputController : MonoBehaviour
 
         if (TrySendCalib(serverNow)) { _lastSendLocalMs = trueLocalNowMs; return; }
 
-        NotifyCombatInputAccepted(predictionBeat);
+        NotifyCombatInputAccepted(predictionBeat, skillId);
         NotifySkillSlotInputAccepted(slotIndex, skillId);
         SendActionRouted(ActionKind.Skill, tx, ty, serverNow, slotIndex);
         _lastSendLocalMs = trueLocalNowMs;
@@ -619,6 +632,15 @@ public class RhythmInputController : MonoBehaviour
     static long LocalNowMs()
         => TimeSync.LocalNowMs();
 
+    long GetInputEventLocalNowMs(InputAction.CallbackContext ctx)
+    {
+        double inputAgeSec = Time.realtimeSinceStartupAsDouble - ctx.time;
+        if (double.IsNaN(inputAgeSec) || double.IsInfinity(inputAgeSec) || inputAgeSec < 0d || inputAgeSec > 2d)
+            return LocalNowMs();
+
+        return LocalNowMs() - (long)System.Math.Round(inputAgeSec * 1000.0d);
+    }
+
     bool PassCooldown(long nowLocalMs)
     {
         if (inputCooldownMs <= 0f)
@@ -627,10 +649,10 @@ public class RhythmInputController : MonoBehaviour
         return (nowLocalMs - _lastSendLocalMs) >= inputCooldownMs;
     }
 
-    void NotifyCombatInputAccepted(long acceptedBeat)
+    void NotifyCombatInputAccepted(long acceptedBeat, string skillId = null)
     {
         if (channel == InputChannel.Game)
-            CombatInputAccepted?.Invoke(acceptedBeat);
+            CombatInputAccepted?.Invoke(acceptedBeat, skillId);
     }
 
     void NotifyCombatInputMissed()
@@ -748,6 +770,7 @@ public class RhythmInputController : MonoBehaviour
 
         long beat = Rhythm.GetCurrentBeatIndex();
         if (_lastFiredBeatIndex == beat) return;
+        if (!CanFireHoldAutoInput(serverNowMs)) return;
 
         long t0 = Rhythm.GetBeatTimeMs(beat);
         if (serverNowMs >= t0)
@@ -755,7 +778,29 @@ public class RhythmInputController : MonoBehaviour
             BeatDebugUI_TMP.Instance?.MarkHitNow();
             SendActionRouted(kind, targetX, targetY, serverNowMs);
             _lastFiredBeatIndex = beat;
+            MarkHoldAutoInputFired(serverNowMs);
         }
+    }
+
+    bool CanFireHoldAutoInput(long serverNowMs)
+    {
+        return serverNowMs >= _nextHoldAutoInputServerTimeMs;
+    }
+
+    void MarkHoldAutoInputFired(long serverNowMs)
+    {
+        if (Rhythm != null)
+            _lastFiredBeatIndex = Rhythm.GetCurrentBeatIndex();
+
+        _nextHoldAutoInputServerTimeMs = serverNowMs + ResolveHoldRepeatDelayMs();
+    }
+
+    long ResolveHoldRepeatDelayMs()
+    {
+        if (Rhythm == null)
+            return 250;
+
+        return Math.Max(1, (long)Math.Round(Rhythm.GetBeatDurationMs()));
     }
 
     bool TrySendCalib(long serverNowMs)
@@ -805,6 +850,9 @@ public class RhythmInputController : MonoBehaviour
 
     void SendTownAction(ActionKind kind, int targetX, int targetY, long serverNowMs)
     {
+        if (!TryResolveTownActionTarget(kind, ref targetX, ref targetY))
+            return;
+
         LogFirstSuccessfulSend(kind, targetX, targetY, serverNowMs, -1);
 
         CS_TownActionRequest pkt = new CS_TownActionRequest
@@ -829,6 +877,42 @@ public class RhythmInputController : MonoBehaviour
         {
             NetworkManager.Instance.Send(pkt.Write());
         }
+    }
+
+    private bool TryResolveTownActionTarget(ActionKind kind, ref int targetX, ref int targetY)
+    {
+        if (kind != ActionKind.Move)
+            return true;
+
+        if (GS != null && GS.IsValidTownMoveCell(targetX, targetY))
+            return true;
+
+        int safeX = targetX;
+        int safeY = targetY;
+        bool hasSafeCell = false;
+        if (GS != null && GS.TryGetMyEntity(out var me))
+        {
+            if (GS.IsValidTownMoveCell(me.X, me.Y))
+            {
+                return false;
+            }
+
+            hasSafeCell = GS.TryResolveTownMoveCell(me.X, me.Y, out safeX, out safeY);
+        }
+
+        if (P2PDebugConfig.TraceInput || P2PDebugConfig.TraceRealtimeInputVerbose)
+        {
+            Debug.LogWarning(
+                $"[TownInputMove] RESOLVE_OUT_OF_MAP actor={GS?.MyActorId ?? 0} target=({targetX},{targetY}) " +
+                $"safe=({safeX},{safeY}) resolved={hasSafeCell} map=({GS?.MapWidth ?? 0}x{GS?.MapHeight ?? 0}) {DescribeP2PRoute()}");
+        }
+
+        if (!hasSafeCell)
+            return false;
+
+        targetX = safeX;
+        targetY = safeY;
+        return true;
     }
 
     void SendGameAction(ActionKind kind, int targetX, int targetY, long serverNowMs, int slotIndex = -1)

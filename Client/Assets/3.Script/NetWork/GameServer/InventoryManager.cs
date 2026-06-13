@@ -105,6 +105,10 @@ public class InventoryManager : MonoBehaviour
 
     // State Flag
     private bool _isLoaded = false;
+    private bool _loadInFlight = false;
+
+    public bool IsLoaded => _isLoaded;
+    public bool IsLoadInFlight => _loadInFlight;
 
     public void OnInventoryReceived(SC_Inventory p)
     {
@@ -257,48 +261,59 @@ public class InventoryManager : MonoBehaviour
 
     public async void LoadFromApi()
     {
-        // 1. Try SessionContext (Socket Session)
-        var uid = SessionContext.Instance.Uid;
+        if (_loadInFlight)
+            return;
 
-        // 2. Fallback to Persistent TokenStore (Auth Session)
-        if (string.IsNullOrEmpty(uid))
+        _loadInFlight = true;
+        try
         {
-            if (AppBootstrap.Instance != null && AppBootstrap.Instance.Root != null)
+            // 1. Try SessionContext (Socket Session)
+            var uid = SessionContext.Instance.Uid;
+
+            // 2. Fallback to Persistent TokenStore (Auth Session)
+            if (string.IsNullOrEmpty(uid))
             {
-                uid = AppBootstrap.Instance.Root.Tokens.Uid;
+                if (AppBootstrap.Instance != null && AppBootstrap.Instance.Root != null)
+                {
+                    uid = AppBootstrap.Instance.Root.Tokens.Uid;
+                }
             }
-        }
 
-        // 3. Keep Test UID logic
-        if (string.IsNullOrEmpty(uid))
-        {
-            if (Application.isEditor && !string.IsNullOrEmpty(_testUid)) uid = _testUid;
+            // 3. Keep Test UID logic
+            if (string.IsNullOrEmpty(uid))
+            {
+                if (Application.isEditor && !string.IsNullOrEmpty(_testUid)) uid = _testUid;
+                else
+                {
+                    Debug.LogError("[InventoryManager] LoadFromApi Failed: UID is Empty");
+                    return;
+                }
+            }
+
+            var api = AppBootstrap.Instance?.Root?.Api;
+            if (api == null) return;
+
+            Debug.Log($"[InventoryManager] Loading Inventory for UID: {uid}...");
+            // API returns { Items: [...], Equipments: [...] }
+            var res = await api.GetJsonAsync<InventoryResponse>($"/api/inventory/{uid}", attachAuth: true);
+
+            if (res.Ok && res.Data != null)
+            {
+                // Merge items + equipments into single list for UpdateFromDto
+                var allItems = new List<GameItemDto>();
+                if (res.Data.items != null) allItems.AddRange(res.Data.items);
+                if (res.Data.equipments != null) allItems.AddRange(res.Data.equipments);
+                Debug.Log($"[InventoryManager] API Response: Items={res.Data.items?.Count ?? 0}, Equipments={res.Data.equipments?.Count ?? 0}");
+                UpdateFromDto(allItems);
+            }
             else
             {
-                Debug.LogError("[InventoryManager] LoadFromApi Failed: UID is Empty");
-                return;
+                Debug.LogError($"[InventoryManager] API Load Failed: {res.Error} (Code: {res.StatusCode})");
             }
         }
-
-        var api = AppBootstrap.Instance?.Root?.Api;
-        if (api == null) return;
-
-        Debug.Log($"[InventoryManager] Loading Inventory for UID: {uid}...");
-        // API returns { Items: [...], Equipments: [...] }
-        var res = await api.GetJsonAsync<InventoryResponse>($"/api/inventory/{uid}", attachAuth: true);
-
-        if (res.Ok && res.Data != null)
+        finally
         {
-            // Merge items + equipments into single list for UpdateFromDto
-            var allItems = new List<GameItemDto>();
-            if (res.Data.items != null) allItems.AddRange(res.Data.items);
-            if (res.Data.equipments != null) allItems.AddRange(res.Data.equipments);
-            Debug.Log($"[InventoryManager] API Response: Items={res.Data.items?.Count ?? 0}, Equipments={res.Data.equipments?.Count ?? 0}");
-            UpdateFromDto(allItems);
-        }
-        else
-        {
-            Debug.LogError($"[InventoryManager] API Load Failed: {res.Error} (Code: {res.StatusCode})");
+            _loadInFlight = false;
         }
     }
 

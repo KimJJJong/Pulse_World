@@ -1031,14 +1031,34 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 }
                 else
                 {
-                    _baseTileColors[x, y] = Color.gray;
-                    _logicTileColors[x, y] = Color.gray;
-                    missingCount++;
+                    GameObject fallbackTile = CreateMissingSceneTile(x, y);
+                    if (fallbackTile != null)
+                    {
+                        BindTileState(x, y, fallbackTile);
+                        boundCount++;
+                    }
+                    else
+                    {
+                        _baseTileColors[x, y] = Color.gray;
+                        _logicTileColors[x, y] = Color.gray;
+                        missingCount++;
+                    }
                 }
             }
         }
 
         return boundCount > 0;
+    }
+
+    private GameObject CreateMissingSceneTile(int x, int y)
+    {
+        if (tilePrefab == null)
+            return null;
+
+        var tile = Instantiate(tilePrefab, GetTileRoot());
+        tile.name = $"Tile_{x}_{y}";
+        tile.transform.position = new Vector3(x * cellSize, -2f, y * cellSize);
+        return tile;
     }
 
     private Dictionary<(int x, int y), GameObject> CollectSceneTilesByName()
@@ -1173,7 +1193,10 @@ public class BoardView : MonoBehaviour, IClientWorldView
         }
 
         if (createdNow)
+        {
             BindStageSceneObjectTargets(info, visual);
+            CameraObstacleFadeRuntimeTargets.EnsureForEntity(info, visual.transform);
+        }
     }
 
     private static void BindStageSceneObjectTargets(ClientEntityInfo info, EntityVisual visual)

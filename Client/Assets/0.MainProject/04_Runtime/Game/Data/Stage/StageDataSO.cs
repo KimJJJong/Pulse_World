@@ -46,7 +46,7 @@ namespace RhythmRPG.Editor.StageBuilder
         [Range(60, 240)] public int Bpm = 120;
         [HideInInspector]
         public int BaseBeatDivision = 1;
-        public int ActionWindowMs = 100;
+        public int ActionWindowMs = 150;
         public int StartDelayMs = 2000;
     }
 

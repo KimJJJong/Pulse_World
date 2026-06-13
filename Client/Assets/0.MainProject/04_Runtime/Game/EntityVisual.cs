@@ -13,6 +13,8 @@ public class EntityVisual : MonoBehaviour
     private const float FallbackMoveClipLengthSeconds = 1f;
     private const float FallbackHitClipLengthSeconds = 0.35f;
     private const float FallbackDeathClipLengthSeconds = 0.45f;
+    private const float IdlePinCheckIntervalSeconds = 0.05f;
+    private const float IdleReplayNormalizedThreshold = 0.95f;
 
     private static readonly string[] IdleStateCandidates =
     {
@@ -49,7 +51,9 @@ public class EntityVisual : MonoBehaviour
     private RuntimeAnimatorController _cachedParameterController;
     private readonly HashSet<int> _animatorParameterHashes = new();
     private readonly List<StateCandidate> _stateCandidates = new();
+    private bool _movementInProgress;
     private bool _isDead;
+    private float _nextIdlePinCheckTime;
     private float _deathStartedAt;
     private float _deathDuration = FallbackDeathClipLengthSeconds;
 
@@ -80,6 +84,12 @@ public class EntityVisual : MonoBehaviour
     {
         if (_animator == null) _animator = GetComponent<Animator>();
         if (_animator == null) _animator = GetComponentInChildren<Animator>(true);
+        EnsureIdlePose();
+    }
+
+    private void Update()
+    {
+        MaintainIdlePose();
     }
 
     public void Bind(Animator animator)
@@ -87,11 +97,13 @@ public class EntityVisual : MonoBehaviour
         _animator = animator;
         _cachedParameterController = null;
         _animatorParameterHashes.Clear();
+        EnsureIdlePose();
     }
 
     public void BindAnimationProfile(EntityAnimationProfile profile)
     {
         _animationProfile = profile;
+        EnsureIdlePose();
     }
 
     public void SetRotation(float yAngle)
@@ -132,6 +144,7 @@ public class EntityVisual : MonoBehaviour
             }
         }
 
+        _movementInProgress = true;
         StartCoroutine(CoMove(start, end, duration));
     }
 
@@ -149,13 +162,10 @@ public class EntityVisual : MonoBehaviour
         }
 
         transform.position = end;
+        _movementInProgress = false;
 
         if (_animator != null && !_isDead)
-        {
-            SetAnimatorBoolIfExists(IsMovingHash, false);
-            _animator.speed = 1f;
-            TryPlayRoleState(AnimationRole.Idle, null, 0f, 0f, true, out _);
-        }
+            ForceIdlePose(false, true);
     }
 
     // -------------------------------------------------------------------------
@@ -174,6 +184,7 @@ public class EntityVisual : MonoBehaviour
             return;
 
         StopVisualCoroutines();
+        _movementInProgress = true;
         StartCoroutine(CoBumpBack(attemptedPos, returnPos, bumpRatio));
     }
 
@@ -185,8 +196,7 @@ public class EntityVisual : MonoBehaviour
         if (_animator != null)
         {
             _animator.speed = 1f;
-            SetAnimatorBoolIfExists(IsMovingHash, false);
-            TryPlayRoleState(AnimationRole.Idle, null, 0f, 0f, true, out _);
+            ForceIdlePose(false, true);
         }
 
         Vector3 startPos   = transform.position;
@@ -210,13 +220,10 @@ public class EntityVisual : MonoBehaviour
             yield return null;
         }
         transform.position = returnPos;
+        _movementInProgress = false;
 
         if (_animator != null && !_isDead)
-        {
-            SetAnimatorBoolIfExists(IsMovingHash, false);
-            _animator.speed = 1f;
-            TryPlayRoleState(AnimationRole.Idle, null, 0f, 0f, true, out _);
-        }
+            ForceIdlePose(false, true);
     }
 
     // -------------------------------------------------------------------------
@@ -279,6 +286,7 @@ public class EntityVisual : MonoBehaviour
         StopAllCoroutines();
         _resetAnimatorSpeedCoroutine = null;
         _returnToIdleCoroutine = null;
+        _movementInProgress = false;
     }
 
     private void StopAnimatorSpeedReset()
@@ -303,8 +311,8 @@ public class EntityVisual : MonoBehaviour
     {
         yield return new WaitForSeconds(Mathf.Max(0.01f, delay));
 
-        if (_animator != null)
-            _animator.speed = 1f;
+        if (_animator != null && !_isDead)
+            ForceIdlePose(false, true);
 
         _resetAnimatorSpeedCoroutine = null;
     }
@@ -320,13 +328,67 @@ public class EntityVisual : MonoBehaviour
         yield return new WaitForSeconds(Mathf.Max(0.01f, delay));
 
         if (_animator != null && !_isDead)
-        {
-            SetAnimatorBoolIfExists(IsMovingHash, false);
-            _animator.speed = 1f;
-            TryPlayRoleState(AnimationRole.Idle, null, 0f, 0f, true, out _);
-        }
+            ForceIdlePose(false, true);
 
         _returnToIdleCoroutine = null;
+    }
+
+    public void EnsureIdlePose()
+    {
+        ForceIdlePose(true, false);
+    }
+
+    private void ForceIdlePose(bool stopPendingCoroutines, bool useCrossFade)
+    {
+        if (_animator == null || _isDead)
+            return;
+
+        if (stopPendingCoroutines)
+        {
+            StopAnimatorSpeedReset();
+            StopReturnToIdle();
+        }
+
+        ResetAnimatorTriggerIfExists(AttackHash);
+        ResetAnimatorTriggerIfExists(HitHash);
+        SetAnimatorBoolIfExists(IsMovingHash, false);
+        _animator.speed = 1f;
+        TryPlayRoleState(AnimationRole.Idle, null, 0f, 0f, useCrossFade, out _);
+    }
+
+    private void MaintainIdlePose()
+    {
+        if (_animator == null
+            || _isDead
+            || _movementInProgress
+            || _resetAnimatorSpeedCoroutine != null
+            || _returnToIdleCoroutine != null
+            || Time.time < _nextIdlePinCheckTime)
+        {
+            return;
+        }
+
+        _nextIdlePinCheckTime = Time.time + IdlePinCheckIntervalSeconds;
+
+        if (_animator.layerCount <= 0 || !TryGetRoleStateHash(AnimationRole.Idle, null, out int idleHash))
+            return;
+
+        if (_animator.IsInTransition(0))
+        {
+            ForceIdlePose(false, true);
+            return;
+        }
+
+        var state = _animator.GetCurrentAnimatorStateInfo(0);
+        bool isIdleState = state.fullPathHash == idleHash || state.shortNameHash == idleHash;
+        if (!isIdleState)
+        {
+            ForceIdlePose(false, true);
+            return;
+        }
+
+        if (!IsIdleClipLooping() && state.normalizedTime >= IdleReplayNormalizedThreshold)
+            _animator.Play(idleHash, 0, 0f);
     }
 
     private float ResolveFallbackClipLength(AnimationRole role)
@@ -385,6 +447,45 @@ public class EntityVisual : MonoBehaviour
                 _animator.Play(stateHash, 0, Mathf.Clamp01(normalizedStart));
 
             return true;
+        }
+
+        return false;
+    }
+
+    private bool TryGetRoleStateHash(AnimationRole role, string skillId, out int stateHash)
+    {
+        stateHash = 0;
+        if (_animator == null || _animator.layerCount <= 0)
+            return false;
+
+        BuildStateCandidates(role, skillId);
+
+        for (int i = 0; i < _stateCandidates.Count; i++)
+        {
+            var candidate = _stateCandidates[i];
+            if (string.IsNullOrWhiteSpace(candidate.StateName))
+                continue;
+
+            if (TryGetStateHash(candidate.StateName, out stateHash))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsIdleClipLooping()
+    {
+        if (_animationProfile != null && _animationProfile.IdleClip != null)
+            return _animationProfile.IdleClip.isLooping;
+
+        var controller = _animator != null ? _animator.runtimeAnimatorController : null;
+        if (controller == null || controller.animationClips == null)
+            return false;
+
+        foreach (var clip in controller.animationClips)
+        {
+            if (clip != null && ClipMatchesRole(AnimationRole.Idle, clip.name))
+                return clip.isLooping;
         }
 
         return false;
@@ -671,6 +772,28 @@ public class EntityVisual : MonoBehaviour
 
         _animator.SetBool(hash, value);
         return true;
+    }
+
+    private void ResetAnimatorTriggerIfExists(int hash)
+    {
+        if (_animator == null || !HasAnimatorTriggerParameter(hash))
+            return;
+
+        _animator.ResetTrigger(hash);
+    }
+
+    private bool HasAnimatorTriggerParameter(int hash)
+    {
+        if (_animator == null)
+            return false;
+
+        foreach (var parameter in _animator.parameters)
+        {
+            if (parameter.nameHash == hash && parameter.type == AnimatorControllerParameterType.Trigger)
+                return true;
+        }
+
+        return false;
     }
 
     private bool HasAnimatorParameter(int hash)

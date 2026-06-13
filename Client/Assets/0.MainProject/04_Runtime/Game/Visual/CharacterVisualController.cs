@@ -72,6 +72,9 @@ namespace RhythmRPG.Visual
             int count = InventoryManager.Instance.Equipments?.Count ?? 0;
             Debug.Log($"[CharacterVisualController] ({caller}) Subscribed on '{gameObject.name}'. InventoryManager equip count={count}");
 
+            if (!InventoryManager.Instance.IsLoaded && !InventoryManager.Instance.IsLoadInFlight)
+                InventoryManager.Instance.LoadFromApi();
+
             // 이미 로드된 데이터가 있으면 즉시 반영
             if (count > 0)
             {
@@ -106,6 +109,7 @@ namespace RhythmRPG.Visual
                 return;
             }
 
+            SubscribeAndRefresh("RefreshNow");
             RefreshFromInventory();
         }
 

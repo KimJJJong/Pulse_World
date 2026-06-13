@@ -42,7 +42,7 @@ MonoBehaviour:
           rid: 4242872515865870433
     - TrackName: Track 4
       Events:
-      - TriggerTick: 480
+      - TriggerTick: 720
         DurationTicks: 480
         Action:
           rid: 4242872515865870436

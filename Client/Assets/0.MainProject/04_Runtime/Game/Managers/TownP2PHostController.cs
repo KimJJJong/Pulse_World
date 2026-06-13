@@ -117,7 +117,11 @@ public sealed class TownP2PHostController : MonoBehaviour
         var fromY = entity.Y;
         var toX = req.TargetX;
         var toY = req.TargetY;
-        var accepted = ValidateTownAction(gs, req, entity, ref toX, ref toY);
+        bool accepted = IsInsideGrid(gs, toX, toY);
+        if (!accepted)
+        {
+            ResolveSafeGridCell(gs, entity, out toX, out toY);
+        }
 
         var beatIndex = RhythmClient.Instance != null ? RhythmClient.Instance.GetCurrentBeatIndex() : 0;
         if (beatIndex < 0)
@@ -147,27 +151,19 @@ public sealed class TownP2PHostController : MonoBehaviour
         bridge.SendWrappedPacket(pkt);
     }
 
-    private static bool ValidateTownAction(
-        ClientGameState gs,
-        CS_TownActionRequest req,
-        ClientEntityInfo entity,
-        ref int toX,
-        ref int toY)
+    private static bool IsInsideGrid(ClientGameState gs, int x, int y)
     {
-        if (req.ActionKind != (int)ActionKind.Move)
-            return true;
+        return gs != null && gs.IsValidTownMoveCell(x, y);
+    }
 
-        var dx = Mathf.Abs(toX - entity.X);
-        var dy = Mathf.Abs(toY - entity.Y);
-        if (dx + dy != 1)
-            return false;
+    private static void ResolveSafeGridCell(ClientGameState gs, ClientEntityInfo entity, out int safeX, out int safeY)
+    {
+        safeX = entity.X;
+        safeY = entity.Y;
 
-        if (!gs.IsWalkable(toX, toY))
-            return false;
+        if (gs == null || gs.IsValidTownMoveCell(safeX, safeY))
+            return;
 
-        if (gs.IsOccupied(toX, toY, req.ActorId))
-            return false;
-
-        return true;
+        gs.TryResolveTownMoveCell(safeX, safeY, out safeX, out safeY);
     }
 }

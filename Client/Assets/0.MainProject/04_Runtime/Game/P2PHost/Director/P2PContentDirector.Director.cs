@@ -65,6 +65,7 @@ public sealed partial class P2PContentDirector
 
     private void ResetStageRuntime()
     {
+        CancelEliteGateFinale();
         CancelPendingEntityGroupRemovals();
         _stage = null;
         _stageLoaded = false;
@@ -636,6 +637,14 @@ public sealed partial class P2PContentDirector
         if (data == null)
             return;
 
+        if (TryStartEliteGateFinale(data))
+            return;
+
+        SpawnObjectNow(data);
+    }
+
+    private void SpawnObjectNow(SpawnObjectData data)
+    {
         int entityId = GenerateSpawnEntityId();
         if (entityId > 0 && data.GroupId > 0)
             _stageObjectGroupByEntityId[entityId] = data.GroupId;
@@ -976,7 +985,7 @@ public sealed partial class P2PContentDirector
         _templatesByAppearanceId[appearanceId] = template;
     }
 
-    private const int AiBucketCount = 3;  // [최적화] AI 버킷 분산 — Beat마다 1/N 몬스터만 처리
+    private const int AiBucketCount = 1;  // P2P authority는 몬스터 패턴을 매 beat 평가해 beat sync를 우선한다.
 
     private void RunMonsterAI(long beat)
     {
@@ -1004,7 +1013,7 @@ public sealed partial class P2PContentDirector
             if (beat < state.LockedUntilBeat)
                 continue;
 
-            // [최적화] 버킷 분산 — 이번 Beat 담당 버킷이 아니면 스킵
+            // 버킷 분산이 켜져 있으면 이번 Beat 담당 버킷이 아니면 스킵한다.
             // 단, LockedUntilBeat가 이번 Beat에 만료된 경우는 반드시 처리
             bool isBucketMatch  = (state.EntityId % AiBucketCount) == bucketIndex;
             bool isJustUnlocked = (state.LockedUntilBeat == beat);
@@ -1431,7 +1440,7 @@ public sealed partial class P2PContentDirector
         int height = state != null ? state.MapHeight : 0;
 
         field = new GridDistanceField(width, height);
-        field.Build(new[] { new GridPos(target.x, target.y) }, (x, y) => state != null && state.IsWalkable(x, y));
+        field.Build(new[] { new GridPos(target.x, target.y) }, (x, y) => state != null && state.IsWalkableForPathing(x, y));
         _distanceFields[key] = field;
         return field;
     }
@@ -1440,6 +1449,9 @@ public sealed partial class P2PContentDirector
     {
         var state = ClientGameState.Instance;
         if (state == null || !state.IsWalkable(x, y))
+            return false;
+
+        if (state.IsBlockingObjectAt(x, y, actorId))
             return false;
 
         if (IsMoveTargetReservedByOther(executeBeat, actorId, x, y))

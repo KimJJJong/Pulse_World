@@ -10,7 +10,7 @@ public static class RhythmSyncCoordinator
         if (serverTimeMs <= 0)
             return;
 
-        TimeSync.SetOffsetFromServerNow(serverTimeMs);
+        TimeSync.SetBootstrapOffsetFromServerNow(serverTimeMs, "Handshake/NoRTT");
     }
 
     public static bool TryApplyBeatSync(
@@ -31,9 +31,10 @@ public static class RhythmSyncCoordinator
             return false;
         }
 
-        // BeatSync에도 서버 송신 시간이 있으므로, Pong이 오기 전이라도 한번 더 오프셋 보정한다.
+        // BeatSync에도 서버 송신 시간이 있으므로 Pong 전에는 bootstrap으로 쓴다.
+        // 이미 RTT 보정이 들어온 뒤에는 no-RTT 샘플을 섞으면 릴레이 지연만큼 beat clock이 흔들린다.
         if (serverSendTimeMs > 0)
-            TimeSync.SetOffsetFromServerNow(serverSendTimeMs);
+            TimeSync.SetBootstrapOffsetFromServerNow(serverSendTimeMs, $"{sourceTag}/NoRTT");
 
         rhythm.OnBeatSync(new BeatSyncInfo
         {

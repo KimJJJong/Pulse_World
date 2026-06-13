@@ -1074,6 +1074,9 @@ public sealed partial class P2PHostController
             if (_hostPositions.ContainsKey(entity.EntityId))
                 continue;
 
+            if (!ClientGameState.EntityBlocksMovement(entity))
+                continue;
+
             if (ClientGameState.EntityOccupiesCell(entity, targetX, targetY))
                 return true;
         }
@@ -1089,7 +1092,7 @@ public sealed partial class P2PHostController
         if (current == null)
             return true;
 
-        return current.TryGetEntity(entityId, out var entity) && entity.Hp > 0;
+        return current.TryGetEntity(entityId, out var entity) && ClientGameState.EntityBlocksMovement(entity);
     }
 
     private bool TryMoveActor(int actorId, int targetX, int targetY)

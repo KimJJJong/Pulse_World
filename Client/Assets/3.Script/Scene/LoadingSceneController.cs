@@ -144,8 +144,8 @@ public class LoadingSceneController : MonoBehaviour
 
                 if (Time.time - waitMapStartTime > MapGenerationTimeout)
                 {
-                    Debug.LogWarning("[LoadingSceneController] Map generation wait timed out.");
-                    break;
+                    Debug.LogWarning("[LoadingSceneController] Map generation is still running. Waiting for completion.");
+                    waitMapStartTime = Time.time;
                 }
             }
 

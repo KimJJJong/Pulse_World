@@ -5,6 +5,9 @@ using System.Linq;
 
 public class ClientGameState : MonoBehaviour
 {
+    private const int StageSummonMossyStoneRingAppearanceId = 503;
+    private const int StageSummonRunicStoneGateAppearanceId = 504;
+
     public static ClientGameState Instance { get; private set; }
 
     //tmp
@@ -231,14 +234,78 @@ public class ClientGameState : MonoBehaviour
     public int GetTileKind(int x, int y)
     {
         if (_tiles == null) return (int)TileKind.None;
-        if (x < 0 || x >= MapWidth || y < 0 || y >= MapHeight) return (int)TileKind.None;
+        if (!IsInsideMap(x, y)) return (int)TileKind.None;
         return _tiles[x, y];
+    }
+
+    public bool IsInsideMap(int x, int y)
+    {
+        return MapWidth > 0
+               && MapHeight > 0
+               && x >= 0
+               && y >= 0
+               && x < MapWidth
+               && y < MapHeight;
+    }
+
+    public bool TryClampToMap(int x, int y, out int clampedX, out int clampedY)
+    {
+        clampedX = x;
+        clampedY = y;
+
+        if (MapWidth <= 0 || MapHeight <= 0)
+            return false;
+
+        clampedX = Mathf.Clamp(x, 0, MapWidth - 1);
+        clampedY = Mathf.Clamp(y, 0, MapHeight - 1);
+        return true;
     }
 
     public bool IsWalkable(int x, int y)
     {
         var kind = (TileKind)GetTileKind(x, y);
         return kind == TileKind.Floor || kind == TileKind.Spawn;
+    }
+
+    public bool IsValidTownMoveCell(int x, int y)
+    {
+        return IsInsideMap(x, y) && IsWalkable(x, y);
+    }
+
+    public bool TryResolveTownMoveCell(int preferredX, int preferredY, out int resolvedX, out int resolvedY)
+    {
+        resolvedX = preferredX;
+        resolvedY = preferredY;
+
+        if (IsValidTownMoveCell(preferredX, preferredY))
+            return true;
+
+        if (_tiles == null || MapWidth <= 0 || MapHeight <= 0)
+            return false;
+
+        bool found = false;
+        int bestDistance = int.MaxValue;
+        for (int y = 0; y < MapHeight; y++)
+        {
+            for (int x = 0; x < MapWidth; x++)
+            {
+                if (!IsValidTownMoveCell(x, y))
+                    continue;
+
+                int dx = x - preferredX;
+                int dy = y - preferredY;
+                int distance = dx * dx + dy * dy;
+                if (distance >= bestDistance)
+                    continue;
+
+                found = true;
+                bestDistance = distance;
+                resolvedX = x;
+                resolvedY = y;
+            }
+        }
+
+        return found;
     }
 
     public static bool EntityOccupiesCell(ClientEntityInfo entity, int x, int y)
@@ -249,6 +316,49 @@ public class ClientGameState : MonoBehaviour
                && y >= entity.Y && y < entity.Y + sizeY;
     }
 
+    public static bool IsPassThroughObjectAppearance(int appearanceId)
+    {
+        return appearanceId == StageSummonMossyStoneRingAppearanceId
+               || appearanceId == StageSummonRunicStoneGateAppearanceId;
+    }
+
+    public static bool EntityBlocksMovement(ClientEntityInfo entity)
+    {
+        if (entity.Hp <= 0)
+            return false;
+
+        if (entity.EntityType == (int)EntityType.Object
+            && IsPassThroughObjectAppearance(entity.AppearanceId))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public bool IsBlockingObjectAt(int x, int y, int ignoreEntityId = -1)
+    {
+        foreach (var kv in _entities)
+        {
+            if (kv.Key == ignoreEntityId)
+                continue;
+
+            var entity = kv.Value;
+            if (entity.EntityType != (int)EntityType.Object || !EntityBlocksMovement(entity))
+                continue;
+
+            if (EntityOccupiesCell(entity, x, y))
+                return true;
+        }
+
+        return false;
+    }
+
+    public bool IsWalkableForPathing(int x, int y)
+    {
+        return IsWalkable(x, y) && !IsBlockingObjectAt(x, y);
+    }
+
     public bool IsOccupied(int x, int y, int ignoreEntityId = -1)
     {
         foreach (var kv in _entities)
@@ -256,7 +366,7 @@ public class ClientGameState : MonoBehaviour
             if (kv.Key == ignoreEntityId)
                 continue;
 
-            if (kv.Value.Hp <= 0)
+            if (!EntityBlocksMovement(kv.Value))
                 continue;
 
             if (EntityOccupiesCell(kv.Value, x, y))
@@ -448,6 +558,16 @@ public class ClientGameState : MonoBehaviour
 
     public void OnBeatAction(ClientBeatAction action)
     {
+        ApplyBeatAction(action, enforceTownMoveGrid: false);
+    }
+
+    public void OnTownBeatAction(ClientBeatAction action)
+    {
+        ApplyBeatAction(action, enforceTownMoveGrid: true);
+    }
+
+    private void ApplyBeatAction(ClientBeatAction action, bool enforceTownMoveGrid)
+    {
         if (!_entities.TryGetValue(action.ActorId, out var entity))
         {
             Debug.LogWarning($"[ClientGameState] OnBeatAction: Entity {action.ActorId} not found");
@@ -457,7 +577,46 @@ public class ClientGameState : MonoBehaviour
         // [서버 권위] Move 패킷에서만 위치 갱신
         // Skill 패킷의 ToX/Y는 시전자 위치(이동 없음)이므로 위치 갱신에 쓰면 안 됨
         // 이동 스킬(Dash/Blink)은 BroadcastMoveResult → ActionKind.Move 패킷으로 별도 전달됨
-        if (action.ActionKind == (int)ActionKind.Move)
+        bool isMoveAction = action.ActionKind == (int)ActionKind.Move;
+        if (isMoveAction)
+        {
+            bool fromInside = IsMoveTargetValid(action.FromX, action.FromY, enforceTownMoveGrid);
+            bool toInside = IsMoveTargetValid(action.ToX, action.ToY, enforceTownMoveGrid);
+
+            if (!toInside)
+            {
+                if (P2PDebugConfig.TraceInput || P2PDebugConfig.LogOverheadEnabled)
+                {
+                    Debug.LogWarning(
+                        $"[ClientGameState] Block out-of-map move actor={action.ActorId} accepted={action.Accepted} " +
+                        $"from=({action.FromX},{action.FromY}) to=({action.ToX},{action.ToY}) map=({MapWidth}x{MapHeight})");
+                }
+
+                ResolveSafeMapCell(entity, enforceTownMoveGrid, out int safeX, out int safeY);
+                action.Accepted = false;
+                action.FromX = safeX;
+                action.FromY = safeY;
+                action.ToX = safeX;
+                action.ToY = safeY;
+            }
+            else if (!fromInside)
+            {
+                ResolveSafeMapCell(entity, enforceTownMoveGrid, out int safeX, out int safeY);
+                action.FromX = safeX;
+                action.FromY = safeY;
+            }
+        }
+
+        if (isMoveAction && action.Accepted && !action.HasHpUpdate && entity.X == action.ToX && entity.Y == action.ToY)
+        {
+            entity.Rotation = action.Rotation;
+            _entities[action.ActorId] = entity;
+            EntityChanged?.Invoke(entity);
+            NotifyMyEntityChanged(action.ActorId);
+            return;
+        }
+
+        if (isMoveAction)
         {
             if (action.Accepted)
             {
@@ -490,6 +649,30 @@ public class ClientGameState : MonoBehaviour
         WorldView?.OnBeatAction(action, entity);
         EntityChanged?.Invoke(entity);
         NotifyMyEntityChanged(action.ActorId);
+    }
+
+    private bool IsMoveTargetValid(int x, int y, bool enforceTownMoveGrid)
+    {
+        return enforceTownMoveGrid ? IsValidTownMoveCell(x, y) : IsInsideMap(x, y);
+    }
+
+    private void ResolveSafeMapCell(ClientEntityInfo entity, bool enforceTownMoveGrid, out int safeX, out int safeY)
+    {
+        if (IsMoveTargetValid(entity.X, entity.Y, enforceTownMoveGrid))
+        {
+            safeX = entity.X;
+            safeY = entity.Y;
+            return;
+        }
+
+        if (enforceTownMoveGrid && TryResolveTownMoveCell(entity.X, entity.Y, out safeX, out safeY))
+            return;
+
+        if (TryClampToMap(entity.X, entity.Y, out safeX, out safeY))
+            return;
+
+        safeX = entity.X;
+        safeY = entity.Y;
     }
 
     private bool ShouldTracePlayerBeatAction(int actorId)

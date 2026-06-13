@@ -20,6 +20,7 @@ public class ClientSkillRunner : MonoBehaviour
 
     private HashSet<int> _triggeredEvents = new HashSet<int>();
     private List<Vector2Int> _activeTelegraphs = new List<Vector2Int>();
+    private readonly List<DueSkillEvent> _dueEvents = new List<DueSkillEvent>(16);
 
     // ── InputLock ─────────────────────────────────────────────────────────────
     // 내 캐릭터 전용. 스킬 시전 중 입력을 막고 OnDestroy에서 해제한다.
@@ -70,7 +71,9 @@ public class ClientSkillRunner : MonoBehaviour
 
         if (RhythmClient.Instance != null)
         {
-            TryStartPlayback(RhythmClient.Instance.GetCurrentServerTick());
+            long currentTick = RhythmClient.Instance.GetCurrentServerTick();
+            TryStartPlayback(currentTick);
+            ProcessDueEvents(currentTick - _startTick);
         }
 
         return true;
@@ -102,6 +105,7 @@ public class ClientSkillRunner : MonoBehaviour
         _boardView = null;
         _casterRotation = 0f;
         _playbackStarted = false;
+        _dueEvents.Clear();
     }
 
     void Update()
@@ -127,9 +131,22 @@ public class ClientSkillRunner : MonoBehaviour
             return;
         }
 
+        ProcessDueEvents(relativeTick);
+    }
+
+    private void ProcessDueEvents(long relativeTick)
+    {
+        if (_skillDef?.Data?.Tracks == null || relativeTick < 0)
+            return;
+
+        _dueEvents.Clear();
+
         for (int t = 0; t < _skillDef.Data.Tracks.Count; t++)
         {
             var track = _skillDef.Data.Tracks[t];
+            if (track?.Events == null)
+                continue;
+
             for (int e = 0; e < track.Events.Count; e++)
             {
                 var ev = track.Events[e];
@@ -139,22 +156,50 @@ public class ClientSkillRunner : MonoBehaviour
 
                 if (relativeTick >= ev.TriggerTick)
                 {
-                    _triggeredEvents.Add(eventHash);
-
-                    if (VerboseSkillEventLogs)
+                    _dueEvents.Add(new DueSkillEvent
                     {
-                        // [SkillEvent] 스킬 이벤트 트리거 발동 — 어떤 이벤트가 언제 발동했는지 추적.
-                        // 특히 Warning 이벤트가 제때 트리거되는지, 지연 발동하지는 않는지 확인용.
-                        // track/event 인덱스는 이 스킬의 몇 번째 트랙/이벤트인지 (0,0)=첫 트랙 첫 이벤트.
-                        Debug.Log($"[SkillEvent] actor={_actorId} track={t} event={e} type={ev.Action?.Type} " +
-                                  $"triggerTick={ev.TriggerTick} relativeTick={relativeTick} " +
-                                  $"(lag={relativeTick - ev.TriggerTick} ticks late)");
-                    }
-
-                    ProcessEvent(ev, relativeTick);
-
+                        TrackIndex = t,
+                        EventIndex = e,
+                        EventHash = eventHash,
+                        Event = ev
+                    });
                 }
             }
+        }
+
+        if (_dueEvents.Count == 0)
+            return;
+
+        _dueEvents.Sort((a, b) =>
+        {
+            int cmp = a.Event.TriggerTick.CompareTo(b.Event.TriggerTick);
+            if (cmp != 0)
+                return cmp;
+
+            cmp = GetActionPriority(a.Event.Action).CompareTo(GetActionPriority(b.Event.Action));
+            if (cmp != 0)
+                return cmp;
+
+            cmp = a.TrackIndex.CompareTo(b.TrackIndex);
+            if (cmp != 0)
+                return cmp;
+
+            return a.EventIndex.CompareTo(b.EventIndex);
+        });
+
+        foreach (var due in _dueEvents)
+        {
+            if (!_triggeredEvents.Add(due.EventHash))
+                continue;
+
+            if (VerboseSkillEventLogs)
+            {
+                Debug.Log($"[SkillEvent] actor={_actorId} track={due.TrackIndex} event={due.EventIndex} type={due.Event.Action?.Type} " +
+                          $"triggerTick={due.Event.TriggerTick} relativeTick={relativeTick} " +
+                          $"(lag={relativeTick - due.Event.TriggerTick} ticks late)");
+            }
+
+            ProcessEvent(due.Event, relativeTick);
         }
     }
 
@@ -240,16 +285,55 @@ public class ClientSkillRunner : MonoBehaviour
                 if (ev.Action is SoundAction sound)
                 {
                     bool isMine = _isMine && sound.UseOwnerPerspective;
+                    float startOffsetMs = CalculateLateEventOffsetMs(ev, relativeTick);
                     if (!string.IsNullOrEmpty(sound.FmodEventPath))
-                        FMODActionSoundPlayer.Instance?.PlayByEventPath(sound.FmodEventPath, sound.Volume);
+                        FMODActionSoundPlayer.Instance?.PlayByEventPath(sound.FmodEventPath, sound.Volume, startOffsetMs);
                     else
-                        FMODActionSoundPlayer.Instance?.PlayAttackSound(isMine);
+                        FMODActionSoundPlayer.Instance?.PlayAttackSound(isMine, startOffsetMs);
 
                     if (_isMine)
                         CombatImpactFeedback.Instance.PlayLocalAttackImpact();
                 }
                 break;
         }
+    }
+
+    private static int GetActionPriority(BaseAction action)
+    {
+        if (action == null)
+            return int.MaxValue;
+
+        return action.GetSkillActionType() switch
+        {
+            SkillActionType.Move => 0,
+            SkillActionType.Warning => 1,
+            SkillActionType.InputLock => 2,
+            SkillActionType.Damage => 3,
+            SkillActionType.Sound => 4,
+            SkillActionType.Wait => 5,
+            _ => 6
+        };
+    }
+
+    private static float CalculateLateEventOffsetMs(SkillEvent ev, long relativeTick)
+    {
+        if (ev == null || relativeTick <= ev.TriggerTick || RhythmClient.Instance == null)
+            return 0f;
+
+        double beatMs = RhythmClient.Instance.GetBeatDurationMs();
+        if (beatMs <= 0d)
+            return 0f;
+
+        double lateTicks = relativeTick - ev.TriggerTick;
+        return (float)(lateTicks * beatMs / 480.0d);
+    }
+
+    private struct DueSkillEvent
+    {
+        public int TrackIndex;
+        public int EventIndex;
+        public int EventHash;
+        public SkillEvent Event;
     }
 
     // ── InputLock 헬퍼 ────────────────────────────────────────────────────────

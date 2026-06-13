@@ -2022,8 +2022,8 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 504,
-                    "X": 70,
-                    "Y": 0,
+                    "X": 89,
+                    "Y": 4,
                     "Z": 39,
                     "StringVal": "",
                     "GroupId": 2190,

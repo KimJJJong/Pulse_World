@@ -26,6 +26,7 @@ public class HudPresenter : MonoBehaviour
     private long _lastComboInputBeat = long.MinValue;
 
     private const int ComboIdleResetBeats = 3;
+    private const int SkillTicksPerBeat = 480;
 
     void Awake()
     {
@@ -645,9 +646,9 @@ public class HudPresenter : MonoBehaviour
         _inputController = null;
     }
 
-    private void OnCombatInputAccepted(long inputBeat)
+    private void OnCombatInputAccepted(long inputBeat, string skillId)
     {
-        _lastComboInputBeat = inputBeat;
+        _lastComboInputBeat = ResolveComboSustainBeat(inputBeat, skillId);
         _comboCount++;
         _comboView?.SetCombo(_comboCount);
         _beatGuide?.NotifyInputAccepted(inputBeat);
@@ -679,6 +680,23 @@ public class HudPresenter : MonoBehaviour
 
         if (currentBeat - _lastComboInputBeat >= ComboIdleResetBeats)
             HandleCombatInputMissed(true);
+    }
+
+    private static long ResolveComboSustainBeat(long inputBeat, string skillId)
+    {
+        if (inputBeat < 0 || string.IsNullOrWhiteSpace(skillId))
+            return inputBeat;
+
+        return inputBeat + ResolveSkillDurationBeats(skillId);
+    }
+
+    private static long ResolveSkillDurationBeats(string skillId)
+    {
+        var skillDefinition = P2PCombatContentCache.GetSkillDefinition(skillId);
+        if (skillDefinition == null || skillDefinition.TotalDurationTicks <= 0)
+            return 0;
+
+        return System.Math.Max(0, (skillDefinition.TotalDurationTicks + SkillTicksPerBeat - 1) / SkillTicksPerBeat);
     }
 
     public void BreakCombo()

@@ -92,8 +92,8 @@ public sealed partial class P2PHostController : MonoBehaviour
             return;
         }
 
-        // 프레임당 전송 상한 — 스파이크 방지 (4인 기준 Beat당 최대 패킷 ~10개)
-        const int MaxSendPerFrame = 16;
+        // 같은 beat의 즉시/결과 패킷이 프레임 단위로 쪼개지면 원격에서 액션과 사운드가 밀린다.
+        const int MaxSendPerFrame = 64;
         int sent = 0;
         while (sent < MaxSendPerFrame && _pendingSendQueue.TryDequeue(out var pkt))
         {

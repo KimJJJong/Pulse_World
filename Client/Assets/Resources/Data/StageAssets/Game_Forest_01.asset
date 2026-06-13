@@ -21,7 +21,7 @@ MonoBehaviour:
     SongKey: DefaultSong
     Bpm: 120
     BaseBeatDivision: 1
-    ActionWindowMs: 100
+    ActionWindowMs: 150
     StartDelayMs: 2000
   Registry:
   - Key: Pawn_B

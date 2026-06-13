@@ -19,19 +19,19 @@ public class FMODActionSoundPlayer : MonoBehaviour
     /// <summary>
     /// 공격 모션이 재생될 때 이 메서드를 호출합니다.
     /// </summary>
-    public void PlayAttackSound(bool isMine)
+    public void PlayAttackSound(bool isMine, float startOffsetMs = 0f)
     {
         EventReference targetSound = isMine ? myAttackSound : otherAttackSound;
         if (targetSound.IsNull) return;
 
-        PlayInstance(targetSound, 1.0f, "Attack Sound");
+        PlayInstance(targetSound, 1.0f, "Attack Sound", startOffsetMs);
     }
 
     /// <summary>
     /// SoundAction에서 호출: FMOD Event Path로 범용 사운드를 재생합니다.
     /// path 예: "event:/SFX/Attack/Sword"
     /// </summary>
-    public void PlayByEventPath(string fmodEventPath, float volume = 1.0f)
+    public void PlayByEventPath(string fmodEventPath, float volume = 1.0f, float startOffsetMs = 0f)
     {
         if (string.IsNullOrWhiteSpace(fmodEventPath)) return;
 
@@ -50,7 +50,7 @@ public class FMODActionSoundPlayer : MonoBehaviour
             }
             else
             {
-                PlayInstance(requestedPath, volume, requestedPath);
+                PlayInstance(requestedPath, volume, requestedPath, startOffsetMs);
             }
             return;
         }
@@ -73,12 +73,12 @@ public class FMODActionSoundPlayer : MonoBehaviour
             }
             else
             {
-                PlayInstance(resolvedEventPath, volume, resolvedEventPath);
+                PlayInstance(resolvedEventPath, volume, resolvedEventPath, startOffsetMs);
             }
             return;
         }
 
-        PlayInstance(requestedPath, volume, requestedPath);
+        PlayInstance(requestedPath, volume, requestedPath, startOffsetMs);
     }
 
     private static string ResolveWeaponType(string pathOrKey)
@@ -116,7 +116,7 @@ public class FMODActionSoundPlayer : MonoBehaviour
         return path;
     }
 
-    private static void PlayInstance(EventReference eventReference, float volume, string logContext)
+    private static void PlayInstance(EventReference eventReference, float volume, string logContext, float startOffsetMs = 0f)
     {
         if (eventReference.IsNull) return;
         try
@@ -126,7 +126,7 @@ public class FMODActionSoundPlayer : MonoBehaviour
             var eventInfo = FMODUnity.EventManager.EventFromGUID(eventReference.Guid);
             if (eventInfo != null) path = eventInfo.Path;
 #endif
-            PlayCreatedInstance(RuntimeManager.CreateInstance(eventReference), volume, path);
+            PlayCreatedInstance(RuntimeManager.CreateInstance(eventReference), volume, path, startOffsetMs);
         }
         catch (System.Exception e)
         {
@@ -134,11 +134,11 @@ public class FMODActionSoundPlayer : MonoBehaviour
         }
     }
 
-    private static void PlayInstance(string eventPath, float volume, string logContext)
+    private static void PlayInstance(string eventPath, float volume, string logContext, float startOffsetMs = 0f)
     {
         try
         {
-            PlayCreatedInstance(RuntimeManager.CreateInstance(eventPath), volume, eventPath);
+            PlayCreatedInstance(RuntimeManager.CreateInstance(eventPath), volume, eventPath, startOffsetMs);
         }
         catch (System.Exception e)
         {
@@ -146,7 +146,7 @@ public class FMODActionSoundPlayer : MonoBehaviour
         }
     }
 
-    private static void PlayCreatedInstance(FMOD.Studio.EventInstance instance, float volume, string eventPath)
+    private static void PlayCreatedInstance(FMOD.Studio.EventInstance instance, float volume, string eventPath, float startOffsetMs = 0f)
     {
         int finalPitchOffset = 0;
         if (FMODDrumSequencer.Instance != null)
@@ -156,9 +156,18 @@ public class FMODActionSoundPlayer : MonoBehaviour
         }
 
         instance.setParameterByName("PitchOffset", finalPitchOffset);
+        ApplyStartOffset(instance, startOffsetMs);
         instance.setVolume(volume);
         instance.start();
         instance.release();
+    }
+
+    private static void ApplyStartOffset(FMOD.Studio.EventInstance instance, float startOffsetMs)
+    {
+        if (startOffsetMs <= 2f || startOffsetMs >= 300f)
+            return;
+
+        instance.setTimelinePosition(Mathf.RoundToInt(startOffsetMs));
     }
 
     public static int GetHarmonicPitchOffset(Shared.Data.ChordEvent chord, string path)

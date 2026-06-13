@@ -8,6 +8,9 @@ public static class TimeSync
     /// <summary>최근 RTT 추정치(ms)</summary>
     public static double EstimatedRttMs { get; private set; }
 
+    public static bool HasRttEstimate => EstimatedRttMs > 0;
+    public static int SampleCount => _samples;
+
     // ---- 안정화 파라미터 ----
     [Header("Warmup (Initial Snap)")]
     /// <summary>
@@ -96,6 +99,23 @@ public static class TimeSync
         }
 
         _samples++;
+    }
+
+    public static void SetBootstrapOffsetFromServerNow(long serverNowMs, string source = "Bootstrap/NoRTT")
+    {
+        if (serverNowMs <= 0)
+            return;
+
+        long localRecvMs = LocalNowMs();
+
+        if (HasRttEstimate)
+        {
+            Mark(source + "/IgnoredAfterRTT", serverNowMs, localRecvMs);
+            return;
+        }
+
+        SetOffsetFromServerNow(serverNowMs);
+        LastSetBy = source;
     }
 
     // -----------------------------
