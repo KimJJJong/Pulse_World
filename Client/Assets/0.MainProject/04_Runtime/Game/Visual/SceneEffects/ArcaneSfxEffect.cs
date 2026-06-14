@@ -618,6 +618,7 @@ namespace RhythmRPG.Game.Visual.SceneEffects
         {
             var go = CreateChild(name);
             var particles = go.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = particles.main;
             main.loop = true;
             main.duration = 2.5f;

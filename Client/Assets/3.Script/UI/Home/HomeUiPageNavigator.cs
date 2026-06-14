@@ -5,7 +5,15 @@ using UnityEngine.UI;
 
 public sealed class HomeUiPageNavigator : MonoBehaviour
 {
-    private const string OptionsPanelBackgroundResource = "UI/UI_Options/OptionsPanel_Background";
+    private const string HomeOptionResourcePrefix = "UI/UI_Home_Option/";
+    private const string MasterVolumeKey = "Options.MasterVolume";
+    private const string InGameVolumeKey = "Options.InGameVolume";
+    private const string SfxVolumeKey = "Options.SfxVolume";
+    private const string FullscreenKey = "Options.Fullscreen";
+    private const string LegacySoundMutedKey = "Options.SoundMuted";
+    private const float DefaultMasterVolume = 0.85f;
+    private const float DefaultInGameVolume = 0.80f;
+    private const float DefaultSfxVolume = 0.75f;
     private static TMP_FontAsset _koreanFont;
 
     [SerializeField] private GameObject _homeRoot;
@@ -29,9 +37,19 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
 
     private GameObject _optionsRoot;
     private TextMeshProUGUI _optionsStatusText;
-    private TextMeshProUGUI _soundButtonLabel;
-    private TextMeshProUGUI _gameplayButtonLabel;
-    private float _exitConfirmUntil;
+    private Slider _masterVolumeSlider;
+    private Slider _inGameVolumeSlider;
+    private Slider _sfxVolumeSlider;
+    private TextMeshProUGUI _masterVolumeValueText;
+    private TextMeshProUGUI _inGameVolumeValueText;
+    private TextMeshProUGUI _sfxVolumeValueText;
+    private Image _fullscreenToggleImage;
+    private Image _windowedToggleImage;
+    private float _pendingMasterVolume = DefaultMasterVolume;
+    private float _pendingInGameVolume = DefaultInGameVolume;
+    private float _pendingSfxVolume = DefaultSfxVolume;
+    private bool _pendingFullscreen;
+    private bool _suppressOptionCallbacks;
 
     private HomePage _currentPage = HomePage.Home;
     private bool IsMapOnlyMode => _mapOnlyMode
@@ -151,6 +169,9 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         }
 
         EnsureOptionsPage();
+        LoadPendingOptionsFromPrefs();
+        RefreshOptionsUi();
+        ApplyRuntimeOptionPreview();
         Show(HomePage.Options);
     }
 
@@ -243,7 +264,7 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
 
         var card = _mapButton.transform.parent;
         SetChildText(card, "Title", "OPTIONS");
-        SetChildText(card, "Subtitle", "소리, 게임 플레이,\n나가기 설정.");
+        SetChildText(card, "Subtitle", "사운드와 화면\n설정.");
         SetChildText(card, "ActionLabel", "Open Options");
     }
 
@@ -264,76 +285,229 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         rootImage.color = new Color(0f, 0f, 0f, 0.52f);
         rootImage.raycastTarget = true;
 
-        var panel = CreatePanel(rootRect, "OptionsPanel", new Vector2(920f, 520f), new Color(0.08f, 0.13f, 0.14f, 0.94f));
-        CreateText(panel, "Title", "OPTIONS", 34f, TextAlignmentOptions.Center, new Color(0.20f, 0.16f, 0.10f, 1f), new Vector2(0f, 194f), new Vector2(520f, 52f));
-        CreateText(panel, "Subtitle", "소리, 게임 플레이, 나가기", 18f, TextAlignmentOptions.Center, new Color(0.32f, 0.27f, 0.18f, 1f), new Vector2(0f, 150f), new Vector2(520f, 36f));
+        var panel = CreatePanel(rootRect, "OptionsPanel", new Vector2(1500f, 820f), new Color(0.60f, 0.43f, 0.24f, 1f));
+        var panelSize = panel.sizeDelta;
 
-        _soundButtonLabel = CreateOptionButton(panel, "Button_Sound", "소리", new Vector2(0f, 76f), HandleSoundClicked);
-        _gameplayButtonLabel = CreateOptionButton(panel, "Button_Gameplay", "게임 플레이", new Vector2(0f, 2f), HandleGameplayClicked);
-        CreateOptionButton(panel, "Button_Exit", "나가기", new Vector2(0f, -72f), HandleExitClicked);
-        CreateOptionButton(panel, "Button_Back", "뒤로", new Vector2(0f, -172f), ShowHome, new Vector2(220f, 50f));
+        var titleColor = new Color(0.22f, 0.12f, 0.04f, 1f);
+        var textColor = new Color(0.26f, 0.13f, 0.04f, 1f);
+        var mutedColor = new Color(0.42f, 0.26f, 0.11f, 1f);
+        var lightText = new Color(1f, 0.91f, 0.70f, 1f);
 
-        _optionsStatusText = CreateText(panel, "Status", "", 17f, TextAlignmentOptions.Center, new Color(0.28f, 0.23f, 0.15f, 1f), new Vector2(0f, -126f), new Vector2(600f, 38f));
+        var title = CreateText(panel, "Title", "옵션", 58f, TextAlignmentOptions.Center, titleColor, new Rect(540f, 52f, 420f, 76f), panelSize);
+        title.fontStyle = FontStyles.Bold;
+        CreateSeparator(panel, "TitleSeparatorLeft", new Rect(350f, 86f, 260f, 28f), panelSize);
+        CreateSeparator(panel, "TitleSeparatorRight", new Rect(890f, 86f, 260f, 28f), panelSize);
+
+        CreateSectionHeader(panel, "SoundHeader", "사운드", new Rect(178f, 148f, 250f, 70f), panelSize, lightText);
+        CreateSeparator(panel, "SoundSeparator", new Rect(405f, 164f, 890f, 46f), panelSize);
+
+        CreateText(panel, "MasterVolumeLabel", "마스터 음량", 30f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(235f, 236f, 260f, 46f), panelSize);
+        _masterVolumeSlider = CreateVolumeSlider(panel, "MasterVolumeSlider", new Rect(545f, 236f, 650f, 58f), panelSize, HandleMasterVolumeChanged);
+        _masterVolumeValueText = CreateText(panel, "MasterVolumeValue", "", 20f, TextAlignmentOptions.Center, mutedColor, new Rect(1210f, 242f, 72f, 34f), panelSize);
+
+        CreateText(panel, "InGameVolumeLabel", "인게임 음량", 30f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(235f, 314f, 260f, 46f), panelSize);
+        _inGameVolumeSlider = CreateVolumeSlider(panel, "InGameVolumeSlider", new Rect(545f, 314f, 650f, 58f), panelSize, HandleInGameVolumeChanged);
+        _inGameVolumeValueText = CreateText(panel, "InGameVolumeValue", "", 20f, TextAlignmentOptions.Center, mutedColor, new Rect(1210f, 320f, 72f, 34f), panelSize);
+
+        CreateText(panel, "SfxVolumeLabel", "효과음", 30f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(235f, 392f, 260f, 46f), panelSize);
+        _sfxVolumeSlider = CreateVolumeSlider(panel, "SfxVolumeSlider", new Rect(545f, 392f, 650f, 58f), panelSize, HandleSfxVolumeChanged);
+        _sfxVolumeValueText = CreateText(panel, "SfxVolumeValue", "", 20f, TextAlignmentOptions.Center, mutedColor, new Rect(1210f, 398f, 72f, 34f), panelSize);
+
+        CreateSectionHeader(panel, "ScreenHeader", "화면", new Rect(178f, 478f, 250f, 70f), panelSize, lightText);
+        CreateSeparator(panel, "ScreenSeparator", new Rect(405f, 494f, 890f, 46f), panelSize);
+
+        CreateScreenModeOption(panel, "FullscreenMode", "전체화면", new Rect(972f, 560f, 240f, 54f), panelSize, true);
+        CreateScreenModeOption(panel, "WindowedMode", "창화면", new Rect(972f, 620f, 240f, 54f), panelSize, false);
+
+        CreateSeparator(panel, "BottomSeparator", new Rect(178f, 676f, 1117f, 30f), panelSize);
+        _optionsStatusText = CreateText(panel, "Status", "", 18f, TextAlignmentOptions.Center, mutedColor, new Rect(450f, 648f, 600f, 30f), panelSize);
+
+        CreateOptionButton(panel, "Button_ResetDefaults", "기본값", new Rect(178f, 700f, 260f, 78f), panelSize, HandleResetDefaultsClicked);
+        CreateOptionButton(panel, "Button_Apply", "적용", new Rect(620f, 700f, 260f, 78f), panelSize, HandleApplyOptionsClicked);
+        CreateOptionButton(panel, "Button_Close", "닫기", new Rect(1060f, 700f, 260f, 78f), panelSize, HandleCloseOptionsClicked);
+
         _optionsRoot.SetActive(false);
-        UpdateOptionLabels();
+        LoadPendingOptionsFromPrefs();
+        RefreshOptionsUi();
+        ApplyRuntimeOptionPreview();
     }
 
-    private void HandleSoundClicked()
+    private void HandleMasterVolumeChanged(float value)
     {
-        var muted = PlayerPrefs.GetInt("Options.SoundMuted", 0) == 1;
-        muted = !muted;
-        PlayerPrefs.SetInt("Options.SoundMuted", muted ? 1 : 0);
-        PlayerPrefs.Save();
-        AudioListener.volume = muted ? 0f : 1f;
-        SetOptionsStatus(muted ? "소리를 껐습니다." : "소리를 켰습니다.");
-        UpdateOptionLabels();
-    }
-
-    private void HandleGameplayClicked()
-    {
-        var enabled = PlayerPrefs.GetInt("Options.GameplayHints", 1) == 1;
-        enabled = !enabled;
-        PlayerPrefs.SetInt("Options.GameplayHints", enabled ? 1 : 0);
-        PlayerPrefs.Save();
-        SetOptionsStatus(enabled ? "게임 플레이 가이드를 켰습니다." : "게임 플레이 가이드를 껐습니다.");
-        UpdateOptionLabels();
-    }
-
-    private void HandleExitClicked()
-    {
-        if (Time.unscaledTime <= _exitConfirmUntil)
-        {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#endif
-            Application.Quit();
+        if (_suppressOptionCallbacks)
             return;
-        }
 
-        _exitConfirmUntil = Time.unscaledTime + 3f;
-        SetOptionsStatus("한 번 더 누르면 게임을 종료합니다.");
+        _pendingMasterVolume = Mathf.Clamp01(value);
+        RefreshOptionsUi();
+        ApplyRuntimeOptionPreview();
+        SetOptionsStatus("마스터 음량 미리 적용 중");
     }
 
-    private void UpdateOptionLabels()
+    private void HandleInGameVolumeChanged(float value)
     {
-        if (_soundButtonLabel != null)
-        {
-            var muted = PlayerPrefs.GetInt("Options.SoundMuted", 0) == 1;
-            _soundButtonLabel.text = muted ? "소리: 꺼짐" : "소리: 켜짐";
-            AudioListener.volume = muted ? 0f : 1f;
-        }
+        if (_suppressOptionCallbacks)
+            return;
 
-        if (_gameplayButtonLabel != null)
-        {
-            var enabled = PlayerPrefs.GetInt("Options.GameplayHints", 1) == 1;
-            _gameplayButtonLabel.text = enabled ? "게임 플레이: 가이드 켜짐" : "게임 플레이: 가이드 꺼짐";
-        }
+        _pendingInGameVolume = Mathf.Clamp01(value);
+        RefreshOptionsUi();
+        ApplyRuntimeOptionPreview();
+        SetOptionsStatus("인게임 음량 미리 적용 중");
+    }
+
+    private void HandleSfxVolumeChanged(float value)
+    {
+        if (_suppressOptionCallbacks)
+            return;
+
+        _pendingSfxVolume = Mathf.Clamp01(value);
+        RefreshOptionsUi();
+        SetOptionsStatus("효과음 음량 미리 적용 중");
+    }
+
+    private void HandleScreenModeClicked(bool fullscreen)
+    {
+        _pendingFullscreen = fullscreen;
+        RefreshOptionsUi();
+        SetOptionsStatus(fullscreen ? "전체화면으로 적용 대기" : "창화면으로 적용 대기");
+    }
+
+    private void HandleResetDefaultsClicked()
+    {
+        _pendingMasterVolume = DefaultMasterVolume;
+        _pendingInGameVolume = DefaultInGameVolume;
+        _pendingSfxVolume = DefaultSfxVolume;
+        _pendingFullscreen = true;
+        RefreshOptionsUi();
+        ApplyRuntimeOptionPreview();
+        SetOptionsStatus("기본값으로 되돌렸습니다. 적용을 누르면 저장됩니다.");
+    }
+
+    private void HandleApplyOptionsClicked()
+    {
+        SavePendingOptions();
+        ApplyRuntimeOptionPreview();
+        ApplyScreenMode(_pendingFullscreen);
+        SetOptionsStatus("설정이 적용되었습니다.");
+    }
+
+    private void HandleCloseOptionsClicked()
+    {
+        LoadPendingOptionsFromPrefs();
+        ApplyRuntimeOptionPreview();
+        ShowHome();
+    }
+
+    private void LoadPendingOptionsFromPrefs()
+    {
+        var legacyMuted = PlayerPrefs.GetInt(LegacySoundMutedKey, 0) == 1;
+        _pendingMasterVolume = ClampSavedVolume(MasterVolumeKey, legacyMuted ? 0f : DefaultMasterVolume);
+        _pendingInGameVolume = ClampSavedVolume(InGameVolumeKey, DefaultInGameVolume);
+        _pendingSfxVolume = ClampSavedVolume(SfxVolumeKey, DefaultSfxVolume);
+        _pendingFullscreen = PlayerPrefs.GetInt(FullscreenKey, Screen.fullScreen ? 1 : 0) == 1;
+    }
+
+    private void SavePendingOptions()
+    {
+        PlayerPrefs.SetFloat(MasterVolumeKey, Mathf.Clamp01(_pendingMasterVolume));
+        PlayerPrefs.SetFloat(InGameVolumeKey, Mathf.Clamp01(_pendingInGameVolume));
+        PlayerPrefs.SetFloat(SfxVolumeKey, Mathf.Clamp01(_pendingSfxVolume));
+        PlayerPrefs.SetInt(FullscreenKey, _pendingFullscreen ? 1 : 0);
+        PlayerPrefs.SetInt(LegacySoundMutedKey, _pendingMasterVolume <= 0.001f ? 1 : 0);
+        PlayerPrefs.Save();
+    }
+
+    private void RefreshOptionsUi()
+    {
+        _suppressOptionCallbacks = true;
+        SetSliderValue(_masterVolumeSlider, _pendingMasterVolume);
+        SetSliderValue(_inGameVolumeSlider, _pendingInGameVolume);
+        SetSliderValue(_sfxVolumeSlider, _pendingSfxVolume);
+        _suppressOptionCallbacks = false;
+
+        SetVolumeText(_masterVolumeValueText, _pendingMasterVolume);
+        SetVolumeText(_inGameVolumeValueText, _pendingInGameVolume);
+        SetVolumeText(_sfxVolumeValueText, _pendingSfxVolume);
+
+        var active = LoadOptionSprite("Circle_Button_Active");
+        var inactive = LoadOptionSprite("Circle_Button_Deactive");
+        if (_fullscreenToggleImage != null)
+            _fullscreenToggleImage.sprite = _pendingFullscreen ? active : inactive;
+        if (_windowedToggleImage != null)
+            _windowedToggleImage.sprite = _pendingFullscreen ? inactive : active;
+    }
+
+    private void ApplyRuntimeOptionPreview()
+    {
+        ApplyAudioVolumes(_pendingMasterVolume, _pendingInGameVolume);
+        FMODDrumSequencer.SetRuntimeVolumePreview(_pendingMasterVolume, _pendingInGameVolume);
+        UiSfxService.SetRuntimeVolumePreview(_pendingMasterVolume, _pendingSfxVolume);
     }
 
     private void SetOptionsStatus(string message)
     {
         if (_optionsStatusText != null)
-            _optionsStatusText.text = message;
+            _optionsStatusText.text = message ?? "";
+    }
+
+    private static float ClampSavedVolume(string key, float fallback)
+    {
+        return Mathf.Clamp01(PlayerPrefs.GetFloat(key, fallback));
+    }
+
+    private static void SetSliderValue(Slider slider, float value)
+    {
+        if (slider != null)
+            slider.SetValueWithoutNotify(Mathf.Clamp01(value));
+    }
+
+    private static void SetVolumeText(TextMeshProUGUI text, float value)
+    {
+        if (text != null)
+            text.text = $"{Mathf.RoundToInt(Mathf.Clamp01(value) * 100f)}";
+    }
+
+    private static void ApplyAudioVolumes(float masterVolume, float inGameVolume)
+    {
+        AudioListener.volume = Mathf.Clamp01(masterVolume);
+        ApplyInGameVolume(Mathf.Clamp01(inGameVolume));
+    }
+
+    private static void ApplyInGameVolume(float volume)
+    {
+        var sources = Resources.FindObjectsOfTypeAll<AudioSource>();
+        foreach (var source in sources)
+        {
+            if (source == null || !source.gameObject.scene.IsValid())
+                continue;
+
+            if (!LooksLikeInGameAudioSource(source))
+                continue;
+
+            source.volume = volume;
+        }
+    }
+
+    private static bool LooksLikeInGameAudioSource(AudioSource source)
+    {
+        var objectName = source.gameObject.name;
+        var clipName = source.clip != null ? source.clip.name : "";
+        return ContainsAudioToken(objectName) || ContainsAudioToken(clipName);
+    }
+
+    private static bool ContainsAudioToken(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return false;
+
+        return value.IndexOf("bgm", StringComparison.OrdinalIgnoreCase) >= 0
+            || value.IndexOf("music", StringComparison.OrdinalIgnoreCase) >= 0
+            || value.IndexOf("town_", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static void ApplyScreenMode(bool fullscreen)
+    {
+        Screen.fullScreenMode = fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;
+        Screen.fullScreen = fullscreen;
     }
 
     private void ResolveTownHomeController()
@@ -393,7 +567,7 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
 
     private static RectTransform CreatePanel(Transform parent, string name, Vector2 size, Color color)
     {
-        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer));
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         go.transform.SetParent(parent, false);
         var rect = (RectTransform)go.transform;
         rect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -402,57 +576,158 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         rect.sizeDelta = size;
         rect.anchoredPosition = Vector2.zero;
 
-        var texture = Resources.Load<Texture2D>(OptionsPanelBackgroundResource);
-        if (texture != null)
-        {
-            var rawImage = go.AddComponent<RawImage>();
-            rawImage.texture = texture;
-            rawImage.color = Color.white;
-            rawImage.raycastTarget = true;
-        }
-        else
-        {
-            var image = go.AddComponent<Image>();
-            image.color = color;
-            image.raycastTarget = true;
-        }
+        var image = go.GetComponent<Image>();
+        image.sprite = LoadOptionSprite("Panel");
+        image.color = image.sprite != null ? Color.white : color;
+        image.raycastTarget = true;
 
         return rect;
     }
 
-    private static TextMeshProUGUI CreateOptionButton(
+    private static void CreateSectionHeader(
         RectTransform parent,
         string name,
         string label,
-        Vector2 position,
-        UnityEngine.Events.UnityAction action,
-        Vector2? sizeOverride = null)
+        Rect rect,
+        Vector2 sourceSize,
+        Color textColor)
     {
-        var size = sizeOverride ?? new Vector2(520f, 58f);
+        var image = CreateOptionImage(parent, name, "Section_TextBox", rect, sourceSize);
+        image.raycastTarget = false;
+        var text = CreateText(image.rectTransform, "Label", label, 26f, TextAlignmentOptions.Center, textColor, new Rect(0f, 0f, rect.width, rect.height), new Vector2(rect.width, rect.height));
+        text.fontStyle = FontStyles.Bold;
+    }
+
+    private static void CreateSeparator(RectTransform parent, string name, Rect rect, Vector2 sourceSize)
+    {
+        var image = CreateOptionImage(parent, name, "Section_Seperater", rect, sourceSize);
+        image.raycastTarget = false;
+        image.color = new Color(1f, 1f, 1f, 0.92f);
+    }
+
+    private static Slider CreateVolumeSlider(
+        RectTransform parent,
+        string name,
+        Rect rect,
+        Vector2 sourceSize,
+        UnityEngine.Events.UnityAction<float> action)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Slider));
+        go.transform.SetParent(parent, false);
+        var root = (RectTransform)go.transform;
+        SetRectFromTopLeft(root, rect, sourceSize);
+
+        var sliderSize = new Vector2(rect.width, rect.height);
+        var background = CreateOptionImage(root, "Background", "Volume_Bar_Back", new Rect(16f, 14f, rect.width - 52f, 35f), sliderSize);
+        background.raycastTarget = false;
+
+        var fillArea = CreateRect(root, "Fill Area");
+        fillArea.anchorMin = new Vector2(0.06f, 0.5f);
+        fillArea.anchorMax = new Vector2(0.90f, 0.5f);
+        fillArea.pivot = new Vector2(0f, 0.5f);
+        fillArea.sizeDelta = new Vector2(0f, 28f);
+        fillArea.anchoredPosition = new Vector2(0f, 0f);
+
+        var fill = CreateOptionImage(fillArea, "Fill", "Volume_Bar_Fill", new Rect(0f, 0f, fillArea.rect.width, 28f), new Vector2(fillArea.rect.width, 28f));
+        Stretch(fill.rectTransform);
+        fill.raycastTarget = false;
+
+        var handleArea = CreateRect(root, "Handle Slide Area");
+        handleArea.anchorMin = new Vector2(0.06f, 0f);
+        handleArea.anchorMax = new Vector2(0.90f, 1f);
+        handleArea.pivot = new Vector2(0f, 0.5f);
+        handleArea.sizeDelta = Vector2.zero;
+        handleArea.anchoredPosition = Vector2.zero;
+
+        var handle = CreateOptionImage(handleArea, "Handle", "Volume_Button", new Rect(0f, -2f, 42f, 58f), new Vector2(rect.width * 0.84f, rect.height));
+        handle.raycastTarget = true;
+
+        var slider = go.GetComponent<Slider>();
+        slider.minValue = 0f;
+        slider.maxValue = 1f;
+        slider.wholeNumbers = false;
+        slider.direction = Slider.Direction.LeftToRight;
+        slider.fillRect = fill.rectTransform;
+        slider.handleRect = handle.rectTransform;
+        slider.targetGraphic = handle;
+        slider.onValueChanged.AddListener(action);
+        return slider;
+    }
+
+    private void CreateScreenModeOption(RectTransform parent, string name, string label, Rect rect, Vector2 sourceSize, bool fullscreen)
+    {
         var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
         go.transform.SetParent(parent, false);
-        var rect = (RectTransform)go.transform;
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.sizeDelta = size;
-        rect.anchoredPosition = position;
+        var root = (RectTransform)go.transform;
+        SetRectFromTopLeft(root, rect, sourceSize);
+        var hitArea = go.GetComponent<Image>();
+        hitArea.color = new Color(1f, 1f, 1f, 0f);
+        hitArea.raycastTarget = true;
+
+        var optionSize = new Vector2(rect.width, rect.height);
+        var icon = CreateOptionImage(root, "Icon", "Circle_Button_Deactive", new Rect(0f, 3f, 48f, 48f), optionSize);
+        icon.raycastTarget = true;
+        if (fullscreen)
+            _fullscreenToggleImage = icon;
+        else
+            _windowedToggleImage = icon;
+
+        CreateText(root, "Label", label, 25f, TextAlignmentOptions.MidlineLeft, new Color(0.26f, 0.13f, 0.04f, 1f), new Rect(64f, 0f, rect.width - 64f, rect.height), optionSize);
+
+        var button = go.GetComponent<Button>();
+        button.targetGraphic = icon;
+        button.transition = Selectable.Transition.ColorTint;
+        var colors = button.colors;
+        colors.highlightedColor = new Color(1f, 0.92f, 0.68f, 1f);
+        colors.pressedColor = new Color(0.86f, 0.62f, 0.30f, 1f);
+        colors.selectedColor = colors.highlightedColor;
+        colors.fadeDuration = 0.08f;
+        button.colors = colors;
+        button.onClick.AddListener(() => HandleScreenModeClicked(fullscreen));
+    }
+
+    private static Button CreateOptionButton(
+        RectTransform parent,
+        string name,
+        string label,
+        Rect rectValue,
+        Vector2 sourceSize,
+        UnityEngine.Events.UnityAction action)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        go.transform.SetParent(parent, false);
+        var buttonRect = (RectTransform)go.transform;
+        SetRectFromTopLeft(buttonRect, rectValue, sourceSize);
 
         var image = go.GetComponent<Image>();
-        image.color = new Color(0.10f, 0.34f, 0.36f, 0.96f);
+        image.sprite = LoadOptionSprite("Button_Default");
+        image.color = image.sprite != null ? Color.white : new Color(0.35f, 0.20f, 0.09f, 1f);
         var button = go.GetComponent<Button>();
         button.targetGraphic = image;
+        button.transition = Selectable.Transition.SpriteSwap;
+        var pressed = LoadOptionSprite("Button_Pressed");
+        if (pressed != null)
+        {
+            var spriteState = button.spriteState;
+            spriteState.highlightedSprite = pressed;
+            spriteState.pressedSprite = pressed;
+            spriteState.selectedSprite = pressed;
+            button.spriteState = spriteState;
+        }
+
         var colors = button.colors;
         colors.normalColor = Color.white;
-        colors.highlightedColor = new Color(0.18f, 0.44f, 0.45f, 1f);
-        colors.pressedColor = new Color(0.06f, 0.24f, 0.26f, 1f);
-        colors.selectedColor = new Color(0.16f, 0.40f, 0.42f, 1f);
-        colors.disabledColor = new Color(0.42f, 0.36f, 0.26f, 0.88f);
+        colors.highlightedColor = new Color(1f, 0.96f, 0.82f, 1f);
+        colors.pressedColor = new Color(0.86f, 0.76f, 0.58f, 1f);
+        colors.selectedColor = colors.highlightedColor;
+        colors.disabledColor = new Color(0.58f, 0.48f, 0.36f, 0.82f);
         colors.fadeDuration = 0.08f;
         button.colors = colors;
         Bind(button, action);
 
-        return CreateText(rect, "Label", label, 20f, TextAlignmentOptions.Center, new Color(0.98f, 0.90f, 0.68f, 1f), Vector2.zero, size);
+        var text = CreateText(buttonRect, "Label", label, 28f, TextAlignmentOptions.Center, new Color(1f, 0.92f, 0.72f, 1f), new Rect(0f, 0f, buttonRect.sizeDelta.x, buttonRect.sizeDelta.y), buttonRect.sizeDelta);
+        text.fontStyle = FontStyles.Bold;
+        return button;
     }
 
     private static TextMeshProUGUI CreateText(
@@ -462,27 +737,62 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         float size,
         TextAlignmentOptions alignment,
         Color color,
-        Vector2 position,
-        Vector2 rectSize)
+        Rect rectValue,
+        Vector2 sourceSize)
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer));
         go.transform.SetParent(parent, false);
         var rect = (RectTransform)go.transform;
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.sizeDelta = rectSize;
-        rect.anchoredPosition = position;
+        SetRectFromTopLeft(rect, rectValue, sourceSize);
 
         var text = go.AddComponent<TextMeshProUGUI>();
         text.text = value;
         text.fontSize = size;
+        text.fontSizeMax = size;
+        text.fontSizeMin = Mathf.Max(10f, size - 12f);
+        text.enableAutoSizing = true;
         text.alignment = alignment;
         text.color = color;
         text.textWrappingMode = TextWrappingModes.Normal;
+        text.overflowMode = TextOverflowModes.Ellipsis;
         text.raycastTarget = false;
         ApplyPreferredFont(text);
         return text;
+    }
+
+    private static RectTransform CreateRect(Transform parent, string name)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        return (RectTransform)go.transform;
+    }
+
+    private static Image CreateOptionImage(Transform parent, string name, string resourceName, Rect rect, Vector2 sourceSize)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        go.transform.SetParent(parent, false);
+        var rectTransform = (RectTransform)go.transform;
+        SetRectFromTopLeft(rectTransform, rect, sourceSize);
+
+        var image = go.GetComponent<Image>();
+        image.sprite = LoadOptionSprite(resourceName);
+        image.color = image.sprite != null ? Color.white : new Color(0.55f, 0.36f, 0.16f, 1f);
+        image.preserveAspect = false;
+        return image;
+    }
+
+    private static Sprite LoadOptionSprite(string resourceName)
+    {
+        return Resources.Load<Sprite>(HomeOptionResourcePrefix + resourceName);
+    }
+
+    private static void SetRectFromTopLeft(RectTransform rect, Rect rectValue, Vector2 sourceSize)
+    {
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.sizeDelta = new Vector2(rectValue.width, rectValue.height);
+        rect.anchoredPosition = new Vector2(rectValue.x, -rectValue.y);
     }
 
     private static void ApplyPreferredFont(TMP_Text text)

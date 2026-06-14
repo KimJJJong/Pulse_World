@@ -983,7 +983,7 @@ namespace RhythmRPG.Editor.StageBuilder
             condition.SecondaryTargetId = 0;
             condition.TargetKey = string.Empty;
             condition.Count = 1;
-            condition.CountRequirement = StageCountRequirementMode.FixedCount;
+            condition.CountRequirement = StageCountRequirementMode.ParticipantCount;
             condition.ShowProgressUi = true;
             condition.ShowAreaOutline = true;
             condition.ProgressLabel = "Area Count";

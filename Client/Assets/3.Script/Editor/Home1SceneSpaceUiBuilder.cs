@@ -35,6 +35,10 @@ public static class Home1SceneSpaceUiBuilder
     private static readonly Color ParchmentMutedText = new(0.32f, 0.26f, 0.18f, 1f);
     private static readonly Color GoldText = new(0.94f, 0.72f, 0.20f, 1f);
     private static readonly Color ButtonLightText = new(0.96f, 0.92f, 0.82f, 1f);
+    private static readonly Color MapSelectButtonTint = new(0.70f, 0.67f, 0.58f, 1f);
+    private static readonly Color MapSelectButtonText = new(0.86f, 0.78f, 0.60f, 1f);
+    private static readonly Color MapBodyText = new(0.24f, 0.19f, 0.13f, 1f);
+    private static readonly Color MapMutedText = new(0.38f, 0.31f, 0.22f, 1f);
     private static readonly Color EquipmentFrameBackground = new(0.70f, 0.53f, 0.32f, 0.76f);
     private static Sprite _defaultUiSprite;
     private static TMP_FontAsset _nanumGothicFont;
@@ -224,7 +228,7 @@ public static class Home1SceneSpaceUiBuilder
         ApplyMapRealmRoutes(mapUi);
         BuildTownEntryChoicePanel(mapUi.transform as RectTransform, mapUi);
         ApplyMapPieceHighlights(mapUi);
-        ApplyNanumGothicFontToChildren(mapUi.transform as RectTransform);
+        ApplyWorldMapFontToChildren(mapUi.transform as RectTransform);
         EditorUtility.SetDirty(mapUi);
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -882,6 +886,9 @@ public static class Home1SceneSpaceUiBuilder
             var button = CreateButtonTexture(scroll.Content, $"AppearanceOption_{option.Id}", "UI_Appear/UI_Panel_Character_Appear.png", rect, scroll.Content.sizeDelta);
             var highlight = CreateSolid(button.transform as RectTransform, "SelectedHighlight", new Color(1f, 1f, 1f, 0f));
             Stretch(highlight.rectTransform);
+            var portrait = CreateTexture(button.transform, "Portrait", ResolveAppearancePortraitPath(option.Id), new Rect(48f, 8f, 118f, 86f), new Vector2(214f, 144f));
+            FitAppearancePortraitToTexture(portrait, new Rect(48f, 8f, 118f, 86f), new Vector2(214f, 144f));
+            portrait.color = new Color(0.86f, 0.82f, 0.74f, 1f);
             var label = CreateText(button.transform as RectTransform, "Label", option.DisplayName, new Rect(20f, 96f, 150f, 24f), 16f, TextAlignmentOptions.Center, ParchmentText, new Vector2(214f, 144f));
             CreateTexture(button.transform, "HoldBadge", "UI_Appear/UI_Decoration_Appear_State_Hold.png", new Rect(150f, 8f, 54f, 26f), new Vector2(214f, 144f));
             var equipped = CreateTexture(button.transform, "EquippedMark", "UI_Appear/UI_Decoration_Appear_State_Equip.png", new Rect(150f, 8f, 54f, 26f), new Vector2(214f, 144f));
@@ -892,6 +899,7 @@ public static class Home1SceneSpaceUiBuilder
                 AppearanceId = option.Id,
                 Button = button,
                 Label = label,
+                Portrait = portrait,
                 Highlight = highlight,
                 EquippedMark = equipped.gameObject
             });
@@ -910,6 +918,7 @@ public static class Home1SceneSpaceUiBuilder
             element.FindPropertyRelative("AppearanceId").intValue = optionBindings[i].AppearanceId;
             element.FindPropertyRelative("Button").objectReferenceValue = optionBindings[i].Button;
             element.FindPropertyRelative("Label").objectReferenceValue = optionBindings[i].Label;
+            element.FindPropertyRelative("Portrait").objectReferenceValue = optionBindings[i].Portrait;
             element.FindPropertyRelative("Highlight").objectReferenceValue = optionBindings[i].Highlight;
             element.FindPropertyRelative("EquippedMark").objectReferenceValue = optionBindings[i].EquippedMark;
         }
@@ -920,6 +929,26 @@ public static class Home1SceneSpaceUiBuilder
         so.ApplyModifiedPropertiesWithoutUndo();
 
         return back;
+    }
+
+    private static string ResolveAppearancePortraitPath(int appearanceId)
+    {
+        string resourcePath = AppearanceCatalog.GetPortraitResourcePath(appearanceId);
+        const string prefix = "UI/";
+        return resourcePath.StartsWith(prefix, StringComparison.Ordinal)
+            ? resourcePath.Substring(prefix.Length) + ".png"
+            : "UI_Appear/Babarian.png";
+    }
+
+    private static void FitAppearancePortraitToTexture(RawImage portrait, Rect box, Vector2 sourceSize)
+    {
+        if (portrait == null)
+            return;
+
+        var texture = portrait.texture as Texture2D;
+        portrait.uvRect = BuildCoverUvRect(texture, new Vector2(box.width, box.height));
+        SetRectFromTopLeft(portrait.rectTransform, box, sourceSize);
+        portrait.raycastTarget = false;
     }
 
     private static Button BuildMapScreen(RectTransform root, bool isTownOverlay = false)
@@ -946,14 +975,21 @@ public static class Home1SceneSpaceUiBuilder
         CreateText(root, "RealmTitle", "GOLDEN PLAINS", new Rect(932f, 192f, 252f, 36f), 27f, TextAlignmentOptions.Center, ParchmentText);
         CreateText(root, "RealmTicket", "Ticket: -", new Rect(934f, 238f, 248f, 22f), 14f, TextAlignmentOptions.Center, ParchmentMutedText);
 
-        var detailScroll = CreateScrollView(root, "RealmDetailScroll", new Rect(932f, 282f, 250f, 108f), new Vector2(230f, 150f));
-        var detail = CreateText(detailScroll.Content, "RealmDescription", "숲의 균열과 리듬 왜곡이 시작된 첫 영역입니다.", new Rect(0f, 0f, 230f, 132f), 14f, TextAlignmentOptions.TopLeft, ParchmentText, detailScroll.Content.sizeDelta);
+        var detailScroll = CreateScrollView(root, "RealmDetailScroll", new Rect(922f, 280f, 270f, 118f), new Vector2(250f, 128f));
+        var detail = CreateText(detailScroll.Content, "RealmDescription", "숲의 균열과 리듬 왜곡이 시작된 첫 영역입니다.", new Rect(0f, 4f, 250f, 112f), 15f, TextAlignmentOptions.Center, MapBodyText, detailScroll.Content.sizeDelta);
         detail.textWrappingMode = TextWrappingModes.Normal;
-        detail.lineSpacing = -4f;
+        detail.lineSpacing = 4f;
+        detail.margin = new Vector4(8f, 0f, 8f, 0f);
 
         var select = CreateButtonTexture(root, "Button_SelectRealm", "UI_Map/UI_Button_SelectLocation.png", new Rect(958f, 518f, 214f, 68f));
-        CreateText(select.transform as RectTransform, "Label", "TRAVEL HERE", new Rect(30f, 18f, 152f, 26f), 20f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(214f, 68f));
-        CreateText(root, "MapStatus", "지역을 선택하세요.", new Rect(916f, 432f, 282f, 40f), 13f, TextAlignmentOptions.Center, ParchmentMutedText);
+        if (select.targetGraphic != null)
+            select.targetGraphic.color = MapSelectButtonTint;
+        var selectFeedback = select.GetComponent<HomeUIButtonFeedback>();
+        if (selectFeedback != null)
+            selectFeedback.SetTintOverride(true, MapSelectButtonTint);
+        CreateText(select.transform as RectTransform, "Label", "TRAVEL HERE", new Rect(30f, 18f, 152f, 26f), 20f, TextAlignmentOptions.Center, MapSelectButtonText, new Vector2(214f, 68f));
+        var status = CreateText(root, "MapStatus", "지역을 선택하세요.", new Rect(928f, 420f, 258f, 46f), 13.5f, TextAlignmentOptions.Center, MapMutedText);
+        status.lineSpacing = 2f;
 
         var ui = root.gameObject.AddComponent<HomeMapRealmUI>();
         var so = new SerializedObject(ui);
@@ -978,7 +1014,7 @@ public static class Home1SceneSpaceUiBuilder
         so.ApplyModifiedPropertiesWithoutUndo();
 
         BuildTownEntryChoicePanel(root, ui);
-        ApplyNanumGothicFontToChildren(root);
+        ApplyWorldMapFontToChildren(root);
 
         return back;
     }
@@ -1927,6 +1963,44 @@ public static class Home1SceneSpaceUiBuilder
             text.font = font;
             EditorUtility.SetDirty(text);
         }
+    }
+
+    private static void ApplyWorldMapFontToChildren(RectTransform root)
+    {
+        if (root == null)
+            return;
+
+        var fallbackFont = GetNanumGothicFont();
+        foreach (var text in root.GetComponentsInChildren<TextMeshProUGUI>(true))
+        {
+            if (text == null)
+                continue;
+
+            WorldMapFontLibrary.ApplyPreferredFont(text, fallbackFont);
+            EditorUtility.SetDirty(text);
+        }
+    }
+
+    private static Rect BuildCoverUvRect(Texture2D texture, Vector2 boxSize)
+    {
+        if (texture == null || texture.width <= 0 || texture.height <= 0 || boxSize.x <= 0f || boxSize.y <= 0f)
+            return new Rect(0f, 0f, 1f, 1f);
+
+        var textureAspect = texture.width / (float)texture.height;
+        var boxAspect = boxSize.x / boxSize.y;
+        if (textureAspect < boxAspect)
+        {
+            var uvHeight = Mathf.Clamp01(textureAspect / boxAspect);
+            return new Rect(0f, (1f - uvHeight) * 0.5f, 1f, uvHeight);
+        }
+
+        if (textureAspect > boxAspect)
+        {
+            var uvWidth = Mathf.Clamp01(boxAspect / textureAspect);
+            return new Rect((1f - uvWidth) * 0.5f, 0f, uvWidth, 1f);
+        }
+
+        return new Rect(0f, 0f, 1f, 1f);
     }
 
     private static RectTransform CreateRect(Transform parent, string name)

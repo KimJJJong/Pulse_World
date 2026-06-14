@@ -31,6 +31,36 @@ public static class AppearanceCatalog
         }
     }
 
+    public static bool IsSelectableAppearanceId(int appearanceId)
+    {
+        EnsureLoaded();
+
+        foreach (var option in _options)
+        {
+            if (option.Id == appearanceId)
+                return true;
+        }
+
+        return false;
+    }
+
+    public static int GetDefaultAppearanceId()
+    {
+        EnsureLoaded();
+        return _options.Count > 0 ? _options[0].Id : AutoAppearanceId;
+    }
+
+    public static int NormalizeSelectableAppearanceId(int preferredAppearanceId, int fallbackAppearanceId = AutoAppearanceId)
+    {
+        if (IsSelectableAppearanceId(preferredAppearanceId))
+            return preferredAppearanceId;
+
+        if (IsSelectableAppearanceId(fallbackAppearanceId))
+            return fallbackAppearanceId;
+
+        return GetDefaultAppearanceId();
+    }
+
     public static bool TryGetDefinitionPath(int appearanceId, out string definitionPath)
     {
         EnsureLoaded();
@@ -55,15 +85,32 @@ public static class AppearanceCatalog
         return $"Unknown({appearanceId})";
     }
 
+    public static string GetPortraitResourcePath(int appearanceId)
+    {
+        EnsureLoaded();
+
+        if (!_optionsById.TryGetValue(appearanceId, out var option))
+            return "";
+
+        string key = $"{option.DisplayName} {option.DefinitionPath}".ToLowerInvariant();
+        if (key.Contains("mage") || key.Contains("magician"))
+            return "UI/UI_Appear/Magician";
+
+        if (key.Contains("rog") || key.Contains("roug"))
+            return "UI/UI_Appear/Rouge";
+
+        if (key.Contains("barbar") || appearanceId == AutoAppearanceId)
+            return "UI/UI_Appear/Babarian";
+
+        return "";
+    }
+
     private static void EnsureLoaded()
     {
         if (_options != null && _optionsById != null)
             return;
 
-        var options = new List<AppearanceOption>
-        {
-            new(AutoAppearanceId, "자동(장비기반)", "Data/Entity_10_Player_Barbarian")
-        };
+        var options = new List<AppearanceOption>();
 
         var textAsset = Resources.Load<TextAsset>("Data/EntityData");
         if (textAsset != null)
@@ -99,6 +146,17 @@ public static class AppearanceCatalog
         _optionsById = new Dictionary<int, AppearanceOption>(options.Count);
         foreach (var option in options)
             _optionsById[option.Id] = option;
+
+        if (!_optionsById.ContainsKey(AutoAppearanceId))
+        {
+            var defaultOption = options.Count > 0
+                ? options[0]
+                : new AppearanceOption(10, "Barbarian", "Data/Entity_10_Player_Barbarian");
+            _optionsById[AutoAppearanceId] = new AppearanceOption(
+                AutoAppearanceId,
+                defaultOption.DisplayName,
+                defaultOption.DefinitionPath);
+        }
     }
 
     private static string ResolveDisplayName(EntityDataEntry entity)

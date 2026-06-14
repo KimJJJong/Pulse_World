@@ -612,6 +612,7 @@ internal sealed class MonsterAttackImpactVfxInstance : MonoBehaviour
             go.transform.position = position;
 
             var particles = go.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = particles.main;
             main.duration = Mathf.Max(0.2f, lifetimeMax);
             main.loop = false;

@@ -8,6 +8,11 @@ using FMODUnity;
 
 public class FMODDrumSequencer : MonoBehaviour
 {
+    private const string MasterVolumeKey = "Options.MasterVolume";
+    private const string InGameVolumeKey = "Options.InGameVolume";
+    private const float DefaultMasterVolume = 0.85f;
+    private const float DefaultInGameVolume = 0.80f;
+
     private static readonly HashSet<string> ValidFmodEventNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "Synthwave_Dagger", "Synthwave_Greatsword", "Synthwave_Bow", "Synthwave_Parry", "Synthwave_Staff",
@@ -107,6 +112,9 @@ public class FMODDrumSequencer : MonoBehaviour
 
     private const int SimulatorSampleRate = 48000;
     private const float SimulatorMasterVolume = 0.7f;
+    private static bool _hasRuntimeVolumePreview;
+    private static float _runtimePreviewMasterVolume = DefaultMasterVolume;
+    private static float _runtimePreviewInGameVolume = DefaultInGameVolume;
     private static readonly Dictionary<string, float> JazzToneFrequencies = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
     {
         { "Bass_C2", 65.41f }, { "Bass_D2", 73.42f }, { "Bass_Eb2", 77.78f }, { "Bass_F2", 87.31f },
@@ -143,6 +151,13 @@ public class FMODDrumSequencer : MonoBehaviour
     {
         Instance = this;
         RebuildDrumMappingCache();
+    }
+
+    public static void SetRuntimeVolumePreview(float masterVolume, float inGameVolume)
+    {
+        _hasRuntimeVolumePreview = true;
+        _runtimePreviewMasterVolume = Mathf.Clamp01(masterVolume);
+        _runtimePreviewInGameVolume = Mathf.Clamp01(inGameVolume);
     }
 
 #if UNITY_EDITOR
@@ -227,6 +242,8 @@ public class FMODDrumSequencer : MonoBehaviour
             else
             {
                 var textAsset = Resources.Load<TextAsset>(resolvedSongKey)
+                                ?? Resources.Load<TextAsset>($"Data/Sound/Json/{resolvedSongKey}_Rhythm")
+                                ?? Resources.Load<TextAsset>($"Data/Sound/Json/{resolvedSongKey}")
                                 ?? Resources.Load<TextAsset>($"Data/Stage/{resolvedSongKey}");
                 if (textAsset != null)
                 {
@@ -469,8 +486,7 @@ public class FMODDrumSequencer : MonoBehaviour
             return;
         }
 
-        // FMOD Studio API를 사용해 볼륨 파라미터 적용 (옵션)
-        instance.setVolume(note.VolumeMultiplier > 0 ? note.VolumeMultiplier : 1.0f);
+        instance.setVolume(GetScaledNoteVolume(note));
         
         // 악보 개별 피치 오프셋에 화성 진행(Chord) 피치 오프셋을 더해 최종 조옮김 피치 전달
         int finalPitchOffset = note.PitchOffset + GetPitchOffsetAt(block, note.MeasureIndex, note.Tick);
@@ -522,7 +538,7 @@ public class FMODDrumSequencer : MonoBehaviour
             return true;
         }
 
-        channel.setVolume(note.VolumeMultiplier > 0 ? note.VolumeMultiplier : 1.0f);
+        channel.setVolume(GetScaledNoteVolume(note));
         if (delaySec > 0)
             channel.setDelay(targetDSPClock, 0, false);
         channel.setPaused(false);
@@ -604,6 +620,31 @@ public class FMODDrumSequencer : MonoBehaviour
         return RhythmClient.Instance != null
             ? RhythmClient.Instance.GetCurrentServerTimeMs() / 1000.0
             : Time.unscaledTimeAsDouble;
+    }
+
+    private static float GetScaledNoteVolume(BassNote note)
+    {
+        var noteVolume = note != null && note.VolumeMultiplier > 0f ? note.VolumeMultiplier : 1.0f;
+        return Mathf.Max(0f, noteVolume) * GetInGameVolumeScale();
+    }
+
+    private static float GetInGameVolumeScale()
+    {
+        return GetSavedVolume(MasterVolumeKey, DefaultMasterVolume)
+               * GetSavedVolume(InGameVolumeKey, DefaultInGameVolume);
+    }
+
+    private static float GetSavedVolume(string key, float fallback)
+    {
+        if (_hasRuntimeVolumePreview)
+        {
+            if (key == MasterVolumeKey)
+                return _runtimePreviewMasterVolume;
+            if (key == InGameVolumeKey)
+                return _runtimePreviewInGameVolume;
+        }
+
+        return Mathf.Clamp01(PlayerPrefs.GetFloat(key, fallback));
     }
 
     private static bool TryGetTargetDspClock(double delaySec, out ulong targetDSPClock)

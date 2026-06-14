@@ -32,6 +32,18 @@ public class RhythmClient : MonoBehaviour
         LastServerTimeMs = GetCurrentServerTimeMs();
     }
 
+    public void StartLocal(double bpm, int baseBeatDivision, long songStartServerTimeMs = 0, float judgeWindowMs = 0)
+    {
+        OnBeatSync(new BeatSyncInfo
+        {
+            SongStartServerTimeMs = songStartServerTimeMs > 0 ? songStartServerTimeMs : TimeSync.ServerNowMs(),
+            Bpm = bpm > 0 ? bpm : 120.0,
+            BaseBeatDivision = baseBeatDivision > 0 ? baseBeatDivision : 1,
+            BeatIndex = 0,
+            JudgeWindowMs = judgeWindowMs
+        });
+    }
+
 
     public long GetJudgeTimeMs(long beatIndex)
     {

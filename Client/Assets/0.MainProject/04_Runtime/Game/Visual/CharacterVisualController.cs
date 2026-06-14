@@ -20,6 +20,7 @@ namespace RhythmRPG.Visual
         
         private Dictionary<int, GameObject> _spawnedEquipments = new Dictionary<int, GameObject>();
         private bool _isLocalPlayer = false;
+        private string _equipmentSignature = string.Empty;
 
         public bool IsLocalPlayer => _isLocalPlayer;
         public CharacterContext CurrentContext => _currentContext;
@@ -148,7 +149,12 @@ namespace RhythmRPG.Visual
 
         public void UpdateEquipments(List<int> equipmentIds)
         {
-            ClearEquipments();
+            string nextSignature = BuildEquipmentSignature(equipmentIds);
+            if (string.Equals(_equipmentSignature, nextSignature, System.StringComparison.Ordinal))
+                return;
+
+            ClearEquipmentObjects();
+            _equipmentSignature = nextSignature;
 
             if (equipmentIds == null || equipmentIds.Count == 0)
             {
@@ -285,11 +291,36 @@ namespace RhythmRPG.Visual
 
         private void ClearEquipments()
         {
+            ClearEquipmentObjects();
+            _equipmentSignature = string.Empty;
+        }
+
+        private void ClearEquipmentObjects()
+        {
             foreach (var kv in _spawnedEquipments)
             {
                 if (kv.Value != null) Destroy(kv.Value);
             }
             _spawnedEquipments.Clear();
+        }
+
+        private static string BuildEquipmentSignature(List<int> equipmentIds)
+        {
+            if (equipmentIds == null || equipmentIds.Count == 0)
+                return string.Empty;
+
+            var ids = new List<int>(equipmentIds.Count);
+            foreach (int id in equipmentIds)
+            {
+                if (id > 0)
+                    ids.Add(id);
+            }
+
+            if (ids.Count == 0)
+                return string.Empty;
+
+            ids.Sort();
+            return string.Join(",", ids);
         }
 
         private void RefreshVisuals()

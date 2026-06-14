@@ -40,6 +40,7 @@ public sealed class TownHomeUiController : MonoBehaviour
 
     private void OnDisable()
     {
+        ForceCameraHomeImmediate();
         RestoreRhythmInput();
         UnhookInventoryRefresh();
         RestoreHiddenSceneCanvases();
@@ -52,6 +53,16 @@ public sealed class TownHomeUiController : MonoBehaviour
     {
         if (ConsumedToggleThisFrame)
             return;
+
+        if (_inventoryWindowOpenFromHomeUi)
+        {
+            var inventory = ResolveTownInventoryUi();
+            if (inventory == null || !inventory.IsOpen)
+            {
+                CloseHomeUi();
+                return;
+            }
+        }
 
         if (Input.GetKeyDown(KeyCode.Escape))
         {
@@ -253,6 +264,7 @@ public sealed class TownHomeUiController : MonoBehaviour
         if (delay > 0f)
             yield return new WaitForSecondsRealtime(delay);
 
+        ForceCameraHomeImmediate();
         RestoreCameraFollow();
         SetCameraDirectorActive(false);
         _restoreCameraFollowRoutine = null;
@@ -265,6 +277,14 @@ public sealed class TownHomeUiController : MonoBehaviour
 
         _hadCameraFollow = false;
         _cameraFollow = null;
+    }
+
+    private void ForceCameraHomeImmediate()
+    {
+        if (_cameraDirector == null)
+            return;
+
+        _cameraDirector.SetAppearancePresentation(false, immediate: true);
     }
 
     private void SuspendRhythmInput()

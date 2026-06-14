@@ -387,7 +387,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         if (_selectionOutline == null)
             return;
 
-        var showOutline = UseResourceCardLayout() && (_isSelected || (_data != null && _data.IsEquipped));
+        var showOutline = UseResourceCardLayout() && _isSelected;
         _selectionOutline.gameObject.SetActive(showOutline);
         OrderResourceCardLayers();
     }

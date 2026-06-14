@@ -48,6 +48,8 @@ public class RhythmVisualDebugger : MonoBehaviour
             else
             {
                 var textAsset = Resources.Load<TextAsset>(resolvedSongKey) 
+                                ?? Resources.Load<TextAsset>($"Data/Sound/Json/{resolvedSongKey}_Rhythm")
+                                ?? Resources.Load<TextAsset>($"Data/Sound/Json/{resolvedSongKey}")
                                 ?? Resources.Load<TextAsset>($"Data/Stage/{resolvedSongKey}");
                 if (textAsset != null)
                 {

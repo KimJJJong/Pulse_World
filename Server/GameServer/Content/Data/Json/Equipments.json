@@ -182,7 +182,7 @@
     "max_enhance": 10,
     "sell_price": 500,
     "model_path": "Prefabs/Armor/Boots002",
-    "icon_path": "Icons/A_Boots002",
+    "icon_path": "Icons/A_BootsRetreat001",
     "description": "Evasive boots with a quick backward disengage.",
     "normal_attack_skill_id": "",
     "skill_id": "BackstepSkill",

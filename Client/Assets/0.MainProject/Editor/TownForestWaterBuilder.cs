@@ -626,6 +626,7 @@ internal static class TownForestWaterBuilder
         go.transform.position = position;
 
         var ps = go.AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var main = ps.main;
         main.loop = true;
         main.playOnAwake = true;

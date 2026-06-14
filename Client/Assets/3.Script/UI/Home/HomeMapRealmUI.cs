@@ -15,6 +15,10 @@ public sealed class HomeMapRealmUI : MonoBehaviour
     private static readonly Color CreateClearAccent = new(1f, 1f, 1f, 0f);
     private static readonly Color CreateSelectedText = new(0.98f, 0.91f, 0.70f, 1f);
     private static readonly Color CreateIdleText = new(0.84f, 0.76f, 0.58f, 1f);
+    private static readonly Color MapSelectButtonTint = new(0.70f, 0.67f, 0.58f, 1f);
+    private static readonly Color MapSelectButtonText = new(0.86f, 0.78f, 0.60f, 1f);
+    private static readonly Color MapBodyText = new(0.24f, 0.19f, 0.13f, 1f);
+    private static readonly Color MapMutedText = new(0.38f, 0.31f, 0.22f, 1f);
     private static TMP_FontAsset _koreanFont;
 
     private enum EntryMode
@@ -140,25 +144,23 @@ public sealed class HomeMapRealmUI : MonoBehaviour
     {
         BindButtons();
         BindChoiceButtons();
+        BindSelectButton();
         PrepareRealmHighlights();
         PrepareRealmAvailabilityUi();
         ApplyFontToChildren();
+        StyleMapDetailPanel();
         Select(ResolveInitialRealmIndex());
-
-        if (_selectButton != null)
-        {
-            _selectButton.onClick.RemoveListener(HandleSelectClicked);
-            _selectButton.onClick.AddListener(HandleSelectClicked);
-        }
     }
 
     private void OnEnable()
     {
         BindButtons();
         BindChoiceButtons();
+        BindSelectButton();
         PrepareRealmHighlights();
         PrepareRealmAvailabilityUi();
         ApplyFontToChildren();
+        StyleMapDetailPanel();
         Select(IsRealmAvailable(GetRealm(_selectedIndex))
             ? Mathf.Clamp(_selectedIndex, 0, Mathf.Max(0, (_realms?.Length ?? 1) - 1))
             : ResolveInitialRealmIndex());
@@ -227,6 +229,15 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         Bind(_keyCancelButton, () => ShowEntryView(EntryView.Choice));
     }
 
+    private void BindSelectButton()
+    {
+        if (_selectButton == null)
+            return;
+
+        _selectButton.onClick.RemoveListener(HandleSelectClicked);
+        _selectButton.onClick.AddListener(HandleSelectClicked);
+    }
+
     private void Select(int index)
     {
         if (_realms == null || _realms.Length == 0)
@@ -235,16 +246,15 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         _selectedIndex = Mathf.Clamp(index, 0, _realms.Length - 1);
         var selected = _realms[_selectedIndex];
 
-        if (_title != null)
-            _title.text = selected.DisplayName;
-        if (_description != null)
-            _description.text = selected.Description;
+        SetStyledText(_title, selected.DisplayName);
+        SetStyledText(_description, selected.Description);
 
         var hasScene = IsRealmAvailable(selected) && TryGetSceneName(selected, out _);
-        if (_ticketInfo != null)
-            _ticketInfo.text = hasScene ? $"Ticket: {selected.RequiredTicket}" : "Ticket: 없음";
-        if (_status != null && !_busy)
-            _status.text = hasScene ? ReadyMessage : MissingMapMessage;
+        SetStyledText(_ticketInfo, hasScene ? $"Ticket: {selected.RequiredTicket}" : "Ticket: 없음");
+        if (!_busy)
+            SetStyledText(_status, hasScene ? ReadyMessage : MissingMapMessage);
+
+        StyleMapDetailPanel();
 
         RefreshSelectButton();
 
@@ -392,8 +402,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
 
         if (_choicePanel != null)
             _choicePanel.SetActive(true);
-        if (_choiceTitle != null)
-            _choiceTitle.text = $"{realm.DisplayName} Town";
+        SetStyledText(_choiceTitle, $"{realm.DisplayName} Town");
         if (_quickKeyInput != null)
             _quickKeyInput.text = "";
         if (_inviteCodeInput != null)
@@ -441,13 +450,13 @@ public sealed class HomeMapRealmUI : MonoBehaviour
 
         if (_choiceTitle != null)
         {
-            _choiceTitle.text = view switch
+            SetStyledText(_choiceTitle, view switch
             {
                 EntryView.Existing => "Existing Towns",
                 EntryView.Create => "Create My Town",
                 EntryView.Key => "Join with Key",
                 _ => $"{GetSelectedRealmName()} Town"
-            };
+            });
         }
 
         switch (view)
@@ -836,13 +845,13 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         var title = string.IsNullOrWhiteSpace(room.title) ? "Town" : room.title;
         var isOwnRoom = IsOwnRoom(room);
         if (row.Title != null)
-            row.Title.text = isOwnRoom ? $"{title} (내 Town)" : title;
+            SetStyledText(row.Title, isOwnRoom ? $"{title} (내 Town)" : title);
         if (row.Meta != null)
-            row.Meta.text = $"{room.memberCount} / {Mathf.Max(2, room.maxPlayers)}";
+            SetStyledText(row.Meta, $"{room.memberCount} / {Mathf.Max(2, room.maxPlayers)}");
         if (row.SteamBadge != null)
         {
             var hasSteamLobby = !string.IsNullOrWhiteSpace(room.steamLobbyId);
-            row.SteamBadge.text = hasSteamLobby ? "Steam" : "";
+            SetStyledText(row.SteamBadge, hasSteamLobby ? "Steam" : "");
             row.SteamBadge.gameObject.SetActive(hasSteamLobby);
         }
 
@@ -886,32 +895,22 @@ public sealed class HomeMapRealmUI : MonoBehaviour
             return;
         }
 
-        if (_selectedTownTitle != null)
-            _selectedTownTitle.text = string.IsNullOrWhiteSpace(_selectedTown.title) ? "Town" : _selectedTown.title;
-        if (_selectedTownHost != null)
-            _selectedTownHost.text = $"Host: {ResolveHostName(_selectedTown)}";
-        if (_selectedTownPlayers != null)
-            _selectedTownPlayers.text = $"Players: {_selectedTown.memberCount} / {Mathf.Max(2, _selectedTown.maxPlayers)}";
-        if (_selectedTownDescription != null)
-            _selectedTownDescription.text = BuildTownDescription(_selectedTown);
-        if (_selectedTownKey != null)
-            _selectedTownKey.text = string.IsNullOrWhiteSpace(_selectedTown.roomId) ? "" : $"Key: {_selectedTown.roomId}";
+        SetStyledText(_selectedTownTitle, string.IsNullOrWhiteSpace(_selectedTown.title) ? "Town" : _selectedTown.title);
+        SetStyledText(_selectedTownHost, $"Host: {ResolveHostName(_selectedTown)}");
+        SetStyledText(_selectedTownPlayers, $"Players: {_selectedTown.memberCount} / {Mathf.Max(2, _selectedTown.maxPlayers)}");
+        SetStyledText(_selectedTownDescription, BuildTownDescription(_selectedTown));
+        SetStyledText(_selectedTownKey, string.IsNullOrWhiteSpace(_selectedTown.roomId) ? "" : $"Key: {_selectedTown.roomId}");
         if (_joinSelectedTownButton != null)
             _joinSelectedTownButton.interactable = !_busy;
     }
 
     private void ClearSelectedTownDetail()
     {
-        if (_selectedTownTitle != null)
-            _selectedTownTitle.text = "Select a Town";
-        if (_selectedTownHost != null)
-            _selectedTownHost.text = "Host: -";
-        if (_selectedTownPlayers != null)
-            _selectedTownPlayers.text = "Players: -";
-        if (_selectedTownDescription != null)
-            _selectedTownDescription.text = "Browse available towns and choose one to see its host, capacity, and current activity.";
-        if (_selectedTownKey != null)
-            _selectedTownKey.text = "";
+        SetStyledText(_selectedTownTitle, "Select a Town");
+        SetStyledText(_selectedTownHost, "Host: -");
+        SetStyledText(_selectedTownPlayers, "Players: -");
+        SetStyledText(_selectedTownDescription, "Browse available towns and choose one to see its host, capacity, and current activity.");
+        SetStyledText(_selectedTownKey, "");
         if (_joinSelectedTownButton != null)
             _joinSelectedTownButton.interactable = false;
     }
@@ -935,9 +934,9 @@ public sealed class HomeMapRealmUI : MonoBehaviour
 
         if (_visibilityHint != null)
         {
-            _visibilityHint.text = _createPublic
+            SetStyledText(_visibilityHint, _createPublic
                 ? "Public towns appear in the existing town list and can be joined by other players."
-                : "Private towns stay hidden from the list. Share the Town key for direct access.";
+                : "Private towns stay hidden from the list. Share the Town key for direct access.");
         }
 
         if (_maxPlayerButtons != null)
@@ -1043,14 +1042,10 @@ public sealed class HomeMapRealmUI : MonoBehaviour
             return;
         }
 
-        if (_keyResultTitle != null)
-            _keyResultTitle.text = string.IsNullOrWhiteSpace(_keyResolvedTown.title) ? "Town" : _keyResolvedTown.title;
-        if (_keyResultHost != null)
-            _keyResultHost.text = $"Host: {ResolveHostName(_keyResolvedTown)}";
-        if (_keyResultPlayers != null)
-            _keyResultPlayers.text = $"{_keyResolvedTown.memberCount} / {Mathf.Max(2, _keyResolvedTown.maxPlayers)}";
-        if (_keyResultDescription != null)
-            _keyResultDescription.text = BuildTownDescription(_keyResolvedTown);
+        SetStyledText(_keyResultTitle, string.IsNullOrWhiteSpace(_keyResolvedTown.title) ? "Town" : _keyResolvedTown.title);
+        SetStyledText(_keyResultHost, $"Host: {ResolveHostName(_keyResolvedTown)}");
+        SetStyledText(_keyResultPlayers, $"{_keyResolvedTown.memberCount} / {Mathf.Max(2, _keyResolvedTown.maxPlayers)}");
+        SetStyledText(_keyResultDescription, BuildTownDescription(_keyResolvedTown));
         if (_joinKeyTownButton != null)
             _joinKeyTownButton.interactable = !_busy;
     }
@@ -1060,8 +1055,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         _keyResolvedTown = null;
         if (_keyResultRoot != null)
             _keyResultRoot.SetActive(false);
-        if (_keyStatus != null)
-            _keyStatus.text = "Private towns require a valid key.";
+        SetStyledText(_keyStatus, "Private towns require a valid key.");
         if (_joinKeyTownButton != null)
             _joinKeyTownButton.interactable = false;
     }
@@ -1093,7 +1087,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
             return;
         }
 
-        _emptyRoomText.text = message;
+        SetStyledText(_emptyRoomText, message);
         _emptyRoomText.gameObject.SetActive(true);
     }
 
@@ -1125,12 +1119,12 @@ public sealed class HomeMapRealmUI : MonoBehaviour
                 if (row.JoinButton != null)
                     row.JoinButton.onClick.RemoveAllListeners();
                 if (row.Title != null)
-                    row.Title.text = "";
+                    SetStyledText(row.Title, "");
                 if (row.Meta != null)
-                    row.Meta.text = "";
+                    SetStyledText(row.Meta, "");
                 if (row.SteamBadge != null)
                 {
-                    row.SteamBadge.text = "";
+                    SetStyledText(row.SteamBadge, "");
                     row.SteamBadge.gameObject.SetActive(false);
                 }
                 if (row.SelectedFrame != null)
@@ -1142,7 +1136,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
 
         if (_emptyRoomText != null)
         {
-            _emptyRoomText.text = "";
+            SetStyledText(_emptyRoomText, "");
             _emptyRoomText.gameObject.SetActive(false);
         }
     }
@@ -1177,32 +1171,28 @@ public sealed class HomeMapRealmUI : MonoBehaviour
 
     private void SetChoiceStatus(string message)
     {
-        if (_choiceStatus != null)
-            _choiceStatus.text = message;
+        SetStyledText(_choiceStatus, message);
 
         Debug.Log($"[HomeMapRealmUI] {message}");
     }
 
     private void SetExistingStatus(string message)
     {
-        if (_existingStatus != null)
-            _existingStatus.text = message;
+        SetStyledText(_existingStatus, message);
 
         SetChoiceStatus(message);
     }
 
     private void SetKeyStatus(string message)
     {
-        if (_keyStatus != null)
-            _keyStatus.text = message;
+        SetStyledText(_keyStatus, message);
 
         SetChoiceStatus(message);
     }
 
     private void SetStatus(string message)
     {
-        if (_status != null)
-            _status.text = message;
+        SetStyledText(_status, message);
 
         Debug.Log($"[HomeMapRealmUI] {message}");
     }
@@ -1442,17 +1432,66 @@ public sealed class HomeMapRealmUI : MonoBehaviour
             ApplyPreferredFont(label);
     }
 
+    private void StyleMapDetailPanel()
+    {
+        StyleBodyText(_description, 15f, TextAlignmentOptions.Center, MapBodyText, lineSpacing: 4f);
+        StyleBodyText(_status, 13.5f, TextAlignmentOptions.Center, MapMutedText, lineSpacing: 2f);
+        StyleBodyText(_ticketInfo, 14f, TextAlignmentOptions.Center, MapMutedText, lineSpacing: 0f);
+
+        if (_selectButton != null)
+        {
+            if (_selectButton.targetGraphic != null)
+                _selectButton.targetGraphic.color = MapSelectButtonTint;
+
+            var feedback = _selectButton.GetComponent<HomeUIButtonFeedback>();
+            if (feedback != null)
+                feedback.SetTintOverride(true, MapSelectButtonTint);
+
+            var labels = _selectButton.GetComponentsInChildren<TMP_Text>(true);
+            foreach (var label in labels)
+            {
+                if (label == null)
+                    continue;
+
+                ApplyPreferredFont(label);
+                label.alignment = TextAlignmentOptions.Center;
+                label.color = MapSelectButtonText;
+            }
+        }
+    }
+
+    private static void StyleBodyText(TMP_Text text, float fontSize, TextAlignmentOptions alignment, Color color, float lineSpacing)
+    {
+        if (text == null)
+            return;
+
+        ApplyPreferredFont(text);
+        text.fontSize = fontSize;
+        text.fontSizeMin = Mathf.Max(8f, fontSize - 4f);
+        text.fontSizeMax = fontSize;
+        text.enableAutoSizing = true;
+        text.alignment = alignment;
+        text.color = color;
+        text.lineSpacing = lineSpacing;
+        text.margin = new Vector4(6f, 0f, 6f, 0f);
+        text.textWrappingMode = TextWrappingModes.Normal;
+    }
+
+    private static void SetStyledText(TMP_Text text, string value)
+    {
+        if (text == null)
+            return;
+
+        text.text = value ?? "";
+        ApplyPreferredFont(text);
+    }
+
     private static void ApplyPreferredFont(TMP_Text text)
     {
         if (text == null)
             return;
 
-        var font = LoadKoreanFont();
-        if (font == null)
-            return;
-
-        text.font = font;
-        text.fontSharedMaterial = font.material;
+        WorldMapFontLibrary.ApplyPreferredFont(text, LoadKoreanFont());
     }
 
     private static TMP_FontAsset LoadKoreanFont()

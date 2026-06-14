@@ -57,7 +57,7 @@ public sealed class WorldMapEntryOverlay : MonoBehaviour
         _group.blocksRaycasts = true;
 
         var sourceText = canvas.GetComponentInChildren<TextMeshProUGUI>(true);
-        var font = sourceText != null ? sourceText.font : null;
+        var fallbackFont = sourceText != null ? sourceText.font : null;
         var variant = EntryVariants[Random.Range(0, EntryVariants.Length)];
 
         var panel = CreateRect("EntryPanel", transform, new Vector2(0.5f, 0.5f), new Vector2(720f, 260f));
@@ -65,18 +65,21 @@ public sealed class WorldMapEntryOverlay : MonoBehaviour
         panelImage.color = new Color(0.88f, 0.72f, 0.48f, 0.18f);
         panelImage.raycastTarget = false;
 
-        var title = CreateText("EntryTitle", panel, font, 42f, FontStyles.Bold);
+        var title = CreateText("EntryTitle", panel, fallbackFont, 42f, FontStyles.Bold);
         title.text = variant.Title;
+        ApplyPreferredFont(title, fallbackFont);
         title.rectTransform.anchoredPosition = new Vector2(0f, 58f);
         title.rectTransform.sizeDelta = new Vector2(640f, 72f);
 
-        var body = CreateText("EntryBody", panel, font, 23f, FontStyles.Normal);
+        var body = CreateText("EntryBody", panel, fallbackFont, 23f, FontStyles.Normal);
         body.text = variant.Body;
+        ApplyPreferredFont(body, fallbackFont);
         body.rectTransform.anchoredPosition = new Vector2(0f, -8f);
         body.rectTransform.sizeDelta = new Vector2(620f, 80f);
 
-        var hint = CreateText("EntryHint", panel, font, 18f, FontStyles.Normal);
-        hint.text = "World Map";
+        var hint = CreateText("EntryHint", panel, fallbackFont, 18f, FontStyles.Normal);
+        hint.text = "WORLD MAP";
+        ApplyPreferredFont(hint, fallbackFont);
         hint.color = new Color(0.53f, 1f, 0.95f, 0.92f);
         hint.rectTransform.anchoredPosition = new Vector2(0f, -86f);
         hint.rectTransform.sizeDelta = new Vector2(420f, 42f);
@@ -135,5 +138,13 @@ public sealed class WorldMapEntryOverlay : MonoBehaviour
         text.textWrappingMode = TextWrappingModes.Normal;
         text.raycastTarget = false;
         return text;
+    }
+
+    private static void ApplyPreferredFont(TMP_Text text, TMP_FontAsset fallbackFont)
+    {
+        if (text == null)
+            return;
+
+        WorldMapFontLibrary.ApplyPreferredFont(text, fallbackFont);
     }
 }

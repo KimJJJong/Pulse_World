@@ -9,10 +9,16 @@ public sealed class StageAreaProgressHud : MonoBehaviour
 {
     private static StageAreaProgressHud _instance;
 
-    private CanvasGroup _group;
-    private RectTransform _root;
-    private TextMeshProUGUI _text;
-    private Coroutine _hideRoutine;
+    private readonly Dictionary<string, ProgressEntry> _entries = new();
+    private bool _uiBuilt;
+
+    private sealed class ProgressEntry
+    {
+        public RectTransform Root;
+        public TextMeshProUGUI Text;
+        public CanvasGroup Group;
+        public Coroutine HideRoutine;
+    }
 
     public static void Show(StageAreaProgressData data)
     {
@@ -47,6 +53,9 @@ public sealed class StageAreaProgressHud : MonoBehaviour
 
     private void BuildUi()
     {
+        if (_uiBuilt)
+            return;
+
         var canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 520;
@@ -54,57 +63,73 @@ public sealed class StageAreaProgressHud : MonoBehaviour
         var scaler = gameObject.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
+        _uiBuilt = true;
+    }
 
+    private ProgressEntry CreateEntry(string key, StageAreaProgressData data)
+    {
         var textGo = new GameObject("AreaProgressText", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI), typeof(CanvasGroup), typeof(Shadow));
         textGo.transform.SetParent(transform, false);
 
-        _root = textGo.GetComponent<RectTransform>();
-        _root.anchorMin = new Vector2(0.5f, 0.5f);
-        _root.anchorMax = new Vector2(0.5f, 0.5f);
-        _root.pivot = new Vector2(0.5f, 0.5f);
-        _root.anchoredPosition = new Vector2(0f, 86f);
-        _root.sizeDelta = new Vector2(720f, 120f);
+        var root = textGo.GetComponent<RectTransform>();
+        root.anchorMin = new Vector2(0.5f, 0.5f);
+        root.anchorMax = new Vector2(0.5f, 0.5f);
+        root.pivot = new Vector2(0.5f, 0.5f);
+        root.anchoredPosition = ResolveAnchoredPosition(data);
+        root.sizeDelta = new Vector2(520f, 76f);
 
-        _group = textGo.GetComponent<CanvasGroup>();
-        _group.alpha = 0f;
-        _group.blocksRaycasts = false;
-        _group.interactable = false;
+        var group = textGo.GetComponent<CanvasGroup>();
+        group.alpha = 0f;
+        group.blocksRaycasts = false;
+        group.interactable = false;
 
         var shadow = textGo.GetComponent<Shadow>();
         shadow.effectColor = new Color(0f, 0f, 0f, 0.72f);
         shadow.effectDistance = new Vector2(0f, -3f);
 
-        _text = textGo.GetComponent<TextMeshProUGUI>();
-        _text.alignment = TextAlignmentOptions.Center;
-        _text.fontSize = 48f;
-        _text.fontStyle = FontStyles.Bold;
-        _text.enableWordWrapping = false;
-        _text.overflowMode = TextOverflowModes.Ellipsis;
-        _text.color = new Color(0.86f, 1f, 1f, 1f);
-        _text.raycastTarget = false;
+        var text = textGo.GetComponent<TextMeshProUGUI>();
+        text.alignment = TextAlignmentOptions.Center;
+        text.fontSize = 34f;
+        text.fontStyle = FontStyles.Bold;
+        text.enableWordWrapping = false;
+        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.color = new Color(0.86f, 1f, 1f, 1f);
+        text.raycastTarget = false;
 
-        _root.gameObject.SetActive(false);
+        root.gameObject.SetActive(false);
+
+        var entry = new ProgressEntry
+        {
+            Root = root,
+            Text = text,
+            Group = group
+        };
+        _entries[key] = entry;
+        return entry;
     }
 
     private void ShowInternal(StageAreaProgressData data)
     {
-        if (_root == null)
-            BuildUi();
+        BuildUi();
 
         string label = string.IsNullOrWhiteSpace(data.Label) ? "Area" : data.Label.Trim();
-        _text.text = $"{label}  {data.CurrentCount}/{Mathf.Max(1, data.RequiredCount)}";
+        string key = BuildProgressKey(data);
+        if (!_entries.TryGetValue(key, out var entry) || entry == null || entry.Root == null)
+            entry = CreateEntry(key, data);
 
-        _root.gameObject.SetActive(true);
-        _group.alpha = 1f;
+        entry.Root.anchoredPosition = ResolveAnchoredPosition(data);
+        entry.Text.text = $"{label}  {data.CurrentCount}/{Mathf.Max(1, data.RequiredCount)}";
+        entry.Root.gameObject.SetActive(true);
+        entry.Group.alpha = 1f;
 
-        if (_hideRoutine != null)
-            StopCoroutine(_hideRoutine);
+        if (entry.HideRoutine != null)
+            StopCoroutine(entry.HideRoutine);
 
         int durationMs = data.DurationMs > 0 ? data.DurationMs : 1200;
-        _hideRoutine = StartCoroutine(CoFadeOut(durationMs / 1000f));
+        entry.HideRoutine = StartCoroutine(CoFadeOut(key, entry, durationMs / 1000f));
     }
 
-    private IEnumerator CoFadeOut(float holdSeconds)
+    private IEnumerator CoFadeOut(string key, ProgressEntry entry, float holdSeconds)
     {
         yield return new WaitForSeconds(holdSeconds);
 
@@ -113,13 +138,55 @@ public sealed class StageAreaProgressHud : MonoBehaviour
         while (elapsed < fadeSeconds)
         {
             elapsed += Time.deltaTime;
-            _group.alpha = Mathf.Lerp(1f, 0f, elapsed / fadeSeconds);
+            if (entry?.Group != null)
+                entry.Group.alpha = Mathf.Lerp(1f, 0f, elapsed / fadeSeconds);
             yield return null;
         }
 
-        _group.alpha = 0f;
-        _root.gameObject.SetActive(false);
-        _hideRoutine = null;
+        if (entry?.Group != null)
+            entry.Group.alpha = 0f;
+        if (entry?.Root != null)
+            Destroy(entry.Root.gameObject);
+
+        if (_entries.TryGetValue(key, out var current) && current == entry)
+            _entries.Remove(key);
+    }
+
+    private static Vector2 ResolveAnchoredPosition(StageAreaProgressData data)
+    {
+        string label = data?.Label ?? string.Empty;
+        if (label.IndexOf("North", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            return new Vector2(0f, 174f);
+        if (label.IndexOf("East", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            return new Vector2(390f, 96f);
+        if (label.IndexOf("South", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            return new Vector2(0f, 18f);
+        if (label.IndexOf("West", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            return new Vector2(-390f, 96f);
+
+        return new Vector2(0f, 86f);
+    }
+
+    private static string BuildProgressKey(StageAreaProgressData data)
+    {
+        RectData area = data?.Area ?? new RectData();
+        return $"{data?.Label ?? ""}|{area.X},{area.Y},{area.W},{area.H}|{EncodeCells(area)}";
+    }
+
+    private static string EncodeCells(RectData area)
+    {
+        if (area?.Cells == null || area.Cells.Count == 0)
+            return string.Empty;
+
+        var parts = new List<string>(area.Cells.Count);
+        foreach (var cell in area.Cells)
+        {
+            if (cell != null)
+                parts.Add($"{cell.X}:{cell.Y}");
+        }
+
+        parts.Sort(System.StringComparer.Ordinal);
+        return string.Join(";", parts);
     }
 }
 

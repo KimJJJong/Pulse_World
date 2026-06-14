@@ -330,7 +330,7 @@
                     "SecondaryTargetId": 0,
                     "TargetKey": "",
                     "Count": 1,
-                    "UseParticipantCount": false,
+                    "UseParticipantCount": true,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "Area Count",

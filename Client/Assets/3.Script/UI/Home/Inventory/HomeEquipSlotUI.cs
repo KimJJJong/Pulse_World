@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using Client.Content.Item;
@@ -84,17 +85,22 @@ public class HomeEquipSlotUI : MonoBehaviour
             var tmpl = ItemDataManager.Instance.GetEquipment(equipped.TemplateId);
             if (tmpl != null)
             {
-               // _icon.sprite = Resources.Load<Sprite>(tmpl.icon_path); // TODO: Resource Manager
-               if (!string.IsNullOrEmpty(tmpl.icon_path))
-               {
-                   var sprite = Resources.Load<Sprite>(tmpl.icon_path);
-                   if (sprite != null && _icon != null)
-                   {
-                       _icon.sprite = sprite;
-                       _icon.enabled = true;
-                   }
-                   else if (sprite == null) Debug.LogWarning($"[HomeEquipSlot] Sprite not found: {tmpl.icon_path}");
-               }
+                var sprite = RhythmRPG.Managers.GameResourceManager.Instance != null
+                    ? RhythmRPG.Managers.GameResourceManager.Instance.GetIcon(equipped.TemplateId)
+                    : null;
+
+                if (sprite == null)
+                    sprite = LoadIcon(tmpl.icon_path);
+
+                if (sprite != null && _icon != null)
+                {
+                    _icon.sprite = sprite;
+                    _icon.enabled = true;
+                }
+                else if (sprite == null && !string.IsNullOrEmpty(tmpl.icon_path))
+                {
+                    Debug.LogWarning($"[HomeEquipSlot] Sprite not found: {tmpl.icon_path}");
+                }
             }
         }
         else
@@ -305,6 +311,42 @@ public class HomeEquipSlotUI : MonoBehaviour
             return new Vector2(maxSize.x, maxSize.x / aspect);
 
         return new Vector2(maxSize.y * aspect, maxSize.y);
+    }
+
+    private static Sprite LoadIcon(string iconPath)
+    {
+        if (string.IsNullOrWhiteSpace(iconPath))
+            return null;
+
+        string path = iconPath.Replace('\\', '/').Trim();
+        foreach (var candidate in BuildIconPathCandidates(path))
+        {
+            var sprite = Resources.Load<Sprite>(candidate);
+            if (sprite != null)
+                return sprite;
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> BuildIconPathCandidates(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            yield break;
+
+        if (path.StartsWith("Assets/Resources/"))
+            path = path.Substring("Assets/Resources/".Length);
+        else if (path.StartsWith("Resources/"))
+            path = path.Substring("Resources/".Length);
+
+        path = Path.ChangeExtension(path.TrimStart('/'), null).Replace('\\', '/');
+        if (string.IsNullOrWhiteSpace(path))
+            yield break;
+
+        yield return path;
+
+        if (!path.StartsWith("Icons/", System.StringComparison.OrdinalIgnoreCase))
+            yield return $"Icons/{Path.GetFileNameWithoutExtension(path)}";
     }
 
     private static void SetActive(GameObject target, bool active)

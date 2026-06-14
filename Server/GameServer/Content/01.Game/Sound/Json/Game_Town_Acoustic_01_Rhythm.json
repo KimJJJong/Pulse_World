@@ -14,100 +14,100 @@
                 {
                     "MeasureIndex": 0,
                     "Tick": 0,
-                    "RootNote": "C",
+                    "RootNote": "F",
                     "ChordType": "Major",
-                    "PitchOffset": 0
+                    "PitchOffset": 5
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 0,
-                    "RootNote": "D",
-                    "ChordType": "Dominant7",
-                    "PitchOffset": 2
+                    "RootNote": "G",
+                    "ChordType": "Major",
+                    "PitchOffset": 7
                 },
                 {
                     "MeasureIndex": 2,
-                    "Tick": 0,
-                    "RootNote": "B",
-                    "ChordType": "Minor",
-                    "PitchOffset": 11
-                },
-                {
-                    "MeasureIndex": 3,
                     "Tick": 0,
                     "RootNote": "E",
                     "ChordType": "Minor",
                     "PitchOffset": 4
                 },
                 {
-                    "MeasureIndex": 4,
+                    "MeasureIndex": 3,
                     "Tick": 0,
                     "RootNote": "A",
                     "ChordType": "Minor",
                     "PitchOffset": 9
                 },
                 {
-                    "MeasureIndex": 5,
+                    "MeasureIndex": 4,
                     "Tick": 0,
                     "RootNote": "D",
-                    "ChordType": "Dominant7",
+                    "ChordType": "Minor",
                     "PitchOffset": 2
                 },
                 {
-                    "MeasureIndex": 6,
-                    "Tick": 0,
-                    "RootNote": "G",
-                    "ChordType": "Major",
-                    "PitchOffset": 7
-                },
-                {
-                    "MeasureIndex": 7,
+                    "MeasureIndex": 5,
                     "Tick": 0,
                     "RootNote": "G",
                     "ChordType": "Dominant7",
                     "PitchOffset": 7
                 },
                 {
-                    "MeasureIndex": 8,
+                    "MeasureIndex": 6,
                     "Tick": 0,
                     "RootNote": "C",
                     "ChordType": "Major",
                     "PitchOffset": 0
                 },
                 {
+                    "MeasureIndex": 7,
+                    "Tick": 0,
+                    "RootNote": "C",
+                    "ChordType": "Dominant7",
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 8,
+                    "Tick": 0,
+                    "RootNote": "F",
+                    "ChordType": "Major",
+                    "PitchOffset": 5
+                },
+                {
                     "MeasureIndex": 9,
                     "Tick": 0,
-                    "RootNote": "D",
-                    "ChordType": "Dominant7",
-                    "PitchOffset": 2
+                    "RootNote": "G",
+                    "ChordType": "Major",
+                    "PitchOffset": 7
                 },
                 {
                     "MeasureIndex": 10,
-                    "Tick": 0,
-                    "RootNote": "B",
-                    "ChordType": "Dominant7",
-                    "PitchOffset": 11
-                },
-                {
-                    "MeasureIndex": 11,
                     "Tick": 0,
                     "RootNote": "E",
                     "ChordType": "Minor",
                     "PitchOffset": 4
                 },
                 {
-                    "MeasureIndex": 12,
+                    "MeasureIndex": 11,
                     "Tick": 0,
                     "RootNote": "A",
                     "ChordType": "Minor",
                     "PitchOffset": 9
                 },
                 {
+                    "MeasureIndex": 12,
+                    "Tick": 0,
+                    "RootNote": "D",
+                    "ChordType": "Minor",
+                    "PitchOffset": 2
+                },
+                {
                     "MeasureIndex": 13,
                     "Tick": 0,
-                    "RootNote": "B",
-                    "ChordType": "Minor",
-                    "PitchOffset": 11
+                    "RootNote": "G",
+                    "ChordType": "Dominant7",
+                    "PitchOffset": 7
                 },
                 {
                     "MeasureIndex": 14,
@@ -119,9 +119,9 @@
                 {
                     "MeasureIndex": 15,
                     "Tick": 0,
-                    "RootNote": "D",
+                    "RootNote": "C",
                     "ChordType": "Dominant7",
-                    "PitchOffset": 2
+                    "PitchOffset": 0
                 }
             ],
             "BassPattern": [
@@ -512,139 +512,139 @@
                 {
                     "MeasureIndex": 0,
                     "Tick": 0,
+                    "SoundKey": "Rhodes_A3",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 240,
                     "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 0,
-                    "Tick": 240,
-                    "SoundKey": "Rhodes_E4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 0,
                     "Tick": 480,
-                    "SoundKey": "Rhodes_G4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_B4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 0,
-                    "Tick": 960,
-                    "SoundKey": "Rhodes_E4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 0,
-                    "Tick": 1200,
                     "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 0,
+                    "Tick": 960,
+                    "SoundKey": "Rhodes_C4",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1200,
+                    "SoundKey": "Rhodes_E4",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 0,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_C5",
+                    "SoundKey": "Rhodes_A4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 0,
+                    "SoundKey": "Rhodes_G3",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 240,
+                    "SoundKey": "Rhodes_B3",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
                     "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 1,
-                    "Tick": 240,
-                    "SoundKey": "Rhodes_F#4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 1,
-                    "Tick": 480,
-                    "SoundKey": "Rhodes_A4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 1,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_C5",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 960,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_C5",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 1,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_D5",
+                    "SoundKey": "Rhodes_B4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 0,
+                    "SoundKey": "Rhodes_G3",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 240,
                     "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 2,
-                    "Tick": 240,
-                    "SoundKey": "Rhodes_D4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 2,
                     "Tick": 480,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 960,
-                    "SoundKey": "Rhodes_D4",
+                    "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
@@ -656,49 +656,49 @@
                 {
                     "MeasureIndex": 3,
                     "Tick": 0,
-                    "SoundKey": "Rhodes_E4",
+                    "SoundKey": "Rhodes_A3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 240,
-                    "SoundKey": "Rhodes_G4",
+                    "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 480,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_D5",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 3,
-                    "Tick": 960,
                     "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 3,
+                    "Tick": 960,
+                    "SoundKey": "Rhodes_C4",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 3,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_D5",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_E5",
+                    "SoundKey": "Rhodes_A4",
                     "VolumeMultiplier": 0.8
                 },
                 {
@@ -752,283 +752,283 @@
                 {
                     "MeasureIndex": 5,
                     "Tick": 0,
-                    "SoundKey": "Rhodes_D4",
+                    "SoundKey": "Rhodes_G3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 240,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 480,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_C5",
+                    "SoundKey": "Rhodes_F4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 960,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_C5",
+                    "SoundKey": "Rhodes_F4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 5,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_D5",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 0,
-                    "SoundKey": "Rhodes_B3",
+                    "SoundKey": "Rhodes_G3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 240,
-                    "SoundKey": "Rhodes_D4",
+                    "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 480,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 960,
-                    "SoundKey": "Rhodes_D4",
+                    "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 6,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_D5",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 0,
-                    "SoundKey": "Rhodes_B3",
+                    "SoundKey": "Rhodes_G3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 240,
-                    "SoundKey": "Rhodes_D4",
+                    "SoundKey": "Rhodes_A#3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 480,
-                    "SoundKey": "Rhodes_F4",
+                    "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 960,
-                    "SoundKey": "Rhodes_D4",
+                    "SoundKey": "Rhodes_A#3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_F4",
+                    "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 7,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_D5",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 8,
                     "Tick": 0,
+                    "SoundKey": "Rhodes_A3",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 8,
+                    "Tick": 240,
                     "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 8,
-                    "Tick": 240,
-                    "SoundKey": "Rhodes_E4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 8,
                     "Tick": 480,
-                    "SoundKey": "Rhodes_G4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 8,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_B4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 8,
-                    "Tick": 960,
-                    "SoundKey": "Rhodes_E4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 8,
-                    "Tick": 1200,
                     "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 8,
+                    "Tick": 960,
+                    "SoundKey": "Rhodes_C4",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 8,
+                    "Tick": 1200,
+                    "SoundKey": "Rhodes_E4",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 8,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 8,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_C5",
+                    "SoundKey": "Rhodes_A4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 9,
                     "Tick": 0,
+                    "SoundKey": "Rhodes_G3",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 9,
+                    "Tick": 240,
+                    "SoundKey": "Rhodes_B3",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 9,
+                    "Tick": 480,
                     "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 9,
-                    "Tick": 240,
-                    "SoundKey": "Rhodes_F#4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 9,
-                    "Tick": 480,
-                    "SoundKey": "Rhodes_A4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 9,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_C5",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 9,
                     "Tick": 960,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 9,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 9,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_C5",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 9,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_D5",
+                    "SoundKey": "Rhodes_B4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 10,
                     "Tick": 0,
+                    "SoundKey": "Rhodes_G3",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 10,
+                    "Tick": 240,
                     "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 10,
-                    "Tick": 240,
-                    "SoundKey": "Rhodes_D#4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 10,
                     "Tick": 480,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 10,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 10,
                     "Tick": 960,
-                    "SoundKey": "Rhodes_D#4",
+                    "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 10,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 10,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
@@ -1040,49 +1040,49 @@
                 {
                     "MeasureIndex": 11,
                     "Tick": 0,
-                    "SoundKey": "Rhodes_E4",
+                    "SoundKey": "Rhodes_A3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 11,
                     "Tick": 240,
-                    "SoundKey": "Rhodes_G4",
+                    "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 11,
                     "Tick": 480,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 11,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_D5",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 11,
-                    "Tick": 960,
                     "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 11,
+                    "Tick": 960,
+                    "SoundKey": "Rhodes_C4",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 11,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 11,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_D5",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 11,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_E5",
+                    "SoundKey": "Rhodes_A4",
                     "VolumeMultiplier": 0.8
                 },
                 {
@@ -1136,145 +1136,145 @@
                 {
                     "MeasureIndex": 13,
                     "Tick": 0,
+                    "SoundKey": "Rhodes_G3",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 13,
+                    "Tick": 240,
                     "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 13,
-                    "Tick": 240,
-                    "SoundKey": "Rhodes_D4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 13,
                     "Tick": 480,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 13,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_F4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 13,
                     "Tick": 960,
-                    "SoundKey": "Rhodes_D4",
+                    "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 13,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_D4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 13,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_F4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 13,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 14,
                     "Tick": 0,
+                    "SoundKey": "Rhodes_G3",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 14,
+                    "Tick": 240,
+                    "SoundKey": "Rhodes_B3",
+                    "VolumeMultiplier": 0.8
+                },
+                {
+                    "MeasureIndex": 14,
+                    "Tick": 480,
                     "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 14,
-                    "Tick": 240,
-                    "SoundKey": "Rhodes_E4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 14,
-                    "Tick": 480,
-                    "SoundKey": "Rhodes_G4",
-                    "VolumeMultiplier": 0.8
-                },
-                {
-                    "MeasureIndex": 14,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 14,
                     "Tick": 960,
-                    "SoundKey": "Rhodes_E4",
+                    "SoundKey": "Rhodes_B3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 14,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_G4",
+                    "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 14,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_B4",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 14,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_C5",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 15,
                     "Tick": 0,
-                    "SoundKey": "Rhodes_D4",
+                    "SoundKey": "Rhodes_G3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 15,
                     "Tick": 240,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_A#3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 15,
                     "Tick": 480,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 15,
                     "Tick": 720,
-                    "SoundKey": "Rhodes_C5",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 15,
                     "Tick": 960,
-                    "SoundKey": "Rhodes_F#4",
+                    "SoundKey": "Rhodes_A#3",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 15,
                     "Tick": 1200,
-                    "SoundKey": "Rhodes_A4",
+                    "SoundKey": "Rhodes_C4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 15,
                     "Tick": 1440,
-                    "SoundKey": "Rhodes_C5",
+                    "SoundKey": "Rhodes_E4",
                     "VolumeMultiplier": 0.8
                 },
                 {
                     "MeasureIndex": 15,
                     "Tick": 1680,
-                    "SoundKey": "Rhodes_D5",
+                    "SoundKey": "Rhodes_G4",
                     "VolumeMultiplier": 0.8
                 },
                 {
@@ -1286,136 +1286,136 @@
                 {
                     "MeasureIndex": 0,
                     "Tick": 960,
-                    "SoundKey": "LofiFlute_G5",
+                    "SoundKey": "LofiFlute_D5",
                     "VolumeMultiplier": 0.9
                 },
                 {
                     "MeasureIndex": 0,
                     "Tick": 1680,
-                    "SoundKey": "LofiFlute_B5",
+                    "SoundKey": "LofiFlute_C5",
                     "VolumeMultiplier": 0.9
                 },
                 {
                     "MeasureIndex": 1,
-                    "Tick": 0,
-                    "SoundKey": "LofiFlute_F#5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 1,
-                    "Tick": 960,
-                    "SoundKey": "LofiFlute_A5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 1,
-                    "Tick": 1680,
-                    "SoundKey": "LofiFlute_C6",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 2,
                     "Tick": 0,
                     "SoundKey": "LofiFlute_D5",
                     "VolumeMultiplier": 0.9
                 },
                 {
+                    "MeasureIndex": 1,
+                    "Tick": 960,
+                    "SoundKey": "LofiFlute_C5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1680,
+                    "SoundKey": "LofiFlute_B4",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "LofiFlute_B4",
+                    "VolumeMultiplier": 0.9
+                },
+                {
                     "MeasureIndex": 2,
                     "Tick": 960,
-                    "SoundKey": "LofiFlute_F#5",
+                    "SoundKey": "LofiFlute_A4",
                     "VolumeMultiplier": 0.9
                 },
                 {
                     "MeasureIndex": 2,
                     "Tick": 1680,
-                    "SoundKey": "LofiFlute_A5",
+                    "SoundKey": "LofiFlute_G4",
                     "VolumeMultiplier": 0.9
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 0,
-                    "SoundKey": "LofiFlute_G5",
+                    "SoundKey": "LofiFlute_G4",
                     "VolumeMultiplier": 0.9
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 720,
-                    "SoundKey": "LofiFlute_B5",
+                    "SoundKey": "LofiFlute_B4",
                     "VolumeMultiplier": 0.9
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 1200,
-                    "SoundKey": "LofiFlute_D6",
+                    "SoundKey": "LofiFlute_D5",
                     "VolumeMultiplier": 0.9
                 },
                 {
                     "MeasureIndex": 3,
                     "Tick": 1680,
-                    "SoundKey": "LofiFlute_E6",
+                    "SoundKey": "LofiFlute_G5",
                     "VolumeMultiplier": 0.9
                 },
                 {
                     "MeasureIndex": 4,
+                    "Tick": 0,
+                    "SoundKey": "LofiFlute_A5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 4,
+                    "Tick": 960,
+                    "SoundKey": "LofiFlute_G5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 4,
+                    "Tick": 1680,
+                    "SoundKey": "LofiFlute_F5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 5,
+                    "Tick": 0,
+                    "SoundKey": "LofiFlute_F5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 5,
+                    "Tick": 960,
+                    "SoundKey": "LofiFlute_E5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 5,
+                    "Tick": 1680,
+                    "SoundKey": "LofiFlute_D5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 6,
+                    "Tick": 0,
+                    "SoundKey": "LofiFlute_E5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 6,
+                    "Tick": 960,
+                    "SoundKey": "LofiFlute_D5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 6,
+                    "Tick": 1680,
+                    "SoundKey": "LofiFlute_C5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 7,
                     "Tick": 0,
                     "SoundKey": "LofiFlute_C5",
                     "VolumeMultiplier": 0.9
                 },
                 {
-                    "MeasureIndex": 4,
-                    "Tick": 960,
-                    "SoundKey": "LofiFlute_E5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 4,
-                    "Tick": 1680,
-                    "SoundKey": "LofiFlute_G5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 5,
-                    "Tick": 0,
-                    "SoundKey": "LofiFlute_F#5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 5,
-                    "Tick": 960,
-                    "SoundKey": "LofiFlute_A5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 5,
-                    "Tick": 1680,
-                    "SoundKey": "LofiFlute_D6",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 6,
-                    "Tick": 0,
-                    "SoundKey": "LofiFlute_B4",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 6,
-                    "Tick": 960,
-                    "SoundKey": "LofiFlute_D5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 6,
-                    "Tick": 1680,
-                    "SoundKey": "LofiFlute_G5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 7,
-                    "Tick": 0,
-                    "SoundKey": "LofiFlute_B4",
-                    "VolumeMultiplier": 0.9
-                },
-                {
                     "MeasureIndex": 7,
                     "Tick": 720,
                     "SoundKey": "LofiFlute_D5",
@@ -1424,7 +1424,7 @@
                 {
                     "MeasureIndex": 7,
                     "Tick": 1200,
-                    "SoundKey": "LofiFlute_F5",
+                    "SoundKey": "LofiFlute_E5",
                     "VolumeMultiplier": 0.9
                 },
                 {
@@ -1436,7 +1436,7 @@
                 {
                     "MeasureIndex": 8,
                     "Tick": 0,
-                    "SoundKey": "LofiFlute_E5",
+                    "SoundKey": "LofiFlute_A5",
                     "VolumeMultiplier": 0.9
                 },
                 {
@@ -1454,7 +1454,7 @@
                 {
                     "MeasureIndex": 9,
                     "Tick": 0,
-                    "SoundKey": "LofiFlute_F#5",
+                    "SoundKey": "LofiFlute_B5",
                     "VolumeMultiplier": 0.9
                 },
                 {
@@ -1471,68 +1471,68 @@
                 },
                 {
                     "MeasureIndex": 10,
-                    "Tick": 0,
-                    "SoundKey": "LofiFlute_D#5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 10,
-                    "Tick": 960,
-                    "SoundKey": "LofiFlute_F#5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 10,
-                    "Tick": 1680,
-                    "SoundKey": "LofiFlute_B5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 11,
                     "Tick": 0,
                     "SoundKey": "LofiFlute_G5",
                     "VolumeMultiplier": 0.9
                 },
                 {
-                    "MeasureIndex": 11,
+                    "MeasureIndex": 10,
                     "Tick": 960,
+                    "SoundKey": "LofiFlute_F#5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 10,
+                    "Tick": 1680,
                     "SoundKey": "LofiFlute_B5",
                     "VolumeMultiplier": 0.9
                 },
                 {
                     "MeasureIndex": 11,
-                    "Tick": 1680,
-                    "SoundKey": "LofiFlute_E6",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 12,
                     "Tick": 0,
-                    "SoundKey": "LofiFlute_A5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 12,
-                    "Tick": 960,
                     "SoundKey": "LofiFlute_C6",
                     "VolumeMultiplier": 0.9
                 },
                 {
-                    "MeasureIndex": 12,
+                    "MeasureIndex": 11,
+                    "Tick": 960,
+                    "SoundKey": "LofiFlute_B5",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 11,
                     "Tick": 1680,
                     "SoundKey": "LofiFlute_E6",
                     "VolumeMultiplier": 0.9
                 },
                 {
-                    "MeasureIndex": 13,
+                    "MeasureIndex": 12,
                     "Tick": 0,
-                    "SoundKey": "LofiFlute_B5",
-                    "VolumeMultiplier": 0.9
-                },
-                {
-                    "MeasureIndex": 13,
-                    "Tick": 960,
                     "SoundKey": "LofiFlute_D6",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 12,
+                    "Tick": 960,
+                    "SoundKey": "LofiFlute_C6",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 12,
+                    "Tick": 1680,
+                    "SoundKey": "LofiFlute_E6",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 13,
+                    "Tick": 0,
+                    "SoundKey": "LofiFlute_C6",
+                    "VolumeMultiplier": 0.9
+                },
+                {
+                    "MeasureIndex": 13,
+                    "Tick": 960,
+                    "SoundKey": "LofiFlute_A5",
                     "VolumeMultiplier": 0.9
                 },
                 {
@@ -1544,7 +1544,7 @@
                 {
                     "MeasureIndex": 14,
                     "Tick": 0,
-                    "SoundKey": "LofiFlute_C6",
+                    "SoundKey": "LofiFlute_G6",
                     "VolumeMultiplier": 0.9
                 },
                 {
@@ -1556,7 +1556,7 @@
                 {
                     "MeasureIndex": 14,
                     "Tick": 1680,
-                    "SoundKey": "LofiFlute_G6",
+                    "SoundKey": "LofiFlute_C6",
                     "VolumeMultiplier": 0.9
                 },
                 {

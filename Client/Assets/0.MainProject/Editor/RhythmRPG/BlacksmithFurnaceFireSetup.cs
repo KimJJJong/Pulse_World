@@ -378,6 +378,7 @@ public static class BlacksmithFurnaceFireSetup
         go.transform.SetParent(parent, false);
         go.transform.localPosition = new Vector3(0f, 0.24f, 0f);
         var ps = go.AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
         var main = ps.main;
         main.loop = true;
@@ -442,6 +443,7 @@ public static class BlacksmithFurnaceFireSetup
         go.transform.SetParent(parent, false);
         go.transform.localPosition = new Vector3(0.08f, 0.48f, 0.08f);
         var ps = go.AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
         var main = ps.main;
         main.loop = true;

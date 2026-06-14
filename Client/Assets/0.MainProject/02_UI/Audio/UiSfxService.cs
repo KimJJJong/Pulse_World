@@ -25,6 +25,10 @@ public sealed class UiSfxService : MonoBehaviour
     private const string ResourcePrefix = "Audio/UI/";
     private const string StreamingFolder = "UIAudio";
     private const float GlobalStackCooldown = 0.055f;
+    private const string MasterVolumeKey = "Options.MasterVolume";
+    private const string SfxVolumeKey = "Options.SfxVolume";
+    private const float DefaultMasterVolume = 0.85f;
+    private const float DefaultSfxVolume = 0.75f;
 
     private static readonly Dictionary<UiSfxKind, string> FileNames = new Dictionary<UiSfxKind, string>
     {
@@ -48,6 +52,9 @@ public sealed class UiSfxService : MonoBehaviour
     private float _lastAnyPlayTime = -999f;
     private bool _fmodReady;
     private bool _loggedBackend;
+    private static bool _hasRuntimeVolumePreview;
+    private static float _runtimePreviewMasterVolume = DefaultMasterVolume;
+    private static float _runtimePreviewSfxVolume = DefaultSfxVolume;
 
     public static UiSfxService Instance { get; private set; }
 
@@ -78,12 +85,20 @@ public sealed class UiSfxService : MonoBehaviour
         return UiSfxKind.Click;
     }
 
+    public static void SetRuntimeVolumePreview(float masterVolume, float sfxVolume)
+    {
+        _hasRuntimeVolumePreview = true;
+        _runtimePreviewMasterVolume = Mathf.Clamp01(masterVolume);
+        _runtimePreviewSfxVolume = Mathf.Clamp01(sfxVolume);
+    }
+
     public void Play(UiSfxKind kind)
     {
         var index = (int)kind;
         var now = Time.unscaledTime;
-        var volume = GetVolume(kind);
-        if (volume <= 0f)
+        var unityVolume = GetVolume(kind);
+        var fmodVolume = unityVolume * GetSavedVolume(MasterVolumeKey, DefaultMasterVolume);
+        if (unityVolume <= 0f && fmodVolume <= 0f)
             return;
 
         if (now - _lastAnyPlayTime < GlobalStackCooldown)
@@ -95,13 +110,13 @@ public sealed class UiSfxService : MonoBehaviour
         _lastPlayTimes[index] = now;
         _lastAnyPlayTime = now;
 
-        if (_fmodReady && PlayFmod(kind, volume))
+        if (_fmodReady && PlayFmod(kind, fmodVolume))
         {
             LogBackend("FMOD Core");
             return;
         }
 
-        PlayUnity(kind, volume);
+        PlayUnity(kind, unityVolume);
         LogBackend("Unity Audio");
     }
 
@@ -242,28 +257,53 @@ public sealed class UiSfxService : MonoBehaviour
 
     private static float GetVolume(UiSfxKind kind)
     {
+        var sfxVolume = GetSavedVolume(SfxVolumeKey, DefaultSfxVolume);
+        float baseVolume;
         switch (kind)
         {
             case UiSfxKind.Hover:
             case UiSfxKind.Slider:
             case UiSfxKind.TextFocus:
-                return 0f;
+                baseVolume = 0f;
+                break;
             case UiSfxKind.Click:
-                return 0.16f;
+                baseVolume = 0.16f;
+                break;
             case UiSfxKind.Toggle:
-                return 0.13f;
+                baseVolume = 0.13f;
+                break;
             case UiSfxKind.Open:
             case UiSfxKind.Close:
-                return 0.14f;
+                baseVolume = 0.14f;
+                break;
             case UiSfxKind.Confirm:
-                return 0.18f;
+                baseVolume = 0.18f;
+                break;
             case UiSfxKind.Cancel:
-                return 0.16f;
+                baseVolume = 0.16f;
+                break;
             case UiSfxKind.Error:
-                return 0.20f;
+                baseVolume = 0.20f;
+                break;
             default:
-                return 0.15f;
+                baseVolume = 0.15f;
+                break;
         }
+
+        return baseVolume * sfxVolume;
+    }
+
+    private static float GetSavedVolume(string key, float fallback)
+    {
+        if (_hasRuntimeVolumePreview)
+        {
+            if (key == MasterVolumeKey)
+                return _runtimePreviewMasterVolume;
+            if (key == SfxVolumeKey)
+                return _runtimePreviewSfxVolume;
+        }
+
+        return Mathf.Clamp01(PlayerPrefs.GetFloat(key, fallback));
     }
 
     private static float GetCooldown(UiSfxKind kind)

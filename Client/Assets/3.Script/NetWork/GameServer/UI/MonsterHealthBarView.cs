@@ -26,6 +26,8 @@ public sealed class MonsterHealthBarView : MonoBehaviour
     private RectTransform _trackRect;
     private Canvas _canvas;
     private CanvasGroup _canvasGroup;
+    private RectTransform _fillRect;
+    private RectTransform _damageTrailRect;
     private Image _fillImage;
     private Image _damageTrailImage;
     private TextMeshProUGUI _nameLabel;
@@ -126,7 +128,7 @@ public sealed class MonsterHealthBarView : MonoBehaviour
         if (_damageTrailImage != null && _trailFill > _targetFill)
         {
             _trailFill = Mathf.MoveTowards(_trailFill, _targetFill, Time.unscaledDeltaTime * 0.55f);
-            _damageTrailImage.fillAmount = _trailFill;
+            SetBarFill(_damageTrailRect, _trailFill);
         }
     }
 
@@ -154,13 +156,15 @@ public sealed class MonsterHealthBarView : MonoBehaviour
 
         _trackRect = FindOrCreateImage("Track", _rect, _trackColor);
 
-        _damageTrailImage = GetOrAdd<Image>(FindOrCreateImage("DamageTrail", _trackRect, _damageTrailColor).gameObject);
-        ConfigureFilledImage(_damageTrailImage);
-        Stretch(_damageTrailImage.rectTransform, 0f);
+        _damageTrailRect = FindOrCreateImage("DamageTrail", _trackRect, _damageTrailColor);
+        _damageTrailImage = GetOrAdd<Image>(_damageTrailRect.gameObject);
+        ConfigureBarImage(_damageTrailImage);
+        SetBarFill(_damageTrailRect, 1f);
 
-        _fillImage = GetOrAdd<Image>(FindOrCreateImage("Fill", _trackRect, _fillColor).gameObject);
-        ConfigureFilledImage(_fillImage);
-        Stretch(_fillImage.rectTransform, 0f);
+        _fillRect = FindOrCreateImage("Fill", _trackRect, _fillColor);
+        _fillImage = GetOrAdd<Image>(_fillRect.gameObject);
+        ConfigureBarImage(_fillImage);
+        SetBarFill(_fillRect, 1f);
 
         EnsureFrame(_trackRect, "TrackFrame", 1.5f, _frameColor);
 
@@ -209,17 +213,16 @@ public sealed class MonsterHealthBarView : MonoBehaviour
 
         if (_fillImage != null)
         {
-            _fillImage.fillAmount = fill;
             _fillImage.color = fill <= 0.3f ? _lowFillColor : _fillColor;
         }
+        SetBarFill(_fillRect, fill);
 
         if (_damageTrailImage != null)
         {
             if (fill > _trailFill)
                 _trailFill = fill;
-
-            _damageTrailImage.fillAmount = _trailFill;
         }
+        SetBarFill(_damageTrailRect, _trailFill);
 
         _targetFill = fill;
     }
@@ -393,13 +396,26 @@ public sealed class MonsterHealthBarView : MonoBehaviour
         Anchor((RectTransform)child, anchor, position, size, pivot);
     }
 
-    private static void ConfigureFilledImage(Image image)
+    private static void ConfigureBarImage(Image image)
     {
-        image.type = Image.Type.Filled;
-        image.fillMethod = Image.FillMethod.Horizontal;
-        image.fillOrigin = (int)Image.OriginHorizontal.Left;
-        image.fillAmount = 1f;
+        image.type = Image.Type.Simple;
         image.raycastTarget = false;
+    }
+
+    private static void SetBarFill(RectTransform rect, float fill)
+    {
+        if (rect == null)
+            return;
+
+        fill = Mathf.Clamp01(fill);
+        rect.gameObject.SetActive(fill > 0.001f);
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = new Vector2(fill, 1f);
+        rect.pivot = new Vector2(0f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = Vector2.zero;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
     }
 
     private static void EnsureFrame(RectTransform parent, string prefix, float thickness, Color color)

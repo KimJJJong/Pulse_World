@@ -25,6 +25,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
     private readonly Dictionary<int, EntityAnimationProfile> _entityAnimationProfileCache = new();
     private readonly Dictionary<int, string> _entityNameMap = new();
     private readonly Dictionary<int, int> _entityMaxHpMap = new();
+    private readonly Dictionary<int, RemoteEquipmentState> _remoteEquipmentByActorId = new();
+    private readonly HashSet<int> _remoteEquipmentRequests = new();
 
     [Header("Rendering")]
     public float cellSize = 1.0f;
@@ -122,6 +124,12 @@ public class BoardView : MonoBehaviour, IClientWorldView
     private readonly Dictionary<int, PendingVisualDespawn> _pendingVisualDespawns = new();
     private readonly HashSet<int> _activeDecoyEntityIds = new();
     private readonly Dictionary<int, int> _activeDecoyCountByOwner = new();
+
+    private sealed class RemoteEquipmentState
+    {
+        public string Uid = string.Empty;
+        public List<int> EquipmentTemplateIds = new();
+    }
     private Dictionary<Vector2Int, long> _telegraphExpiration = new Dictionary<Vector2Int, long>();
     private readonly List<Vector2Int> _expiredTelegraphBuffer = new List<Vector2Int>();
     private const string WalkableGridObjectName = "__WalkableGridOutline";
@@ -1163,6 +1171,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
         }
         _entityViews.Clear();
         _monsterHealthBars.Clear();
+        _remoteEquipmentByActorId.Clear();
+        _remoteEquipmentRequests.Clear();
     }
 
     public void OnSpawnOrUpdateEntity(ClientEntityInfo info)
@@ -1257,7 +1267,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         }
     }
 
-    private static void SyncCharacterVisualController(ClientEntityInfo info, EntityVisual visual, ClientGameState gameState)
+    private void SyncCharacterVisualController(ClientEntityInfo info, EntityVisual visual, ClientGameState gameState)
     {
         if (info.EntityType != (int)EntityType.Player || visual == null || gameState == null)
             return;
@@ -1274,6 +1284,88 @@ public class BoardView : MonoBehaviour, IClientWorldView
         bool isLocal = info.EntityId == gameState.MyActorId;
         if (visualCtrl.IsLocalPlayer != isLocal)
             visualCtrl.SetLocalPlayer(isLocal);
+
+        if (!isLocal)
+            SyncRemotePlayerEquipment(info.EntityId, visualCtrl, gameState);
+    }
+
+    private void SyncRemotePlayerEquipment(int actorId, RhythmRPG.Visual.CharacterVisualController visualCtrl, ClientGameState gameState)
+    {
+        if (visualCtrl == null || gameState == null)
+            return;
+
+        if (!gameState.TryGetPlayerUid(actorId, out string uid) || string.IsNullOrWhiteSpace(uid))
+            return;
+
+        if (_remoteEquipmentByActorId.TryGetValue(actorId, out var cached)
+            && cached != null
+            && string.Equals(cached.Uid, uid, StringComparison.OrdinalIgnoreCase))
+        {
+            visualCtrl.UpdateEquipments(cached.EquipmentTemplateIds);
+            return;
+        }
+
+        if (_remoteEquipmentRequests.Contains(actorId))
+            return;
+
+        _remoteEquipmentRequests.Add(actorId);
+        FetchRemotePlayerEquipmentAsync(actorId, uid);
+    }
+
+    private async void FetchRemotePlayerEquipmentAsync(int actorId, string uid)
+    {
+        try
+        {
+            var api = AppBootstrap.Instance?.Root?.PlayerStateApi;
+            if (api == null || ClientGameState.Instance == null)
+                return;
+
+            var result = await api.GetPlayerStateAsync(uid);
+            if (!result.Ok || result.Data == null || ClientGameState.Instance == null)
+                return;
+
+            if (!ClientGameState.Instance.TryGetPlayerUid(actorId, out string currentUid)
+                || !string.Equals(currentUid, uid, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var equipmentIds = new List<int>();
+            var gears = result.Data.Gears;
+            if (gears != null)
+            {
+                for (int i = 0; i < gears.Length; i++)
+                {
+                    int templateId = gears[i]?.TemplateId ?? 0;
+                    if (templateId > 0)
+                        equipmentIds.Add(templateId);
+                }
+            }
+
+            _remoteEquipmentByActorId[actorId] = new RemoteEquipmentState
+            {
+                Uid = uid,
+                EquipmentTemplateIds = equipmentIds
+            };
+
+            if (_entityViews.TryGetValue(actorId, out var visual) && visual != null)
+            {
+                var visualCtrl = visual.GetComponent<RhythmRPG.Visual.CharacterVisualController>();
+                if (visualCtrl == null)
+                    visualCtrl = visual.GetComponentInChildren<RhythmRPG.Visual.CharacterVisualController>(true);
+
+                if (visualCtrl != null && !visualCtrl.IsLocalPlayer)
+                    visualCtrl.UpdateEquipments(equipmentIds);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[BoardView] Remote equipment load failed actor={actorId} uid={uid}: {ex.Message}");
+        }
+        finally
+        {
+            _remoteEquipmentRequests.Remove(actorId);
+        }
     }
 
     public bool HasEntityView(int entityId)
@@ -1549,11 +1641,26 @@ public class BoardView : MonoBehaviour, IClientWorldView
             return;
 
         ShowMonsterHealthBarForDamage(entityId, newHp, visual);
+        PlayMonsterDamageEffect(entityId, oldHp - newHp, visual);
 
         if (newHp <= 0)
             visual.PlayDeath();
         else
             visual.PlayHit(ResolveHitFeedbackDuration());
+    }
+
+    private void PlayMonsterDamageEffect(int entityId, int damage, EntityVisual visual)
+    {
+        if (damage <= 0 || visual == null || ClientGameState.Instance == null)
+            return;
+
+        if (!ClientGameState.Instance.TryGetEntity(entityId, out var info)
+            || info.EntityType != (int)EntityType.Monster)
+        {
+            return;
+        }
+
+        MonsterDamagePopupView.Play(visual.transform, damage);
     }
 
     private float ResolveHitFeedbackDuration()

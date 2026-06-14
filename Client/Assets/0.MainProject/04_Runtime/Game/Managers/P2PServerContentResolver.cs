@@ -45,6 +45,14 @@ public static class P2PServerContentResolver
             return true;
         if (TryReadServerText($"Server/GameServer/Content/01.Game/Sound/Json/{stageId}.json", out json))
             return true;
+        if (TryReadResourceText($"Data/Sound/Json/{stageId}_Rhythm", out json))
+            return true;
+        if (TryReadResourceText($"Data/Sound/Json/{stageId}", out json))
+            return true;
+        if (TryReadResourceText(stageId, out json))
+            return true;
+        if (TryReadResourceText($"Data/Stage/{stageId}", out json))
+            return true;
             
         return false;
     }
@@ -116,6 +124,20 @@ public static class P2PServerContentResolver
         }
 
         return false;
+    }
+
+    private static bool TryReadResourceText(string resourcePath, out string json)
+    {
+        json = string.Empty;
+        if (string.IsNullOrWhiteSpace(resourcePath))
+            return false;
+
+        TextAsset asset = Resources.Load<TextAsset>(resourcePath);
+        if (asset == null || string.IsNullOrWhiteSpace(asset.text))
+            return false;
+
+        json = asset.text;
+        return true;
     }
 
     private static string GetServerPath(string relativePath)

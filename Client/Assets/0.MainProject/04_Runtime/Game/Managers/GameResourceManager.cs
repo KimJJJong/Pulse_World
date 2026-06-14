@@ -123,6 +123,23 @@ namespace RhythmRPG.Managers
         {
             if (_iconCache.TryGetValue(id, out var cached))
                 return cached;
+
+            if (Client.Content.Item.ItemDataManager.Instance != null)
+            {
+                var tmpl = Client.Content.Item.ItemDataManager.Instance.GetEquipment(id);
+                if (tmpl != null && !string.IsNullOrEmpty(tmpl.icon_path))
+                {
+                    foreach (var candidate in BuildResourcePathCandidates(tmpl.icon_path))
+                    {
+                        var customSprite = Resources.Load<Sprite>(candidate);
+                        if (customSprite != null)
+                        {
+                            _iconCache[id] = customSprite;
+                            return customSprite;
+                        }
+                    }
+                }
+            }
             
             string folder = EntityIdDefine.GetResourceFolderPath(id);
             // 아이콘은 보통 별도 폴더나 같은 폴더 내에 있을 수 있음. 

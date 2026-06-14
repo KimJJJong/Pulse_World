@@ -105,6 +105,10 @@ public class RhythmEditorWindow : EditorWindow
         {
             LoadTownExample("Game_Town_Acoustic_01");
         }
+        if (GUILayout.Button("🎵 Town (Steady)", GUILayout.Height(35)))
+        {
+            LoadTownExample("Game_Town_Steady_01");
+        }
         if (GUILayout.Button("🎵 Town (Fantasy)", GUILayout.Height(35)))
         {
             LoadTownExample("Game_Town_Fantasy_01");
@@ -112,6 +116,10 @@ public class RhythmEditorWindow : EditorWindow
         if (GUILayout.Button("🎵 Town (Jazz)", GUILayout.Height(35)))
         {
             LoadTownExample("Game_Town_Jazz_01");
+        }
+        if (GUILayout.Button("🎵 Town (Ethereal)", GUILayout.Height(35)))
+        {
+            LoadTownExample("Game_Town_Ethereal_01");
         }
         GUI.backgroundColor = new Color(0.7f, 1f, 0.7f);
         if (GUILayout.Button("⬆ 서버 폴더로 Export!", GUILayout.Height(35)))
@@ -813,7 +821,7 @@ public class RhythmEditorWindow : EditorWindow
         var data = new RhythmStageData
         {
             StageId = stageId,
-            Bpm = stageId.Contains("Acoustic") ? 92 : stageId.Contains("Fantasy") ? 105 : 100,
+            Bpm = stageId.Contains("Acoustic") || stageId.Contains("Steady") ? 92 : stageId.Contains("Fantasy") ? 105 : stageId.Contains("Ethereal") ? 85 : 100,
             TimeSignatureNum = 4,
             TimeSignatureDenom = 4,
             TicksPerBeat = 480
@@ -822,7 +830,7 @@ public class RhythmEditorWindow : EditorWindow
         var block = new RhythmBlock
         {
             BlockId = "Town_Loop",
-            LengthMeasures = 4,
+            LengthMeasures = 16,
             DefaultNextBlock = "Town_Loop",
             OverrideBpm = 0
         };
@@ -830,11 +838,13 @@ public class RhythmEditorWindow : EditorWindow
         if (stageId.Contains("Acoustic"))
         {
             block.LengthMeasures = 16;
+            block.BlockId = "Town_Acoustic_Loop";
+            block.DefaultNextBlock = "Town_Acoustic_Loop";
             
-            // Chord Events (16 measures)
-            string[] rootNotes = { "C", "D", "B", "E", "A", "D", "G", "G", "C", "D", "B", "E", "A", "B", "C", "D" };
-            string[] chordTypes = { "Major", "Major", "Minor", "Minor", "Minor", "Major", "Major", "Dominant7", "Major", "Major", "Dominant7", "Minor", "Minor", "Minor", "Major", "Major" };
-            int[] pitchOffsets = { 0, 2, 11, 4, 9, 2, 7, 7, 0, 2, 11, 4, 9, 11, 0, 2 };
+            // Chord Events (16 measures) - Ghibli/J-POP style (Fmaj7 - G/F - Em7 - Am7 - Dm7 - G7 - Cmaj7 - C7)
+            string[] rootNotes = { "F", "G", "E", "A", "D", "G", "C", "C", "F", "G", "E", "A", "D", "G", "C", "C" };
+            string[] chordTypes = { "Major", "Major", "Minor", "Minor", "Minor", "Dominant7", "Major", "Dominant7", "Major", "Major", "Minor", "Minor", "Minor", "Dominant7", "Major", "Dominant7" };
+            int[] pitchOffsets = { 5, 7, 4, 9, 2, 7, 0, 0, 5, 7, 4, 9, 2, 7, 0, 0 };
             
             for (int m = 0; m < 16; m++)
             {
@@ -858,22 +868,22 @@ public class RhythmEditorWindow : EditorWindow
 
             // Rhodes Arpeggios (8 notes per measure, 16 measures)
             string[][] rhodesNotes = {
-                new string[] { "C4", "E4", "G4", "B4", "E4", "G4", "B4", "C5" },
-                new string[] { "D4", "F#4", "A4", "C5", "F#4", "A4", "C5", "D5" },
-                new string[] { "B3", "D4", "F#4", "A4", "D4", "F#4", "A4", "B4" },
-                new string[] { "E4", "G4", "B4", "D5", "G4", "B4", "D5", "E5" }, // Upbeat voicing
                 new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
-                new string[] { "D4", "F#4", "A4", "C5", "F#4", "A4", "C5", "D5" },
-                new string[] { "B3", "D4", "F#4", "B4", "D4", "F#4", "B4", "D5" }, // Upbeat voicing
-                new string[] { "B3", "D4", "F4", "B4", "D4", "F4", "B4", "D5" }, // Upbeat voicing
-                new string[] { "C4", "E4", "G4", "B4", "E4", "G4", "B4", "C5" },
-                new string[] { "D4", "F#4", "A4", "C5", "F#4", "A4", "C5", "D5" },
-                new string[] { "B3", "D#4", "F#4", "A4", "D#4", "F#4", "A4", "B4" },
-                new string[] { "E4", "G4", "B4", "D5", "G4", "B4", "D5", "E5" }, // Upbeat voicing
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" },
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" },
                 new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
-                new string[] { "B3", "D4", "F#4", "A4", "D4", "F#4", "A4", "B4" },
-                new string[] { "C4", "E4", "G4", "B4", "E4", "G4", "B4", "C5" },
-                new string[] { "D4", "F#4", "A4", "C5", "F#4", "A4", "C5", "D5" }
+                new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
+                new string[] { "G3", "B3", "D4", "F4", "B3", "D4", "F4", "G4" },
+                new string[] { "G3", "B3", "C4", "E4", "B3", "C4", "E4", "G4" },
+                new string[] { "G3", "A#3", "C4", "E4", "A#3", "C4", "E4", "G4" },
+                new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" },
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" },
+                new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
+                new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
+                new string[] { "G3", "B3", "D4", "F4", "B3", "D4", "F4", "G4" },
+                new string[] { "G3", "B3", "C4", "E4", "B3", "C4", "E4", "G4" },
+                new string[] { "G3", "A#3", "C4", "E4", "A#3", "C4", "E4", "G4" }
             };
             
             for (int m = 0; m < 16; m++)
@@ -889,40 +899,121 @@ public class RhythmEditorWindow : EditorWindow
                 }
             }
 
-            // Flute Melody (Monophonic, 16 measures)
+            // Flute Melody (Monophonic, 16 measures, Slightly Syncopated)
             var fluteMelodyDef = new[] {
-                // M0
-                new[] { (0, "LofiFlute_E5", 0.9f), (960, "LofiFlute_G5", 0.9f), (1680, "LofiFlute_B5", 0.9f) },
-                // M1
-                new[] { (0, "LofiFlute_F#5", 0.9f), (960, "LofiFlute_A5", 0.9f), (1680, "LofiFlute_C6", 0.9f) },
-                // M2
-                new[] { (0, "LofiFlute_D5", 0.9f), (960, "LofiFlute_F#5", 0.9f), (1680, "LofiFlute_A5", 0.9f) },
-                // M3
-                new[] { (0, "LofiFlute_G5", 0.9f), (720, "LofiFlute_B5", 0.9f), (1200, "LofiFlute_D6", 0.9f), (1680, "LofiFlute_E6", 0.9f) },
-                // M4
-                new[] { (0, "LofiFlute_C5", 0.9f), (960, "LofiFlute_E5", 0.9f), (1680, "LofiFlute_G5", 0.9f) },
-                // M5
-                new[] { (0, "LofiFlute_F#5", 0.9f), (960, "LofiFlute_A5", 0.9f), (1680, "LofiFlute_D6", 0.9f) },
-                // M6
-                new[] { (0, "LofiFlute_B4", 0.9f), (960, "LofiFlute_D5", 0.9f), (1680, "LofiFlute_G5", 0.9f) },
-                // M7
-                new[] { (0, "LofiFlute_B4", 0.9f), (720, "LofiFlute_D5", 0.9f), (1200, "LofiFlute_F5", 0.9f), (1680, "LofiFlute_G5", 0.9f) },
-                // M8
-                new[] { (0, "LofiFlute_E5", 0.9f), (960, "LofiFlute_G5", 0.9f), (1680, "LofiFlute_B5", 0.9f) },
-                // M9
-                new[] { (0, "LofiFlute_F#5", 0.9f), (960, "LofiFlute_A5", 0.9f), (1680, "LofiFlute_C6", 0.9f) },
-                // M10
-                new[] { (0, "LofiFlute_D#5", 0.9f), (960, "LofiFlute_F#5", 0.9f), (1680, "LofiFlute_B5", 0.9f) },
-                // M11
-                new[] { (0, "LofiFlute_G5", 0.9f), (960, "LofiFlute_B5", 0.9f), (1680, "LofiFlute_E6", 0.9f) },
-                // M12
-                new[] { (0, "LofiFlute_A5", 0.9f), (960, "LofiFlute_C6", 0.9f), (1680, "LofiFlute_E6", 0.9f) },
-                // M13
-                new[] { (0, "LofiFlute_B5", 0.9f), (960, "LofiFlute_D6", 0.9f), (1680, "LofiFlute_F#6", 0.9f) },
-                // M14
-                new[] { (0, "LofiFlute_C6", 0.9f), (960, "LofiFlute_E6", 0.9f), (1680, "LofiFlute_G6", 0.9f) },
-                // M15
+                new[] { (0, "LofiFlute_E5", 0.9f), (960, "LofiFlute_D5", 0.9f), (1680, "LofiFlute_C5", 0.9f) },
+                new[] { (0, "LofiFlute_D5", 0.9f), (960, "LofiFlute_C5", 0.9f), (1680, "LofiFlute_B4", 0.9f) },
+                new[] { (0, "LofiFlute_B4", 0.9f), (960, "LofiFlute_A4", 0.9f), (1680, "LofiFlute_G4", 0.9f) },
+                new[] { (0, "LofiFlute_G4", 0.9f), (720, "LofiFlute_B4", 0.9f), (1200, "LofiFlute_D5", 0.9f), (1680, "LofiFlute_G5", 0.9f) },
+                new[] { (0, "LofiFlute_A5", 0.9f), (960, "LofiFlute_G5", 0.9f), (1680, "LofiFlute_F5", 0.9f) },
+                new[] { (0, "LofiFlute_F5", 0.9f), (960, "LofiFlute_E5", 0.9f), (1680, "LofiFlute_D5", 0.9f) },
+                new[] { (0, "LofiFlute_E5", 0.9f), (960, "LofiFlute_D5", 0.9f), (1680, "LofiFlute_C5", 0.9f) },
+                new[] { (0, "LofiFlute_C5", 0.9f), (720, "LofiFlute_D5", 0.9f), (1200, "LofiFlute_E5", 0.9f), (1680, "LofiFlute_G5", 0.9f) },
+                new[] { (0, "LofiFlute_A5", 0.9f), (960, "LofiFlute_G5", 0.9f), (1680, "LofiFlute_B5", 0.9f) },
+                new[] { (0, "LofiFlute_B5", 0.9f), (960, "LofiFlute_A5", 0.9f), (1680, "LofiFlute_C6", 0.9f) },
+                new[] { (0, "LofiFlute_G5", 0.9f), (960, "LofiFlute_F#5", 0.9f), (1680, "LofiFlute_B5", 0.9f) },
+                new[] { (0, "LofiFlute_C6", 0.9f), (960, "LofiFlute_B5", 0.9f), (1680, "LofiFlute_E6", 0.9f) },
+                new[] { (0, "LofiFlute_D6", 0.9f), (960, "LofiFlute_C6", 0.9f), (1680, "LofiFlute_E6", 0.9f) },
+                new[] { (0, "LofiFlute_C6", 0.9f), (960, "LofiFlute_A5", 0.9f), (1680, "LofiFlute_F#6", 0.9f) },
+                new[] { (0, "LofiFlute_G6", 0.9f), (960, "LofiFlute_E6", 0.9f), (1680, "LofiFlute_C6", 0.9f) },
                 new[] { (0, "LofiFlute_A5", 0.9f), (720, "LofiFlute_D6", 0.9f), (1200, "LofiFlute_F#6", 0.9f), (1680, "LofiFlute_A6", 0.9f) }
+            };
+            
+            for (int m = 0; m < 16; m++)
+            {
+                foreach (var note in fluteMelodyDef[m])
+                {
+                    block.BassPattern.Add(new BassNote {
+                        MeasureIndex = m,
+                        Tick = note.Item1,
+                        SoundKey = note.Item2,
+                        VolumeMultiplier = note.Item3
+                    });
+                }
+            }
+        }
+        else if (stageId.Contains("Steady"))
+        {
+            block.LengthMeasures = 16;
+            block.BlockId = "Town_Steady_Loop";
+            block.DefaultNextBlock = "Town_Steady_Loop";
+            
+            // Chord Events (16 measures) - Ghibli Style
+            string[] rootNotes = { "F", "G", "E", "A", "D", "G", "C", "C", "F", "G", "E", "A", "D", "G", "C", "C" };
+            string[] chordTypes = { "Major", "Major", "Minor", "Minor", "Minor", "Dominant7", "Major", "Dominant7", "Major", "Major", "Minor", "Minor", "Minor", "Dominant7", "Major", "Dominant7" };
+            int[] pitchOffsets = { 5, 7, 4, 9, 2, 7, 0, 0, 5, 7, 4, 9, 2, 7, 0, 0 };
+            
+            for (int m = 0; m < 16; m++)
+            {
+                block.ChordEvents.Add(new ChordEvent {
+                    MeasureIndex = m,
+                    Tick = 0,
+                    RootNote = rootNotes[m],
+                    ChordType = chordTypes[m],
+                    PitchOffset = pitchOffsets[m]
+                });
+            }
+
+            // SubBass (16 measures)
+            for (int m = 0; m < 16; m++)
+            {
+                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 0, SoundKey = "SubBass_Root", VolumeMultiplier = 1.0f });
+                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 480, SoundKey = "SubBass_Root", VolumeMultiplier = 0.8f });
+                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 960, SoundKey = "SubBass_Fifth", VolumeMultiplier = 0.9f });
+                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 1440, SoundKey = "SubBass_Third", VolumeMultiplier = 0.85f });
+            }
+
+            // Rhodes Arpeggios (8 notes per measure, 16 measures)
+            string[][] rhodesNotes = {
+                new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" },
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" },
+                new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
+                new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
+                new string[] { "G3", "B3", "D4", "F4", "B3", "D4", "F4", "G4" },
+                new string[] { "G3", "B3", "C4", "E4", "B3", "C4", "E4", "G4" },
+                new string[] { "G3", "A#3", "C4", "E4", "A#3", "C4", "E4", "G4" },
+                new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" },
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" },
+                new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
+                new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
+                new string[] { "G3", "B3", "D4", "F4", "B3", "D4", "F4", "G4" },
+                new string[] { "G3", "B3", "C4", "E4", "B3", "C4", "E4", "G4" },
+                new string[] { "G3", "A#3", "C4", "E4", "A#3", "C4", "E4", "G4" }
+            };
+            
+            for (int m = 0; m < 16; m++)
+            {
+                for (int t = 0; t < 8; t++)
+                {
+                    block.BassPattern.Add(new BassNote {
+                        MeasureIndex = m,
+                        Tick = t * 240,
+                        SoundKey = "Rhodes_" + rhodesNotes[m][t],
+                        VolumeMultiplier = 0.8f
+                    });
+                }
+            }
+
+            // Flute Melody (Monophonic, 16 measures, On-Beat)
+            var fluteMelodyDef = new[] {
+                new[] { (0, "LofiFlute_E5", 0.9f), (480, "LofiFlute_D5", 0.9f), (960, "LofiFlute_C5", 0.9f) },
+                new[] { (0, "LofiFlute_D5", 0.9f), (480, "LofiFlute_C5", 0.9f), (960, "LofiFlute_B4", 0.9f) },
+                new[] { (0, "LofiFlute_B4", 0.9f), (480, "LofiFlute_A4", 0.9f), (960, "LofiFlute_G4", 0.9f) },
+                new[] { (0, "LofiFlute_G4", 0.9f), (480, "LofiFlute_B4", 0.9f), (960, "LofiFlute_D5", 0.9f), (1440, "LofiFlute_G5", 0.9f) },
+                new[] { (0, "LofiFlute_A5", 0.9f), (480, "LofiFlute_G5", 0.9f), (960, "LofiFlute_F5", 0.9f) },
+                new[] { (0, "LofiFlute_F5", 0.9f), (480, "LofiFlute_E5", 0.9f), (960, "LofiFlute_D5", 0.9f) },
+                new[] { (0, "LofiFlute_E5", 0.9f), (480, "LofiFlute_D5", 0.9f), (960, "LofiFlute_C5", 0.9f) },
+                new[] { (0, "LofiFlute_C5", 0.9f), (480, "LofiFlute_D5", 0.9f), (960, "LofiFlute_E5", 0.9f), (1440, "LofiFlute_G5", 0.9f) },
+                new[] { (0, "LofiFlute_A5", 0.9f), (480, "LofiFlute_G5", 0.9f), (960, "LofiFlute_B5", 0.9f) },
+                new[] { (0, "LofiFlute_B5", 0.9f), (480, "LofiFlute_A5", 0.9f), (960, "LofiFlute_C6", 0.9f) },
+                new[] { (0, "LofiFlute_G5", 0.9f), (480, "LofiFlute_F#5", 0.9f), (960, "LofiFlute_B5", 0.9f) },
+                new[] { (0, "LofiFlute_C6", 0.9f), (480, "LofiFlute_B5", 0.9f), (960, "LofiFlute_E6", 0.9f) },
+                new[] { (0, "LofiFlute_D6", 0.9f), (480, "LofiFlute_C6", 0.9f), (960, "LofiFlute_E6", 0.9f) },
+                new[] { (0, "LofiFlute_C6", 0.9f), (480, "LofiFlute_A5", 0.9f), (960, "LofiFlute_F#6", 0.9f) },
+                new[] { (0, "LofiFlute_G6", 0.9f), (480, "LofiFlute_E6", 0.9f), (960, "LofiFlute_C6", 0.9f) },
+                new[] { (0, "LofiFlute_A5", 0.9f), (480, "LofiFlute_D6", 0.9f), (960, "LofiFlute_F#6", 0.9f), (1440, "LofiFlute_A6", 0.9f) }
             };
             
             for (int m = 0; m < 16; m++)
@@ -940,12 +1031,28 @@ public class RhythmEditorWindow : EditorWindow
         }
         else if (stageId.Contains("Fantasy"))
         {
-            block.ChordEvents.Add(new ChordEvent { MeasureIndex = 0, Tick = 0, RootNote = "G", ChordType = "Major", PitchOffset = 7 });
-            block.ChordEvents.Add(new ChordEvent { MeasureIndex = 1, Tick = 0, RootNote = "C", ChordType = "Major", PitchOffset = 0 });
-            block.ChordEvents.Add(new ChordEvent { MeasureIndex = 2, Tick = 0, RootNote = "D", ChordType = "Major", PitchOffset = 2 });
-            block.ChordEvents.Add(new ChordEvent { MeasureIndex = 3, Tick = 0, RootNote = "G", ChordType = "Major", PitchOffset = 7 });
+            block.BlockId = "Town_Fantasy_Loop";
+            block.DefaultNextBlock = "Town_Fantasy_Loop";
+            block.LengthMeasures = 16;
 
-            for (int m = 0; m < 4; m++)
+            // Chord Events (16 measures - Talesweaver style C-G-Am-Em-F-C-Dm7-G)
+            string[] rootNotes = { "C", "G", "A", "E", "F", "C", "D", "G", "C", "G", "A", "E", "F", "D", "C", "G" };
+            string[] chordTypes = { "Major", "Major", "Minor", "Minor", "Major", "Major", "Minor", "Major", "Major", "Major", "Minor", "Minor", "Major", "Minor", "Major", "Major" };
+            int[] pitchOffsets = { 0, 7, 9, 4, 5, 0, 2, 7, 0, 7, 9, 4, 5, 2, 0, 7 };
+
+            for (int m = 0; m < 16; m++)
+            {
+                block.ChordEvents.Add(new ChordEvent {
+                    MeasureIndex = m,
+                    Tick = 0,
+                    RootNote = rootNotes[m],
+                    ChordType = chordTypes[m],
+                    PitchOffset = pitchOffsets[m]
+                });
+            }
+
+            // OrchBass (16 measures)
+            for (int m = 0; m < 16; m++)
             {
                 block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 0, SoundKey = "OrchBass_Root", VolumeMultiplier = 1.0f });
                 block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 480, SoundKey = "OrchBass_Third", VolumeMultiplier = 0.8f });
@@ -953,78 +1060,249 @@ public class RhythmEditorWindow : EditorWindow
                 block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 1440, SoundKey = "OrchBass_Third", VolumeMultiplier = 0.8f });
             }
 
-            string[] notesFantasy = {
-                "G3", "B3", "D4", "G4", "B4", "D5", "G5", "B5",
-                "C3", "E3", "G3", "C4", "E4", "G4", "C5", "E5",
-                "D3", "F#3", "A3", "D4", "F#4", "A4", "D5", "F#5",
-                "G3", "B3", "D4", "G4", "B4", "D5", "G5", "B5"
+            // Harp Glissando (16 measures)
+            string[][] fantasyHarpNotes = {
+                new string[] { "C3", "E3", "G3", "C4", "E3", "G3", "C4", "E4" },
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" },
+                new string[] { "A3", "C4", "E4", "A4", "C4", "E4", "A4", "C5" },
+                new string[] { "E3", "G3", "B3", "E4", "G3", "B3", "E4", "G4" },
+                new string[] { "F3", "A3", "C4", "F4", "A3", "C4", "F4", "A4" },
+                new string[] { "C3", "E3", "G3", "C4", "E3", "G3", "C4", "E4" },
+                new string[] { "D3", "F3", "A3", "D4", "F3", "A3", "D4", "F4" },
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" },
+                new string[] { "C3", "E3", "G3", "C4", "E3", "G3", "C4", "E4" },
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" },
+                new string[] { "A3", "C4", "E4", "A4", "C4", "E4", "A4", "C5" },
+                new string[] { "E3", "G3", "B3", "E4", "G3", "B3", "E4", "G4" },
+                new string[] { "F3", "A3", "C4", "F4", "A3", "C4", "F4", "A4" },
+                new string[] { "D3", "F3", "A3", "D4", "F3", "A3", "D4", "F4" },
+                new string[] { "C3", "E3", "G3", "C4", "E3", "G3", "C4", "E4" },
+                new string[] { "G3", "B3", "D4", "G4", "B3", "D4", "G4", "B4" }
             };
-            int idx = 0;
-            for (int m = 0; m < 4; m++)
-                for (int t = 0; t < 8; t++)
-                    block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = t * 240, SoundKey = "Harp_" + notesFantasy[idx++], VolumeMultiplier = 0.85f });
 
-            // Double Violin Lead (3도 더블 멜로디 파트)
-            block.BassPattern.Add(new BassNote { MeasureIndex = 0, Tick = 0, SoundKey = "Violin_B4", VolumeMultiplier = 0.95f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 0, Tick = 0, SoundKey = "Violin_D5", VolumeMultiplier = 0.8f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 0, Tick = 960, SoundKey = "Violin_D5", VolumeMultiplier = 0.9f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 0, Tick = 960, SoundKey = "Violin_F#5", VolumeMultiplier = 0.8f });
-
-            block.BassPattern.Add(new BassNote { MeasureIndex = 1, Tick = 0, SoundKey = "Violin_C5", VolumeMultiplier = 0.95f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 1, Tick = 0, SoundKey = "Violin_E5", VolumeMultiplier = 0.8f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 1, Tick = 960, SoundKey = "Violin_E5", VolumeMultiplier = 0.9f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 1, Tick = 960, SoundKey = "Violin_G5", VolumeMultiplier = 0.8f });
-
-            block.BassPattern.Add(new BassNote { MeasureIndex = 2, Tick = 0, SoundKey = "Violin_A4", VolumeMultiplier = 0.95f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 2, Tick = 0, SoundKey = "Violin_C5", VolumeMultiplier = 0.8f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 2, Tick = 960, SoundKey = "Violin_C5", VolumeMultiplier = 0.9f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 2, Tick = 960, SoundKey = "Violin_E5", VolumeMultiplier = 0.8f });
-
-            block.BassPattern.Add(new BassNote { MeasureIndex = 3, Tick = 0, SoundKey = "Violin_B4", VolumeMultiplier = 0.95f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 3, Tick = 0, SoundKey = "Violin_D5", VolumeMultiplier = 0.8f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 3, Tick = 960, SoundKey = "Violin_G4", VolumeMultiplier = 0.9f });
-            block.BassPattern.Add(new BassNote { MeasureIndex = 3, Tick = 960, SoundKey = "Violin_B4", VolumeMultiplier = 0.8f });
-        }
-        else // Jazz
-        {
-            block.ChordEvents.Add(new ChordEvent { MeasureIndex = 0, Tick = 0, RootNote = "F", ChordType = "Major", PitchOffset = 5 });
-            block.ChordEvents.Add(new ChordEvent { MeasureIndex = 1, Tick = 0, RootNote = "E", ChordType = "Minor", PitchOffset = 4 });
-            block.ChordEvents.Add(new ChordEvent { MeasureIndex = 2, Tick = 0, RootNote = "D", ChordType = "Minor", PitchOffset = 2 });
-            block.ChordEvents.Add(new ChordEvent { MeasureIndex = 3, Tick = 0, RootNote = "C", ChordType = "Major", PitchOffset = 0 });
-
-            for (int m = 0; m < 4; m++)
+            for (int m = 0; m < 16; m++)
             {
-                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 0, SoundKey = "SubBass_Root", VolumeMultiplier = 1.0f });
-                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 240, SoundKey = "SubBass_Fifth", VolumeMultiplier = 0.85f });
-                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 720, SoundKey = "SubBass_Third", VolumeMultiplier = 0.8f });
-                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 1200, SoundKey = "SubBass_Fifth", VolumeMultiplier = 0.85f });
+                for (int t = 0; t < 8; t++)
+                {
+                    block.BassPattern.Add(new BassNote {
+                        MeasureIndex = m,
+                        Tick = t * 240,
+                        SoundKey = "Harp_" + fantasyHarpNotes[m][t],
+                        VolumeMultiplier = 0.85f
+                    });
+                }
             }
 
-            string[] notesJazz = {
-                "A3", "C4", "E4", "G4", "C4", "E4", "G4", "B4",
-                "G3", "B3", "D4", "F4", "B3", "D4", "F4", "A4",
-                "F3", "A3", "C4", "E4", "A3", "C4", "E4", "G4",
-                "E3", "G3", "B3", "D4", "G3", "B3", "D4", "F4"
+            // Violin Lead (Monophonic, On-Beat, 16 measures)
+            var fantasyViolinDef = new[] {
+                new[] { (0, "Violin_E5", 0.95f), (480, "Violin_G5", 0.9f), (960, "Violin_C6", 0.95f) },
+                new[] { (0, "Violin_B5", 0.95f), (480, "Violin_G5", 0.9f), (960, "Violin_D5", 0.95f) },
+                new[] { (0, "Violin_A5", 0.95f), (480, "Violin_C6", 0.9f), (960, "Violin_E6", 0.95f) },
+                new[] { (0, "Violin_G5", 0.95f), (480, "Violin_E5", 0.9f), (960, "Violin_B4", 0.95f) },
+                new[] { (0, "Violin_A5", 0.95f), (480, "Violin_F5", 0.9f), (960, "Violin_C5", 0.95f) },
+                new[] { (0, "Violin_G5", 0.95f), (480, "Violin_E5", 0.9f), (960, "Violin_C5", 0.95f) },
+                new[] { (0, "Violin_F5", 0.95f), (480, "Violin_A5", 0.9f), (960, "Violin_D6", 0.95f) },
+                new[] { (0, "Violin_B5", 0.95f), (480, "Violin_G5", 0.9f), (960, "Violin_D5", 0.95f) },
+                new[] { (0, "Violin_E5", 0.95f), (480, "Violin_G5", 0.9f), (960, "Violin_C6", 0.95f) },
+                new[] { (0, "Violin_B5", 0.95f), (480, "Violin_G5", 0.9f), (960, "Violin_D5", 0.95f) },
+                new[] { (0, "Violin_A5", 0.95f), (480, "Violin_C6", 0.9f), (960, "Violin_E6", 0.95f) },
+                new[] { (0, "Violin_G5", 0.95f), (480, "Violin_E5", 0.9f), (960, "Violin_B4", 0.95f) },
+                new[] { (0, "Violin_A5", 0.95f), (480, "Violin_F5", 0.9f), (960, "Violin_C5", 0.95f) },
+                new[] { (0, "Violin_F5", 0.95f), (480, "Violin_A5", 0.9f), (960, "Violin_D6", 0.95f) },
+                new[] { (0, "Violin_G5", 0.95f), (480, "Violin_B5", 0.9f), (960, "Violin_D6", 0.95f) },
+                new[] { (0, "Violin_D6", 0.95f), (480, "Violin_B5", 0.9f), (960, "Violin_G5", 0.95f) }
             };
-            int idx = 0;
-            for (int m = 0; m < 4; m++)
-                for (int t = 0; t < 8; t++)
-                    block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = t * 240, SoundKey = "Rhodes_" + notesJazz[idx++], VolumeMultiplier = 0.8f });
 
-            // Polyphonic Jazz Sax/Flute Licks (Syncopated double-lead)
-            int[] melodyTicks = { 240, 720, 1200 };
-            string[][][] melodyNotes = new string[][][] {
-                new string[][] { new string[]{"LofiFlute_A4", "LofiFlute_C5"}, new string[]{"LofiFlute_C5", "LofiFlute_E5"}, new string[]{"LofiFlute_E5", "LofiFlute_G5"} },
-                new string[][] { new string[]{"LofiFlute_G4", "LofiFlute_B4"}, new string[]{"LofiFlute_B4", "LofiFlute_D5"}, new string[]{"LofiFlute_D5", "LofiFlute_F#5"} },
-                new string[][] { new string[]{"LofiFlute_F4", "LofiFlute_A4"}, new string[]{"LofiFlute_A4", "LofiFlute_C5"}, new string[]{"LofiFlute_C5", "LofiFlute_E5"} },
-                new string[][] { new string[]{"LofiFlute_E4", "LofiFlute_G4"}, new string[]{"LofiFlute_G4", "LofiFlute_B4"}, new string[]{"LofiFlute_A4", "LofiFlute_C5"} }
-            };
-            for (int m = 0; m < 4; m++)
+            for (int m = 0; m < 16; m++)
             {
-                for (int t = 0; t < 3; t++)
+                foreach (var note in fantasyViolinDef[m])
                 {
-                    block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = melodyTicks[t], SoundKey = melodyNotes[m][t][0], VolumeMultiplier = 0.95f });
-                    block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = melodyTicks[t], SoundKey = melodyNotes[m][t][1], VolumeMultiplier = 0.85f });
+                    block.BassPattern.Add(new BassNote {
+                        MeasureIndex = m,
+                        Tick = note.Item1,
+                        SoundKey = note.Item2,
+                        VolumeMultiplier = note.Item3
+                    });
+                }
+            }
+        }
+        else if (stageId.Contains("Jazz"))
+        {
+            block.BlockId = "Town_Jazz_Loop";
+            block.DefaultNextBlock = "Town_Jazz_Loop";
+            block.LengthMeasures = 16;
+
+            // Chord Events (16 measures: Persona 5 style Am9-D9-Gmaj9-Cmaj9)
+            string[] rootNotes = { "A", "D", "G", "C", "A", "D", "G", "C", "A", "D", "G", "C", "A", "B", "C", "D" };
+            string[] chordTypes = { "Minor", "Major", "Major", "Major", "Minor", "Major", "Major", "Major", "Minor", "Major", "Major", "Major", "Minor", "Minor", "Major", "Major" };
+            int[] pitchOffsets = { 9, 2, 7, 0, 9, 2, 7, 0, 9, 2, 7, 0, 9, 11, 0, 2 };
+
+            for (int m = 0; m < 16; m++)
+            {
+                block.ChordEvents.Add(new ChordEvent {
+                    MeasureIndex = m,
+                    Tick = 0,
+                    RootNote = rootNotes[m],
+                    ChordType = chordTypes[m],
+                    PitchOffset = pitchOffsets[m]
+                });
+            }
+
+            // SubBass (16 measures)
+            for (int m = 0; m < 16; m++)
+            {
+                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 0, SoundKey = "SubBass_Root", VolumeMultiplier = 1.0f });
+                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 480, SoundKey = "SubBass_Fifth", VolumeMultiplier = 0.85f });
+                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 960, SoundKey = "SubBass_Third", VolumeMultiplier = 0.8f });
+                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 1440, SoundKey = "SubBass_Fifth", VolumeMultiplier = 0.85f });
+            }
+
+            // Rhodes Comping (16 measures)
+            string[][] jazzRhodesNotes = {
+                new string[] { "A3", "C4", "E4", "G4", "C4", "E4", "G4", "A4" },
+                new string[] { "A3", "C4", "E4", "F#4", "C4", "E4", "F#4", "A4" },
+                new string[] { "G3", "B3", "D4", "F#4", "B3", "D4", "F#4", "G4" },
+                new string[] { "G3", "B3", "C4", "E4", "B3", "C4", "E4", "G4" }
+            };
+
+            for (int m = 0; m < 16; m++)
+            {
+                for (int t = 0; t < 8; t++)
+                {
+                    block.BassPattern.Add(new BassNote {
+                        MeasureIndex = m,
+                        Tick = t * 240,
+                        SoundKey = "Rhodes_" + jazzRhodesNotes[m % 4][t],
+                        VolumeMultiplier = 0.8f
+                    });
+                }
+            }
+
+            // Sax/Flute Melody (Monophonic, On-Beat, 16 measures)
+            var jazzMelodyDef = new[] {
+                new[] { (0, "LofiFlute_E5", 0.95f), (480, "LofiFlute_G5", 0.9f), (960, "LofiFlute_A5", 0.95f) },
+                new[] { (0, "LofiFlute_F#5", 0.95f), (480, "LofiFlute_A5", 0.9f), (960, "LofiFlute_B5", 0.95f) },
+                new[] { (0, "LofiFlute_D5", 0.95f), (480, "LofiFlute_F#5", 0.9f), (960, "LofiFlute_G5", 0.95f) },
+                new[] { (0, "LofiFlute_E5", 0.95f), (480, "LofiFlute_G5", 0.9f), (960, "LofiFlute_B5", 0.95f), (1440, "LofiFlute_C6", 0.95f) },
+                new[] { (0, "LofiFlute_A5", 0.95f), (480, "LofiFlute_C6", 0.9f), (960, "LofiFlute_E6", 0.95f) },
+                new[] { (0, "LofiFlute_G5", 0.95f), (480, "LofiFlute_B5", 0.9f), (960, "LofiFlute_D6", 0.95f) },
+                new[] { (0, "LofiFlute_F5", 0.95f), (480, "LofiFlute_A5", 0.9f), (960, "LofiFlute_C6", 0.95f) },
+                new[] { (0, "LofiFlute_E5", 0.95f), (480, "LofiFlute_G5", 0.9f), (960, "LofiFlute_B5", 0.95f), (1440, "LofiFlute_C6", 0.95f) },
+                new[] { (0, "LofiFlute_E6", 0.95f), (480, "LofiFlute_C6", 0.9f), (960, "LofiFlute_A5", 0.95f) },
+                new[] { (0, "LofiFlute_D6", 0.95f), (480, "LofiFlute_B5", 0.9f), (960, "LofiFlute_G5", 0.95f) },
+                new[] { (0, "LofiFlute_C6", 0.95f), (480, "LofiFlute_A5", 0.9f), (960, "LofiFlute_F#5", 0.95f) },
+                new[] { (0, "LofiFlute_B5", 0.95f), (480, "LofiFlute_G5", 0.9f), (960, "LofiFlute_E5", 0.95f) },
+                new[] { (0, "LofiFlute_E5", 0.95f), (480, "LofiFlute_G5", 0.9f), (960, "LofiFlute_A5", 0.95f) },
+                new[] { (0, "LofiFlute_G5", 0.95f), (480, "LofiFlute_B5", 0.9f), (960, "LofiFlute_D6", 0.95f) },
+                new[] { (0, "LofiFlute_A5", 0.95f), (480, "LofiFlute_C6", 0.9f), (960, "LofiFlute_E6", 0.95f) },
+                new[] { (0, "LofiFlute_G6", 0.95f), (480, "LofiFlute_E6", 0.9f), (960, "LofiFlute_C6", 0.95f) }
+            };
+
+            for (int m = 0; m < 16; m++)
+            {
+                foreach (var note in jazzMelodyDef[m])
+                {
+                    block.BassPattern.Add(new BassNote {
+                        MeasureIndex = m,
+                        Tick = note.Item1,
+                        SoundKey = note.Item2,
+                        VolumeMultiplier = note.Item3
+                    });
+                }
+            }
+        }
+        else if (stageId.Contains("Ethereal"))
+        {
+            block.BlockId = "Town_Ethereal_Loop";
+            block.DefaultNextBlock = "Town_Ethereal_Loop";
+            block.LengthMeasures = 16;
+
+            // Chord Events (16 measures: Chrono Trigger style Cmaj7-B7-Em7-Dm7/G7)
+            string[] rootNotes = { "C", "B", "E", "D", "C", "B", "E", "E", "C", "B", "E", "D", "A", "B", "C", "D" };
+            string[] chordTypes = { "Major", "Major", "Minor", "Minor", "Major", "Major", "Minor", "Minor", "Major", "Major", "Minor", "Minor", "Minor", "Minor", "Major", "Major" };
+            int[] pitchOffsets = { 0, 11, 4, 2, 0, 11, 4, 4, 0, 11, 4, 2, 9, 11, 0, 2 };
+
+            for (int m = 0; m < 16; m++)
+            {
+                block.ChordEvents.Add(new ChordEvent {
+                    MeasureIndex = m,
+                    Tick = 0,
+                    RootNote = rootNotes[m],
+                    ChordType = chordTypes[m],
+                    PitchOffset = pitchOffsets[m]
+                });
+            }
+
+            // SubBass (16 measures, 2 notes per measure)
+            for (int m = 0; m < 16; m++)
+            {
+                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 0, SoundKey = "SubBass_Root", VolumeMultiplier = 0.8f });
+                block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 960, SoundKey = "SubBass_Root", VolumeMultiplier = 0.7f });
+            }
+
+            // Pad (16 measures, 4 Rhodes notes mapped soft at Tick 0)
+            string[][] etherealPadNotes = {
+                new string[] { "C4", "E4", "G4", "B4" },
+                new string[] { "B3", "D#4", "F#4", "A4" },
+                new string[] { "B3", "E4", "G4", "B4" },
+                new string[] { "A3", "C4", "E4", "G4" },
+                new string[] { "C4", "E4", "G4", "B4" },
+                new string[] { "B3", "D#4", "F#4", "A4" },
+                new string[] { "B3", "E4", "G4", "B4" },
+                new string[] { "B3", "E4", "G4", "B4" },
+                new string[] { "C4", "E4", "G4", "B4" },
+                new string[] { "B3", "D#4", "F#4", "A4" },
+                new string[] { "B3", "E4", "G4", "B4" },
+                new string[] { "A3", "C4", "E4", "G4" },
+                new string[] { "A3", "C4", "E4", "G4" },
+                new string[] { "B3", "D4", "F#4", "A4" },
+                new string[] { "C4", "E4", "G4", "B4" },
+                new string[] { "C4", "D4", "F#4", "A4" }
+            };
+
+            for (int m = 0; m < 16; m++)
+            {
+                for (int t = 0; t < 4; t++)
+                {
+                    block.BassPattern.Add(new BassNote {
+                        MeasureIndex = m,
+                        Tick = 0,
+                        SoundKey = "Rhodes_" + etherealPadNotes[m][t],
+                        VolumeMultiplier = 0.35f
+                    });
+                }
+            }
+
+            // Glockenspiel Bell Melody (Monophonic, 16 measures)
+            var etherealBellDef = new[] {
+                new[] { (0, "LofiFlute_E5", 0.95f), (960, "LofiFlute_G5", 0.9f) },
+                new[] { (0, "LofiFlute_F#5", 0.95f), (960, "LofiFlute_A5", 0.9f) },
+                new[] { (0, "LofiFlute_D5", 0.95f), (960, "LofiFlute_F#5", 0.9f) },
+                new[] { (0, "LofiFlute_G5", 0.95f), (960, "LofiFlute_B5", 0.9f) },
+                new[] { (0, "LofiFlute_C5", 0.95f), (960, "LofiFlute_E5", 0.9f) },
+                new[] { (0, "LofiFlute_F#5", 0.95f), (960, "LofiFlute_A5", 0.9f) },
+                new[] { (0, "LofiFlute_B4", 0.95f), (960, "LofiFlute_D5", 0.9f) },
+                new[] { (0, "LofiFlute_G5", 0.95f) },
+                new[] { (0, "LofiFlute_E5", 0.95f), (960, "LofiFlute_G5", 0.9f) },
+                new[] { (0, "LofiFlute_F#5", 0.95f), (960, "LofiFlute_A5", 0.9f) },
+                new[] { (0, "LofiFlute_D#5", 0.95f), (960, "LofiFlute_F#5", 0.9f) },
+                new[] { (0, "LofiFlute_G5", 0.95f), (960, "LofiFlute_B5", 0.9f) },
+                new[] { (0, "LofiFlute_A5", 0.95f), (960, "LofiFlute_C6", 0.9f) },
+                new[] { (0, "LofiFlute_B5", 0.95f), (960, "LofiFlute_D6", 0.9f) },
+                new[] { (0, "LofiFlute_C6", 0.95f), (960, "LofiFlute_E6", 0.9f) },
+                new[] { (0, "LofiFlute_D6", 0.95f), (960, "LofiFlute_F#6", 0.9f) }
+            };
+
+            for (int m = 0; m < 16; m++)
+            {
+                foreach (var note in etherealBellDef[m])
+                {
+                    block.BassPattern.Add(new BassNote {
+                        MeasureIndex = m,
+                        Tick = note.Item1,
+                        SoundKey = note.Item2,
+                        VolumeMultiplier = note.Item3
+                    });
                 }
             }
         }
@@ -1032,7 +1310,12 @@ public class RhythmEditorWindow : EditorWindow
         // Common Timpani
         for (int m = 0; m < block.LengthMeasures; m++)
         {
-            block.BassPattern.Add(new BassNote { MeasureIndex = m, Tick = 0, SoundKey = "Timpani_Hit", VolumeMultiplier = stageId.Contains("Fantasy") ? 0.6f : 0.5f });
+            block.BassPattern.Add(new BassNote { 
+                MeasureIndex = m, 
+                Tick = 0, 
+                SoundKey = "Timpani_Hit", 
+                VolumeMultiplier = stageId.Contains("Fantasy") ? 0.6f : stageId.Contains("Ethereal") ? 0.3f : 0.5f 
+            });
         }
 
         data.Blocks.Add(block);
