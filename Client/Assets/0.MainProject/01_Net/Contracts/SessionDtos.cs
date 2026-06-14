@@ -15,6 +15,7 @@ public static class SessionDtos
     public sealed class MatchParticipantDto
     {
         [JsonProperty("uid")] public string Uid;
+        [JsonProperty("displayName")] public string DisplayName;
         [JsonProperty("steamId64")] public string SteamId64;
         [JsonProperty("actorId")] public int ActorId;
         [JsonProperty("loadoutHash")] public string LoadoutHash;

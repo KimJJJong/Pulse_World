@@ -1,0 +1,14 @@
+{
+    "MapId": "Game_Town_Jazz_01",
+    "Description": "Game_Town_Jazz_01\nUpbeat Polyphonic Town BGM Loop.",
+    "RhythmSettings": {
+        "SongKey": "Game_Town_Jazz_01",
+        "Bpm": 100,
+        "BaseBeatDivision": 1,
+        "ActionWindowMs": 150,
+        "StartDelayMs": 2000
+    },
+    "InitialSpawns": [],
+    "InitialObjects": [],
+    "Events": []
+}

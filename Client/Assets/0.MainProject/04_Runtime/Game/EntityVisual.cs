@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -51,11 +52,22 @@ public class EntityVisual : MonoBehaviour
     private RuntimeAnimatorController _cachedParameterController;
     private readonly HashSet<int> _animatorParameterHashes = new();
     private readonly List<StateCandidate> _stateCandidates = new();
+    private readonly Dictionary<Renderer, FadeMaterialState[]> _fadeMaterialStates = new();
     private bool _movementInProgress;
     private bool _isDead;
     private float _nextIdlePinCheckTime;
     private float _deathStartedAt;
     private float _deathDuration = FallbackDeathClipLengthSeconds;
+    private float _visualAlpha = 1f;
+    private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    private static readonly int ColorId = Shader.PropertyToID("_Color");
+    private static readonly int SurfaceId = Shader.PropertyToID("_Surface");
+    private static readonly int BlendId = Shader.PropertyToID("_Blend");
+    private static readonly int AlphaClipId = Shader.PropertyToID("_AlphaClip");
+    private static readonly int SrcBlendId = Shader.PropertyToID("_SrcBlend");
+    private static readonly int DstBlendId = Shader.PropertyToID("_DstBlend");
+    private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
+    private static readonly int ModeId = Shader.PropertyToID("_Mode");
 
     private enum AnimationRole
     {
@@ -80,6 +92,96 @@ public class EntityVisual : MonoBehaviour
         }
     }
 
+    private sealed class FadeMaterialState
+    {
+        public readonly Material Material;
+        public readonly bool HasBaseColor;
+        public readonly Color BaseColor;
+        public readonly bool HasColor;
+        public readonly Color Color;
+        public readonly bool HasSurface;
+        public readonly float Surface;
+        public readonly bool HasBlend;
+        public readonly float Blend;
+        public readonly bool HasAlphaClip;
+        public readonly float AlphaClip;
+        public readonly bool HasSrcBlend;
+        public readonly float SrcBlend;
+        public readonly bool HasDstBlend;
+        public readonly float DstBlend;
+        public readonly bool HasZWrite;
+        public readonly float ZWrite;
+        public readonly bool HasMode;
+        public readonly float Mode;
+        public readonly int RenderQueue;
+        public readonly string RenderTypeTag;
+        public readonly bool SurfaceTransparentKeyword;
+        public readonly bool AlphaBlendKeyword;
+        public readonly bool AlphaPremultiplyKeyword;
+        public readonly bool AlphaTestKeyword;
+
+        public FadeMaterialState(Material material)
+        {
+            Material = material;
+            HasBaseColor = material != null && material.HasProperty(BaseColorId);
+            BaseColor = HasBaseColor ? material.GetColor(BaseColorId) : Color.white;
+            HasColor = material != null && material.HasProperty(ColorId);
+            Color = HasColor ? material.GetColor(ColorId) : Color.white;
+            HasSurface = material != null && material.HasProperty(SurfaceId);
+            Surface = HasSurface ? material.GetFloat(SurfaceId) : 0f;
+            HasBlend = material != null && material.HasProperty(BlendId);
+            Blend = HasBlend ? material.GetFloat(BlendId) : 0f;
+            HasAlphaClip = material != null && material.HasProperty(AlphaClipId);
+            AlphaClip = HasAlphaClip ? material.GetFloat(AlphaClipId) : 0f;
+            HasSrcBlend = material != null && material.HasProperty(SrcBlendId);
+            SrcBlend = HasSrcBlend ? material.GetFloat(SrcBlendId) : 0f;
+            HasDstBlend = material != null && material.HasProperty(DstBlendId);
+            DstBlend = HasDstBlend ? material.GetFloat(DstBlendId) : 0f;
+            HasZWrite = material != null && material.HasProperty(ZWriteId);
+            ZWrite = HasZWrite ? material.GetFloat(ZWriteId) : 0f;
+            HasMode = material != null && material.HasProperty(ModeId);
+            Mode = HasMode ? material.GetFloat(ModeId) : 0f;
+            RenderQueue = material != null ? material.renderQueue : -1;
+            RenderTypeTag = material != null ? material.GetTag("RenderType", false, "") : "";
+            SurfaceTransparentKeyword = material != null && material.IsKeywordEnabled("_SURFACE_TYPE_TRANSPARENT");
+            AlphaBlendKeyword = material != null && material.IsKeywordEnabled("_ALPHABLEND_ON");
+            AlphaPremultiplyKeyword = material != null && material.IsKeywordEnabled("_ALPHAPREMULTIPLY_ON");
+            AlphaTestKeyword = material != null && material.IsKeywordEnabled("_ALPHATEST_ON");
+        }
+
+        public void Restore()
+        {
+            if (Material == null)
+                return;
+
+            if (HasBaseColor)
+                Material.SetColor(BaseColorId, BaseColor);
+            if (HasColor)
+                Material.SetColor(ColorId, Color);
+            if (HasSurface)
+                Material.SetFloat(SurfaceId, Surface);
+            if (HasBlend)
+                Material.SetFloat(BlendId, Blend);
+            if (HasAlphaClip)
+                Material.SetFloat(AlphaClipId, AlphaClip);
+            if (HasSrcBlend)
+                Material.SetFloat(SrcBlendId, SrcBlend);
+            if (HasDstBlend)
+                Material.SetFloat(DstBlendId, DstBlend);
+            if (HasZWrite)
+                Material.SetFloat(ZWriteId, ZWrite);
+            if (HasMode)
+                Material.SetFloat(ModeId, Mode);
+
+            Material.renderQueue = RenderQueue;
+            Material.SetOverrideTag("RenderType", RenderTypeTag);
+            SetKeyword(Material, "_SURFACE_TYPE_TRANSPARENT", SurfaceTransparentKeyword);
+            SetKeyword(Material, "_ALPHABLEND_ON", AlphaBlendKeyword);
+            SetKeyword(Material, "_ALPHAPREMULTIPLY_ON", AlphaPremultiplyKeyword);
+            SetKeyword(Material, "_ALPHATEST_ON", AlphaTestKeyword);
+        }
+    }
+
     private void Awake()
     {
         if (_animator == null) _animator = GetComponent<Animator>();
@@ -90,6 +192,11 @@ public class EntityVisual : MonoBehaviour
     private void Update()
     {
         MaintainIdlePose();
+    }
+
+    private void OnDestroy()
+    {
+        RestoreVisualAlpha();
     }
 
     public void Bind(Animator animator)
@@ -114,6 +221,130 @@ public class EntityVisual : MonoBehaviour
     public bool IsDead => _isDead;
 
     public bool HasAnimator => _animator != null;
+
+    public void SetVisualAlpha(float alpha)
+    {
+        alpha = Mathf.Clamp01(alpha);
+        if (Mathf.Approximately(_visualAlpha, alpha))
+            return;
+
+        _visualAlpha = alpha;
+        if (alpha >= 0.999f)
+            RestoreVisualAlpha();
+        else
+            ApplyVisualAlpha(alpha);
+    }
+
+    private void ApplyVisualAlpha(float alpha)
+    {
+        EnsureFadeMaterialStates();
+
+        foreach (var kv in _fadeMaterialStates)
+        {
+            var renderer = kv.Key;
+            if (renderer == null)
+                continue;
+
+            var materials = renderer.materials;
+            for (int i = 0; i < materials.Length; i++)
+            {
+                var material = materials[i];
+                if (material == null)
+                    continue;
+
+                ConfigureMaterialForAlpha(material);
+                ApplyMaterialAlpha(material, alpha);
+            }
+        }
+    }
+
+    private void RestoreVisualAlpha()
+    {
+        foreach (var kv in _fadeMaterialStates)
+        {
+            var states = kv.Value;
+            if (states == null)
+                continue;
+
+            for (int i = 0; i < states.Length; i++)
+                states[i]?.Restore();
+        }
+
+        _fadeMaterialStates.Clear();
+        _visualAlpha = 1f;
+    }
+
+    private void EnsureFadeMaterialStates()
+    {
+        var renderers = GetComponentsInChildren<Renderer>(true);
+        for (int r = 0; r < renderers.Length; r++)
+        {
+            var renderer = renderers[r];
+            if (renderer == null || _fadeMaterialStates.ContainsKey(renderer))
+                continue;
+
+            var materials = renderer.materials;
+            var states = new FadeMaterialState[materials.Length];
+            for (int i = 0; i < materials.Length; i++)
+                states[i] = new FadeMaterialState(materials[i]);
+
+            _fadeMaterialStates[renderer] = states;
+        }
+    }
+
+    private static void ConfigureMaterialForAlpha(Material material)
+    {
+        material.SetOverrideTag("RenderType", "Transparent");
+
+        if (material.HasProperty(SurfaceId))
+        {
+            material.SetFloat(SurfaceId, 1f);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        }
+
+        if (material.HasProperty(BlendId))
+            material.SetFloat(BlendId, 0f);
+        if (material.HasProperty(AlphaClipId))
+            material.SetFloat(AlphaClipId, 0f);
+        if (material.HasProperty(SrcBlendId))
+            material.SetFloat(SrcBlendId, (float)BlendMode.SrcAlpha);
+        if (material.HasProperty(DstBlendId))
+            material.SetFloat(DstBlendId, (float)BlendMode.OneMinusSrcAlpha);
+        if (material.HasProperty(ZWriteId))
+            material.SetFloat(ZWriteId, 0f);
+        if (material.HasProperty(ModeId))
+            material.SetFloat(ModeId, 3f);
+
+        material.DisableKeyword("_ALPHATEST_ON");
+        material.EnableKeyword("_ALPHABLEND_ON");
+        material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+        material.renderQueue = (int)RenderQueue.Transparent;
+    }
+
+    private static void ApplyMaterialAlpha(Material material, float alpha)
+    {
+        if (material.HasProperty(BaseColorId))
+        {
+            Color color = material.GetColor(BaseColorId);
+            color.a = alpha;
+            material.SetColor(BaseColorId, color);
+        }
+
+        if (material.HasProperty(ColorId))
+        {
+            Color color = material.GetColor(ColorId);
+            color.a = alpha;
+            material.SetColor(ColorId, color);
+        }
+    }
+
+    private static void SetKeyword(Material material, string keyword, bool enabled)
+    {
+        if (enabled)
+            material.EnableKeyword(keyword);
+        else
+            material.DisableKeyword(keyword);
+    }
 
     // -------------------------------------------------------------------------
     //  이동

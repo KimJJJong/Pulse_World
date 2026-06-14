@@ -71,6 +71,7 @@ public static class SessionDtos
 
     public sealed record MatchParticipantDto(
         string Uid,
+        string DisplayName,
         string SteamId64,
         int ActorId,
         string LoadoutHash

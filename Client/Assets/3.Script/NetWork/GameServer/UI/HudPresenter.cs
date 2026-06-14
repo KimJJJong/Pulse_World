@@ -7,6 +7,9 @@ using UnityEngine.SceneManagement;
 
 public class HudPresenter : MonoBehaviour
 {
+    private const int DecoyEntityIdBase = 700000;
+    private const int DecoyEntityIdLimit = DecoyEntityIdBase + 100000;
+
     public static HudPresenter Instance { get; private set; }
 
     [SerializeField] private HudConfig _config;
@@ -803,7 +806,7 @@ public class HudPresenter : MonoBehaviour
 
         foreach (var entity in gs.EnumerateEntities())
         {
-            if (entity.EntityType == (int)EntityType.Player)
+            if (entity.EntityType == (int)EntityType.Player && !IsDecoyPlayerEntity(entity.EntityId))
                 AddPartyActor(entity.EntityId, actorIds, seen);
         }
 
@@ -812,14 +815,20 @@ public class HudPresenter : MonoBehaviour
 
     private static void AddPartyActor(int actorId, List<int> actorIds, HashSet<int> seen)
     {
-        if (actorId <= 0 || !seen.Add(actorId))
+        if (actorId <= 0 || IsDecoyPlayerEntity(actorId) || !seen.Add(actorId))
             return;
 
         actorIds.Add(actorId);
     }
 
+    private static bool IsDecoyPlayerEntity(int entityId)
+        => entityId >= DecoyEntityIdBase && entityId < DecoyEntityIdLimit;
+
     private static string ResolvePartyMemberName(ClientGameState gs, int actorId)
     {
+        if (gs.TryGetPlayerDisplayName(actorId, out var displayName) && !string.IsNullOrWhiteSpace(displayName))
+            return TrimHudLabel(displayName);
+
         if (gs.TryGetPlayerUid(actorId, out var uid) && !string.IsNullOrWhiteSpace(uid))
             return TrimHudLabel(uid);
 

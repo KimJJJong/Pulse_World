@@ -182,11 +182,12 @@ namespace RhythmRPG.Editor
             var cells = Cells((0, -1));
             return Skill(
                 "DaggerAttack",
-                480,
-                Track("Telegraph", Warning(0, 180, cells)),
-                Track("Impact", Damage(180, 180, cells, 5)),
-                Track("Control", InputLock(0, 420)),
-                RhythmSound("Dagger", Hit(0, 0.7f), Hit(120, 0.95f), Hit(360, 0.75f)));
+                600,
+                Track("Approach", Move(120, 120, MoveType.Dash, 1, 0, -1)),
+                Track("Telegraph", Warning(120, 240, cells)),
+                Track("Impact", Damage(360, 120, cells, 6)),
+                Track("Control", InputLock(0, 540)),
+                RhythmSound("Dagger", Hit(0, 0.65f), Hit(120, 0.95f), Hit(360, 0.82f), Hit(480, 0.7f)));
         }
 
         private static NewSkillSO BuildNoviceDagger()
@@ -209,13 +210,13 @@ namespace RhythmRPG.Editor
         {
             return Skill(
                 "HatDecoySkill",
-                1440,
-                Track("Summon", SummonDecoy(240, 120, 0, -1, 36, 1440)),
-                Track("Control", InputLock(0, 720)),
+                2400,
+                Track("Summon", SummonDecoy(240, 120, 0, -1, 42, 2400)),
+                Track("Control", InputLock(0, 480)),
                 RhythmSound(
                     "Staff",
                     Hit(120, 0.65f), Hit(360, 0.9f),
-                    Hit(720, 0.72f), Hit(1080, 0.85f)));
+                    Hit(720, 0.72f), Hit(1080, 0.85f), Hit(1560, 0.78f)));
         }
 
         private static NewSkillSO BuildBeatOrbSkill()

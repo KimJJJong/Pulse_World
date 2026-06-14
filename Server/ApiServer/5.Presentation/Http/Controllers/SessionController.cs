@@ -92,6 +92,7 @@ public sealed class SessionController : ControllerBase
             CreatedAtMs: manifest.CreatedAtMs,
             Participants: manifest.Participants.Select(x => new SessionDtos.MatchParticipantDto(
                 Uid: x.Uid,
+                DisplayName: x.DisplayName,
                 SteamId64: x.SteamId64,
                 ActorId: x.ActorId,
                 LoadoutHash: x.LoadoutHash)).ToList());

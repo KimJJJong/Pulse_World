@@ -1088,6 +1088,7 @@ namespace NetClient.Room.UI
                     participants.Add(new SessionDtos.MatchParticipantDto
                     {
                         Uid = p.uid,
+                        DisplayName = p.displayName,
                         SteamId64 = p.steamId64,
                         ActorId = p.actorId,
                         LoadoutHash = p.loadoutHash

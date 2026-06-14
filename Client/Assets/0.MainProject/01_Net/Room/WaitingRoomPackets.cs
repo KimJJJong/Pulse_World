@@ -230,6 +230,7 @@ using System.Collections.Generic;
     public class WsMatchParticipantDto
     {
         public string uid;
+        public string displayName;
         public string steamId64;
         public int actorId;
         public string loadoutHash;

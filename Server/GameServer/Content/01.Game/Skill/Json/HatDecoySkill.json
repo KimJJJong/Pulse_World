@@ -1,6 +1,6 @@
 {
   "SkillId": "HatDecoySkill",
-  "TotalDurationTicks": 1440,
+  "TotalDurationTicks": 2400,
   "Tracks": [
     {
       "TrackName": "Summon",
@@ -11,8 +11,8 @@
           "Action": {
             "Type": 7,
             "AppearanceId": 12,
-            "Hp": 36,
-            "DurationTicks": 1440,
+            "Hp": 42,
+            "DurationTicks": 2400,
             "OffsetX": 0,
             "OffsetY": -1,
             "RotateWithCaster": true
@@ -25,7 +25,7 @@
       "Events": [
         {
           "TriggerTick": 0,
-          "DurationTicks": 720,
+          "DurationTicks": 480,
           "Action": {
             "Type": 4
           }
@@ -72,6 +72,16 @@
             "Type": 6,
             "FmodEventPath": "Staff",
             "Volume": 0.85,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 1560,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Staff",
+            "Volume": 0.78,
             "UseOwnerPerspective": true
           }
         }

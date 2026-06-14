@@ -20,6 +20,8 @@ public sealed class PatternRunner
     private readonly Dictionary<long, Dictionary<(int x, int y), int>> _moveReservationsByBeat = new();
     private readonly List<long> _expiredReservationBeats = new();
     private long _lastReservationCleanupBeat = long.MinValue;
+    private const int DecoyTargetPriority = 0;
+    private const int PlayerTargetPriority = 1;
 
     public PatternRunner(IGameWorld world, BeatActionManager actions, TelegraphScheduler telegraph, MonsterPatternSet patterns, FrozenAttackRegistry frozen, Map2D map2D)
     {
@@ -501,30 +503,69 @@ public sealed class PatternRunner
         switch (target.Type)
         {
             case TargetType.ClosestPlayer:
+                int closestPriority = int.MaxValue;
                 foreach (var p in candidates)
                 {
                     int d = Math.Abs(p.Position.X - origin.X)
                           + Math.Abs(p.Position.Y - origin.Y);
-                    if (d < bestDist) { bestDist = d; best = p; }
+                    int priority = GetPlayerTargetPriority(p);
+                    if (priority < closestPriority || (priority == closestPriority && d < bestDist))
+                    {
+                        closestPriority = priority;
+                        bestDist = d;
+                        best = p;
+                    }
                 }
                 return best;
 
             case TargetType.LowestHpPlayer:
                 int minHp = int.MaxValue;
+                int hpPriority = int.MaxValue;
                 foreach (var p in candidates)
                 {
                     int hp = p.GetState<int>("HP");
-                    if (hp < minHp) { minHp = hp; best = p; }
+                    int priority = GetPlayerTargetPriority(p);
+                    if (priority < hpPriority || (priority == hpPriority && hp < minHp))
+                    {
+                        hpPriority = priority;
+                        minHp = hp;
+                        best = p;
+                    }
                 }
                 return best;
 
             case TargetType.RandomPlayer:
-                return candidates[_rng.Next(candidates.Count)];
+                var decoyCandidates = candidates.FindAll(IsDecoyPlayerTarget);
+                var randomPool = decoyCandidates.Count > 0 ? decoyCandidates : candidates;
+                return randomPool[_rng.Next(randomPool.Count)];
 
             default:
-                return candidates[0];
+                return PickPreferredPlayerTarget(candidates);
         }
     }
+
+    private static MapEntity PickPreferredPlayerTarget(List<MapEntity> candidates)
+    {
+        MapEntity best = null;
+        int bestPriority = int.MaxValue;
+        foreach (var candidate in candidates)
+        {
+            int priority = GetPlayerTargetPriority(candidate);
+            if (priority >= bestPriority)
+                continue;
+
+            bestPriority = priority;
+            best = candidate;
+        }
+
+        return best ?? candidates[0];
+    }
+
+    private static int GetPlayerTargetPriority(MapEntity entity)
+        => IsDecoyPlayerTarget(entity) ? DecoyTargetPriority : PlayerTargetPriority;
+
+    private static bool IsDecoyPlayerTarget(MapEntity entity)
+        => entity != null && entity.GetState<bool>("IsDecoy");
 
     private GridPos ResolveOriginPoint(MapEntity self, MapEntity target, AreaDef area)
     {
@@ -578,11 +619,18 @@ public sealed class PatternRunner
     {
         MapEntity? best = null;
         dist = int.MaxValue;
+        int bestPriority = int.MaxValue;
         foreach (var p in players)
         {
             if (!p.IsAlive) continue;
             int d = Math.Abs(p.Position.X - m.Position.X) + Math.Abs(p.Position.Y - m.Position.Y);
-            if (d < dist) { dist = d; best = p; }
+            int priority = GetPlayerTargetPriority(p);
+            if (priority < bestPriority || (priority == bestPriority && d < dist))
+            {
+                bestPriority = priority;
+                dist = d;
+                best = p;
+            }
         }
         return best;
     }

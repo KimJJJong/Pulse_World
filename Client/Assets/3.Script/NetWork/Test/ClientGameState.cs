@@ -22,6 +22,8 @@ public class ClientGameState : MonoBehaviour
     public int[] PlayerActorIds { get; private set; } = new int[0];
     public int MyActorId { get; private set; }
     private readonly Dictionary<int, string> _playerUids = new();
+    private readonly Dictionary<int, string> _playerRawDisplayNames = new();
+    private readonly Dictionary<int, string> _playerDisplayNames = new();
 
     // 엔티티 상태
     private readonly Dictionary<int, ClientEntityInfo> _entities = new();
@@ -395,8 +397,10 @@ public class ClientGameState : MonoBehaviour
     public void SetMyActorId(int actorId)
     {
         MyActorId = actorId;
+        RebuildPlayerDisplayNames();
         string uid = TryGetPlayerUid(actorId, out var resolvedUid) ? resolvedUid : "-";
-        Debug.Log($"[P2PPlayerSync] SetMyActorId actor={actorId} uid={uid}");
+        string displayName = TryGetPlayerDisplayName(actorId, out var resolvedName) ? resolvedName : "-";
+        Debug.Log($"[P2PPlayerSync] SetMyActorId actor={actorId} uid={uid} name={displayName}");
 
         if (_entities.TryGetValue(actorId, out var entity))
             WorldView?.OnSpawnOrUpdateEntity(entity);
@@ -405,8 +409,13 @@ public class ClientGameState : MonoBehaviour
     }
 
     public void SetPlayerRoster(IEnumerable<(int ActorId, string Uid)> roster)
+        => SetPlayerRoster(roster?.Select(x => (x.ActorId, x.Uid, DisplayName: "")));
+
+    public void SetPlayerRoster(IEnumerable<(int ActorId, string Uid, string DisplayName)> roster)
     {
         _playerUids.Clear();
+        _playerRawDisplayNames.Clear();
+        _playerDisplayNames.Clear();
 
         if (roster == null)
         {
@@ -414,19 +423,29 @@ public class ClientGameState : MonoBehaviour
             return;
         }
 
-        foreach (var (actorId, uid) in roster)
+        foreach (var (actorId, uid, displayName) in roster)
         {
             if (actorId <= 0)
                 continue;
 
             _playerUids[actorId] = uid ?? "";
+            _playerRawDisplayNames[actorId] = displayName ?? "";
         }
+
+        RebuildPlayerDisplayNames();
 
         if (P2PDebugConfig.LogOverheadEnabled)
         {
             var entries = _playerUids
                 .OrderBy(x => x.Key)
-                .Select(x => $"{x.Key}:{(string.IsNullOrWhiteSpace(x.Value) ? "-" : x.Value)}")
+                .Select(x =>
+                {
+                    string uid = string.IsNullOrWhiteSpace(x.Value) ? "-" : x.Value;
+                    string name = _playerDisplayNames.TryGetValue(x.Key, out var resolvedName) && !string.IsNullOrWhiteSpace(resolvedName)
+                        ? resolvedName
+                        : "-";
+                    return $"{x.Key}:{uid}/{name}";
+                })
                 .ToArray();
             Debug.Log($"[P2PPlayerSync] SetPlayerRoster actors={string.Join(",", entries)}");
         }
@@ -447,16 +466,101 @@ public class ClientGameState : MonoBehaviour
     public void ClearPlayerRoster()
     {
         _playerUids.Clear();
+        _playerRawDisplayNames.Clear();
+        _playerDisplayNames.Clear();
         PartyStateChanged?.Invoke();
     }
 
     public bool TryGetPlayerUid(int actorId, out string uid)
         => _playerUids.TryGetValue(actorId, out uid);
 
+    public bool TryGetPlayerDisplayName(int actorId, out string displayName)
+        => _playerDisplayNames.TryGetValue(actorId, out displayName);
+
     public IEnumerable<(int ActorId, string Uid)> EnumeratePlayerRoster()
     {
         foreach (var kv in _playerUids)
             yield return (kv.Key, kv.Value);
+    }
+
+    public IEnumerable<(int ActorId, string Uid, string DisplayName)> EnumeratePlayerRosterWithDisplayNames()
+    {
+        foreach (var kv in _playerUids)
+        {
+            _playerDisplayNames.TryGetValue(kv.Key, out var displayName);
+            yield return (kv.Key, kv.Value, displayName ?? "");
+        }
+    }
+
+    private void RebuildPlayerDisplayNames()
+    {
+        _playerDisplayNames.Clear();
+
+        int guestIndex = 1;
+        foreach (var roster in _playerUids.OrderBy(x => x.Key))
+        {
+            int actorId = roster.Key;
+            string uid = roster.Value ?? "";
+            _playerRawDisplayNames.TryGetValue(actorId, out var rawDisplayName);
+
+            string displayName = ResolvePlayerDisplayName(actorId, uid, rawDisplayName);
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                displayName = $"Guest_{guestIndex:00}";
+                guestIndex++;
+            }
+
+            _playerDisplayNames[actorId] = displayName;
+        }
+    }
+
+    private string ResolvePlayerDisplayName(int actorId, string uid, string rawDisplayName)
+    {
+        if (actorId == MyActorId)
+        {
+            string steamName = AppBootstrap.Instance?.Root?.SteamPlatform?.DisplayName ?? "";
+            if (!string.IsNullOrWhiteSpace(steamName))
+                return steamName.Trim();
+        }
+
+        string normalizedName = NormalizePlayerDisplayName(rawDisplayName, uid);
+        if (!string.IsNullOrWhiteSpace(normalizedName))
+            return normalizedName;
+
+        var participants = SessionContext.Instance?.LastMatchManifest?.Participants;
+        if (participants != null)
+        {
+            var participant = participants.FirstOrDefault(x =>
+                x != null
+                && (x.ActorId == actorId
+                    || (!string.IsNullOrWhiteSpace(uid)
+                        && string.Equals(x.Uid, uid, StringComparison.OrdinalIgnoreCase))));
+            normalizedName = NormalizePlayerDisplayName(participant?.DisplayName, uid);
+            if (!string.IsNullOrWhiteSpace(normalizedName))
+                return normalizedName;
+        }
+
+        return "";
+    }
+
+    private static string NormalizePlayerDisplayName(string displayName, string uid)
+    {
+        string clean = (displayName ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(clean))
+            return "";
+
+        if (!string.IsNullOrWhiteSpace(uid) && string.Equals(clean, uid, StringComparison.OrdinalIgnoreCase))
+            return "";
+
+        if (string.Equals(clean, "Guest", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "Unknown", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "NullName", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "-", StringComparison.Ordinal))
+        {
+            return "";
+        }
+
+        return clean;
     }
 
     #endregion

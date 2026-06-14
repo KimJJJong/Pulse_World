@@ -17,6 +17,8 @@ public class ClientSkillRunner : MonoBehaviour
     private bool _playbackStarted;
 
     private float _casterRotation;
+    private bool _hasSkillOrigin;
+    private Vector2Int _skillOrigin;
 
     private HashSet<int> _triggeredEvents = new HashSet<int>();
     private List<Vector2Int> _activeTelegraphs = new List<Vector2Int>();
@@ -38,6 +40,7 @@ public class ClientSkillRunner : MonoBehaviour
         _startTick = startTick;
         _isMine = isMine;
         _casterRotation = casterRotation;
+        SyncSkillOriginFromEntity();
 
         // Load Skill Data
         _skillDef = P2PCombatContentCache.GetSkillAsset(skillId);
@@ -104,6 +107,8 @@ public class ClientSkillRunner : MonoBehaviour
         _visual = null;
         _boardView = null;
         _casterRotation = 0f;
+        _hasSkillOrigin = false;
+        _skillOrigin = default;
         _playbackStarted = false;
         _dueEvents.Clear();
     }
@@ -231,6 +236,11 @@ public class ClientSkillRunner : MonoBehaviour
 
         switch (ev.Action.Type)
         {
+            case SkillActionType.Move:
+                if (ev.Action is MoveAction move)
+                    ApplySkillMoveForImpactOrigin(move);
+                break;
+
             case SkillActionType.Damage:
                 if (ev.Action is DamageAction damage)
                 {
@@ -398,22 +408,121 @@ public class ClientSkillRunner : MonoBehaviour
 
     // ── Shape → World Cells ───────────────────────────────────────────────────
 
+    private void SyncSkillOriginFromEntity()
+    {
+        _hasSkillOrigin = false;
+
+        if (ClientGameState.Instance == null
+            || !ClientGameState.Instance.TryGetEntity(_actorId, out var info))
+        {
+            return;
+        }
+
+        _skillOrigin = new Vector2Int(info.X, info.Y);
+        _hasSkillOrigin = true;
+    }
+
+    private void ApplySkillMoveForImpactOrigin(MoveAction action)
+    {
+        if (action == null)
+            return;
+
+        if (!_hasSkillOrigin)
+            SyncSkillOriginFromEntity();
+        if (!_hasSkillOrigin)
+            return;
+
+        float rotation = ResolveSkillRotation();
+        var origin = _skillOrigin;
+        var target = ResolveSkillMoveTarget(action, origin, rotation);
+
+        if (ClientGameState.Instance != null
+            && ClientGameState.Instance.TryGetEntity(_actorId, out var info))
+        {
+            var current = new Vector2Int(info.X, info.Y);
+
+            // If the authoritative move packet has already arrived, trust it instead of
+            // applying the skill-local move a second time.
+            if (current != origin)
+            {
+                _skillOrigin = current;
+                return;
+            }
+        }
+
+        _skillOrigin = target;
+        _hasSkillOrigin = true;
+    }
+
+    private Vector2Int ResolveSkillMoveTarget(MoveAction action, Vector2Int origin, float rotation)
+    {
+        var dir = RotateDirForMove(action.DirectionX, action.DirectionY, rotation);
+        int distance = System.Math.Max(1, action.Distance);
+
+        if (dir.X == 0 && dir.Y == 0)
+            return origin;
+
+        if (action.MoveType == MoveType.Dash && action.StopOnObstacle)
+        {
+            Vector2Int best = origin;
+            for (int step = 1; step <= distance; step++)
+            {
+                int nx = origin.x + dir.X * step;
+                int ny = origin.y + dir.Y * step;
+                if (!IsWalkableSkillMoveCell(nx, ny))
+                    break;
+
+                best = new Vector2Int(nx, ny);
+            }
+
+            return IsOccupiedSkillMoveCell(best.x, best.y) ? origin : best;
+        }
+
+        var target = new Vector2Int(origin.x + dir.X * distance, origin.y + dir.Y * distance);
+        return CanEnterSkillMoveCell(target.x, target.y) ? target : origin;
+    }
+
+    private bool CanEnterSkillMoveCell(int x, int y)
+    {
+        return IsWalkableSkillMoveCell(x, y) && !IsOccupiedSkillMoveCell(x, y);
+    }
+
+    private bool IsWalkableSkillMoveCell(int x, int y)
+    {
+        return ClientGameState.Instance != null && ClientGameState.Instance.IsWalkable(x, y);
+    }
+
+    private bool IsOccupiedSkillMoveCell(int x, int y)
+    {
+        var state = ClientGameState.Instance;
+        if (state == null)
+            return false;
+
+        foreach (var entity in state.EnumerateEntities())
+        {
+            if (entity.EntityId == _actorId || entity.Hp <= 0)
+                continue;
+
+            if (entity.X == x && entity.Y == y)
+                return true;
+        }
+
+        return false;
+    }
+
     private List<Vector2Int> ShapeToWorldCells(IShapeDef shape)
     {
         var result = new List<Vector2Int>();
         if (shape == null) return result;
 
-        int sx = 0, sy = 0;
-        float rotation = _casterRotation;
+        if (!_hasSkillOrigin)
+            SyncSkillOriginFromEntity();
+        if (!_hasSkillOrigin)
+            return result;
 
-        if (ClientGameState.Instance != null && ClientGameState.Instance.TryGetEntity(_actorId, out var info))
-        {
-            sx = info.X;
-            sy = info.Y;
-            if (_casterRotation < 0f)
-                rotation = info.Rotation;
-        }
-        else return result;
+        int sx = _skillOrigin.x;
+        int sy = _skillOrigin.y;
+        float rotation = ResolveSkillRotation();
 
         List<GridPoint> offsets = new List<GridPoint>();
 
@@ -441,6 +550,20 @@ public class ClientSkillRunner : MonoBehaviour
             result.Add(new Vector2Int(sx + pt.X, sy + pt.Y));
         }
         return result;
+    }
+
+    private float ResolveSkillRotation()
+    {
+        if (_casterRotation >= 0f)
+            return _casterRotation;
+
+        if (ClientGameState.Instance != null
+            && ClientGameState.Instance.TryGetEntity(_actorId, out var info))
+        {
+            return info.Rotation;
+        }
+
+        return 0f;
     }
 
     private void ShowWarningCells(IShapeDef shape, long expireBeat)
@@ -483,6 +606,17 @@ public class ClientSkillRunner : MonoBehaviour
     {
         float corrected = rotation + 180f;
         int deg = (int)((corrected + 45) / 90) * 90;
+        deg = (deg % 360 + 360) % 360;
+
+        if (deg == 90)  return new GridPoint( y, -x);
+        if (deg == 180) return new GridPoint(-x, -y);
+        if (deg == 270) return new GridPoint(-y,  x);
+        return new GridPoint(x, y);
+    }
+
+    private GridPoint RotateDirForMove(int x, int y, float rotation)
+    {
+        int deg = (int)((rotation + 45) / 90) * 90;
         deg = (deg % 360 + 360) % 360;
 
         if (deg == 90)  return new GridPoint( y, -x);

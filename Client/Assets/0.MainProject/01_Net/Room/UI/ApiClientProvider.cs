@@ -14,7 +14,7 @@ namespace NetClient.Room.UI
                 if (!string.IsNullOrWhiteSpace(steamName))
                     return steamName;
 
-                return SessionContext.Instance.MyActorId.ToString() ?? "NullName";
+                return "Guest";
             }
         }
         public string AccessToken => AppBootstrap.Instance.Root.Tokens.AccessToken;

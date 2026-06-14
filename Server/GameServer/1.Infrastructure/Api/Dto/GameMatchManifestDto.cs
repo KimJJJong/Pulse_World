@@ -28,6 +28,7 @@ public sealed class GameMatchManifestResponse
 public sealed class GameMatchParticipantResponse
 {
     public string Uid { get; set; } = "";
+    public string DisplayName { get; set; } = "";
     public string SteamId64 { get; set; } = "";
     public int ActorId { get; set; }
     public string LoadoutHash { get; set; } = "";

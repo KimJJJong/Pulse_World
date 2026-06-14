@@ -11,6 +11,10 @@ using UnityEngine;
 public sealed partial class P2PContentDirector
 {
     private const long RuntimeSpawnBindGraceBeats = 2;
+    private const int DecoyEntityIdBase = 700000;
+    private const int DecoyEntityIdLimit = DecoyEntityIdBase + 100000;
+    private const int DecoyTargetPriority = 0;
+    private const int PlayerTargetPriority = 1;
 
     private void LoadStageContent()
     {
@@ -196,6 +200,29 @@ public sealed partial class P2PContentDirector
 
         foreach (var spawn in stage.InitialSpawns ?? new List<SpawnData>())
             RegisterTemplate(spawn.MonsterId, ResolveSpawnPattern(spawn), spawn.GroupId, spawn.X, ResolveMapY(spawn.Y, spawn.Z));
+
+        foreach (var evt in stage.Events ?? new List<EventData>())
+        {
+            if (evt?.Actions == null)
+                continue;
+
+            foreach (var action in evt.Actions)
+            {
+                if (action == null
+                    || !string.Equals(action.Type, "SpawnMonster", StringComparison.Ordinal)
+                    || action.ParamId <= 0)
+                {
+                    continue;
+                }
+
+                RegisterTemplate(
+                    action.ParamId,
+                    ResolveSpawnPattern(action),
+                    action.GroupId,
+                    action.X,
+                    ResolveMapY(action.Y, action.Z));
+            }
+        }
     }
 
     private void BuildStageObjectIndex(StageScenarioData stage)
@@ -304,6 +331,38 @@ public sealed partial class P2PContentDirector
             info.SizeY = metadata.SizeY;
 
         return true;
+    }
+
+    public bool TryGetMonsterPresentation(ClientEntityInfo info, out string monsterType, out int maxHp)
+    {
+        monsterType = "";
+        maxHp = 0;
+
+        if (info.EntityType != (int)EntityType.Monster)
+            return false;
+
+        if (_entityMaxHpByTemplateId.Count == 0)
+            LoadEntityTemplateData();
+
+        EnsureStageLoaded();
+
+        if (_monsterStates.TryGetValue(info.EntityId, out var state) && state != null)
+        {
+            monsterType = state.MonsterType ?? "";
+            maxHp = Math.Max(0, state.MaxHp);
+            return !string.IsNullOrWhiteSpace(monsterType) || maxHp > 0;
+        }
+
+        if (TryResolveMonsterTemplate(info.AppearanceId, info.GroupId, info.X, info.Y, out var template))
+        {
+            monsterType = template.MonsterType ?? "";
+            maxHp = Math.Max(0, template.MaxHp);
+        }
+
+        if (maxHp <= 0 && _entityMaxHpByTemplateId.TryGetValue(info.AppearanceId, out var entityMaxHp))
+            maxHp = Math.Max(1, entityMaxHp);
+
+        return !string.IsNullOrWhiteSpace(monsterType) || maxHp > 0;
     }
 
     private void RegisterTemplate(int appearanceId, string monsterType, int groupId, int x = int.MinValue, int y = int.MinValue)
@@ -1517,6 +1576,7 @@ public sealed partial class P2PContentDirector
     {
         best = null;
         distance = int.MaxValue;
+        int bestPriority = int.MaxValue;
 
         if (ClientGameState.Instance == null)
             return false;
@@ -1527,9 +1587,11 @@ public sealed partial class P2PContentDirector
                 continue;
 
             int dist = Math.Abs(entity.X - self.X) + Math.Abs(entity.Y - self.Y);
-            if (dist >= distance)
+            int priority = GetPlayerTargetPriority(entity);
+            if (priority > bestPriority || (priority == bestPriority && dist >= distance))
                 continue;
 
+            bestPriority = priority;
             best = entity;
             distance = dist;
         }
@@ -1545,15 +1607,18 @@ public sealed partial class P2PContentDirector
             return null;
 
         ClientEntityInfo? best = null;
+        int bestPriority = int.MaxValue;
         foreach (var entity in ClientGameState.Instance.EnumerateEntities())
         {
             if (entity.EntityType != (int)EntityType.Player || entity.Hp <= 0)
                 continue;
 
             int dist = Math.Abs(entity.X - self.X) + Math.Abs(entity.Y - self.Y);
-            if (dist >= distance)
+            int priority = GetPlayerTargetPriority(entity);
+            if (priority > bestPriority || (priority == bestPriority && dist >= distance))
                 continue;
 
+            bestPriority = priority;
             best = entity;
             distance = dist;
         }
@@ -1598,8 +1663,9 @@ public sealed partial class P2PContentDirector
 
         if (target == null)
         {
-            distance = int.MaxValue;
-            return playerCandidates[0];
+            var pick = PickPreferredPlayerCandidate(playerCandidates);
+            distance = Math.Abs(pick.X - self.X) + Math.Abs(pick.Y - self.Y);
+            return pick;
         }
 
         switch (target.Type)
@@ -1607,12 +1673,15 @@ public sealed partial class P2PContentDirector
             case TargetType.LowestHpPlayer:
                 {
                     ClientEntityInfo? best = null;
+                    int bestPriority = int.MaxValue;
                     int minHp = int.MaxValue;
                     foreach (var entity in playerCandidates)
                     {
-                        if (entity.Hp >= minHp)
+                        int priority = GetPlayerTargetPriority(entity);
+                        if (priority > bestPriority || (priority == bestPriority && entity.Hp >= minHp))
                             continue;
 
+                        bestPriority = priority;
                         minHp = entity.Hp;
                         best = entity;
                     }
@@ -1628,7 +1697,9 @@ public sealed partial class P2PContentDirector
 
             case TargetType.RandomPlayer:
                 {
-                    var pick = playerCandidates[_rng.Next(playerCandidates.Count)];
+                    var decoyCandidates = playerCandidates.Where(IsDecoyPlayerCandidate).ToList();
+                    var pool = decoyCandidates.Count > 0 ? decoyCandidates : playerCandidates;
+                    var pick = pool[_rng.Next(pool.Count)];
                     distance = Math.Abs(pick.X - self.X) + Math.Abs(pick.Y - self.Y);
                     return pick;
                 }
@@ -1637,10 +1708,15 @@ public sealed partial class P2PContentDirector
         // [최적화] LINQ OrderBy 제거 → 수동 최솟값 탐색 (GC 할당 없음)
         ClientEntityInfo? closest = null;
         int minDist = int.MaxValue;
+        int closestPriority = int.MaxValue;
         foreach (var e in playerCandidates)
         {
             int d = Math.Abs(e.X - self.X) + Math.Abs(e.Y - self.Y);
-            if (d >= minDist) continue;
+            int priority = GetPlayerTargetPriority(e);
+            if (priority > closestPriority || (priority == closestPriority && d >= minDist))
+                continue;
+
+            closestPriority = priority;
             minDist = d;
             closest = e;
         }
@@ -1648,6 +1724,32 @@ public sealed partial class P2PContentDirector
         distance = minDist;
         return closest;
     }
+
+    private static ClientEntityInfo PickPreferredPlayerCandidate(List<ClientEntityInfo> candidates)
+    {
+        ClientEntityInfo best = candidates[0];
+        int bestPriority = GetPlayerTargetPriority(best);
+
+        for (int i = 1; i < candidates.Count; i++)
+        {
+            int priority = GetPlayerTargetPriority(candidates[i]);
+            if (priority >= bestPriority)
+                continue;
+
+            best = candidates[i];
+            bestPriority = priority;
+        }
+
+        return best;
+    }
+
+    private static int GetPlayerTargetPriority(ClientEntityInfo entity)
+        => IsDecoyPlayerCandidate(entity) ? DecoyTargetPriority : PlayerTargetPriority;
+
+    private static bool IsDecoyPlayerCandidate(ClientEntityInfo entity)
+        => entity.EntityType == (int)EntityType.Player
+           && entity.EntityId >= DecoyEntityIdBase
+           && entity.EntityId < DecoyEntityIdLimit;
 
     private int CountDeadMonsters(int groupId)
     {
@@ -1759,6 +1861,14 @@ public sealed partial class P2PContentDirector
             return data.Pattern;
 
         return "Default";
+    }
+
+    private static string ResolveSpawnPattern(ActionData data)
+    {
+        if (data == null)
+            return "Default";
+
+        return string.IsNullOrWhiteSpace(data.StringVal) ? "Default" : data.StringVal;
     }
 
     private int GenerateSpawnEntityId()

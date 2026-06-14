@@ -61,6 +61,7 @@ public sealed class GameMatchService
             participants.Add(new GameMatchParticipant
             {
                 Uid = uid,
+                DisplayName = member?.Name ?? "",
                 SteamId64 = member?.SteamId64 ?? "",
                 ActorId = nextActorId++,
                 LoadoutHash = ""
@@ -213,6 +214,7 @@ public sealed class GameMatchManifest
 public sealed class GameMatchParticipant
 {
     public string Uid { get; set; } = "";
+    public string DisplayName { get; set; } = "";
     public string SteamId64 { get; set; } = "";
     public int ActorId { get; set; }
     public string LoadoutHash { get; set; } = "";

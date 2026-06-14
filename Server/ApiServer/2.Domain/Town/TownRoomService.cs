@@ -60,6 +60,7 @@ public sealed class TownMatchManifest
 public sealed class TownMatchParticipant
 {
     public string Uid { get; set; } = "";
+    public string DisplayName { get; set; } = "";
     public string SteamId64 { get; set; } = "";
     public int ActorId { get; set; }
     public string LoadoutHash { get; set; } = "";
@@ -551,6 +552,7 @@ public sealed class TownRoomService
             participants.Add(new TownMatchParticipant
             {
                 Uid = participant.Uid,
+                DisplayName = participant.Name ?? "",
                 SteamId64 = participant.SteamId64 ?? "",
                 ActorId = nextActorId++,
                 LoadoutHash = ""

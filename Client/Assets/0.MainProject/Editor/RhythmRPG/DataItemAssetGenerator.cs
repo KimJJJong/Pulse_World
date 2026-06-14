@@ -5,6 +5,7 @@ using System.IO;
 using RhythmRPG.Visual;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public static class DataItemAssetGenerator
 {
@@ -86,11 +87,14 @@ public static class DataItemAssetGenerator
         var sole = CreateOrUpdateMaterial(MaterialFolder + "/M_Item_DarkSole.mat", "#17120F", 0.08f, 0.78f);
         var orbCore = CreateOrUpdateMaterial(AccessoryMaterialFolder + "/M_BeatOrb_Core.mat", "#6FEAFF", 0.0f, 0.18f);
         var orbRing = CreateOrUpdateMaterial(AccessoryMaterialFolder + "/M_BeatOrb_Ring.mat", "#F2C94C", 0.12f, 0.28f);
+        var orbGlow = CreateOrUpdateGlowMaterial(AccessoryMaterialFolder + "/M_BeatOrb_GlowVolume.mat", "#7EFBFF", 0.16f, 1.25f);
+        SetEmission(orbCore, new Color(0.34f, 0.96f, 1f, 1f), 1.25f);
+        SetEmission(orbRing, new Color(1f, 0.78f, 0.28f, 1f), 0.65f);
 
         BuildHelmet(leather, darkLeather, leatherEdge, brass);
         BuildArmor(leather, darkLeather, leatherEdge, brass);
         BuildBoots(leather, darkLeather, leatherEdge, brass, sole);
-        BuildBeatOrb(orbCore, orbRing);
+        BuildBeatOrb(orbCore, orbRing, orbGlow);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
@@ -548,14 +552,24 @@ public static class DataItemAssetGenerator
         SavePrimitivePrefab(root, ArmorFolder + "/Boots002.prefab");
     }
 
-    private static void BuildBeatOrb(Material core, Material ring)
+    private static void BuildBeatOrb(Material core, Material ring, Material glow)
     {
         var root = new GameObject("BeatOrb001");
-        const float orbitRadius = 0.48f;
-        const float orbitHeight = 1.70f;
+        const float orbitRadius = 0.52f;
+        const float orbitHeight = 1.88f;
 
         var orb = AddPrimitive(root.transform, "Orb", PrimitiveType.Sphere,
             new Vector3(orbitRadius, orbitHeight, 0f), Vector3.zero, new Vector3(0.115f, 0.115f, 0.115f), core);
+        var coreRenderer = orb.GetComponent<Renderer>();
+        var glowVolume = AddPrimitive(orb.transform, "GlowVolume", PrimitiveType.Sphere,
+            Vector3.zero, Vector3.zero, new Vector3(2.15f, 2.15f, 2.15f), glow);
+        var glowRenderer = glowVolume.GetComponent<Renderer>();
+        if (glowRenderer != null)
+        {
+            glowRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            glowRenderer.receiveShadows = false;
+        }
+
         AddPrimitive(root.transform, "OrbitRing", PrimitiveType.Cylinder,
             new Vector3(0f, orbitHeight, 0f), new Vector3(90f, 0f, 0f), new Vector3(orbitRadius, 0.010f, orbitRadius), ring);
 
@@ -565,18 +579,23 @@ public static class DataItemAssetGenerator
         var pointLight = light.AddComponent<Light>();
         pointLight.type = LightType.Point;
         pointLight.color = new Color(0.55f, 0.96f, 1f, 1f);
-        pointLight.intensity = 1.25f;
-        pointLight.range = 1.8f;
+        pointLight.intensity = 0.02f;
+        pointLight.range = 0.75f;
 
         var visual = root.AddComponent<BeatOrbAccessoryVisual>();
         var serializedVisual = new SerializedObject(visual);
         serializedVisual.FindProperty("orb").objectReferenceValue = orb.transform;
+        serializedVisual.FindProperty("glowVolume").objectReferenceValue = glowVolume.transform;
         serializedVisual.FindProperty("orbLight").objectReferenceValue = pointLight;
+        serializedVisual.FindProperty("coreRenderer").objectReferenceValue = coreRenderer;
+        serializedVisual.FindProperty("glowRenderer").objectReferenceValue = glowRenderer;
         serializedVisual.FindProperty("radius").floatValue = orbitRadius;
         serializedVisual.FindProperty("height").floatValue = orbitHeight;
         serializedVisual.FindProperty("orbitDegreesPerSecond").floatValue = 132f;
         serializedVisual.FindProperty("pulseSpeed").floatValue = 3.15f;
         serializedVisual.FindProperty("pulseScale").floatValue = 0.18f;
+        serializedVisual.FindProperty("glowPulseScale").floatValue = 0.08f;
+        serializedVisual.FindProperty("glowAlpha").floatValue = 0.18f;
         serializedVisual.ApplyModifiedPropertiesWithoutUndo();
 
         SavePrimitivePrefab(root, AccessoryFolder + "/BeatOrb001.prefab");
@@ -682,6 +701,79 @@ public static class DataItemAssetGenerator
 
         EditorUtility.SetDirty(material);
         return material;
+    }
+
+    private static Material CreateOrUpdateGlowMaterial(string path, string colorHex, float alpha, float emissionIntensity)
+    {
+        var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (material == null)
+        {
+            material = new Material(FindLitShader());
+            AssetDatabase.CreateAsset(material, path);
+        }
+        else
+        {
+            material.shader = FindLitShader();
+        }
+
+        if (!ColorUtility.TryParseHtmlString(colorHex, out Color color))
+            color = new Color(0.5f, 0.95f, 1f, 1f);
+
+        color.a = Mathf.Clamp01(alpha);
+        material.color = color;
+        if (material.HasProperty("_BaseColor"))
+            material.SetColor("_BaseColor", color);
+        if (material.HasProperty("_Color"))
+            material.SetColor("_Color", color);
+        if (material.HasProperty("_Metallic"))
+            material.SetFloat("_Metallic", 0f);
+        if (material.HasProperty("_Smoothness"))
+            material.SetFloat("_Smoothness", 0.9f);
+
+        SetEmission(material, new Color(color.r, color.g, color.b, 1f), emissionIntensity);
+        ConfigureTransparentMaterial(material);
+
+        EditorUtility.SetDirty(material);
+        return material;
+    }
+
+    private static void SetEmission(Material material, Color color, float intensity)
+    {
+        if (material == null || !material.HasProperty("_EmissionColor"))
+            return;
+
+        material.SetColor("_EmissionColor", color * Mathf.Max(0f, intensity));
+        material.EnableKeyword("_EMISSION");
+        material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+        EditorUtility.SetDirty(material);
+    }
+
+    private static void ConfigureTransparentMaterial(Material material)
+    {
+        if (material == null)
+            return;
+
+        material.SetOverrideTag("RenderType", "Transparent");
+        if (material.HasProperty("_Surface"))
+            material.SetFloat("_Surface", 1f);
+        if (material.HasProperty("_Blend"))
+            material.SetFloat("_Blend", 0f);
+        if (material.HasProperty("_AlphaClip"))
+            material.SetFloat("_AlphaClip", 0f);
+        if (material.HasProperty("_SrcBlend"))
+            material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+        if (material.HasProperty("_DstBlend"))
+            material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+        if (material.HasProperty("_ZWrite"))
+            material.SetFloat("_ZWrite", 0f);
+        if (material.HasProperty("_Mode"))
+            material.SetFloat("_Mode", 3f);
+
+        material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        material.DisableKeyword("_ALPHATEST_ON");
+        material.EnableKeyword("_ALPHABLEND_ON");
+        material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+        material.renderQueue = (int)RenderQueue.Transparent + 20;
     }
 
     private static Shader FindLitShader()

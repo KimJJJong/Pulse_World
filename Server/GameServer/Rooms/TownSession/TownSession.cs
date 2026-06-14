@@ -178,8 +178,9 @@ public sealed class TownSession : SessionBase
         packet.MapId = _map.MapId;
 
         packet.playerss.Clear();
+        int guestIndex = 1;
         foreach (var p in _players)
-            packet.playerss.Add(new SC_InitMap.Players { ActorId = p.Id, Name="Test", Uid="RealNeedit?" }); 
+            packet.playerss.Add(new SC_InitMap.Players { ActorId = p.Id, Name = $"Guest_{guestIndex++:00}", Uid = p.GetState<string>("Uid") ?? "" });
 
         packet.MyActorId = myActorId;
 

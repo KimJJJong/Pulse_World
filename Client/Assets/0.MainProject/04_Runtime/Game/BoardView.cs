@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using RhythmRPG.Game.Stage;
@@ -22,10 +23,16 @@ public class BoardView : MonoBehaviour, IClientWorldView
     // Runtime Cache
     private Dictionary<int, GameObject> _entityPrefabCache = new Dictionary<int, GameObject>();
     private readonly Dictionary<int, EntityAnimationProfile> _entityAnimationProfileCache = new();
+    private readonly Dictionary<int, string> _entityNameMap = new();
+    private readonly Dictionary<int, int> _entityMaxHpMap = new();
 
     [Header("Rendering")]
     public float cellSize = 1.0f;
     public float moveLerpTime = 0.1f;
+
+    [Header("Monster Health UI")]
+    [SerializeField] private bool monsterHealthBarsEnabled = true;
+    [SerializeField, Min(1)] private int normalMonsterHealthVisibleBeats = 8;
 
     [Header("Walkable Grid")]
     [SerializeField] private bool showWalkableGrid = true;
@@ -61,6 +68,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
     private static readonly Color PLAYER_TELEGRAPH_COLOR = new Color(0.05f, 0.55f, 1f, 0.45f);
 
     private const int MaxPredictedMovesPerActor = 8;
+    private const int DecoyEntityIdBase = 700000;
+    private const int DecoyEntityIdLimit = DecoyEntityIdBase + 100000;
+    private const float DecoyOwnerVisualAlpha = 0.58f;
 
     private struct PredictedMove
     {
@@ -85,6 +95,14 @@ public class BoardView : MonoBehaviour, IClientWorldView
         public Color Color;
     }
 
+    private struct MonsterHealthPresentation
+    {
+        public string DisplayName;
+        public string MonsterType;
+        public bool IsElite;
+        public int MaxHp;
+    }
+
     private sealed class PendingVisualDespawn
     {
         public readonly EntityVisual Visual;
@@ -100,7 +118,10 @@ public class BoardView : MonoBehaviour, IClientWorldView
     private Dictionary<int, float> _recentInstantActions = new();
     private Dictionary<int, List<PredictedMove>> _recentPredictedMoves = new();
     private Dictionary<int, ClientSkillRunner> _activeSkillRunners = new();
+    private readonly Dictionary<int, MonsterHealthBarView> _monsterHealthBars = new();
     private readonly Dictionary<int, PendingVisualDespawn> _pendingVisualDespawns = new();
+    private readonly HashSet<int> _activeDecoyEntityIds = new();
+    private readonly Dictionary<int, int> _activeDecoyCountByOwner = new();
     private Dictionary<Vector2Int, long> _telegraphExpiration = new Dictionary<Vector2Int, long>();
     private readonly List<Vector2Int> _expiredTelegraphBuffer = new List<Vector2Int>();
     private const string WalkableGridObjectName = "__WalkableGridOutline";
@@ -177,6 +198,10 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 {
                     if (!string.IsNullOrEmpty(e.ResourcePath))
                         _entityPathMap[e.EntityId] = e.ResourcePath;
+                    if (!string.IsNullOrWhiteSpace(e.Name))
+                        _entityNameMap[e.EntityId] = e.Name;
+                    if (e.MaxHp > 0)
+                        _entityMaxHpMap[e.EntityId] = e.MaxHp;
                 }
                 Debug.Log($"[BoardView] Loaded {_entityPathMap.Count} entity paths from JSON.");
             }
@@ -190,7 +215,14 @@ public class BoardView : MonoBehaviour, IClientWorldView
     [System.Serializable]
     class EntityDataRoot { public List<EntityDataDTO> Entities; }
     [System.Serializable]
-    class EntityDataDTO { public int EntityId; public string ResourcePath; }
+    class EntityDataDTO
+    {
+        public int EntityId;
+        public string Name;
+        public int EntityType;
+        public int MaxHp;
+        public string ResourcePath;
+    }
 
     #region IClientWorldView
 
@@ -1105,6 +1137,11 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     public void OnClearEntities()
     {
+        foreach (int ownerActorId in _activeDecoyCountByOwner.Keys)
+            ApplyDecoyOwnerVisualAlpha(ownerActorId, false);
+        _activeDecoyEntityIds.Clear();
+        _activeDecoyCountByOwner.Clear();
+
         foreach (var kv in _pendingVisualDespawns)
         {
             var pending = kv.Value;
@@ -1125,6 +1162,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 Destroy(kv.Value.gameObject);
         }
         _entityViews.Clear();
+        _monsterHealthBars.Clear();
     }
 
     public void OnSpawnOrUpdateEntity(ClientEntityInfo info)
@@ -1197,6 +1235,10 @@ public class BoardView : MonoBehaviour, IClientWorldView
             BindStageSceneObjectTargets(info, visual);
             CameraObstacleFadeRuntimeTargets.EnsureForEntity(info, visual.transform);
         }
+
+        RegisterDecoyVisualIfNeeded(info.EntityId);
+        ApplyExistingDecoyFadeIfNeeded(info.EntityId, visual);
+        SyncMonsterHealthBar(info, visual);
     }
 
     private static void BindStageSceneObjectTargets(ClientEntityInfo info, EntityVisual visual)
@@ -1242,6 +1284,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     public void OnDespawnEntity(int entityId)
     {
+        UnregisterDecoyVisualIfNeeded(entityId);
+        RemoveMonsterHealthBar(entityId);
+
         if (_entityViews.TryGetValue(entityId, out var visual) && visual != null)
         {
             float delay = visual.IsDead
@@ -1265,6 +1310,236 @@ public class BoardView : MonoBehaviour, IClientWorldView
         _activeSkillRunners.Remove(entityId);
     }
 
+    private void RegisterDecoyVisualIfNeeded(int entityId)
+    {
+        if (!TryGetDecoyOwnerActorId(entityId, out int ownerActorId) || !_activeDecoyEntityIds.Add(entityId))
+            return;
+
+        _activeDecoyCountByOwner.TryGetValue(ownerActorId, out int count);
+        _activeDecoyCountByOwner[ownerActorId] = count + 1;
+        ApplyDecoyOwnerVisualAlpha(ownerActorId, true);
+    }
+
+    private void UnregisterDecoyVisualIfNeeded(int entityId)
+    {
+        if (!TryGetDecoyOwnerActorId(entityId, out int ownerActorId) || !_activeDecoyEntityIds.Remove(entityId))
+            return;
+
+        if (_activeDecoyCountByOwner.TryGetValue(ownerActorId, out int count) && count > 1)
+        {
+            _activeDecoyCountByOwner[ownerActorId] = count - 1;
+            return;
+        }
+
+        _activeDecoyCountByOwner.Remove(ownerActorId);
+        ApplyDecoyOwnerVisualAlpha(ownerActorId, false);
+    }
+
+    private void ApplyExistingDecoyFadeIfNeeded(int entityId, EntityVisual visual)
+    {
+        if (visual == null)
+            return;
+
+        if (_activeDecoyCountByOwner.TryGetValue(entityId, out int count) && count > 0)
+            visual.SetVisualAlpha(DecoyOwnerVisualAlpha);
+    }
+
+    private void ApplyDecoyOwnerVisualAlpha(int ownerActorId, bool active)
+    {
+        if (!_entityViews.TryGetValue(ownerActorId, out var ownerVisual) || ownerVisual == null)
+            return;
+
+        ownerVisual.SetVisualAlpha(active ? DecoyOwnerVisualAlpha : 1f);
+    }
+
+    private static bool TryGetDecoyOwnerActorId(int entityId, out int ownerActorId)
+    {
+        ownerActorId = 0;
+        if (entityId < DecoyEntityIdBase || entityId >= DecoyEntityIdLimit)
+            return false;
+
+        ownerActorId = entityId - DecoyEntityIdBase;
+        return ownerActorId > 0;
+    }
+
+    private void SyncMonsterHealthBar(ClientEntityInfo info, EntityVisual visual)
+    {
+        if (!monsterHealthBarsEnabled || info.EntityType != (int)EntityType.Monster || visual == null)
+        {
+            RemoveMonsterHealthBar(info.EntityId);
+            return;
+        }
+
+        MonsterHealthPresentation presentation = ResolveMonsterHealthPresentation(info);
+        int maxHp = ResolveMonsterMaxHp(info, presentation.MaxHp);
+        MonsterHealthBarView bar = MonsterHealthBarView.GetOrCreate(visual.transform);
+        if (bar == null)
+            return;
+
+        _monsterHealthBars[info.EntityId] = bar;
+        bar.Bind(
+            visual.transform,
+            presentation.DisplayName,
+            presentation.IsElite,
+            info.Hp,
+            maxHp,
+            normalMonsterHealthVisibleBeats);
+    }
+
+    private void ShowMonsterHealthBarForDamage(int entityId, int newHp, EntityVisual visual)
+    {
+        if (!monsterHealthBarsEnabled || visual == null)
+            return;
+
+        if (ClientGameState.Instance == null || !ClientGameState.Instance.TryGetEntity(entityId, out var info))
+            return;
+
+        if (info.EntityType != (int)EntityType.Monster)
+            return;
+
+        info.Hp = newHp;
+        MonsterHealthPresentation presentation = ResolveMonsterHealthPresentation(info);
+        int maxHp = ResolveMonsterMaxHp(info, presentation.MaxHp);
+        MonsterHealthBarView bar = MonsterHealthBarView.GetOrCreate(visual.transform);
+        if (bar == null)
+            return;
+
+        _monsterHealthBars[entityId] = bar;
+        bar.Bind(
+            visual.transform,
+            presentation.DisplayName,
+            presentation.IsElite,
+            newHp,
+            maxHp,
+            normalMonsterHealthVisibleBeats);
+        bar.ShowForHit(newHp, maxHp);
+    }
+
+    private void RemoveMonsterHealthBar(int entityId)
+    {
+        if (!_monsterHealthBars.TryGetValue(entityId, out var bar))
+            return;
+
+        if (bar != null)
+            Destroy(bar.gameObject);
+
+        _monsterHealthBars.Remove(entityId);
+    }
+
+    private MonsterHealthPresentation ResolveMonsterHealthPresentation(ClientEntityInfo info)
+    {
+        string monsterType = "";
+        int directorMaxHp = 0;
+
+        if (P2PContentDirector.HasInstance)
+            P2PContentDirector.Instance.TryGetMonsterPresentation(info, out monsterType, out directorMaxHp);
+
+        _entityNameMap.TryGetValue(info.AppearanceId, out string entityName);
+
+        bool isElite = ContainsElite(monsterType) || ContainsElite(entityName);
+        string displayName = ResolveMonsterDisplayName(info.AppearanceId, entityName, monsterType, isElite);
+
+        return new MonsterHealthPresentation
+        {
+            DisplayName = displayName,
+            MonsterType = monsterType,
+            IsElite = isElite,
+            MaxHp = directorMaxHp
+        };
+    }
+
+    private int ResolveMonsterMaxHp(ClientEntityInfo info, int directorMaxHp)
+    {
+        if (info.MaxHp > 0)
+            return info.MaxHp;
+
+        if (directorMaxHp > 0)
+            return directorMaxHp;
+
+        if (_entityMaxHpMap.TryGetValue(info.AppearanceId, out int dataMaxHp) && dataMaxHp > 0)
+            return dataMaxHp;
+
+        return Mathf.Max(1, info.Hp);
+    }
+
+    private static string ResolveMonsterDisplayName(int appearanceId, string entityName, string monsterType, bool isElite)
+    {
+        string source = !string.IsNullOrWhiteSpace(monsterType) && !string.Equals(monsterType, "Default", StringComparison.OrdinalIgnoreCase)
+            ? monsterType
+            : entityName;
+
+        string displayName = HumanizeMonsterIdentifier(source, appearanceId);
+        if (string.IsNullOrWhiteSpace(displayName))
+            displayName = "Monster";
+
+        if (isElite && displayName.IndexOf("Elite", StringComparison.OrdinalIgnoreCase) < 0)
+            displayName = $"Elite {displayName}";
+
+        return displayName;
+    }
+
+    private static string HumanizeMonsterIdentifier(string value, int appearanceId)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "";
+
+        int slashIndex = value.LastIndexOf('/');
+        if (slashIndex >= 0 && slashIndex + 1 < value.Length)
+            value = value.Substring(slashIndex + 1);
+
+        string[] parts = value.Split(new[] { '_', '-', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        List<string> words = new List<string>(parts.Length);
+        string appearanceToken = appearanceId.ToString();
+
+        for (int i = 0; i < parts.Length; i++)
+        {
+            string token = parts[i].Trim();
+            if (token.Length == 0
+                || token.Equals("Entity", StringComparison.OrdinalIgnoreCase)
+                || token.Equals("Monster", StringComparison.OrdinalIgnoreCase)
+                || token.Equals("Enemy", StringComparison.OrdinalIgnoreCase)
+                || token.Equals("Elite", StringComparison.OrdinalIgnoreCase)
+                || token.Equals(appearanceToken, StringComparison.OrdinalIgnoreCase)
+                || int.TryParse(token, out _))
+            {
+                continue;
+            }
+
+            string expanded = InsertWordBreaks(token);
+            if (!string.IsNullOrWhiteSpace(expanded))
+                words.Add(expanded);
+        }
+
+        return words.Count > 0 ? string.Join(" ", words) : "";
+    }
+
+    private static string InsertWordBreaks(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return "";
+
+        System.Text.StringBuilder sb = new System.Text.StringBuilder(token.Length + 4);
+        for (int i = 0; i < token.Length; i++)
+        {
+            char c = token[i];
+            if (i > 0 && char.IsUpper(c))
+            {
+                char previous = token[i - 1];
+                bool nextIsLower = i + 1 < token.Length && char.IsLower(token[i + 1]);
+                if (char.IsLower(previous) || char.IsDigit(previous) || nextIsLower)
+                    sb.Append(' ');
+            }
+
+            sb.Append(c);
+        }
+
+        return sb.ToString().Trim();
+    }
+
+    private static bool ContainsElite(string value)
+        => !string.IsNullOrWhiteSpace(value)
+           && value.IndexOf("Elite", StringComparison.OrdinalIgnoreCase) >= 0;
+
     public void PlayEntityDamageFeedback(int entityId, int oldHp, int newHp)
     {
         if (oldHp <= 0 || newHp >= oldHp)
@@ -1272,6 +1547,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
         if (!_entityViews.TryGetValue(entityId, out var visual) || visual == null)
             return;
+
+        ShowMonsterHealthBarForDamage(entityId, newHp, visual);
 
         if (newHp <= 0)
             visual.PlayDeath();

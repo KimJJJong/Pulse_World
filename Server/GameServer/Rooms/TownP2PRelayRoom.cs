@@ -30,6 +30,7 @@ public sealed class TownP2PRelayRoom : RoomBase
     private readonly Dictionary<int, (int x, int y)> _playerSpawns = new();
     private readonly Dictionary<string, int> _preferredActorIdByUid = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _preferredSeatByUid = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _preferredDisplayNameByUid = new(StringComparer.OrdinalIgnoreCase);
 
     public TownP2PRelayRoom(string relayId, string mapId, int maxPlayers = 16, ILogger? logger = null)
         : base(maxPlayers, 10)
@@ -63,6 +64,7 @@ public sealed class TownP2PRelayRoom : RoomBase
             _ownerHostUid = ownerHostUid ?? "";
             _preferredActorIdByUid.Clear();
             _preferredSeatByUid.Clear();
+            _preferredDisplayNameByUid.Clear();
             foreach (var p in normalized)
             {
                 if (string.IsNullOrWhiteSpace(p.Uid) || p.ActorId <= 0)
@@ -70,6 +72,7 @@ public sealed class TownP2PRelayRoom : RoomBase
 
                 _preferredActorIdByUid[p.Uid] = p.ActorId;
                 _preferredSeatByUid[p.Uid] = Math.Max(0, p.ActorId - 10);
+                _preferredDisplayNameByUid[p.Uid] = NormalizePlayerDisplayName(p.DisplayName, p.Uid);
             }
         }
 
@@ -350,15 +353,19 @@ public sealed class TownP2PRelayRoom : RoomBase
 
         lock (_lock)
         {
+            int guestIndex = 1;
             foreach (var p in _players.Values.OrderBy(x => x.SeatIndex).ThenBy(x => x.ActorId))
             {
                 states.TryGetValue(p.Uid, out var state);
                 var spawn = GetOrAssignSpawn(p);
+                string displayName = ResolvePlayerDisplayNameUnsafe(p.Uid);
+                if (string.IsNullOrWhiteSpace(displayName))
+                    displayName = $"Guest_{guestIndex++:00}";
                 packet.playerss.Add(new SC_InitMap.Players
                 {
                     Uid = p.Uid,
                     ActorId = p.ActorId,
-                    Name = p.Uid
+                    Name = displayName
                 });
                 packet.entitiess.Add(new SC_InitMap.Entities
                 {
@@ -561,6 +568,35 @@ public sealed class TownP2PRelayRoom : RoomBase
             p.Conn != null &&
             p.Conn.IsConnected &&
             string.Equals(p.Uid, uid, StringComparison.OrdinalIgnoreCase))?.ActorId ?? 0;
+    }
+
+    private string ResolvePlayerDisplayNameUnsafe(string uid)
+    {
+        string displayName = "";
+        if (!string.IsNullOrWhiteSpace(uid) && _preferredDisplayNameByUid.TryGetValue(uid, out var preferredName))
+            displayName = NormalizePlayerDisplayName(preferredName, uid);
+
+        return displayName;
+    }
+
+    private static string NormalizePlayerDisplayName(string displayName, string uid)
+    {
+        string clean = (displayName ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(clean))
+            return "";
+
+        if (!string.IsNullOrWhiteSpace(uid) && string.Equals(clean, uid, StringComparison.OrdinalIgnoreCase))
+            return "";
+
+        if (string.Equals(clean, "Guest", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "Unknown", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "NullName", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "-", StringComparison.Ordinal))
+        {
+            return "";
+        }
+
+        return clean;
     }
 
     private int ResolvePreferredActorIdUnsafe(string uid)

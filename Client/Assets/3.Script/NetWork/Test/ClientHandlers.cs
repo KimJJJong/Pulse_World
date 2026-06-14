@@ -197,12 +197,13 @@ public class ClientHandlers : MonoBehaviour
         var entities = p.entitiess ?? new List<SC_InitMap.Entities>();
 
         // 2) 플레이어 Actor 정보
-        ApplyRosterSnapshot(players.Select(pa => (pa.ActorId, pa.Uid)));
+        ApplyRosterSnapshot(players.Select(pa => (pa.ActorId, pa.Uid, pa.Name)));
         GS.SetMyActorId(p.MyActorId);
         LogInitMapPlayerSnapshot(p);
         string myUid = GS.TryGetPlayerUid(p.MyActorId, out var resolvedMyUid) ? resolvedMyUid : "-";
+        string myName = GS.TryGetPlayerDisplayName(p.MyActorId, out var resolvedMyName) ? resolvedMyName : "-";
         Debug.Log(
-            $"[P2PPlayerSync] InitMap identity sessionUid={SessionContext.Instance?.Uid ?? "-"} myActor={p.MyActorId} rosterUid={myUid} " +
+            $"[P2PPlayerSync] InitMap identity sessionUid={SessionContext.Instance?.Uid ?? "-"} myActor={p.MyActorId} rosterUid={myUid} name={myName} " +
             $"manifestHostUid={SessionContext.Instance?.LastMatchManifest?.HostUid ?? "-"}");
         if (P2PDebugConfig.TraceCombat)
             Debug.Log($"[InitMap] MyActorId: {GS.MyActorId}, TotalEntities: {entities.Count}");
@@ -694,38 +695,41 @@ public class ClientHandlers : MonoBehaviour
         }
     }
 
-    private void ApplyRosterSnapshot(IEnumerable<(int ActorId, string Uid)> packetRoster)
+    private void ApplyRosterSnapshot(IEnumerable<(int ActorId, string Uid, string DisplayName)> packetRoster)
     {
         var mergedRoster = new Dictionary<int, string>();
+        var mergedDisplayNames = new Dictionary<int, string>();
 
         if (packetRoster != null)
         {
-            foreach (var (actorId, uid) in packetRoster)
+            foreach (var (actorId, uid, displayName) in packetRoster)
             {
                 if (actorId <= 0)
                     continue;
 
                 mergedRoster[actorId] = uid ?? "";
+                mergedDisplayNames[actorId] = displayName ?? "";
             }
         }
 
-        MergeManifestParticipants(mergedRoster);
-        ApplyMergedRoster(mergedRoster);
+        MergeManifestParticipants(mergedRoster, mergedDisplayNames);
+        ApplyMergedRoster(mergedRoster, mergedDisplayNames);
     }
 
     private void EnsureManifestRosterApplied()
     {
         var mergedRoster = GS.EnumeratePlayerRoster().ToDictionary(x => x.ActorId, x => x.Uid ?? "");
-        int beforeCount = mergedRoster.Count;
+        var mergedDisplayNames = GS.EnumeratePlayerRosterWithDisplayNames().ToDictionary(x => x.ActorId, x => x.DisplayName ?? "");
+        string beforeSignature = BuildRosterSignature(mergedRoster, mergedDisplayNames);
 
-        MergeManifestParticipants(mergedRoster);
-        if (mergedRoster.Count == beforeCount)
+        MergeManifestParticipants(mergedRoster, mergedDisplayNames);
+        if (string.Equals(BuildRosterSignature(mergedRoster, mergedDisplayNames), beforeSignature, StringComparison.Ordinal))
             return;
 
-        ApplyMergedRoster(mergedRoster);
+        ApplyMergedRoster(mergedRoster, mergedDisplayNames);
     }
 
-    private void MergeManifestParticipants(Dictionary<int, string> rosterByActorId)
+    private void MergeManifestParticipants(Dictionary<int, string> rosterByActorId, Dictionary<int, string> displayNameByActorId)
     {
         if (rosterByActorId == null)
             return;
@@ -750,35 +754,61 @@ public class ClientHandlers : MonoBehaviour
 
             if (!rosterByActorId.ContainsKey(participant.ActorId))
                 rosterByActorId[participant.ActorId] = participant.Uid ?? "";
+
+            if (displayNameByActorId != null && !string.IsNullOrWhiteSpace(participant.DisplayName))
+                displayNameByActorId[participant.ActorId] = participant.DisplayName;
         }
     }
 
-    private void ApplyMergedRoster(Dictionary<int, string> rosterByActorId)
+    private void ApplyMergedRoster(Dictionary<int, string> rosterByActorId, Dictionary<int, string> displayNameByActorId)
     {
         var orderedRoster = rosterByActorId
             .Where(x => x.Key > 0)
             .OrderBy(x => x.Key)
-            .Select(x => (x.Key, x.Value ?? ""))
+            .Select(x =>
+            {
+                string displayName = displayNameByActorId != null && displayNameByActorId.TryGetValue(x.Key, out var name)
+                    ? name ?? ""
+                    : "";
+                return (ActorId: x.Key, Uid: x.Value ?? "", DisplayName: displayName);
+            })
             .ToArray();
 
         GS.SetPlayerRoster(orderedRoster);
-        GS.SetPlayerActorIds(orderedRoster.Select(x => x.Item1).ToArray());
+        GS.SetPlayerActorIds(orderedRoster.Select(x => x.ActorId).ToArray());
 
         Debug.Log($"[P2PPlayerSync] Roster applied count={orderedRoster.Length} actors={FormatRosterActors()}");
 
         foreach (var duplicateUid in orderedRoster
-                     .Where(x => !string.IsNullOrWhiteSpace(x.Item2))
-                     .GroupBy(x => x.Item2, StringComparer.OrdinalIgnoreCase)
-                     .Where(g => g.Select(x => x.Item1).Distinct().Count() > 1))
+                     .Where(x => !string.IsNullOrWhiteSpace(x.Uid))
+                     .GroupBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
+                     .Where(g => g.Select(x => x.ActorId).Distinct().Count() > 1))
         {
             Debug.LogWarning(
                 $"[P2PPlayerSync] Duplicate uid in merged roster uid={duplicateUid.Key} " +
-                $"actors={string.Join(",", duplicateUid.Select(x => x.Item1).OrderBy(x => x))} " +
+                $"actors={string.Join(",", duplicateUid.Select(x => x.ActorId).OrderBy(x => x))} " +
                 $"sessionUid={SessionContext.Instance?.Uid ?? "-"}");
         }
 
         if (P2PDebugConfig.TraceCombat)
-            Debug.Log($"[ClientHandlers] Roster applied count={orderedRoster.Length} actors={string.Join(",", orderedRoster.Select(x => x.Item1))}");
+            Debug.Log($"[ClientHandlers] Roster applied count={orderedRoster.Length} actors={string.Join(",", orderedRoster.Select(x => x.ActorId))}");
+    }
+
+    private static string BuildRosterSignature(Dictionary<int, string> rosterByActorId, Dictionary<int, string> displayNameByActorId)
+    {
+        if (rosterByActorId == null || rosterByActorId.Count == 0)
+            return "";
+
+        return string.Join("|", rosterByActorId
+            .Where(x => x.Key > 0)
+            .OrderBy(x => x.Key)
+            .Select(x =>
+            {
+                string displayName = displayNameByActorId != null && displayNameByActorId.TryGetValue(x.Key, out var name)
+                    ? name ?? ""
+                    : "";
+                return $"{x.Key}:{x.Value ?? ""}:{displayName}";
+            }));
     }
 
     private void LogInitMapPlayerSnapshot(SC_InitMap p)
@@ -795,9 +825,14 @@ public class ClientHandlers : MonoBehaviour
     }
 
     private string FormatRosterActors()
-        => string.Join(",", GS.EnumeratePlayerRoster()
+        => string.Join(",", GS.EnumeratePlayerRosterWithDisplayNames()
             .OrderBy(x => x.ActorId)
-            .Select(x => $"{x.ActorId}:{(string.IsNullOrWhiteSpace(x.Uid) ? "-" : x.Uid)}"));
+            .Select(x =>
+            {
+                string uid = string.IsNullOrWhiteSpace(x.Uid) ? "-" : x.Uid;
+                string displayName = string.IsNullOrWhiteSpace(x.DisplayName) ? "-" : x.DisplayName;
+                return $"{x.ActorId}:{uid}/{displayName}";
+            }));
 
     private string FormatStatePlayerEntities()
     {
@@ -809,7 +844,10 @@ public class ClientHandlers : MonoBehaviour
                 string uid = GS.TryGetPlayerUid(e.EntityId, out var resolvedUid) && !string.IsNullOrWhiteSpace(resolvedUid)
                     ? resolvedUid
                     : "-";
-                return $"{e.EntityId}:{uid}@({e.X},{e.Y}) hp={e.Hp} app={e.AppearanceId}";
+                string displayName = GS.TryGetPlayerDisplayName(e.EntityId, out var resolvedName) && !string.IsNullOrWhiteSpace(resolvedName)
+                    ? resolvedName
+                    : "-";
+                return $"{e.EntityId}:{uid}/{displayName}@({e.X},{e.Y}) hp={e.Hp} app={e.AppearanceId}";
             })
             .ToArray();
 
@@ -834,7 +872,12 @@ public class ClientHandlers : MonoBehaviour
 
         return string.Join(",", p.playerss
             .OrderBy(x => x.ActorId)
-            .Select(x => $"{x.ActorId}:{(string.IsNullOrWhiteSpace(x.Uid) ? "-" : x.Uid)}"));
+            .Select(x =>
+            {
+                string uid = string.IsNullOrWhiteSpace(x.Uid) ? "-" : x.Uid;
+                string displayName = string.IsNullOrWhiteSpace(x.Name) ? "-" : x.Name;
+                return $"{x.ActorId}:{uid}/{displayName}";
+            }));
     }
 
     private static string FormatInitMapPlayerEntities(SC_InitMap p)

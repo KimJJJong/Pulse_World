@@ -34,6 +34,7 @@ public sealed class P2PRelayRoom : RoomBase
     private List<string> _hostCandidateOrder = new();
     private readonly Dictionary<string, int> _preferredActorIdByUid = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _preferredSeatByUid = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _preferredDisplayNameByUid = new(StringComparer.OrdinalIgnoreCase);
 
     private const int RelayTickRate = 480;
 
@@ -108,6 +109,9 @@ public sealed class P2PRelayRoom : RoomBase
             .Where(x => x.ActorId > 0)
             .GroupBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(x => x.Key, x => Math.Max(0, x.First().ActorId - 1), StringComparer.OrdinalIgnoreCase);
+        var preferredDisplayNames = normalizedParticipants
+            .GroupBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => NormalizePlayerDisplayName(x.First().DisplayName, x.Key), StringComparer.OrdinalIgnoreCase);
         bool changed;
 
         lock (_lock)
@@ -116,16 +120,20 @@ public sealed class P2PRelayRoom : RoomBase
                 !string.Equals(_preferredHostUid, preferredHostUid ?? "", StringComparison.OrdinalIgnoreCase)
                 || !_hostCandidateOrder.SequenceEqual(normalizedOrder, StringComparer.OrdinalIgnoreCase)
                 || !DictionaryEqual(_preferredActorIdByUid, preferredActorIds)
-                || !DictionaryEqual(_preferredSeatByUid, preferredSeats);
+                || !DictionaryEqual(_preferredSeatByUid, preferredSeats)
+                || !DictionaryEqual(_preferredDisplayNameByUid, preferredDisplayNames);
 
             _preferredHostUid = preferredHostUid ?? "";
             _hostCandidateOrder = normalizedOrder;
             _preferredActorIdByUid.Clear();
             _preferredSeatByUid.Clear();
+            _preferredDisplayNameByUid.Clear();
             foreach (var pair in preferredActorIds)
                 _preferredActorIdByUid[pair.Key] = pair.Value;
             foreach (var pair in preferredSeats)
                 _preferredSeatByUid[pair.Key] = pair.Value;
+            foreach (var pair in preferredDisplayNames)
+                _preferredDisplayNameByUid[pair.Key] = pair.Value;
         }
 
         if (!changed)
@@ -525,6 +533,57 @@ public sealed class P2PRelayRoom : RoomBase
         return true;
     }
 
+    private static bool DictionaryEqual(
+        Dictionary<string, string> left,
+        Dictionary<string, string> right)
+    {
+        if (ReferenceEquals(left, right))
+            return true;
+
+        if (left == null || right == null || left.Count != right.Count)
+            return false;
+
+        foreach (var pair in left)
+        {
+            if (!right.TryGetValue(pair.Key, out var rightValue)
+                || !string.Equals(pair.Value ?? "", rightValue ?? "", StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private string ResolvePlayerDisplayNameUnsafe(string uid)
+    {
+        string displayName = "";
+        if (!string.IsNullOrWhiteSpace(uid) && _preferredDisplayNameByUid.TryGetValue(uid, out var preferredName))
+            displayName = NormalizePlayerDisplayName(preferredName, uid);
+
+        return displayName;
+    }
+
+    private static string NormalizePlayerDisplayName(string displayName, string uid)
+    {
+        string clean = (displayName ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(clean))
+            return "";
+
+        if (!string.IsNullOrWhiteSpace(uid) && string.Equals(clean, uid, StringComparison.OrdinalIgnoreCase))
+            return "";
+
+        if (string.Equals(clean, "Guest", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "Unknown", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "NullName", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "-", StringComparison.Ordinal))
+        {
+            return "";
+        }
+
+        return clean;
+    }
+
     private int ResolvePreferredActorIdUnsafe(string uid)
     {
         if (string.IsNullOrWhiteSpace(uid))
@@ -909,6 +968,7 @@ public sealed class P2PRelayRoom : RoomBase
 
         lock (_lock)
         {
+            int guestIndex = 1;
             foreach (var p in _players.Values.OrderBy(p => p.SeatIndex).ThenBy(p => p.ActorId))
             {
                 states.TryGetValue(p.Uid, out var pState);
@@ -916,13 +976,16 @@ public sealed class P2PRelayRoom : RoomBase
                 int atk = pState?.TotalAtk ?? 0;
                 int def = pState?.TotalDef ?? 0;
                 int appearanceId = pState?.AppearanceId ?? 0;
+                string displayName = ResolvePlayerDisplayNameUnsafe(p.Uid);
+                if (string.IsNullOrWhiteSpace(displayName))
+                    displayName = $"Guest_{guestIndex++:00}";
 
                 var spawn = GetOrAssignSpawn(p);
                 packet.playerss.Add(new SC_InitMap.Players
                 {
                     Uid = p.Uid,
                     ActorId = p.ActorId,
-                    Name = p.Uid
+                    Name = displayName
                 });
 
                 packet.entitiess.Add(new SC_InitMap.Entities
