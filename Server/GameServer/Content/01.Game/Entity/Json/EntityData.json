@@ -249,7 +249,7 @@
             "EntityId": 1034,
             "Name": "Entity_1034_Monster_DemonKing",
             "EntityType": 2,
-            "MaxHp": 10,
+            "MaxHp": 180,
             "ResourcePath": "Data/Entity_1034_Monster_DemonKing"
         },
         {
