@@ -437,7 +437,10 @@ public sealed class MapWorld2D : IGameWorld
                 }
 
                 // Apply Damage
-                int damage = frozen.CustomDamage ?? 0;
+                int baseDamage = Math.Max(0, frozen.CustomDamage ?? 0);
+                int attackerAtk = Math.Max(0, attacker.GetState<int>("ATK"));
+                int targetDef = Math.Max(0, target.GetState<int>("DEF"));
+                int damage = Math.Max(1, baseDamage + attackerAtk - targetDef);
                 int before = target.GetState<int>("HP");
                 int after = Math.Max(0, before - damage);
                 

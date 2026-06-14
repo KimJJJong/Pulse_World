@@ -74,5 +74,7 @@ namespace GameServer.Content.Game.Entity
         public string Name { get; set; }
         public int EntityType { get; set; }
         public int MaxHp { get; set; }
+        public int Atk { get; set; }
+        public int Def { get; set; }
     }
 }

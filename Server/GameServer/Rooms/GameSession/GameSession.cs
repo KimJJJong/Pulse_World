@@ -158,18 +158,29 @@ public sealed class GameSession : SessionBase
         e.SetState("ModelId", entityId); 
 
         int maxHp = 10;
+        int atk = 0;
+        int def = 0;
         var entityData = EntityDataManager.Instance.Get(entityId);
         if (entityData != null)
         {
             maxHp = entityData.MaxHp;
-            Console.WriteLine($"[Spawn] Found Data for {entityId}: HP={maxHp}");
+            atk = entityData.Atk;
+            def = entityData.Def;
+            Console.WriteLine($"[Spawn] Found Data for {entityId}: HP={maxHp} ATK={atk} DEF={def}");
         }
         else
         {
-            if (type == EntityType.Monster) maxHp = 50;
+            if (type == EntityType.Monster)
+            {
+                maxHp = 50;
+                atk = 10;
+                def = 0;
+            }
         }
 
         e.SetState("HP", maxHp);
+        e.SetState("ATK", atk);
+        e.SetState("DEF", def);
         e.SetState("GroupId", groupId);
         e.SetState("SizeX", Math.Max(1, sizeX));
         e.SetState("SizeY", Math.Max(1, sizeY));

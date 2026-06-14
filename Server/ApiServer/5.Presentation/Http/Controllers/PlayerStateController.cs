@@ -1,5 +1,6 @@
 using ApiServer.Application.Services;
 using ApiServer.Application.Ports;
+using ApiServer.Domain.Items;
 using ApiServer.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,10 @@ namespace ApiServer.Presentation.Http.Controllers.Game;
 [Route("api/game/player-state")]
 public class PlayerStateController : ControllerBase
 {
+    private const int BaseCombatHp = 140;
+    private const int ActiveSkillSlotCount = 4;
+    private static readonly string[] EquipmentSlotOrder = { "Weapon", "Head", "Armor", "Shoes" };
+
     private readonly IInventoryRepository _inventoryRepository;
     private readonly IItemTemplateService _templateService;
     private readonly IUserRepository _userRepository;
@@ -56,15 +61,15 @@ public class PlayerStateController : ControllerBase
     private async Task<PlayerStateResponse> BuildPlayerStateAsync(string uid, CancellationToken ct)
     {
         var items = await _inventoryRepository.GetInventoryAsync(uid);
-        var equippedItems = items.Where(x => x.IsEquipped).ToList();
+        var equippedBySlot = ResolveEquippedItems(items.Where(x => x.IsEquipped));
         var user = await _userRepository.FindByUidAsync(uid, ct);
 
         var response = new PlayerStateResponse
         {
-            BaseHp = 10000,
+            BaseHp = BaseCombatHp,
             BaseAtk = 0,
             BaseDef = 0,
-            TotalHp = 10000,
+            TotalHp = BaseCombatHp,
             TotalAtk = 0,
             TotalDef = 0,
             SavedAppearanceId = user?.AppearanceId ?? 0,
@@ -72,24 +77,16 @@ public class PlayerStateController : ControllerBase
             Gears = new List<EquippedGearDto>()
         };
 
-        // 슬롯 배치 정책
-        //   ActiveSkillSlots[0] = 무기 skill_id          (H키 / 서버 Slot=0)
-        //   ActiveSkillSlots[1] = 비무기 첫 번째 skill_id (J키 / 서버 Slot=1)
-        //   ActiveSkillSlots[2] = 비무기 두 번째 skill_id (K키 / 서버 Slot=2)
-        //   ActiveSkillSlots[3] = 비무기 세 번째 skill_id (L키 / 서버 Slot=3)
-        //   NormalAttackSkillId = 무기 normal_attack_skill_id (Space키)
-
-        int nonWeaponSlotIndex = 1;
         bool appearanceOverridden = response.AppearanceId > 0;
         int effectiveAppearanceId = response.AppearanceId;
 
-        // 무기 우선 처리
-        foreach (var item in equippedItems)
+        foreach (string slot in EquipmentSlotOrder)
         {
-            var tmpl = _templateService.GetEquipment(item.TemplateId);
-            if (tmpl == null) continue;
-            if (!string.Equals(tmpl.SlotType, "Weapon", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!equippedBySlot.TryGetValue(slot, out var equipped))
+                continue;
 
+            var tmpl = equipped.Template;
+            int skillSlot = GetActiveSkillSlotIndex(slot);
             response.TotalHp  += tmpl.Hp;
             response.TotalAtk += tmpl.Atk;
             response.TotalDef += tmpl.Def;
@@ -97,72 +94,29 @@ public class PlayerStateController : ControllerBase
             response.Gears.Add(new EquippedGearDto
             {
                 TemplateId = tmpl.Id,
-                SlotType   = 0,
-                SkillId    = tmpl.SkillId,
+                SlotType   = skillSlot,
+                SkillId    = tmpl.SkillId ?? "",
                 BonusHp    = tmpl.Hp,
                 BonusAtk   = tmpl.Atk,
                 BonusDef   = tmpl.Def
             });
 
-            response.ActiveSkillSlots[0] = tmpl.SkillId ?? "";
-
-            if (!string.IsNullOrEmpty(tmpl.NormalAttackSkillId))
-                response.NormalAttackSkillId = tmpl.NormalAttackSkillId;
-            else if (!string.IsNullOrEmpty(tmpl.SkillId))
-                response.NormalAttackSkillId = tmpl.SkillId;
-
-            if (!appearanceOverridden && tmpl.AppearanceId > 0)
-                effectiveAppearanceId = tmpl.AppearanceId;
-        }
-
-        // 비무기 장비: Slot 1, 2, 3 순서대로
-        foreach (var item in equippedItems)
-        {
-            var tmpl = _templateService.GetEquipment(item.TemplateId);
-            if (tmpl == null) continue;
-            if (string.Equals(tmpl.SlotType, "Weapon", StringComparison.OrdinalIgnoreCase)) continue;
-            if (string.IsNullOrEmpty(tmpl.SkillId)) continue;
-            if (nonWeaponSlotIndex >= 4) break;
-
-            response.TotalHp  += tmpl.Hp;
-            response.TotalAtk += tmpl.Atk;
-            response.TotalDef += tmpl.Def;
-
-            response.Gears.Add(new EquippedGearDto
+            if (slot == "Weapon")
             {
-                TemplateId = tmpl.Id,
-                SlotType   = nonWeaponSlotIndex,
-                SkillId    = tmpl.SkillId,
-                BonusHp    = tmpl.Hp,
-                BonusAtk   = tmpl.Atk,
-                BonusDef   = tmpl.Def
-            });
+                response.ActiveSkillSlots[0] = tmpl.SkillId ?? "";
 
-            response.ActiveSkillSlots[nonWeaponSlotIndex] = tmpl.SkillId;
-            nonWeaponSlotIndex++;
-        }
+                if (!string.IsNullOrEmpty(tmpl.NormalAttackSkillId))
+                    response.NormalAttackSkillId = tmpl.NormalAttackSkillId;
+                else if (!string.IsNullOrEmpty(tmpl.SkillId))
+                    response.NormalAttackSkillId = tmpl.SkillId;
 
-        // skill_id 없는 비무기 장비는 스탯만 적용
-        foreach (var item in equippedItems)
-        {
-            var tmpl = _templateService.GetEquipment(item.TemplateId);
-            if (tmpl == null) continue;
-            if (string.Equals(tmpl.SlotType, "Weapon", StringComparison.OrdinalIgnoreCase)) continue;
-            if (!string.IsNullOrEmpty(tmpl.SkillId)) continue;
-
-            response.TotalHp  += tmpl.Hp;
-            response.TotalAtk += tmpl.Atk;
-            response.TotalDef += tmpl.Def;
-
-            response.Gears.Add(new EquippedGearDto
+                if (!appearanceOverridden && tmpl.AppearanceId > 0)
+                    effectiveAppearanceId = tmpl.AppearanceId;
+            }
+            else if (skillSlot > 0 && skillSlot < ActiveSkillSlotCount && !string.IsNullOrEmpty(tmpl.SkillId))
             {
-                TemplateId = tmpl.Id,
-                SlotType   = -1,
-                SkillId    = "",
-                BonusHp    = tmpl.Hp,
-                BonusAtk   = tmpl.Atk,
-                BonusDef   = tmpl.Def
-            });
+                response.ActiveSkillSlots[skillSlot] = tmpl.SkillId;
+            }
         }
 
         response.AppearanceId = effectiveAppearanceId;
@@ -174,9 +128,65 @@ public class PlayerStateController : ControllerBase
         return response;
     }
 
+    private Dictionary<string, EquippedItemInfo> ResolveEquippedItems(IEnumerable<GameItem> equippedItems)
+    {
+        var result = new Dictionary<string, EquippedItemInfo>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in equippedItems)
+        {
+            var tmpl = _templateService.GetEquipment(item.TemplateId);
+            if (tmpl == null)
+                continue;
+
+            string slot = NormalizeSlot(tmpl.SlotType);
+            if (GetActiveSkillSlotIndex(slot) < 0)
+                continue;
+
+            if (!result.TryGetValue(slot, out var current) || item.Id > current.Item.Id)
+                result[slot] = new EquippedItemInfo(item, tmpl);
+        }
+
+        return result;
+    }
+
+    private static string NormalizeSlot(string slot)
+    {
+        foreach (string allowedSlot in EquipmentSlotOrder)
+        {
+            if (string.Equals(slot, allowedSlot, StringComparison.OrdinalIgnoreCase))
+                return allowedSlot;
+        }
+
+        return string.Empty;
+    }
+
+    private static int GetActiveSkillSlotIndex(string slot)
+    {
+        return slot switch
+        {
+            "Weapon" => 0,
+            "Head" => 1,
+            "Armor" => 2,
+            "Shoes" => 3,
+            _ => -1
+        };
+    }
+
     private static bool IsAllowedAppearanceId(int appearanceId)
     {
         return appearanceId is 0 or 10 or 11 or 12;
+    }
+
+    private sealed class EquippedItemInfo
+    {
+        public EquippedItemInfo(GameItem item, EquipmentTemplateDto template)
+        {
+            Item = item;
+            Template = template;
+        }
+
+        public GameItem Item { get; }
+        public EquipmentTemplateDto Template { get; }
     }
 }
 
@@ -187,10 +197,10 @@ public sealed class SetAppearanceRequest
 
 public class PlayerStateResponse
 {
-    public int BaseHp { get; set; } = 10;
+    public int BaseHp { get; set; } = 140;
     public int BaseAtk { get; set; } = 0;
     public int BaseDef { get; set; } = 0;
-    public int TotalHp { get; set; } = 10;
+    public int TotalHp { get; set; } = 140;
     public int TotalAtk { get; set; } = 0;
     public int TotalDef { get; set; } = 0;
 

@@ -1,20 +1,47 @@
 {
   "SkillId": "MoveSkill",
-  "TotalDurationTicks": 480,
+  "TotalDurationTicks": 960,
   "Tracks": [
     {
-      "TrackName": "Track 0",
+      "TrackName": "Move",
       "Events": [
         {
-          "TriggerTick": 0,
-          "DurationTicks": 480,
+          "TriggerTick": 240,
+          "DurationTicks": 240,
           "Action": {
             "Type": 3,
             "MoveType": 1,
             "Distance": 2,
             "DirectionX": 0,
-            "DirectionY": 1,
+            "DirectionY": -1,
             "StopOnObstacle": true
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Control",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 720,
+          "Action": {
+            "Type": 4
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Sound",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 240,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "event:/SFX/Synthwave_Staff",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
           }
         }
       ]

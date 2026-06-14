@@ -3,7 +3,7 @@
   "TotalDurationTicks": 960,
   "Tracks": [
     {
-      "TrackName": "Track 0",
+      "TrackName": "Telegraph",
       "Events": [
         {
           "TriggerTick": 0,
@@ -36,26 +36,27 @@
                 {
                   "X": 0,
                   "Y": -6
-                },
-                {
-                  "X": 0,
-                  "Y": -7
                 }
               ],
               "CasterSize": 1,
               "RotateWithCaster": true
             },
-            "ColorSteps": []
+            "ColorSteps": [
+              {
+                "DurationTicks": 480,
+                "ColorHex": "#E8D36A"
+              }
+            ]
           }
         }
       ]
     },
     {
-      "TrackName": "Track 1",
+      "TrackName": "Impact",
       "Events": [
         {
           "TriggerTick": 480,
-          "DurationTicks": 480,
+          "DurationTicks": 240,
           "Action": {
             "Type": 2,
             "Shape": {
@@ -84,16 +85,12 @@
                 {
                   "X": 0,
                   "Y": -6
-                },
-                {
-                  "X": 0,
-                  "Y": -7
                 }
               ],
               "CasterSize": 1,
               "RotateWithCaster": true
             },
-            "Amount": 15,
+            "Amount": 7,
             "HitPlayers": false,
             "HitMonsters": true,
             "StunDurationTicks": 0,
@@ -104,7 +101,7 @@
       ]
     },
     {
-      "TrackName": "Track 2",
+      "TrackName": "Control",
       "Events": [
         {
           "TriggerTick": 0,
@@ -116,26 +113,11 @@
       ]
     },
     {
-      "TrackName": "Track 3",
+      "TrackName": "Sound",
       "Events": [
         {
           "TriggerTick": 240,
-          "DurationTicks": 480,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "event:/SFX/Funk_Bow",
-            "Volume": 1.0,
-            "UseOwnerPerspective": true
-          }
-        }
-      ]
-    },
-    {
-      "TrackName": "Track 4",
-      "Events": [
-        {
-          "TriggerTick": 720,
-          "DurationTicks": 480,
+          "DurationTicks": 240,
           "Action": {
             "Type": 6,
             "FmodEventPath": "event:/SFX/Funk_Bow",

@@ -1,298 +1,382 @@
 {
-    "Entities": [
-        {
-            "EntityId": 10,
-            "Name": "Entity_10_Player_Barbarian",
-            "EntityType": 1,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_10_Player_Barbarian"
-        },
-        {
-            "EntityId": 11,
-            "Name": "Entity_11_Player_Mage",
-            "EntityType": 1,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_11_Player_Mage"
-        },
-        {
-            "EntityId": 12,
-            "Name": "Entity_12_Player_Rogu",
-            "EntityType": 1,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_12_Player_Rogu"
-        },
-        {
-            "EntityId": 500,
-            "Name": "Entity_500_Crystal",
-            "EntityType": 3,
-            "MaxHp": 999999,
-            "ResourcePath": "Data/Entity_500_Crystal"
-        },
-        {
-            "EntityId": 501,
-            "Name": "Entity_501_VoidWall",
-            "EntityType": 3,
-            "MaxHp": 999999,
-            "ResourcePath": "Data/Entity_501_VoidWall"
-        },
-        {
-            "EntityId": 502,
-            "Name": "Entity_502_Runic_Obelisk",
-            "EntityType": 3,
-            "MaxHp": 999999,
-            "ResourcePath": "Data/Entity_502_Runic_Obelisk"
-        },
-        {
-            "EntityId": 503,
-            "Name": "Entity_503_StageSummon_MossyStoneRing",
-            "EntityType": 3,
-            "MaxHp": 999999,
-            "ResourcePath": "Data/Entity_503_StageSummon_MossyStoneRing"
-        },
-        {
-            "EntityId": 504,
-            "Name": "Entity_504_StageSummon_RunicStoneGate",
-            "EntityType": 3,
-            "MaxHp": 999999,
-            "ResourcePath": "Data/Entity_504_StageSummon_RunicStoneGate"
-        },
-        {
-            "EntityId": 999,
-            "Name": "Entity_999_Monster_TrainingDummy",
-            "EntityType": 2,
-            "MaxHp": 50,
-            "ResourcePath": "Data/Entity_999_Monster_TrainingDummy"
-        },
-        {
-            "EntityId": 1000,
-            "Name": "Entity_1000_Monster_BlackPawn",
-            "EntityType": 2,
-            "MaxHp": 50,
-            "ResourcePath": "Data/Entity_1000_Monster_BlackPawn"
-        },
-        {
-            "EntityId": 1001,
-            "Name": "Entity_1001_Monster_WhitePawn",
-            "EntityType": 2,
-            "MaxHp": 50,
-            "ResourcePath": "Data/Entity_1001_Monster_WhitePawn"
-        },
-        {
-            "EntityId": 1010,
-            "Name": "Entity_1010_Monster_Bat",
-            "EntityType": 2,
-            "MaxHp": 30,
-            "ResourcePath": "Data/Entity_1010_Monster_Bat"
-        },
-        {
-            "EntityId": 1011,
-            "Name": "Entity_1011_Monster_Dragon",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1011_Monster_Dragon"
-        },
-        {
-            "EntityId": 1012,
-            "Name": "Entity_1012_Monster_EvilMage",
-            "EntityType": 2,
-            "MaxHp": 100,
-            "ResourcePath": "Data/Entity_1012_Monster_EvilMage"
-        },
-        {
-            "EntityId": 1013,
-            "Name": "Entity_1013_Monster_Golem",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1013_Monster_Golem"
-        },
-        {
-            "EntityId": 1014,
-            "Name": "Entity_1014_Monster_MonsterPlant",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1014_Monster_MonsterPlant"
-        },
-        {
-            "EntityId": 1015,
-            "Name": "Entity_1015_Monster_Orc",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1015_Monster_Orc"
-        },
-        {
-            "EntityId": 1016,
-            "Name": "Entity_1016_Monster_Skeleton",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1016_Monster_Skeleton"
-        },
-        {
-            "EntityId": 1017,
-            "Name": "Entity_1017_Monster_Slim",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1017_Monster_Slim"
-        },
-        {
-            "EntityId": 1018,
-            "Name": "Entity_1018_Monster_Spider",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1018_Monster_Spider"
-        },
-        {
-            "EntityId": 1019,
-            "Name": "Entity_1019_Monster_TurtleShell",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1019_Monster_TurtleShell"
-        },
-        {
-            "EntityId": 1020,
-            "Name": "Entity_1020_Monster_Beholder",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1020_Monster_Beholder"
-        },
-        {
-            "EntityId": 1021,
-            "Name": "Entity_1021_Monster_BlackKnight",
-            "EntityType": 2,
-            "MaxHp": 250,
-            "ResourcePath": "Data/Entity_1021_Monster_BlackKnight"
-        },
-        {
-            "EntityId": 1022,
-            "Name": "Entity_1022_Monster_ChestMonster",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1022_Monster_ChestMonster"
-        },
-        {
-            "EntityId": 1023,
-            "Name": "Entity_1023_Monster_CrabMonster",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1023_Monster_CrabMonster"
-        },
-        {
-            "EntityId": 1024,
-            "Name": "Entity_1024_Monster_FlyingDemon",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1024_Monster_FlyingDemon"
-        },
-        {
-            "EntityId": 1025,
-            "Name": "Entity_1025_Monster_LizardWarrior",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1025_Monster_LizardWarrior"
-        },
-        {
-            "EntityId": 1026,
-            "Name": "Entity_1026_Monster_RatAssassin",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1026_Monster_RatAssassin"
-        },
-        {
-            "EntityId": 1027,
-            "Name": "Entity_1027_Monster_Specter",
-            "EntityType": 2,
-            "MaxHp": 50,
-            "ResourcePath": "Data/Entity_1027_Monster_Specter"
-        },
-        {
-            "EntityId": 1028,
-            "Name": "Entity_1028_Monster_Werewolf",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1028_Monster_Werewolf"
-        },
-        {
-            "EntityId": 1029,
-            "Name": "Entity_1029_Monster_WormMonster",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1029_Monster_WormMonster"
-        },
-        {
-            "EntityId": 1030,
-            "Name": "Entity_1030_Monster_BattleBee",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1030_Monster_BattleBee"
-        },
-        {
-            "EntityId": 1031,
-            "Name": "Entity_1031_Monster_BishopKnight",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1031_Monster_BishopKnight"
-        },
-        {
-            "EntityId": 1032,
-            "Name": "Entity_1032_Monster_Cactus",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1032_Monster_Cactus"
-        },
-        {
-            "EntityId": 1033,
-            "Name": "Entity_1033_Monster_Cyclops",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1033_Monster_Cyclops"
-        },
-        {
-            "EntityId": 1034,
-            "Name": "Entity_1034_Monster_DemonKing",
-            "EntityType": 2,
-            "MaxHp": 180,
-            "ResourcePath": "Data/Entity_1034_Monster_DemonKing"
-        },
-        {
-            "EntityId": 1035,
-            "Name": "Entity_1035_Monster_Fishman",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1035_Monster_Fishman"
-        },
-        {
-            "EntityId": 1036,
-            "Name": "Entity_1036_Monster_MushroomAngry",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1036_Monster_MushroomAngry"
-        },
-        {
-            "EntityId": 1037,
-            "Name": "Entity_1037_Monster_MushroomSmile",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1037_Monster_MushroomSmile"
-        },
-        {
-            "EntityId": 1038,
-            "Name": "Entity_1038_Monster_NagaWizard",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1038_Monster_NagaWizard"
-        },
-        {
-            "EntityId": 1039,
-            "Name": "Entity_1039_Monster_Salamander",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1039_Monster_Salamander"
-        },
-        {
-            "EntityId": 1040,
-            "Name": "Entity_1040_Monster_StingRay",
-            "EntityType": 2,
-            "MaxHp": 10,
-            "ResourcePath": "Data/Entity_1040_Monster_StingRay"
-        }
-    ]
+  "Entities": [
+    {
+      "EntityId": 10,
+      "Name": "Entity_10_Player_Barbarian",
+      "EntityType": 1,
+      "MaxHp": 140,
+      "ResourcePath": "Data/Entity_10_Player_Barbarian",
+      "Atk": 0,
+      "Def": 0
+    },
+    {
+      "EntityId": 11,
+      "Name": "Entity_11_Player_Mage",
+      "EntityType": 1,
+      "MaxHp": 140,
+      "ResourcePath": "Data/Entity_11_Player_Mage",
+      "Atk": 0,
+      "Def": 0
+    },
+    {
+      "EntityId": 12,
+      "Name": "Entity_12_Player_Rogu",
+      "EntityType": 1,
+      "MaxHp": 140,
+      "ResourcePath": "Data/Entity_12_Player_Rogu",
+      "Atk": 0,
+      "Def": 0
+    },
+    {
+      "EntityId": 500,
+      "Name": "Entity_500_Crystal",
+      "EntityType": 3,
+      "MaxHp": 999999,
+      "ResourcePath": "Data/Entity_500_Crystal",
+      "Atk": 0,
+      "Def": 0
+    },
+    {
+      "EntityId": 501,
+      "Name": "Entity_501_VoidWall",
+      "EntityType": 3,
+      "MaxHp": 999999,
+      "ResourcePath": "Data/Entity_501_VoidWall",
+      "Atk": 0,
+      "Def": 0
+    },
+    {
+      "EntityId": 502,
+      "Name": "Entity_502_Runic_Obelisk",
+      "EntityType": 3,
+      "MaxHp": 999999,
+      "ResourcePath": "Data/Entity_502_Runic_Obelisk",
+      "Atk": 0,
+      "Def": 0
+    },
+    {
+      "EntityId": 503,
+      "Name": "Entity_503_StageSummon_MossyStoneRing",
+      "EntityType": 3,
+      "MaxHp": 999999,
+      "ResourcePath": "Data/Entity_503_StageSummon_MossyStoneRing",
+      "Atk": 0,
+      "Def": 0
+    },
+    {
+      "EntityId": 504,
+      "Name": "Entity_504_StageSummon_RunicStoneGate",
+      "EntityType": 3,
+      "MaxHp": 999999,
+      "ResourcePath": "Data/Entity_504_StageSummon_RunicStoneGate",
+      "Atk": 0,
+      "Def": 0
+    },
+    {
+      "EntityId": 999,
+      "Name": "Entity_999_Monster_TrainingDummy",
+      "EntityType": 2,
+      "MaxHp": 90,
+      "ResourcePath": "Data/Entity_999_Monster_TrainingDummy",
+      "Atk": 0,
+      "Def": 0
+    },
+    {
+      "EntityId": 1000,
+      "Name": "Entity_1000_Monster_BlackPawn",
+      "EntityType": 2,
+      "MaxHp": 55,
+      "ResourcePath": "Data/Entity_1000_Monster_BlackPawn",
+      "Atk": 8,
+      "Def": 1
+    },
+    {
+      "EntityId": 1001,
+      "Name": "Entity_1001_Monster_WhitePawn",
+      "EntityType": 2,
+      "MaxHp": 55,
+      "ResourcePath": "Data/Entity_1001_Monster_WhitePawn",
+      "Atk": 8,
+      "Def": 1
+    },
+    {
+      "EntityId": 1010,
+      "Name": "Entity_1010_Monster_Bat",
+      "EntityType": 2,
+      "MaxHp": 45,
+      "ResourcePath": "Data/Entity_1010_Monster_Bat",
+      "Atk": 7,
+      "Def": 0
+    },
+    {
+      "EntityId": 1011,
+      "Name": "Entity_1011_Monster_Dragon",
+      "EntityType": 2,
+      "MaxHp": 280,
+      "ResourcePath": "Data/Entity_1011_Monster_Dragon",
+      "Atk": 28,
+      "Def": 6
+    },
+    {
+      "EntityId": 1012,
+      "Name": "Entity_1012_Monster_EvilMage",
+      "EntityType": 2,
+      "MaxHp": 130,
+      "ResourcePath": "Data/Entity_1012_Monster_EvilMage",
+      "Atk": 18,
+      "Def": 2
+    },
+    {
+      "EntityId": 1013,
+      "Name": "Entity_1013_Monster_Golem",
+      "EntityType": 2,
+      "MaxHp": 180,
+      "ResourcePath": "Data/Entity_1013_Monster_Golem",
+      "Atk": 20,
+      "Def": 8
+    },
+    {
+      "EntityId": 1014,
+      "Name": "Entity_1014_Monster_MonsterPlant",
+      "EntityType": 2,
+      "MaxHp": 85,
+      "ResourcePath": "Data/Entity_1014_Monster_MonsterPlant",
+      "Atk": 12,
+      "Def": 3
+    },
+    {
+      "EntityId": 1015,
+      "Name": "Entity_1015_Monster_Orc",
+      "EntityType": 2,
+      "MaxHp": 110,
+      "ResourcePath": "Data/Entity_1015_Monster_Orc",
+      "Atk": 16,
+      "Def": 4
+    },
+    {
+      "EntityId": 1016,
+      "Name": "Entity_1016_Monster_Skeleton",
+      "EntityType": 2,
+      "MaxHp": 75,
+      "ResourcePath": "Data/Entity_1016_Monster_Skeleton",
+      "Atk": 12,
+      "Def": 2
+    },
+    {
+      "EntityId": 1017,
+      "Name": "Entity_1017_Monster_Slim",
+      "EntityType": 2,
+      "MaxHp": 60,
+      "ResourcePath": "Data/Entity_1017_Monster_Slim",
+      "Atk": 9,
+      "Def": 1
+    },
+    {
+      "EntityId": 1018,
+      "Name": "Entity_1018_Monster_Spider",
+      "EntityType": 2,
+      "MaxHp": 70,
+      "ResourcePath": "Data/Entity_1018_Monster_Spider",
+      "Atk": 11,
+      "Def": 1
+    },
+    {
+      "EntityId": 1019,
+      "Name": "Entity_1019_Monster_TurtleShell",
+      "EntityType": 2,
+      "MaxHp": 120,
+      "ResourcePath": "Data/Entity_1019_Monster_TurtleShell",
+      "Atk": 10,
+      "Def": 7
+    },
+    {
+      "EntityId": 1020,
+      "Name": "Entity_1020_Monster_Beholder",
+      "EntityType": 2,
+      "MaxHp": 115,
+      "ResourcePath": "Data/Entity_1020_Monster_Beholder",
+      "Atk": 17,
+      "Def": 3
+    },
+    {
+      "EntityId": 1021,
+      "Name": "Entity_1021_Monster_BlackKnight",
+      "EntityType": 2,
+      "MaxHp": 260,
+      "ResourcePath": "Data/Entity_1021_Monster_BlackKnight",
+      "Atk": 22,
+      "Def": 8
+    },
+    {
+      "EntityId": 1022,
+      "Name": "Entity_1022_Monster_ChestMonster",
+      "EntityType": 2,
+      "MaxHp": 95,
+      "ResourcePath": "Data/Entity_1022_Monster_ChestMonster",
+      "Atk": 14,
+      "Def": 4
+    },
+    {
+      "EntityId": 1023,
+      "Name": "Entity_1023_Monster_CrabMonster",
+      "EntityType": 2,
+      "MaxHp": 90,
+      "ResourcePath": "Data/Entity_1023_Monster_CrabMonster",
+      "Atk": 13,
+      "Def": 5
+    },
+    {
+      "EntityId": 1024,
+      "Name": "Entity_1024_Monster_FlyingDemon",
+      "EntityType": 2,
+      "MaxHp": 80,
+      "ResourcePath": "Data/Entity_1024_Monster_FlyingDemon",
+      "Atk": 15,
+      "Def": 1
+    },
+    {
+      "EntityId": 1025,
+      "Name": "Entity_1025_Monster_LizardWarrior",
+      "EntityType": 2,
+      "MaxHp": 105,
+      "ResourcePath": "Data/Entity_1025_Monster_LizardWarrior",
+      "Atk": 16,
+      "Def": 4
+    },
+    {
+      "EntityId": 1026,
+      "Name": "Entity_1026_Monster_RatAssassin",
+      "EntityType": 2,
+      "MaxHp": 70,
+      "ResourcePath": "Data/Entity_1026_Monster_RatAssassin",
+      "Atk": 18,
+      "Def": 1
+    },
+    {
+      "EntityId": 1027,
+      "Name": "Entity_1027_Monster_Specter",
+      "EntityType": 2,
+      "MaxHp": 95,
+      "ResourcePath": "Data/Entity_1027_Monster_Specter",
+      "Atk": 18,
+      "Def": 0
+    },
+    {
+      "EntityId": 1028,
+      "Name": "Entity_1028_Monster_Werewolf",
+      "EntityType": 2,
+      "MaxHp": 130,
+      "ResourcePath": "Data/Entity_1028_Monster_Werewolf",
+      "Atk": 20,
+      "Def": 3
+    },
+    {
+      "EntityId": 1029,
+      "Name": "Entity_1029_Monster_WormMonster",
+      "EntityType": 2,
+      "MaxHp": 100,
+      "ResourcePath": "Data/Entity_1029_Monster_WormMonster",
+      "Atk": 14,
+      "Def": 5
+    },
+    {
+      "EntityId": 1030,
+      "Name": "Entity_1030_Monster_BattleBee",
+      "EntityType": 2,
+      "MaxHp": 65,
+      "ResourcePath": "Data/Entity_1030_Monster_BattleBee",
+      "Atk": 13,
+      "Def": 0
+    },
+    {
+      "EntityId": 1031,
+      "Name": "Entity_1031_Monster_BishopKnight",
+      "EntityType": 2,
+      "MaxHp": 140,
+      "ResourcePath": "Data/Entity_1031_Monster_BishopKnight",
+      "Atk": 18,
+      "Def": 6
+    },
+    {
+      "EntityId": 1032,
+      "Name": "Entity_1032_Monster_Cactus",
+      "EntityType": 2,
+      "MaxHp": 100,
+      "ResourcePath": "Data/Entity_1032_Monster_Cactus",
+      "Atk": 12,
+      "Def": 5
+    },
+    {
+      "EntityId": 1033,
+      "Name": "Entity_1033_Monster_Cyclops",
+      "EntityType": 2,
+      "MaxHp": 180,
+      "ResourcePath": "Data/Entity_1033_Monster_Cyclops",
+      "Atk": 24,
+      "Def": 5
+    },
+    {
+      "EntityId": 1034,
+      "Name": "Entity_1034_Monster_DemonKing",
+      "EntityType": 2,
+      "MaxHp": 320,
+      "ResourcePath": "Data/Entity_1034_Monster_DemonKing",
+      "Atk": 30,
+      "Def": 10
+    },
+    {
+      "EntityId": 1035,
+      "Name": "Entity_1035_Monster_Fishman",
+      "EntityType": 2,
+      "MaxHp": 95,
+      "ResourcePath": "Data/Entity_1035_Monster_Fishman",
+      "Atk": 15,
+      "Def": 3
+    },
+    {
+      "EntityId": 1036,
+      "Name": "Entity_1036_Monster_MushroomAngry",
+      "EntityType": 2,
+      "MaxHp": 75,
+      "ResourcePath": "Data/Entity_1036_Monster_MushroomAngry",
+      "Atk": 13,
+      "Def": 2
+    },
+    {
+      "EntityId": 1037,
+      "Name": "Entity_1037_Monster_MushroomSmile",
+      "EntityType": 2,
+      "MaxHp": 65,
+      "ResourcePath": "Data/Entity_1037_Monster_MushroomSmile",
+      "Atk": 9,
+      "Def": 1
+    },
+    {
+      "EntityId": 1038,
+      "Name": "Entity_1038_Monster_NagaWizard",
+      "EntityType": 2,
+      "MaxHp": 125,
+      "ResourcePath": "Data/Entity_1038_Monster_NagaWizard",
+      "Atk": 19,
+      "Def": 2
+    },
+    {
+      "EntityId": 1039,
+      "Name": "Entity_1039_Monster_Salamander",
+      "EntityType": 2,
+      "MaxHp": 110,
+      "ResourcePath": "Data/Entity_1039_Monster_Salamander",
+      "Atk": 17,
+      "Def": 3
+    },
+    {
+      "EntityId": 1040,
+      "Name": "Entity_1040_Monster_StingRay",
+      "EntityType": 2,
+      "MaxHp": 80,
+      "ResourcePath": "Data/Entity_1040_Monster_StingRay",
+      "Atk": 16,
+      "Def": 1
+    }
+  ]
 }

@@ -1,5 +1,5 @@
 {
-  "SkillId": "ArmorSkill",
+  "SkillId": "AxeAttack",
   "TotalDurationTicks": 960,
   "Tracks": [
     {
@@ -14,20 +14,16 @@
               "ShapeType": 3,
               "Cells": [
                 {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
                   "X": 0,
                   "Y": -1
                 },
                 {
-                  "X": -1,
-                  "Y": 0
-                },
-                {
                   "X": 1,
-                  "Y": 0
-                },
-                {
-                  "X": 0,
-                  "Y": 1
+                  "Y": -1
                 }
               ],
               "CasterSize": 1,
@@ -55,30 +51,26 @@
               "ShapeType": 3,
               "Cells": [
                 {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
                   "X": 0,
                   "Y": -1
                 },
                 {
-                  "X": -1,
-                  "Y": 0
-                },
-                {
                   "X": 1,
-                  "Y": 0
-                },
-                {
-                  "X": 0,
-                  "Y": 1
+                  "Y": -1
                 }
               ],
               "CasterSize": 1,
               "RotateWithCaster": true
             },
-            "Amount": 10,
+            "Amount": 14,
             "HitPlayers": false,
             "HitMonsters": true,
             "StunDurationTicks": 0,
-            "KnockbackDistance": 1,
+            "KnockbackDistance": 0,
             "RecalculateTargets": false
           }
         }
@@ -100,11 +92,11 @@
       "TrackName": "Sound",
       "Events": [
         {
-          "TriggerTick": 240,
+          "TriggerTick": 360,
           "DurationTicks": 240,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "event:/SFX/Funk_Parry",
+            "FmodEventPath": "event:/SFX/Attack_Axe",
             "Volume": 1.0,
             "UseOwnerPerspective": true
           }

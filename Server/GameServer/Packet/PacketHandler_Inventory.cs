@@ -67,14 +67,32 @@ partial class PacketHandler
                 bool success = false;
                 if (target != null)
                 {
-                    // Update State
-                    target.IsEquipped = req.Equip;
+                    var targetTemplate = ServerServices.ItemTemplates.GetEquipment(target.TemplateId);
+                    if (targetTemplate != null && IsAllowedEquipmentSlot(targetTemplate.SlotType))
+                    {
+                        if (req.Equip)
+                        {
+                            foreach (var item in items)
+                            {
+                                if (item.InstanceId == target.InstanceId)
+                                    continue;
 
-                    // TODO: Un-equip other items in same slot if needed? -> Later
-                    
-                    // Save back
-                    await ServerServices.InventoryManager.SaveInventoryAsync(uid, items);
-                    success = true;
+                                var itemTemplate = ServerServices.ItemTemplates.GetEquipment(item.TemplateId);
+                                if (itemTemplate != null && itemTemplate.SlotType == targetTemplate.SlotType)
+                                    item.IsEquipped = false;
+                            }
+                        }
+
+                        target.IsEquipped = req.Equip;
+
+                        // Save back
+                        await ServerServices.InventoryManager.SaveInventoryAsync(uid, items);
+                        success = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[CS_EquipItem] Invalid equipment template. InstanceId={req.InstanceId} TemplateId={target.TemplateId}");
+                    }
                 }
 
                 var res = new SC_EquipResult
@@ -92,6 +110,15 @@ partial class PacketHandler
             }
         });
     }
+
+    private static bool IsAllowedEquipmentSlot(EquipmentSlot slot)
+    {
+        return slot == EquipmentSlot.Weapon
+            || slot == EquipmentSlot.Head
+            || slot == EquipmentSlot.Armor
+            || slot == EquipmentSlot.Shoes;
+    }
+
     public static void CS_DestroyItemHandler(PacketSession session, IPacket packet)
     {
         ClientSession s = (ClientSession)session;

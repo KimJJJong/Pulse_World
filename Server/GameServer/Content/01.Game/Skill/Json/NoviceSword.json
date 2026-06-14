@@ -3,7 +3,7 @@
   "TotalDurationTicks": 960,
   "Tracks": [
     {
-      "TrackName": "Track 0",
+      "TrackName": "Telegraph",
       "Events": [
         {
           "TriggerTick": 0,
@@ -24,22 +24,31 @@
                 {
                   "X": 1,
                   "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
                 }
               ],
               "CasterSize": 1,
               "RotateWithCaster": true
             },
-            "ColorSteps": []
+            "ColorSteps": [
+              {
+                "DurationTicks": 480,
+                "ColorHex": "#E8D36A"
+              }
+            ]
           }
         }
       ]
     },
     {
-      "TrackName": "Track 2",
+      "TrackName": "Impact",
       "Events": [
         {
           "TriggerTick": 480,
-          "DurationTicks": 480,
+          "DurationTicks": 240,
           "Action": {
             "Type": 2,
             "Shape": {
@@ -56,12 +65,16 @@
                 {
                   "X": 1,
                   "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
                 }
               ],
               "CasterSize": 1,
               "RotateWithCaster": true
             },
-            "Amount": 20,
+            "Amount": 16,
             "HitPlayers": false,
             "HitMonsters": true,
             "StunDurationTicks": 0,
@@ -72,13 +85,28 @@
       ]
     },
     {
-      "TrackName": "Track 2",
+      "TrackName": "Control",
       "Events": [
         {
           "TriggerTick": 0,
           "DurationTicks": 960,
           "Action": {
             "Type": 4
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Sound",
+      "Events": [
+        {
+          "TriggerTick": 360,
+          "DurationTicks": 240,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "event:/SFX/Jazz_Greatsword",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
           }
         }
       ]

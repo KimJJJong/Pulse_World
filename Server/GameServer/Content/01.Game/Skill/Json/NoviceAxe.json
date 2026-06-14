@@ -1,33 +1,41 @@
 {
-  "SkillId": "ArmorSkill",
-  "TotalDurationTicks": 960,
+  "SkillId": "NoviceAxe",
+  "TotalDurationTicks": 1440,
   "Tracks": [
     {
       "TrackName": "Telegraph",
       "Events": [
         {
           "TriggerTick": 0,
-          "DurationTicks": 480,
+          "DurationTicks": 720,
           "Action": {
             "Type": 1,
             "Shape": {
               "ShapeType": 3,
               "Cells": [
                 {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
                   "X": 0,
                   "Y": -1
                 },
                 {
-                  "X": -1,
-                  "Y": 0
+                  "X": 1,
+                  "Y": -1
                 },
                 {
-                  "X": 1,
-                  "Y": 0
+                  "X": -1,
+                  "Y": -2
                 },
                 {
                   "X": 0,
-                  "Y": 1
+                  "Y": -2
+                },
+                {
+                  "X": 1,
+                  "Y": -2
                 }
               ],
               "CasterSize": 1,
@@ -35,7 +43,7 @@
             },
             "ColorSteps": [
               {
-                "DurationTicks": 480,
+                "DurationTicks": 720,
                 "ColorHex": "#E8D36A"
               }
             ]
@@ -47,7 +55,7 @@
       "TrackName": "Impact",
       "Events": [
         {
-          "TriggerTick": 480,
+          "TriggerTick": 720,
           "DurationTicks": 240,
           "Action": {
             "Type": 2,
@@ -55,26 +63,34 @@
               "ShapeType": 3,
               "Cells": [
                 {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
                   "X": 0,
                   "Y": -1
                 },
                 {
-                  "X": -1,
-                  "Y": 0
+                  "X": 1,
+                  "Y": -1
                 },
                 {
-                  "X": 1,
-                  "Y": 0
+                  "X": -1,
+                  "Y": -2
                 },
                 {
                   "X": 0,
-                  "Y": 1
+                  "Y": -2
+                },
+                {
+                  "X": 1,
+                  "Y": -2
                 }
               ],
               "CasterSize": 1,
               "RotateWithCaster": true
             },
-            "Amount": 10,
+            "Amount": 26,
             "HitPlayers": false,
             "HitMonsters": true,
             "StunDurationTicks": 0,
@@ -89,7 +105,7 @@
       "Events": [
         {
           "TriggerTick": 0,
-          "DurationTicks": 960,
+          "DurationTicks": 1440,
           "Action": {
             "Type": 4
           }
@@ -100,11 +116,11 @@
       "TrackName": "Sound",
       "Events": [
         {
-          "TriggerTick": 240,
+          "TriggerTick": 480,
           "DurationTicks": 240,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "event:/SFX/Funk_Parry",
+            "FmodEventPath": "event:/Attack_Axe",
             "Volume": 1.0,
             "UseOwnerPerspective": true
           }

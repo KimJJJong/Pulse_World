@@ -3,11 +3,28 @@
   "TotalDurationTicks": 960,
   "Tracks": [
     {
-      "TrackName": "Track 0",
+      "TrackName": "Approach",
       "Events": [
         {
-          "TriggerTick": 0,
-          "DurationTicks": 480,
+          "TriggerTick": 240,
+          "DurationTicks": 240,
+          "Action": {
+            "Type": 3,
+            "MoveType": 1,
+            "Distance": 2,
+            "DirectionX": 0,
+            "DirectionY": -1,
+            "StopOnObstacle": true
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Telegraph",
+      "Events": [
+        {
+          "TriggerTick": 240,
+          "DurationTicks": 240,
           "Action": {
             "Type": 1,
             "Shape": {
@@ -20,43 +37,27 @@
                 {
                   "X": 0,
                   "Y": -2
-                },
-                {
-                  "X": 0,
-                  "Y": -3
                 }
               ],
               "CasterSize": 1,
               "RotateWithCaster": true
             },
-            "ColorSteps": []
+            "ColorSteps": [
+              {
+                "DurationTicks": 240,
+                "ColorHex": "#E8D36A"
+              }
+            ]
           }
         }
       ]
     },
     {
-      "TrackName": "Track 1",
+      "TrackName": "Impact",
       "Events": [
         {
           "TriggerTick": 480,
-          "DurationTicks": 480,
-          "Action": {
-            "Type": 3,
-            "MoveType": 2,
-            "Distance": 4,
-            "DirectionX": 0,
-            "DirectionY": 1,
-            "StopOnObstacle": false
-          }
-        }
-      ]
-    },
-    {
-      "TrackName": "Track 2",
-      "Events": [
-        {
-          "TriggerTick": 480,
-          "DurationTicks": 480,
+          "DurationTicks": 240,
           "Action": {
             "Type": 2,
             "Shape": {
@@ -64,28 +65,20 @@
               "Cells": [
                 {
                   "X": 0,
-                  "Y": 1
+                  "Y": -1
                 },
                 {
                   "X": 0,
-                  "Y": 2
-                },
-                {
-                  "X": 0,
-                  "Y": 3
-                },
-                {
-                  "X": 0,
-                  "Y": 4
+                  "Y": -2
                 }
               ],
               "CasterSize": 1,
               "RotateWithCaster": true
             },
-            "Amount": 25,
+            "Amount": 14,
             "HitPlayers": false,
             "HitMonsters": true,
-            "StunDurationTicks": 0,
+            "StunDurationTicks": 240,
             "KnockbackDistance": 0,
             "RecalculateTargets": false
           }
@@ -93,13 +86,28 @@
       ]
     },
     {
-      "TrackName": "Track 3",
+      "TrackName": "Control",
       "Events": [
         {
           "TriggerTick": 0,
           "DurationTicks": 960,
           "Action": {
             "Type": 4
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Sound",
+      "Events": [
+        {
+          "TriggerTick": 120,
+          "DurationTicks": 240,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "event:/SFX/Jazz_Dagger",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
           }
         }
       ]

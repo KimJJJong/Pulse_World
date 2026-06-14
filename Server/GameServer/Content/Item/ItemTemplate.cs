@@ -31,9 +31,7 @@ public enum EquipmentSlot
     Weapon,
     Head,
     Armor,
-    Pants,
-    Shoes,
-    Accessory
+    Shoes
 }
 
 public class ItemTemplate
