@@ -188,12 +188,122 @@
       "TrackName": "Sound",
       "Events": [
         {
-          "TriggerTick": 480,
-          "DurationTicks": 240,
+          "TriggerTick": 0,
+          "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "event:/SFX/Orchestral_Bow",
+            "FmodEventPath": "Bow",
+            "Volume": 0.65,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 120,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Bow",
+            "Volume": 0.75,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 240,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Bow",
+            "Volume": 0.9,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 360,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Bow",
             "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 480,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Bow",
+            "Volume": 0.7,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 600,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Bow",
+            "Volume": 0.85,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 720,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Bow",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 840,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Bow",
+            "Volume": 0.8,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 960,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Bow",
+            "Volume": 0.75,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 1080,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Bow",
+            "Volume": 0.9,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 1200,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Bow",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 1320,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Bow",
+            "Volume": 0.85,
             "UseOwnerPerspective": true
           }
         }

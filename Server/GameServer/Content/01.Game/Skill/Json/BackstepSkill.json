@@ -1,5 +1,5 @@
 {
-  "SkillId": "MoveSkill",
+  "SkillId": "BackstepSkill",
   "TotalDurationTicks": 960,
   "Tracks": [
     {
@@ -13,7 +13,7 @@
             "MoveType": 1,
             "Distance": 2,
             "DirectionX": 0,
-            "DirectionY": -1,
+            "DirectionY": 1,
             "StopOnObstacle": true
           }
         }
@@ -40,7 +40,7 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Staff",
-            "Volume": 0.65,
+            "Volume": 0.75,
             "UseOwnerPerspective": true
           }
         },
@@ -50,17 +50,17 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Staff",
-            "Volume": 0.8,
+            "Volume": 0.9,
             "UseOwnerPerspective": true
           }
         },
         {
-          "TriggerTick": 240,
+          "TriggerTick": 360,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
             "FmodEventPath": "Staff",
-            "Volume": 1.0,
+            "Volume": 0.65,
             "UseOwnerPerspective": true
           }
         },
@@ -70,7 +70,7 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Staff",
-            "Volume": 0.75,
+            "Volume": 1.0,
             "UseOwnerPerspective": true
           }
         },
@@ -80,7 +80,7 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Staff",
-            "Volume": 0.9,
+            "Volume": 0.8,
             "UseOwnerPerspective": true
           }
         }

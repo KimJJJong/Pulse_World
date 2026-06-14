@@ -7,6 +7,7 @@ public interface IItemTemplateService
 {
     ItemTemplateDto? GetItem(int id);
     EquipmentTemplateDto? GetEquipment(int id);
+    IReadOnlyCollection<EquipmentTemplateDto> GetAllEquipments();
 }
 
 public class ItemTemplateService : IItemTemplateService
@@ -67,6 +68,7 @@ public class ItemTemplateService : IItemTemplateService
 
     public ItemTemplateDto? GetItem(int id) => _items.GetValueOrDefault(id);
     public EquipmentTemplateDto? GetEquipment(int id) => _equipments.GetValueOrDefault(id);
+    public IReadOnlyCollection<EquipmentTemplateDto> GetAllEquipments() => _equipments.Values.ToList();
 }
 
 public class ItemTemplateDto

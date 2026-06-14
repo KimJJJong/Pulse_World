@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
+        services.AddScoped<IStarterEquipmentService, StarterEquipmentService>();
         services.AddHttpClient<SteamTicketVerifier>();
 
         services.Configure<RedisOptions>(config.GetSection("Redis"));

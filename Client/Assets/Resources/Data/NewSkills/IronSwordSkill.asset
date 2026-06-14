@@ -10,118 +10,148 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 501327079b4e19047b3fb174153b95d8, type: 3}
-  m_Name: NoviceSword
+  m_Name: IronSwordSkill
   m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
   Data:
-    SkillId: NoviceSword
-    TotalDurationTicks: 960
+    SkillId: IronSwordSkill
+    TotalDurationTicks: 1440
     Tracks:
     - TrackName: Telegraph
       Events:
       - TriggerTick: 0
-        DurationTicks: 480
+        DurationTicks: 720
         Action:
-          rid: 4242872758231106082
+          rid: 4242872758231106044
     - TrackName: Impact
       Events:
-      - TriggerTick: 480
+      - TriggerTick: 720
         DurationTicks: 240
         Action:
-          rid: 4242872758231106083
+          rid: 4242872758231106045
     - TrackName: Control
       Events:
       - TriggerTick: 0
-        DurationTicks: 960
+        DurationTicks: 1440
         Action:
-          rid: 4242872758231106084
+          rid: 4242872758231106046
     - TrackName: Sound
       Events:
       - TriggerTick: 0
         DurationTicks: 120
         Action:
-          rid: 4242872758231106085
+          rid: 4242872758231106047
       - TriggerTick: 240
         DurationTicks: 120
         Action:
-          rid: 4242872758231106086
+          rid: 4242872758231106048
       - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872758231106087
+          rid: 4242872758231106049
       - TriggerTick: 480
         DurationTicks: 120
         Action:
-          rid: 4242872758231106088
+          rid: 4242872758231106050
       - TriggerTick: 720
         DurationTicks: 120
         Action:
-          rid: 4242872758231106089
+          rid: 4242872758231106051
       - TriggerTick: 840
         DurationTicks: 120
         Action:
-          rid: 4242872758231106090
+          rid: 4242872758231106052
+      - TriggerTick: 960
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106053
+      - TriggerTick: 1200
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106054
+      - TriggerTick: 1320
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106055
   references:
     version: 2
     RefIds:
-    - rid: 4242872758231106082
+    - rid: 4242872758231106044
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231106091
+          rid: 4242872758231106056
         ColorSteps:
-        - DurationTicks: 480
+        - DurationTicks: 720
           ColorHex: '#E8D36A'
-    - rid: 4242872758231106083
+    - rid: 4242872758231106045
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231106092
-        Amount: 16
+          rid: 4242872758231106057
+        Amount: 20
         HitPlayers: 0
         HitMonsters: 1
         StunDurationTicks: 0
-        KnockbackDistance: 0
+        KnockbackDistance: 1
         RecalculateTargets: 0
-    - rid: 4242872758231106084
+    - rid: 4242872758231106046
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872758231106085
+    - rid: 4242872758231106047
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Greatsword
-        Volume: 0.75
+        Volume: 0.7
         UseOwnerPerspective: 1
-    - rid: 4242872758231106086
+    - rid: 4242872758231106048
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Greatsword
-        Volume: 0.9
+        Volume: 0.85
         UseOwnerPerspective: 1
-    - rid: 4242872758231106087
+    - rid: 4242872758231106049
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Greatsword
         Volume: 0.65
         UseOwnerPerspective: 1
-    - rid: 4242872758231106088
+    - rid: 4242872758231106050
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Greatsword
-        Volume: 0.95
+        Volume: 0.85
         UseOwnerPerspective: 1
-    - rid: 4242872758231106089
+    - rid: 4242872758231106051
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Greatsword
         Volume: 1
         UseOwnerPerspective: 1
-    - rid: 4242872758231106090
+    - rid: 4242872758231106052
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Greatsword
         Volume: 0.75
         UseOwnerPerspective: 1
-    - rid: 4242872758231106091
+    - rid: 4242872758231106053
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Greatsword
+        Volume: 0.9
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106054
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Greatsword
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106055
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Greatsword
+        Volume: 0.85
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106056
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
@@ -133,9 +163,13 @@ MonoBehaviour:
           Y: -1
         - X: 1
           Y: -1
+        - X: -1
+          Y: -2
         - X: 0
           Y: -2
-    - rid: 4242872758231106092
+        - X: 1
+          Y: -2
+    - rid: 4242872758231106057
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
@@ -147,5 +181,9 @@ MonoBehaviour:
           Y: -1
         - X: 1
           Y: -1
+        - X: -1
+          Y: -2
         - X: 0
+          Y: -2
+        - X: 1
           Y: -2

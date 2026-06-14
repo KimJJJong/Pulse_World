@@ -262,7 +262,6 @@ namespace RhythmRPG.Visual
             if (EntityIdDefine.IsWeapon(id))   return _sockets.RightHandSocket;
             if (EntityIdDefine.IsHead(id))     return _sockets.HeadSocket;
             if (EntityIdDefine.IsBody(id))     return _sockets.BodySocket;
-            if (EntityIdDefine.IsPants(id))    return _sockets.PantsSocket;
             if (EntityIdDefine.IsGloves(id))   return _sockets.GlovesSocket;
             if (EntityIdDefine.IsShoes(id))    return _sockets.ShoesSocket;
 
@@ -276,7 +275,6 @@ namespace RhythmRPG.Visual
             {
                 case Client.Content.Item.EquipmentSlot.Head:
                 case Client.Content.Item.EquipmentSlot.Armor:
-                case Client.Content.Item.EquipmentSlot.Pants:
                 case Client.Content.Item.EquipmentSlot.Shoes:
                     return true;
                 default:

@@ -437,11 +437,9 @@ public static class Home1OverlayUiBuilder
         var slots = new List<HomeEquipSlotUI>
         {
             CreateEquipSlot(leftSlotsGroup, "Slot_Weapon", EquipmentSlot.Weapon, "WEAPON", new Rect(74f, 126f, 382f, 176f), new Rect(24f, 116f, 404f, 176f), EquipmentSize),
-            CreateEquipSlot(leftSlotsGroup, "Slot_Accessory", EquipmentSlot.Accessory, "ACCESSORY", new Rect(75f, 320f, 382f, 176f), new Rect(25f, 306f, 394f, 126f), EquipmentSize),
-            CreateEquipSlot(leftSlotsGroup, "Slot_Pants", EquipmentSlot.Pants, "PANTS", new Rect(75f, 511f, 382f, 176f), new Rect(25f, 438f, 394f, 126f), EquipmentSize),
-            CreateEquipSlot(rightSlotsGroup, "Slot_Head", EquipmentSlot.Head, "HEAD", new Rect(1223f, 124f, 325f, 170f), new Rect(455f, 124f, 281f, 123f), EquipmentSize),
-            CreateEquipSlot(rightSlotsGroup, "Slot_Armor", EquipmentSlot.Armor, "ARMOR", new Rect(1224f, 313f, 325f, 170f), new Rect(455f, 252f, 281f, 123f), EquipmentSize),
-            CreateEquipSlot(rightSlotsGroup, "Slot_Shoes", EquipmentSlot.Shoes, "SHOES", new Rect(1224f, 504f, 325f, 170f), new Rect(455f, 379f, 281f, 123f), EquipmentSize)
+            CreateEquipSlot(leftSlotsGroup, "Slot_Head", EquipmentSlot.Head, "HEAD", new Rect(75f, 320f, 382f, 176f), new Rect(25f, 306f, 394f, 126f), EquipmentSize),
+            CreateEquipSlot(rightSlotsGroup, "Slot_Armor", EquipmentSlot.Armor, "ARMOR", new Rect(1224f, 124f, 325f, 170f), new Rect(455f, 124f, 281f, 123f), EquipmentSize),
+            CreateEquipSlot(rightSlotsGroup, "Slot_Shoes", EquipmentSlot.Shoes, "SHOES", new Rect(1224f, 313f, 325f, 170f), new Rect(455f, 252f, 281f, 123f), EquipmentSize)
         };
 
         CreateAtlasImage(loadoutSummaryGroup, "StatSummaryPanel", EquipmentAtlasPath, new Rect(25f, 712f, 455f, 125f), new Rect(52f, 720f, 474f, 170f), EquipmentSize);

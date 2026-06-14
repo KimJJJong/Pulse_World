@@ -1,173 +1,173 @@
 {
-    "MapId": "Game_Forest_01",
-    "Description": "Game_Forest_01\nMap~~~",
-    "RhythmSettings": {
-        "SongKey": "DefaultSong",
-        "Bpm": 120,
-        "BaseBeatDivision": 1,
-        "ActionWindowMs": 150,
-        "StartDelayMs": 2000
+  "MapId": "Game_Forest_01",
+  "Description": "Game_Forest_01\nMap~~~",
+  "RhythmSettings": {
+    "SongKey": "Game_Synthwave_01",
+    "Bpm": 120,
+    "BaseBeatDivision": 1,
+    "ActionWindowMs": 150,
+    "StartDelayMs": 2000
+  },
+  "InitialSpawns": [
+    {
+      "MonsterId": 1000,
+      "X": 17,
+      "Y": 0,
+      "Z": 14,
+      "AI": "Base_Test_P",
+      "GroupId": 10
     },
-    "InitialSpawns": [
+    {
+      "MonsterId": 1001,
+      "X": 18,
+      "Y": 0,
+      "Z": 6,
+      "AI": "Base_Test_P",
+      "GroupId": 10
+    }
+  ],
+  "InitialObjects": [],
+  "Events": [
+    {
+      "EventId": 1,
+      "IsOneShot": true,
+      "Conditions": [
         {
-            "MonsterId": 1000,
-            "X": 17,
+          "Type": "MonsterAllDead",
+          "TargetId": 10,
+          "Count": 2,
+          "Area": {
+            "X": 0,
             "Y": 0,
-            "Z": 14,
-            "AI": "Base_Test_P",
-            "GroupId": 10
+            "W": 0,
+            "H": 0
+          }
+        }
+      ],
+      "Actions": [
+        {
+          "Type": "SpawnMonster",
+          "ParamId": 1000,
+          "X": 26,
+          "Y": 0,
+          "Z": 13,
+          "StringVal": "Base_Test_P",
+          "GroupId": 11
         },
         {
-            "MonsterId": 1001,
-            "X": 18,
+          "Type": "SpawnMonster",
+          "ParamId": 1001,
+          "X": 26,
+          "Y": 0,
+          "Z": 6,
+          "StringVal": "Base_Test_P",
+          "GroupId": 11
+        }
+      ]
+    },
+    {
+      "EventId": 2,
+      "IsOneShot": true,
+      "Conditions": [
+        {
+          "Type": "MonsterAllDead",
+          "TargetId": 11,
+          "Count": 2,
+          "Area": {
+            "X": -3,
             "Y": 0,
-            "Z": 6,
-            "AI": "Base_Test_P",
-            "GroupId": 10
+            "W": 0,
+            "H": 0
+          }
         }
-    ],
-    "InitialObjects": [],
-    "Events": [
+      ],
+      "Actions": [
         {
-            "EventId": 1,
-            "IsOneShot": true,
-            "Conditions": [
-                {
-                    "Type": "MonsterAllDead",
-                    "TargetId": 10,
-                    "Count": 2,
-                    "Area": {
-                        "X": 0,
-                        "Y": 0,
-                        "W": 0,
-                        "H": 0
-                    }
-                }
-            ],
-            "Actions": [
-                {
-                    "Type": "SpawnMonster",
-                    "ParamId": 1000,
-                    "X": 26,
-                    "Y": 0,
-                    "Z": 13,
-                    "StringVal": "Base_Test_P",
-                    "GroupId": 11
-                },
-                {
-                    "Type": "SpawnMonster",
-                    "ParamId": 1001,
-                    "X": 26,
-                    "Y": 0,
-                    "Z": 6,
-                    "StringVal": "Base_Test_P",
-                    "GroupId": 11
-                }
-            ]
+          "Type": "ShowGuide",
+          "ParamId": 0,
+          "X": 0,
+          "Y": 0,
+          "Z": 0,
+          "StringVal": "",
+          "GroupId": 0,
+          "SizeX": 1,
+          "SizeY": 1,
+          "GuideTitle": "Elite: Crystalline Pulse Knight",
+          "GuideBody": "Defeat the Crystalline Pulse Knight to stabilize the local pulse flow.",
+          "GuideImageResource": "",
+          "DurationMs": 4000,
+          "VfxKey": ""
         },
         {
-            "EventId": 2,
-            "IsOneShot": true,
-            "Conditions": [
-                {
-                    "Type": "MonsterAllDead",
-                    "TargetId": 11,
-                    "Count": 2,
-                    "Area": {
-                        "X": -3,
-                        "Y": 0,
-                        "W": 0,
-                        "H": 0
-                    }
-                }
-            ],
-            "Actions": [
-                {
-                    "Type": "ShowGuide",
-                    "ParamId": 0,
-                    "X": 0,
-                    "Y": 0,
-                    "Z": 0,
-                    "StringVal": "",
-                    "GroupId": 0,
-                    "SizeX": 1,
-                    "SizeY": 1,
-                    "GuideTitle": "Elite: Crystalline Pulse Knight",
-                    "GuideBody": "Defeat the Crystalline Pulse Knight to stabilize the local pulse flow.",
-                    "GuideImageResource": "",
-                    "DurationMs": 4000,
-                    "VfxKey": ""
-                },
-                {
-                    "Type": "PlayVfx",
-                    "ParamId": 0,
-                    "X": 22,
-                    "Y": 0,
-                    "Z": 9,
-                    "StringVal": "",
-                    "GroupId": 0,
-                    "SizeX": 1,
-                    "SizeY": 1,
-                    "GuideTitle": "",
-                    "GuideBody": "",
-                    "GuideImageResource": "",
-                    "DurationMs": 1600,
-                    "VfxKey": "CrystalPulseRed"
-                },
-                {
-                    "Type": "SpawnMonster",
-                    "ParamId": 1021,
-                    "X": 22,
-                    "Y": 0,
-                    "Z": 9,
-                    "StringVal": "Enemy_BlackKnight_Elite",
-                    "GroupId": 20,
-                    "SizeX": 1,
-                    "SizeY": 1,
-                    "GuideTitle": "",
-                    "GuideBody": "",
-                    "GuideImageResource": "",
-                    "DurationMs": 3500,
-                    "VfxKey": ""
-                }
-            ]
+          "Type": "PlayVfx",
+          "ParamId": 0,
+          "X": 22,
+          "Y": 0,
+          "Z": 9,
+          "StringVal": "",
+          "GroupId": 0,
+          "SizeX": 1,
+          "SizeY": 1,
+          "GuideTitle": "",
+          "GuideBody": "",
+          "GuideImageResource": "",
+          "DurationMs": 1600,
+          "VfxKey": "CrystalPulseRed"
         },
         {
-            "EventId": 3,
-            "IsOneShot": true,
-            "Conditions": [
-                {
-                    "Type": "MonsterAllDead",
-                    "TargetId": 20,
-                    "SecondaryTargetId": 0,
-                    "TargetKey": "",
-                    "Count": 1,
-                    "UseParticipantCount": false,
-                    "ShowProgressUi": true,
-                    "ShowAreaOutline": true,
-                    "ProgressLabel": "Crystalline Pulse Knight",
-                    "ProgressDurationMs": 1200,
-                    "Area": {
-                        "X": 0,
-                        "Y": 0,
-                        "W": 0,
-                        "H": 0,
-                        "Shape": "Rectangle",
-                        "Cells": []
-                    }
-                }
-            ],
-            "Actions": [
-                {
-                    "Type": "FinGame",
-                    "ParamId": 0,
-                    "X": 0,
-                    "Y": 0,
-                    "Z": 0,
-                    "StringVal": "",
-                    "GroupId": 0
-                }
-            ]
+          "Type": "SpawnMonster",
+          "ParamId": 1021,
+          "X": 22,
+          "Y": 0,
+          "Z": 9,
+          "StringVal": "Enemy_BlackKnight_Elite",
+          "GroupId": 20,
+          "SizeX": 1,
+          "SizeY": 1,
+          "GuideTitle": "",
+          "GuideBody": "",
+          "GuideImageResource": "",
+          "DurationMs": 3500,
+          "VfxKey": ""
         }
-    ]
+      ]
+    },
+    {
+      "EventId": 3,
+      "IsOneShot": true,
+      "Conditions": [
+        {
+          "Type": "MonsterAllDead",
+          "TargetId": 20,
+          "SecondaryTargetId": 0,
+          "TargetKey": "",
+          "Count": 1,
+          "UseParticipantCount": false,
+          "ShowProgressUi": true,
+          "ShowAreaOutline": true,
+          "ProgressLabel": "Crystalline Pulse Knight",
+          "ProgressDurationMs": 1200,
+          "Area": {
+            "X": 0,
+            "Y": 0,
+            "W": 0,
+            "H": 0,
+            "Shape": "Rectangle",
+            "Cells": []
+          }
+        }
+      ],
+      "Actions": [
+        {
+          "Type": "FinGame",
+          "ParamId": 0,
+          "X": 0,
+          "Y": 0,
+          "Z": 0,
+          "StringVal": "",
+          "GroupId": 0
+        }
+      ]
+    }
+  ]
 }

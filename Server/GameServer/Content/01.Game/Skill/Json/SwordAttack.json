@@ -76,12 +76,32 @@
       "TrackName": "Sound",
       "Events": [
         {
-          "TriggerTick": 120,
-          "DurationTicks": 240,
+          "TriggerTick": 0,
+          "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "event:/SFX/Funk_Greatsword",
+            "FmodEventPath": "Greatsword",
+            "Volume": 0.8,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 240,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Greatsword",
             "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 360,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Greatsword",
+            "Volume": 0.7,
             "UseOwnerPerspective": true
           }
         }

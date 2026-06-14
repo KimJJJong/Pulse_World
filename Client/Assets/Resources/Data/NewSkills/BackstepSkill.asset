@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 501327079b4e19047b3fb174153b95d8, type: 3}
-  m_Name: MoveSkill
+  m_Name: BackstepSkill
   m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
   Data:
-    SkillId: MoveSkill
+    SkillId: BackstepSkill
     TotalDurationTicks: 960
     Tracks:
     - TrackName: Move
@@ -21,76 +21,76 @@ MonoBehaviour:
       - TriggerTick: 240
         DurationTicks: 240
         Action:
-          rid: 4242872758231105989
+          rid: 4242872758231106102
     - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 720
         Action:
-          rid: 4242872758231105990
+          rid: 4242872758231106103
     - TrackName: Sound
       Events:
       - TriggerTick: 0
         DurationTicks: 120
         Action:
-          rid: 4242872758231105991
+          rid: 4242872758231106104
       - TriggerTick: 120
         DurationTicks: 120
         Action:
-          rid: 4242872758231105992
-      - TriggerTick: 240
+          rid: 4242872758231106105
+      - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872758231105993
+          rid: 4242872758231106106
       - TriggerTick: 480
         DurationTicks: 120
         Action:
-          rid: 4242872758231105994
+          rid: 4242872758231106107
       - TriggerTick: 600
         DurationTicks: 120
         Action:
-          rid: 4242872758231105995
+          rid: 4242872758231106108
   references:
     version: 2
     RefIds:
-    - rid: 4242872758231105989
+    - rid: 4242872758231106102
       type: {class: MoveAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         MoveType: 1
         Distance: 2
         DirectionX: 0
-        DirectionY: -1
+        DirectionY: 1
         StopOnObstacle: 1
-    - rid: 4242872758231105990
+    - rid: 4242872758231106103
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872758231105991
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Staff
-        Volume: 0.65
-        UseOwnerPerspective: 1
-    - rid: 4242872758231105992
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Staff
-        Volume: 0.8
-        UseOwnerPerspective: 1
-    - rid: 4242872758231105993
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Staff
-        Volume: 1
-        UseOwnerPerspective: 1
-    - rid: 4242872758231105994
+    - rid: 4242872758231106104
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Staff
         Volume: 0.75
         UseOwnerPerspective: 1
-    - rid: 4242872758231105995
+    - rid: 4242872758231106105
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Staff
         Volume: 0.9
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106106
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Staff
+        Volume: 0.65
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106107
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Staff
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106108
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Staff
+        Volume: 0.8
         UseOwnerPerspective: 1

@@ -84,12 +84,42 @@
       "TrackName": "Sound",
       "Events": [
         {
-          "TriggerTick": 240,
-          "DurationTicks": 240,
+          "TriggerTick": 0,
+          "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "event:/SFX/Orchestral_Greatsword",
+            "FmodEventPath": "Greatsword",
+            "Volume": 0.8,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 240,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Greatsword",
+            "Volume": 0.9,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 360,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Greatsword",
             "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 600,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Greatsword",
+            "Volume": 0.75,
             "UseOwnerPerspective": true
           }
         }

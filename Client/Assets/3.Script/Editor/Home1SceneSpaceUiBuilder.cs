@@ -626,7 +626,7 @@ public static class Home1SceneSpaceUiBuilder
             SetRectFromTopLeft(expFill.rectTransform, new Rect(120f, 190f, 120f, 5f), referenceSize);
         }
 
-        var equipment = CreateHomeMenuCard(reference, "Button_Equipment", "UI_Home_Interface/UI_Decoration_Equipment.png", "EQUIPMENT", "Equip weapons, armor, and\naccessories.", "Manage Equipment", new Rect(88f, 242f, 300f, 176f), referenceSize);
+        var equipment = CreateHomeMenuCard(reference, "Button_Equipment", "UI_Home_Interface/UI_Decoration_Equipment.png", "EQUIPMENT", "Equip weapons, armor, and\nspecial gear.", "Manage Equipment", new Rect(88f, 242f, 300f, 176f), referenceSize);
         var inventory = CreateHomeMenuCard(reference, "Button_Inventory", "UI_Home_Interface/UI_Decoration_Inventory.png", "INVENTORY", "View items, materials,\nand useful goods.", "Open Inventory", new Rect(88f, 464f, 300f, 176f), referenceSize);
         var appearance = CreateHomeMenuCard(reference, "Button_Appearance", "UI_Home_Interface/UI_Decoration_Appear.png", "APPEARANCE", "Customize your look\nand outfit.", "Change Appearance", new Rect(750f, 242f, 300f, 176f), referenceSize);
         var map = isTownOverlay
@@ -655,11 +655,9 @@ public static class Home1SceneSpaceUiBuilder
         var slots = new List<HomeEquipSlotUI>
         {
             CreateEquipSlot(reference, "Slot_Weapon", EquipmentSlot.Weapon, "WEAPON", "UI_Home_Equipment/UI_Decoration_Weapon.png", new Rect(76f, 126f, 380f, 176f), referenceSize),
-            CreateEquipSlot(reference, "Slot_Accessory", EquipmentSlot.Accessory, "ACCESSORY", "UI_Home_Equipment/UI_Decoration_Line.png", new Rect(76f, 320f, 380f, 172f), referenceSize),
-            CreateEquipSlot(reference, "Slot_Pants", EquipmentSlot.Pants, "SKILL GEAR", "UI_Home_Equipment/UI_Decoration_Shose.png", new Rect(76f, 511f, 380f, 172f), referenceSize),
-            CreateEquipSlot(reference, "Slot_Head", EquipmentSlot.Head, "HELMET", "UI_Home_Equipment/UI_Decoration_Head.png", new Rect(1220f, 122f, 360f, 172f), referenceSize),
-            CreateEquipSlot(reference, "Slot_Armor", EquipmentSlot.Armor, "ARMOR", "UI_Home_Equipment/UI_Decoration_Armor.png", new Rect(1220f, 314f, 360f, 172f), referenceSize),
-            CreateEquipSlot(reference, "Slot_Shoes", EquipmentSlot.Shoes, "BOOTS", "UI_Home_Equipment/UI_Decoration_Shose.png", new Rect(1220f, 506f, 360f, 172f), referenceSize)
+            CreateEquipSlot(reference, "Slot_Head", EquipmentSlot.Head, "HELMET", "UI_Home_Equipment/UI_Decoration_Head.png", new Rect(76f, 320f, 380f, 172f), referenceSize),
+            CreateEquipSlot(reference, "Slot_Armor", EquipmentSlot.Armor, "ARMOR", "UI_Home_Equipment/UI_Decoration_Armor.png", new Rect(1220f, 122f, 360f, 172f), referenceSize),
+            CreateEquipSlot(reference, "Slot_Shoes", EquipmentSlot.Shoes, "BOOTS", "UI_Home_Equipment/UI_Decoration_Shose.png", new Rect(1220f, 314f, 360f, 172f), referenceSize)
         };
 
         CreateTexture(reference, "SummaryPanel", "UI_Home_Equipment/UI_Panel_StateDeatil.png", new Rect(52f, 720f, 475f, 120f), referenceSize);

@@ -28,9 +28,7 @@ namespace Client.Content.Item
         Weapon,
         Head,
         Armor,
-        Pants,
-        Shoes,
-        Accessory
+        Shoes
     }
 
     [System.Serializable]

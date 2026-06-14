@@ -16,220 +16,240 @@ MonoBehaviour:
     SkillId: BowSkill
     TotalDurationTicks: 1440
     Tracks:
-    - TrackName: Track 0
+    - TrackName: Telegraph
       Events:
       - TriggerTick: 0
-        DurationTicks: 480
+        DurationTicks: 720
         Action:
-          rid: 8211689906238652421
-    - TrackName: Track 1
+          rid: 4242872758231105961
+    - TrackName: Impact
       Events:
-      - TriggerTick: 480
-        DurationTicks: 480
+      - TriggerTick: 720
+        DurationTicks: 240
         Action:
-          rid: 8211689906238652422
-    - TrackName: Track 2
-      Events:
-      - TriggerTick: 960
-        DurationTicks: 480
-        Action:
-          rid: 8211689906238652423
-    - TrackName: Track 3
+          rid: 4242872758231105962
+    - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 1440
         Action:
-          rid: 8211689906238652424
-    - TrackName: Track 4
+          rid: 4242872758231105963
+    - TrackName: Sound
       Events:
       - TriggerTick: 0
-        DurationTicks: 480
+        DurationTicks: 120
         Action:
-          rid: 4242872515865870438
-    - TrackName: Track 5
-      Events:
+          rid: 4242872758231105964
+      - TriggerTick: 120
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231105965
       - TriggerTick: 240
-        DurationTicks: 480
+        DurationTicks: 120
         Action:
-          rid: 4242872515865870439
-    - TrackName: Track 6
-      Events:
+          rid: 4242872758231105966
+      - TriggerTick: 360
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231105967
       - TriggerTick: 480
-        DurationTicks: 480
+        DurationTicks: 120
         Action:
-          rid: 4242872515865870440
-    - TrackName: Track 7
-      Events:
+          rid: 4242872758231105968
+      - TriggerTick: 600
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231105969
+      - TriggerTick: 720
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231105970
+      - TriggerTick: 840
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231105971
       - TriggerTick: 960
-        DurationTicks: 480
+        DurationTicks: 120
         Action:
-          rid: 4242872515865870441
+          rid: 4242872758231105972
+      - TriggerTick: 1080
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231105973
+      - TriggerTick: 1200
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231105974
+      - TriggerTick: 1320
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231105975
   references:
     version: 2
     RefIds:
-    - rid: 4242872515865870438
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: event:/SFX/Funk_Bow
-        Volume: 1
-        UseOwnerPerspective: 1
-    - rid: 4242872515865870439
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: event:/SFX/Funk_Bow
-        Volume: 1
-        UseOwnerPerspective: 1
-    - rid: 4242872515865870440
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: event:/SFX/Funk_Bow
-        Volume: 1
-        UseOwnerPerspective: 1
-    - rid: 4242872515865870441
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: event:/SFX/Funk_Bow
-        Volume: 1
-        UseOwnerPerspective: 1
-    - rid: 8211689906238652421
+    - rid: 4242872758231105961
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 8211689906238652425
-        ColorSteps: []
-    - rid: 8211689906238652422
-      type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        Shape:
-          rid: 8211689906238652426
-        ColorSteps: []
-    - rid: 8211689906238652423
+          rid: 4242872758231105976
+        ColorSteps:
+        - DurationTicks: 720
+          ColorHex: '#E8D36A'
+    - rid: 4242872758231105962
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 8211689906238652427
-        Amount: 30
+          rid: 4242872758231105977
+        Amount: 18
         HitPlayers: 0
         HitMonsters: 1
         StunDurationTicks: 0
         KnockbackDistance: 0
         RecalculateTargets: 0
-    - rid: 8211689906238652424
+    - rid: 4242872758231105963
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 8211689906238652425
+    - rid: 4242872758231105964
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 0.65
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105965
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 0.75
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105966
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 0.9
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105967
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105968
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 0.7
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105969
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 0.85
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105970
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105971
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 0.8
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105972
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 0.75
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105973
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 0.9
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105974
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105975
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 0.85
+        UseOwnerPerspective: 1
+    - rid: 4242872758231105976
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
         RotateWithCaster: 1
         Cells:
-        - X: 0
-          Y: -1
-        - X: 0
+        - X: -1
           Y: -2
         - X: 0
+          Y: -2
+        - X: 1
+          Y: -2
+        - X: -1
           Y: -3
         - X: 0
+          Y: -3
+        - X: 1
+          Y: -3
+        - X: -1
           Y: -4
         - X: 0
+          Y: -4
+        - X: 1
+          Y: -4
+        - X: -1
           Y: -5
         - X: 0
+          Y: -5
+        - X: 1
+          Y: -5
+        - X: -1
           Y: -6
         - X: 0
-          Y: -7
-    - rid: 8211689906238652426
+          Y: -6
+        - X: 1
+          Y: -6
+    - rid: 4242872758231105977
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
         RotateWithCaster: 1
         Cells:
-        - X: 0
-          Y: -1
-        - X: 0
+        - X: -1
           Y: -2
         - X: 0
-          Y: -3
-        - X: 0
-          Y: -4
-        - X: 0
-          Y: -5
-        - X: 0
-          Y: -6
-        - X: 0
-          Y: -7
-        - X: -1
-          Y: -1
-        - X: -1
+          Y: -2
+        - X: 1
           Y: -2
         - X: -1
           Y: -3
-        - X: -1
-          Y: -4
-        - X: -1
-          Y: -5
-        - X: -1
-          Y: -6
-        - X: -1
-          Y: -7
-        - X: 1
-          Y: -1
-        - X: 1
-          Y: -2
-        - X: 1
-          Y: -3
-        - X: 1
-          Y: -4
-        - X: 1
-          Y: -5
-        - X: 1
-          Y: -6
-        - X: 1
-          Y: -7
-    - rid: 8211689906238652427
-      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        CasterSize: 1
-        RotateWithCaster: 1
-        Cells:
-        - X: 0
-          Y: -1
-        - X: 0
-          Y: -2
         - X: 0
           Y: -3
-        - X: 0
-          Y: -4
-        - X: 0
-          Y: -5
-        - X: 0
-          Y: -6
-        - X: 0
-          Y: -7
-        - X: -1
-          Y: -7
-        - X: -1
-          Y: -6
-        - X: -1
-          Y: -5
-        - X: -1
-          Y: -4
-        - X: -1
-          Y: -3
-        - X: -1
-          Y: -2
-        - X: -1
-          Y: -1
-        - X: 1
-          Y: -1
-        - X: 1
-          Y: -2
         - X: 1
           Y: -3
-        - X: 1
+        - X: -1
+          Y: -4
+        - X: 0
           Y: -4
         - X: 1
+          Y: -4
+        - X: -1
+          Y: -5
+        - X: 0
           Y: -5
         - X: 1
+          Y: -5
+        - X: -1
+          Y: -6
+        - X: 0
           Y: -6
         - X: 1
-          Y: -7
+          Y: -6

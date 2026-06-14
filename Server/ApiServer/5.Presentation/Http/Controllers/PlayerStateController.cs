@@ -1,7 +1,6 @@
 using ApiServer.Application.Services;
 using ApiServer.Application.Ports;
 using ApiServer.Domain.Items;
-using ApiServer.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiServer.Presentation.Http.Controllers.Game;
@@ -14,18 +13,18 @@ public class PlayerStateController : ControllerBase
     private const int ActiveSkillSlotCount = 4;
     private static readonly string[] EquipmentSlotOrder = { "Weapon", "Head", "Armor", "Shoes" };
 
-    private readonly IInventoryRepository _inventoryRepository;
+    private readonly IStarterEquipmentService _starterEquipmentService;
     private readonly IItemTemplateService _templateService;
     private readonly IUserRepository _userRepository;
     private readonly ILogger<PlayerStateController> _logger;
 
     public PlayerStateController(
-        IInventoryRepository inventoryRepository,
+        IStarterEquipmentService starterEquipmentService,
         IItemTemplateService templateService,
         IUserRepository userRepository,
         ILogger<PlayerStateController> logger)
     {
-        _inventoryRepository = inventoryRepository;
+        _starterEquipmentService = starterEquipmentService;
         _templateService = templateService;
         _userRepository = userRepository;
         _logger = logger;
@@ -60,7 +59,7 @@ public class PlayerStateController : ControllerBase
 
     private async Task<PlayerStateResponse> BuildPlayerStateAsync(string uid, CancellationToken ct)
     {
-        var items = await _inventoryRepository.GetInventoryAsync(uid);
+        var items = await _starterEquipmentService.EnsureStarterEquipmentAsync(uid);
         var equippedBySlot = ResolveEquippedItems(items.Where(x => x.IsEquipped));
         var user = await _userRepository.FindByUidAsync(uid, ct);
 

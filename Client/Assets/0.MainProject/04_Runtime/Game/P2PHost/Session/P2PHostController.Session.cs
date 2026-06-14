@@ -645,7 +645,6 @@ public sealed partial class P2PHostController
 
     private void ProcessFallbackDamage(ScheduledSkill scheduled, ClientEntityInfo actorInfo, long beat)
     {
-        int damage = ResolveDamageAmount(scheduled.SkillDef, null, scheduled.ActorId);
         var hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>();
         var deadEntities = new HashSet<int>();
         var hitTargets = new HashSet<int>();
@@ -659,6 +658,7 @@ public sealed partial class P2PHostController
             if (!CanHitTarget(actorInfo, target, null))
                 continue;
 
+            int damage = ResolveDamageAmount(scheduled.SkillDef, null, scheduled.ActorId, target);
             if (ApplyDamageToTarget(target, damage, hpUpdates, deadEntities))
                 anyHit = true;
         }
@@ -678,7 +678,6 @@ public sealed partial class P2PHostController
 
     private void ProcessDamageEvent(ScheduledSkill scheduled, ClientEntityInfo actorInfo, long beat, DamageAction damageAction)
     {
-        int damage = ResolveDamageAmount(scheduled.SkillDef, damageAction, scheduled.ActorId);
         var origin = GetActorOrigin(scheduled.ActorId);
         var cells = ResolveDamageCells(damageAction, origin, scheduled.Rotation, scheduled.Request.TargetX, scheduled.Request.TargetY);
 
@@ -700,6 +699,7 @@ public sealed partial class P2PHostController
                 if (!CanHitTarget(actorInfo, target, damageAction))
                     continue;
 
+                int damage = ResolveDamageAmount(scheduled.SkillDef, damageAction, scheduled.ActorId, target);
                 if (ApplyDamageToTarget(target, damage, hpUpdates, deadEntities))
                     anyHit = true;
             }
@@ -1255,15 +1255,25 @@ public sealed partial class P2PHostController
         return !IsTileOccupied(targetX, targetY, actorId);
     }
 
-    private int ResolveDamageAmount(NewSkillDef skillDef, DamageAction damageAction, int actorId)
+    private int ResolveDamageAmount(NewSkillDef skillDef, DamageAction damageAction, int actorId, ClientEntityInfo target)
     {
-        if (damageAction != null && damageAction.Amount > 0)
-            return damageAction.Amount;
+        int baseDamage = damageAction != null && damageAction.Amount > 0
+            ? damageAction.Amount
+            : 1;
 
-        if (TryGetCombatSnapshot(actorId, out var snapshot) && snapshot.TotalAtk > 0)
-            return snapshot.TotalAtk;
+        int attackerAtk = 0;
+        if (TryGetCombatSnapshot(actorId, out var attackerSnapshot) && attackerSnapshot.TotalAtk > 0)
+            attackerAtk = attackerSnapshot.TotalAtk;
 
-        return 1;
+        int targetDef = 0;
+        if (target.EntityType == (int)EntityType.Player
+            && TryGetCombatSnapshot(target.EntityId, out var targetSnapshot)
+            && targetSnapshot.TotalDef > 0)
+        {
+            targetDef = targetSnapshot.TotalDef;
+        }
+
+        return Math.Max(1, baseDamage + attackerAtk - targetDef);
     }
 
     private List<Vector2Int> ResolveDamageCells(DamageAction damageAction, Vector2Int origin, float rotation, int fallbackTargetX, int fallbackTargetY)

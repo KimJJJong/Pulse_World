@@ -166,5 +166,26 @@
     "normal_attack_skill_id": "",
     "skill_id": "MoveSkill",
     "appearance_id": 0
+  },
+  {
+    "type": "Equipment",
+    "id": 240002,
+    "name": "Retreat Boots",
+    "equip_slot": "Shoes",
+    "grade": "Rare",
+    "max_stack": 1,
+    "base_atk": 0,
+    "base_def": 1,
+    "base_hp": 8,
+    "base_str": 0,
+    "base_dex": 12,
+    "max_enhance": 10,
+    "sell_price": 500,
+    "model_path": "Prefabs/Armor/Boots002",
+    "icon_path": "Icons/A_Boots002",
+    "description": "Evasive boots with a quick backward disengage.",
+    "normal_attack_skill_id": "",
+    "skill_id": "BackstepSkill",
+    "appearance_id": 0
   }
 ]

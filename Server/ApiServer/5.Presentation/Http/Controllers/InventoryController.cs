@@ -1,4 +1,5 @@
 using ApiServer.Domain.Items;
+using ApiServer.Application.Services;
 using ApiServer.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,11 +10,16 @@ namespace ApiServer.Presentation.Http.Controllers;
 public class InventoryController : ControllerBase
 {
     private readonly IInventoryRepository _repository;
+    private readonly IStarterEquipmentService _starterEquipmentService;
     private readonly ILogger<InventoryController> _logger;
 
-    public InventoryController(IInventoryRepository repository, ILogger<InventoryController> logger)
+    public InventoryController(
+        IInventoryRepository repository,
+        IStarterEquipmentService starterEquipmentService,
+        ILogger<InventoryController> logger)
     {
         _repository = repository;
+        _starterEquipmentService = starterEquipmentService;
         _logger = logger;
     }
 
@@ -22,7 +28,7 @@ public class InventoryController : ControllerBase
     [HttpGet("{uid}")]
     public async Task<IActionResult> GetInventory(string uid)
     {
-        var allItems = await _repository.GetInventoryAsync(uid);
+        var allItems = await _starterEquipmentService.EnsureStarterEquipmentAsync(uid);
 
         // Split by TemplateId range: 100000~399999 = Equipment
         var items = allItems.Where(x => x.TemplateId < 100000 || x.TemplateId >= 400000).ToList();

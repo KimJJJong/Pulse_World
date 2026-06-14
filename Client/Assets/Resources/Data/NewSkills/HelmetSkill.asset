@@ -16,152 +16,150 @@ MonoBehaviour:
     SkillId: HelmetSkill
     TotalDurationTicks: 1440
     Tracks:
-    - TrackName: Track 0
+    - TrackName: Telegraph
       Events:
       - TriggerTick: 0
-        DurationTicks: 480
+        DurationTicks: 720
         Action:
-          rid: 8211689718436594053
-    - TrackName: Track 1
+          rid: 4242872758231105996
+    - TrackName: Impact
       Events:
-      - TriggerTick: 480
-        DurationTicks: 480
+      - TriggerTick: 720
+        DurationTicks: 240
         Action:
-          rid: 8211689718436594054
-    - TrackName: Track 2
+          rid: 4242872758231105997
+    - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 1440
         Action:
-          rid: 8211689718436594055
+          rid: 4242872758231105998
+    - TrackName: Sound
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231105999
+      - TriggerTick: 240
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106000
+      - TriggerTick: 360
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106001
+      - TriggerTick: 480
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106002
+      - TriggerTick: 720
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106003
+      - TriggerTick: 840
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106004
+      - TriggerTick: 960
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106005
+      - TriggerTick: 1200
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106006
+      - TriggerTick: 1320
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106007
   references:
     version: 2
     RefIds:
-    - rid: 8211689718436594053
+    - rid: 4242872758231105996
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 8211689718436594056
-        ColorSteps: []
-    - rid: 8211689718436594054
+          rid: 4242872758231106008
+        ColorSteps:
+        - DurationTicks: 720
+          ColorHex: '#E8D36A'
+    - rid: 4242872758231105997
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 8211689718436594057
-        Amount: 50
+          rid: 4242872758231106009
+        Amount: 14
         HitPlayers: 0
         HitMonsters: 1
-        StunDurationTicks: 0
+        StunDurationTicks: 240
         KnockbackDistance: 0
         RecalculateTargets: 0
-    - rid: 8211689718436594055
+    - rid: 4242872758231105998
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 8211689718436594056
-      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+    - rid: 4242872758231105999
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Parry
+        Volume: 0.65
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106000
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Parry
+        Volume: 0.85
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106001
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Parry
+        Volume: 0.75
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106002
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Parry
+        Volume: 0.8
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106003
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Parry
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106004
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Parry
+        Volume: 0.75
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106005
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Parry
+        Volume: 0.9
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106006
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Parry
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106007
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Parry
+        Volume: 0.8
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106008
+      type: {class: DiamondShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
         RotateWithCaster: 1
-        Cells:
-        - X: -1
-          Y: 0
-        - X: -1
-          Y: -1
-        - X: 0
-          Y: -1
-        - X: 1
-          Y: -1
-        - X: 1
-          Y: 0
-        - X: 1
-          Y: 1
-        - X: 0
-          Y: 1
-        - X: -1
-          Y: 1
-        - X: -2
-          Y: 1
-        - X: -2
-          Y: 0
-        - X: -2
-          Y: -1
-        - X: -2
-          Y: -2
-        - X: -1
-          Y: -2
-        - X: 0
-          Y: -2
-        - X: 1
-          Y: -2
-        - X: 2
-          Y: -2
-        - X: 2
-          Y: -1
-        - X: 2
-          Y: 0
-        - X: 2
-          Y: 1
-        - X: 2
-          Y: 2
-        - X: 1
-          Y: 2
-        - X: 0
-          Y: 2
-        - X: -1
-          Y: 2
-        - X: -2
-          Y: 2
-    - rid: 8211689718436594057
-      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+        Radius: 2
+    - rid: 4242872758231106009
+      type: {class: DiamondShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
         RotateWithCaster: 1
-        Cells:
-        - X: -1
-          Y: 0
-        - X: -1
-          Y: -1
-        - X: 0
-          Y: -1
-        - X: 1
-          Y: -1
-        - X: 1
-          Y: 0
-        - X: 1
-          Y: 1
-        - X: 0
-          Y: 1
-        - X: -1
-          Y: 1
-        - X: -2
-          Y: 2
-        - X: -2
-          Y: 1
-        - X: -2
-          Y: 0
-        - X: -2
-          Y: -1
-        - X: -2
-          Y: -2
-        - X: -1
-          Y: -2
-        - X: 0
-          Y: -2
-        - X: 1
-          Y: -2
-        - X: 2
-          Y: -2
-        - X: 2
-          Y: -1
-        - X: 2
-          Y: 0
-        - X: 2
-          Y: 1
-        - X: 2
-          Y: 2
-        - X: 1
-          Y: 2
-        - X: 0
-          Y: 2
-        - X: -1
-          Y: 2
+        Radius: 2
