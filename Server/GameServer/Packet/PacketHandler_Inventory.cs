@@ -114,9 +114,9 @@ partial class PacketHandler
     private static bool IsAllowedEquipmentSlot(EquipmentSlot slot)
     {
         return slot == EquipmentSlot.Weapon
-            || slot == EquipmentSlot.Head
-            || slot == EquipmentSlot.Armor
-            || slot == EquipmentSlot.Shoes;
+            || slot == EquipmentSlot.Shoes
+            || slot == EquipmentSlot.Hat
+            || slot == EquipmentSlot.Accessory;
     }
 
     public static void CS_DestroyItemHandler(PacketSession session, IPacket packet)

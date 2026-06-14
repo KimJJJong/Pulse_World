@@ -43,8 +43,8 @@ namespace RhythmRPG.Editor
                 BuildBowSkill(),
                 BuildDaggerAttack(),
                 BuildNoviceDagger(),
-                BuildHelmetSkill(),
-                BuildArmorSkill(),
+                BuildHatDecoySkill(),
+                BuildBeatOrbSkill(),
                 BuildMoveSkill(),
                 BuildBackstepSkill()
             };
@@ -127,7 +127,7 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 480, cells)),
                 Track("Impact", Damage(480, 240, cells, 14)),
                 Track("Control", InputLock(0, 960)),
-                RhythmSound("Greatsword", Hit(240, 0.85f), Hit(600), Hit(840, 0.8f)));
+                RhythmSound("Parry", Hit(240, 0.85f), Hit(600), Hit(840, 0.8f)));
         }
 
         private static NewSkillSO BuildNoviceAxe()
@@ -140,7 +140,7 @@ namespace RhythmRPG.Editor
                 Track("Impact", Damage(720, 240, cells, 26, knockback: 1)),
                 Track("Control", InputLock(0, 1440)),
                 RhythmSound(
-                    "Greatsword",
+                    "Parry",
                     Hit(240, 0.8f),
                     Hit(600, 0.9f), Hit(840, 0.75f),
                     Hit(1080), Hit(1320, 0.95f)));
@@ -205,31 +205,28 @@ namespace RhythmRPG.Editor
                     Hit(600, 0.85f), Hit(840, 0.95f)));
         }
 
-        private static NewSkillSO BuildHelmetSkill()
+        private static NewSkillSO BuildHatDecoySkill()
         {
             return Skill(
-                "HelmetSkill",
+                "HatDecoySkill",
                 1440,
-                Track("Telegraph", Warning(0, 720, Diamond(2))),
-                Track("Impact", Damage(720, 240, Diamond(2), 14, stun: 240)),
-                Track("Control", InputLock(0, 1440)),
+                Track("Summon", SummonDecoy(240, 120, 0, -1, 36, 1440)),
+                Track("Control", InputLock(0, 720)),
                 RhythmSound(
-                    "Parry",
-                    Hit(240, 0.8f), Hit(360, 0.7f),
-                    Hit(720, 0.95f), Hit(840, 0.75f),
-                    Hit(1200), Hit(1320, 0.8f)));
+                    "Staff",
+                    Hit(120, 0.65f), Hit(360, 0.9f),
+                    Hit(720, 0.72f), Hit(1080, 0.85f)));
         }
 
-        private static NewSkillSO BuildArmorSkill()
+        private static NewSkillSO BuildBeatOrbSkill()
         {
-            var cells = Cells((0, -1), (-1, 0), (1, 0), (0, 1));
             return Skill(
-                "ArmorSkill",
+                "BeatOrbSkill",
                 960,
-                Track("Telegraph", Warning(0, 480, cells)),
-                Track("Impact", Damage(480, 240, cells, 10, knockback: 1)),
-                Track("Control", InputLock(0, 960)),
-                RhythmSound("Parry", Hit(240, 0.8f), Hit(360, 0.7f), Hit(720, 0.9f), Hit(840, 0.75f)));
+                Track("Telegraph", Warning(0, 360, Diamond(1))),
+                Track("Impact", Damage(360, 120, Diamond(1), 8, stun: 120)),
+                Track("Control", InputLock(0, 600)),
+                RhythmSound("Parry", Hit(120, 0.72f), Hit(360), Hit(720, 0.82f)));
         }
 
         private static NewSkillSO BuildMoveSkill()
@@ -326,6 +323,19 @@ namespace RhythmRPG.Editor
                 DirectionX = directionX,
                 DirectionY = directionY,
                 StopOnObstacle = true
+            });
+        }
+
+        private static SkillEvent SummonDecoy(int tick, int duration, int offsetX, int offsetY, int hp, int lifetimeTicks)
+        {
+            return Event(tick, duration, new SummonDecoyAction
+            {
+                AppearanceId = 12,
+                Hp = hp,
+                DurationTicks = lifetimeTicks,
+                OffsetX = offsetX,
+                OffsetY = offsetY,
+                RotateWithCaster = true
             });
         }
 
@@ -552,38 +562,38 @@ namespace RhythmRPG.Editor
                 new EquipmentRow
                 {
                     Id = 200001,
-                    Name = "Leather Helmet",
+                    Name = "Trickster Hat",
                     Grade = "Common",
-                    EquipSlot = "Head",
+                    EquipSlot = "Hat",
                     BaseAtk = 0,
-                    BaseDef = 4,
-                    BaseHp = 15,
+                    BaseDef = 2,
+                    BaseHp = 18,
                     BaseStr = 0,
-                    BaseDex = 0,
+                    BaseDex = 3,
                     MaxEnhance = 5,
                     SellPrice = 30,
                     ModelPath = "Prefabs/Armor/Helm001",
                     IconPath = "Icons/A_Helm001",
-                    Description = "Adds survivability and a short-range stunning pulse.",
-                    SkillId = "HelmetSkill"
+                    Description = "Creates a beat-timed decoy that pulls monster attention for a short window.",
+                    SkillId = "HatDecoySkill"
                 },
                 new EquipmentRow
                 {
-                    Id = 210001,
-                    Name = "Leather Armor",
+                    Id = 300001,
+                    Name = "Beat Orb",
                     Grade = "Common",
-                    EquipSlot = "Armor",
-                    BaseAtk = 0,
-                    BaseDef = 8,
-                    BaseHp = 35,
+                    EquipSlot = "Accessory",
+                    BaseAtk = 2,
+                    BaseDef = 1,
+                    BaseHp = 8,
                     BaseStr = 0,
-                    BaseDex = 2,
+                    BaseDex = 4,
                     MaxEnhance = 5,
                     SellPrice = 40,
-                    ModelPath = "Prefabs/Armor/Body001",
-                    IconPath = "Icons/A_Body001",
-                    Description = "Core defensive piece with a knockback guard burst.",
-                    SkillId = "ArmorSkill"
+                    ModelPath = "Prefabs/Accessory/BeatOrb001",
+                    IconPath = "Icons/A_Orb001",
+                    Description = "A floating rhythmic light that pulses around the wearer and shocks nearby monsters.",
+                    SkillId = "BeatOrbSkill"
                 },
                 new EquipmentRow
                 {
@@ -726,9 +736,9 @@ namespace RhythmRPG.Editor
         {
             return new Dictionary<int, (int hp, int atk, int def)>
             {
-                { 10, (140, 0, 0) },
-                { 11, (140, 0, 0) },
-                { 12, (140, 0, 0) },
+                { 10, (160, 0, 0) },
+                { 11, (160, 0, 0) },
+                { 12, (160, 0, 0) },
                 { 500, (999999, 0, 0) },
                 { 501, (999999, 0, 0) },
                 { 502, (999999, 0, 0) },

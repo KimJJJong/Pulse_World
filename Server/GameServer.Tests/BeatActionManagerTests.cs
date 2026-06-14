@@ -120,6 +120,9 @@ public sealed class BeatActionManagerTests
         public IEnumerable<MapEntity> GetEntitiesAt(GridPos pos)
             => Enumerable.Empty<MapEntity>();
 
+        public IEnumerable<MapEntity> GetTransientPlayerTargets()
+            => Enumerable.Empty<MapEntity>();
+
         public bool TryMove(int actorId, GridPos target) => false;
 
         public bool TryDash(int actorId, int dirX, int dirY, int distance, out GridPos landedPos)
@@ -144,6 +147,13 @@ public sealed class BeatActionManagerTests
         {
             landedPos = from;
             return false;
+        }
+
+        public bool TrySpawnDecoy(int ownerActorId, int appearanceId, int hp, GridPos at, long spawnBeat, long expireBeat)
+            => false;
+
+        public void ExpireTransientEntities(long beatIndex)
+        {
         }
 
         public bool TryUseCustomSkill(

@@ -65,6 +65,7 @@ public sealed partial class P2PHostController
         while (_lastProcessedBeat < currentBeat && processedBeats < MaxCatchUpBeatsPerUpdate)
         {
             _lastProcessedBeat++;
+            ExpireTransientEntitiesAtBeat(_lastProcessedBeat);
             contentDirector?.PrepareHostBeat(_lastProcessedBeat);
             ProcessCurrentBeatCommandsAtBeat(_lastProcessedBeat);
             contentDirector?.FinalizeHostBeat(_lastProcessedBeat);
@@ -634,6 +635,11 @@ public sealed partial class P2PHostController
                         if (action is MoveAction moveAction)
                             ProcessMoveSkillEvent(scheduled, actorInfo, beat, moveAction);
                         break;
+
+                    case SkillActionType.SummonDecoy:
+                        if (action is SummonDecoyAction summonAction)
+                            ProcessSummonDecoyEvent(scheduled, beat, summonAction);
+                        break;
                 }
 
             }
@@ -752,6 +758,90 @@ public sealed partial class P2PHostController
         };
 
         _batchedBeatResults.Add(result);
+    }
+
+    private void ProcessSummonDecoyEvent(ScheduledSkill scheduled, long beat, SummonDecoyAction summonAction)
+    {
+        var origin = GetActorOrigin(scheduled.ActorId);
+        foreach (var candidate in BuildDecoyCandidates(summonAction, origin, scheduled.Rotation))
+        {
+            if (!TrySpawnDecoyEntity(scheduled.ActorId, summonAction, candidate, beat))
+                continue;
+
+            var result = new SC_BeatActions.BeatActionResult
+            {
+                ActorId = scheduled.ActorId,
+                ActionKind = (int)ActionKind.Skill,
+                FromX = origin.x,
+                FromY = origin.y,
+                ToX = origin.x,
+                ToY = origin.y,
+                Rotation = scheduled.Rotation,
+                Accepted = true,
+                hpUpdates = new List<SC_BeatActions.BeatActionResult.HpUpdate>()
+            };
+            _batchedBeatResults.Add(result);
+            return;
+        }
+    }
+
+    private bool TrySpawnDecoyEntity(int ownerActorId, SummonDecoyAction action, Vector2Int cell, long beat)
+    {
+        var state = ClientGameState.Instance;
+        if (state == null)
+            return false;
+
+        int entityId = GetDecoyEntityId(ownerActorId);
+        if (state.TryGetEntity(entityId, out _))
+            BroadcastAndRelay(new SC_EntityDespawn { BeatIndex = beat, EntityId = entityId });
+
+        if (!state.IsWalkable(cell.x, cell.y) || IsTileOccupied(cell.x, cell.y, ownerActorId))
+            return false;
+
+        int hp = Mathf.Max(1, action.Hp);
+        int durationTicks = Mathf.Max(480, action.DurationTicks);
+        long expireBeat = beat + Mathf.Max(1, (durationTicks + 479) / 480);
+
+        _hostPositions[entityId] = cell;
+        _transientEntityExpireBeatById[entityId] = expireBeat;
+
+        BroadcastAndRelay(new SC_EntitySpawn
+        {
+            BeatIndex = beat,
+            EntityId = entityId,
+            EntityType = (int)EntityType.Player,
+            X = cell.x,
+            Y = cell.y,
+            Hp = hp,
+            AppearanceId = action.AppearanceId,
+            Rotation = 0f
+        });
+
+        return true;
+    }
+
+    private static int GetDecoyEntityId(int ownerActorId)
+        => 700000 + Mathf.Abs(ownerActorId % 100000);
+
+    private List<Vector2Int> BuildDecoyCandidates(SummonDecoyAction action, Vector2Int origin, float rotation)
+    {
+        var candidates = new List<Vector2Int>(6);
+        var offset = action.RotateWithCaster
+            ? RotateDirForMove(action.OffsetX, action.OffsetY, rotation)
+            : new GridPoint(action.OffsetX, action.OffsetY);
+
+        AddDecoyCandidate(candidates, new Vector2Int(origin.x + offset.X, origin.y + offset.Y));
+        AddDecoyCandidate(candidates, new Vector2Int(origin.x, origin.y - 1));
+        AddDecoyCandidate(candidates, new Vector2Int(origin.x + 1, origin.y));
+        AddDecoyCandidate(candidates, new Vector2Int(origin.x - 1, origin.y));
+        AddDecoyCandidate(candidates, new Vector2Int(origin.x, origin.y + 1));
+        return candidates;
+    }
+
+    private static void AddDecoyCandidate(List<Vector2Int> candidates, Vector2Int candidate)
+    {
+        if (!candidates.Contains(candidate))
+            candidates.Add(candidate);
     }
 
     private void ProcessMoveAction(
@@ -951,6 +1041,7 @@ public sealed partial class P2PHostController
         foreach (var deadId in _batchedDeadEntities)
         {
             _hostPositions.Remove(deadId);
+            _transientEntityExpireBeatById.Remove(deadId);
             BroadcastAndRelay(new SC_EntityDespawn { BeatIndex = beat, EntityId = deadId });
         }
 
@@ -978,6 +1069,7 @@ public sealed partial class P2PHostController
         if (packet is SC_EntityDespawn despawn)
         {
             _hostPositions.Remove(despawn.EntityId);
+            _transientEntityExpireBeatById.Remove(despawn.EntityId);
         }
 
         var bridge = P2PRelayClientBridge.Instance;
@@ -1032,6 +1124,22 @@ public sealed partial class P2PHostController
 
         var playerActorIds = ClientGameState.Instance.PlayerActorIds;
         return playerActorIds != null && Array.IndexOf(playerActorIds, actorId) >= 0;
+    }
+
+    private void ExpireTransientEntitiesAtBeat(long beat)
+    {
+        if (_transientEntityExpireBeatById.Count == 0)
+            return;
+
+        var expired = new List<int>();
+        foreach (var kv in _transientEntityExpireBeatById)
+        {
+            if (kv.Value <= beat)
+                expired.Add(kv.Key);
+        }
+
+        foreach (int entityId in expired)
+            BroadcastAndRelay(new SC_EntityDespawn { BeatIndex = beat, EntityId = entityId });
     }
 
     private bool IsTileOccupied(int targetX, int targetY, int ignoreActorId)
@@ -1420,6 +1528,7 @@ public sealed partial class P2PHostController
         _batchedBeatResults.Clear();
         _batchedDeadEntities.Clear();
         _hostPositions.Clear();
+        _transientEntityExpireBeatById.Clear();
     }
 
     private async void RefreshSnapshotsAsync()
@@ -1596,7 +1705,7 @@ public sealed partial class P2PHostController
                     continue;
 
                 var type = ev.Action.GetSkillActionType();
-                if (type == SkillActionType.Damage || type == SkillActionType.Move)
+                if (type == SkillActionType.Damage || type == SkillActionType.Move || type == SkillActionType.SummonDecoy)
                     return true;
             }
         }
@@ -1646,11 +1755,12 @@ public sealed partial class P2PHostController
         return action.GetSkillActionType() switch
         {
             SkillActionType.Move => 0,
-            SkillActionType.Warning => 1,
-            SkillActionType.InputLock => 2,
-            SkillActionType.Damage => 3,
-            SkillActionType.Sound => 4,
-            SkillActionType.Wait => 5,
+            SkillActionType.SummonDecoy => 1,
+            SkillActionType.Warning => 2,
+            SkillActionType.InputLock => 3,
+            SkillActionType.Damage => 4,
+            SkillActionType.Sound => 5,
+            SkillActionType.Wait => 6,
             _ => 6
         };
     }

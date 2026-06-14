@@ -4,7 +4,7 @@
       "EntityId": 10,
       "Name": "Entity_10_Player_Barbarian",
       "EntityType": 1,
-      "MaxHp": 140,
+      "MaxHp": 160,
       "ResourcePath": "Data/Entity_10_Player_Barbarian",
       "Atk": 0,
       "Def": 0
@@ -13,7 +13,7 @@
       "EntityId": 11,
       "Name": "Entity_11_Player_Mage",
       "EntityType": 1,
-      "MaxHp": 140,
+      "MaxHp": 160,
       "ResourcePath": "Data/Entity_11_Player_Mage",
       "Atk": 0,
       "Def": 0
@@ -22,7 +22,7 @@
       "EntityId": 12,
       "Name": "Entity_12_Player_Rogu",
       "EntityType": 1,
-      "MaxHp": 140,
+      "MaxHp": 160,
       "ResourcePath": "Data/Entity_12_Player_Rogu",
       "Atk": 0,
       "Def": 0

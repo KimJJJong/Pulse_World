@@ -14,6 +14,7 @@ using UnityEngine.UI;
 public static class Home1SceneSpaceUiBuilder
 {
     private const string ScenePath = "Assets/0.MainProject/Scenes/Home 1.unity";
+    private const string LegacyScenePath = "Assets/0.MainProject/Scenes/Home 1_NotUse.unity";
     private const string TownMapScenePath = "Assets/0.MainProject/Scenes/Town/TownMap.unity";
     private const string TownForestScenePath = "Assets/0.MainProject/Scenes/Town/Town_Forest.unity";
     private const string TownHomeControllerName = "TownHomeUiController";
@@ -42,7 +43,7 @@ public static class Home1SceneSpaceUiBuilder
     public static void Build()
     {
         EnsureUiResources();
-        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        var scene = EditorSceneManager.OpenScene(ResolveScenePath(), OpenSceneMode.Single);
 
         RemoveExistingUi();
         var camera = EnsureMainCamera();
@@ -119,7 +120,7 @@ public static class Home1SceneSpaceUiBuilder
     [MenuItem("RhythmRPG/Editors/UI/Verify Home1 Scene Space Flow")]
     public static void VerifyFlow()
     {
-        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        EditorSceneManager.OpenScene(ResolveScenePath(), OpenSceneMode.Single);
 
         Require(SceneNames.Home == "Home 1", $"SceneNames.Home must be 'Home 1' but was '{SceneNames.Home}'.");
         RequireBuildScene("Assets/0.MainProject/Scenes/Home 1.unity", true);
@@ -166,7 +167,7 @@ public static class Home1SceneSpaceUiBuilder
     [MenuItem("RhythmRPG/Editors/UI/Capture Home1 Map Town Entry Preview Screenshots")]
     public static void CaptureHomeMapTownEntryPreviewScreenshots()
     {
-        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        EditorSceneManager.OpenScene(ResolveScenePath(), OpenSceneMode.Single);
 
         var canvas = RequireComponent<Canvas>("Canvas_Home1_SceneSpace");
         var mapRoot = RequireSceneObject("UI_Home_Map");
@@ -192,14 +193,14 @@ public static class Home1SceneSpaceUiBuilder
         SetTownPreviewView(panelTransform, "JoinWithKeyRoot", "Join with Key", "Enter the town key shared by the host.");
         CaptureCanvasPreview(canvas, "HomeMap_TownEntry_Key_Preview.png");
 
-        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        EditorSceneManager.OpenScene(ResolveScenePath(), OpenSceneMode.Single);
         Debug.Log("[Home1SceneSpaceUiBuilder] Captured Home1 Map Town entry preview screenshots.");
     }
 
     [MenuItem("RhythmRPG/Editors/UI/Configure Home1 Map Realm Routes")]
     public static void ConfigureMapRealmRoutes()
     {
-        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        var scene = EditorSceneManager.OpenScene(ResolveScenePath(), OpenSceneMode.Single);
         var mapUi = FindMapRealmUiInScene(scene.path);
         if (mapUi == null)
             throw new InvalidOperationException("UI_Home_Map is missing HomeMapRealmUI.");
@@ -215,7 +216,7 @@ public static class Home1SceneSpaceUiBuilder
     [MenuItem("RhythmRPG/Editors/UI/Configure Home1 Map Town Entry UI")]
     public static void ConfigureHome1MapTownEntryUi()
     {
-        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        var scene = EditorSceneManager.OpenScene(ResolveScenePath(), OpenSceneMode.Single);
         var mapUi = FindMapRealmUiInScene(scene.path);
         if (mapUi == null)
             throw new InvalidOperationException("UI_Home_Map is missing HomeMapRealmUI.");
@@ -234,7 +235,7 @@ public static class Home1SceneSpaceUiBuilder
     [MenuItem("RhythmRPG/Editors/UI/Configure Home1 Map Piece Highlights")]
     public static void ConfigureHome1MapPieceHighlights()
     {
-        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        var scene = EditorSceneManager.OpenScene(ResolveScenePath(), OpenSceneMode.Single);
         var mapUi = FindMapRealmUiInScene(scene.path);
         if (mapUi == null)
             throw new InvalidOperationException("UI_Home_Map is missing HomeMapRealmUI.");
@@ -264,6 +265,9 @@ public static class Home1SceneSpaceUiBuilder
         {
             var relativeGenerated = Path.GetRelativePath(targetRoot, generatedExample).Replace("\\", "/");
             if (relativeGenerated.StartsWith("UI_Lodaing/", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (relativeGenerated.Equals("UI_Inventory/Inventory_Example.png", StringComparison.OrdinalIgnoreCase) ||
+                relativeGenerated.Equals("UI_EquimentDetail/Example.png", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             File.Delete(generatedExample);
@@ -299,6 +303,13 @@ public static class Home1SceneSpaceUiBuilder
                 importer.SaveAndReimport();
             }
         }
+    }
+
+    private static string ResolveScenePath()
+    {
+        return AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) != null
+            ? ScenePath
+            : LegacyScenePath;
     }
 
     private static void RemoveExistingUi()
@@ -545,7 +556,7 @@ public static class Home1SceneSpaceUiBuilder
         Require(itemButton.targetGraphic != null && itemButton.targetGraphic.raycastTarget, "Town equipment popup item Button must have a raycast target.");
 
         var equipSlots = equipmentRoot.GetComponentsInChildren<HomeEquipSlotUI>(true);
-        Require(equipSlots.Length >= 6, "Town Equipment page must expose all Home equipment slot buttons.");
+        Require(equipSlots.Length >= 4, "Town Equipment page must expose all Home equipment slot buttons.");
         foreach (var slot in equipSlots)
         {
             var button = slot != null ? slot.GetComponent<Button>() : null;
@@ -655,9 +666,9 @@ public static class Home1SceneSpaceUiBuilder
         var slots = new List<HomeEquipSlotUI>
         {
             CreateEquipSlot(reference, "Slot_Weapon", EquipmentSlot.Weapon, "WEAPON", "UI_Home_Equipment/UI_Decoration_Weapon.png", new Rect(76f, 126f, 380f, 176f), referenceSize),
-            CreateEquipSlot(reference, "Slot_Head", EquipmentSlot.Head, "HELMET", "UI_Home_Equipment/UI_Decoration_Head.png", new Rect(76f, 320f, 380f, 172f), referenceSize),
-            CreateEquipSlot(reference, "Slot_Armor", EquipmentSlot.Armor, "ARMOR", "UI_Home_Equipment/UI_Decoration_Armor.png", new Rect(1220f, 122f, 360f, 172f), referenceSize),
-            CreateEquipSlot(reference, "Slot_Shoes", EquipmentSlot.Shoes, "BOOTS", "UI_Home_Equipment/UI_Decoration_Shose.png", new Rect(1220f, 314f, 360f, 172f), referenceSize)
+            CreateEquipSlot(reference, "Slot_Accessory", EquipmentSlot.Accessory, "ACCESSORY", "Icons/A_Orb001", new Rect(76f, 320f, 380f, 172f), referenceSize),
+            CreateEquipSlot(reference, "Slot_Hat", EquipmentSlot.Hat, "HAT", "UI_Home_Equipment/UI_Decoration_Head.png", new Rect(1220f, 122f, 360f, 172f), referenceSize),
+            CreateEquipSlot(reference, "Slot_Shoes", EquipmentSlot.Shoes, "SHOES", "UI_Home_Equipment/UI_Decoration_Shose.png", new Rect(1220f, 314f, 360f, 172f), referenceSize)
         };
 
         CreateTexture(reference, "SummaryPanel", "UI_Home_Equipment/UI_Panel_StateDeatil.png", new Rect(52f, 720f, 475f, 120f), referenceSize);
@@ -2353,7 +2364,7 @@ public static class Home1SceneSpaceUiBuilder
 
     private static void RequireNoLoadingDependencies()
     {
-        foreach (var dependency in AssetDatabase.GetDependencies(ScenePath, true))
+        foreach (var dependency in AssetDatabase.GetDependencies(ResolveScenePath(), true))
             Require(dependency.IndexOf("UI_Lodaing", StringComparison.OrdinalIgnoreCase) < 0, $"Home 1 scene must not depend on Loading UI assets: {dependency}");
     }
 

@@ -9,6 +9,7 @@ public interface IGameWorld
     bool ContainsEntity(int actorId);
     bool TryGetEntity(int entityId, out MapEntity entity);
     IEnumerable<MapEntity> GetEntitiesAt(GridPos pos);
+    IEnumerable<MapEntity> GetTransientPlayerTargets();
 
     bool TryMove(int actorId, GridPos target);
 
@@ -27,6 +28,9 @@ public interface IGameWorld
     /// Blink의 비파괴 미리보기. 실제 엔티티 이동 없이 시작 위치 기준 목표 지점을 계산한다.
     /// </summary>
     bool TryPreviewBlink(GridPos from, int dirX, int dirY, int distance, out GridPos landedPos);
+
+    bool TrySpawnDecoy(int ownerActorId, int appearanceId, int hp, GridPos at, long spawnBeat, long expireBeat);
+    void ExpireTransientEntities(long beatIndex);
 
     // SkillRunner가 확정한 셀/데미지 결과만 월드에 적용한다.
     bool TryUseCustomSkill(int actorId, long currentTick, FrozenAttackRegistry.FrozenAttack frozen, List<HpUpdate> hpUpdates);

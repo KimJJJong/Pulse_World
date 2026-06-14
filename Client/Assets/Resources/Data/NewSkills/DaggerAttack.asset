@@ -21,77 +21,77 @@ MonoBehaviour:
       - TriggerTick: 0
         DurationTicks: 180
         Action:
-          rid: 4242872758231106222
+          rid: 4242872758231106456
     - TrackName: Impact
       Events:
       - TriggerTick: 180
         DurationTicks: 180
         Action:
-          rid: 4242872758231106223
+          rid: 4242872758231106457
     - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 420
         Action:
-          rid: 4242872758231106224
+          rid: 4242872758231106458
     - TrackName: Sound
       Events:
       - TriggerTick: 0
         DurationTicks: 120
         Action:
-          rid: 4242872758231106225
+          rid: 4242872758231106459
       - TriggerTick: 120
         DurationTicks: 120
         Action:
-          rid: 4242872758231106226
+          rid: 4242872758231106460
       - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872758231106227
+          rid: 4242872758231106461
   references:
     version: 2
     RefIds:
-    - rid: 4242872758231106222
+    - rid: 4242872758231106456
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231106228
+          rid: 4242872758231106462
         ColorSteps:
         - DurationTicks: 180
           ColorHex: '#E8D36A'
-    - rid: 4242872758231106223
+    - rid: 4242872758231106457
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231106229
+          rid: 4242872758231106463
         Amount: 5
         HitPlayers: 0
         HitMonsters: 1
         StunDurationTicks: 0
         KnockbackDistance: 0
         RecalculateTargets: 0
-    - rid: 4242872758231106224
+    - rid: 4242872758231106458
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872758231106225
+    - rid: 4242872758231106459
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Dagger
         Volume: 0.7
         UseOwnerPerspective: 1
-    - rid: 4242872758231106226
+    - rid: 4242872758231106460
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Dagger
         Volume: 0.95
         UseOwnerPerspective: 1
-    - rid: 4242872758231106227
+    - rid: 4242872758231106461
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Dagger
         Volume: 0.75
         UseOwnerPerspective: 1
-    - rid: 4242872758231106228
+    - rid: 4242872758231106462
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
@@ -99,7 +99,7 @@ MonoBehaviour:
         Cells:
         - X: 0
           Y: -1
-    - rid: 4242872758231106229
+    - rid: 4242872758231106463
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1

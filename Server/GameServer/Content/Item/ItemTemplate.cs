@@ -29,9 +29,9 @@ public enum EquipmentSlot
 {
     None = 0,
     Weapon,
-    Head,
-    Armor,
-    Shoes
+    Shoes,
+    Hat,
+    Accessory
 }
 
 public class ItemTemplate

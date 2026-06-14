@@ -48,6 +48,7 @@ public sealed partial class P2PHostController : MonoBehaviour
     private readonly List<SC_BeatActions.BeatActionResult> _batchedBeatResults = new();
     private readonly HashSet<int> _batchedDeadEntities = new();
     private readonly Dictionary<int, Vector2Int> _hostPositions = new();
+    private readonly Dictionary<int, long> _transientEntityExpireBeatById = new();
 
     // 서버 RoomBase.Update와 동일하게, 입력은 먼저 큐에 쌓고 LateUpdate 시작에서 일괄 판정한다.
     private readonly ConcurrentQueue<PendingActionRequest> _pendingActionRequests = new();

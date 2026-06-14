@@ -159,24 +159,21 @@ public class HudPresenter : MonoBehaviour
             return;
         }
 
-        // 무기 먼저, 나머지 장비 순으로 정렬
+        // 서버 PlayerStateController의 슬롯 순서와 동일하게 정렬
         equippedList.Sort((a, b) =>
         {
             var tA = itemData.GetEquipment(a.TemplateId);
             var tB = itemData.GetEquipment(b.TemplateId);
-            bool aIsWeapon = tA?.SlotEnum == EquipmentSlot.Weapon;
-            bool bIsWeapon = tB?.SlotEnum == EquipmentSlot.Weapon;
-            if (aIsWeapon && !bIsWeapon) return -1;
-            if (!aIsWeapon && bIsWeapon) return 1;
-            return 0;
+            return GetEquipmentSlotOrder(tA?.SlotEnum ?? EquipmentSlot.None)
+                .CompareTo(GetEquipmentSlotOrder(tB?.SlotEnum ?? EquipmentSlot.None));
         });
 
         // 슬롯 초기화
         // 서버 _activeSkillSlots 구조와 동일:
         //   [0] = 무기 skill_id (H키)
-        //   [1] = 비무기 장비 첫 번째 skill_id (J키)
-        //   [2] = 비무기 장비 두 번째 skill_id (K키)
-        //   [3] = 비무기 장비 세 번째 skill_id (L키)
+        //   [1] = 신발 skill_id (J키)
+        //   [2] = 모자 skill_id (K키)
+        //   [3] = 악세서리 skill_id (L키)
         string normalAttackSkillId = "Attack"; // Space키 폴백
         const int SKILL_SLOT_COUNT = 4;        // RhythmInputController._skillSlotIds 크기와 동일
         var skillSlotIds = new string[SKILL_SLOT_COUNT];
@@ -250,6 +247,18 @@ public class HudPresenter : MonoBehaviour
         }
 
         Debug.Log($"[HudPresenter] SkillSlots bound: NormalAttack={normalAttackSkillId} Skills=[{string.Join(",", skillSlotIds)}]");
+    }
+
+    private static int GetEquipmentSlotOrder(EquipmentSlot slot)
+    {
+        return slot switch
+        {
+            EquipmentSlot.Weapon => 0,
+            EquipmentSlot.Shoes => 1,
+            EquipmentSlot.Hat => 2,
+            EquipmentSlot.Accessory => 3,
+            _ => 99
+        };
     }
 
     public void ApplyServerSkillSlots(string normalAttackSkillId, IReadOnlyList<string> activeSkillIds)

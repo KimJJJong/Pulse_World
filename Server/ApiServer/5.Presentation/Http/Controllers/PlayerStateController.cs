@@ -9,9 +9,9 @@ namespace ApiServer.Presentation.Http.Controllers.Game;
 [Route("api/game/player-state")]
 public class PlayerStateController : ControllerBase
 {
-    private const int BaseCombatHp = 140;
+    private const int BaseCombatHp = 160;
     private const int ActiveSkillSlotCount = 4;
-    private static readonly string[] EquipmentSlotOrder = { "Weapon", "Head", "Armor", "Shoes" };
+    private static readonly string[] EquipmentSlotOrder = { "Weapon", "Shoes", "Hat", "Accessory" };
 
     private readonly IStarterEquipmentService _starterEquipmentService;
     private readonly IItemTemplateService _templateService;
@@ -164,9 +164,9 @@ public class PlayerStateController : ControllerBase
         return slot switch
         {
             "Weapon" => 0,
-            "Head" => 1,
-            "Armor" => 2,
-            "Shoes" => 3,
+            "Shoes" => 1,
+            "Hat" => 2,
+            "Accessory" => 3,
             _ => -1
         };
     }
@@ -196,10 +196,10 @@ public sealed class SetAppearanceRequest
 
 public class PlayerStateResponse
 {
-    public int BaseHp { get; set; } = 140;
+    public int BaseHp { get; set; } = 160;
     public int BaseAtk { get; set; } = 0;
     public int BaseDef { get; set; } = 0;
-    public int TotalHp { get; set; } = 140;
+    public int TotalHp { get; set; } = 160;
     public int TotalAtk { get; set; } = 0;
     public int TotalDef { get; set; } = 0;
 

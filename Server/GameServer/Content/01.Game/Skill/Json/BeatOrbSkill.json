@@ -1,5 +1,5 @@
 {
-  "SkillId": "ArmorSkill",
+  "SkillId": "BeatOrbSkill",
   "TotalDurationTicks": 960,
   "Tracks": [
     {
@@ -7,35 +7,18 @@
       "Events": [
         {
           "TriggerTick": 0,
-          "DurationTicks": 480,
+          "DurationTicks": 360,
           "Action": {
             "Type": 1,
             "Shape": {
-              "ShapeType": 3,
-              "Cells": [
-                {
-                  "X": 0,
-                  "Y": -1
-                },
-                {
-                  "X": -1,
-                  "Y": 0
-                },
-                {
-                  "X": 1,
-                  "Y": 0
-                },
-                {
-                  "X": 0,
-                  "Y": 1
-                }
-              ],
+              "ShapeType": 2,
+              "Radius": 1,
               "CasterSize": 1,
               "RotateWithCaster": true
             },
             "ColorSteps": [
               {
-                "DurationTicks": 480,
+                "DurationTicks": 360,
                 "ColorHex": "#E8D36A"
               }
             ]
@@ -47,38 +30,21 @@
       "TrackName": "Impact",
       "Events": [
         {
-          "TriggerTick": 480,
-          "DurationTicks": 240,
+          "TriggerTick": 360,
+          "DurationTicks": 120,
           "Action": {
             "Type": 2,
             "Shape": {
-              "ShapeType": 3,
-              "Cells": [
-                {
-                  "X": 0,
-                  "Y": -1
-                },
-                {
-                  "X": -1,
-                  "Y": 0
-                },
-                {
-                  "X": 1,
-                  "Y": 0
-                },
-                {
-                  "X": 0,
-                  "Y": 1
-                }
-              ],
+              "ShapeType": 2,
+              "Radius": 1,
               "CasterSize": 1,
               "RotateWithCaster": true
             },
-            "Amount": 10,
+            "Amount": 8,
             "HitPlayers": false,
             "HitMonsters": true,
-            "StunDurationTicks": 0,
-            "KnockbackDistance": 1,
+            "StunDurationTicks": 120,
+            "KnockbackDistance": 0,
             "RecalculateTargets": false
           }
         }
@@ -89,7 +55,7 @@
       "Events": [
         {
           "TriggerTick": 0,
-          "DurationTicks": 960,
+          "DurationTicks": 600,
           "Action": {
             "Type": 4
           }
@@ -100,12 +66,12 @@
       "TrackName": "Sound",
       "Events": [
         {
-          "TriggerTick": 240,
+          "TriggerTick": 120,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
             "FmodEventPath": "Parry",
-            "Volume": 0.8,
+            "Volume": 0.72,
             "UseOwnerPerspective": true
           }
         },
@@ -115,7 +81,7 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Parry",
-            "Volume": 0.7,
+            "Volume": 1.0,
             "UseOwnerPerspective": true
           }
         },
@@ -125,17 +91,7 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Parry",
-            "Volume": 0.9,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
-          "TriggerTick": 840,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Parry",
-            "Volume": 0.75,
+            "Volume": 0.82,
             "UseOwnerPerspective": true
           }
         }

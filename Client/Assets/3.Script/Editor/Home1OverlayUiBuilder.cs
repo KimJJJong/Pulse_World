@@ -14,6 +14,7 @@ using UnityEngine.UI;
 public static class Home1OverlayUiBuilder
 {
     private const string ScenePath = "Assets/0.MainProject/Scenes/Home 1.unity";
+    private const string LegacyScenePath = "Assets/0.MainProject/Scenes/Home 1_NotUse.unity";
     private const string UiResourceSource = "../Resource/UI";
     private const string UiResourceTarget = "Assets/Resources/UI";
     private const string HomeAtlasPath = "Assets/Resources/UI/UI_Home_Interface/UI_Home_Interface.png";
@@ -32,7 +33,7 @@ public static class Home1OverlayUiBuilder
     public static void Build()
     {
         EnsureUiResources();
-        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        var scene = EditorSceneManager.OpenScene(ResolveScenePath(), OpenSceneMode.Single);
 
         var cameraState = CaptureCameraState();
         RemoveExistingUiAndCameras();
@@ -70,7 +71,7 @@ public static class Home1OverlayUiBuilder
     public static void VerifyFlow()
     {
         Exception caught = null;
-        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        EditorSceneManager.OpenScene(ResolveScenePath(), OpenSceneMode.Single);
 
         try
         {
@@ -131,7 +132,7 @@ public static class Home1OverlayUiBuilder
         }
         finally
         {
-            EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            EditorSceneManager.OpenScene(ResolveScenePath(), OpenSceneMode.Single);
         }
 
         if (caught != null)
@@ -159,13 +160,18 @@ public static class Home1OverlayUiBuilder
             var target = Path.Combine(targetRoot, relativeFile.Replace("/", Path.DirectorySeparatorChar.ToString()));
             if (!File.Exists(source))
             {
-                Debug.LogError($"[Home1OverlayUiBuilder] Missing UI source resource: {source}");
-                continue;
+                if (!File.Exists(target))
+                {
+                    Debug.LogWarning($"[Home1OverlayUiBuilder] Missing UI resource source and target: {source}");
+                    continue;
+                }
             }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            if (!File.Exists(target) || new FileInfo(source).Length != new FileInfo(target).Length)
-                File.Copy(source, target, true);
+            else
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                if (!File.Exists(target) || new FileInfo(source).Length != new FileInfo(target).Length)
+                    File.Copy(source, target, true);
+            }
 
             var assetPath = $"{UiResourceTarget}/{relativeFile}";
             AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
@@ -179,6 +185,13 @@ public static class Home1OverlayUiBuilder
                 importer.SaveAndReimport();
             }
         }
+    }
+
+    private static string ResolveScenePath()
+    {
+        return AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) != null
+            ? ScenePath
+            : LegacyScenePath;
     }
 
     private static void RequireBuildScene(string scenePath, bool shouldBeEnabled)
@@ -222,7 +235,7 @@ public static class Home1OverlayUiBuilder
 
     private static void RequireNoSceneDependency(string token)
     {
-        foreach (var dependency in AssetDatabase.GetDependencies(ScenePath, true))
+        foreach (var dependency in AssetDatabase.GetDependencies(ResolveScenePath(), true))
             Require(!dependency.Contains(token), $"Scene must not depend on {token}: {dependency}");
     }
 
@@ -437,8 +450,8 @@ public static class Home1OverlayUiBuilder
         var slots = new List<HomeEquipSlotUI>
         {
             CreateEquipSlot(leftSlotsGroup, "Slot_Weapon", EquipmentSlot.Weapon, "WEAPON", new Rect(74f, 126f, 382f, 176f), new Rect(24f, 116f, 404f, 176f), EquipmentSize),
-            CreateEquipSlot(leftSlotsGroup, "Slot_Head", EquipmentSlot.Head, "HEAD", new Rect(75f, 320f, 382f, 176f), new Rect(25f, 306f, 394f, 126f), EquipmentSize),
-            CreateEquipSlot(rightSlotsGroup, "Slot_Armor", EquipmentSlot.Armor, "ARMOR", new Rect(1224f, 124f, 325f, 170f), new Rect(455f, 124f, 281f, 123f), EquipmentSize),
+            CreateEquipSlot(leftSlotsGroup, "Slot_Accessory", EquipmentSlot.Accessory, "ACCESSORY", new Rect(75f, 320f, 382f, 176f), new Rect(25f, 306f, 394f, 126f), EquipmentSize),
+            CreateEquipSlot(rightSlotsGroup, "Slot_Hat", EquipmentSlot.Hat, "HAT", new Rect(1224f, 124f, 325f, 170f), new Rect(455f, 124f, 281f, 123f), EquipmentSize),
             CreateEquipSlot(rightSlotsGroup, "Slot_Shoes", EquipmentSlot.Shoes, "SHOES", new Rect(1224f, 313f, 325f, 170f), new Rect(455f, 252f, 281f, 123f), EquipmentSize)
         };
 

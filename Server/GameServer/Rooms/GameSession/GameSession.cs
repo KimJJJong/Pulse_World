@@ -389,12 +389,31 @@ public sealed class GameSession : SessionBase
     public void OnBeat(long beatIndex)
     {
         _rhythmManager?.UpdateMusicState(beatIndex);
-        _monsterAI.UpdateAI(beatIndex, _monsters, _players);
+        World2D.ExpireTransientEntities(beatIndex);
+        _monsterAI.UpdateAI(beatIndex, _monsters, BuildTargetablePlayers());
         BeatActions.OnBeat(beatIndex);
         
         Director.NotifyEvent(new GameEventContext { Type = EventType.Beat, TimeMs = AppRef.ServerTimeMs() });
         Director.Update(AppRef.ServerTimeMs());
         CleanupDeadEntities();
+    }
+
+    private List<MapEntity> BuildTargetablePlayers()
+    {
+        var result = new List<MapEntity>(_players.Count + 2);
+        foreach (var player in _players)
+        {
+            if (player != null && player.IsAlive)
+                result.Add(player);
+        }
+
+        foreach (var decoy in World2D.GetTransientPlayerTargets())
+        {
+            if (decoy != null && decoy.IsAlive)
+                result.Add(decoy);
+        }
+
+        return result;
     }
 
     private void CleanupDeadEntities()

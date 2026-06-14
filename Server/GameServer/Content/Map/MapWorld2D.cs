@@ -14,6 +14,8 @@ public sealed class MapWorld2D : IGameWorld
     public Map2D Map => _map;
     // 엔티티 전체 목록
     private readonly Dictionary<int, MapEntity> _entities = new();
+    private readonly Dictionary<int, long> _transientExpireBeatByEntityId = new();
+    private readonly HashSet<int> _transientPlayerTargetIds = new();
 
     // 셀별로 어떤 엔티티가 있는지
     private readonly Dictionary<(int x, int y), HashSet<int>> _entitiesByGrid = new();
@@ -107,6 +109,8 @@ public sealed class MapWorld2D : IGameWorld
 
         // 월드에서 제거
         _entities.Remove(entityId);
+        _transientExpireBeatByEntityId.Remove(entityId);
+        _transientPlayerTargetIds.Remove(entityId);
         Console.WriteLine($"[Despawn] Entity {entityId} Removed. (Alive? {e.IsAlive})");
 
         //  중요: 이미 죽었든 말든 “항상” despawn 전파
@@ -229,6 +233,74 @@ public sealed class MapWorld2D : IGameWorld
                     yield return e;
         }
     }
+
+    public IEnumerable<MapEntity> GetTransientPlayerTargets()
+    {
+        foreach (int id in _transientPlayerTargetIds)
+        {
+            if (_entities.TryGetValue(id, out var entity) && entity.IsAlive && entity.Type == EntityType.Player)
+                yield return entity;
+        }
+    }
+
+    public bool TrySpawnDecoy(int ownerActorId, int appearanceId, int hp, GridPos at, long spawnBeat, long expireBeat)
+    {
+        int entityId = GetDecoyEntityId(ownerActorId);
+        if (_entities.ContainsKey(entityId))
+            Despawn(entityId);
+
+        int maxHp = Math.Max(1, hp);
+        var decoy = new MapEntity(entityId, EntityType.Player, at);
+        decoy.SetState("HP", maxHp);
+        decoy.SetState("MaxHP", maxHp);
+        decoy.SetState("ATK", 0);
+        decoy.SetState("DEF", 0);
+        decoy.SetState("OwnerActorId", ownerActorId);
+        decoy.SetState("IsDecoy", true);
+        decoy.SetState("AppearanceId", appearanceId);
+        decoy.SetState("SizeX", 1);
+        decoy.SetState("SizeY", 1);
+
+        if (!TrySpawn(decoy, at))
+            return false;
+
+        _transientExpireBeatByEntityId[entityId] = expireBeat;
+        _transientPlayerTargetIds.Add(entityId);
+
+        _broadcaster.Broadcast(new SC_EntitySpawn
+        {
+            BeatIndex = spawnBeat,
+            EntityId = entityId,
+            EntityType = (int)EntityType.Player,
+            X = at.X,
+            Y = at.Y,
+            Hp = maxHp,
+            AppearanceId = appearanceId,
+            Rotation = decoy.Rotation
+        });
+
+        Console.WriteLine($"[MapWorld2D] Decoy spawned owner={ownerActorId} entity={entityId} at=({at.X},{at.Y}) expireBeat={expireBeat}");
+        return true;
+    }
+
+    public void ExpireTransientEntities(long beatIndex)
+    {
+        if (_transientExpireBeatByEntityId.Count == 0)
+            return;
+
+        var expired = new List<int>();
+        foreach (var kv in _transientExpireBeatByEntityId)
+        {
+            if (kv.Value <= beatIndex)
+                expired.Add(kv.Key);
+        }
+
+        foreach (int entityId in expired)
+            Despawn(entityId);
+    }
+
+    private static int GetDecoyEntityId(int ownerActorId)
+        => 700000 + Math.Abs(ownerActorId % 100000);
 
     // ==== 이동 처리 ====
 

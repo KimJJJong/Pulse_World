@@ -13,9 +13,9 @@ public class StarterEquipmentService : IStarterEquipmentService
     private static readonly Dictionary<string, int> DefaultEquippedBySlot = new(StringComparer.OrdinalIgnoreCase)
     {
         { "Weapon", 100001 },
-        { "Head", 200001 },
-        { "Armor", 210001 },
-        { "Shoes", 240001 }
+        { "Shoes", 240001 },
+        { "Hat", 200001 },
+        { "Accessory", 300001 }
     };
 
     private readonly IInventoryRepository _repository;

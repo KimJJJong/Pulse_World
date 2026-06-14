@@ -155,6 +155,12 @@ namespace GameServer.Content.Skill
                 return;
             }
 
+            if (type == SkillActionType.SummonDecoy && action is SummonDecoyAction summonAction)
+            {
+                ProcessSummonDecoyAt(summonAction, (int)targetBeat, simulatedOrigin);
+                return;
+            }
+
             // Damage만 Beat 예약
             if (type != SkillActionType.Damage) return;
             if (action is not DamageAction damageAction) return;
@@ -232,6 +238,9 @@ namespace GameServer.Content.Skill
                     break;
                 case SkillActionType.Sound:
                     break;
+                case SkillActionType.SummonDecoy:
+                    ProcessSummonDecoy((SummonDecoyAction)action, currentBeat);
+                    break;
             }
         }
 
@@ -258,6 +267,9 @@ namespace GameServer.Content.Skill
                     ProcessInputLock((InputLockAction)action, durationTicks);
                     break;
                 case SkillActionType.Sound:
+                    break;
+                case SkillActionType.SummonDecoy:
+                    ProcessSummonDecoy((SummonDecoyAction)action, currentBeat);
                     break;
             }
         }
@@ -315,11 +327,12 @@ namespace GameServer.Content.Skill
             return action.GetSkillActionType() switch
             {
                 SkillActionType.Move => 0,
-                SkillActionType.Warning => 1,
-                SkillActionType.InputLock => 2,
-                SkillActionType.Damage => 3,
-                SkillActionType.Sound => 4,
-                SkillActionType.Wait => 5,
+                SkillActionType.SummonDecoy => 1,
+                SkillActionType.Warning => 2,
+                SkillActionType.InputLock => 3,
+                SkillActionType.Damage => 4,
+                SkillActionType.Sound => 5,
+                SkillActionType.Wait => 6,
                 _ => 6
             };
         }
@@ -491,6 +504,52 @@ namespace GameServer.Content.Skill
 
                 Console.WriteLine($"[SkillRunner] {action.MoveType} Caster={_casterId} ({currentPos.X},{currentPos.Y})->({targetPos.X},{targetPos.Y}) success={success}");
             }
+        }
+
+        private void ProcessSummonDecoy(SummonDecoyAction action, int currentBeat)
+        {
+            if (!_map.TryGetActorPosition(_casterId, out GridPos casterPos))
+                return;
+
+            ProcessSummonDecoyAt(action, currentBeat, casterPos);
+        }
+
+        private void ProcessSummonDecoyAt(SummonDecoyAction action, int currentBeat, GridPos origin)
+        {
+            int durationTicks = Math.Max(480, action.DurationTicks);
+            long expireBeat = currentBeat + Math.Max(1, (durationTicks + 479) / 480);
+
+            foreach (var candidate in BuildDecoyCandidates(action, origin))
+            {
+                if (_map.TrySpawnDecoy(_casterId, action.AppearanceId, action.Hp, candidate, currentBeat, expireBeat))
+                    return;
+            }
+        }
+
+        private IEnumerable<GridPos> BuildDecoyCandidates(SummonDecoyAction action, GridPos origin)
+        {
+            var candidates = new List<GridPos>(6);
+            var offset = action.RotateWithCaster
+                ? RotateDirForMove(action.OffsetX, action.OffsetY, _casterRotationSnapshot)
+                : new GridPoint(action.OffsetX, action.OffsetY);
+
+            AddDecoyCandidate(candidates, new GridPos(origin.X + offset.X, origin.Y + offset.Y));
+            AddDecoyCandidate(candidates, new GridPos(origin.X, origin.Y - 1));
+            AddDecoyCandidate(candidates, new GridPos(origin.X + 1, origin.Y));
+            AddDecoyCandidate(candidates, new GridPos(origin.X - 1, origin.Y));
+            AddDecoyCandidate(candidates, new GridPos(origin.X, origin.Y + 1));
+            return candidates;
+        }
+
+        private static void AddDecoyCandidate(List<GridPos> candidates, GridPos candidate)
+        {
+            foreach (var existing in candidates)
+            {
+                if (existing.X == candidate.X && existing.Y == candidate.Y)
+                    return;
+            }
+
+            candidates.Add(candidate);
         }
 
         /// <summary>

@@ -20,14 +20,14 @@ namespace RhythmRPG.Data
         public const int WEAPON_MIN = 100000;
         public const int WEAPON_MAX = 199999;
 
-        // 200,000 ~ 299,999: Armor & Gear
-        // 200,000 ~ 209,999: Head
+        // 200,000 ~ 299,999: Worn gear
+        // 200,000 ~ 209,999: Hat
         // 210,000 ~ 219,999: Body (Armor)
         // 220,000 ~ 229,999: Pants (Legs)
         // 230,000 ~ 239,999: Gloves
         // 240,000 ~ 249,999: Shoes
         // 250,000 ~ 299,999: Etc/Expansion
-        public const int HEAD_MIN = 200000;
+        public const int HAT_MIN = 200000;
         public const int BODY_MIN = 210000;
         public const int PANTS_MIN = 220000;
         public const int GLOVES_MIN = 230000;
@@ -53,7 +53,8 @@ namespace RhythmRPG.Data
         public static bool IsArmor(int id) => id >= ARMOR_MIN && id <= ARMOR_MAX;
 
 
-        public static bool IsHead(int id) => id >= HEAD_MIN && id < BODY_MIN;
+        public static bool IsHat(int id) => id >= HAT_MIN && id < BODY_MIN;
+        public static bool IsHead(int id) => IsHat(id);
         public static bool IsBody(int id) => id >= BODY_MIN && id < PANTS_MIN;
         public static bool IsPants(int id) => id >= PANTS_MIN && id < GLOVES_MIN;
         public static bool IsGloves(int id) => id >= GLOVES_MIN && id < SHOES_MIN;
@@ -72,8 +73,8 @@ namespace RhythmRPG.Data
             if (IsPlayer(id)) return "Entities/Player";
             if (IsMonster(id)) return "Entities/Monster";
             if (IsWeapon(id)) return "Entities/Weapon";
-            if (IsArmor(id)) return "Entities/Armor";
             if (IsAccessory(id)) return "Entities/Accessory";
+            if (IsArmor(id)) return "Entities/Armor";
             if (IsConsumable(id)) return "Entities/Consumable";
             if (IsMaterial(id)) return "Entities/Material";
             

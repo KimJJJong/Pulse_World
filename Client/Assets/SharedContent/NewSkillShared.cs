@@ -44,6 +44,7 @@ namespace GameShared.Data
     [JsonDerivedType(typeof(InputLockAction), (int)SkillActionType.InputLock)]
     [JsonDerivedType(typeof(WaitAction), (int)SkillActionType.Wait)]
     [JsonDerivedType(typeof(SoundAction), (int)SkillActionType.Sound)]
+    [JsonDerivedType(typeof(SummonDecoyAction), (int)SkillActionType.SummonDecoy)]
 #endif
     [Serializable]
     public abstract class BaseAction
@@ -60,7 +61,8 @@ namespace GameShared.Data
         Move,
         InputLock,
         Wait,
-        Sound
+        Sound,
+        SummonDecoy
     }
 
     [Serializable]
@@ -133,6 +135,19 @@ namespace GameShared.Data
         public string FmodEventPath = "";
         public float Volume = 1.0f;
         public bool UseOwnerPerspective = true;
+    }
+
+    [Serializable]
+    public class SummonDecoyAction : BaseAction
+    {
+        public override SkillActionType GetSkillActionType() => SkillActionType.SummonDecoy;
+
+        public int AppearanceId = 12;
+        public int Hp = 36;
+        public int DurationTicks = 1440;
+        public int OffsetX = 0;
+        public int OffsetY = -1;
+        public bool RotateWithCaster = true;
     }
 
 #if !UNITY_5_3_OR_NEWER

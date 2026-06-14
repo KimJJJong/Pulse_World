@@ -436,6 +436,7 @@ public class NewSkillEditorWindow : EditorWindow
             case SkillActionType.Move: return new Color(0.2f, 0.6f, 1f, 0.8f);
             case SkillActionType.InputLock: return new Color(0.5f, 0.5f, 0.5f, 0.8f);
             case SkillActionType.Sound: return new Color(0.4f, 1f, 0.8f, 0.8f); // Teal/Cyan
+            case SkillActionType.SummonDecoy: return new Color(0.8f, 0.6f, 1f, 0.8f);
             default: return Color.green;
         }
     }
@@ -449,6 +450,7 @@ public class NewSkillEditorWindow : EditorWindow
             case SkillActionType.Move: return new MoveAction { Distance = 1, MoveType = MoveType.Dash };
             case SkillActionType.InputLock: return new InputLockAction();
             case SkillActionType.Sound: return new SoundAction { FmodEventPath = "", Volume = 1.0f, UseOwnerPerspective = true };
+            case SkillActionType.SummonDecoy: return new SummonDecoyAction();
             default: return new WaitActionStub();
         }
     }
@@ -507,6 +509,14 @@ public class NewSkillEditorWindow : EditorWindow
                 s.FmodEventPath = EditorGUILayout.TextField("FMOD Event Path", s.FmodEventPath);
                 s.Volume = EditorGUILayout.Slider("Volume", s.Volume, 0f, 1f);
                 s.UseOwnerPerspective = EditorGUILayout.Toggle("Owner Perspective", s.UseOwnerPerspective);
+                break;
+            case SummonDecoyAction decoy:
+                decoy.AppearanceId = EditorGUILayout.IntField("Appearance Id", decoy.AppearanceId);
+                decoy.Hp = EditorGUILayout.IntField("HP", decoy.Hp);
+                decoy.DurationTicks = EditorGUILayout.IntField("Duration Ticks", decoy.DurationTicks);
+                decoy.OffsetX = EditorGUILayout.IntField("Offset X", decoy.OffsetX);
+                decoy.OffsetY = EditorGUILayout.IntField("Offset Y", decoy.OffsetY);
+                decoy.RotateWithCaster = EditorGUILayout.Toggle("Rotate With Caster", decoy.RotateWithCaster);
                 break;
         }
     }

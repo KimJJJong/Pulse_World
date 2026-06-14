@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using RhythmRPG.Visual;
 using UnityEditor;
 using UnityEngine;
 
@@ -12,7 +13,9 @@ public static class DataItemAssetGenerator
     private const string IconFolder = "Assets/Resources/Icons";
     private const string WeaponFolder = "Assets/Resources/Prefabs/Weapon";
     private const string ArmorFolder = "Assets/Resources/Prefabs/Armor";
+    private const string AccessoryFolder = "Assets/Resources/Prefabs/Accessory";
     private const string MaterialFolder = "Assets/Resources/Prefabs/Armor/Materials";
+    private const string AccessoryMaterialFolder = "Assets/Resources/Prefabs/Accessory/Materials";
     private const string MeshFolder = "Assets/Resources/Prefabs/Armor/Meshes";
 
     private static readonly string[] CommonIconPaths =
@@ -36,6 +39,7 @@ public static class DataItemAssetGenerator
         IconFolder + "/A_Helm001.png",
         IconFolder + "/A_Body001.png",
         IconFolder + "/A_Boots002.png",
+        IconFolder + "/A_Orb001.png",
     };
 
     [MenuItem(MenuPath)]
@@ -44,11 +48,14 @@ public static class DataItemAssetGenerator
         EnsureFolder(IconFolder);
         EnsureFolder(WeaponFolder);
         EnsureFolder(ArmorFolder);
+        EnsureFolder(AccessoryFolder);
         EnsureFolder(MaterialFolder);
+        EnsureFolder(AccessoryMaterialFolder);
         EnsureFolder(MeshFolder);
 
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
+        CreateOrUpdateOrbIcon(IconFolder + "/A_Orb001.png");
         ConfigureItemIcons(CommonIconPaths, "Common item");
         ConfigureItemIcons(EquipmentIconPaths, "Equipment");
         CreateOrUpdateWeaponPrefab(
@@ -77,10 +84,13 @@ public static class DataItemAssetGenerator
         var leatherEdge = CreateOrUpdateMaterial(MaterialFolder + "/M_Item_LeatherEdge.mat", "#744426", 0.06f, 0.58f);
         var brass = CreateOrUpdateMaterial(MaterialFolder + "/M_Item_Brass.mat", "#D09A38", 0.32f, 0.40f);
         var sole = CreateOrUpdateMaterial(MaterialFolder + "/M_Item_DarkSole.mat", "#17120F", 0.08f, 0.78f);
+        var orbCore = CreateOrUpdateMaterial(AccessoryMaterialFolder + "/M_BeatOrb_Core.mat", "#6FEAFF", 0.0f, 0.18f);
+        var orbRing = CreateOrUpdateMaterial(AccessoryMaterialFolder + "/M_BeatOrb_Ring.mat", "#F2C94C", 0.12f, 0.28f);
 
         BuildHelmet(leather, darkLeather, leatherEdge, brass);
         BuildArmor(leather, darkLeather, leatherEdge, brass);
         BuildBoots(leather, darkLeather, leatherEdge, brass, sole);
+        BuildBeatOrb(orbCore, orbRing);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
@@ -202,6 +212,59 @@ public static class DataItemAssetGenerator
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.SaveAndReimport();
         }
+    }
+
+    private static void CreateOrUpdateOrbIcon(string path)
+    {
+        const int size = 128;
+        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        var center = new Vector2((size - 1) * 0.5f, (size - 1) * 0.5f);
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                Vector2 uv = (new Vector2(x, y) - center) / (size * 0.5f);
+                float dist = uv.magnitude;
+                Color pixel = new Color(1f, 0.82f, 0.30f, Mathf.Clamp01(0.72f - dist) * 0.42f);
+
+                float ringEllipse = Mathf.Sqrt(Mathf.Pow(uv.x / 0.74f, 2f) + Mathf.Pow((uv.y + 0.04f) / 0.31f, 2f));
+                float ring = Mathf.Clamp01(1f - Mathf.Abs(ringEllipse - 1f) / 0.052f);
+                float ringAlpha = ring * (uv.y < -0.02f ? 0.92f : 0.48f);
+                Color ringColor = Color.Lerp(new Color(0.34f, 0.95f, 1f, 1f), new Color(1f, 0.88f, 0.42f, 1f), Mathf.Clamp01((uv.x + 0.75f) / 1.5f));
+                pixel = AlphaBlend(pixel, ringColor, ringAlpha);
+
+                float orb = Mathf.Clamp01(1f - Mathf.Max(0f, dist - 0.30f) / 0.075f);
+                float core = Mathf.Clamp01(1f - dist / 0.30f);
+                Color orbColor = Color.Lerp(new Color(0.50f, 0.96f, 1f, 1f), new Color(1f, 0.91f, 0.46f, 1f), Mathf.Clamp01(dist * 1.8f));
+                pixel = AlphaBlend(pixel, orbColor, orb * 0.95f);
+                pixel = AlphaBlend(pixel, new Color(0.86f, 1f, 1f, 1f), core * 0.58f);
+
+                float sparkle = Mathf.Clamp01(1f - Vector2.Distance(uv, new Vector2(-0.12f, 0.16f)) / 0.08f);
+                pixel = AlphaBlend(pixel, Color.white, sparkle * 0.75f);
+
+                texture.SetPixel(x, y, pixel);
+            }
+        }
+
+        texture.Apply();
+        File.WriteAllBytes(path, texture.EncodeToPNG());
+        UnityEngine.Object.DestroyImmediate(texture);
+        AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+    }
+
+    private static Color AlphaBlend(Color destination, Color source, float alpha)
+    {
+        alpha = Mathf.Clamp01(alpha);
+        float outAlpha = alpha + destination.a * (1f - alpha);
+        if (outAlpha <= 0.0001f)
+            return Color.clear;
+
+        return new Color(
+            (source.r * alpha + destination.r * destination.a * (1f - alpha)) / outAlpha,
+            (source.g * alpha + destination.g * destination.a * (1f - alpha)) / outAlpha,
+            (source.b * alpha + destination.b * destination.a * (1f - alpha)) / outAlpha,
+            outAlpha);
     }
 
     private static void CreateOrUpdateWeaponPrefab(string targetName, string sourcePath, string targetPath)
@@ -485,6 +548,40 @@ public static class DataItemAssetGenerator
         SavePrimitivePrefab(root, ArmorFolder + "/Boots002.prefab");
     }
 
+    private static void BuildBeatOrb(Material core, Material ring)
+    {
+        var root = new GameObject("BeatOrb001");
+        const float orbitRadius = 0.48f;
+        const float orbitHeight = 1.70f;
+
+        var orb = AddPrimitive(root.transform, "Orb", PrimitiveType.Sphere,
+            new Vector3(orbitRadius, orbitHeight, 0f), Vector3.zero, new Vector3(0.115f, 0.115f, 0.115f), core);
+        AddPrimitive(root.transform, "OrbitRing", PrimitiveType.Cylinder,
+            new Vector3(0f, orbitHeight, 0f), new Vector3(90f, 0f, 0f), new Vector3(orbitRadius, 0.010f, orbitRadius), ring);
+
+        var light = new GameObject("OrbLight");
+        light.transform.SetParent(orb.transform, false);
+        light.transform.localPosition = Vector3.zero;
+        var pointLight = light.AddComponent<Light>();
+        pointLight.type = LightType.Point;
+        pointLight.color = new Color(0.55f, 0.96f, 1f, 1f);
+        pointLight.intensity = 1.25f;
+        pointLight.range = 1.8f;
+
+        var visual = root.AddComponent<BeatOrbAccessoryVisual>();
+        var serializedVisual = new SerializedObject(visual);
+        serializedVisual.FindProperty("orb").objectReferenceValue = orb.transform;
+        serializedVisual.FindProperty("orbLight").objectReferenceValue = pointLight;
+        serializedVisual.FindProperty("radius").floatValue = orbitRadius;
+        serializedVisual.FindProperty("height").floatValue = orbitHeight;
+        serializedVisual.FindProperty("orbitDegreesPerSecond").floatValue = 132f;
+        serializedVisual.FindProperty("pulseSpeed").floatValue = 3.15f;
+        serializedVisual.FindProperty("pulseScale").floatValue = 0.18f;
+        serializedVisual.ApplyModifiedPropertiesWithoutUndo();
+
+        SavePrimitivePrefab(root, AccessoryFolder + "/BeatOrb001.prefab");
+    }
+
     private static void BuildBoot(
         Transform root,
         string prefix,
@@ -615,6 +712,7 @@ public static class DataItemAssetGenerator
             ArmorFolder + "/Helm001.prefab",
             ArmorFolder + "/Body001.prefab",
             ArmorFolder + "/Boots002.prefab",
+            AccessoryFolder + "/BeatOrb001.prefab",
         };
 
         foreach (string path in prefabPaths)

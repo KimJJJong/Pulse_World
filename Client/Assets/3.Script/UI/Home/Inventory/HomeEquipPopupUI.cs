@@ -1867,9 +1867,9 @@ public class HomeEquipPopupUI : MonoBehaviour
         {
             EquipmentSlot.None => "전체",
             EquipmentSlot.Weapon => "무기",
-            EquipmentSlot.Head => "머리",
-            EquipmentSlot.Armor => "갑옷",
             EquipmentSlot.Shoes => "신발",
+            EquipmentSlot.Hat => "모자",
+            EquipmentSlot.Accessory => "악세서리",
             _ => slot.ToString()
         };
     }

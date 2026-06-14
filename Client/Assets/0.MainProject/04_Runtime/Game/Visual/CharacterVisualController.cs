@@ -260,10 +260,11 @@ namespace RhythmRPG.Visual
 
             // 2순위: EntityIdDefine 범위 폴백
             if (EntityIdDefine.IsWeapon(id))   return _sockets.RightHandSocket;
-            if (EntityIdDefine.IsHead(id))     return _sockets.HeadSocket;
+            if (EntityIdDefine.IsHat(id))      return _sockets.HeadSocket;
             if (EntityIdDefine.IsBody(id))     return _sockets.BodySocket;
             if (EntityIdDefine.IsGloves(id))   return _sockets.GlovesSocket;
             if (EntityIdDefine.IsShoes(id))    return _sockets.ShoesSocket;
+            if (EntityIdDefine.IsAccessory(id)) return _sockets.GetSocket("Accessory");
 
             Debug.LogWarning($"[CharacterVisualController] No socket resolved for id={id} via any method.");
             return null;
@@ -273,9 +274,9 @@ namespace RhythmRPG.Visual
         {
             switch (slot)
             {
-                case Client.Content.Item.EquipmentSlot.Head:
-                case Client.Content.Item.EquipmentSlot.Armor:
                 case Client.Content.Item.EquipmentSlot.Shoes:
+                case Client.Content.Item.EquipmentSlot.Hat:
+                case Client.Content.Item.EquipmentSlot.Accessory:
                     return true;
                 default:
                     return false;

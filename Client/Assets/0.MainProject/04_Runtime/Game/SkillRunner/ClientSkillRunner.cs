@@ -232,11 +232,17 @@ public class ClientSkillRunner : MonoBehaviour
         switch (ev.Action.Type)
         {
             case SkillActionType.Damage:
-                if (ev.Action is DamageAction damage && damage.HitMonsters)
+                if (ev.Action is DamageAction damage)
                 {
-                    ShowDamageCells(damage.Shape);
-                    if (P2PDebugConfig.TraceCombat)
-                        Debug.Log($"[ClientSkillRunner] DamageAction fired for actor {_actorId} (HitMonsters=true)");
+                    var cells = ShapeToWorldCells(damage.Shape);
+                    PlayMonsterAttackImpact(damage, cells);
+
+                    if (damage.HitMonsters)
+                    {
+                        ShowDamageCells(cells);
+                        if (P2PDebugConfig.TraceCombat)
+                            Debug.Log($"[ClientSkillRunner] DamageAction fired for actor {_actorId} (HitMonsters=true)");
+                    }
                 }
                 break;
 
@@ -306,11 +312,12 @@ public class ClientSkillRunner : MonoBehaviour
         return action.GetSkillActionType() switch
         {
             SkillActionType.Move => 0,
-            SkillActionType.Warning => 1,
-            SkillActionType.InputLock => 2,
-            SkillActionType.Damage => 3,
-            SkillActionType.Sound => 4,
-            SkillActionType.Wait => 5,
+            SkillActionType.SummonDecoy => 1,
+            SkillActionType.Warning => 2,
+            SkillActionType.InputLock => 3,
+            SkillActionType.Damage => 4,
+            SkillActionType.Sound => 5,
+            SkillActionType.Wait => 6,
             _ => 6
         };
     }
@@ -448,12 +455,28 @@ public class ClientSkillRunner : MonoBehaviour
         }
     }
 
-    private void ShowDamageCells(IShapeDef shape)
+    private void ShowDamageCells(IReadOnlyList<Vector2Int> cells)
     {
-        if (shape == null) return;
-        var cells = ShapeToWorldCells(shape);
+        if (cells == null) return;
         if (P2PDebugConfig.TraceCombat)
             Debug.Log($"[ClientSkillRunner] DamageCells count={cells.Count} rotation={_casterRotation}");
+    }
+
+    private void PlayMonsterAttackImpact(DamageAction damage, IReadOnlyList<Vector2Int> cells)
+    {
+        if (_boardView == null || damage == null || cells == null || cells.Count == 0)
+            return;
+
+        string skillId = _skillDef?.Data != null ? _skillDef.Data.SkillId : "";
+        MonsterAttackImpactVfx.Play(
+            _boardView,
+            _actorId,
+            skillId,
+            _casterRotation,
+            cells,
+            damage.Amount,
+            damage.KnockbackDistance,
+            damage.StunDurationTicks);
     }
 
     private GridPoint RotateGridPoint(int x, int y, float rotation)

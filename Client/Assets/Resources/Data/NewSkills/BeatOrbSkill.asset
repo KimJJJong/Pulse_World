@@ -10,122 +10,96 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 501327079b4e19047b3fb174153b95d8, type: 3}
-  m_Name: ArmorSkill
+  m_Name: BeatOrbSkill
   m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
   Data:
-    SkillId: ArmorSkill
+    SkillId: BeatOrbSkill
     TotalDurationTicks: 960
     Tracks:
     - TrackName: Telegraph
       Events:
       - TriggerTick: 0
-        DurationTicks: 480
+        DurationTicks: 360
         Action:
-          rid: 4242872758231106130
+          rid: 4242872758231106376
     - TrackName: Impact
       Events:
-      - TriggerTick: 480
-        DurationTicks: 240
-        Action:
-          rid: 4242872758231106131
-    - TrackName: Control
-      Events:
-      - TriggerTick: 0
-        DurationTicks: 960
-        Action:
-          rid: 4242872758231106132
-    - TrackName: Sound
-      Events:
-      - TriggerTick: 240
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231106133
       - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872758231106134
+          rid: 4242872758231106377
+    - TrackName: Control
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 600
+        Action:
+          rid: 4242872758231106378
+    - TrackName: Sound
+      Events:
+      - TriggerTick: 120
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106379
+      - TriggerTick: 360
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106380
       - TriggerTick: 720
         DurationTicks: 120
         Action:
-          rid: 4242872758231106135
-      - TriggerTick: 840
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231106136
+          rid: 4242872758231106381
   references:
     version: 2
     RefIds:
-    - rid: 4242872758231106130
+    - rid: 4242872758231106376
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231106137
+          rid: 4242872758231106382
         ColorSteps:
-        - DurationTicks: 480
+        - DurationTicks: 360
           ColorHex: '#E8D36A'
-    - rid: 4242872758231106131
+    - rid: 4242872758231106377
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231106138
-        Amount: 10
+          rid: 4242872758231106383
+        Amount: 8
         HitPlayers: 0
         HitMonsters: 1
-        StunDurationTicks: 0
-        KnockbackDistance: 1
+        StunDurationTicks: 120
+        KnockbackDistance: 0
         RecalculateTargets: 0
-    - rid: 4242872758231106132
+    - rid: 4242872758231106378
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872758231106133
+    - rid: 4242872758231106379
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Parry
-        Volume: 0.8
+        Volume: 0.72
         UseOwnerPerspective: 1
-    - rid: 4242872758231106134
+    - rid: 4242872758231106380
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Parry
-        Volume: 0.7
+        Volume: 1
         UseOwnerPerspective: 1
-    - rid: 4242872758231106135
+    - rid: 4242872758231106381
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Parry
-        Volume: 0.9
+        Volume: 0.82
         UseOwnerPerspective: 1
-    - rid: 4242872758231106136
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Parry
-        Volume: 0.75
-        UseOwnerPerspective: 1
-    - rid: 4242872758231106137
-      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+    - rid: 4242872758231106382
+      type: {class: DiamondShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
         RotateWithCaster: 1
-        Cells:
-        - X: 0
-          Y: -1
-        - X: -1
-          Y: 0
-        - X: 1
-          Y: 0
-        - X: 0
-          Y: 1
-    - rid: 4242872758231106138
-      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+        Radius: 1
+    - rid: 4242872758231106383
+      type: {class: DiamondShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
         RotateWithCaster: 1
-        Cells:
-        - X: 0
-          Y: -1
-        - X: -1
-          Y: 0
-        - X: 1
-          Y: 0
-        - X: 0
-          Y: 1
+        Radius: 1

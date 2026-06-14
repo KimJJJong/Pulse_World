@@ -26,9 +26,9 @@ namespace Client.Content.Item
     {
         None = 0,
         Weapon,
-        Head,
-        Armor,
-        Shoes
+        Shoes,
+        Hat,
+        Accessory
     }
 
     [System.Serializable]

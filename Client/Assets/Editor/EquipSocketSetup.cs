@@ -122,12 +122,14 @@ public class EquipSocketSetup
         WireSocket(root, ref sockets.PantsSocket,      "hips");
         WireSocket(root, ref sockets.GlovesSocket,     "wrist.r", "hand.r");
         WireSocket(root, ref sockets.ShoesSocket,      "foot.r", "toes.r");
+        WireSocket(root, ref sockets.AccessorySocket,  "head");
         WireSocket(root, ref sockets.BackSocket,       "spine", "chest");
 
         Debug.Log($"[EquipSocketSetup] '{label}' sockets wired:" +
             $" R={sockets.RightHandSocket?.name ?? "NULL"}" +
             $" L={sockets.LeftHandSocket?.name ?? "NULL"}" +
             $" Head={sockets.HeadSocket?.name ?? "NULL"}" +
+            $" Accessory={sockets.AccessorySocket?.name ?? "NULL"}" +
             $" Body={sockets.BodySocket?.name ?? "NULL"}" +
             $" Pants={sockets.PantsSocket?.name ?? "NULL"}");
     }
