@@ -30,7 +30,7 @@ public sealed class TownBgmRuntime : MonoBehaviour
 
     public static void EnsureForScene(Scene scene)
     {
-        if (!IsTownScene(scene))
+        if (!IsTownForestScene(scene))
             return;
 
         var runtime = FindSceneComponent<TownBgmRuntime>(scene);
@@ -67,7 +67,7 @@ public sealed class TownBgmRuntime : MonoBehaviour
     private void Configure()
     {
         var scene = gameObject.scene;
-        if (!IsTownScene(scene))
+        if (!IsTownForestScene(scene))
             return;
 
         _rhythm = EnsureRhythmClient(scene);
@@ -76,7 +76,7 @@ public sealed class TownBgmRuntime : MonoBehaviour
 
     private void StartLocalRhythmFallback()
     {
-        if (!isActiveAndEnabled || !IsTownScene(gameObject.scene))
+        if (!isActiveAndEnabled || !IsTownForestScene(gameObject.scene))
             return;
 
         if (_localRhythmFallbackRoutine != null)
@@ -136,14 +136,12 @@ public sealed class TownBgmRuntime : MonoBehaviour
                ?? Resources.Load<TextAsset>(TownSongKey);
     }
 
-    private static bool IsTownScene(Scene scene)
+    private static bool IsTownForestScene(Scene scene)
     {
         if (!scene.IsValid() || !scene.isLoaded)
             return false;
 
-        return string.Equals(scene.name, SceneNames.TownMap, StringComparison.OrdinalIgnoreCase)
-               || string.Equals(scene.name, SceneNames.Town_Forest, StringComparison.OrdinalIgnoreCase)
-               || scene.name.StartsWith("Town", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(scene.name, SceneNames.Town_Forest, StringComparison.OrdinalIgnoreCase);
     }
 
     private static T FindSceneComponent<T>(Scene scene) where T : Component

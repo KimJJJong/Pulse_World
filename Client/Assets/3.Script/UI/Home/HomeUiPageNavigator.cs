@@ -285,46 +285,46 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         rootImage.color = new Color(0f, 0f, 0f, 0.52f);
         rootImage.raycastTarget = true;
 
-        var panel = CreatePanel(rootRect, "OptionsPanel", new Vector2(1500f, 820f), new Color(0.60f, 0.43f, 0.24f, 1f));
+        var panel = CreatePanel(rootRect, "OptionsPanel", new Vector2(980f, 652f), new Color(0.60f, 0.43f, 0.24f, 1f));
         var panelSize = panel.sizeDelta;
 
-        var titleColor = new Color(0.22f, 0.12f, 0.04f, 1f);
-        var textColor = new Color(0.26f, 0.13f, 0.04f, 1f);
-        var mutedColor = new Color(0.42f, 0.26f, 0.11f, 1f);
+        var titleColor = new Color(0.18f, 0.09f, 0.025f, 1f);
+        var textColor = new Color(0.22f, 0.10f, 0.025f, 1f);
+        var mutedColor = new Color(0.34f, 0.20f, 0.08f, 1f);
         var lightText = new Color(1f, 0.91f, 0.70f, 1f);
 
-        var title = CreateText(panel, "Title", "옵션", 58f, TextAlignmentOptions.Center, titleColor, new Rect(540f, 52f, 420f, 76f), panelSize);
+        var title = CreateText(panel, "Title", "옵션", 44f, TextAlignmentOptions.Center, titleColor, new Rect(320f, 48f, 340f, 58f), panelSize);
         title.fontStyle = FontStyles.Bold;
-        CreateSeparator(panel, "TitleSeparatorLeft", new Rect(350f, 86f, 260f, 28f), panelSize);
-        CreateSeparator(panel, "TitleSeparatorRight", new Rect(890f, 86f, 260f, 28f), panelSize);
+        CreateSeparator(panel, "TitleSeparatorLeft", new Rect(225f, 76f, 230f, 28f), panelSize);
+        CreateSeparator(panel, "TitleSeparatorRight", new Rect(525f, 76f, 230f, 28f), panelSize);
 
-        CreateSectionHeader(panel, "SoundHeader", "사운드", new Rect(178f, 148f, 250f, 70f), panelSize, lightText);
-        CreateSeparator(panel, "SoundSeparator", new Rect(405f, 164f, 890f, 46f), panelSize);
+        CreateSectionHeader(panel, "SoundHeader", "사운드", new Rect(130f, 126f, 165f, 46f), panelSize, lightText);
+        CreateSeparator(panel, "SoundSeparator", new Rect(282f, 132f, 620f, 36f), panelSize);
 
-        CreateText(panel, "MasterVolumeLabel", "마스터 음량", 30f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(235f, 236f, 260f, 46f), panelSize);
-        _masterVolumeSlider = CreateVolumeSlider(panel, "MasterVolumeSlider", new Rect(545f, 236f, 650f, 58f), panelSize, HandleMasterVolumeChanged);
-        _masterVolumeValueText = CreateText(panel, "MasterVolumeValue", "", 20f, TextAlignmentOptions.Center, mutedColor, new Rect(1210f, 242f, 72f, 34f), panelSize);
+        CreateText(panel, "MasterVolumeLabel", "마스터 음량", 24f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(185f, 196f, 180f, 40f), panelSize).fontStyle = FontStyles.Bold;
+        _masterVolumeSlider = CreateVolumeSlider(panel, "MasterVolumeSlider", new Rect(380f, 196f, 410f, 44f), panelSize, HandleMasterVolumeChanged);
+        _masterVolumeValueText = CreateText(panel, "MasterVolumeValue", "", 17f, TextAlignmentOptions.Center, mutedColor, new Rect(805f, 202f, 56f, 28f), panelSize);
 
-        CreateText(panel, "InGameVolumeLabel", "인게임 음량", 30f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(235f, 314f, 260f, 46f), panelSize);
-        _inGameVolumeSlider = CreateVolumeSlider(panel, "InGameVolumeSlider", new Rect(545f, 314f, 650f, 58f), panelSize, HandleInGameVolumeChanged);
-        _inGameVolumeValueText = CreateText(panel, "InGameVolumeValue", "", 20f, TextAlignmentOptions.Center, mutedColor, new Rect(1210f, 320f, 72f, 34f), panelSize);
+        CreateText(panel, "InGameVolumeLabel", "인게임 음량", 24f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(185f, 260f, 180f, 40f), panelSize).fontStyle = FontStyles.Bold;
+        _inGameVolumeSlider = CreateVolumeSlider(panel, "InGameVolumeSlider", new Rect(380f, 260f, 410f, 44f), panelSize, HandleInGameVolumeChanged);
+        _inGameVolumeValueText = CreateText(panel, "InGameVolumeValue", "", 17f, TextAlignmentOptions.Center, mutedColor, new Rect(805f, 266f, 56f, 28f), panelSize);
 
-        CreateText(panel, "SfxVolumeLabel", "효과음", 30f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(235f, 392f, 260f, 46f), panelSize);
-        _sfxVolumeSlider = CreateVolumeSlider(panel, "SfxVolumeSlider", new Rect(545f, 392f, 650f, 58f), panelSize, HandleSfxVolumeChanged);
-        _sfxVolumeValueText = CreateText(panel, "SfxVolumeValue", "", 20f, TextAlignmentOptions.Center, mutedColor, new Rect(1210f, 398f, 72f, 34f), panelSize);
+        CreateText(panel, "SfxVolumeLabel", "효과음", 24f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(185f, 324f, 180f, 40f), panelSize).fontStyle = FontStyles.Bold;
+        _sfxVolumeSlider = CreateVolumeSlider(panel, "SfxVolumeSlider", new Rect(380f, 324f, 410f, 44f), panelSize, HandleSfxVolumeChanged);
+        _sfxVolumeValueText = CreateText(panel, "SfxVolumeValue", "", 17f, TextAlignmentOptions.Center, mutedColor, new Rect(805f, 330f, 56f, 28f), panelSize);
 
-        CreateSectionHeader(panel, "ScreenHeader", "화면", new Rect(178f, 478f, 250f, 70f), panelSize, lightText);
-        CreateSeparator(panel, "ScreenSeparator", new Rect(405f, 494f, 890f, 46f), panelSize);
+        CreateSectionHeader(panel, "ScreenHeader", "화면", new Rect(130f, 406f, 165f, 46f), panelSize, lightText);
+        CreateSeparator(panel, "ScreenSeparator", new Rect(282f, 412f, 620f, 36f), panelSize);
 
-        CreateScreenModeOption(panel, "FullscreenMode", "전체화면", new Rect(972f, 560f, 240f, 54f), panelSize, true);
-        CreateScreenModeOption(panel, "WindowedMode", "창화면", new Rect(972f, 620f, 240f, 54f), panelSize, false);
+        CreateScreenModeOption(panel, "FullscreenMode", "전체화면", new Rect(690f, 468f, 190f, 44f), panelSize, true);
+        CreateScreenModeOption(panel, "WindowedMode", "창화면", new Rect(690f, 520f, 190f, 44f), panelSize, false);
 
-        CreateSeparator(panel, "BottomSeparator", new Rect(178f, 676f, 1117f, 30f), panelSize);
-        _optionsStatusText = CreateText(panel, "Status", "", 18f, TextAlignmentOptions.Center, mutedColor, new Rect(450f, 648f, 600f, 30f), panelSize);
+        CreateSeparator(panel, "BottomSeparator", new Rect(130f, 542f, 750f, 24f), panelSize);
+        _optionsStatusText = CreateText(panel, "Status", "", 15f, TextAlignmentOptions.Center, mutedColor, new Rect(285f, 552f, 410f, 28f), panelSize);
 
-        CreateOptionButton(panel, "Button_ResetDefaults", "기본값", new Rect(178f, 700f, 260f, 78f), panelSize, HandleResetDefaultsClicked);
-        CreateOptionButton(panel, "Button_Apply", "적용", new Rect(620f, 700f, 260f, 78f), panelSize, HandleApplyOptionsClicked);
-        CreateOptionButton(panel, "Button_Close", "닫기", new Rect(1060f, 700f, 260f, 78f), panelSize, HandleCloseOptionsClicked);
+        CreateOptionButton(panel, "Button_ResetDefaults", "기본값", new Rect(118f, 578f, 175f, 55f), panelSize, HandleResetDefaultsClicked);
+        CreateOptionButton(panel, "Button_Apply", "적용", new Rect(403f, 578f, 175f, 55f), panelSize, HandleApplyOptionsClicked);
+        CreateOptionButton(panel, "Button_Close", "닫기", new Rect(688f, 578f, 175f, 55f), panelSize, HandleCloseOptionsClicked);
 
         _optionsRoot.SetActive(false);
         LoadPendingOptionsFromPrefs();
@@ -594,7 +594,7 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
     {
         var image = CreateOptionImage(parent, name, "Section_TextBox", rect, sourceSize);
         image.raycastTarget = false;
-        var text = CreateText(image.rectTransform, "Label", label, 26f, TextAlignmentOptions.Center, textColor, new Rect(0f, 0f, rect.width, rect.height), new Vector2(rect.width, rect.height));
+        var text = CreateText(image.rectTransform, "Label", label, 20f, TextAlignmentOptions.Center, textColor, new Rect(0f, 0f, rect.width, rect.height), new Vector2(rect.width, rect.height));
         text.fontStyle = FontStyles.Bold;
     }
 
@@ -618,28 +618,30 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         SetRectFromTopLeft(root, rect, sourceSize);
 
         var sliderSize = new Vector2(rect.width, rect.height);
-        var background = CreateOptionImage(root, "Background", "Volume_Bar_Back", new Rect(16f, 14f, rect.width - 52f, 35f), sliderSize);
+        const float trackLeft = 22f;
+        const float trackTop = 10f;
+        const float trackHeight = 24f;
+        var trackWidth = rect.width - 68f;
+
+        var background = CreateOptionImage(root, "Background", "Volume_Bar_Back", new Rect(trackLeft, trackTop, trackWidth, trackHeight), sliderSize);
         background.raycastTarget = false;
 
         var fillArea = CreateRect(root, "Fill Area");
-        fillArea.anchorMin = new Vector2(0.06f, 0.5f);
-        fillArea.anchorMax = new Vector2(0.90f, 0.5f);
-        fillArea.pivot = new Vector2(0f, 0.5f);
-        fillArea.sizeDelta = new Vector2(0f, 28f);
-        fillArea.anchoredPosition = new Vector2(0f, 0f);
+        SetRectFromTopLeft(fillArea, new Rect(trackLeft + 5f, trackTop + 3f, trackWidth - 10f, trackHeight - 6f), sliderSize);
 
-        var fill = CreateOptionImage(fillArea, "Fill", "Volume_Bar_Fill", new Rect(0f, 0f, fillArea.rect.width, 28f), new Vector2(fillArea.rect.width, 28f));
+        var fill = CreateOptionImage(fillArea, "Fill", "Volume_Bar_Fill", new Rect(0f, 0f, trackWidth - 10f, trackHeight - 6f), new Vector2(trackWidth - 10f, trackHeight - 6f));
         Stretch(fill.rectTransform);
         fill.raycastTarget = false;
 
         var handleArea = CreateRect(root, "Handle Slide Area");
-        handleArea.anchorMin = new Vector2(0.06f, 0f);
-        handleArea.anchorMax = new Vector2(0.90f, 1f);
-        handleArea.pivot = new Vector2(0f, 0.5f);
-        handleArea.sizeDelta = Vector2.zero;
-        handleArea.anchoredPosition = Vector2.zero;
+        SetRectFromTopLeft(handleArea, new Rect(trackLeft, 0f, trackWidth, rect.height), sliderSize);
 
-        var handle = CreateOptionImage(handleArea, "Handle", "Volume_Button", new Rect(0f, -2f, 42f, 58f), new Vector2(rect.width * 0.84f, rect.height));
+        var handle = CreateOptionImage(handleArea, "Handle", "Volume_Button", new Rect(0f, 0f, 34f, 46f), new Vector2(trackWidth, rect.height));
+        handle.rectTransform.anchorMin = new Vector2(0f, 0.5f);
+        handle.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+        handle.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        handle.rectTransform.sizeDelta = new Vector2(34f, 46f);
+        handle.rectTransform.anchoredPosition = Vector2.zero;
         handle.raycastTarget = true;
 
         var slider = go.GetComponent<Slider>();
@@ -665,14 +667,15 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         hitArea.raycastTarget = true;
 
         var optionSize = new Vector2(rect.width, rect.height);
-        var icon = CreateOptionImage(root, "Icon", "Circle_Button_Deactive", new Rect(0f, 3f, 48f, 48f), optionSize);
+        var icon = CreateOptionImage(root, "Icon", "Circle_Button_Deactive", new Rect(0f, 6f, 32f, 32f), optionSize);
         icon.raycastTarget = true;
         if (fullscreen)
             _fullscreenToggleImage = icon;
         else
             _windowedToggleImage = icon;
 
-        CreateText(root, "Label", label, 25f, TextAlignmentOptions.MidlineLeft, new Color(0.26f, 0.13f, 0.04f, 1f), new Rect(64f, 0f, rect.width - 64f, rect.height), optionSize);
+        var text = CreateText(root, "Label", label, 19f, TextAlignmentOptions.MidlineLeft, new Color(0.22f, 0.10f, 0.025f, 1f), new Rect(44f, 0f, rect.width - 44f, rect.height), optionSize);
+        text.fontStyle = FontStyles.Bold;
 
         var button = go.GetComponent<Button>();
         button.targetGraphic = icon;
@@ -725,7 +728,7 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         button.colors = colors;
         Bind(button, action);
 
-        var text = CreateText(buttonRect, "Label", label, 28f, TextAlignmentOptions.Center, new Color(1f, 0.92f, 0.72f, 1f), new Rect(0f, 0f, buttonRect.sizeDelta.x, buttonRect.sizeDelta.y), buttonRect.sizeDelta);
+        var text = CreateText(buttonRect, "Label", label, 24f, TextAlignmentOptions.Center, new Color(1f, 0.92f, 0.72f, 1f), new Rect(0f, 0f, buttonRect.sizeDelta.x, buttonRect.sizeDelta.y), buttonRect.sizeDelta);
         text.fontStyle = FontStyles.Bold;
         return button;
     }
@@ -813,7 +816,11 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         if (_koreanFont != null)
             return _koreanFont;
 
-        _koreanFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/NanumGothic SDF");
+        _koreanFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/Gowun Batang");
+        if (_koreanFont == null)
+            _koreanFont = Resources.Load<TMP_FontAsset>("Gowun Batang");
+        if (_koreanFont == null)
+            _koreanFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/NanumGothic SDF");
         if (_koreanFont == null)
             _koreanFont = Resources.Load<TMP_FontAsset>("NanumGothic SDF");
         return _koreanFont;
