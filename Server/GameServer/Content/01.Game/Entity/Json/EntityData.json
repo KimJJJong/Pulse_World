@@ -158,7 +158,7 @@
             "EntityId": 1021,
             "Name": "Entity_1021_Monster_BlackKnight",
             "EntityType": 2,
-            "MaxHp": 10,
+            "MaxHp": 250,
             "ResourcePath": "Data/Entity_1021_Monster_BlackKnight"
         },
         {

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Entity_999
   m_EditorClassIdentifier: Assembly-CSharp::EntityAnimationProfile
   IdleState: idle
-  IdleClip: {fileID: 398459744006993247, guid: 63a9ac7cbff5d8f4ab9ff7f2905ed2ca, type: 3}
+  IdleClip: {fileID: 0}
   MoveState: 
   MoveClip: {fileID: 0}
   AttackState: 
