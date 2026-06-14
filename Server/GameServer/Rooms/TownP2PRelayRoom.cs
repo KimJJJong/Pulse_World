@@ -14,8 +14,10 @@ public sealed class TownP2PRelayRoom : RoomBase
     private enum RoomPhase { Waiting, Running, Ended }
 
     private const int RelayTickRate = 120;
-    private const double TownBpm = 180;
     private const string DefaultTownId = "Town_01";
+    private const string TownForestId = "Town_Forest";
+    private const double DefaultTownBpm = 180;
+    private const double TownForestBpm = 90;
 
     public string RelayId { get; }
     public string MapId { get; private set; }
@@ -315,7 +317,7 @@ public sealed class TownP2PRelayRoom : RoomBase
                 ServerSendTimeMs = AppRef.ServerTimeMs(),
                 ClientSendTimeMs = 0,
                 SongStartServerTimeMs = _songStartAtMs,
-                Bpm = TownBpm,
+                Bpm = ResolveTownBpm(MapId),
                 BaseBeatDivision = 1,
                 BeatIndex = 0
             }.Write());
@@ -346,7 +348,7 @@ public sealed class TownP2PRelayRoom : RoomBase
             MyActorId = myActorId,
             ActionWindowMs = 100,
             SongId = "TownP2P",
-            Bpm = TownBpm,
+            Bpm = ResolveTownBpm(MapId),
             BaseBeatDivision = 1,
             SongStartServerTime = _songStartAtMs
         };
@@ -382,6 +384,13 @@ public sealed class TownP2PRelayRoom : RoomBase
         }
 
         return packet;
+    }
+
+    private static double ResolveTownBpm(string mapId)
+    {
+        return string.Equals(mapId, TownForestId, StringComparison.OrdinalIgnoreCase)
+            ? TownForestBpm
+            : DefaultTownBpm;
     }
 
     private async Task SendInventoryAsync(ClientSession s)

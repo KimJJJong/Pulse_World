@@ -12,7 +12,9 @@ using Util;
 public sealed class TownRoom : RoomBase
 {
     private const string DefaultTownId = "Town_01";
-    private const int TownBpm = 180;
+    private const string TownForestId = "Town_Forest";
+    private const int DefaultTownBpm = 180;
+    private const int TownForestBpm = 90;
 
     public string TownId { get; }
 
@@ -63,7 +65,7 @@ public sealed class TownRoom : RoomBase
 
         _rhythmConfig = new RhythmConfig
         {
-            Bpm = TownBpm,
+            Bpm = ResolveTownBpm(TownId),
             BaseBeatDivision = 1,
             ActionWindowMs = 100,
             MaxBeatLookAhead = 2,
@@ -100,6 +102,13 @@ public sealed class TownRoom : RoomBase
         });
 
         _logger.LogInformation("TownRoom {TownId} started mapId={MapId}", TownId, _map.MapId);
+    }
+
+    private static int ResolveTownBpm(string townId)
+    {
+        return string.Equals(townId, TownForestId, StringComparison.OrdinalIgnoreCase)
+            ? TownForestBpm
+            : DefaultTownBpm;
     }
 
     private Map2D ResolveTownMap()
