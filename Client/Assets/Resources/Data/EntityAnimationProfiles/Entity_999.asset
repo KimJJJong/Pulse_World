@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c71e40680c843b4a0e16e299428f2d1, type: 3}
   m_Name: Entity_999
   m_EditorClassIdentifier: Assembly-CSharp::EntityAnimationProfile
-  IdleState: pushed
-  IdleClip: {fileID: 2397998239284075079, guid: 63a9ac7cbff5d8f4ab9ff7f2905ed2ca, type: 3}
+  IdleState: idle
+  IdleClip: {fileID: 398459744006993247, guid: 63a9ac7cbff5d8f4ab9ff7f2905ed2ca, type: 3}
   MoveState: 
   MoveClip: {fileID: 0}
   AttackState: 

@@ -1,0 +1,433 @@
+{
+  "MonsterType": "Enemy_DemonKing_Elite",
+  "DefaultPhase": "P1",
+  "Phases": [
+    {
+      "Id": "P1",
+      "Selectors": [
+        {
+          "Id": "P1_Approach",
+          "Weight": 2,
+          "CooldownBeats": 1,
+          "When": {
+            "All": [
+              {
+                "Type": 1,
+                "Value": 3
+              }
+            ]
+          },
+          "Timeline": [
+            {
+              "Type": 1,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "LockRotation": false,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            }
+          ]
+        },
+        {
+          "Id": "P1_Slam",
+          "Weight": 3,
+          "CooldownBeats": 4,
+          "When": {
+            "All": [
+              {
+                "Type": 0,
+                "Value": 2
+              }
+            ]
+          },
+          "Timeline": [
+            {
+              "Type": 3,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "Enemy_DemonKing_Slam",
+              "LockRotation": false,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            }
+          ]
+        },
+        {
+          "Id": "P1_FireBreath",
+          "Weight": 2,
+          "CooldownBeats": 5,
+          "When": {
+            "All": [
+              {
+                "Type": 0,
+                "Value": 5
+              },
+              {
+                "Type": 2,
+                "Value": 0
+              }
+            ]
+          },
+          "Timeline": [
+            {
+              "Type": 3,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "Enemy_DemonKing_FireBreath",
+              "LockRotation": false,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            }
+          ]
+        },
+        {
+          "Id": "P1_Reposition",
+          "Weight": 1,
+          "CooldownBeats": 3,
+          "When": {
+            "All": [
+              {
+                "Type": 0,
+                "Value": 2
+              }
+            ]
+          },
+          "Timeline": [
+            {
+              "Type": 4,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "LockRotation": false,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Id": "P2",
+      "Selectors": [
+        {
+          "Id": "P2_SwordSpin",
+          "Weight": 4,
+          "CooldownBeats": 3,
+          "When": {
+            "All": [
+              {
+                "Type": 0,
+                "Value": 2
+              }
+            ]
+          },
+          "Timeline": [
+            {
+              "Type": 3,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "Enemy_DemonKing_SwordSpin",
+              "LockRotation": true,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            }
+          ]
+        },
+        {
+          "Id": "P2_FireBreath",
+          "Weight": 3,
+          "CooldownBeats": 4,
+          "When": {
+            "All": [
+              {
+                "Type": 0,
+                "Value": 6
+              }
+            ]
+          },
+          "Timeline": [
+            {
+              "Type": 3,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "Enemy_DemonKing_FireBreath",
+              "LockRotation": false,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            }
+          ]
+        },
+        {
+          "Id": "P2_CrushingLeap",
+          "Weight": 3,
+          "CooldownBeats": 4,
+          "When": {
+            "All": [
+              {
+                "Type": 1,
+                "Value": 2
+              }
+            ]
+          },
+          "Timeline": [
+            {
+              "Type": 1,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "LockRotation": false,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 2,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            },
+            {
+              "Type": 3,
+              "AtBeatOffset": 1,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "Enemy_DemonKing_Slam",
+              "LockRotation": false,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            }
+          ]
+        },
+        {
+          "Id": "P2_Slam",
+          "Weight": 2,
+          "CooldownBeats": 3,
+          "When": {
+            "All": [
+              {
+                "Type": 0,
+                "Value": 3
+              }
+            ]
+          },
+          "Timeline": [
+            {
+              "Type": 3,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "Enemy_DemonKing_Slam",
+              "LockRotation": false,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            }
+          ]
+        },
+        {
+          "Id": "P2_Hunt",
+          "Weight": 1,
+          "CooldownBeats": 1,
+          "When": {
+            "All": [
+              {
+                "Type": 1,
+                "Value": 1
+              }
+            ]
+          },
+          "Timeline": [
+            {
+              "Type": 4,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "",
+              "LockRotation": false,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "Transitions": [
+    {
+      "FromPhaseId": "P1",
+      "ToPhaseId": "P2",
+      "Type": 0,
+      "Value": 50
+    }
+  ]
+}

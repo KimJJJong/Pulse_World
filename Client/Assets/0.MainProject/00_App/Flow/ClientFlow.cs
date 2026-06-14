@@ -20,8 +20,13 @@ public sealed class ClientFlow : MonoBehaviour
     string _lastTownMapId = "";
     string _lastTownScene = "";
     int _lastTownMaxPlayers = 16;
+    SessionDtos.IssueGameTicketResponse _lastGameTicket;
     bool _suppressTownCleanupForReturn;
     bool _suppressTownCleanupForGameTransition;
+
+    public bool CanRetryCurrentGame => _lastGameTicket != null
+                                       && !string.IsNullOrWhiteSpace(_lastGameTicket.Key)
+                                       && _lastGameTicket.Endpoint != null;
 
     public void SetTargetTownScene(string sceneName)
     {
@@ -72,6 +77,7 @@ public sealed class ClientFlow : MonoBehaviour
         _suppressTownCleanupForGameTransition = !string.IsNullOrWhiteSpace(_lastTownRoomId);
         _mapId = ticket.MapId;
         _maxPlayers = ticket.MaxPlayers;
+        _lastGameTicket = CloneGameTicket(ticket);
 
         SessionContext.Instance.ClearInitMap();
         SessionContext.Instance.ApplySessionKey(ticket.Key);
@@ -102,6 +108,22 @@ public sealed class ClientFlow : MonoBehaviour
         P2PRelayClientBridge.Instance?.Reset();
         NetworkManager.Instance.Disconnect("");
         _ = ReturnToTownAsync();
+    }
+
+    public void RetryCurrentGame()
+    {
+        if (!CanRetryCurrentGame)
+        {
+            Debug.LogWarning("[ClientFlow] RetryCurrentGame requested without a reusable game ticket. Returning to town.");
+            ReturnToTown();
+            return;
+        }
+
+        Debug.Log($"[ClientFlow] RetryCurrentGame map={_lastGameTicket.MapId}");
+        _suppressTownCleanupForGameTransition = true;
+        P2PRelayClientBridge.Instance?.Reset();
+        NetworkManager.Instance.Disconnect("retry_game");
+        _ = RetryCurrentGameAsync();
     }
 
     public async Task LeaveRememberedTownAsync(string reason = "manual")
@@ -359,6 +381,45 @@ public sealed class ClientFlow : MonoBehaviour
             SetTargetTownScene(_lastTownScene);
 
         await ConnectTown(r.Data, nonce);
+    }
+
+    async Task RetryCurrentGameAsync()
+    {
+        await Task.Yield();
+
+        if (!CanRetryCurrentGame)
+        {
+            ReturnToTown();
+            return;
+        }
+
+        var nonce = "game-retry-" + Guid.NewGuid().ToString("N");
+        await ConnectGame(CloneGameTicket(_lastGameTicket), nonce);
+    }
+
+    static SessionDtos.IssueGameTicketResponse CloneGameTicket(SessionDtos.IssueGameTicketResponse ticket)
+    {
+        if (ticket == null)
+            return null;
+
+        return new SessionDtos.IssueGameTicketResponse
+        {
+            TransitionId = ticket.TransitionId,
+            TicketId = ticket.TicketId,
+            ExpireAtMs = ticket.ExpireAtMs,
+            ServerId = ticket.ServerId,
+            Endpoint = ticket.Endpoint == null
+                ? null
+                : new SessionDtos.EndpointDto
+                {
+                    Host = ticket.Endpoint.Host,
+                    Port = ticket.Endpoint.Port
+                },
+            Key = ticket.Key,
+            MapId = ticket.MapId,
+            MaxPlayers = ticket.MaxPlayers,
+            MatchManifest = ticket.MatchManifest
+        };
     }
 
     void RememberTownContext(SessionDtos.IssueTownTicketResponse ticket)

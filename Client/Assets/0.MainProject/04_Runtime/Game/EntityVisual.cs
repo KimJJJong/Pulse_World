@@ -18,7 +18,7 @@ public class EntityVisual : MonoBehaviour
 
     private static readonly string[] IdleStateCandidates =
     {
-        "IdleBattle", "IdleNormal", "Idle_B", "Idle", "IdleNormal 0", "pushed"
+        "IdleBattle", "IdleNormal", "Idle_B", "Idle", "IdleNormal 0"
     };
 
     private static readonly string[] MoveStateCandidates =

@@ -21,12 +21,23 @@ public sealed class HomeUIButtonFeedback : MonoBehaviour, IPointerEnterHandler, 
     private bool _pressed;
     private bool _selected;
     private bool _captured;
+    private bool _hasTintOverride;
+    private Color _tintOverrideColor = Color.white;
 
     public void Configure(RectTransform scaleTarget, Graphic tintTarget)
     {
         _scaleTarget = scaleTarget != null ? scaleTarget : transform as RectTransform;
         _tintTarget = tintTarget != null ? tintTarget : FindFallbackGraphic();
         CaptureBaseState(force: true);
+    }
+
+    public void SetTintOverride(bool enabled, Color color)
+    {
+        _hasTintOverride = enabled;
+        _tintOverrideColor = color;
+
+        if (_tintTarget != null)
+            _tintTarget.color = GetTargetColor(_selectable == null || _selectable.IsInteractable());
     }
 
     private void Awake()
@@ -136,27 +147,28 @@ public sealed class HomeUIButtonFeedback : MonoBehaviour, IPointerEnterHandler, 
 
     private Color GetTargetColor(bool interactable)
     {
+        var baseColor = _hasTintOverride ? _tintOverrideColor : _baseColor;
         if (!interactable)
         {
-            var disabled = _baseColor;
-            disabled.a *= 0.55f;
+            var disabled = baseColor;
+            disabled.a *= _hasTintOverride ? 1f : 0.55f;
             return disabled;
         }
 
-        if (_baseColor.a <= 0.01f)
+        if (baseColor.a <= 0.01f)
         {
             if (_pressed)
                 return _transparentPressedTint;
             if (_hovered || _selected)
                 return _transparentHoverTint;
-            return _baseColor;
+            return baseColor;
         }
 
         if (_pressed)
-            return Color.Lerp(_baseColor, _pressedTint, 0.35f);
+            return _hasTintOverride ? baseColor : Color.Lerp(baseColor, _pressedTint, 0.35f);
         if (_hovered || _selected)
-            return Color.Lerp(_baseColor, _hoverTint, 0.28f);
-        return _baseColor;
+            return _hasTintOverride ? baseColor : Color.Lerp(baseColor, _hoverTint, 0.28f);
+        return baseColor;
     }
 
     private float GetBlend()

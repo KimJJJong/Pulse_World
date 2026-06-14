@@ -8,6 +8,9 @@ using System.IO;
 
 public class HomeEquipPopupItemUI : MonoBehaviour
 {
+    private const string EquipmentDetailResourceRoot = "UI/UI_EquimentDetail/";
+    private const float ResourceCardWidth = 96f;
+    private const float ResourceCardHeight = 102f;
     private static readonly Color ListCard = new Color(0.78f, 0.64f, 0.44f, 0.92f);
     private static readonly Color ListCardSelected = new Color(0.07f, 0.42f, 0.40f, 0.96f);
     private static readonly Color ListText = new Color(0.10f, 0.22f, 0.20f, 1f);
@@ -23,6 +26,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _levelText; // +1, +2
     [SerializeField] private Button _btn;
     [SerializeField] private GameObject _equippedMark;
+    [SerializeField] private Image _selectionOutline;
 
     private SC_Inventory.Equipments _data;
     private System.Action _onClick;
@@ -84,7 +88,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
                     iconRect.anchorMin = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
                     iconRect.anchorMax = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
                     iconRect.pivot = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
-                    iconRect.sizeDelta = gridCard ? new Vector2(54f, 54f) : new Vector2(48f, 48f);
+                    iconRect.sizeDelta = gridCard ? new Vector2(64f, 64f) : new Vector2(48f, 48f);
                     iconRect.anchoredPosition = gridCard ? new Vector2(0f, 0f) : new Vector2(10f, 0f);
                 }
             }
@@ -143,8 +147,9 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         {
             if (UseResourceCardLayout())
             {
-                bg.sprite = _isSelected ? SelectedCardSprite : DefaultCardSprite;
-                bg.type = Image.Type.Sliced;
+                bg.sprite = DefaultCardSprite;
+                bg.type = Image.Type.Simple;
+                bg.preserveAspect = false;
                 bg.color = Color.white;
             }
             else
@@ -160,6 +165,8 @@ public class HomeEquipPopupItemUI : MonoBehaviour
 
         if (_levelText != null)
             _levelText.color = _isSelected ? new Color(0.94f, 0.97f, 0.94f, 1f) : ListMutedText;
+
+        UpdateSelectionOutline();
 
         var feedback = GetComponent<HomeUIButtonFeedback>();
         if (feedback == null)
@@ -201,12 +208,14 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         if (_equippedMark == null)
             _equippedMark = FindGameObject("EquippedMark", "Equipped", "Mark");
 
+        EnsureSelectionOutline(gridCard);
+
         var layout = GetComponent<LayoutElement>();
         if (layout == null)
             layout = gameObject.AddComponent<LayoutElement>();
-        layout.preferredHeight = gridCard ? 85f : 68f;
-        layout.minHeight = gridCard ? 85f : 64f;
-        layout.preferredWidth = gridCard ? 84f : 300f;
+        layout.preferredHeight = gridCard ? ResourceCardHeight : 68f;
+        layout.minHeight = gridCard ? ResourceCardHeight : 64f;
+        layout.preferredWidth = gridCard ? ResourceCardWidth : 300f;
 
         if (_nameText != null)
         {
@@ -242,7 +251,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             iconRect.anchorMin = new Vector2(0.5f, 0.5f);
             iconRect.anchorMax = new Vector2(0.5f, 0.5f);
             iconRect.pivot = new Vector2(0.5f, 0.5f);
-            iconRect.sizeDelta = new Vector2(54f, 54f);
+            iconRect.sizeDelta = new Vector2(64f, 64f);
             iconRect.anchoredPosition = new Vector2(0f, 0f);
         }
 
@@ -283,7 +292,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             markImage.preserveAspect = false;
             if (markImage.sprite == null)
                 markImage.sprite = DefaultCardSprite;
-            markImage.type = Image.Type.Sliced;
+            markImage.type = Image.Type.Simple;
             markImage.color = EquippedMarkBack;
             markImage.enabled = true;
         }
@@ -338,6 +347,64 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         }
     }
 
+    private void EnsureSelectionOutline(bool gridCard)
+    {
+        if (!gridCard)
+        {
+            if (_selectionOutline != null)
+                _selectionOutline.gameObject.SetActive(false);
+            return;
+        }
+
+        if (_selectionOutline == null)
+            _selectionOutline = FindImageByExactName("SelectionOutline", "SelectedOutline", "EquippedOutline");
+
+        if (_selectionOutline == null)
+        {
+            var outlineGo = new GameObject("SelectionOutline", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            outlineGo.transform.SetParent(transform, false);
+            _selectionOutline = outlineGo.GetComponent<Image>();
+        }
+
+        _selectionOutline.sprite = SelectedCardSprite;
+        _selectionOutline.type = Image.Type.Simple;
+        _selectionOutline.preserveAspect = false;
+        _selectionOutline.raycastTarget = false;
+        _selectionOutline.color = Color.white;
+
+        var outlineRect = _selectionOutline.rectTransform;
+        outlineRect.anchorMin = Vector2.zero;
+        outlineRect.anchorMax = Vector2.one;
+        outlineRect.offsetMin = Vector2.zero;
+        outlineRect.offsetMax = Vector2.zero;
+        outlineRect.localScale = Vector3.one;
+
+        UpdateSelectionOutline();
+    }
+
+    private void UpdateSelectionOutline()
+    {
+        if (_selectionOutline == null)
+            return;
+
+        var showOutline = UseResourceCardLayout() && (_isSelected || (_data != null && _data.IsEquipped));
+        _selectionOutline.gameObject.SetActive(showOutline);
+        OrderResourceCardLayers();
+    }
+
+    private void OrderResourceCardLayers()
+    {
+        if (!UseResourceCardLayout())
+            return;
+
+        if (_icon != null)
+            _icon.transform.SetAsLastSibling();
+        if (_selectionOutline != null && _selectionOutline.gameObject.activeSelf)
+            _selectionOutline.transform.SetAsLastSibling();
+        if (_equippedMark != null && _equippedMark.activeSelf)
+            _equippedMark.transform.SetAsLastSibling();
+    }
+
     private void ConfigureIconFrame(bool gridCard, bool visible)
     {
         if (!gridCard)
@@ -350,10 +417,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         if (_iconFrame != null)
             _iconFrame.gameObject.SetActive(false);
 
-        if (_icon != null)
-            _icon.transform.SetAsLastSibling();
-        if (_equippedMark != null)
-            _equippedMark.transform.SetAsLastSibling();
+        OrderResourceCardLayers();
     }
 
     private static Sprite DefaultCardSprite
@@ -361,7 +425,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         get
         {
             if (_defaultCardSprite == null)
-                _defaultCardSprite = Resources.Load<Sprite>("UI/UI_Home_Equipment_Detail/UI_01_default");
+                _defaultCardSprite = Resources.Load<Sprite>(EquipmentDetailResourceRoot + "Equipment_Frame");
 
             return _defaultCardSprite;
         }
@@ -372,7 +436,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         get
         {
             if (_selectedCardSprite == null)
-                _selectedCardSprite = Resources.Load<Sprite>("UI/UI_Home_Equipment_Detail/UI_01_selected");
+                _selectedCardSprite = Resources.Load<Sprite>(EquipmentDetailResourceRoot + "Equipment_Selected");
 
             return _selectedCardSprite;
         }

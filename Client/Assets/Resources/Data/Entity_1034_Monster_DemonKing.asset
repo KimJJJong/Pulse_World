@@ -17,4 +17,4 @@ MonoBehaviour:
   Type: 2
   Prefab: {fileID: 9177426130364244234, guid: fe1ad766c0e622b4fb6761c32a36595f, type: 3}
   AnimatorController: {fileID: 0}
-  MaxHp: 10
+  MaxHp: 180

@@ -53,14 +53,11 @@ public sealed class TownHomeUiController : MonoBehaviour
         if (ConsumedToggleThisFrame)
             return;
 
-        if (Input.GetKeyDown(KeyCode.I))
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
             ToggleHomeUi();
             return;
         }
-
-        if (IsOpen && Input.GetKeyDown(KeyCode.Escape))
-            CloseHomeUi();
     }
 
     public void ToggleHomeUi()

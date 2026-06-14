@@ -209,7 +209,7 @@ public static class Home1SceneSpaceUiBuilder
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
-        Debug.Log("[Home1SceneSpaceUiBuilder] Configured Home 1 map routes: plains=TownMap, forest=Town_Forest, others=missing.");
+        Debug.Log("[Home1SceneSpaceUiBuilder] Configured Home 1 map routes: forest=Town_Forest, others=missing.");
     }
 
     [MenuItem("RhythmRPG/Editors/UI/Configure Home1 Map Town Entry UI")]
@@ -629,7 +629,9 @@ public static class Home1SceneSpaceUiBuilder
         var equipment = CreateHomeMenuCard(reference, "Button_Equipment", "UI_Home_Interface/UI_Decoration_Equipment.png", "EQUIPMENT", "Equip weapons, armor, and\naccessories.", "Manage Equipment", new Rect(88f, 242f, 300f, 176f), referenceSize);
         var inventory = CreateHomeMenuCard(reference, "Button_Inventory", "UI_Home_Interface/UI_Decoration_Inventory.png", "INVENTORY", "View items, materials,\nand useful goods.", "Open Inventory", new Rect(88f, 464f, 300f, 176f), referenceSize);
         var appearance = CreateHomeMenuCard(reference, "Button_Appearance", "UI_Home_Interface/UI_Decoration_Appear.png", "APPEARANCE", "Customize your look\nand outfit.", "Change Appearance", new Rect(750f, 242f, 300f, 176f), referenceSize);
-        var map = CreateHomeMenuCard(reference, "Button_Map", "UI_Home_Interface/UI_Decoration_Map.png", "MAP", "View the world map and\nplan your route to Town.", "Open World Map", new Rect(750f, 464f, 300f, 176f), referenceSize);
+        var map = isTownOverlay
+            ? CreateHomeMenuCard(reference, "Button_Map", "UI_Home_Interface/UI_Decoration_Map.png", "OPTIONS", "소리, 게임 플레이,\n나가기 설정.", "Open Options", new Rect(750f, 464f, 300f, 176f), referenceSize)
+            : CreateHomeMenuCard(reference, "Button_Map", "UI_Home_Interface/UI_Decoration_Map.png", "MAP", "View the world map and\nplan your route to Town.", "Open World Map", new Rect(750f, 464f, 300f, 176f), referenceSize);
 
         return new HomeMenuButtons
         {
@@ -923,7 +925,7 @@ public static class Home1SceneSpaceUiBuilder
         CreateText(root, "MapTitleText", "WORLD MAP", new Rect(504f, 38f, 270f, 42f), 36f, TextAlignmentOptions.Center, ParchmentText);
         var realms = new[]
         {
-            CreateRealmButton(root, "Realm_Plains", "UI_Map/UI_Map_Location_Farm.png", new Rect(354f, 336f, 276f, 158f), "plains", "Golden Plains", "마을로 이동 가능한 중심 평야입니다. 현재 Town 입장 티켓 검증 흐름과 동일하게 동작합니다.", TownPassTicket, SceneNames.TownMap),
+            CreateRealmButton(root, "Realm_Plains", "UI_Map/UI_Map_Location_Farm.png", new Rect(354f, 336f, 276f, 158f), "plains", "Golden Plains", "아직 열리지 않은 지역입니다.", MissingMapTicket, string.Empty),
             CreateRealmButton(root, "Realm_Forest", "UI_Map/UI_Map_Location_Forest.png", new Rect(142f, 150f, 320f, 236f), "forest", "Whispering Forest", "울창한 숲과 작은 마을이 있는 초반 영역입니다. 리듬 왜곡이 가장 약해 입장 준비에 적합합니다.", TownPassTicket, SceneNames.Town_Forest),
             CreateRealmButton(root, "Realm_Snow", "UI_Map/UI_Map_Location_SnowMountain.png", new Rect(424f, 150f, 222f, 160f), "snow", "Frostpeak Mountains", "얼어붙은 박자와 지연 입력이 섞이는 설산 영역입니다. 방어 장비 확인을 권장합니다.", MissingMapTicket, string.Empty),
             CreateRealmButton(root, "Realm_Ruins", "UI_Map/UI_Map_Location_Ruins.png", new Rect(626f, 176f, 220f, 164f), "ruins", "Ancient Ruins", "무너진 유적과 잔향 패턴이 겹치는 고대 영역입니다. 복합 리듬 전투가 등장합니다.", MissingMapTicket, string.Empty),
@@ -1150,9 +1152,6 @@ public static class Home1SceneSpaceUiBuilder
 
     private static string ResolveHomeMapSceneName(string realmId)
     {
-        if (string.Equals(realmId, "plains", StringComparison.OrdinalIgnoreCase))
-            return SceneNames.TownMap;
-
         if (string.Equals(realmId, "forest", StringComparison.OrdinalIgnoreCase))
             return SceneNames.Town_Forest;
 

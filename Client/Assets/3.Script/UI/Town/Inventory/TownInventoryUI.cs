@@ -106,7 +106,7 @@ public class TownInventoryUI : MonoBehaviour
         if (!_handleHotkey || IsHotkeyOwnedByTownPanel())
             return;
 
-        if (Input.GetKeyDown(KeyCode.I))
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
             ToggleInventory();
         }

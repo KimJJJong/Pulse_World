@@ -8,10 +8,19 @@ using UnityEngine.UI;
 
 public class HomeEquipPopupUI : MonoBehaviour
 {
-    private static readonly Color ResourceParchmentText = new Color(0.10f, 0.22f, 0.20f, 1f);
-    private static readonly Color ResourceParchmentMutedText = new Color(0.32f, 0.26f, 0.18f, 1f);
-    private static readonly Color ResourceButtonText = new Color(0.96f, 0.92f, 0.82f, 1f);
-    private const string DetailIconFrameResourcePath = "UI/UI_Home_Equipment_Detail/UI_equipment_icon_frame_detail";
+    private static readonly Color ResourceParchmentText = new Color(0.08f, 0.055f, 0.03f, 1f);
+    private static readonly Color ResourceParchmentMutedText = new Color(0.24f, 0.16f, 0.08f, 1f);
+    private static readonly Color ResourceButtonText = new Color(0.98f, 0.90f, 0.66f, 1f);
+    private const string EquipmentDetailResourceRoot = "UI/UI_EquimentDetail/";
+    private const string DetailPanelResourcePath = EquipmentDetailResourceRoot + "Panel";
+    private const string EquipmentPaperResourcePath = EquipmentDetailResourceRoot + "Equipments_Panel_Paper";
+    private const string DetailIconFrameResourcePath = EquipmentDetailResourceRoot + "Equipment_Frame";
+    private const string SelectButtonResourcePath = EquipmentDetailResourceRoot + "Select_Button";
+    private const float ResourceCardWidth = 96f;
+    private const float ResourceCardHeight = 102f;
+    private const float ResourceCardGapX = 8f;
+    private const float ResourceCardGapY = 10f;
+    private const int ResourceCardColumns = 3;
 
     [SerializeField] private Transform _content;
     [SerializeField] private GameObject _itemPrefab; // Should have HomeEquipPopupItemUI component
@@ -48,7 +57,11 @@ public class HomeEquipPopupUI : MonoBehaviour
     private Text _actionButtonText;
     private TMP_FontAsset _koreanFont;
     private static Sprite _defaultUiSprite;
+    private static Sprite _detailPanelSprite;
+    private static Sprite _equipmentPaperSprite;
     private static Sprite _detailIconFrameSprite;
+    private static Sprite _selectButtonSprite;
+    private static Font _koreanLegacyFont;
 
     private readonly List<HomeEquipPopupItemUI> _spawnedItems = new();
     private EquipmentSlot _currentSlot = EquipmentSlot.None;
@@ -89,7 +102,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         _sectionRootToRestore = sectionRootToRestore;
         _currentSlot = slot;
         _selectedInstanceId = FindEquippedInstanceId(slot);
-        var titleText = $"{GetSlotLabel(slot)} 장비";
+        var titleText = GetSelectionTitle(slot);
         CacheSceneReferences();
         BuildLayout();
         if (_title != null)
@@ -177,6 +190,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (_useHomeDetailResourceLayout && TryBindExistingResourceLayout())
         {
             _uiBuilt = true;
+            ApplyHomeDetailResourceLayout();
             NormalizePopupTextColors();
             EnsurePopupOrder();
             return;
@@ -392,49 +406,60 @@ public class HomeEquipPopupUI : MonoBehaviour
         SetCenteredRect(_browserRoot, new Vector2(1280f, 720f), Vector2.zero);
         SetImageColor(_contentRect, new Color(0f, 0f, 0f, 0f));
         SetImageColor(_browserRoot, new Color(0f, 0f, 0f, 0f));
-        SetImageColor(_leftPanel, new Color(0f, 0f, 0f, 0f));
-        SetImageColor(_rightPanel, new Color(0f, 0f, 0f, 0f));
         SetImageColor(_listViewport, new Color(0f, 0f, 0f, 0f));
         ConfigureInputBlockers();
 
         if (_title != null)
         {
             var titleRect = _title.rectTransform;
-            SetTopLeftRect(titleRect, new Rect(118f, 54f, 270f, 30f));
-            _title.alignment = TextAlignmentOptions.MidlineLeft;
+            SetTopLeftRect(titleRect, new Rect(88f, 84f, 330f, 42f));
+            _title.alignment = TextAlignmentOptions.Center;
+            _title.enableAutoSizing = true;
+            _title.fontSizeMin = 18f;
+            _title.fontSizeMax = 28f;
+            _title.fontStyle = FontStyles.Bold;
             _title.color = ResourceParchmentText;
         }
 
-        if (_closeBtn != null)
-        {
-            var closeRect = _closeBtn.GetComponent<RectTransform>();
-            if (closeRect != null)
-                SetTopLeftRect(closeRect, new Rect(1120f, 14f, 148f, 48f));
-        }
+        DisableLegacyResourceChrome();
+        ConfigureBackButton();
 
-        SetTopLeftRect(_leftPanel, new Rect(34f, 108f, 344f, 500f));
-        SetTopLeftRect(_rightPanel, new Rect(895f, 80f, 356f, 568f));
+        SetTopLeftRect(_leftPanel, new Rect(28f, 24f, 451f, 672f));
+        SetTopLeftRect(_rightPanel, new Rect(801f, 24f, 451f, 672f));
+        ApplyResourceSprite(_leftPanel, DetailPanelSprite, true);
+        ApplyResourceSprite(_rightPanel, DetailPanelSprite, true);
+
+        var equipmentPaper = EnsureDecorImage("EquipmentPaper", _leftPanel, EquipmentPaperSprite);
+        SetTopLeftRect(equipmentPaper, new Rect(44f, 146f, 363f, 494f));
+        if (equipmentPaper != null)
+            equipmentPaper.SetAsFirstSibling();
 
         if (_leftHeaderRoot != null)
-            SetTopLeftRect(_leftHeaderRoot, new Rect(12f, 8f, 316f, 58f));
+            SetTopLeftRect(_leftHeaderRoot, new Rect(54f, 86f, 344f, 58f));
 
         if (_leftBodyRoot != null)
-            SetTopLeftRect(_leftBodyRoot, new Rect(10f, 74f, 324f, 410f));
+            SetTopLeftRect(_leftBodyRoot, new Rect(44f, 146f, 363f, 494f));
 
-        SetTextRect(_ownedItemsTitle, new Rect(0f, 0f, 156f, 24f), 16, TextAnchor.MiddleLeft, ResourceParchmentText);
-        SetTextRect(_slotLabel, new Rect(0f, 27f, 132f, 18f), 12, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
-        SetTextRect(_itemCountLabel, new Rect(188f, 27f, 112f, 18f), 12, TextAnchor.MiddleRight, ResourceParchmentMutedText);
+        if (_ownedItemsTitle != null)
+            _ownedItemsTitle.gameObject.SetActive(false);
+        if (_slotLabel != null)
+            _slotLabel.gameObject.SetActive(false);
+        if (_itemCountLabel != null)
+        {
+            _itemCountLabel.gameObject.SetActive(true);
+            SetTextRect(_itemCountLabel, new Rect(224f, 18f, 108f, 22f), 13, TextAnchor.MiddleRight, ResourceParchmentMutedText);
+        }
 
         if (_listViewport != null)
         {
-            SetTopLeftRect(_listViewport, new Rect(0f, 0f, 324f, 406f));
+            SetTopLeftRect(_listViewport, new Rect(30f, 42f, 304f, 430f));
 
             var scrollImage = _listViewport.GetComponent<Image>();
             if (scrollImage != null)
             {
                 ApplyDefaultSprite(scrollImage);
                 scrollImage.color = new Color(1f, 1f, 1f, 0.01f);
-                scrollImage.raycastTarget = false;
+                scrollImage.raycastTarget = true;
             }
         }
 
@@ -443,19 +468,19 @@ public class HomeEquipPopupUI : MonoBehaviour
             _listContent.anchorMin = new Vector2(0f, 1f);
             _listContent.anchorMax = new Vector2(0f, 1f);
             _listContent.pivot = new Vector2(0f, 1f);
-            _listContent.anchoredPosition = new Vector2(10f, -10f);
-            _listContent.sizeDelta = new Vector2(304f, 0f);
+            _listContent.anchoredPosition = Vector2.zero;
+            _listContent.sizeDelta = new Vector2(ResourceCardColumns * ResourceCardWidth + (ResourceCardColumns - 1) * ResourceCardGapX, 0f);
 
             ConfigureEquipmentGrid();
         }
 
         if (_rightHeaderRoot != null)
-            SetTopLeftRect(_rightHeaderRoot, new Rect(0f, 0f, 356f, 150f));
+            SetTopLeftRect(_rightHeaderRoot, new Rect(0f, 0f, 451f, 286f));
 
         if (_rightBodyRoot != null)
         {
-            SetTopLeftRect(_rightBodyRoot, new Rect(0f, 150f, 356f, 330f));
-            ConfigureScrollViewport(_rightBodyRoot, "DetailBodyContent", new Vector2(356f, 480f), ref _rightBodyScrollContent);
+            SetTopLeftRect(_rightBodyRoot, new Rect(0f, 286f, 451f, 260f));
+            ConfigureScrollViewport(_rightBodyRoot, "DetailBodyContent", new Vector2(451f, 280f), ref _rightBodyScrollContent);
         }
 
         if (_rightBodyScrollContent != null)
@@ -464,61 +489,62 @@ public class HomeEquipPopupUI : MonoBehaviour
             _rightBodyScrollContent.anchorMax = new Vector2(0f, 1f);
             _rightBodyScrollContent.pivot = new Vector2(0f, 1f);
             _rightBodyScrollContent.anchoredPosition = Vector2.zero;
-            _rightBodyScrollContent.sizeDelta = new Vector2(356f, 480f);
+            _rightBodyScrollContent.sizeDelta = new Vector2(451f, 280f);
         }
 
         if (_rightFooterRoot != null)
-            SetTopLeftRect(_rightFooterRoot, new Rect(0f, 566f, 356f, 64f));
+            SetTopLeftRect(_rightFooterRoot, new Rect(0f, 546f, 451f, 102f));
 
-        SetTextRect(FindText("DetailTitle"), new Rect(0f, 0f, 150f, 24f), 17, TextAnchor.MiddleLeft, ResourceParchmentText);
+        var detailTitle = FindText("DetailTitle");
+        if (detailTitle != null)
+            detailTitle.text = "Detail";
+        SetTextRect(detailTitle, new Rect(0f, 58f, 451f, 42f), 28, TextAnchor.MiddleCenter, ResourceParchmentText);
 
         var iconPanel = FindRect("DetailIconPanel");
         if (iconPanel != null)
         {
-            SetTopLeftRect(iconPanel, new Rect(18f, 34f, 92f, 92f));
+            SetTopLeftRect(iconPanel, new Rect(70f, 156f, 112f, 112f));
             SetIconPanelTransparent(iconPanel);
         }
 
         EnsureDetailIconFrame();
 
         if (_detailIconFrame != null)
-            SetCenteredRect(_detailIconFrame.rectTransform, new Vector2(86f, 86f), Vector2.zero);
+            SetCenteredRect(_detailIconFrame.rectTransform, new Vector2(104f, 111f), Vector2.zero);
 
         if (_detailIcon != null)
-            SetCenteredRect(_detailIcon.rectTransform, new Vector2(64f, 64f), Vector2.zero);
+            SetCenteredRect(_detailIcon.rectTransform, new Vector2(72f, 72f), Vector2.zero);
 
-        SetTextRect(_detailName, new Rect(132f, 38f, 202f, 26f), 16, TextAnchor.MiddleLeft, ResourceParchmentText);
-        SetTextRect(_detailMeta, new Rect(132f, 66f, 202f, 42f), 11, TextAnchor.UpperLeft, ResourceParchmentMutedText);
+        SetTextRect(_detailName, new Rect(204f, 160f, 192f, 38f), 23, TextAnchor.MiddleCenter, ResourceParchmentText);
+        SetTextRect(_detailMeta, new Rect(198f, 206f, 206f, 58f), 13, TextAnchor.UpperCenter, ResourceParchmentMutedText);
 
         if (_detailStats != null)
-            SetTextRect(_detailStats, new Rect(18f, 10f, 318f, 112f), 13, TextAnchor.UpperLeft, ResourceParchmentText);
+            SetTextRect(_detailStats, new Rect(70f, 12f, 310f, 118f), 15, TextAnchor.UpperLeft, ResourceParchmentText);
 
         if (_detailDescription != null)
-            SetTextRect(_detailDescription, new Rect(18f, 142f, 318f, 260f), 12, TextAnchor.UpperLeft, ResourceParchmentMutedText);
+            SetTextRect(_detailDescription, new Rect(70f, 140f, 310f, 112f), 14, TextAnchor.UpperLeft, ResourceParchmentMutedText);
 
-        SetTextRect(_detailStatus, new Rect(18f, -54f, 300f, 42f), 12, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
+        SetTextRect(_detailStatus, new Rect(74f, 2f, 304f, 28f), 13, TextAnchor.MiddleCenter, ResourceParchmentMutedText);
 
         if (_actionButton != null)
         {
             var actionRect = _actionButton.GetComponent<RectTransform>();
             if (actionRect != null)
-                SetTopLeftRect(actionRect, new Rect(4f, 0f, 160f, 56f));
+                SetTopLeftRect(actionRect, new Rect(124f, 34f, 202f, 66f));
 
             var buttonImage = _actionButton.GetComponent<Image>();
             if (buttonImage != null)
             {
-                ApplyDefaultSprite(buttonImage);
-                buttonImage.color = new Color(0f, 0f, 0f, 0f);
-                buttonImage.raycastTarget = true;
+                ApplyResourceSprite(buttonImage, SelectButtonSprite, true);
             }
 
             var buttonText = _actionButton.GetComponentInChildren<Text>(true);
             if (buttonText != null)
-                SetTextRect(buttonText, new Rect(0f, 0f, 160f, 56f), 16, TextAnchor.MiddleCenter, ResourceButtonText);
+                SetTextRect(buttonText, new Rect(0f, 0f, 202f, 66f), 18, TextAnchor.MiddleCenter, ResourceButtonText);
         }
 
         if (_listEmptyText != null)
-            SetTextRect(_listEmptyText, new Rect(18f, 120f, 280f, 48f), 14, TextAnchor.MiddleCenter, ResourceParchmentMutedText);
+            SetTextRect(_listEmptyText, new Rect(0f, 174f, 304f, 64f), 15, TextAnchor.MiddleCenter, ResourceParchmentMutedText);
 
         DisableStaleDetailButtons();
     }
@@ -686,7 +712,9 @@ public class HomeEquipPopupUI : MonoBehaviour
             _detailIcon.transform.SetAsLastSibling();
         }
 
-        _detailIconFrame.transform.SetAsLastSibling();
+        _detailIconFrame.transform.SetAsFirstSibling();
+        if (_detailIcon != null)
+            _detailIcon.transform.SetAsLastSibling();
     }
 
     private static void SetIconPanelTransparent(RectTransform iconPanel)
@@ -745,6 +773,61 @@ public class HomeEquipPopupUI : MonoBehaviour
         }
     }
 
+    private void DisableLegacyResourceChrome()
+    {
+        var resourceChrome = FindRect("ResourceChrome");
+        if (resourceChrome != null)
+            resourceChrome.gameObject.SetActive(false);
+    }
+
+    private void ConfigureBackButton()
+    {
+        if (_closeBtn == null)
+            return;
+
+        var closeRect = _closeBtn.GetComponent<RectTransform>();
+        if (closeRect != null)
+            SetTopLeftRect(closeRect, new Rect(48f, 34f, 154f, 50f));
+
+        var buttonImage = _closeBtn.GetComponent<Image>();
+        if (buttonImage == null)
+            buttonImage = _closeBtn.gameObject.AddComponent<Image>();
+        ApplyResourceSprite(buttonImage, SelectButtonSprite, true);
+
+        _closeBtn.targetGraphic = buttonImage;
+        _closeBtn.enabled = true;
+        _closeBtn.interactable = true;
+
+        var buttonText = EnsureButtonText(_closeBtn, "뒤로가기");
+        if (buttonText != null)
+            SetTextRect(buttonText, new Rect(0f, 0f, 154f, 50f), 15, TextAnchor.MiddleCenter, ResourceButtonText);
+
+        var feedback = _closeBtn.GetComponent<HomeUIButtonFeedback>();
+        if (feedback == null)
+            feedback = _closeBtn.gameObject.AddComponent<HomeUIButtonFeedback>();
+        feedback.Configure(closeRect, buttonImage);
+    }
+
+    private Text EnsureButtonText(Button button, string label)
+    {
+        if (button == null)
+            return null;
+
+        var labelText = button.GetComponentInChildren<Text>(true);
+        if (labelText == null)
+        {
+            var labelGo = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            labelGo.transform.SetParent(button.transform, false);
+            labelText = labelGo.GetComponent<Text>();
+        }
+
+        labelText.gameObject.SetActive(true);
+        labelText.text = label;
+        labelText.raycastTarget = false;
+        ApplyKoreanFont(labelText);
+        return labelText;
+    }
+
     private static void SetCenteredRect(RectTransform rect, Vector2 size, Vector2 anchoredPosition)
     {
         if (rect == null)
@@ -768,6 +851,61 @@ public class HomeEquipPopupUI : MonoBehaviour
 
         image.color = color;
         image.raycastTarget = false;
+    }
+
+    private static void ApplyResourceSprite(RectTransform rect, Sprite sprite, bool raycastTarget)
+    {
+        if (rect == null)
+            return;
+
+        var image = rect.GetComponent<Image>();
+        if (image == null)
+            image = rect.gameObject.AddComponent<Image>();
+
+        ApplyResourceSprite(image, sprite, raycastTarget);
+    }
+
+    private static void ApplyResourceSprite(Image image, Sprite sprite, bool raycastTarget)
+    {
+        if (image == null)
+            return;
+
+        if (sprite != null)
+            image.sprite = sprite;
+        else
+            ApplyDefaultSprite(image);
+
+        image.type = Image.Type.Simple;
+        image.preserveAspect = false;
+        image.color = Color.white;
+        image.raycastTarget = raycastTarget;
+    }
+
+    private RectTransform EnsureDecorImage(string name, RectTransform parent, Sprite sprite)
+    {
+        if (parent == null)
+            return null;
+
+        var child = parent.Find(name);
+        RectTransform rect;
+        Image image;
+        if (child != null)
+        {
+            rect = child.GetComponent<RectTransform>();
+            image = child.GetComponent<Image>();
+            if (image == null)
+                image = child.gameObject.AddComponent<Image>();
+        }
+        else
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            go.transform.SetParent(parent, false);
+            rect = go.GetComponent<RectTransform>();
+            image = go.GetComponent<Image>();
+        }
+
+        ApplyResourceSprite(image, sprite, false);
+        return rect;
     }
 
     private void ConfigureScrollViewport(RectTransform viewport, string contentName, Vector2 contentSize, ref RectTransform content)
@@ -829,6 +967,7 @@ public class HomeEquipPopupUI : MonoBehaviour
             return;
 
         SetTopLeftRect(text.rectTransform, rectFromTopLeft);
+        ApplyKoreanFont(text);
         text.fontSize = fontSize;
         text.resizeTextForBestFit = true;
         text.resizeTextMinSize = Mathf.Max(8, fontSize - 4);
@@ -921,7 +1060,7 @@ public class HomeEquipPopupUI : MonoBehaviour
                 itemRect.anchorMin = new Vector2(0f, 1f);
                 itemRect.anchorMax = _useHomeDetailResourceLayout ? new Vector2(0f, 1f) : new Vector2(1f, 1f);
                 itemRect.pivot = _useHomeDetailResourceLayout ? new Vector2(0f, 1f) : new Vector2(0.5f, 1f);
-                itemRect.sizeDelta = _useHomeDetailResourceLayout ? new Vector2(84f, 85f) : new Vector2(0f, 68f);
+                itemRect.sizeDelta = _useHomeDetailResourceLayout ? new Vector2(ResourceCardWidth, ResourceCardHeight) : new Vector2(0f, 68f);
                 if (_useHomeDetailResourceLayout)
                     PositionResourceItem(itemRect, i);
             }
@@ -956,15 +1095,9 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (itemRect == null)
             return;
 
-        const int columns = 3;
-        const float cellWidth = 84f;
-        const float cellHeight = 85f;
-        const float gapX = 8f;
-        const float gapY = 10f;
-
-        int column = index % columns;
-        int row = index / columns;
-        itemRect.anchoredPosition = new Vector2(column * (cellWidth + gapX), -row * (cellHeight + gapY));
+        int column = index % ResourceCardColumns;
+        int row = index / ResourceCardColumns;
+        itemRect.anchoredPosition = new Vector2(column * (ResourceCardWidth + ResourceCardGapX), -row * (ResourceCardHeight + ResourceCardGapY));
     }
 
     private void ResizeResourceListContent(int itemCount)
@@ -972,13 +1105,10 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (_listContent == null)
             return;
 
-        const int columns = 3;
-        const float cellHeight = 85f;
-        const float gapY = 10f;
-
-        int rows = Mathf.Max(1, Mathf.CeilToInt(itemCount / (float)columns));
-        float height = rows * cellHeight + Mathf.Max(0, rows - 1) * gapY;
-        _listContent.sizeDelta = new Vector2(304f, height);
+        int rows = Mathf.Max(1, Mathf.CeilToInt(itemCount / (float)ResourceCardColumns));
+        float height = rows * ResourceCardHeight + Mathf.Max(0, rows - 1) * ResourceCardGapY;
+        float width = ResourceCardColumns * ResourceCardWidth + (ResourceCardColumns - 1) * ResourceCardGapX;
+        _listContent.sizeDelta = new Vector2(width, height);
     }
 
     private void RefreshDetailPanel()
@@ -1024,7 +1154,9 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (_detailIconFrame != null)
         {
             _detailIconFrame.enabled = true;
-            _detailIconFrame.transform.SetAsLastSibling();
+            _detailIconFrame.transform.SetAsFirstSibling();
+            if (_detailIcon != null)
+                _detailIcon.transform.SetAsLastSibling();
         }
 
         if (_detailName != null)
@@ -1093,7 +1225,10 @@ public class HomeEquipPopupUI : MonoBehaviour
         }
 
         if (_detailIconFrame != null)
+        {
             _detailIconFrame.enabled = true;
+            _detailIconFrame.transform.SetAsFirstSibling();
+        }
 
         if (_detailName != null)
             _detailName.text = "장비 없음";
@@ -1236,6 +1371,12 @@ public class HomeEquipPopupUI : MonoBehaviour
 
     private void UpdateSlotSummary(int itemCount)
     {
+        var titleText = GetSelectionTitle(_currentSlot);
+        if (_title != null)
+            _title.text = titleText;
+        if (_titleLegacy != null)
+            _titleLegacy.text = titleText;
+
         if (_slotLabel != null)
         {
             var slotText = GetSlotLabel(_currentSlot);
@@ -1272,6 +1413,9 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (_browserRoot != null)
             _browserRoot.transform.SetAsLastSibling();
 
+        if (_useHomeDetailResourceLayout && _title != null)
+            _title.transform.SetAsLastSibling();
+
         if (_titleLegacy != null)
             _titleLegacy.transform.SetAsLastSibling();
 
@@ -1294,6 +1438,8 @@ public class HomeEquipPopupUI : MonoBehaviour
             if (text == null)
                 continue;
 
+            ApplyKoreanFont(text);
+
             if (text == _titleLegacy)
             {
                 text.color = new Color(1f, 0.92f, 0.55f, 1f);
@@ -1303,7 +1449,16 @@ public class HomeEquipPopupUI : MonoBehaviour
             if (_useHomeDetailResourceLayout)
             {
                 var inActionButton = _actionButton != null && text.transform.IsChildOf(_actionButton.transform);
-                text.color = inActionButton ? ResourceButtonText : ResourceParchmentText;
+                var isMutedText = text == _detailMeta ||
+                                  text == _detailDescription ||
+                                  text == _detailStatus ||
+                                  text == _itemCountLabel ||
+                                  text == _listEmptyText;
+                text.color = inActionButton
+                    ? ResourceButtonText
+                    : isMutedText
+                        ? ResourceParchmentMutedText
+                        : ResourceParchmentText;
                 text.raycastTarget = false;
                 continue;
             }
@@ -1384,6 +1539,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         }
 
         label.text = text;
+        ApplyKoreanFont(label);
         label.fontSize = fontSize;
         label.alignment = anchor;
         label.resizeTextForBestFit = true;
@@ -1412,6 +1568,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         var label = go.GetComponent<Text>();
         label.text = text;
         label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        ApplyKoreanFont(label);
         label.fontSize = fontSize;
         label.color = Color.white;
         label.alignment = anchor;
@@ -1455,6 +1612,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         var text = textGo.GetComponent<Text>();
         text.text = label;
         text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        ApplyKoreanFont(text);
         text.fontSize = 15;
         text.color = Color.white;
         text.alignment = TextAnchor.MiddleCenter;
@@ -1523,6 +1681,28 @@ public class HomeEquipPopupUI : MonoBehaviour
             image.sprite = _defaultUiSprite;
     }
 
+    private static Sprite DetailPanelSprite
+    {
+        get
+        {
+            if (_detailPanelSprite == null)
+                _detailPanelSprite = Resources.Load<Sprite>(DetailPanelResourcePath);
+
+            return _detailPanelSprite;
+        }
+    }
+
+    private static Sprite EquipmentPaperSprite
+    {
+        get
+        {
+            if (_equipmentPaperSprite == null)
+                _equipmentPaperSprite = Resources.Load<Sprite>(EquipmentPaperResourcePath);
+
+            return _equipmentPaperSprite;
+        }
+    }
+
     private static Sprite DetailIconFrameSprite
     {
         get
@@ -1532,6 +1712,29 @@ public class HomeEquipPopupUI : MonoBehaviour
 
             return _detailIconFrameSprite;
         }
+    }
+
+    private static Sprite SelectButtonSprite
+    {
+        get
+        {
+            if (_selectButtonSprite == null)
+                _selectButtonSprite = Resources.Load<Sprite>(SelectButtonResourcePath);
+
+            return _selectButtonSprite;
+        }
+    }
+
+    private static void ApplyKoreanFont(Text text)
+    {
+        if (text == null)
+            return;
+
+        if (_koreanLegacyFont == null)
+            _koreanLegacyFont = Resources.Load<Font>("NanumGothic");
+
+        if (_koreanLegacyFont != null)
+            text.font = _koreanLegacyFont;
     }
 
     private RectTransform CreateEmptyRect(string name, RectTransform parent)
@@ -1618,6 +1821,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (labelText != null)
         {
             labelText.text = label;
+            ApplyKoreanFont(labelText);
             labelText.raycastTarget = false;
         }
     }
@@ -1670,6 +1874,13 @@ public class HomeEquipPopupUI : MonoBehaviour
             EquipmentSlot.Accessory => "장신구",
             _ => slot.ToString()
         };
+    }
+
+    private static string GetSelectionTitle(EquipmentSlot slot)
+    {
+        return slot == EquipmentSlot.None
+            ? "장비 선택"
+            : $"{GetSlotLabel(slot)} 선택";
     }
 
     private void EnsureActive(GameObject go)

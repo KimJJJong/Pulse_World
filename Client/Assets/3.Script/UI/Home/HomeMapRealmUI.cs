@@ -9,9 +9,13 @@ using UnityEngine.UI;
 
 public sealed class HomeMapRealmUI : MonoBehaviour
 {
-    private const string MissingMapMessage = "없는 맵입니다.";
+    private const string MissingMapMessage = "아직 열리지 않은 지역입니다.";
     private const string ReadyMessage = "지역을 선택한 뒤 입장 버튼을 누르세요.";
     private const int DefaultTownMaxPlayers = 4;
+    private static readonly Color CreateClearAccent = new(1f, 1f, 1f, 0f);
+    private static readonly Color CreateSelectedText = new(0.98f, 0.91f, 0.70f, 1f);
+    private static readonly Color CreateIdleText = new(0.84f, 0.76f, 0.58f, 1f);
+    private static TMP_FontAsset _koreanFont;
 
     private enum EntryMode
     {
@@ -130,13 +134,16 @@ public sealed class HomeMapRealmUI : MonoBehaviour
     private EntryMode _selectedEntryMode = EntryMode.Existing;
     private TownRoomApiClient.TownRoomSummaryDto _selectedTown;
     private TownRoomApiClient.TownRoomSummaryDto _keyResolvedTown;
+    private readonly Dictionary<Button, Dictionary<Graphic, Color>> _realmBaseGraphicColors = new();
 
     private void Awake()
     {
         BindButtons();
         BindChoiceButtons();
         PrepareRealmHighlights();
-        Select(0);
+        PrepareRealmAvailabilityUi();
+        ApplyFontToChildren();
+        Select(ResolveInitialRealmIndex());
 
         if (_selectButton != null)
         {
@@ -150,7 +157,11 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         BindButtons();
         BindChoiceButtons();
         PrepareRealmHighlights();
-        Select(Mathf.Clamp(_selectedIndex, 0, Mathf.Max(0, (_realms?.Length ?? 1) - 1)));
+        PrepareRealmAvailabilityUi();
+        ApplyFontToChildren();
+        Select(IsRealmAvailable(GetRealm(_selectedIndex))
+            ? Mathf.Clamp(_selectedIndex, 0, Mathf.Max(0, (_realms?.Length ?? 1) - 1))
+            : ResolveInitialRealmIndex());
         if (_choicePanel != null)
             _choicePanel.SetActive(false);
     }
@@ -229,7 +240,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         if (_description != null)
             _description.text = selected.Description;
 
-        var hasScene = TryGetSceneName(selected, out _);
+        var hasScene = IsRealmAvailable(selected) && TryGetSceneName(selected, out _);
         if (_ticketInfo != null)
             _ticketInfo.text = hasScene ? $"Ticket: {selected.RequiredTicket}" : "Ticket: 없음";
         if (_status != null && !_busy)
@@ -238,7 +249,10 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         RefreshSelectButton();
 
         for (var i = 0; i < _realms.Length; i++)
-            ApplyRealmHighlight(_realms[i], i == _selectedIndex);
+        {
+            ApplyRealmAvailability(_realms[i]);
+            ApplyRealmHighlight(_realms[i], i == _selectedIndex && IsRealmAvailable(_realms[i]));
+        }
 
         BringSelectedRealmToFront();
     }
@@ -351,7 +365,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
             return;
 
         var realm = _realms[_selectedIndex];
-        if (!TryGetSceneName(realm, out var sceneName) || !TryGetTownMapId(realm, out var mapId))
+        if (!IsRealmAvailable(realm) || !TryGetSceneName(realm, out var sceneName) || !TryGetTownMapId(realm, out var mapId))
         {
             SetStatus(MissingMapMessage);
             return;
@@ -608,8 +622,15 @@ public sealed class HomeMapRealmUI : MonoBehaviour
 
         var fallbackScene = TryGetSelectedRealmContext(out _, out var selectedScene, out var selectedMapId)
             ? selectedScene
-            : SceneNames.TownMap;
+            : SceneNames.Town_Forest;
         var mapId = !string.IsNullOrWhiteSpace(room.mapId) ? room.mapId : selectedMapId;
+        if (!IsForestTownMapId(mapId))
+        {
+            SetChoiceStatus("현재는 Forest Town만 이용할 수 있습니다.");
+            SetBusy(false);
+            return;
+        }
+
         var sceneName = ResolveSceneNameForTownMap(mapId, fallbackScene);
 
         SetBusy(true);
@@ -927,11 +948,28 @@ public sealed class HomeMapRealmUI : MonoBehaviour
                     continue;
 
                 var selected = binding.Value == _createMaxPlayers;
-                if (binding.Highlight != null)
-                    binding.Highlight.color = selected ? new Color(0.08f, 0.31f, 0.33f, 0.95f) : new Color(0f, 0f, 0f, 0f);
-                if (binding.Label != null)
-                    binding.Label.color = selected ? new Color(0.98f, 0.91f, 0.70f, 1f) : new Color(0.10f, 0.22f, 0.20f, 1f);
+                SetMaxPlayerButtonVisual(binding, selected);
             }
+        }
+    }
+
+    private static void SetMaxPlayerButtonVisual(MaxPlayerButtonBinding binding, bool selected)
+    {
+        if (binding == null)
+            return;
+
+        ApplyOriginalButtonSprite(binding.Button);
+        SetCreateButtonSelectionOutline(binding.Button, selected);
+        if (binding.Highlight != null)
+        {
+            binding.Highlight.enabled = selected;
+            binding.Highlight.color = selected ? new Color(1f, 0.90f, 0.42f, 0.34f) : CreateClearAccent;
+        }
+        if (binding.Label != null)
+        {
+            ApplyPreferredFont(binding.Label);
+            binding.Label.color = selected ? CreateSelectedText : CreateIdleText;
+            binding.Label.fontStyle = selected ? FontStyles.Bold : FontStyles.Normal;
         }
     }
 
@@ -940,13 +978,57 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         if (button == null || button.targetGraphic == null)
             return;
 
-        button.targetGraphic.color = selected
-            ? new Color(0.08f, 0.31f, 0.33f, 1f)
-            : new Color(0.86f, 0.72f, 0.50f, 0.28f);
+        ApplyOriginalButtonSprite(button);
+        SetCreateButtonSelectionOutline(button, selected);
 
         var label = button.GetComponentInChildren<TextMeshProUGUI>(true);
         if (label != null)
-            label.color = selected ? new Color(0.98f, 0.91f, 0.70f, 1f) : new Color(0.10f, 0.22f, 0.20f, 1f);
+        {
+            ApplyPreferredFont(label);
+            label.color = selected ? CreateSelectedText : CreateIdleText;
+            label.fontStyle = selected ? FontStyles.Bold : FontStyles.Normal;
+        }
+    }
+
+    private static void ApplyOriginalButtonSprite(Button button)
+    {
+        if (button == null)
+            return;
+
+        if (button.targetGraphic != null)
+            button.targetGraphic.color = Color.white;
+
+        button.transition = Selectable.Transition.None;
+        var colors = button.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = Color.white;
+        colors.pressedColor = Color.white;
+        colors.selectedColor = Color.white;
+        colors.disabledColor = Color.white;
+        colors.colorMultiplier = 1f;
+        colors.fadeDuration = 0f;
+        button.colors = colors;
+
+        var feedback = button.GetComponent<HomeUIButtonFeedback>();
+        if (feedback != null)
+            feedback.SetTintOverride(true, Color.white);
+    }
+
+    private static void SetCreateButtonSelectionOutline(Button button, bool selected)
+    {
+        if (button == null)
+            return;
+
+        var outline = button.GetComponent<Outline>();
+        if (outline == null && selected)
+            outline = button.gameObject.AddComponent<Outline>();
+        if (outline == null)
+            return;
+
+        outline.effectColor = new Color(1f, 0.80f, 0.24f, 1f);
+        outline.effectDistance = new Vector2(2.5f, -2.5f);
+        outline.useGraphicAlpha = false;
+        outline.enabled = selected;
     }
 
     private void UpdateKeyResult()
@@ -1075,7 +1157,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
             return false;
 
         realm = _realms[_selectedIndex];
-        if (!TryGetSceneName(realm, out sceneName) || !TryGetTownMapId(realm, out mapId))
+        if (!IsRealmAvailable(realm) || !TryGetSceneName(realm, out sceneName) || !TryGetTownMapId(realm, out mapId))
         {
             SetChoiceStatus(MissingMapMessage);
             return false;
@@ -1128,7 +1210,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
     private void SetButtonInteractable(bool interactable)
     {
         if (_selectButton != null)
-            _selectButton.interactable = interactable;
+            _selectButton.interactable = interactable && IsRealmAvailable(GetRealm(_selectedIndex));
         if (_closeChoiceButton != null)
             _closeChoiceButton.interactable = interactable;
         if (_choiceBackButton != null)
@@ -1203,6 +1285,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
             && _realms.Length > 0
             && _selectedIndex >= 0
             && _selectedIndex < _realms.Length
+            && IsRealmAvailable(_realms[_selectedIndex])
             && TryGetSceneName(_realms[_selectedIndex], out _);
     }
 
@@ -1251,6 +1334,211 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         return string.IsNullOrWhiteSpace(_realms[_selectedIndex].DisplayName)
             ? "Town"
             : _realms[_selectedIndex].DisplayName;
+    }
+
+    private int ResolveInitialRealmIndex()
+    {
+        if (_realms == null || _realms.Length == 0)
+            return 0;
+
+        for (var i = 0; i < _realms.Length; i++)
+        {
+            if (IsRealmAvailable(_realms[i]))
+                return i;
+        }
+
+        return 0;
+    }
+
+    private RealmBinding GetRealm(int index)
+    {
+        if (_realms == null || _realms.Length == 0 || index < 0 || index >= _realms.Length)
+            return null;
+
+        return _realms[index];
+    }
+
+    private void PrepareRealmAvailabilityUi()
+    {
+        if (_realms == null)
+            return;
+
+        foreach (var realm in _realms)
+        {
+            EnsureUnavailableBadge(realm);
+            ApplyRealmAvailability(realm);
+        }
+    }
+
+    private void ApplyRealmAvailability(RealmBinding realm)
+    {
+        if (realm?.Button == null)
+            return;
+
+        var available = IsRealmAvailable(realm);
+        ApplyRealmGraphicState(realm.Button, available);
+        ApplyRealmButtonFeedbackState(realm.Button, available);
+
+        var badge = realm.Button.transform.Find("UnavailableBadge");
+        if (badge != null)
+            badge.gameObject.SetActive(!available);
+    }
+
+    private void EnsureUnavailableBadge(RealmBinding realm)
+    {
+        if (realm?.Button == null)
+            return;
+
+        var badgeTransform = realm.Button.transform.Find("UnavailableBadge");
+        if (badgeTransform == null)
+        {
+            var badge = new GameObject("UnavailableBadge", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            badge.transform.SetParent(realm.Button.transform, false);
+            badgeTransform = badge.transform;
+        }
+
+        var rect = (RectTransform)badgeTransform;
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.sizeDelta = new Vector2(96f, 34f);
+        rect.anchoredPosition = Vector2.zero;
+
+        var image = badgeTransform.GetComponent<Image>();
+        if (image == null)
+            image = badgeTransform.gameObject.AddComponent<Image>();
+        image.color = new Color(0.16f, 0.13f, 0.09f, 0.92f);
+        image.raycastTarget = false;
+
+        var labelTransform = badgeTransform.Find("Label");
+        if (labelTransform == null)
+        {
+            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer));
+            labelGo.transform.SetParent(badgeTransform, false);
+            labelTransform = labelGo.transform;
+        }
+
+        var labelRect = (RectTransform)labelTransform;
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+
+        var label = labelTransform.GetComponent<TextMeshProUGUI>();
+        if (label == null)
+            label = labelTransform.gameObject.AddComponent<TextMeshProUGUI>();
+        label.text = "준비 중";
+        label.fontSize = 16f;
+        label.alignment = TextAlignmentOptions.Center;
+        label.color = new Color(0.96f, 0.82f, 0.52f, 1f);
+        label.raycastTarget = false;
+        ApplyPreferredFont(label);
+    }
+
+    private void ApplyFontToChildren()
+    {
+        var labels = GetComponentsInChildren<TMP_Text>(true);
+        foreach (var label in labels)
+            ApplyPreferredFont(label);
+    }
+
+    private static void ApplyPreferredFont(TMP_Text text)
+    {
+        if (text == null)
+            return;
+
+        var font = LoadKoreanFont();
+        if (font == null)
+            return;
+
+        text.font = font;
+        text.fontSharedMaterial = font.material;
+    }
+
+    private static TMP_FontAsset LoadKoreanFont()
+    {
+        if (_koreanFont != null)
+            return _koreanFont;
+
+        _koreanFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/NanumGothic SDF");
+        if (_koreanFont == null)
+            _koreanFont = Resources.Load<TMP_FontAsset>("NanumGothic SDF");
+        return _koreanFont;
+    }
+
+    private static Color BuildLockedRealmColor(Color source)
+    {
+        var luminance = source.r * 0.30f + source.g * 0.59f + source.b * 0.11f;
+        var value = Mathf.Lerp(luminance, 0.24f, 0.78f);
+        return new Color(value * 0.74f, value * 0.72f, value * 0.64f, Mathf.Max(source.a, 0.90f));
+    }
+
+    private void ApplyRealmGraphicState(Button button, bool available)
+    {
+        if (button == null)
+            return;
+
+        if (!_realmBaseGraphicColors.TryGetValue(button, out var baseColors))
+        {
+            baseColors = new Dictionary<Graphic, Color>();
+            _realmBaseGraphicColors[button] = baseColors;
+        }
+
+        var graphics = button.GetComponentsInChildren<Graphic>(true);
+        foreach (var graphic in graphics)
+        {
+            if (graphic == null || IsUnavailableBadgeGraphic(graphic))
+                continue;
+
+            if (!baseColors.TryGetValue(graphic, out var baseColor))
+            {
+                baseColor = graphic.color;
+                baseColors[graphic] = baseColor;
+            }
+
+            graphic.color = available ? baseColor : BuildLockedRealmColor(baseColor);
+        }
+    }
+
+    private void ApplyRealmButtonFeedbackState(Button button, bool available)
+    {
+        if (button == null)
+            return;
+
+        var feedback = button.GetComponent<HomeUIButtonFeedback>();
+        if (feedback == null)
+            return;
+
+        var baseColor = ResolveRealmTargetBaseColor(button);
+        feedback.SetTintOverride(!available, BuildLockedRealmColor(baseColor));
+    }
+
+    private Color ResolveRealmTargetBaseColor(Button button)
+    {
+        if (button == null)
+            return Color.white;
+
+        if (_realmBaseGraphicColors.TryGetValue(button, out var baseColors)
+            && button.targetGraphic != null
+            && baseColors.TryGetValue(button.targetGraphic, out var cachedColor))
+        {
+            return cachedColor;
+        }
+
+        return button.targetGraphic != null ? button.targetGraphic.color : Color.white;
+    }
+
+    private static bool IsUnavailableBadgeGraphic(Graphic graphic)
+    {
+        var current = graphic != null ? graphic.transform : null;
+        while (current != null)
+        {
+            if (string.Equals(current.name, "UnavailableBadge", StringComparison.Ordinal))
+                return true;
+            current = current.parent;
+        }
+
+        return false;
     }
 
     private static string BuildDefaultTownName(RealmBinding realm)
@@ -1314,19 +1602,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         if (realm == null)
             return false;
 
-        if (!string.IsNullOrWhiteSpace(realm.SceneName))
-        {
-            sceneName = realm.SceneName;
-            return true;
-        }
-
-        if (string.Equals(realm.RealmId, "plains", StringComparison.OrdinalIgnoreCase))
-        {
-            sceneName = SceneNames.TownMap;
-            return true;
-        }
-
-        if (string.Equals(realm.RealmId, "forest", StringComparison.OrdinalIgnoreCase))
+        if (IsRealmAvailable(realm))
         {
             sceneName = SceneNames.Town_Forest;
             return true;
@@ -1341,21 +1617,9 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         if (realm == null)
             return false;
 
-        if (string.Equals(realm.RealmId, "plains", StringComparison.OrdinalIgnoreCase))
-        {
-            mapId = "Town_01";
-            return true;
-        }
-
-        if (string.Equals(realm.RealmId, "forest", StringComparison.OrdinalIgnoreCase))
+        if (IsRealmAvailable(realm))
         {
             mapId = "Town_Forest";
-            return true;
-        }
-
-        if (!string.IsNullOrWhiteSpace(realm.SceneName))
-        {
-            mapId = realm.SceneName;
             return true;
         }
 
@@ -1364,17 +1628,30 @@ public sealed class HomeMapRealmUI : MonoBehaviour
 
     private static string ResolveSceneNameForTownMap(string mapId, string fallbackScene)
     {
-        if (string.Equals(mapId, "Town_Forest", StringComparison.OrdinalIgnoreCase))
+        if (IsForestTownMapId(mapId))
             return SceneNames.Town_Forest;
 
-        if (string.Equals(mapId, "Town_01", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(mapId, "TownMap", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(mapId, "town", StringComparison.OrdinalIgnoreCase))
-        {
-            return SceneNames.TownMap;
-        }
+        return string.Equals(fallbackScene, SceneNames.Town_Forest, StringComparison.OrdinalIgnoreCase)
+            ? fallbackScene
+            : SceneNames.Town_Forest;
+    }
 
-        return string.IsNullOrWhiteSpace(fallbackScene) ? SceneNames.TownMap : fallbackScene;
+    private static bool IsRealmAvailable(RealmBinding realm)
+    {
+        return IsForestRealm(realm);
+    }
+
+    private static bool IsForestRealm(RealmBinding realm)
+    {
+        return realm != null
+               && (string.Equals(realm.RealmId, "forest", StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(realm.SceneName, SceneNames.Town_Forest, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsForestTownMapId(string mapId)
+    {
+        return string.Equals(mapId, "Town_Forest", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(mapId, SceneNames.Town_Forest, StringComparison.OrdinalIgnoreCase);
     }
 }
 

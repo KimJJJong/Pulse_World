@@ -45,3 +45,15 @@ MonoBehaviour:
     StateName: DemonKing_Attack01
     Clip: {fileID: 1827226128182048838, guid: b47c9c055e1a4df6ae9785b907d6d6c1, type: 3}
     CrossFade: -1
+  - SkillId: Enemy_DemonKing_Slam
+    StateName: DemonKing_Attack02
+    Clip: {fileID: 1827226128182048838, guid: 2a37d69143f24041843aaa63900088b3, type: 3}
+    CrossFade: -1
+  - SkillId: Enemy_DemonKing_FireBreath
+    StateName: DemonKing_Attack01
+    Clip: {fileID: 1827226128182048838, guid: b47c9c055e1a4df6ae9785b907d6d6c1, type: 3}
+    CrossFade: -1
+  - SkillId: Enemy_DemonKing_SwordSpin
+    StateName: DemonKing_Attack02
+    Clip: {fileID: 1827226128182048838, guid: 2a37d69143f24041843aaa63900088b3, type: 3}
+    CrossFade: -1

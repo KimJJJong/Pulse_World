@@ -17,6 +17,7 @@ public sealed class GameSceneContext : BaseSceneContext
     protected override void Awake()
     {
         base.Awake();
+        GameDeathSpectatorHud.EnsureInScene();
     }
 
     protected override void ResolveSceneRefs()

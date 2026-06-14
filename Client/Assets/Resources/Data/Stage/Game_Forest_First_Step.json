@@ -18,7 +18,7 @@
             "AI": "Enemy_Specter",
             "Pattern": "Enemy_Specter",
             "GroupId": 0,
-            "Rotation": 0.0
+            "Rotation": 0
         }
     ],
     "InitialObjects": [
@@ -32,7 +32,7 @@
             "SizeX": 1,
             "SizeY": 1,
             "Pattern": "",
-            "Rotation": 0.0
+            "Rotation": 0
         },
         {
             "EntityId": 500,
@@ -44,7 +44,7 @@
             "SizeX": 1,
             "SizeY": 1,
             "Pattern": "",
-            "Rotation": 0.0
+            "Rotation": 0
         },
         {
             "EntityId": 501,
@@ -56,7 +56,7 @@
             "SizeX": 1,
             "SizeY": 1,
             "Pattern": "",
-            "Rotation": 0.0
+            "Rotation": 0
         },
         {
             "EntityId": 501,
@@ -68,7 +68,7 @@
             "SizeX": 1,
             "SizeY": 1,
             "Pattern": "",
-            "Rotation": 0.0
+            "Rotation": 0
         },
         {
             "EntityId": 501,
@@ -80,7 +80,7 @@
             "SizeX": 1,
             "SizeY": 1,
             "Pattern": "",
-            "Rotation": 0.0
+            "Rotation": 0
         },
         {
             "EntityId": 501,
@@ -92,7 +92,7 @@
             "SizeX": 1,
             "SizeY": 1,
             "Pattern": "",
-            "Rotation": 0.0
+            "Rotation": 0
         },
         {
             "EntityId": 501,
@@ -104,7 +104,7 @@
             "SizeX": 1,
             "SizeY": 1,
             "Pattern": "",
-            "Rotation": 0.0
+            "Rotation": 0
         },
         {
             "EntityId": 501,
@@ -116,7 +116,7 @@
             "SizeX": 1,
             "SizeY": 1,
             "Pattern": "",
-            "Rotation": 0.0
+            "Rotation": 0
         },
         {
             "EntityId": 501,
@@ -128,7 +128,7 @@
             "SizeX": 1,
             "SizeY": 1,
             "Pattern": "",
-            "Rotation": 0.0
+            "Rotation": 0
         },
         {
             "EntityId": 501,
@@ -140,7 +140,7 @@
             "SizeX": 1,
             "SizeY": 1,
             "Pattern": "",
-            "Rotation": 0.0
+            "Rotation": 0
         },
         {
             "EntityId": 501,
@@ -152,7 +152,7 @@
             "SizeX": 1,
             "SizeY": 1,
             "Pattern": "",
-            "Rotation": 0.0
+            "Rotation": 0
         }
     ],
     "Events": [
@@ -2043,6 +2043,142 @@
                     "Z": 0,
                     "StringVal": "",
                     "GroupId": 3,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 11,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 105,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": false,
+                    "ShowAreaOutline": false,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "ShowGuide",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "Elite: Demon King",
+                    "GuideBody": "The Deepwood Gate opens. Survive the Demon King's second phase.",
+                    "GuideImageResource": "",
+                    "DurationMs": 4200,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "PlayVfx",
+                    "ParamId": 0,
+                    "X": 89,
+                    "Y": 0,
+                    "Z": 39,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 1600,
+                    "VfxKey": "CrystalPulseRed"
+                },
+                {
+                    "Type": "SpawnMonster",
+                    "ParamId": 1034,
+                    "X": 89,
+                    "Y": 0,
+                    "Z": 39,
+                    "StringVal": "Enemy_DemonKing_Elite",
+                    "GroupId": 2300,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 12,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "MonsterAllDead",
+                    "TargetId": 2300,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Demon King",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "PlayVfx",
+                    "ParamId": 0,
+                    "X": 89,
+                    "Y": 0,
+                    "Z": 39,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 1800,
+                    "VfxKey": "CrystalPulseRed"
+                },
+                {
+                    "Type": "FinGame",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
                     "SizeX": 1,
                     "SizeY": 1,
                     "GuideTitle": "",

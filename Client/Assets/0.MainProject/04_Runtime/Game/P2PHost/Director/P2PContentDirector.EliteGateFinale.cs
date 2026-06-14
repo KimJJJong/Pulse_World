@@ -7,6 +7,7 @@ public sealed partial class P2PContentDirector
 {
     private const int EliteGateAppearanceId = 504;
     private const int EliteGateSceneGroupId = 2190;
+    private const int EliteGateFinaleCompletedStateId = 105;
     private const int FinaleCenterCrystalX = 70;
     private const int FinaleCenterCrystalY = 39;
     private const int FinaleLinkHideMs = 260;
@@ -72,6 +73,7 @@ public sealed partial class P2PContentDirector
         try
         {
             SpawnObjectNow(gateData);
+            SetObjectState(EliteGateFinaleCompletedStateId, 1);
         }
         finally
         {

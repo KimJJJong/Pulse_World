@@ -97,34 +97,34 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     [Header("Game Options")]
     [SerializeField] private string[] _gameMapIds =
     {
-        "Game_Forest_First_Step",
         "Game_Forest_Tutorial",
-        "Game_Forest_01",
-        "Game_01"
+        "Game_Forest_First_Step",
+        "",
+        ""
     };
 
     [SerializeField] private string[] _gameTitles =
     {
-        "포레스트 첫걸음",
         "포레스트 튜토리얼",
-        "위스퍼링 포레스트",
-        "크리스탈 카번"
+        "포레스트 첫걸음",
+        "준비 중",
+        "준비 중"
     };
 
     [SerializeField] private string[] _gameDescriptions =
     {
-        "첫 전투에 진입하기 전 리듬과 이동 흐름을 짧게 확인하는 시작 맵입니다.",
         "깊고 울창한 포레스트에서 기본 조작을 익힐 수 있는 입문 맵입니다.",
-        "몬스터가 숨어 있는 숲길을 따라 전투 흐름을 익히는 맵입니다.",
-        "푸른 크리스탈이 빛나는 동굴에서 강한 적을 상대합니다."
+        "튜토리얼 이후 첫 전투 흐름을 확인하는 포레스트 첫걸음 맵입니다.",
+        "아직 열리지 않은 맵입니다.",
+        "아직 열리지 않은 맵입니다."
     };
 
     [SerializeField] private string[] _gameDifficultyLabels =
     {
-        "입문",
         "쉬움",
-        "보통",
-        "어려움"
+        "입문",
+        "잠김",
+        "잠김"
     };
 
     [SerializeField] private string[] _gamePlayerLabels =
@@ -137,18 +137,18 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
     [SerializeField] private string[] _gameTimeLabels =
     {
-        "3~5분",
         "5~10분",
-        "10~15분",
-        "15~20분"
+        "3~5분",
+        "준비 중",
+        "준비 중"
     };
 
     [SerializeField] private string[] _gameGoalLabels =
     {
-        "첫 전투 완료",
         "모든 적 처치",
-        "숲의 균열 정리",
-        "크리스탈 수호자 처치"
+        "첫 전투 완료",
+        "업데이트 예정",
+        "업데이트 예정"
     };
 
     [Header("Polling")]
@@ -190,6 +190,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         BindSceneReferencesIfNeeded();
         ConfigureExistingCanvas();
         EnsureUiInputReady();
+        NormalizeGameMapOptions();
         InitializeMapOptionLabels();
         BindButtons();
         UpdateView("Town 정보를 불러오는 중...");
@@ -202,7 +203,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.I))
+        if (Input.GetKeyDown(KeyCode.Escape))
             ToggleHomeUiOrInventory();
 
         if (Input.GetKeyDown(KeyCode.G))
@@ -392,6 +393,38 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
     }
 
+    private void NormalizeGameMapOptions()
+    {
+        _gameMapIds = new[]
+        {
+            SceneNames.Game_Forest_Tutorial,
+            SceneNames.Game_Forest_First_Step,
+            "",
+            ""
+        };
+        _gameTitles = new[]
+        {
+            "포레스트 튜토리얼",
+            "포레스트 첫걸음",
+            "준비 중",
+            "준비 중"
+        };
+        _gameDescriptions = new[]
+        {
+            "깊고 울창한 포레스트에서 기본 조작을 익힐 수 있는 입문 맵입니다.",
+            "튜토리얼 이후 첫 전투 흐름을 확인하는 포레스트 첫걸음 맵입니다.",
+            "아직 열리지 않은 맵입니다.",
+            "아직 열리지 않은 맵입니다."
+        };
+        _gameDifficultyLabels = new[] { "쉬움", "입문", "잠김", "잠김" };
+        _gamePlayerLabels = new[] { "1~4명", "1~4명", "-", "-" };
+        _gameTimeLabels = new[] { "5~10분", "3~5분", "준비 중", "준비 중" };
+        _gameGoalLabels = new[] { "모든 적 처치", "첫 전투 완료", "업데이트 예정", "업데이트 예정" };
+
+        if (!IsMapUnlocked(_selectedGameMapIndex))
+            _selectedGameMapIndex = 0;
+    }
+
     private void InitializeMapOptionLabels()
     {
         if (_mapOptions == null)
@@ -410,7 +443,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             if (option.DifficultyText)
                 option.DifficultyText.text = GetMapDifficulty(i);
             if (option.MetaText)
-                option.MetaText.text = $"{GetMapPlayers(i)}  |  {GetMapTime(i)}";
+                option.MetaText.text = IsMapUnlocked(i) ? $"{GetMapPlayers(i)}  |  {GetMapTime(i)}" : "사용 불가";
         }
     }
 
@@ -621,8 +654,18 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         for (int i = 0; i < _mapOptions.Length; i++)
         {
             var option = _mapOptions[i];
-            if (option?.SelectedFrame != null)
-                option.SelectedFrame.gameObject.SetActive(i == selectedIndex);
+            if (option == null)
+                continue;
+
+            var unlocked = IsMapUnlocked(i);
+            if (option.SelectedFrame != null)
+                option.SelectedFrame.gameObject.SetActive(unlocked && i == selectedIndex);
+            if (option.Button != null)
+                option.Button.interactable = unlocked && IsTownHost(_townRoom);
+            if (option.DifficultyText != null)
+                option.DifficultyText.text = unlocked ? GetMapDifficulty(i) : "잠김";
+            if (option.MetaText != null)
+                option.MetaText.text = unlocked ? $"{GetMapPlayers(i)}  |  {GetMapTime(i)}" : "사용 불가";
         }
     }
 
@@ -817,6 +860,12 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
         var mapId = GetMapId(_selectedGameMapIndex);
         var title = GetMapTitle(_selectedGameMapIndex);
+        if (!IsMapUnlocked(_selectedGameMapIndex))
+        {
+            UpdateView("아직 열리지 않은 맵입니다.");
+            return "";
+        }
+
         var existingActiveGameRoomId = _townRoom?.activeGameRoomId ?? "";
         if (!string.IsNullOrWhiteSpace(existingActiveGameRoomId))
         {
@@ -1622,6 +1671,12 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             return;
         }
 
+        if (!IsMapUnlocked(index))
+        {
+            UpdateView("아직 열리지 않은 맵입니다.");
+            return;
+        }
+
         _selectedGameMapIndex = Mathf.Clamp(index, 0, Mathf.Max(0, _gameMapIds.Length - 1));
         UpdateView();
     }
@@ -1634,6 +1689,12 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         if (!IsTownHost(_townRoom))
         {
             UpdateView("Host만 맵을 변경할 수 있습니다.");
+            return;
+        }
+
+        if (!IsMapUnlocked(_selectedGameMapIndex))
+        {
+            UpdateView("아직 열리지 않은 맵입니다.");
             return;
         }
 
@@ -1749,6 +1810,16 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
     private string[] GetMapFeatures(int index)
     {
+        if (!IsMapUnlocked(index))
+        {
+            return new[]
+            {
+                "준비 중",
+                "현재는 튜토리얼과 포레스트 첫걸음만 이용 가능",
+                "업데이트 예정"
+            };
+        }
+
         var title = GetMapTitle(index);
         return new[]
         {
@@ -1756,6 +1827,14 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             "파티 합류 후 즉시 전투 준비 가능",
             GetMapGoal(index)
         };
+    }
+
+    private bool IsMapUnlocked(int index)
+    {
+        return _gameMapIds != null
+               && index >= 0
+               && index < _gameMapIds.Length
+               && !string.IsNullOrWhiteSpace(_gameMapIds[index]);
     }
 
     private static string GetArrayValue(string[] values, int index, string fallback)
