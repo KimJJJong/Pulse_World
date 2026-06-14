@@ -21,107 +21,87 @@ MonoBehaviour:
       - TriggerTick: 0
         DurationTicks: 480
         Action:
-          rid: 4242872758231105978
+          rid: 4242872758231106130
     - TrackName: Impact
       Events:
       - TriggerTick: 480
         DurationTicks: 240
         Action:
-          rid: 4242872758231105979
+          rid: 4242872758231106131
     - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 960
         Action:
-          rid: 4242872758231105980
+          rid: 4242872758231106132
     - TrackName: Sound
       Events:
-      - TriggerTick: 0
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231105981
       - TriggerTick: 240
         DurationTicks: 120
         Action:
-          rid: 4242872758231105982
+          rid: 4242872758231106133
       - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872758231105983
-      - TriggerTick: 480
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231105984
+          rid: 4242872758231106134
       - TriggerTick: 720
         DurationTicks: 120
         Action:
-          rid: 4242872758231105985
+          rid: 4242872758231106135
       - TriggerTick: 840
         DurationTicks: 120
         Action:
-          rid: 4242872758231105986
+          rid: 4242872758231106136
   references:
     version: 2
     RefIds:
-    - rid: 4242872758231105978
+    - rid: 4242872758231106130
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231105987
+          rid: 4242872758231106137
         ColorSteps:
         - DurationTicks: 480
           ColorHex: '#E8D36A'
-    - rid: 4242872758231105979
+    - rid: 4242872758231106131
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231105988
+          rid: 4242872758231106138
         Amount: 10
         HitPlayers: 0
         HitMonsters: 1
         StunDurationTicks: 0
         KnockbackDistance: 1
         RecalculateTargets: 0
-    - rid: 4242872758231105980
+    - rid: 4242872758231106132
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872758231105981
+    - rid: 4242872758231106133
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Parry
-        Volume: 0.75
+        Volume: 0.8
         UseOwnerPerspective: 1
-    - rid: 4242872758231105982
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Parry
-        Volume: 0.85
-        UseOwnerPerspective: 1
-    - rid: 4242872758231105983
+    - rid: 4242872758231106134
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Parry
         Volume: 0.7
         UseOwnerPerspective: 1
-    - rid: 4242872758231105984
+    - rid: 4242872758231106135
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Parry
-        Volume: 1
+        Volume: 0.9
         UseOwnerPerspective: 1
-    - rid: 4242872758231105985
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Parry
-        Volume: 0.85
-        UseOwnerPerspective: 1
-    - rid: 4242872758231105986
+    - rid: 4242872758231106136
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Parry
         Volume: 0.75
         UseOwnerPerspective: 1
-    - rid: 4242872758231105987
+    - rid: 4242872758231106137
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
@@ -135,7 +115,7 @@ MonoBehaviour:
           Y: 0
         - X: 0
           Y: 1
-    - rid: 4242872758231105988
+    - rid: 4242872758231106138
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1

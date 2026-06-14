@@ -84,22 +84,12 @@
       "TrackName": "Sound",
       "Events": [
         {
-          "TriggerTick": 0,
+          "TriggerTick": 120,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
             "FmodEventPath": "Greatsword",
-            "Volume": 0.8,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
-          "TriggerTick": 240,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 0.9,
+            "Volume": 0.75,
             "UseOwnerPerspective": true
           }
         },
@@ -119,7 +109,7 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Greatsword",
-            "Volume": 0.75,
+            "Volume": 0.8,
             "UseOwnerPerspective": true
           }
         }

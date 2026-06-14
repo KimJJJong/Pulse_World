@@ -81,7 +81,7 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Dagger",
-            "Volume": 0.75,
+            "Volume": 0.7,
             "UseOwnerPerspective": true
           }
         },
@@ -91,17 +91,7 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Dagger",
-            "Volume": 1.0,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
-          "TriggerTick": 240,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Dagger",
-            "Volume": 0.9,
+            "Volume": 0.95,
             "UseOwnerPerspective": true
           }
         },
@@ -111,7 +101,7 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Dagger",
-            "Volume": 0.7,
+            "Volume": 0.75,
             "UseOwnerPerspective": true
           }
         }

@@ -72,7 +72,7 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 240, cells)),
                 Track("Impact", Damage(240, 240, cells, 8)),
                 Track("Control", InputLock(0, 480)),
-                RhythmSound("Greatsword", Hit(0, 0.8f), Hit(240), Hit(360, 0.7f)));
+                RhythmSound("Greatsword", Hit(120, 0.75f), Hit(360, 0.95f)));
         }
 
         private static NewSkillSO BuildNoviceSword()
@@ -86,8 +86,8 @@ namespace RhythmRPG.Editor
                 Track("Control", InputLock(0, 960)),
                 RhythmSound(
                     "Greatsword",
-                    Hit(0, 0.75f), Hit(240, 0.9f), Hit(360, 0.65f),
-                    Hit(480, 0.95f), Hit(720), Hit(840, 0.75f)));
+                    Hit(120, 0.7f), Hit(360),
+                    Hit(600, 0.8f), Hit(840, 0.9f)));
         }
 
         private static NewSkillSO BuildIronSwordAttack()
@@ -99,7 +99,7 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 360, cells)),
                 Track("Impact", Damage(360, 240, cells, 10)),
                 Track("Control", InputLock(0, 720)),
-                RhythmSound("Greatsword", Hit(0, 0.8f), Hit(240, 0.9f), Hit(360), Hit(600, 0.75f)));
+                RhythmSound("Greatsword", Hit(120, 0.75f), Hit(360), Hit(600, 0.8f)));
         }
 
         private static NewSkillSO BuildIronSwordSkill()
@@ -113,9 +113,9 @@ namespace RhythmRPG.Editor
                 Track("Control", InputLock(0, 1440)),
                 RhythmSound(
                     "Greatsword",
-                    Hit(0, 0.7f), Hit(240, 0.85f), Hit(360, 0.65f),
-                    Hit(480, 0.85f), Hit(720), Hit(840, 0.75f),
-                    Hit(960, 0.9f), Hit(1200), Hit(1320, 0.85f)));
+                    Hit(120, 0.7f), Hit(360, 0.95f),
+                    Hit(600, 0.8f), Hit(840),
+                    Hit(1080, 0.85f), Hit(1320, 0.95f)));
         }
 
         private static NewSkillSO BuildAxeAttack()
@@ -127,7 +127,7 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 480, cells)),
                 Track("Impact", Damage(480, 240, cells, 14)),
                 Track("Control", InputLock(0, 960)),
-                RhythmSound("Greatsword", Hit(0, 0.75f), Hit(360, 0.95f), Hit(480), Hit(600, 0.7f), Hit(840, 0.9f)));
+                RhythmSound("Greatsword", Hit(240, 0.85f), Hit(600), Hit(840, 0.8f)));
         }
 
         private static NewSkillSO BuildNoviceAxe()
@@ -141,9 +141,9 @@ namespace RhythmRPG.Editor
                 Track("Control", InputLock(0, 1440)),
                 RhythmSound(
                     "Greatsword",
-                    Hit(0, 0.7f), Hit(360, 0.9f),
-                    Hit(480, 0.85f), Hit(720), Hit(840, 0.75f),
-                    Hit(960), Hit(1080, 0.7f), Hit(1320, 0.95f)));
+                    Hit(240, 0.8f),
+                    Hit(600, 0.9f), Hit(840, 0.75f),
+                    Hit(1080), Hit(1320, 0.95f)));
         }
 
         private static NewSkillSO BuildBowAttack()
@@ -157,8 +157,8 @@ namespace RhythmRPG.Editor
                 Track("Control", InputLock(0, 960)),
                 RhythmSound(
                     "Bow",
-                    Hit(0, 0.7f), Hit(120, 0.8f), Hit(240, 0.9f), Hit(360),
-                    Hit(480, 0.8f), Hit(600, 0.9f), Hit(720, 0.75f)));
+                    Hit(0, 0.65f), Hit(240, 0.85f), Hit(360),
+                    Hit(600, 0.9f), Hit(840, 0.8f)));
         }
 
         private static NewSkillSO BuildBowSkill()
@@ -172,9 +172,9 @@ namespace RhythmRPG.Editor
                 Track("Control", InputLock(0, 1440)),
                 RhythmSound(
                     "Bow",
-                    Hit(0, 0.65f), Hit(120, 0.75f), Hit(240, 0.9f), Hit(360),
-                    Hit(480, 0.7f), Hit(600, 0.85f), Hit(720), Hit(840, 0.8f),
-                    Hit(960, 0.75f), Hit(1080, 0.9f), Hit(1200), Hit(1320, 0.85f)));
+                    Hit(0, 0.6f), Hit(240, 0.85f), Hit(360, 0.95f),
+                    Hit(600, 0.8f), Hit(840),
+                    Hit(960, 0.7f), Hit(1200, 0.9f), Hit(1320, 0.85f)));
         }
 
         private static NewSkillSO BuildDaggerAttack()
@@ -186,7 +186,7 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 180, cells)),
                 Track("Impact", Damage(180, 180, cells, 5)),
                 Track("Control", InputLock(0, 420)),
-                RhythmSound("Dagger", Hit(0, 0.75f), Hit(120), Hit(240, 0.9f), Hit(360, 0.7f)));
+                RhythmSound("Dagger", Hit(0, 0.7f), Hit(120, 0.95f), Hit(360, 0.75f)));
         }
 
         private static NewSkillSO BuildNoviceDagger()
@@ -201,8 +201,8 @@ namespace RhythmRPG.Editor
                 Track("Control", InputLock(0, 960)),
                 RhythmSound(
                     "Dagger",
-                    Hit(0, 0.7f), Hit(120, 0.9f), Hit(240), Hit(360, 0.8f),
-                    Hit(480), Hit(600, 0.85f), Hit(720, 0.95f), Hit(840, 0.75f)));
+                    Hit(0, 0.65f), Hit(120, 0.9f), Hit(360, 0.8f),
+                    Hit(600, 0.85f), Hit(840, 0.95f)));
         }
 
         private static NewSkillSO BuildHelmetSkill()
@@ -215,9 +215,9 @@ namespace RhythmRPG.Editor
                 Track("Control", InputLock(0, 1440)),
                 RhythmSound(
                     "Parry",
-                    Hit(0, 0.65f), Hit(240, 0.85f), Hit(360, 0.75f),
-                    Hit(480, 0.8f), Hit(720), Hit(840, 0.75f),
-                    Hit(960, 0.9f), Hit(1200), Hit(1320, 0.8f)));
+                    Hit(240, 0.8f), Hit(360, 0.7f),
+                    Hit(720, 0.95f), Hit(840, 0.75f),
+                    Hit(1200), Hit(1320, 0.8f)));
         }
 
         private static NewSkillSO BuildArmorSkill()
@@ -229,7 +229,7 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 480, cells)),
                 Track("Impact", Damage(480, 240, cells, 10, knockback: 1)),
                 Track("Control", InputLock(0, 960)),
-                RhythmSound("Parry", Hit(0, 0.75f), Hit(240, 0.85f), Hit(360, 0.7f), Hit(480), Hit(720, 0.85f), Hit(840, 0.75f)));
+                RhythmSound("Parry", Hit(240, 0.8f), Hit(360, 0.7f), Hit(720, 0.9f), Hit(840, 0.75f)));
         }
 
         private static NewSkillSO BuildMoveSkill()
@@ -239,7 +239,7 @@ namespace RhythmRPG.Editor
                 960,
                 Track("Move", Move(240, 240, MoveType.Dash, 2, 0, -1)),
                 Track("Control", InputLock(0, 720)),
-                RhythmSound("Staff", Hit(0, 0.65f), Hit(120, 0.8f), Hit(240), Hit(480, 0.75f), Hit(600, 0.9f)));
+                RhythmSound("Staff", Hit(120, 0.75f), Hit(360, 0.95f), Hit(600, 0.8f)));
         }
 
         private static NewSkillSO BuildBackstepSkill()
@@ -249,7 +249,7 @@ namespace RhythmRPG.Editor
                 960,
                 Track("Move", Move(240, 240, MoveType.Dash, 2, 0, 1)),
                 Track("Control", InputLock(0, 720)),
-                RhythmSound("Staff", Hit(0, 0.75f), Hit(120, 0.9f), Hit(360, 0.65f), Hit(480), Hit(600, 0.8f)));
+                RhythmSound("Staff", Hit(0, 0.75f), Hit(240, 0.9f), Hit(600, 0.8f), Hit(840, 0.7f)));
         }
 
         private static NewSkillSO Skill(string skillId, int durationTicks, params SkillTrack[] tracks)

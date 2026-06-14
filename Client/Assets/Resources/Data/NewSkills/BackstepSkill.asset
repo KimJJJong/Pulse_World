@@ -21,39 +21,35 @@ MonoBehaviour:
       - TriggerTick: 240
         DurationTicks: 240
         Action:
-          rid: 4242872758231106102
+          rid: 4242872758231106230
     - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 720
         Action:
-          rid: 4242872758231106103
+          rid: 4242872758231106231
     - TrackName: Sound
       Events:
       - TriggerTick: 0
         DurationTicks: 120
         Action:
-          rid: 4242872758231106104
-      - TriggerTick: 120
+          rid: 4242872758231106232
+      - TriggerTick: 240
         DurationTicks: 120
         Action:
-          rid: 4242872758231106105
-      - TriggerTick: 360
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231106106
-      - TriggerTick: 480
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231106107
+          rid: 4242872758231106233
       - TriggerTick: 600
         DurationTicks: 120
         Action:
-          rid: 4242872758231106108
+          rid: 4242872758231106234
+      - TriggerTick: 840
+        DurationTicks: 120
+        Action:
+          rid: 4242872758231106235
   references:
     version: 2
     RefIds:
-    - rid: 4242872758231106102
+    - rid: 4242872758231106230
       type: {class: MoveAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         MoveType: 1
@@ -61,36 +57,30 @@ MonoBehaviour:
         DirectionX: 0
         DirectionY: 1
         StopOnObstacle: 1
-    - rid: 4242872758231106103
+    - rid: 4242872758231106231
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872758231106104
+    - rid: 4242872758231106232
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Staff
         Volume: 0.75
         UseOwnerPerspective: 1
-    - rid: 4242872758231106105
+    - rid: 4242872758231106233
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Staff
         Volume: 0.9
         UseOwnerPerspective: 1
-    - rid: 4242872758231106106
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Staff
-        Volume: 0.65
-        UseOwnerPerspective: 1
-    - rid: 4242872758231106107
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Staff
-        Volume: 1
-        UseOwnerPerspective: 1
-    - rid: 4242872758231106108
+    - rid: 4242872758231106234
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Staff
         Volume: 0.8
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106235
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Staff
+        Volume: 0.7
         UseOwnerPerspective: 1

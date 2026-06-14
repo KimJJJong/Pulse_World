@@ -21,167 +21,127 @@ MonoBehaviour:
       - TriggerTick: 0
         DurationTicks: 720
         Action:
-          rid: 4242872758231105961
+          rid: 4242872758231106117
     - TrackName: Impact
       Events:
       - TriggerTick: 720
         DurationTicks: 240
         Action:
-          rid: 4242872758231105962
+          rid: 4242872758231106118
     - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 1440
         Action:
-          rid: 4242872758231105963
+          rid: 4242872758231106119
     - TrackName: Sound
       Events:
       - TriggerTick: 0
         DurationTicks: 120
         Action:
-          rid: 4242872758231105964
-      - TriggerTick: 120
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231105965
+          rid: 4242872758231106120
       - TriggerTick: 240
         DurationTicks: 120
         Action:
-          rid: 4242872758231105966
+          rid: 4242872758231106121
       - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872758231105967
-      - TriggerTick: 480
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231105968
+          rid: 4242872758231106122
       - TriggerTick: 600
         DurationTicks: 120
         Action:
-          rid: 4242872758231105969
-      - TriggerTick: 720
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231105970
+          rid: 4242872758231106123
       - TriggerTick: 840
         DurationTicks: 120
         Action:
-          rid: 4242872758231105971
+          rid: 4242872758231106124
       - TriggerTick: 960
         DurationTicks: 120
         Action:
-          rid: 4242872758231105972
-      - TriggerTick: 1080
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231105973
+          rid: 4242872758231106125
       - TriggerTick: 1200
         DurationTicks: 120
         Action:
-          rid: 4242872758231105974
+          rid: 4242872758231106126
       - TriggerTick: 1320
         DurationTicks: 120
         Action:
-          rid: 4242872758231105975
+          rid: 4242872758231106127
   references:
     version: 2
     RefIds:
-    - rid: 4242872758231105961
+    - rid: 4242872758231106117
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231105976
+          rid: 4242872758231106128
         ColorSteps:
         - DurationTicks: 720
           ColorHex: '#E8D36A'
-    - rid: 4242872758231105962
+    - rid: 4242872758231106118
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231105977
+          rid: 4242872758231106129
         Amount: 18
         HitPlayers: 0
         HitMonsters: 1
         StunDurationTicks: 0
         KnockbackDistance: 0
         RecalculateTargets: 0
-    - rid: 4242872758231105963
+    - rid: 4242872758231106119
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872758231105964
+    - rid: 4242872758231106120
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Bow
-        Volume: 0.65
+        Volume: 0.6
         UseOwnerPerspective: 1
-    - rid: 4242872758231105965
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 0.75
-        UseOwnerPerspective: 1
-    - rid: 4242872758231105966
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 0.9
-        UseOwnerPerspective: 1
-    - rid: 4242872758231105967
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 1
-        UseOwnerPerspective: 1
-    - rid: 4242872758231105968
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 0.7
-        UseOwnerPerspective: 1
-    - rid: 4242872758231105969
+    - rid: 4242872758231106121
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Bow
         Volume: 0.85
         UseOwnerPerspective: 1
-    - rid: 4242872758231105970
+    - rid: 4242872758231106122
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Bow
-        Volume: 1
+        Volume: 0.95
         UseOwnerPerspective: 1
-    - rid: 4242872758231105971
+    - rid: 4242872758231106123
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Bow
         Volume: 0.8
         UseOwnerPerspective: 1
-    - rid: 4242872758231105972
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 0.75
-        UseOwnerPerspective: 1
-    - rid: 4242872758231105973
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 0.9
-        UseOwnerPerspective: 1
-    - rid: 4242872758231105974
+    - rid: 4242872758231106124
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Bow
         Volume: 1
         UseOwnerPerspective: 1
-    - rid: 4242872758231105975
+    - rid: 4242872758231106125
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 0.7
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106126
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 0.9
+        UseOwnerPerspective: 1
+    - rid: 4242872758231106127
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Bow
         Volume: 0.85
         UseOwnerPerspective: 1
-    - rid: 4242872758231105976
+    - rid: 4242872758231106128
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
@@ -217,7 +177,7 @@ MonoBehaviour:
           Y: -6
         - X: 1
           Y: -6
-    - rid: 4242872758231105977
+    - rid: 4242872758231106129
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1

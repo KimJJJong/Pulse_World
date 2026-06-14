@@ -116,42 +116,22 @@
       "TrackName": "Sound",
       "Events": [
         {
-          "TriggerTick": 0,
+          "TriggerTick": 240,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
             "FmodEventPath": "Greatsword",
-            "Volume": 0.7,
+            "Volume": 0.8,
             "UseOwnerPerspective": true
           }
         },
         {
-          "TriggerTick": 360,
+          "TriggerTick": 600,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
             "FmodEventPath": "Greatsword",
             "Volume": 0.9,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
-          "TriggerTick": 480,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 0.85,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
-          "TriggerTick": 720,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 1.0,
             "UseOwnerPerspective": true
           }
         },
@@ -166,22 +146,12 @@
           }
         },
         {
-          "TriggerTick": 960,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 1.0,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
           "TriggerTick": 1080,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
             "FmodEventPath": "Greatsword",
-            "Volume": 0.7,
+            "Volume": 1.0,
             "UseOwnerPerspective": true
           }
         },

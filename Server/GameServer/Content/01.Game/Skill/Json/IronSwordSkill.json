@@ -116,7 +116,7 @@
       "TrackName": "Sound",
       "Events": [
         {
-          "TriggerTick": 0,
+          "TriggerTick": 120,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
@@ -126,42 +126,22 @@
           }
         },
         {
-          "TriggerTick": 240,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 0.85,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
           "TriggerTick": 360,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
             "FmodEventPath": "Greatsword",
-            "Volume": 0.65,
+            "Volume": 0.95,
             "UseOwnerPerspective": true
           }
         },
         {
-          "TriggerTick": 480,
+          "TriggerTick": 600,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
             "FmodEventPath": "Greatsword",
-            "Volume": 0.85,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
-          "TriggerTick": 720,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 1.0,
+            "Volume": 0.8,
             "UseOwnerPerspective": true
           }
         },
@@ -171,27 +151,17 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Greatsword",
-            "Volume": 0.75,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
-          "TriggerTick": 960,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 0.9,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
-          "TriggerTick": 1200,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Greatsword",
             "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 1080,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Greatsword",
+            "Volume": 0.85,
             "UseOwnerPerspective": true
           }
         },
@@ -201,7 +171,7 @@
           "Action": {
             "Type": 6,
             "FmodEventPath": "Greatsword",
-            "Volume": 0.85,
+            "Volume": 0.95,
             "UseOwnerPerspective": true
           }
         }
