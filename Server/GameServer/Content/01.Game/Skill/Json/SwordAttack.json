@@ -80,8 +80,8 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 0.75,
+            "FmodEventPath": "Forest_Sword_Normal",
+            "Volume": 0.38,
             "UseOwnerPerspective": true
           }
         },
@@ -90,8 +90,8 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 0.95,
+            "FmodEventPath": "Forest_Sword_Normal",
+            "Volume": 0.38,
             "UseOwnerPerspective": true
           }
         }

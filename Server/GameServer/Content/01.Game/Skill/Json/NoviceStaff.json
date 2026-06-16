@@ -1,5 +1,5 @@
 {
-  "SkillId": "NoviceAxe",
+  "SkillId": "NoviceStaff",
   "TotalDurationTicks": 1440,
   "Tracks": [
     {
@@ -26,15 +26,7 @@
                   "Y": -1
                 },
                 {
-                  "X": -1,
-                  "Y": -2
-                },
-                {
                   "X": 0,
-                  "Y": -2
-                },
-                {
-                  "X": 1,
                   "Y": -2
                 }
               ],
@@ -75,26 +67,18 @@
                   "Y": -1
                 },
                 {
-                  "X": -1,
-                  "Y": -2
-                },
-                {
                   "X": 0,
-                  "Y": -2
-                },
-                {
-                  "X": 1,
                   "Y": -2
                 }
               ],
               "CasterSize": 1,
               "RotateWithCaster": true
             },
-            "Amount": 26,
+            "Amount": 22,
             "HitPlayers": false,
             "HitMonsters": true,
             "StunDurationTicks": 0,
-            "KnockbackDistance": 1,
+            "KnockbackDistance": 0,
             "RecalculateTargets": false
           }
         }
@@ -120,38 +104,48 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Forest_Axe_Skill",
-            "Volume": 0.4,
+            "FmodEventPath": "Forest_Staff_Skill",
+            "Volume": 0.18,
             "UseOwnerPerspective": true
           }
         },
         {
-          "TriggerTick": 360,
+          "TriggerTick": 240,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Forest_Axe_Skill",
-            "Volume": 0.4,
+            "FmodEventPath": "Forest_Staff_Skill",
+            "Volume": 0.18,
             "UseOwnerPerspective": true
           }
         },
         {
-          "TriggerTick": 720,
+          "TriggerTick": 480,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Forest_Axe_Skill",
-            "Volume": 0.4,
+            "FmodEventPath": "Forest_Staff_Skill",
+            "Volume": 0.18,
             "UseOwnerPerspective": true
           }
         },
         {
-          "TriggerTick": 960,
+          "TriggerTick": 600,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Forest_Axe_Skill",
-            "Volume": 0.4,
+            "FmodEventPath": "Forest_Staff_Skill",
+            "Volume": 0.18,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 840,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Staff_Skill",
+            "Volume": 0.18,
             "UseOwnerPerspective": true
           }
         },
@@ -160,8 +154,28 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Forest_Axe_Skill_Final",
-            "Volume": 0.78,
+            "FmodEventPath": "Forest_Staff_Skill",
+            "Volume": 0.18,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 1200,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Staff_Skill",
+            "Volume": 0.18,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 1320,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Staff_Skill_Final",
+            "Volume": 0.75,
             "UseOwnerPerspective": true
           }
         }

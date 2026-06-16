@@ -1,13 +1,13 @@
 {
   "SkillId": "BowSkill",
-  "TotalDurationTicks": 1440,
+  "TotalDurationTicks": 960,
   "Tracks": [
     {
       "TrackName": "Telegraph",
       "Events": [
         {
           "TriggerTick": 0,
-          "DurationTicks": 720,
+          "DurationTicks": 480,
           "Action": {
             "Type": 1,
             "Shape": {
@@ -79,7 +79,7 @@
             },
             "ColorSteps": [
               {
-                "DurationTicks": 720,
+                "DurationTicks": 480,
                 "ColorHex": "#E8D36A"
               }
             ]
@@ -91,7 +91,7 @@
       "TrackName": "Impact",
       "Events": [
         {
-          "TriggerTick": 720,
+          "TriggerTick": 480,
           "DurationTicks": 240,
           "Action": {
             "Type": 2,
@@ -177,7 +177,7 @@
       "Events": [
         {
           "TriggerTick": 0,
-          "DurationTicks": 1440,
+          "DurationTicks": 960,
           "Action": {
             "Type": 4
           }
@@ -192,18 +192,18 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Bow",
-            "Volume": 0.6,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.22,
             "UseOwnerPerspective": true
           }
         },
         {
-          "TriggerTick": 240,
+          "TriggerTick": 120,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Bow",
-            "Volume": 0.85,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.22,
             "UseOwnerPerspective": true
           }
         },
@@ -212,18 +212,28 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Bow",
-            "Volume": 0.95,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.22,
             "UseOwnerPerspective": true
           }
         },
         {
-          "TriggerTick": 600,
+          "TriggerTick": 480,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Bow",
-            "Volume": 0.8,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.22,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 720,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.22,
             "UseOwnerPerspective": true
           }
         },
@@ -232,38 +242,8 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Bow",
-            "Volume": 1.0,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
-          "TriggerTick": 960,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Bow",
-            "Volume": 0.7,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
-          "TriggerTick": 1200,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Bow",
-            "Volume": 0.9,
-            "UseOwnerPerspective": true
-          }
-        },
-        {
-          "TriggerTick": 1320,
-          "DurationTicks": 120,
-          "Action": {
-            "Type": 6,
-            "FmodEventPath": "Bow",
-            "Volume": 0.85,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.38,
             "UseOwnerPerspective": true
           }
         }

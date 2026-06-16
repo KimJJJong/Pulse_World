@@ -39,7 +39,7 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Staff",
+            "FmodEventPath": "Forest_Shoes_Heavy",
             "Volume": 0.75,
             "UseOwnerPerspective": true
           }
@@ -49,7 +49,7 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Staff",
+            "FmodEventPath": "Forest_Shoes_Heavy",
             "Volume": 0.9,
             "UseOwnerPerspective": true
           }
@@ -59,7 +59,7 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Staff",
+            "FmodEventPath": "Forest_Shoes_Heavy",
             "Volume": 0.8,
             "UseOwnerPerspective": true
           }
@@ -69,7 +69,7 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Staff",
+            "FmodEventPath": "Forest_Shoes_Heavy",
             "Volume": 0.7,
             "UseOwnerPerspective": true
           }

@@ -120,8 +120,8 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 0.7,
+            "FmodEventPath": "Forest_Sword_Skill",
+            "Volume": 0.3,
             "UseOwnerPerspective": true
           }
         },
@@ -130,8 +130,8 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 0.95,
+            "FmodEventPath": "Forest_Sword_Skill",
+            "Volume": 0.3,
             "UseOwnerPerspective": true
           }
         },
@@ -140,8 +140,8 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 0.8,
+            "FmodEventPath": "Forest_Sword_Skill",
+            "Volume": 0.3,
             "UseOwnerPerspective": true
           }
         },
@@ -150,8 +150,8 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 1.0,
+            "FmodEventPath": "Forest_Sword_Skill",
+            "Volume": 0.3,
             "UseOwnerPerspective": true
           }
         },
@@ -160,8 +160,8 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 0.85,
+            "FmodEventPath": "Forest_Sword_Skill",
+            "Volume": 0.3,
             "UseOwnerPerspective": true
           }
         },
@@ -170,8 +170,8 @@
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
-            "FmodEventPath": "Greatsword",
-            "Volume": 0.95,
+            "FmodEventPath": "Forest_Sword_Skill_Final",
+            "Volume": 0.55,
             "UseOwnerPerspective": true
           }
         }
