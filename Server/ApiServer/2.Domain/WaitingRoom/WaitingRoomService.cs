@@ -161,10 +161,12 @@ public sealed class WaitingRoomService
         int max = (int)maxVal;
 
         // If already member, keep transport state but refresh name.
+        var normalizedName = NormalizeMemberDisplayName(name, uid);
         if (await _redis.Db.HashExistsAsync(membersKey, uid))
         {
             var state = await GetMemberStateAsync(membersKey, uid);
-            state.Name = name ?? "";
+            if (!string.IsNullOrWhiteSpace(normalizedName))
+                state.Name = normalizedName;
             await SaveMemberStateAsync(membersKey, uid, state);
             await BumpHostSelectionEpochAsync(key);
             return (true, "");
@@ -174,7 +176,7 @@ public sealed class WaitingRoomService
 
         var memberState = new WaitingRoomMemberState
         {
-            Name = name ?? "",
+            Name = normalizedName,
             Ready = false
         };
         await SaveMemberStateAsync(membersKey, uid, memberState);
@@ -251,8 +253,9 @@ public sealed class WaitingRoomService
             return false;
 
         var state = await GetMemberStateAsync(membersKey, uid);
-        if (!string.IsNullOrWhiteSpace(name))
-            state.Name = name;
+        var normalizedName = NormalizeMemberDisplayName(name, uid);
+        if (!string.IsNullOrWhiteSpace(normalizedName))
+            state.Name = normalizedName;
         if (!string.IsNullOrWhiteSpace(clientVersion))
             state.ClientVersion = clientVersion;
         if (!string.IsNullOrWhiteSpace(steamId64))
@@ -270,6 +273,7 @@ public sealed class WaitingRoomService
     public async Task<bool> UpdateMemberHostSelectionAsync(
         string roomId,
         string uid,
+        string displayName,
         string steamId64,
         bool steamEnabled,
         bool steamInitialized,
@@ -291,6 +295,15 @@ public sealed class WaitingRoomService
             return false;
 
         var state = await GetMemberStateAsync(membersKey, uid);
+        var normalizedName = NormalizeMemberDisplayName(displayName, uid);
+        if (string.IsNullOrWhiteSpace(normalizedName)
+            && IsInvalidMemberDisplayName(state.Name, uid)
+            && !string.IsNullOrWhiteSpace(steamId64))
+        {
+            normalizedName = steamId64.Trim();
+        }
+        if (!string.IsNullOrWhiteSpace(normalizedName))
+            state.Name = normalizedName;
         state.SteamId64 = steamId64 ?? "";
         state.SteamEnabled = steamEnabled;
         state.SteamInitialized = steamInitialized;
@@ -565,6 +578,33 @@ public sealed class WaitingRoomService
 
         return await _redis.Db.HashIncrementAsync(roomKey, "hostSelectionEpoch", 1);
     }
+
+    private static string NormalizeMemberDisplayName(string? displayName, string? uid)
+    {
+        string clean = (displayName ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(clean))
+            return "";
+
+        string cleanUid = (uid ?? "").Trim();
+        if (!string.IsNullOrWhiteSpace(cleanUid)
+            && string.Equals(clean, cleanUid, StringComparison.OrdinalIgnoreCase))
+        {
+            return "";
+        }
+
+        if (string.Equals(clean, "Guest", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "Unknown", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "NullName", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(clean, "-", StringComparison.Ordinal))
+        {
+            return "";
+        }
+
+        return clean;
+    }
+
+    private static bool IsInvalidMemberDisplayName(string? displayName, string? uid)
+        => string.IsNullOrWhiteSpace(NormalizeMemberDisplayName(displayName, uid));
 
     private static List<WaitingRoomMeasuredSteamPairDto> CloneMeasuredSteamPairs(IEnumerable<WaitingRoomMeasuredSteamPairDto>? measuredSteamPairs)
     {

@@ -10,9 +10,18 @@ namespace NetClient.Room.UI
         {
             get
             {
-                var steamName = AppBootstrap.Instance.Root.SteamPlatform.DisplayName;
+                var steam = AppBootstrap.Instance?.Root?.SteamPlatform;
+                var steamName = steam?.DisplayName;
                 if (!string.IsNullOrWhiteSpace(steamName))
-                    return steamName;
+                    return steamName.Trim();
+
+                var steamId64 = steam?.SteamId64;
+                if (!string.IsNullOrWhiteSpace(steamId64))
+                    return steamId64.Trim();
+
+                var uid = SessionContext.Instance != null ? SessionContext.Instance.Uid : "";
+                if (!string.IsNullOrWhiteSpace(uid))
+                    return uid.Trim();
 
                 return "Guest";
             }

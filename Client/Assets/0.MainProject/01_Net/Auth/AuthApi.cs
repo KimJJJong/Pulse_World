@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 
 public sealed class AuthApi
@@ -31,15 +32,31 @@ public sealed class AuthApi
     public async Task<ApiResult<AuthDtos.AuthResponse>> LoginPreferredAsync(ISteamPlatformService steamPlatform, AppConfig config)
     {
         const string webIdentity = "rhythmrpg.api";
+        var timeout = TimeSpan.FromSeconds(Math.Max(3, config != null ? config.TimeoutSeconds : 15));
 
         if (config != null && config.EnableSteam && config.PreferSteamLogin && steamPlatform != null && steamPlatform.IsInitialized)
         {
             SetLoginStatus("SteamTicket", "Requesting Steam Web API ticket.");
-            var ticket = await steamPlatform.CreateWebApiTicketAsync(webIdentity);
+            var ticket = await WithTimeout(
+                steamPlatform.CreateWebApiTicketAsync(webIdentity),
+                timeout,
+                () => new SteamWebApiTicketResult
+                {
+                    Success = false,
+                    Identity = webIdentity,
+                    Error = $"Steam 인증 티켓 요청 시간이 초과되었습니다. ({(int)timeout.TotalSeconds}초)"
+                });
             if (ticket.Success)
             {
                 SetLoginStatus("SteamTicketOk", $"Steam ticket issued for {ticket.SteamId64}.");
-                var steamLogin = await LoginSteamAsync(ticket.SteamId64, ticket.TicketHex, ticket.Identity);
+                var steamLogin = await WithTimeout(
+                    LoginSteamAsync(ticket.SteamId64, ticket.TicketHex, ticket.Identity),
+                    timeout,
+                    () => new ApiResult<AuthDtos.AuthResponse>(
+                        false,
+                        0,
+                        $"Steam 로그인 요청 시간이 초과되었습니다. ({(int)timeout.TotalSeconds}초)",
+                        default));
                 if (steamLogin.Ok)
                 {
                     SetLoginStatus("Steam", $"Steam login succeeded. uid={steamLogin.Data?.Uid ?? ""}");
@@ -67,7 +84,14 @@ public sealed class AuthApi
             SetLoginStatus("Guest", "Steam login is disabled in config.");
         }
 
-        var guestLogin = await LoginGuestAsync();
+        var guestLogin = await WithTimeout(
+            LoginGuestAsync(),
+            timeout,
+            () => new ApiResult<AuthDtos.AuthResponse>(
+                false,
+                0,
+                $"Guest 로그인 요청 시간이 초과되었습니다. ({(int)timeout.TotalSeconds}초)",
+                default));
         if (guestLogin.Ok)
         {
             if (LastPreferredLoginMode == "GuestFallback")
@@ -104,5 +128,19 @@ public sealed class AuthApi
     {
         LastPreferredLoginMode = string.IsNullOrWhiteSpace(mode) ? "Unknown" : mode;
         LastPreferredLoginDetail = string.IsNullOrWhiteSpace(detail) ? "-" : detail;
+    }
+
+    private static async Task<T> WithTimeout<T>(Task<T> task, TimeSpan timeout, Func<T> fallback)
+    {
+        var completed = await Task.WhenAny(task, Task.Delay(timeout));
+        if (completed == task)
+            return await task;
+
+        _ = task.ContinueWith(t =>
+        {
+            var ignored = t.Exception;
+        }, TaskContinuationOptions.OnlyOnFaulted);
+
+        return fallback();
     }
 }

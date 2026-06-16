@@ -42,6 +42,7 @@ using System.Collections.Generic;
     {
         public string type = "HostSelectionReport";
         public string steamId64;
+        public string displayName;
         public bool steamEnabled;
         public bool steamInitialized;
         public bool steamLobbyJoined;

@@ -5,6 +5,8 @@ public class FMODActionSoundPlayer : MonoBehaviour
 {
     public static FMODActionSoundPlayer Instance { get; private set; }
 
+    private static readonly System.Collections.Generic.Dictionary<string, FMOD.Sound> _localSoundCache = new System.Collections.Generic.Dictionary<string, FMOD.Sound>();
+
     [Header("Action Sounds")]
     [Tooltip("내 턴/캐릭터가 공격할 때 나는 소리")]
     public EventReference myAttackSound;
@@ -36,6 +38,13 @@ public class FMODActionSoundPlayer : MonoBehaviour
         if (string.IsNullOrWhiteSpace(fmodEventPath)) return;
 
         string requestedPath = NormalizeKnownEventPath(fmodEventPath.Trim());
+
+        if (requestedPath.StartsWith("Forest_", System.StringComparison.OrdinalIgnoreCase))
+        {
+            PlayLocalWavSound(requestedPath, volume, startOffsetMs);
+            return;
+        }
+
         string weaponType = ResolveWeaponType(requestedPath);
 
         if (requestedPath.StartsWith("event:/", System.StringComparison.OrdinalIgnoreCase))
@@ -136,6 +145,12 @@ public class FMODActionSoundPlayer : MonoBehaviour
 
     private static void PlayInstance(string eventPath, float volume, string logContext, float startOffsetMs = 0f)
     {
+        if (eventPath.StartsWith("Forest_", System.StringComparison.OrdinalIgnoreCase))
+        {
+            PlayLocalWavSound(eventPath, volume, startOffsetMs);
+            return;
+        }
+
         try
         {
             PlayCreatedInstance(RuntimeManager.CreateInstance(eventPath), volume, eventPath, startOffsetMs);
@@ -271,6 +286,78 @@ public class FMODActionSoundPlayer : MonoBehaviour
             }
             
             yield return new WaitForSeconds(0.05f);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        foreach (var sound in _localSoundCache.Values)
+        {
+            if (sound.hasHandle())
+                sound.release();
+        }
+        _localSoundCache.Clear();
+    }
+
+    private static void PlayLocalWavSound(string sfxName, float volume, float startOffsetMs)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(sfxName)) return;
+
+            FMOD.Sound sound;
+            if (!_localSoundCache.TryGetValue(sfxName, out sound))
+            {
+                string wavPath = System.IO.Path.Combine(Application.streamingAssetsPath, "Sound/Forest", $"{sfxName}.wav");
+                if (!System.IO.File.Exists(wavPath))
+                {
+                    Debug.LogError($"[FMODAction] Local WAV not found at: {wavPath}");
+                    return;
+                }
+
+                byte[] wavBytes = System.IO.File.ReadAllBytes(wavPath);
+                var exInfo = new FMOD.CREATESOUNDEXINFO
+                {
+                    cbsize = System.Runtime.InteropServices.Marshal.SizeOf<FMOD.CREATESOUNDEXINFO>(),
+                    length = (uint)wavBytes.Length
+                };
+
+                FMOD.MODE mode = FMOD.MODE.OPENMEMORY | FMOD.MODE.CREATESAMPLE | FMOD.MODE._2D | FMOD.MODE.LOOP_OFF;
+                FMOD.RESULT createResult = RuntimeManager.CoreSystem.createSound(wavBytes, mode, ref exInfo, out sound);
+                if (createResult != FMOD.RESULT.OK)
+                {
+                    Debug.LogError($"[FMODAction] Local sound create failed for '{sfxName}'. Result={createResult}");
+                    return;
+                }
+
+                _localSoundCache[sfxName] = sound;
+            }
+
+            FMOD.RESULT playResult = RuntimeManager.CoreSystem.playSound(sound, default, true, out FMOD.Channel channel);
+            if (playResult == FMOD.RESULT.OK)
+            {
+                float inGameVol = 1.0f;
+                float master = PlayerPrefs.GetFloat("Options.MasterVolume", 0.85f);
+                float ingame = PlayerPrefs.GetFloat("Options.InGameVolume", 0.80f);
+                inGameVol = master * ingame;
+
+                channel.setVolume(volume * inGameVol);
+
+                if (startOffsetMs > 2f && startOffsetMs < 300f)
+                {
+                    channel.setPosition((uint)Mathf.RoundToInt(startOffsetMs), FMOD.TIMEUNIT.MS);
+                }
+
+                channel.setPaused(false);
+            }
+            else
+            {
+                Debug.LogError($"[FMODAction] Local sound play failed for '{sfxName}'. Result={playResult}");
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[FMODAction] Local WAV play exception for '{sfxName}': {e.Message}");
         }
     }
 }

@@ -178,12 +178,15 @@ using UnityEngine;
             bool steamInitialized = steam != null && steam.IsInitialized;
             bool steamLobbyJoined = steam != null && steam.HasJoinedLobby;
             string steamId64 = steam != null ? steam.SteamId64 ?? "" : "";
+            string steamName = steam != null ? steam.DisplayName ?? "" : "";
+            string displayName = ResolveLocalDisplayName(steamName, steamId64);
             bool steamReady = steamEnabled && steamInitialized && steamLobbyJoined && !string.IsNullOrWhiteSpace(steamId64);
             RefreshPairProbeState(steamId64, steamReady);
 
             var req = new HostSelectionReportRequest
             {
                 steamId64 = steamId64,
+                displayName = displayName,
                 steamEnabled = steamEnabled,
                 steamInitialized = steamInitialized,
                 steamLobbyJoined = steamLobbyJoined,
@@ -198,6 +201,18 @@ using UnityEngine;
                 reportedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
             return CanSend(ct) ? _ws.SendTextAsync(JsonUtility.ToJson(req), ct) : Task.CompletedTask;
+        }
+
+        private static string ResolveLocalDisplayName(string steamName, string steamId64)
+        {
+            if (!string.IsNullOrWhiteSpace(steamName))
+                return steamName.Trim();
+
+            if (!string.IsNullOrWhiteSpace(steamId64))
+                return steamId64.Trim();
+
+            string uid = SessionContext.Instance != null ? SessionContext.Instance.Uid ?? "" : "";
+            return !string.IsNullOrWhiteSpace(uid) ? uid.Trim() : "";
         }
 
         public void Tick()

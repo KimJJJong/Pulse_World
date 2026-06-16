@@ -344,18 +344,19 @@ public class ClientSkillRunner : MonoBehaviour
                 continue;
 
             _triggeredEquipmentSoundEvents.Add(i);
-            PlayEquipmentRhythmSound(triggerTick, relativeTick, volume);
+            PlayEquipmentRhythmSound(i, triggerTick, relativeTick, volume);
         }
     }
 
-    private void PlayEquipmentRhythmSound(int triggerTick, long relativeTick, float volume)
+    private void PlayEquipmentRhythmSound(int index, int triggerTick, long relativeTick, float volume)
     {
         if (FMODActionSoundPlayer.Instance == null)
             return;
 
         float startOffsetMs = CalculateLateTickOffsetMs(triggerTick, relativeTick);
-        if (!string.IsNullOrEmpty(_equipmentSoundProfile.EventPath))
-            FMODActionSoundPlayer.Instance.PlayByEventPath(_equipmentSoundProfile.EventPath, volume, startOffsetMs);
+        string eventPath = _equipmentSoundProfile.GetEventPath(index);
+        if (!string.IsNullOrEmpty(eventPath))
+            FMODActionSoundPlayer.Instance.PlayByEventPath(eventPath, volume, startOffsetMs);
         else
             FMODActionSoundPlayer.Instance.PlayAttackSound(_isMine, startOffsetMs);
 

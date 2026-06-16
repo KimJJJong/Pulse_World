@@ -338,6 +338,7 @@ public sealed class HomeAppearanceSelectorUI : MonoBehaviour
         _savedAppearanceId = res.Data.SavedAppearanceId;
         _currentAppearanceId = res.Data.AppearanceId;
         PublishAppearanceAppliedChanged(_savedAppearanceId, _currentAppearanceId);
+        ClientGameState.Instance?.ApplyLocalPlayerAppearance(_currentAppearanceId);
         UpdateCurrentLabel();
         UpdateOptionHighlights();
         SetStatus("외형 정보를 불러왔습니다.");
@@ -377,6 +378,7 @@ public sealed class HomeAppearanceSelectorUI : MonoBehaviour
         _savedAppearanceId = res.Data.SavedAppearanceId;
         _currentAppearanceId = res.Data.AppearanceId;
         PublishAppearanceAppliedChanged(_savedAppearanceId, _currentAppearanceId);
+        ClientGameState.Instance?.ApplyLocalPlayerAppearance(_currentAppearanceId);
         UpdateCurrentLabel();
         UpdateOptionHighlights();
         SetStatus($"저장 완료: {AppearanceCatalog.GetDisplayName(_savedAppearanceId)}");

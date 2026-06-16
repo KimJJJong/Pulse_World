@@ -64,7 +64,9 @@ public class BoardView : MonoBehaviour, IClientWorldView, IClientWorldViewMapUpd
 
     // entityId -> EntityVisual
     private readonly Dictionary<int, EntityVisual> _entityViews = new();
+    private readonly Dictionary<int, int> _entityVisualAppearanceIds = new();
     private const string EntityAnimationProfileResourceRoot = "Data/EntityAnimationProfiles";
+    private const float RemoteEquipmentRefreshIntervalSeconds = 2f;
 
     // (x,y) -> Tile GameObject
     private GameObject[,] _tiles;
@@ -145,6 +147,8 @@ public class BoardView : MonoBehaviour, IClientWorldView, IClientWorldViewMapUpd
     {
         public string Uid = string.Empty;
         public List<int> EquipmentTemplateIds = new();
+        public int AppearanceId;
+        public float FetchedAtRealtime;
     }
     private Dictionary<Vector2Int, long> _telegraphExpiration = new Dictionary<Vector2Int, long>();
     private readonly List<Vector2Int> _expiredTelegraphBuffer = new List<Vector2Int>();
@@ -1226,6 +1230,7 @@ public class BoardView : MonoBehaviour, IClientWorldView, IClientWorldViewMapUpd
                 Destroy(kv.Value.gameObject);
         }
         _entityViews.Clear();
+        _entityVisualAppearanceIds.Clear();
         _monsterHealthBars.Clear();
         _remoteEquipmentByActorId.Clear();
         _remoteEquipmentRequests.Clear();
@@ -1236,8 +1241,19 @@ public class BoardView : MonoBehaviour, IClientWorldView, IClientWorldViewMapUpd
         CancelPendingVisualDespawn(info.EntityId);
         var gameState = ClientGameState.Instance;
 
+        _entityViews.TryGetValue(info.EntityId, out var visual);
+        if (visual != null
+            && _entityVisualAppearanceIds.TryGetValue(info.EntityId, out int visualAppearanceId)
+            && visualAppearanceId != info.AppearanceId)
+        {
+            Destroy(visual.gameObject);
+            _entityViews.Remove(info.EntityId);
+            _entityVisualAppearanceIds.Remove(info.EntityId);
+            visual = null;
+        }
+
         bool createdNow = false;
-        if (!_entityViews.TryGetValue(info.EntityId, out var visual) || visual == null)
+        if (visual == null)
         {
             GameObject prefab = ChoosePrefab(info.EntityType, info.AppearanceId);
             if (prefab == null)
@@ -1259,6 +1275,7 @@ public class BoardView : MonoBehaviour, IClientWorldView, IClientWorldViewMapUpd
                 visual.BindAnimationProfile(animationProfile);
 
             _entityViews[info.EntityId] = visual;
+            _entityVisualAppearanceIds[info.EntityId] = info.AppearanceId;
             createdNow = true;
             if (info.EntityType == (int)EntityType.Player)
             {
@@ -1360,7 +1377,11 @@ public class BoardView : MonoBehaviour, IClientWorldView, IClientWorldViewMapUpd
             && string.Equals(cached.Uid, uid, StringComparison.OrdinalIgnoreCase))
         {
             visualCtrl.UpdateEquipments(cached.EquipmentTemplateIds);
-            return;
+            if (cached.AppearanceId > 0)
+                gameState.ApplyPlayerAppearance(actorId, cached.AppearanceId);
+
+            if (Time.realtimeSinceStartup - cached.FetchedAtRealtime < RemoteEquipmentRefreshIntervalSeconds)
+                return;
         }
 
         if (_remoteEquipmentRequests.Contains(actorId))
@@ -1403,8 +1424,13 @@ public class BoardView : MonoBehaviour, IClientWorldView, IClientWorldViewMapUpd
             _remoteEquipmentByActorId[actorId] = new RemoteEquipmentState
             {
                 Uid = uid,
-                EquipmentTemplateIds = equipmentIds
+                EquipmentTemplateIds = equipmentIds,
+                AppearanceId = result.Data.AppearanceId,
+                FetchedAtRealtime = Time.realtimeSinceStartup
             };
+
+            if (result.Data.AppearanceId > 0)
+                ClientGameState.Instance.ApplyPlayerAppearance(actorId, result.Data.AppearanceId);
 
             if (_entityViews.TryGetValue(actorId, out var visual) && visual != null)
             {
@@ -1452,6 +1478,9 @@ public class BoardView : MonoBehaviour, IClientWorldView, IClientWorldViewMapUpd
         }
 
         _entityViews.Remove(entityId);
+        _entityVisualAppearanceIds.Remove(entityId);
+        _remoteEquipmentByActorId.Remove(entityId);
+        _remoteEquipmentRequests.Remove(entityId);
         _recentInstantActions.Remove(entityId);
         ClearPredictedMoves(entityId);
 
@@ -1699,7 +1728,9 @@ public class BoardView : MonoBehaviour, IClientWorldView, IClientWorldViewMapUpd
             return;
 
         ShowMonsterHealthBarForDamage(entityId, newHp, visual);
-        PlayMonsterDamageEffect(entityId, oldHp - newHp, visual);
+        int damage = oldHp - newHp;
+        PlayMonsterDamageEffect(entityId, damage, visual);
+        PlayPlayerDamageEffect(entityId, damage, oldHp, newHp, visual);
 
         if (newHp <= 0)
             visual.PlayDeath();
@@ -1719,6 +1750,23 @@ public class BoardView : MonoBehaviour, IClientWorldView, IClientWorldViewMapUpd
         }
 
         MonsterDamagePopupView.Play(visual.transform, damage);
+    }
+
+    private void PlayPlayerDamageEffect(int entityId, int damage, int oldHp, int newHp, EntityVisual visual)
+    {
+        if (damage <= 0 || visual == null || ClientGameState.Instance == null)
+            return;
+
+        if (entityId != ClientGameState.Instance.MyActorId)
+            return;
+
+        if (!ClientGameState.Instance.TryGetEntity(entityId, out var info)
+            || info.EntityType != (int)EntityType.Player)
+        {
+            return;
+        }
+
+        PlayerHitSfxOverlay.Play(visual.transform, damage, oldHp, newHp);
     }
 
     private float ResolveHitFeedbackDuration()

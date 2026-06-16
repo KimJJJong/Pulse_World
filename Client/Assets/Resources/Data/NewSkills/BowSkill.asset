@@ -14,134 +14,114 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
   Data:
     SkillId: BowSkill
-    TotalDurationTicks: 1440
+    TotalDurationTicks: 960
     Tracks:
     - TrackName: Telegraph
       Events:
       - TriggerTick: 0
-        DurationTicks: 720
+        DurationTicks: 480
         Action:
-          rid: 4242872758231106483
+          rid: 4242872800730677348
     - TrackName: Impact
       Events:
-      - TriggerTick: 720
+      - TriggerTick: 480
         DurationTicks: 240
         Action:
-          rid: 4242872758231106484
+          rid: 4242872800730677349
     - TrackName: Control
       Events:
       - TriggerTick: 0
-        DurationTicks: 1440
+        DurationTicks: 960
         Action:
-          rid: 4242872758231106485
+          rid: 4242872800730677350
     - TrackName: Sound
       Events:
       - TriggerTick: 0
         DurationTicks: 120
         Action:
-          rid: 4242872758231106486
-      - TriggerTick: 240
+          rid: 4242872800730677351
+      - TriggerTick: 120
         DurationTicks: 120
         Action:
-          rid: 4242872758231106487
+          rid: 4242872800730677352
       - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872758231106488
-      - TriggerTick: 600
+          rid: 4242872800730677353
+      - TriggerTick: 480
         DurationTicks: 120
         Action:
-          rid: 4242872758231106489
+          rid: 4242872800730677354
+      - TriggerTick: 720
+        DurationTicks: 120
+        Action:
+          rid: 4242872800730677355
       - TriggerTick: 840
         DurationTicks: 120
         Action:
-          rid: 4242872758231106490
-      - TriggerTick: 960
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231106491
-      - TriggerTick: 1200
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231106492
-      - TriggerTick: 1320
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231106493
+          rid: 4242872800730677356
   references:
     version: 2
     RefIds:
-    - rid: 4242872758231106483
+    - rid: 4242872800730677348
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231106494
+          rid: 4242872800730677357
         ColorSteps:
-        - DurationTicks: 720
+        - DurationTicks: 480
           ColorHex: '#E8D36A'
-    - rid: 4242872758231106484
+    - rid: 4242872800730677349
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872758231106495
+          rid: 4242872800730677358
         Amount: 18
         HitPlayers: 0
         HitMonsters: 1
         StunDurationTicks: 0
         KnockbackDistance: 0
         RecalculateTargets: 0
-    - rid: 4242872758231106485
+    - rid: 4242872800730677350
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872758231106486
+    - rid: 4242872800730677351
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Bow
-        Volume: 0.6
+        FmodEventPath: Forest_Bow_Skill
+        Volume: 0.22
         UseOwnerPerspective: 1
-    - rid: 4242872758231106487
+    - rid: 4242872800730677352
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Bow
-        Volume: 0.85
+        FmodEventPath: Forest_Bow_Skill
+        Volume: 0.22
         UseOwnerPerspective: 1
-    - rid: 4242872758231106488
+    - rid: 4242872800730677353
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Bow
-        Volume: 0.95
+        FmodEventPath: Forest_Bow_Skill
+        Volume: 0.22
         UseOwnerPerspective: 1
-    - rid: 4242872758231106489
+    - rid: 4242872800730677354
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Bow
-        Volume: 0.8
+        FmodEventPath: Forest_Bow_Skill
+        Volume: 0.22
         UseOwnerPerspective: 1
-    - rid: 4242872758231106490
+    - rid: 4242872800730677355
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Bow
-        Volume: 1
+        FmodEventPath: Forest_Bow_Skill
+        Volume: 0.22
         UseOwnerPerspective: 1
-    - rid: 4242872758231106491
+    - rid: 4242872800730677356
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Bow
-        Volume: 0.7
+        FmodEventPath: Forest_Bow_Skill
+        Volume: 0.38
         UseOwnerPerspective: 1
-    - rid: 4242872758231106492
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 0.9
-        UseOwnerPerspective: 1
-    - rid: 4242872758231106493
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 0.85
-        UseOwnerPerspective: 1
-    - rid: 4242872758231106494
+    - rid: 4242872800730677357
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
@@ -177,7 +157,7 @@ MonoBehaviour:
           Y: -6
         - X: 1
           Y: -6
-    - rid: 4242872758231106495
+    - rid: 4242872800730677358
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1

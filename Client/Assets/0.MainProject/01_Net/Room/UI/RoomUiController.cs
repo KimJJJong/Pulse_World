@@ -1271,9 +1271,51 @@ namespace NetClient.Room.UI
                     if (src == null || string.IsNullOrWhiteSpace(src.uid))
                         continue;
 
-                    _memberTransportSnapshot.Add(CloneMemberTransportState(src));
+                    var snapshot = CloneMemberTransportState(src);
+                    _memberTransportSnapshot.Add(snapshot);
+                    ApplyMemberTransportDisplayName(snapshot);
                 }
             }
+        }
+
+        void ApplyMemberTransportDisplayName(MemberTransportState state)
+        {
+            if (state == null || string.IsNullOrWhiteSpace(state.uid))
+                return;
+
+            string displayName = ResolveMemberTransportDisplayName(state);
+            if (string.IsNullOrWhiteSpace(displayName))
+                return;
+
+            _uidToName[state.uid] = displayName;
+            if (_memberViews.TryGetValue(state.uid, out var view) && view)
+                view.SetName(displayName);
+        }
+
+        static string ResolveMemberTransportDisplayName(MemberTransportState state)
+        {
+            if (state == null)
+                return "";
+
+            if (IsUsableMemberDisplayName(state.name, state.uid))
+                return state.name.Trim();
+
+            return !string.IsNullOrWhiteSpace(state.steamId64) ? state.steamId64.Trim() : "";
+        }
+
+        static bool IsUsableMemberDisplayName(string displayName, string uid)
+        {
+            string clean = (displayName ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(clean))
+                return false;
+
+            if (!string.IsNullOrWhiteSpace(uid) && string.Equals(clean, uid.Trim(), StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return !string.Equals(clean, "Guest", StringComparison.OrdinalIgnoreCase)
+                   && !string.Equals(clean, "Unknown", StringComparison.OrdinalIgnoreCase)
+                   && !string.Equals(clean, "NullName", StringComparison.OrdinalIgnoreCase)
+                   && !string.Equals(clean, "-", StringComparison.Ordinal);
         }
 
         void RemoveSelectionSnapshot(string uid)

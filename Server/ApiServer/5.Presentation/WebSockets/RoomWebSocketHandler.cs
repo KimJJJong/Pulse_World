@@ -273,6 +273,9 @@ public sealed class RoomWebSocketHandler
                 var steamId = root.TryGetProperty("steamId64", out var steamIdElement)
                     ? steamIdElement.GetString() ?? ""
                     : "";
+                var displayName = root.TryGetProperty("displayName", out var displayNameElement)
+                    ? displayNameElement.GetString() ?? ""
+                    : "";
                 var steamEnabled = root.TryGetProperty("steamEnabled", out var steamEnabledElement) && steamEnabledElement.GetBoolean();
                 var steamInitialized = root.TryGetProperty("steamInitialized", out var steamInitializedElement) && steamInitializedElement.GetBoolean();
                 var steamLobbyJoined = root.TryGetProperty("steamLobbyJoined", out var steamLobbyJoinedElement) && steamLobbyJoinedElement.GetBoolean();
@@ -325,6 +328,7 @@ public sealed class RoomWebSocketHandler
                 if (await _waitingRoom.UpdateMemberHostSelectionAsync(
                         roomId,
                         uid,
+                        displayName,
                         steamId,
                         steamEnabled,
                         steamInitialized,

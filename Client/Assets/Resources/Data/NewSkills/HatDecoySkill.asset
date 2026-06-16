@@ -21,39 +21,39 @@ MonoBehaviour:
       - TriggerTick: 240
         DurationTicks: 120
         Action:
-          rid: 4242872761226362912
+          rid: 4242872800730677473
     - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 480
         Action:
-          rid: 4242872761226362913
+          rid: 4242872800730677474
     - TrackName: Sound
       Events:
       - TriggerTick: 120
         DurationTicks: 120
         Action:
-          rid: 4242872761226362914
+          rid: 4242872800730677475
       - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872761226362915
+          rid: 4242872800730677476
       - TriggerTick: 720
         DurationTicks: 120
         Action:
-          rid: 4242872761226362916
+          rid: 4242872800730677477
       - TriggerTick: 1080
         DurationTicks: 120
         Action:
-          rid: 4242872761226362917
+          rid: 4242872800730677478
       - TriggerTick: 1560
         DurationTicks: 120
         Action:
-          rid: 4242872761226362918
+          rid: 4242872800730677479
   references:
     version: 2
     RefIds:
-    - rid: 4242872761226362912
+    - rid: 4242872800730677473
       type: {class: SummonDecoyAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         AppearanceId: 12
@@ -62,36 +62,36 @@ MonoBehaviour:
         OffsetX: 0
         OffsetY: -1
         RotateWithCaster: 1
-    - rid: 4242872761226362913
+    - rid: 4242872800730677474
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872761226362914
+    - rid: 4242872800730677475
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Staff
+        FmodEventPath: Forest_Hat_Helm
         Volume: 0.65
         UseOwnerPerspective: 1
-    - rid: 4242872761226362915
+    - rid: 4242872800730677476
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Staff
+        FmodEventPath: Forest_Hat_Helm
         Volume: 0.9
         UseOwnerPerspective: 1
-    - rid: 4242872761226362916
+    - rid: 4242872800730677477
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Staff
+        FmodEventPath: Forest_Hat_Helm
         Volume: 0.72
         UseOwnerPerspective: 1
-    - rid: 4242872761226362917
+    - rid: 4242872800730677478
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Staff
+        FmodEventPath: Forest_Hat_Helm
         Volume: 0.85
         UseOwnerPerspective: 1
-    - rid: 4242872761226362918
+    - rid: 4242872800730677479
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Staff
+        FmodEventPath: Forest_Hat_Helm
         Volume: 0.78
         UseOwnerPerspective: 1

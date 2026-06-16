@@ -43,6 +43,8 @@ namespace RhythmRPG.Editor
                 BuildBowSkill(),
                 BuildDaggerAttack(),
                 BuildNoviceDagger(),
+                BuildStaffAttack(),
+                BuildNoviceStaff(),
                 BuildHatDecoySkill(),
                 BuildBeatOrbSkill(),
                 BuildMoveSkill(),
@@ -72,7 +74,7 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 240, cells)),
                 Track("Impact", Damage(240, 240, cells, 8)),
                 Track("Control", InputLock(0, 480)),
-                RhythmSound("Greatsword", Hit(120, 0.75f), Hit(360, 0.95f)));
+                RhythmSound("Forest_Sword_Normal", Hit(120, 0.38f), Hit(360, 0.38f)));
         }
 
         private static NewSkillSO BuildNoviceSword()
@@ -84,10 +86,12 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 480, cells)),
                 Track("Impact", Damage(480, 240, cells, 16)),
                 Track("Control", InputLock(0, 960)),
-                RhythmSound(
-                    "Greatsword",
-                    Hit(120, 0.7f), Hit(360),
-                    Hit(600, 0.8f), Hit(840, 0.9f)));
+                Track("Sound",
+                    Sound(0, SubBeatTicks, "Forest_Sword_Skill", 0.3f),
+                    Sound(240, SubBeatTicks, "Forest_Sword_Skill", 0.3f),
+                    Sound(360, SubBeatTicks, "Forest_Sword_Skill", 0.3f),
+                    Sound(600, SubBeatTicks, "Forest_Sword_Skill", 0.3f),
+                    Sound(840, SubBeatTicks, "Forest_Sword_Skill_Final", 0.55f)));
         }
 
         private static NewSkillSO BuildIronSwordAttack()
@@ -99,7 +103,7 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 360, cells)),
                 Track("Impact", Damage(360, 240, cells, 10)),
                 Track("Control", InputLock(0, 720)),
-                RhythmSound("Greatsword", Hit(120, 0.75f), Hit(360), Hit(600, 0.8f)));
+                RhythmSound("Forest_Sword_Normal", Hit(120, 0.38f), Hit(360, 0.38f), Hit(600, 0.38f)));
         }
 
         private static NewSkillSO BuildIronSwordSkill()
@@ -111,11 +115,13 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 720, cells)),
                 Track("Impact", Damage(720, 240, cells, 20, knockback: 1)),
                 Track("Control", InputLock(0, 1440)),
-                RhythmSound(
-                    "Greatsword",
-                    Hit(120, 0.7f), Hit(360, 0.95f),
-                    Hit(600, 0.8f), Hit(840),
-                    Hit(1080, 0.85f), Hit(1320, 0.95f)));
+                Track("Sound",
+                    Sound(120, SubBeatTicks, "Forest_Sword_Skill", 0.3f),
+                    Sound(360, SubBeatTicks, "Forest_Sword_Skill", 0.3f),
+                    Sound(600, SubBeatTicks, "Forest_Sword_Skill", 0.3f),
+                    Sound(840, SubBeatTicks, "Forest_Sword_Skill", 0.3f),
+                    Sound(1080, SubBeatTicks, "Forest_Sword_Skill", 0.3f),
+                    Sound(1320, SubBeatTicks, "Forest_Sword_Skill_Final", 0.55f)));
         }
 
         private static NewSkillSO BuildAxeAttack()
@@ -127,7 +133,7 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 480, cells)),
                 Track("Impact", Damage(480, 240, cells, 14)),
                 Track("Control", InputLock(0, 960)),
-                RhythmSound("Parry", Hit(240, 0.85f), Hit(600), Hit(840, 0.8f)));
+                RhythmSound("Forest_Axe_Normal", Hit(0, 0.65f), Hit(480, 0.65f)));
         }
 
         private static NewSkillSO BuildNoviceAxe()
@@ -139,11 +145,12 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 720, cells)),
                 Track("Impact", Damage(720, 240, cells, 26, knockback: 1)),
                 Track("Control", InputLock(0, 1440)),
-                RhythmSound(
-                    "Parry",
-                    Hit(240, 0.8f),
-                    Hit(600, 0.9f), Hit(840, 0.75f),
-                    Hit(1080), Hit(1320, 0.95f)));
+                Track("Sound",
+                    Sound(0, SubBeatTicks, "Forest_Axe_Skill", 0.4f),
+                    Sound(360, SubBeatTicks, "Forest_Axe_Skill", 0.4f),
+                    Sound(720, SubBeatTicks, "Forest_Axe_Skill", 0.4f),
+                    Sound(960, SubBeatTicks, "Forest_Axe_Skill", 0.4f),
+                    Sound(1080, SubBeatTicks, "Forest_Axe_Skill_Final", 0.78f)));
         }
 
         private static NewSkillSO BuildBowAttack()
@@ -151,14 +158,11 @@ namespace RhythmRPG.Editor
             var cells = Line(6);
             return Skill(
                 "BowAttack",
-                960,
-                Track("Telegraph", Warning(0, 480, cells)),
-                Track("Impact", Damage(480, 240, cells, 7)),
-                Track("Control", InputLock(0, 960)),
-                RhythmSound(
-                    "Bow",
-                    Hit(0, 0.65f), Hit(240, 0.85f), Hit(360),
-                    Hit(600, 0.9f), Hit(840, 0.8f)));
+                480,
+                Track("Telegraph", Warning(0, 240, cells)),
+                Track("Impact", Damage(240, 240, cells, 7)),
+                Track("Control", InputLock(0, 480)),
+                RhythmSound("Forest_Bow_Normal", Hit(0, 0.32f), Hit(240, 0.32f)));
         }
 
         private static NewSkillSO BuildBowSkill()
@@ -166,15 +170,14 @@ namespace RhythmRPG.Editor
             var cells = WideLine(5);
             return Skill(
                 "BowSkill",
-                1440,
-                Track("Telegraph", Warning(0, 720, cells)),
-                Track("Impact", Damage(720, 240, cells, 18)),
-                Track("Control", InputLock(0, 1440)),
+                960,
+                Track("Telegraph", Warning(0, 480, cells)),
+                Track("Impact", Damage(480, 240, cells, 18)),
+                Track("Control", InputLock(0, 960)),
                 RhythmSound(
-                    "Bow",
-                    Hit(0, 0.6f), Hit(240, 0.85f), Hit(360, 0.95f),
-                    Hit(600, 0.8f), Hit(840),
-                    Hit(960, 0.7f), Hit(1200, 0.9f), Hit(1320, 0.85f)));
+                    "Forest_Bow_Skill",
+                    Hit(0, 0.22f), Hit(120, 0.22f), Hit(360, 0.22f),
+                    Hit(480, 0.22f), Hit(720, 0.22f), Hit(840, 0.38f)));
         }
 
         private static NewSkillSO BuildDaggerAttack()
@@ -182,12 +185,12 @@ namespace RhythmRPG.Editor
             var cells = Cells((0, -1));
             return Skill(
                 "DaggerAttack",
-                600,
+                480,
                 Track("Approach", Move(120, 120, MoveType.Dash, 1, 0, -1)),
-                Track("Telegraph", Warning(120, 240, cells)),
-                Track("Impact", Damage(360, 120, cells, 6)),
-                Track("Control", InputLock(0, 540)),
-                RhythmSound("Dagger", Hit(0, 0.65f), Hit(120, 0.95f), Hit(360, 0.82f), Hit(480, 0.7f)));
+                Track("Telegraph", Warning(120, 120, cells)),
+                Track("Impact", Damage(240, 240, cells, 6)),
+                Track("Control", InputLock(0, 480)),
+                RhythmSound("Forest_Dagger_Normal", Hit(0, 0.24f), Hit(120, 0.24f), Hit(240, 0.24f)));
         }
 
         private static NewSkillSO BuildNoviceDagger()
@@ -201,9 +204,41 @@ namespace RhythmRPG.Editor
                 Track("Impact", Damage(480, 240, cells, 14, stun: 240)),
                 Track("Control", InputLock(0, 960)),
                 RhythmSound(
-                    "Dagger",
-                    Hit(0, 0.65f), Hit(120, 0.9f), Hit(360, 0.8f),
-                    Hit(600, 0.85f), Hit(840, 0.95f)));
+                    "Forest_Dagger_Skill",
+                    Hit(0, 0.2f), Hit(120, 0.2f), Hit(240, 0.2f),
+                    Hit(360, 0.2f), Hit(480, 0.2f), Hit(600, 0.2f), Hit(840, 0.35f)));
+        }
+
+        private static NewSkillSO BuildStaffAttack()
+        {
+            var cells = Cells((0, -1));
+            return Skill(
+                "StaffAttack",
+                480,
+                Track("Telegraph", Warning(0, 240, cells)),
+                Track("Impact", Damage(240, 240, cells, 9)),
+                Track("Control", InputLock(0, 480)),
+                RhythmSound("Forest_Staff_Normal", Hit(0, 0.25f), Hit(360, 0.25f)));
+        }
+
+        private static NewSkillSO BuildNoviceStaff()
+        {
+            var cells = Cells((-1, -1), (0, -1), (1, -1), (0, -2));
+            return Skill(
+                "NoviceStaff",
+                1440,
+                Track("Telegraph", Warning(0, 720, cells)),
+                Track("Impact", Damage(720, 240, cells, 22)),
+                Track("Control", InputLock(0, 1440)),
+                Track("Sound",
+                    Sound(0, SubBeatTicks, "Forest_Staff_Skill", 0.18f),
+                    Sound(240, SubBeatTicks, "Forest_Staff_Skill", 0.18f),
+                    Sound(480, SubBeatTicks, "Forest_Staff_Skill", 0.18f),
+                    Sound(600, SubBeatTicks, "Forest_Staff_Skill", 0.18f),
+                    Sound(840, SubBeatTicks, "Forest_Staff_Skill", 0.18f),
+                    Sound(1080, SubBeatTicks, "Forest_Staff_Skill", 0.18f),
+                    Sound(1200, SubBeatTicks, "Forest_Staff_Skill", 0.18f),
+                    Sound(1320, SubBeatTicks, "Forest_Staff_Skill_Final", 0.75f)));
         }
 
         private static NewSkillSO BuildHatDecoySkill()
@@ -214,7 +249,7 @@ namespace RhythmRPG.Editor
                 Track("Summon", SummonDecoy(240, 120, 0, -1, 42, 2400)),
                 Track("Control", InputLock(0, 480)),
                 RhythmSound(
-                    "Staff",
+                    "Forest_Hat_Helm",
                     Hit(120, 0.65f), Hit(360, 0.9f),
                     Hit(720, 0.72f), Hit(1080, 0.85f), Hit(1560, 0.78f)));
         }
@@ -227,7 +262,7 @@ namespace RhythmRPG.Editor
                 Track("Telegraph", Warning(0, 360, Diamond(1))),
                 Track("Impact", Damage(360, 120, Diamond(1), 8, stun: 120)),
                 Track("Control", InputLock(0, 600)),
-                RhythmSound("Parry", Hit(120, 0.72f), Hit(360), Hit(720, 0.82f)));
+                RhythmSound("Forest_Accessory_Ring", Hit(120, 0.72f), Hit(360), Hit(720, 0.82f)));
         }
 
         private static NewSkillSO BuildMoveSkill()
@@ -237,7 +272,7 @@ namespace RhythmRPG.Editor
                 960,
                 Track("Move", Move(240, 240, MoveType.Dash, 2, 0, -1)),
                 Track("Control", InputLock(0, 720)),
-                RhythmSound("Staff", Hit(120, 0.75f), Hit(360, 0.95f), Hit(600, 0.8f)));
+                RhythmSound("Forest_Shoes_Boots", Hit(120, 0.75f), Hit(360, 0.95f), Hit(600, 0.8f)));
         }
 
         private static NewSkillSO BuildBackstepSkill()
@@ -247,7 +282,7 @@ namespace RhythmRPG.Editor
                 960,
                 Track("Move", Move(240, 240, MoveType.Dash, 2, 0, 1)),
                 Track("Control", InputLock(0, 720)),
-                RhythmSound("Staff", Hit(0, 0.75f), Hit(240, 0.9f), Hit(600, 0.8f), Hit(840, 0.7f)));
+                RhythmSound("Forest_Shoes_Heavy", Hit(0, 0.75f), Hit(240, 0.9f), Hit(600, 0.8f), Hit(840, 0.7f)));
         }
 
         private static NewSkillSO Skill(string skillId, int durationTicks, params SkillTrack[] tracks)
@@ -558,6 +593,26 @@ namespace RhythmRPG.Editor
                     Description = "Fast close-range weapon with a short dash stab special.",
                     NormalAttackSkillId = "DaggerAttack",
                     SkillId = "NoviceDagger",
+                    AppearanceId = 11
+                },
+                new EquipmentRow
+                {
+                    Id = 100041,
+                    Name = "Novice Staff",
+                    Grade = "Common",
+                    EquipSlot = "Weapon",
+                    BaseAtk = 14,
+                    BaseDef = 0,
+                    BaseHp = 0,
+                    BaseStr = 0,
+                    BaseDex = 0,
+                    MaxEnhance = 10,
+                    SellPrice = 200,
+                    ModelPath = "Prefabs/Weapon/Staff001",
+                    IconPath = "Icons/W_Staff001",
+                    Description = "Rhythmic magic staff that channels bursts of arcane sparks and a cascade explosion.",
+                    NormalAttackSkillId = "StaffAttack",
+                    SkillId = "NoviceStaff",
                     AppearanceId = 11
                 },
                 new EquipmentRow

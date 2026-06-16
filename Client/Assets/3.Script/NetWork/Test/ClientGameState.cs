@@ -581,6 +581,24 @@ public class ClientGameState : MonoBehaviour
     public bool TryGetMyEntity(out ClientEntityInfo info)
         => _entities.TryGetValue(MyActorId, out info);
 
+    public void ApplyLocalPlayerAppearance(int appearanceId)
+        => ApplyPlayerAppearance(MyActorId, appearanceId);
+
+    public void ApplyPlayerAppearance(int actorId, int appearanceId)
+    {
+        if (actorId <= 0 || appearanceId < 0)
+            return;
+
+        if (!_entities.TryGetValue(actorId, out var info))
+            return;
+
+        if (info.EntityType != (int)EntityType.Player || info.AppearanceId == appearanceId)
+            return;
+
+        info.AppearanceId = appearanceId;
+        UpdateEntityState(info, true);
+    }
+
     public void ClearEntities()
     {
         Debug.Log($"[ClientGameState] ClearEntities. Count={_entities.Count}");

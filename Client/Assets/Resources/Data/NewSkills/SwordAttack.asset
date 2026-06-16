@@ -21,67 +21,67 @@ MonoBehaviour:
       - TriggerTick: 0
         DurationTicks: 240
         Action:
-          rid: 4242872761226362919
+          rid: 4242872800730677480
     - TrackName: Impact
       Events:
       - TriggerTick: 240
         DurationTicks: 240
         Action:
-          rid: 4242872761226362920
+          rid: 4242872800730677481
     - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 480
         Action:
-          rid: 4242872761226362921
+          rid: 4242872800730677482
     - TrackName: Sound
       Events:
       - TriggerTick: 120
         DurationTicks: 120
         Action:
-          rid: 4242872761226362922
+          rid: 4242872800730677483
       - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872761226362923
+          rid: 4242872800730677484
   references:
     version: 2
     RefIds:
-    - rid: 4242872761226362919
+    - rid: 4242872800730677480
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872761226362924
+          rid: 4242872800730677485
         ColorSteps:
         - DurationTicks: 240
           ColorHex: '#E8D36A'
-    - rid: 4242872761226362920
+    - rid: 4242872800730677481
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872761226362925
+          rid: 4242872800730677486
         Amount: 8
         HitPlayers: 0
         HitMonsters: 1
         StunDurationTicks: 0
         KnockbackDistance: 0
         RecalculateTargets: 0
-    - rid: 4242872761226362921
+    - rid: 4242872800730677482
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872761226362922
+    - rid: 4242872800730677483
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Greatsword
-        Volume: 0.75
+        FmodEventPath: Forest_Sword_Normal
+        Volume: 0.38
         UseOwnerPerspective: 1
-    - rid: 4242872761226362923
+    - rid: 4242872800730677484
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Greatsword
-        Volume: 0.95
+        FmodEventPath: Forest_Sword_Normal
+        Volume: 0.38
         UseOwnerPerspective: 1
-    - rid: 4242872761226362924
+    - rid: 4242872800730677485
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
@@ -89,7 +89,7 @@ MonoBehaviour:
         Cells:
         - X: 0
           Y: -1
-    - rid: 4242872761226362925
+    - rid: 4242872800730677486
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1

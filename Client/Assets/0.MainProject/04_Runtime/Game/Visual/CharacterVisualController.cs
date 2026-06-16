@@ -149,6 +149,7 @@ namespace RhythmRPG.Visual
 
         public void UpdateEquipments(List<int> equipmentIds)
         {
+            EnsureItemDataManager();
             string nextSignature = BuildEquipmentSignature(equipmentIds);
             if (string.Equals(_equipmentSignature, nextSignature, System.StringComparison.Ordinal))
                 return;
@@ -200,6 +201,15 @@ namespace RhythmRPG.Visual
             }
 
             RefreshVisuals();
+        }
+
+        private static void EnsureItemDataManager()
+        {
+            if (Client.Content.Item.ItemDataManager.Instance != null)
+                return;
+
+            var go = new GameObject("ItemDataManager");
+            go.AddComponent<Client.Content.Item.ItemDataManager>();
         }
 
         private void BindRootAuthoredEquipmentMotion(int id, GameObject instance)

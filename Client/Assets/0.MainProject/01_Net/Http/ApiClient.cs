@@ -88,7 +88,12 @@ public sealed class ApiClient
         if (!string.IsNullOrWhiteSpace(etag))
             req.SetRequestHeader("If-None-Match", etag);
 
-        await req.SendWebRequest();
+        if (!await WaitForRequestAsync(req, _timeoutSeconds))
+        {
+            var msg = $"요청 시간이 초과되었습니다. ({_timeoutSeconds}초)";
+            Debug.LogWarning($"[HTTP][TIMEOUT] {method} {url} -> {msg}");
+            return new ApiResult<T>(false, 0, msg, default);
+        }
 
         var code = (int)req.responseCode;
         var respText = req.downloadHandler?.text ?? "";
@@ -146,6 +151,25 @@ public sealed class ApiClient
     {
         if (VerboseLogging)
             Debug.Log(message);
+    }
+
+    static async Task<bool> WaitForRequestAsync(UnityWebRequest req, int timeoutSeconds)
+    {
+        var operation = req.SendWebRequest();
+        var deadline = Time.realtimeSinceStartup + Mathf.Max(3, timeoutSeconds);
+
+        while (!operation.isDone)
+        {
+            if (Time.realtimeSinceStartup >= deadline)
+            {
+                req.Abort();
+                return false;
+            }
+
+            await Task.Yield();
+        }
+
+        return true;
     }
 
 

@@ -551,20 +551,32 @@ namespace RhythmRPG.Game.Visual.SceneEffects
 
                     if (!_hasBaseMap && material.HasProperty(BaseMapId))
                     {
-                        _hasBaseMap = true;
-                        _baseMap = material.GetTexture(BaseMapId);
+                        var texture = material.GetTexture(BaseMapId);
+                        if (texture != null)
+                        {
+                            _hasBaseMap = true;
+                            _baseMap = texture;
+                        }
                     }
 
                     if (!_hasMainTex && material.HasProperty(MainTexId))
                     {
-                        _hasMainTex = true;
-                        _mainTex = material.GetTexture(MainTexId);
+                        var texture = material.GetTexture(MainTexId);
+                        if (texture != null)
+                        {
+                            _hasMainTex = true;
+                            _mainTex = texture;
+                        }
                     }
 
                     if (!_hasEmissionMap && material.HasProperty(EmissionMapId))
                     {
-                        _hasEmissionMap = true;
-                        _emissionMap = material.GetTexture(EmissionMapId);
+                        var texture = material.GetTexture(EmissionMapId);
+                        if (texture != null)
+                        {
+                            _hasEmissionMap = true;
+                            _emissionMap = texture;
+                        }
                     }
 
                     if (!_hasEmissionColor && material.HasProperty(EmissionColorId))
@@ -690,17 +702,17 @@ namespace RhythmRPG.Game.Visual.SceneEffects
 
             private void RestoreTintTextures()
             {
-                if (_hasBaseMap)
+                if (_hasBaseMap && _baseMap != null)
                 {
                     _block.SetTexture(BaseMapId, _baseMap);
                 }
 
-                if (_hasMainTex)
+                if (_hasMainTex && _mainTex != null)
                 {
                     _block.SetTexture(MainTexId, _mainTex);
                 }
 
-                if (_hasEmissionMap)
+                if (_hasEmissionMap && _emissionMap != null)
                 {
                     _block.SetTexture(EmissionMapId, _emissionMap);
                 }

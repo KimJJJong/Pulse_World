@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -63,16 +64,34 @@ public sealed class LoginScreen : MonoBehaviour
 
         var root = AppBootstrap.Instance.Root;
 
-        var r = await root.AuthApi.LoginPreferredAsync(root.SteamPlatform, root.Config);
-        view.SetBusy(false);
-
-        if (!r.Ok)
+        try
         {
-            view.SetError(r.Error);
-            return;
-        }
+            var r = await root.AuthApi.LoginPreferredAsync(root.SteamPlatform, root.Config);
 
-        root.AuthApi.ApplyLogin(r.Data);
-        SceneRouter.Load(SceneNames.WorldMap);
+            if (!r.Ok)
+            {
+                view.SetError(r.Error);
+                return;
+            }
+
+            if (r.Data == null)
+            {
+                view.SetError("로그인 응답이 비어 있습니다.");
+                return;
+            }
+
+            root.AuthApi.ApplyLogin(r.Data);
+            SceneRouter.Load(SceneNames.WorldMap);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogException(ex);
+            view.SetError($"로그인 중 오류가 발생했습니다.\n{ex.Message}");
+        }
+        finally
+        {
+            if (view != null)
+                view.SetBusy(false);
+        }
     }
 }

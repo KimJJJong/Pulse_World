@@ -17,6 +17,32 @@ internal sealed class EquipmentRhythmSoundProfile
         _volumes = volumes;
     }
 
+    public string GetEventPath(int index)
+    {
+        if (string.IsNullOrEmpty(EventPath))
+            return string.Empty;
+
+        if (EventPath.EndsWith("_Skill", StringComparison.OrdinalIgnoreCase))
+        {
+            if (EventPath.Contains("Sword"))
+            {
+                if (index == _ticks.Length - 1)
+                    return EventPath + "_Final";
+            }
+            else if (EventPath.Contains("Axe"))
+            {
+                if (index >= _ticks.Length - 2)
+                    return EventPath + "_Final";
+            }
+            else if (EventPath.Contains("Staff"))
+            {
+                if (index >= _ticks.Length - 2)
+                    return EventPath + "_Final";
+            }
+        }
+        return EventPath;
+    }
+
     public bool TryGetEvent(int index, int totalDurationTicks, out int triggerTick, out float volume)
     {
         triggerTick = 0;
@@ -44,47 +70,48 @@ internal sealed class EquipmentRhythmSoundProfile
         {
             case "swordattack":
             case "ironswordattack":
-                return WeaponNormal("Greatsword", new[] { 1, 0, 1, 0 });
+                return WeaponNormal("Forest_Sword_Normal", new[] { 1, 0, 1, 0 });
 
             case "novicesword":
             case "ironswordskill":
-                return WeaponSkill("Greatsword", new[] { 1, 0, 1, 1, 0, 1, 0, 1 });
+                return WeaponSkill("Forest_Sword_Skill", new[] { 1, 0, 1, 1, 0, 1, 0, 1 });
 
             case "axeattack":
-                return WeaponNormal("Parry", new[] { 1, 0, 0, 0, 1, 0, 0, 0 });
+                return WeaponNormal("Forest_Axe_Normal", new[] { 1, 0, 0, 0, 1, 0, 0, 0 });
 
             case "noviceaxe":
-                return WeaponSkill("Parry", new[] { 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0 });
+                return WeaponSkill("Forest_Axe_Skill", new[] { 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0 });
 
             case "bowattack":
-                return WeaponNormal("Bow", new[] { 1, 0, 1, 0 });
+                return WeaponNormal("Forest_Bow_Normal", new[] { 1, 0, 1, 0 });
 
             case "bowskill":
-                return WeaponSkill("Bow", new[] { 1, 1, 0, 1, 1, 0, 1, 1 });
+                return WeaponSkill("Forest_Bow_Skill", new[] { 1, 1, 0, 1, 1, 0, 1, 1 });
 
             case "daggerattack":
-                return WeaponNormal("Dagger", new[] { 1, 1, 1, 0 });
+                return WeaponNormal("Forest_Dagger_Normal", new[] { 1, 1, 1, 0 });
 
             case "novicedagger":
-                return WeaponSkill("Dagger", new[] { 1, 1, 1, 1, 1, 1, 0, 1 });
+                return WeaponSkill("Forest_Dagger_Skill", new[] { 1, 1, 1, 1, 1, 1, 0, 1 });
 
             case "staffattack":
-                return WeaponNormal("Staff", new[] { 1, 0, 0, 1 });
+                return WeaponNormal("Forest_Staff_Normal", new[] { 1, 0, 0, 1 });
 
+            case "novicestaff":
             case "staffskill":
-                return WeaponSkill("Staff", new[] { 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1 });
+                return WeaponSkill("Forest_Staff_Skill", new[] { 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1 });
 
             case "moveskill":
-                return new EquipmentRhythmSoundProfile("Staff", new[] { 120, 600 }, new[] { 0.75f, 0.8f });
+                return new EquipmentRhythmSoundProfile("Forest_Shoes_Boots", new[] { 120, 600 }, new[] { 0.75f, 0.8f });
 
             case "backstepskill":
-                return new EquipmentRhythmSoundProfile("Staff", new[] { 120 }, new[] { 0.8f });
+                return new EquipmentRhythmSoundProfile("Forest_Shoes_Heavy", new[] { 120, 600 }, new[] { 0.8f, 0.8f });
 
             case "hatdecoyskill":
-                return new EquipmentRhythmSoundProfile("Staff", new[] { 0, 1920 }, new[] { 0.85f, 0.78f });
+                return new EquipmentRhythmSoundProfile("Forest_Hat_Helm", new[] { 0, 1920 }, new[] { 0.85f, 0.78f });
 
             case "beatorbskill":
-                return new EquipmentRhythmSoundProfile("Parry", new[] { 720 }, new[] { 0.82f });
+                return new EquipmentRhythmSoundProfile("Forest_Accessory_Ring", new[] { 720 }, new[] { 0.82f });
 
             default:
                 return null;
