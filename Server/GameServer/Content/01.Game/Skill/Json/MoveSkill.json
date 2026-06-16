@@ -6,8 +6,8 @@
       "TrackName": "Move",
       "Events": [
         {
-          "TriggerTick": 240,
-          "DurationTicks": 240,
+          "TriggerTick": 0,
+          "DurationTicks": 480,
           "Action": {
             "Type": 3,
             "MoveType": 1,
