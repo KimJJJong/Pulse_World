@@ -14,6 +14,13 @@ public static class TownSceneUiBuilder
     private const string OverlayCanvasName = "Canvas_TownExpeditionOverlay";
     private const string ApiClientProviderPrefabPath = "Assets/0.MainProject/Resources/ApiClientProvider.prefab";
     private const string RoomUiRootPrefabPath = "Assets/0.MainProject/Resources/RoomUIRoot.prefab";
+    private const string ExpeditionOverlayPrefabPath = "Assets/0.MainProject/Prefabs/UI/Town/PF_Canvas_TownExpeditionOverlay.prefab";
+    private const string TutorialPreviewAssetPath = "Assets/Resources/UI/UI_TownMapPreview/MapPreview_Forest_Tutorial.png";
+    private const string FirstStepPreviewAssetPath = "Assets/Resources/UI/UI_TownMapPreview/MapPreview_Forest_FirstStep.png";
+    private const string GowunBatangFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/Gowun Batang.asset";
+    private const string GowunBatangFontFallbackPath = "Assets/TextMesh Pro/Resources/Gowun Batang.asset";
+    private const string NanumGothicFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/NanumGothic SDF.asset";
+    private const string NanumGothicFontFallbackPath = "Assets/TextMesh Pro/Resources/NanumGothic SDF.asset";
     private const int ExpeditionSortingOrder = 7000;
     private const int InventorySortingOrder = 8000;
 
@@ -47,6 +54,7 @@ public static class TownSceneUiBuilder
         public TMP_Text DescriptionText;
         public TMP_Text DifficultyText;
         public TMP_Text MetaText;
+        public RawImage PreviewImage;
         public Graphic SelectedFrame;
     }
 
@@ -66,6 +74,39 @@ public static class TownSceneUiBuilder
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
         Debug.Log("[TownSceneUiBuilder] Town lobby UI was rebuilt with Host/Client panels, map selection, invite code, and visible scene objects.");
+    }
+
+    [MenuItem("RhythmRPG/Editors/UI/Rebuild Town Expedition Overlay Only")]
+    public static void RebuildTownExpeditionOverlayOnly()
+    {
+        EnsureEventSystem();
+        EnsureTownExpeditionOverlay();
+        var scene = EditorSceneManager.GetActiveScene();
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[TownSceneUiBuilder] Town expedition overlay was rebuilt.");
+    }
+
+    [MenuItem("RhythmRPG/Editors/UI/Save Town Expedition Overlay Prefab From Active Scene")]
+    public static void SaveTownExpeditionOverlayPrefabFromActiveScene()
+    {
+        var source = GameObject.Find(OverlayCanvasName);
+        if (source == null)
+        {
+            Debug.LogError($"[TownSceneUiBuilder] Missing scene object: {OverlayCanvasName}");
+            return;
+        }
+
+        var saved = PrefabUtility.SaveAsPrefabAsset(source, ExpeditionOverlayPrefabPath);
+        if (saved == null)
+        {
+            Debug.LogError($"[TownSceneUiBuilder] Failed to save prefab: {ExpeditionOverlayPrefabPath}");
+            return;
+        }
+
+        AssetDatabase.SaveAssets();
+        Debug.Log($"[TownSceneUiBuilder] Saved {OverlayCanvasName} to {ExpeditionOverlayPrefabPath}.");
     }
 
     private static void EnsureTownExpeditionOverlay()
@@ -113,6 +154,7 @@ public static class TownSceneUiBuilder
             out var selectedMapDifficulty,
             out var selectedMapMeta,
             out var selectedMapGoal,
+            out var selectedMapPreview,
             out var inviteCode,
             out var copyInviteButton,
             out var mapInfoButton,
@@ -130,8 +172,8 @@ public static class TownSceneUiBuilder
             out var partyMinimizeLabel);
 
         Button inventoryButton = null;
-        var mapSelectWindow = BuildMapSelectWindow(root, out var mapSelectOptions, out var mapSelectConfirmButton, out var mapSelectPartyButton, out var mapSelectCloseButton);
-        var mapInfoWindow = BuildMapInfoWindow(root, out var mapInfoTitle, out var mapInfoDescription, out var mapInfoStats, out var mapInfoFeatureTexts, out var mapInfoCloseButton);
+        var mapSelectWindow = BuildMapSelectWindow(root, out var mapSelectOptions, out var mapSelectPreview, out var mapSelectDetailTitle, out var mapSelectStats, out var mapSelectConfirmButton, out var mapSelectPartyButton, out var mapSelectCloseButton);
+        var mapInfoWindow = BuildMapInfoWindow(root, out var mapInfoPreview, out var mapInfoTitle, out var mapInfoDescription, out var mapInfoStats, out var mapInfoFeatureTexts, out var mapInfoCloseButton);
 
         BindPanel(
             panel,
@@ -148,6 +190,7 @@ public static class TownSceneUiBuilder
             selectedMapMeta,
             selectedMapDifficulty,
             selectedMapGoal,
+            selectedMapPreview,
             inviteCode,
             clientHint,
             minimapCount,
@@ -156,6 +199,10 @@ public static class TownSceneUiBuilder
             clientControls,
             mapSelectWindow,
             mapInfoWindow,
+            mapSelectDetailTitle,
+            mapSelectStats,
+            mapSelectPreview,
+            mapInfoPreview,
             mapInfoTitle,
             mapInfoDescription,
             mapInfoStats,
@@ -315,6 +362,7 @@ public static class TownSceneUiBuilder
         out TMP_Text selectedMapDifficulty,
         out TMP_Text selectedMapMeta,
         out TMP_Text selectedMapGoal,
+        out RawImage selectedMapPreview,
         out TMP_Text inviteCode,
         out Button copyInviteButton,
         out Button mapInfoButton,
@@ -362,18 +410,18 @@ public static class TownSceneUiBuilder
         SetTopLeft(selectedFrame, 18f, 224f, 394f, 102f);
         CreateText(selectedFrame, "SelectedMapLabel", "선택된 맵", 14f, TextAlignmentOptions.MidlineLeft, TextMuted);
         SetTopLeft(selectedFrame.Find("SelectedMapLabel") as RectTransform, 12f, 4f, 120f, 24f);
-        var preview = CreateSolid(selectedFrame, "SelectedMapPreview", new Color32(12, 63, 74, 220));
-        SetTopLeft(preview.rectTransform, 12f, 34f, 132f, 54f);
-        AddBorder(preview.rectTransform, new Color32(70, 116, 126, 180), 1f);
+        selectedMapPreview = CreatePreviewImage(selectedFrame, "SelectedMapPreviewImage", TutorialPreviewAssetPath, new Vector2(132f, 54f));
+        SetTopLeft(selectedMapPreview.rectTransform, 12f, 34f, 132f, 54f);
+        AddBorder(selectedMapPreview.rectTransform, new Color32(70, 116, 126, 180), 1f);
 
         selectedMapTitle = CreateText(selectedFrame, "SelectedMapTitle", "포레스트 튜토리얼", 17f, TextAlignmentOptions.MidlineLeft, TextMain);
         SetTopLeft(selectedMapTitle.rectTransform, 156f, 30f, 172f, 24f);
-        selectedMapDifficulty = CreateText(selectedFrame, "SelectedMapDifficulty", "쉬움", 13f, TextAlignmentOptions.Center, Green);
+        selectedMapDifficulty = CreateText(selectedFrame, "SelectedMapDifficulty", "입문", 13f, TextAlignmentOptions.Center, Green);
         SetTopRight(selectedMapDifficulty.rectTransform, 12f, 32f, 46f, 24f);
         AddTextBackplate(selectedMapDifficulty.rectTransform, new Color32(24, 60, 30, 230));
-        selectedMapMeta = CreateText(selectedFrame, "SelectedMapMeta", "1~4명   5~10분", 14f, TextAlignmentOptions.MidlineLeft, TextMuted);
+        selectedMapMeta = CreateText(selectedFrame, "SelectedMapMeta", "1~4명   1~3분", 14f, TextAlignmentOptions.MidlineLeft, TextMuted);
         SetTopLeft(selectedMapMeta.rectTransform, 156f, 58f, 210f, 20f);
-        selectedMapGoal = CreateText(selectedFrame, "SelectedMapGoal", "모든 적 처치", 13f, TextAlignmentOptions.MidlineLeft, TextMuted);
+        selectedMapGoal = CreateText(selectedFrame, "SelectedMapGoal", "기본 조작 완료", 13f, TextAlignmentOptions.MidlineLeft, TextMuted);
         SetTopLeft(selectedMapGoal.rectTransform, 156f, 78f, 210f, 20f);
 
         gameSelectButton = CreateButton(partyPanelBody, "GameSelectButton", "맵 변경", 390f, 36f, true);
@@ -398,13 +446,12 @@ public static class TownSceneUiBuilder
         SetTopLeft(readySummary.rectTransform, 22f, 518f, 386f, 20f);
 
         hostControls = CreateRect(partyPanelBody, "HostControls");
-        SetBottomLeft(hostControls, 18f, 12f, 394f, 84f);
-        hostStartButton = CreateButton(hostControls, "HostStartGameButton", "시작", 238f, 54f, true);
-        SetBottomLeft(hostStartButton.GetComponent<RectTransform>(), 0f, 0f, 238f, 54f);
-        partyManageButton = CreateButton(hostControls, "PartyManageButton", "파티 관리", 144f, 54f);
-        SetBottomRight(partyManageButton.GetComponent<RectTransform>(), 0f, 0f, 144f, 54f);
-        hostCancelButton = CreateButton(hostControls, "HostCancelGameButton", "대기 취소", 120f, 24f);
-        SetBottomLeft(hostCancelButton.GetComponent<RectTransform>(), 0f, 58f, 120f, 24f);
+        SetBottomLeft(hostControls, 18f, 12f, 394f, 96f);
+        hostStartButton = CreateButton(hostControls, "HostStartGameButton", "시작", 394f, 54f, true);
+        SetBottomLeft(hostStartButton.GetComponent<RectTransform>(), 0f, 0f, 394f, 54f);
+        partyManageButton = null;
+        hostCancelButton = CreateButton(hostControls, "HostCancelGameButton", "대기 취소", 168f, 34f);
+        SetBottomLeft(hostCancelButton.GetComponent<RectTransform>(), 0f, 60f, 168f, 34f);
         hostCancelButton.gameObject.SetActive(false);
 
         clientControls = CreateRect(partyPanelBody, "ClientControls");
@@ -449,7 +496,15 @@ public static class TownSceneUiBuilder
         return button;
     }
 
-    private static RectTransform BuildMapSelectWindow(RectTransform root, out MapOptionBuildBinding[] options, out Button confirmButton, out Button partyButton, out Button closeButton)
+    private static RectTransform BuildMapSelectWindow(
+        RectTransform root,
+        out MapOptionBuildBinding[] options,
+        out RawImage previewImage,
+        out TMP_Text detailTitle,
+        out TMP_Text statsText,
+        out Button confirmButton,
+        out Button partyButton,
+        out Button closeButton)
     {
         var window = CreatePanel(root, "TownGameSelectWindow", new Color32(7, 13, 17, 244), true);
         SetCenter(window, -170f, 18f, 840f, 650f);
@@ -461,36 +516,34 @@ public static class TownSceneUiBuilder
 
         var preview = CreateSolid(window, "LargePreview", new Color32(8, 56, 68, 230));
         SetTopLeft(preview.rectTransform, 34f, 78f, 410f, 268f);
+        previewImage = CreatePreviewImage(preview.rectTransform, "MapSelectPreviewImage", TutorialPreviewAssetPath, new Vector2(410f, 268f));
+        Stretch(previewImage.rectTransform);
         AddBorder(preview.rectTransform, new Color32(88, 117, 126, 220), 2f);
-        CreateText(preview.rectTransform, "PreviewLabel", "FOREST", 40f, TextAlignmentOptions.Center, new Color32(46, 119, 132, 160));
-        Stretch(preview.rectTransform.Find("PreviewLabel") as RectTransform);
 
-        CreateText(window, "MapSelectDetailTitle", "포레스트 튜토리얼", 27f, TextAlignmentOptions.MidlineLeft, TextMain);
-        SetTopLeft(window.Find("MapSelectDetailTitle") as RectTransform, 474f, 82f, 320f, 44f);
-        CreateText(window, "MapSelectDetailDesc", "깊고 울창한 포레스트에서 기본 조작을 익힐 수 있는 입문 맵입니다.", 17f, TextAlignmentOptions.TopLeft, TextMuted);
-        SetTopLeft(window.Find("MapSelectDetailDesc") as RectTransform, 474f, 136f, 314f, 72f);
+        detailTitle = CreateText(window, "MapSelectDetailTitle", "포레스트 튜토리얼", 31f, TextAlignmentOptions.MidlineLeft, TextMain);
+        SetTopLeft(detailTitle.rectTransform, 474f, 92f, 320f, 48f);
 
         var statBox = CreatePanel(window, "MapSelectStats", new Color32(13, 24, 28, 225), true);
-        SetTopLeft(statBox, 474f, 224f, 318f, 122f);
-        CreateText(statBox, "Stats", "난이도           쉬움\n권장 플레이어     1~4명\n예상 플레이 시간  5~10분\n목표             모든 적 처치", 16f, TextAlignmentOptions.MidlineLeft, TextMuted);
-        SetStretch(statBox.Find("Stats") as RectTransform, 16f, 10f, 16f, 10f);
+        SetTopLeft(statBox, 474f, 168f, 318f, 158f);
+        statsText = CreateText(statBox, "MapSelectStatsText", "난이도  입문\n인원    1~4명\n시간    1~3분\n목표    기본 조작 완료", 20f, TextAlignmentOptions.MidlineLeft, TextMain);
+        statsText.lineSpacing = 6f;
+        SetStretch(statsText.rectTransform, 20f, 16f, 20f, 16f);
 
         var optionList = CreateRect(window, "MapOptionList");
-        SetTopLeft(optionList, 34f, 364f, 760f, 188f);
+        SetTopLeft(optionList, 34f, 360f, 760f, 216f);
         var builtOptions = new List<MapOptionBuildBinding>();
-        var titles = new[] { "포레스트 튜토리얼", "위스퍼링 포레스트", "크리스탈 카번", "테스트 던전" };
-        var desc = new[] { "입문 전투와 기본 조작", "숲길 전투와 균열 정리", "강한 적이 등장하는 동굴", "빠른 로컬 테스트" };
-        var diff = new[] { "쉬움", "보통", "어려움", "테스트" };
-        var meta = new[] { "1~4명  |  5~10분", "1~4명  |  10~15분", "2~4명  |  15~20분", "1~4명  |  5~10분" };
+        var titles = new[] { "포레스트 튜토리얼", "포레스트 첫걸음", "준비 중", "준비 중" };
+        var desc = new[] { "입문 전투와 기본 조작", "점령과 엘리트 교전", "아직 열리지 않은 맵", "아직 열리지 않은 맵" };
+        var diff = new[] { "입문", "쉬움", "잠김", "잠김" };
+        var meta = new[] { "1~4명   1~3분", "1~4명   3~5분", "사용 불가", "사용 불가" };
         for (var i = 0; i < 4; i++)
         {
-            builtOptions.Add(CreateMapOption(optionList, $"MapOption_{i:00}", titles[i], desc[i], diff[i], meta[i], 0f, i * 47f, 760f, 42f));
+            builtOptions.Add(CreateMapOption(optionList, $"MapOption_{i:00}", titles[i], desc[i], diff[i], meta[i], ResolvePreviewAssetPath(i), 0f, i * 53f, 760f, 46f));
         }
 
-        confirmButton = CreateButton(window, "MapSelectConfirmButton", "선택", 210f, 48f, true);
-        SetBottomLeft(confirmButton.GetComponent<RectTransform>(), 254f, 22f, 210f, 48f);
-        partyButton = CreateButton(window, "MapSelectPartyButton", "파티 관리", 210f, 48f);
-        SetBottomLeft(partyButton.GetComponent<RectTransform>(), 492f, 22f, 210f, 48f);
+        confirmButton = CreateButton(window, "MapSelectConfirmButton", "선택", 240f, 48f, true);
+        SetBottomCenter(confirmButton.GetComponent<RectTransform>(), 0f, 22f, 240f, 48f);
+        partyButton = null;
 
         options = builtOptions.ToArray();
         return window;
@@ -498,6 +551,7 @@ public static class TownSceneUiBuilder
 
     private static RectTransform BuildMapInfoWindow(
         RectTransform root,
+        out RawImage previewImage,
         out TMP_Text title,
         out TMP_Text description,
         out TMP_Text stats,
@@ -514,12 +568,14 @@ public static class TownSceneUiBuilder
 
         var preview = CreateSolid(window, "MapInfoPreview", new Color32(8, 56, 68, 230));
         SetTopLeft(preview.rectTransform, 34f, 78f, 386f, 250f);
+        previewImage = CreatePreviewImage(preview.rectTransform, "MapInfoPreviewImage", TutorialPreviewAssetPath, new Vector2(386f, 250f));
+        Stretch(previewImage.rectTransform);
         AddBorder(preview.rectTransform, new Color32(88, 117, 126, 220), 2f);
-        title = CreateText(window, "MapInfoTitle", "타운 포레스트", 28f, TextAlignmentOptions.MidlineLeft, TextMain);
+        title = CreateText(window, "MapInfoTitle", "포레스트 튜토리얼", 28f, TextAlignmentOptions.MidlineLeft, TextMain);
         SetTopLeft(title.rectTransform, 450f, 82f, 350f, 42f);
-        description = CreateText(window, "MapInfoDescription", "숲 속 작은 마을과 울창한 숲길이 이어진 지역입니다.", 17f, TextAlignmentOptions.TopLeft, TextMuted);
+        description = CreateText(window, "MapInfoDescription", "입장과 이동, 전투 흐름을 짧게 익히는 포레스트 입문 맵입니다.", 17f, TextAlignmentOptions.TopLeft, TextMuted);
         SetTopLeft(description.rectTransform, 450f, 136f, 350f, 82f);
-        stats = CreateText(window, "MapInfoStats", "난이도  쉬움\n권장 플레이어  1~4명\n예상 시간  5~10분\n목표  모든 적 처치", 16f, TextAlignmentOptions.TopLeft, TextMuted);
+        stats = CreateText(window, "MapInfoStats", "난이도  입문\n권장 플레이어  1~4명\n예상 시간  1~3분\n목표  기본 조작 완료", 16f, TextAlignmentOptions.TopLeft, TextMuted);
         SetTopLeft(stats.rectTransform, 450f, 234f, 350f, 106f);
 
         CreateText(window, "FeatureTitle", "지역 특징", 20f, TextAlignmentOptions.MidlineLeft, TextMain);
@@ -529,20 +585,18 @@ public static class TownSceneUiBuilder
         {
             var card = CreatePanel(window, $"MapInfoFeature_{i:00}", new Color32(13, 24, 28, 225), true);
             SetTopLeft(card, 34f + i * 266f, 404f, 244f, 116f);
-            var ft = CreateText(card, "FeatureText", "마을 입구\n여정의 시작점입니다.", 16f, TextAlignmentOptions.TopLeft, TextMuted);
+            var ft = CreateText(card, "FeatureText", i == 0 ? "포레스트 튜토리얼" : "", 16f, TextAlignmentOptions.TopLeft, TextMuted);
             SetStretch(ft.rectTransform, 16f, 14f, 16f, 14f);
+            if (i > 0)
+                card.gameObject.SetActive(false);
             builtFeatures.Add(ft);
         }
-
-        var closeWide = CreateButton(window, "MapInfoCloseWideButton", "닫기", 260f, 48f);
-        SetBottomCenter(closeWide.GetComponent<RectTransform>(), 0f, 22f, 260f, 48f);
-        closeWide.onClick.AddListener(() => window.gameObject.SetActive(false));
 
         features = builtFeatures.ToArray();
         return window;
     }
 
-    private static MapOptionBuildBinding CreateMapOption(RectTransform parent, string name, string title, string desc, string difficulty, string meta, float x, float y, float w, float h)
+    private static MapOptionBuildBinding CreateMapOption(RectTransform parent, string name, string title, string desc, string difficulty, string meta, string previewAssetPath, float x, float y, float w, float h)
     {
         var button = CreateButton(parent, name, "", w, h);
         SetTopLeft(button.GetComponent<RectTransform>(), x, y, w, h);
@@ -551,24 +605,23 @@ public static class TownSceneUiBuilder
         Stretch(selected.rectTransform);
         selected.gameObject.SetActive(false);
         selected.raycastTarget = false;
-        var titleText = CreateText(rect, "Title", title, 17f, TextAlignmentOptions.MidlineLeft, TextMain);
-        SetTopLeft(titleText.rectTransform, 86f, 4f, 210f, 20f);
-        var descText = CreateText(rect, "Description", desc, 13f, TextAlignmentOptions.MidlineLeft, TextMuted);
-        SetTopLeft(descText.rectTransform, 86f, 22f, 250f, 18f);
-        var difficultyText = CreateText(rect, "Difficulty", difficulty, 13f, TextAlignmentOptions.Center, Green);
-        SetTopLeft(difficultyText.rectTransform, 364f, 10f, 62f, 22f);
+        var titleText = CreateText(rect, "Title", title, 19f, TextAlignmentOptions.MidlineLeft, TextMain);
+        SetTopLeft(titleText.rectTransform, 96f, 7f, 280f, 30f);
+        var difficultyText = CreateText(rect, "Difficulty", difficulty, 14f, TextAlignmentOptions.Center, Green);
+        SetTopLeft(difficultyText.rectTransform, 388f, 11f, 66f, 24f);
         AddTextBackplate(difficultyText.rectTransform, new Color32(24, 60, 30, 230));
-        var metaText = CreateText(rect, "Meta", meta, 14f, TextAlignmentOptions.MidlineRight, TextMuted);
-        SetTopRight(metaText.rectTransform, 24f, 8f, 220f, 26f);
-        var thumb = CreateSolid(rect, "Thumb", new Color32(10, 66, 77, 220));
-        SetTopLeft(thumb.rectTransform, 10f, 7f, 64f, 28f);
+        var metaText = CreateText(rect, "Meta", meta, 16f, TextAlignmentOptions.MidlineRight, TextMain);
+        SetTopRight(metaText.rectTransform, 24f, 8f, 240f, 30f);
+        var thumb = CreatePreviewImage(rect, "Thumb", previewAssetPath, new Vector2(72f, 30f));
+        SetTopLeft(thumb.rectTransform, 10f, 8f, 72f, 30f);
         return new MapOptionBuildBinding
         {
             Button = button,
             TitleText = titleText,
-            DescriptionText = descText,
+            DescriptionText = null,
             DifficultyText = difficultyText,
             MetaText = metaText,
+            PreviewImage = thumb,
             SelectedFrame = selected
         };
     }
@@ -651,6 +704,7 @@ public static class TownSceneUiBuilder
         TMP_Text selectedMapMeta,
         TMP_Text selectedMapDifficulty,
         TMP_Text selectedMapGoal,
+        RawImage selectedMapPreview,
         TMP_Text inviteCode,
         TMP_Text clientHint,
         TMP_Text minimapCount,
@@ -659,6 +713,10 @@ public static class TownSceneUiBuilder
         RectTransform clientControls,
         RectTransform mapSelectWindow,
         RectTransform mapInfoWindow,
+        TMP_Text mapSelectDetailTitle,
+        TMP_Text mapSelectStats,
+        RawImage mapSelectPreview,
+        RawImage mapInfoPreview,
         TMP_Text mapInfoTitle,
         TMP_Text mapInfoDescription,
         TMP_Text mapInfoStats,
@@ -693,6 +751,7 @@ public static class TownSceneUiBuilder
         so.FindProperty("_selectedMapMetaText").objectReferenceValue = selectedMapMeta;
         so.FindProperty("_selectedMapDifficultyText").objectReferenceValue = selectedMapDifficulty;
         so.FindProperty("_selectedMapGoalText").objectReferenceValue = selectedMapGoal;
+        so.FindProperty("_selectedMapPreviewImage").objectReferenceValue = selectedMapPreview;
         so.FindProperty("_inviteCodeText").objectReferenceValue = inviteCode;
         so.FindProperty("_clientHintText").objectReferenceValue = clientHint;
         so.FindProperty("_minimapCountText").objectReferenceValue = minimapCount;
@@ -704,6 +763,10 @@ public static class TownSceneUiBuilder
         so.FindProperty("_clientControlsRoot").objectReferenceValue = clientControls;
         so.FindProperty("_gameSelectWindow").objectReferenceValue = mapSelectWindow;
         so.FindProperty("_mapInfoWindow").objectReferenceValue = mapInfoWindow;
+        so.FindProperty("_mapSelectDetailTitleText").objectReferenceValue = mapSelectDetailTitle;
+        so.FindProperty("_mapSelectStatsText").objectReferenceValue = mapSelectStats;
+        so.FindProperty("_mapSelectPreviewImage").objectReferenceValue = mapSelectPreview;
+        so.FindProperty("_mapInfoPreviewImage").objectReferenceValue = mapInfoPreview;
         so.FindProperty("_mapInfoTitleText").objectReferenceValue = mapInfoTitle;
         so.FindProperty("_mapInfoDescriptionText").objectReferenceValue = mapInfoDescription;
         so.FindProperty("_mapInfoStatsText").objectReferenceValue = mapInfoStats;
@@ -725,6 +788,26 @@ public static class TownSceneUiBuilder
         so.FindProperty("_hostCancelGameButton").objectReferenceValue = hostCancelButton;
         so.FindProperty("_partyManageButton").objectReferenceValue = partyManageButton;
         so.FindProperty("_pollIntervalMs").intValue = 500;
+        BindStringArray(so.FindProperty("_gameMapIds"), new[] { SceneNames.Game_Forest_Tutorial, SceneNames.Game_Forest_First_Step, "", "" });
+        BindStringArray(so.FindProperty("_gameTitles"), new[] { "포레스트 튜토리얼", "포레스트 첫걸음", "준비 중", "준비 중" });
+        BindStringArray(so.FindProperty("_gameDescriptions"), new[]
+        {
+            "입장과 이동, 전투 흐름을 짧게 익히는 포레스트 입문 맵입니다.",
+            "거점을 점령하며 엘리트 적의 강화 패턴을 확인하는 첫 실전 맵입니다.",
+            "아직 열리지 않은 맵입니다.",
+            "아직 열리지 않은 맵입니다."
+        });
+        BindStringArray(so.FindProperty("_gameDifficultyLabels"), new[] { "입문", "쉬움", "잠김", "잠김" });
+        BindStringArray(so.FindProperty("_gamePlayerLabels"), new[] { "1~4명", "1~4명", "-", "-" });
+        BindStringArray(so.FindProperty("_gameTimeLabels"), new[] { "1~3분", "3~5분", "준비 중", "준비 중" });
+        BindStringArray(so.FindProperty("_gameGoalLabels"), new[] { "기본 조작 완료", "거점 점령 / 엘리트 처치", "업데이트 예정", "업데이트 예정" });
+        BindStringArray(so.FindProperty("_gamePreviewResourcePaths"), new[]
+        {
+            "UI/UI_TownMapPreview/MapPreview_Forest_Tutorial",
+            "UI/UI_TownMapPreview/MapPreview_Forest_FirstStep",
+            "",
+            ""
+        });
         so.ApplyModifiedPropertiesWithoutUndo();
         EditorUtility.SetDirty(panel);
     }
@@ -734,6 +817,13 @@ public static class TownSceneUiBuilder
         property.arraySize = values?.Length ?? 0;
         for (var i = 0; i < property.arraySize; i++)
             property.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+    }
+
+    private static void BindStringArray(SerializedProperty property, string[] values)
+    {
+        property.arraySize = values?.Length ?? 0;
+        for (var i = 0; i < property.arraySize; i++)
+            property.GetArrayElementAtIndex(i).stringValue = values[i] ?? "";
     }
 
     private static void BindPartySlots(SerializedProperty property, PartySlotBuildBinding[] slots)
@@ -767,6 +857,7 @@ public static class TownSceneUiBuilder
             element.FindPropertyRelative("DescriptionText").objectReferenceValue = option.DescriptionText;
             element.FindPropertyRelative("DifficultyText").objectReferenceValue = option.DifficultyText;
             element.FindPropertyRelative("MetaText").objectReferenceValue = option.MetaText;
+            element.FindPropertyRelative("PreviewImage").objectReferenceValue = option.PreviewImage;
             element.FindPropertyRelative("SelectedFrame").objectReferenceValue = option.SelectedFrame;
         }
     }
@@ -910,6 +1001,21 @@ public static class TownSceneUiBuilder
         var image = go.GetComponent<Image>();
         image.color = color;
         image.raycastTarget = false;
+        return image;
+    }
+
+    private static RawImage CreatePreviewImage(Transform parent, string name, string assetPath, Vector2 boxSize)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+        go.transform.SetParent(parent, false);
+        var image = go.GetComponent<RawImage>();
+        var texture = string.IsNullOrWhiteSpace(assetPath)
+            ? null
+            : AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
+        image.texture = texture;
+        image.color = texture != null ? Color.white : new Color32(8, 56, 68, 230);
+        image.raycastTarget = false;
+        image.uvRect = BuildCoverUvRect(texture, boxSize);
         return image;
     }
 
@@ -1083,14 +1189,44 @@ public static class TownSceneUiBuilder
             SetLayerRecursive(child.gameObject, layer);
     }
 
+    private static string ResolvePreviewAssetPath(int index)
+    {
+        if (index == 0)
+            return TutorialPreviewAssetPath;
+        if (index == 1)
+            return FirstStepPreviewAssetPath;
+        return "";
+    }
+
+    private static Rect BuildCoverUvRect(Texture texture, Vector2 boxSize)
+    {
+        if (texture == null || texture.width <= 0 || texture.height <= 0 || boxSize.x <= 0f || boxSize.y <= 0f)
+            return new Rect(0f, 0f, 1f, 1f);
+
+        var textureAspect = texture.width / (float)texture.height;
+        var boxAspect = boxSize.x / boxSize.y;
+        if (textureAspect > boxAspect)
+        {
+            var width = boxAspect / textureAspect;
+            return new Rect((1f - width) * 0.5f, 0f, width, 1f);
+        }
+
+        var height = textureAspect / boxAspect;
+        return new Rect(0f, (1f - height) * 0.5f, 1f, height);
+    }
+
     private static TMP_FontAsset GetFont()
     {
         if (_font != null)
             return _font;
 
-        _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Resources/Fonts & Materials/NanumGothic SDF.asset");
+        _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(GowunBatangFontPath);
         if (_font == null)
-            _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Resources/NanumGothic SDF.asset");
+            _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(GowunBatangFontFallbackPath);
+        if (_font == null)
+            _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(NanumGothicFontPath);
+        if (_font == null)
+            _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(NanumGothicFontFallbackPath);
         return _font;
     }
 

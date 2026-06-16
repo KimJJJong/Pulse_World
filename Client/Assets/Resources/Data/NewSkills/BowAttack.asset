@@ -36,26 +36,22 @@ MonoBehaviour:
           rid: 4242872758231106529
     - TrackName: Sound
       Events:
-      - TriggerTick: 0
-        DurationTicks: 120
+      - TriggerTick: 240
+        DurationTicks: 480
         Action:
           rid: 4242872758231106530
-      - TriggerTick: 240
-        DurationTicks: 120
+    - TrackName: Track 4
+      Events:
+      - TriggerTick: 480
+        DurationTicks: 480
         Action:
-          rid: 4242872758231106531
-      - TriggerTick: 360
-        DurationTicks: 120
+          rid: 4242872781530464340
+    - TrackName: Track 5
+      Events:
+      - TriggerTick: 950
+        DurationTicks: 480
         Action:
-          rid: 4242872758231106532
-      - TriggerTick: 600
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231106533
-      - TriggerTick: 840
-        DurationTicks: 120
-        Action:
-          rid: 4242872758231106534
+          rid: 4242872781530464341
   references:
     version: 2
     RefIds:
@@ -86,30 +82,6 @@ MonoBehaviour:
       data:
         FmodEventPath: Bow
         Volume: 0.65
-        UseOwnerPerspective: 1
-    - rid: 4242872758231106531
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 0.85
-        UseOwnerPerspective: 1
-    - rid: 4242872758231106532
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 1
-        UseOwnerPerspective: 1
-    - rid: 4242872758231106533
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 0.9
-        UseOwnerPerspective: 1
-    - rid: 4242872758231106534
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Bow
-        Volume: 0.8
         UseOwnerPerspective: 1
     - rid: 4242872758231106535
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
@@ -147,3 +119,15 @@ MonoBehaviour:
           Y: -5
         - X: 0
           Y: -6
+    - rid: 4242872781530464340
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 4242872781530464341
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Bow
+        Volume: 1
+        UseOwnerPerspective: 1

@@ -34,6 +34,8 @@ public class RhythmInputController : MonoBehaviour
     [Header("Input")]
     [SerializeField] float inputCooldownMs = 0f;
     [SerializeField] public bool holdAutoInput = false;
+    [SerializeField, Range(0.1f, 1f)] float townHoldRepeatBeatRatio = 0.65f;
+    [SerializeField] float fallbackTownHoldRepeatDelayMs = 180f;
     [SerializeField] float rotateAngle = 90f;
     [SerializeField] public GameObject targetObject = null;
 
@@ -769,7 +771,8 @@ public class RhythmInputController : MonoBehaviour
         if (!_holdActive) return;
 
         long beat = Rhythm.GetCurrentBeatIndex();
-        if (_lastFiredBeatIndex == beat) return;
+        bool allowSameBeatRepeat = channel == InputChannel.Town && holdAutoInput;
+        if (!allowSameBeatRepeat && _lastFiredBeatIndex == beat) return;
         if (!CanFireHoldAutoInput(serverNowMs)) return;
 
         long t0 = Rhythm.GetBeatTimeMs(beat);
@@ -798,9 +801,13 @@ public class RhythmInputController : MonoBehaviour
     long ResolveHoldRepeatDelayMs()
     {
         if (Rhythm == null)
-            return 250;
+            return Math.Max(1, (long)Math.Round(fallbackTownHoldRepeatDelayMs));
 
-        return Math.Max(1, (long)Math.Round(Rhythm.GetBeatDurationMs()));
+        float ratio = channel == InputChannel.Town
+            ? Mathf.Clamp(townHoldRepeatBeatRatio, 0.1f, 1f)
+            : 1f;
+
+        return Math.Max(1, (long)Math.Round(Rhythm.GetBeatDurationMs() * ratio));
     }
 
     bool TrySendCalib(long serverNowMs)

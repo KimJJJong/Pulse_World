@@ -18,6 +18,11 @@ public sealed class BoardTileVisual : MonoBehaviour
     private MaterialPropertyBlock _baseBlock;
     private MaterialPropertyBlock _topBlock;
     private MaterialPropertyBlock _warningBlock;
+    private bool _desiredStatesInitialized;
+    private bool _baseRendererDesiredEnabled = true;
+    private bool _topRendererDesiredEnabled;
+    private bool _warningRendererDesiredEnabled;
+    private bool _culledByDistance;
 
     public Renderer BaseRenderer => ResolveBaseRenderer();
 
@@ -82,7 +87,8 @@ public sealed class BoardTileVisual : MonoBehaviour
             return;
 
         renderer.sharedMaterial = material;
-        renderer.enabled = true;
+        _topRendererDesiredEnabled = true;
+        SetRendererEnabled(renderer, true);
         SetTopColor(Color.white);
     }
 
@@ -108,6 +114,9 @@ public sealed class BoardTileVisual : MonoBehaviour
 
     public void HideTopSurface()
     {
+        InitializeDesiredRendererStates();
+        _topRendererDesiredEnabled = false;
+
         if (topRenderer != null)
             topRenderer.enabled = false;
     }
@@ -118,7 +127,8 @@ public sealed class BoardTileVisual : MonoBehaviour
         if (renderer == null)
             return;
 
-        renderer.enabled = true;
+        _warningRendererDesiredEnabled = true;
+        SetRendererEnabled(renderer, true);
         _warningBlock ??= new MaterialPropertyBlock();
         renderer.GetPropertyBlock(_warningBlock);
         _warningBlock.SetColor("_BaseColor", color);
@@ -128,8 +138,23 @@ public sealed class BoardTileVisual : MonoBehaviour
 
     public void HideWarningOverlay()
     {
+        InitializeDesiredRendererStates();
+        _warningRendererDesiredEnabled = false;
+
         if (warningRenderer != null)
             warningRenderer.enabled = false;
+    }
+
+    public void SetCullingVisible(bool visible)
+    {
+        InitializeDesiredRendererStates();
+
+        bool shouldCull = !visible;
+        if (_culledByDistance == shouldCull)
+            return;
+
+        _culledByDistance = shouldCull;
+        ApplyManagedRendererEnabledStates();
     }
 
     public void RefreshTopSurfaceLayout()
@@ -171,8 +196,21 @@ public sealed class BoardTileVisual : MonoBehaviour
         return topRenderer;
     }
 
+    private Renderer ResolveWarningRenderer()
+    {
+        if (warningRenderer != null)
+            return warningRenderer;
+
+        var existing = transform.Find(WarningSurfaceName);
+        if (existing != null)
+            warningRenderer = existing.GetComponent<Renderer>();
+
+        return warningRenderer;
+    }
+
     private Renderer EnsureTopSurface()
     {
+        InitializeDesiredRendererStates();
         ResolveTopRenderer();
 
         if (topRenderer == null)
@@ -191,6 +229,8 @@ public sealed class BoardTileVisual : MonoBehaviour
 
     private Renderer EnsureWarningSurface()
     {
+        InitializeDesiredRendererStates();
+
         if (warningRenderer == null)
         {
             var existing = transform.Find(WarningSurfaceName);
@@ -213,6 +253,36 @@ public sealed class BoardTileVisual : MonoBehaviour
         warningRenderer.receiveShadows = false;
         AlignSurface(warningRenderer, warningSurfaceOffset);
         return warningRenderer;
+    }
+
+    private void InitializeDesiredRendererStates()
+    {
+        if (_desiredStatesInitialized)
+            return;
+
+        Renderer baseTarget = ResolveBaseRenderer();
+        Renderer topTarget = ResolveTopRenderer();
+        Renderer warningTarget = ResolveWarningRenderer();
+
+        _baseRendererDesiredEnabled = baseTarget == null || baseTarget.enabled;
+        _topRendererDesiredEnabled = topTarget != null && topTarget.enabled;
+        _warningRendererDesiredEnabled = warningTarget != null && warningTarget.enabled;
+        _desiredStatesInitialized = true;
+    }
+
+    private void ApplyManagedRendererEnabledStates()
+    {
+        SetRendererEnabled(ResolveBaseRenderer(), _baseRendererDesiredEnabled);
+        SetRendererEnabled(ResolveTopRenderer(), _topRendererDesiredEnabled);
+        SetRendererEnabled(ResolveWarningRenderer(), _warningRendererDesiredEnabled);
+    }
+
+    private void SetRendererEnabled(Renderer rendererTarget, bool desiredEnabled)
+    {
+        if (rendererTarget == null)
+            return;
+
+        rendererTarget.enabled = desiredEnabled && !_culledByDistance;
     }
 
     private static void ConfigureTopSurfaceMesh(GameObject top)

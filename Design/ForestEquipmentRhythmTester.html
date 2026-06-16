@@ -1,0 +1,2268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚔️ Rhythm RPG: Forest Equipment & Rhythm Sync Tester</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0813;
+            --panel-bg: rgba(18, 14, 30, 0.75);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --glow-gold: #ff9e00;
+            --glow-purple: #9d4edd;
+            --glow-cyan: #00f0ff;
+            --glow-green: #39ff14;
+            --glow-pink: #ff007f;
+            --text-color: #f5f2fb;
+            --text-muted: #847697;
+            --active-bg: rgba(0, 240, 255, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(157, 78, 221, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(0, 240, 255, 0.12) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(255, 0, 127, 0.04) 0px, transparent 60%);
+            background-attachment: fixed;
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            overflow-y: auto;
+        }
+
+        header {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 20px 30px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .brand h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--glow-cyan), var(--glow-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 40px rgba(0, 240, 255, 0.2);
+        }
+
+        .brand p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: rgba(255, 0, 127, 0.08);
+            color: var(--glow-pink);
+            padding: 6px 14px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 0, 127, 0.2);
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.1);
+        }
+
+        .main-layout {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 950px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sequencer Panel */
+        .sequencer-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 12px 24px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--glow-cyan), #00b4cc);
+            border: none;
+            color: #0b0813;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #00f0ff, var(--glow-green));
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+        }
+
+        .btn-stop {
+            background: rgba(255, 0, 127, 0.1);
+            border: 1px solid rgba(255, 0, 127, 0.3);
+            color: var(--glow-pink);
+        }
+
+        .btn-stop:hover {
+            background: rgba(255, 0, 127, 0.2);
+            border-color: var(--glow-pink);
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.3);
+        }
+
+        .bpm-display {
+            font-family: 'Fira Code', monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            color: var(--glow-gold);
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* Sequencer Timeline Grid */
+        .timeline-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            border-radius: 14px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .timeline-header-row {
+            display: flex;
+            margin-left: 140px;
+            height: 20px;
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .measure-label {
+            flex: 1;
+            text-align: center;
+            border-left: 1px dashed rgba(255, 255, 255, 0.08);
+            position: relative;
+        }
+        .measure-label:first-child {
+            border-left: none;
+        }
+
+        .timeline-track {
+            display: flex;
+            align-items: center;
+            height: 38px;
+            position: relative;
+        }
+
+        .track-info {
+            width: 130px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .track-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .track-desc {
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .track-grid {
+            display: flex;
+            flex-grow: 1;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .grid-step {
+            flex: 1;
+            border-right: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            height: 100%;
+        }
+
+        /* Mark every beat (4 steps) */
+        .grid-step:nth-child(4n+1) {
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .grid-step:last-child {
+            border-right: none;
+        }
+
+        .seq-marker {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            transition: all 0.1s ease;
+        }
+
+        /* Marker Styles per Track */
+        .track-bgm-bass .seq-marker.active {
+            background: var(--glow-purple);
+            box-shadow: 0 0 8px var(--glow-purple);
+        }
+
+        .track-bgm-melody .seq-marker.active {
+            background: var(--glow-gold);
+            box-shadow: 0 0 8px var(--glow-gold);
+        }
+
+        .track-weapon-normal .seq-marker.active {
+            background: var(--glow-cyan);
+            box-shadow: 0 0 12px var(--glow-cyan);
+            transform: scale(1.3);
+        }
+
+        .track-weapon-skill .seq-marker.active {
+            background: #0077ff;
+            box-shadow: 0 0 12px #0077ff;
+            transform: scale(1.3);
+        }
+
+        .track-shoes .seq-marker.active {
+            background: var(--glow-green);
+            box-shadow: 0 0 12px var(--glow-green);
+            transform: scale(1.3);
+        }
+
+        .track-hat .seq-marker.active {
+            background: var(--glow-pink);
+            box-shadow: 0 0 12px var(--glow-pink);
+            transform: scale(1.3);
+        }
+
+        .track-accessory .seq-marker.active {
+            background: #e0aaff;
+            box-shadow: 0 0 12px #e0aaff;
+            transform: scale(1.3);
+        }
+
+        /* Playhead overlay */
+        .playback-head {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #fff;
+            box-shadow: 0 0 10px #fff;
+            left: 0;
+            z-index: 100;
+            pointer-events: none;
+            transition: left 0.03s linear;
+        }
+
+        /* Instrument Settings Section */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .equip-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: all 0.3s;
+        }
+
+        .equip-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .equip-card.active {
+            border-color: rgba(0, 240, 255, 0.3);
+            background: rgba(0, 240, 255, 0.01);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.05);
+        }
+
+        .card-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 8px;
+            margin-bottom: 4px;
+        }
+
+        .card-label-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-icon {
+            font-size: 20px;
+        }
+
+        .card-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .checkbox-container {
+            display: inline-block;
+            position: relative;
+            width: 38px;
+            height: 20px;
+        }
+
+        .checkbox-container input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider-switch {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #3d3d4d;
+            transition: 0.3s;
+            border-radius: 34px;
+        }
+
+        .slider-switch:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider-switch {
+            background-color: var(--glow-cyan);
+        }
+
+        input:checked + .slider-switch:before {
+            transform: translateX(18px);
+        }
+
+        .card-dropdowns {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .param-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .param-row label {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .select-input {
+            background: #181426;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 3px 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            width: 120px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .select-input:focus {
+            border-color: var(--glow-cyan);
+        }
+
+        /* Divider inside Weapon Card */
+        .sub-panel-title {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--glow-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sub-panel-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Sidebar info / visualizer */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .sidebar-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .sidebar-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--glow-pink);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 8px;
+        }
+
+        /* Vis Canvases */
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 90px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        /* Jam session pads */
+        .jam-pads {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .jam-pad {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .jam-pad:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: scale(1.02);
+        }
+
+        .jam-pad:active {
+            transform: scale(0.97);
+        }
+
+        .jam-pad.weapon-norm-pad { border-color: rgba(0, 240, 255, 0.2); }
+        .jam-pad.weapon-skill-pad { border-color: rgba(0, 119, 255, 0.2); }
+        .jam-pad.shoes-pad { border-color: rgba(57, 255, 20, 0.2); }
+        .jam-pad.hat-pad { border-color: rgba(255, 0, 127, 0.2); }
+        .jam-pad.acc-pad { border-color: rgba(224, 170, 255, 0.2); }
+
+        .jam-pad.weapon-norm-pad:active { background: rgba(0, 240, 255, 0.1); box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+        .jam-pad.weapon-skill-pad:active { background: rgba(0, 119, 255, 0.1); box-shadow: 0 0 15px rgba(0, 119, 255, 0.2); }
+        .jam-pad.shoes-pad:active { background: rgba(57, 255, 20, 0.1); box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); }
+        .jam-pad.hat-pad:active { background: rgba(255, 0, 127, 0.1); box-shadow: 0 0 15px rgba(255, 0, 127, 0.2); }
+        .jam-pad.acc-pad:active { background: rgba(224, 170, 255, 0.1); box-shadow: 0 0 15px rgba(224, 170, 255, 0.2); }
+
+        .jam-key {
+            font-family: 'Fira Code', monospace;
+            font-size: 9px;
+            background: rgba(0, 0, 0, 0.5);
+            color: var(--glow-gold);
+            padding: 1px 5px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 158, 0, 0.3);
+        }
+
+        .jam-label {
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* Timing Feedback */
+        .feedback-display {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px dashed rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .feedback-text {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 20px;
+            letter-spacing: 2px;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .feedback-text.perfect { color: var(--glow-cyan); text-shadow: 0 0 15px var(--glow-cyan); opacity: 1; transform: scale(1.1); }
+        .feedback-text.great { color: var(--glow-green); text-shadow: 0 0 15px var(--glow-green); opacity: 1; transform: scale(1.05); }
+        .feedback-text.good { color: var(--glow-gold); text-shadow: 0 0 15px var(--glow-gold); opacity: 1; transform: scale(1.0); }
+        .feedback-text.miss { color: var(--glow-pink); text-shadow: 0 0 15px var(--glow-pink); opacity: 1; transform: scale(0.95); }
+        .feedback-text.blocked { color: #555; text-shadow: none; opacity: 1; transform: scale(0.9); }
+
+        /* Logger */
+        .logger-container {
+            height: 120px;
+            overflow-y: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .log-line {
+            display: flex;
+            gap: 10px;
+        }
+
+        .log-time { color: var(--glow-gold); }
+        .log-msg { color: #d0c8dd; }
+        .log-msg.accent { color: var(--glow-cyan); }
+        .log-msg.timing { color: var(--glow-green); }
+        .log-msg.error { color: var(--glow-pink); }
+
+        /* Guide */
+        .guide-box {
+            font-size: 11px;
+            line-height: 1.5;
+            color: var(--text-muted);
+            padding: 12px;
+            background: rgba(255, 158, 0, 0.03);
+            border-radius: 12px;
+            border: 1px dashed rgba(255, 158, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <h1>⚔️ Forest Equipment & Rhythm Sync Tester</h1>
+            <p>Game_Forest_First_Step (SongKey: Game_NeoFunk_01 | 110 BPM) Beat Sync Playground</p>
+        </div>
+        <div class="status-badge" id="engineStatus">Ready (Click Play BGM)</div>
+    </header>
+
+    <div class="main-layout">
+        <!-- Left Panel: Sequencer and Cards -->
+        <div class="sequencer-panel">
+            <div class="controls-row">
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="btnPlay" onclick="togglePlay()">▶ Play BGM</button>
+                    <button class="btn btn-stop" onclick="resetPlay()">⏹ Stop</button>
+                </div>
+                <div class="bpm-display">BPM: 110 | 1 Beat = 480 Ticks</div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <span style="font-size:11px; color:var(--text-muted); font-weight:700;">BGM VOL</span>
+                    <input type="range" id="bgmVol" min="0" max="100" value="70" style="width:70px;" oninput="updateBgmVolume(this.value)">
+                </div>
+            </div>
+
+            <!-- Sequencer Grid -->
+            <div class="timeline-container" id="timelineContainer">
+                <div class="playback-head" id="playhead"></div>
+                
+                <!-- Measures Header -->
+                <div class="timeline-header-row">
+                    <div class="measure-label" data-m="1">Bar 1 (E Maj)</div>
+                    <div class="measure-label" data-m="2">Bar 2 (A Maj)</div>
+                    <div class="measure-label" data-m="3">Bar 3 (D Maj)</div>
+                    <div class="measure-label" data-m="4">Bar 4 (G Maj)</div>
+                </div>
+
+                <!-- BGM Track 1: Bass -->
+                <div class="timeline-track track-bgm-bass">
+                    <div class="track-info">
+                        <span class="track-name">🎸 NeoFunk Bass</span>
+                        <span class="track-desc">Slap Bass backing</span>
+                    </div>
+                    <div class="track-grid" id="grid_bgm_bass"></div>
+                </div>
+
+                <!-- BGM Track 2: Melody -->
+                <div class="timeline-track track-bgm-melody">
+                    <div class="track-info">
+                        <span class="track-name">🎹 NeoFunk Melody</span>
+                        <span class="track-desc">Clavinet chord stabs</span>
+                    </div>
+                    <div class="track-grid" id="grid_bgm_melody"></div>
+                </div>
+
+                <div style="border-top:1px solid rgba(255,255,255,0.05); margin:6px 0;"></div>
+
+                <!-- Weapon Normal Track -->
+                <div class="timeline-track track-weapon-normal">
+                    <div class="track-info">
+                        <span class="track-name" style="color:var(--glow-cyan)">⚔️ Weapon Normal</span>
+                        <span class="track-desc">Normal Attack patterns</span>
+                    </div>
+                    <div class="track-grid" id="grid_weapon_normal"></div>
+                </div>
+
+                <!-- Weapon Skill Track -->
+                <div class="timeline-track track-weapon-skill">
+                    <div class="track-info">
+                        <span class="track-name" style="color:#0077ff">🔥 Weapon Skill</span>
+                        <span class="track-desc">Special Skill patterns</span>
+                    </div>
+                    <div class="track-grid" id="grid_weapon_skill"></div>
+                </div>
+
+                <!-- Shoes Track -->
+                <div class="timeline-track track-shoes">
+                    <div class="track-info">
+                        <span class="track-name" style="color:var(--glow-green)">🥾 Shoes Action</span>
+                        <span class="track-desc">Step / Dash sounds</span>
+                    </div>
+                    <div class="track-grid" id="grid_shoes"></div>
+                </div>
+
+                <!-- Hat Track -->
+                <div class="timeline-track track-hat">
+                    <div class="track-info">
+                        <span class="track-name" style="color:var(--glow-pink)">👑 Hat Buff</span>
+                        <span class="track-desc">Helm/Circlet shield trigger</span>
+                    </div>
+                    <div class="track-grid" id="grid_hat"></div>
+                </div>
+
+                <!-- Accessory Track -->
+                <div class="timeline-track track-accessory">
+                    <div class="track-info">
+                        <span class="track-name" style="color:#e0aaff">💍 Accessory Aura</span>
+                        <span class="track-desc">Ring/Necklace spell resonance</span>
+                    </div>
+                    <div class="track-grid" id="grid_accessory"></div>
+                </div>
+            </div>
+
+            <!-- Equipment Customizer Grid -->
+            <div class="settings-grid">
+                <!-- Weapon Card -->
+                <div class="equip-card active" id="card_weapon">
+                    <div class="card-title-row">
+                        <div class="card-label-group">
+                            <span class="card-icon">⚔️</span>
+                            <span class="card-name" style="color:var(--glow-cyan)">WEAPON (상호배제 제어)</span>
+                        </div>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="chk_weapon" checked onchange="toggleCard('weapon')">
+                            <span class="slider-switch"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="card-dropdowns">
+                        <div class="param-row" style="margin-bottom: 4px;">
+                            <label>무기 종류</label>
+                            <select class="select-input" id="preset_weapon" onchange="changePreset('weapon', this.value)" style="width:130px; font-weight:700; color:var(--glow-cyan);">
+                                <option value="sword">Novice Sword (검)</option>
+                                <option value="axe">Novice Axe (도끼)</option>
+                                <option value="bow">Novice Bow (활)</option>
+                                <option value="dagger">Novice Dagger (단검)</option>
+                                <option value="staff">Novice Staff (마법 지팡이)</option>
+                            </select>
+                        </div>
+
+                        <!-- Normal Attack Config Panel -->
+                        <div class="sub-panel-title">
+                            <span>일반 공격 (1~2비트 리듬)</span>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="chk_weapon_normal" checked onchange="toggleSubWeapon('normal')">
+                                <span class="slider-switch"></span>
+                            </label>
+                        </div>
+                        <div class="sub-panel-box" id="panel_weapon_normal">
+                            <div class="param-row">
+                                <label>공격 주기</label>
+                                <select class="select-input" id="period_weapon_normal" onchange="changeSubPeriod('weapon', 'normal', this.value)">
+                                    <option value="480" selected>480 Ticks (1 Beat)</option>
+                                    <option value="960">960 Ticks (2 Beats)</option>
+                                </select>
+                            </div>
+                            <div class="param-row">
+                                <label>진입 박자</label>
+                                <select class="select-input" id="offset_weapon_normal" onchange="changeSubOffset('weapon', 'normal', this.value)">
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Skill Config Panel -->
+                        <div class="sub-panel-title">
+                            <span>무기 스킬 (2~3비트 리듬)</span>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="chk_weapon_skill" checked onchange="toggleSubWeapon('skill')">
+                                <span class="slider-switch"></span>
+                            </label>
+                        </div>
+                        <div class="sub-panel-box" id="panel_weapon_skill">
+                            <div class="param-row">
+                                <label>스킬 주기</label>
+                                <select class="select-input" id="period_weapon_skill" onchange="changeSubPeriod('weapon', 'skill', this.value)">
+                                    <option value="960">960 Ticks (2 Beats)</option>
+                                    <option value="1920" selected>1920 Ticks (4 Beats)</option>
+                                    <option value="3840">3840 Ticks (8 Beats)</option>
+                                </select>
+                            </div>
+                            <div class="param-row">
+                                <label>진입 박자</label>
+                                <select class="select-input" id="offset_weapon_skill" onchange="changeSubOffset('weapon', 'skill', this.value)">
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shoes Card -->
+                <div class="equip-card active" id="card_shoes">
+                    <div class="card-title-row">
+                        <div class="card-label-group">
+                            <span class="card-icon">🥾</span>
+                            <span class="card-name" style="color:var(--glow-green)">SHOES (신발)</span>
+                        </div>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="chk_shoes" checked onchange="toggleCard('shoes')">
+                            <span class="slider-switch"></span>
+                        </label>
+                    </div>
+                    <div class="card-dropdowns">
+                        <div class="param-row">
+                            <label>장비 프리셋</label>
+                            <select class="select-input" id="preset_shoes" onchange="changePreset('shoes', this.value)">
+                                <option value="boots">Speed Boots (속도의 장화)</option>
+                                <option value="heavy">Heavy Greaves (중장보병 장화)</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <label>발동 주기 (Period)</label>
+                            <select class="select-input" id="period_shoes" onchange="changePeriod('shoes', this.value)">
+                                <option value="240">240 Ticks (0.5 Beat)</option>
+                                <option value="480" selected>480 Ticks (1 Beat)</option>
+                                <option value="960">960 Ticks (2 Beats)</option>
+                                <option value="1920">1920 Ticks (4 Beats)</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <label>진입 박자 (Entry Offset)</label>
+                            <select class="select-input" id="offset_shoes" onchange="changeOffset('shoes', this.value)">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hat Card -->
+                <div class="equip-card active" id="card_hat">
+                    <div class="card-title-row">
+                        <div class="card-label-group">
+                            <span class="card-icon">👑</span>
+                            <span class="card-name" style="color:var(--glow-pink)">HAT / HELMET (모자)</span>
+                        </div>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="chk_hat" checked onchange="toggleCard('hat')">
+                            <span class="slider-switch"></span>
+                        </label>
+                    </div>
+                    <div class="card-dropdowns">
+                        <div class="param-row">
+                            <label>장비 프리셋</label>
+                            <select class="select-input" id="preset_hat" onchange="changePreset('hat', this.value)">
+                                <option value="helm">Leather Helmet (가죽 투구)</option>
+                                <option value="wizard">Wizard Hat (마법사의 모자)</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <label>발동 주기 (Period)</label>
+                            <select class="select-input" id="period_hat" onchange="changePeriod('hat', this.value)">
+                                <option value="480">480 Ticks (1 Beat)</option>
+                                <option value="960">960 Ticks (2 Beats)</option>
+                                <option value="1920" selected>1920 Ticks (4 Beats)</option>
+                                <option value="3840">3840 Ticks (8 Beats)</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <label>진입 박자 (Entry Offset)</label>
+                            <select class="select-input" id="offset_hat" onchange="changeOffset('hat', this.value)">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accessory Card -->
+                <div class="equip-card active" id="card_accessory">
+                    <div class="card-title-row">
+                        <div class="card-label-group">
+                            <span class="card-icon">💍</span>
+                            <span class="card-name" style="color:#e0aaff">ACCESSORY (장신구)</span>
+                        </div>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="chk_accessory" checked onchange="toggleCard('accessory')">
+                            <span class="slider-switch"></span>
+                        </label>
+                    </div>
+                    <div class="card-dropdowns">
+                        <div class="param-row">
+                            <label>장비 프리셋</label>
+                            <select class="select-input" id="preset_accessory" onchange="changePreset('accessory', this.value)">
+                                <option value="ring">Golden Ring (금반지)</option>
+                                <option value="necklace">Shadow Necklace (그림자 목걸이)</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <label>발동 주기 (Period)</label>
+                            <select class="select-input" id="period_accessory" onchange="changePeriod('accessory', this.value)">
+                                <option value="960">960 Ticks (2 Beats)</option>
+                                <option value="1920">1920 Ticks (4 Beats)</option>
+                                <option value="3840" selected>3840 Ticks (8 Beats)</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <label>진입 박자 (Entry Offset)</label>
+                            <select class="select-input" id="offset_accessory" onchange="changeOffset('accessory', this.value)">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Sidebar details, Jam session pad, and feedback -->
+        <div class="sidebar">
+            <!-- Canvas Visualizers -->
+            <div class="sidebar-panel">
+                <span class="sidebar-title">📊 Audio Analyzer</span>
+                <div class="canvas-container">
+                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: -5px;">Oscilloscope Waveform</span>
+                    <canvas id="canvasWave"></canvas>
+                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: -5px; margin-top: 5px;">FFT Frequency Spectrum</span>
+                    <canvas id="canvasFreq"></canvas>
+                </div>
+            </div>
+
+            <!-- Jam Session -->
+            <div class="sidebar-panel">
+                <span class="sidebar-title">⌨️ Quantized Jam Pad</span>
+                <p style="font-size:11px; color:var(--text-muted); line-height:1.4;">
+                    BGM 재생 중 건반을 누르거나 키보드 단축키를 입력해 보세요. 120-Tick 그리드에 자동 정렬되어 연주됩니다.
+                </p>
+                <div class="jam-pads">
+                    <div class="jam-pad weapon-norm-pad" onmousedown="manualTrigger('weapon_normal')">
+                        <span class="jam-key">1 Key / Q</span>
+                        <span class="jam-label" style="color:var(--glow-cyan)">Atk Normal</span>
+                    </div>
+                    <div class="jam-pad weapon-skill-pad" onmousedown="manualTrigger('weapon_skill')">
+                        <span class="jam-key">5 Key / E</span>
+                        <span class="jam-label" style="color:#0077ff">Atk Skill</span>
+                    </div>
+                    <div class="jam-pad shoes-pad" onmousedown="manualTrigger('shoes')">
+                        <span class="jam-key">2 Key / W</span>
+                        <span class="jam-label" style="color:var(--glow-green)">Shoes Step</span>
+                    </div>
+                    <div class="jam-pad hat-pad" onmousedown="manualTrigger('hat')">
+                        <span class="jam-key">3 Key / R</span>
+                        <span class="jam-label" style="color:var(--glow-pink)">Helmet Buff</span>
+                    </div>
+                    <div class="jam-pad acc-pad" onmousedown="manualTrigger('accessory')">
+                        <span class="jam-key">4 Key / T</span>
+                        <span class="jam-label" style="color:#e0aaff">Ring Chime</span>
+                    </div>
+                </div>
+
+                <div class="feedback-display">
+                    <span class="feedback-text" id="timingFeedback">PERFECT!</span>
+                </div>
+            </div>
+
+            <!-- Console Log -->
+            <div class="sidebar-panel">
+                <span class="sidebar-title">📜 Console Log</span>
+                <div class="logger-container" id="logBox">
+                    <!-- Logs filled dynamically -->
+                </div>
+                
+                <div class="guide-box">
+                    💡 **상호배제 제어**: 스킬(Skill)이 작동 중인 동안에는 일반 공격(Normal Attack)이 완전히 차단(Mute)되어 동시에 발동하지 못하도록 보호합니다.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BPM = 110;
+        const TICKS_PER_BEAT = 480;
+        const GRID_TICK = 120; // Quantization grid size (16th note)
+        const STEPS_PER_MEASURE = 16;
+        const MEASURES = 4;
+        const TOTAL_STEPS = STEPS_PER_MEASURE * MEASURES; // 64 Steps total
+
+        // BGM Score data from Game_NeoFunk_01.json
+        const progression = [
+            { chord: "E Maj", baseNote: "E2", pitchOffset: 4 },
+            { chord: "A Maj", baseNote: "A1", pitchOffset: 9 },
+            { chord: "D Maj", baseNote: "D2", pitchOffset: 2 },
+            { chord: "G Maj", baseNote: "G1", pitchOffset: 7 }
+        ];
+
+        // BGM Patterns
+        const bgmBassPattern = [
+            1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0,
+            1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0,
+            1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0,
+            1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0
+        ];
+
+        const bgmMelodyPattern = [
+            0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0,
+            0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0,
+            0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0,
+            0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1
+        ];
+
+        // 120-tick rhythmic sound patterns for each weapon class
+        const weaponPatterns = {
+            sword: {
+                normal: { name: "Slash Sweep", pattern: [1, 0, 1, 0] }, // 1 Beat (4 steps)
+                skill:  { name: "Tempest Dance", pattern: [1, 0, 1, 1, 0, 1, 0, 1] } // 2 Beats (8 steps)
+            },
+            axe: {
+                normal: { name: "Heavy Swing", pattern: [1, 0, 0, 0, 1, 0, 0, 0] }, // 2 Beats (8 steps)
+                skill:  { name: "Earth Shatter", pattern: [1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0] } // 3 Beats (12 steps)
+            },
+            bow: {
+                normal: { name: "Quick Draw", pattern: [1, 0, 1, 0] }, // 1 Beat (4 steps)
+                skill:  { name: "Arrow Rain", pattern: [1, 1, 0, 1, 1, 0, 1, 1] } // 2 Beats (8 steps)
+            },
+            dagger: {
+                normal: { name: "Double Stash", pattern: [1, 1, 1, 0] }, // 1 Beat (4 steps)
+                skill:  { name: "Shadow Pierce", pattern: [1, 1, 1, 1, 1, 1, 0, 1] } // 2 Beats (8 steps)
+            },
+            staff: {
+                normal: { name: "Mana Spark", pattern: [1, 0, 0, 1] }, // 1 Beat (4 steps)
+                skill:  { name: "Nova Cascade", pattern: [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1] } // 3 Beats (12 steps)
+            }
+        };
+
+        // Equipment configurations
+        const equipConfig = {
+            weapon: { 
+                active: true, 
+                preset: "sword", 
+                normal: { active: true, period: 480, offset: 0 },
+                skill: { active: true, period: 1920, offset: 960 }
+            },
+            shoes: { active: true, preset: "boots", period: 480, offset: 120 },
+            hat: { active: true, preset: "helm", period: 1920, offset: 0 },
+            accessory: { active: true, preset: "ring", period: 3840, offset: 720 }
+        };
+
+        // Weapon Execution State Tracker (Mutual Exclusion)
+        let activeWeaponAction = null; // 'normal' | 'skill' | null
+        let weaponRemainingSteps = 0;
+        let weaponCurrentPatternIdx = 0;
+
+        // UI Initialization
+        function initUi() {
+            populateOffsetSelector('weapon_normal', equipConfig.weapon.normal.offset);
+            populateOffsetSelector('weapon_skill', equipConfig.weapon.skill.offset);
+
+            const slots = ["shoes", "hat", "accessory"];
+            slots.forEach(slot => {
+                populateOffsetSelector(slot, equipConfig[slot].offset);
+                toggleCardVisual(slot, equipConfig[slot].active);
+            });
+
+            toggleCardVisual('weapon', equipConfig.weapon.active);
+            document.getElementById('chk_weapon_normal').checked = equipConfig.weapon.normal.active;
+            document.getElementById('chk_weapon_skill').checked = equipConfig.weapon.skill.active;
+            toggleSubWeaponVisual('normal', equipConfig.weapon.normal.active);
+            toggleSubWeaponVisual('skill', equipConfig.weapon.skill.active);
+
+            buildTimelineGrids();
+            updateGridMarkers();
+        }
+
+        function populateOffsetSelector(id, defaultVal) {
+            const select = document.getElementById(`offset_${id}`);
+            if (!select) return;
+            select.innerHTML = '';
+            
+            for (let tick = 0; tick < 1920; tick += 120) {
+                const opt = document.createElement('option');
+                opt.value = tick;
+                opt.textContent = `${tick} Ticks (B ${(tick/480).toFixed(1)})`;
+                if (tick === defaultVal) opt.selected = true;
+                select.appendChild(opt);
+            }
+        }
+
+        function buildTimelineGrids() {
+            const tracks = ["bgm_bass", "bgm_melody", "weapon_normal", "weapon_skill", "shoes", "hat", "accessory"];
+            tracks.forEach(track => {
+                const grid = document.getElementById(`grid_${track}`);
+                if (!grid) return;
+                grid.innerHTML = '';
+                for (let i = 0; i < TOTAL_STEPS; i++) {
+                    const step = document.createElement('div');
+                    step.className = 'grid-step';
+                    
+                    const marker = document.createElement('div');
+                    marker.className = 'seq-marker';
+                    marker.id = `marker_${track}_${i}`;
+
+                    if (track === "bgm_bass" && bgmBassPattern[i]) marker.classList.add('active');
+                    if (track === "bgm_melody" && bgmMelodyPattern[i]) marker.classList.add('active');
+
+                    step.appendChild(marker);
+                    grid.appendChild(step);
+                }
+            });
+        }
+
+        function updateGridMarkers() {
+            const wActive = equipConfig.weapon.active;
+            
+            // Weapon Normal Grid
+            for (let i = 0; i < TOTAL_STEPS; i++) {
+                const marker = document.getElementById(`marker_weapon_normal_${i}`);
+                if (!marker) continue;
+                marker.classList.remove('active');
+                if (wActive && equipConfig.weapon.normal.active) {
+                    const stepTick = i * GRID_TICK;
+                    const offset = equipConfig.weapon.normal.offset;
+                    const period = equipConfig.weapon.normal.period;
+                    if (stepTick >= offset && (stepTick - offset) % period === 0) {
+                        marker.classList.add('active');
+                    }
+                }
+            }
+
+            // Weapon Skill Grid
+            for (let i = 0; i < TOTAL_STEPS; i++) {
+                const marker = document.getElementById(`marker_weapon_skill_${i}`);
+                if (!marker) continue;
+                marker.classList.remove('active');
+                if (wActive && equipConfig.weapon.skill.active) {
+                    const stepTick = i * GRID_TICK;
+                    const offset = equipConfig.weapon.skill.offset;
+                    const period = equipConfig.weapon.skill.period;
+                    if (stepTick >= offset && (stepTick - offset) % period === 0) {
+                        marker.classList.add('active');
+                    }
+                }
+            }
+
+            const slots = ["shoes", "hat", "accessory"];
+            slots.forEach(slot => {
+                const active = equipConfig[slot].active;
+                const period = equipConfig[slot].period;
+                const offset = equipConfig[slot].offset;
+
+                for (let i = 0; i < TOTAL_STEPS; i++) {
+                    const marker = document.getElementById(`marker_${slot}_${i}`);
+                    if (!marker) continue;
+                    marker.classList.remove('active');
+
+                    if (!active) continue;
+
+                    const stepTick = i * GRID_TICK;
+                    if (stepTick >= offset && (stepTick - offset) % period === 0) {
+                        marker.classList.add('active');
+                    }
+                }
+            });
+        }
+
+        // UI trigger handlers
+        function toggleCard(slot) {
+            const chk = document.getElementById(`chk_${slot}`);
+            equipConfig[slot].active = chk.checked;
+            toggleCardVisual(slot, chk.checked);
+            updateGridMarkers();
+            log(`Slot [${slot.toUpperCase()}] status changed to ${chk.checked ? 'ENABLED' : 'DISABLED'}`);
+        }
+
+        function toggleSubWeapon(mode) {
+            const chk = document.getElementById(`chk_weapon_${mode}`);
+            equipConfig.weapon[mode].active = chk.checked;
+            toggleSubWeaponVisual(mode, chk.checked);
+            updateGridMarkers();
+            log(`Weapon [${mode.toUpperCase()}] action changed to ${chk.checked ? 'ENABLED' : 'DISABLED'}`);
+        }
+
+        function toggleSubWeaponVisual(mode, active) {
+            const pnl = document.getElementById(`panel_weapon_${mode}`);
+            if (active) {
+                pnl.style.opacity = '1.0';
+                pnl.style.pointerEvents = 'auto';
+            } else {
+                pnl.style.opacity = '0.4';
+                pnl.style.pointerEvents = 'none';
+            }
+        }
+
+        function toggleCardVisual(slot, active) {
+            const card = document.getElementById(`card_${slot}`);
+            if (active) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        }
+
+        function changePreset(slot, val) {
+            equipConfig[slot].preset = val;
+            
+            // Cancel current weapon actions on change to prevent invalid state
+            activeWeaponAction = null;
+            weaponRemainingSteps = 0;
+            
+            log(`Preset for [${slot.toUpperCase()}] changed to: ${val.toUpperCase()}`);
+        }
+
+        function changePeriod(slot, val) {
+            equipConfig[slot].period = parseInt(val);
+            updateGridMarkers();
+            log(`Interval for [${slot.toUpperCase()}] set to: ${val} Ticks`);
+        }
+
+        function changeOffset(slot, val) {
+            equipConfig[slot].offset = parseInt(val);
+            updateGridMarkers();
+            log(`Entry Offset for [${slot.toUpperCase()}] set to: ${val} Ticks`);
+        }
+
+        function changeSubPeriod(slot, mode, val) {
+            equipConfig[slot][mode].period = parseInt(val);
+            updateGridMarkers();
+            log(`Weapon [${mode.toUpperCase()}] Attack interval set to: ${val} Ticks`);
+        }
+
+        function changeSubOffset(slot, mode, val) {
+            equipConfig[slot][mode].offset = parseInt(val);
+            updateGridMarkers();
+            log(`Weapon [${mode.toUpperCase()}] Entry offset set to: ${val} Ticks`);
+        }
+
+        // Note frequencies parsing utility
+        function noteToFreq(noteStr) {
+            if (!noteStr) return 0;
+            const notes = { "C": -9, "C#": -8, "D": -7, "D#": -6, "E": -5, "F": -4, "F#": -3, "G": -2, "G#": -1, "A": 0, "A#": 1, "B": 2, "Bb": 1 };
+            let match = noteStr.match(/([A-Ga-g]#?b?)(\d)/);
+            if (match) {
+                let n = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                let oct = parseInt(match[2]);
+                if (notes[n] !== undefined) return 440 * Math.pow(2, (notes[n] + (oct - 4) * 12) / 12);
+            }
+            return 0;
+        }
+
+
+        // ==== AUDIO SYNTH ENGINE ====
+        let ac = null;
+        let masterGain = null;
+        let bgmGain = null;
+        let sfxGain = null;
+        let isPlaying = false;
+        let nextNoteTime = 0.0;
+        let currentStep = 0; // 0 to 63
+        let timerID = null;
+        let analyserWave = null, analyserFreq = null;
+        
+        let manualTriggerQueue = [];
+
+        function initAudio() {
+            if (!ac) {
+                ac = new (window.AudioContext || window.webkitAudioContext)();
+                
+                masterGain = ac.createGain();
+                masterGain.gain.value = 0.9;
+                masterGain.connect(ac.destination);
+
+                bgmGain = ac.createGain();
+                bgmGain.gain.value = document.getElementById('bgmVol').value / 100;
+                bgmGain.connect(masterGain);
+
+                sfxGain = ac.createGain();
+                sfxGain.gain.value = 0.85;
+                sfxGain.connect(masterGain);
+
+                analyserWave = ac.createAnalyser();
+                analyserWave.fftSize = 256;
+                masterGain.connect(analyserWave);
+
+                analyserFreq = ac.createAnalyser();
+                analyserFreq.fftSize = 512;
+                masterGain.connect(analyserFreq);
+
+                startVisualizerLoops();
+            }
+            if (ac.state === 'suspended') ac.resume();
+        }
+
+        function updateBgmVolume(val) {
+            if (bgmGain) {
+                bgmGain.gain.value = val / 100;
+            }
+        }
+
+
+        // ---- BGM Synthesizers ----
+
+        function synthBass(time, baseFreq, isPop) {
+            const osc = ac.createOscillator();
+            const oscHarmonic = ac.createOscillator();
+            const env = ac.createGain();
+
+            osc.connect(env);
+            oscHarmonic.connect(env);
+            env.connect(bgmGain);
+
+            osc.type = isPop ? 'triangle' : 'sine';
+            osc.frequency.setValueAtTime(baseFreq, time);
+            
+            oscHarmonic.type = 'sawtooth';
+            oscHarmonic.frequency.setValueAtTime(baseFreq * 2, time);
+            oscHarmonic.detune.setValueAtTime(12, time);
+
+            const filter = ac.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(isPop ? 1200 : 350, time);
+            
+            env.disconnect(bgmGain);
+            env.connect(filter);
+            filter.connect(bgmGain);
+
+            env.gain.setValueAtTime(0.001, time);
+            env.gain.linearRampToValueAtTime(isPop ? 0.32 : 0.42, time + 0.008); 
+            env.gain.exponentialRampToValueAtTime(0.01, time + (isPop ? 0.15 : 0.35));
+
+            osc.start(time); osc.stop(time + 0.4);
+            oscHarmonic.start(time); oscHarmonic.stop(time + 0.4);
+        }
+
+        function synthMelody(time, chordData) {
+            const baseFreq = noteToFreq(chordData.baseNote) * 2;
+            const intervals = chordData.chord === "E Maj" ? [0, 4, 7, 11] : 
+                              chordData.chord === "A Maj" ? [0, 3, 7, 10] : 
+                              chordData.chord === "D Maj" ? [0, 4, 7, 11] : [0, 3, 7, 10];
+
+            intervals.forEach((interval, idx) => {
+                const osc = ac.createOscillator();
+                const env = ac.createGain();
+                const filter = ac.createBiquadFilter();
+
+                osc.type = 'triangle';
+                osc.frequency.value = baseFreq * Math.pow(2, interval / 12);
+
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(600 + idx * 100, time);
+                filter.Q.value = 2.0;
+
+                env.gain.setValueAtTime(0.001, time);
+                env.gain.linearRampToValueAtTime(0.12, time + 0.005);
+                env.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
+
+                osc.connect(filter);
+                filter.connect(env);
+                env.connect(bgmGain);
+
+                osc.start(time); osc.stop(time + 0.2);
+            });
+        }
+
+        function synthDrum(time, type) {
+            if (type === 'kick') {
+                const osc = ac.createOscillator();
+                const env = ac.createGain();
+                osc.connect(env); env.connect(bgmGain);
+
+                osc.frequency.setValueAtTime(150, time);
+                osc.frequency.exponentialRampToValueAtTime(45, time + 0.08);
+
+                env.gain.setValueAtTime(0.001, time);
+                env.gain.linearRampToValueAtTime(0.8, time + 0.005);
+                env.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+                osc.start(time); osc.stop(time + 0.22);
+            } else if (type === 'snare') {
+                const bufferSize = ac.sampleRate * 0.12;
+                const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = ac.createBufferSource();
+                noise.buffer = buffer;
+
+                const env = ac.createGain();
+                env.gain.setValueAtTime(0.001, time);
+                env.gain.linearRampToValueAtTime(0.35, time + 0.006);
+                env.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+
+                const filter = ac.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 1000;
+
+                noise.connect(filter); filter.connect(env); env.connect(bgmGain);
+                noise.start(time);
+            } else if (type === 'hihat') {
+                const bufferSize = ac.sampleRate * 0.04;
+                const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = ac.createBufferSource();
+                noise.buffer = buffer;
+
+                const env = ac.createGain();
+                env.gain.setValueAtTime(0.001, time);
+                env.gain.linearRampToValueAtTime(0.18, time + 0.003);
+                env.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+
+                const filter = ac.createBiquadFilter();
+                filter.type = 'highpass';
+                filter.frequency.value = 7500;
+
+                noise.connect(filter); filter.connect(env); env.connect(bgmGain);
+                noise.start(time);
+            }
+        }
+
+        // ---- Weapon SFX Wrapper ----
+        function playWeaponSfx(time, preset, mode) {
+            // Reroute to sub-sfx step 0 for instant manual triggering
+            playWeaponSubSfx(time, preset, mode, 0);
+        }
+
+        // ---- Rhythmic Weapon Synthesizer (Progressive & Dynamic SFX) ----
+
+        function playWeaponSubSfx(time, preset, mode, index) {
+            // Dynamic sound routing depending on the active weapon sub-step index
+            if (preset === 'sword') {
+                if (mode === 'normal') {
+                    // 1-Beat Slash sequence: [1, 0, 1, 0]
+                    const pitch = index === 0 ? 550 : 420;
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(pitch, time);
+                    osc.frequency.exponentialRampToValueAtTime(120, time + 0.12);
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(0.38, time + 0.008);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.14);
+
+                    osc.connect(env); env.connect(sfxGain);
+                    osc.start(time); osc.stop(time + 0.16);
+                } else {
+                    // 2-Beat Tempest: [1, 0, 1, 1, 0, 1, 0, 1]
+                    // Progressive sweep: pitch goes up then drops heavily on final strike
+                    let pitch = 450 + (index * 60);
+                    if (index === 7) pitch = 220; // Final crash
+
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = index === 7 ? 'sawtooth' : 'triangle';
+                    osc.frequency.setValueAtTime(pitch, time);
+                    osc.frequency.exponentialRampToValueAtTime(80, time + 0.15);
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(index === 7 ? 0.55 : 0.3, time + 0.006);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
+
+                    if (index === 7) {
+                        const flt = ac.createBiquadFilter();
+                        flt.type = 'lowpass';
+                        flt.frequency.value = 900;
+                        osc.connect(flt); flt.connect(env);
+                    } else {
+                        osc.connect(env);
+                    }
+                    env.connect(sfxGain);
+                    osc.start(time); osc.stop(time + 0.22);
+                }
+            } 
+            else if (preset === 'axe') {
+                if (mode === 'normal') {
+                    // 2-Beat: [1, 0, 0, 0, 1, 0, 0, 0] (Slow heavy 2 swings)
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(index === 0 ? 250 : 200, time);
+                    osc.frequency.exponentialRampToValueAtTime(45, time + 0.25);
+
+                    const flt = ac.createBiquadFilter();
+                    flt.type = 'lowpass';
+                    flt.frequency.value = 500;
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(0.65, time + 0.015);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+
+                    osc.connect(flt); flt.connect(env); env.connect(sfxGain);
+                    osc.start(time); osc.stop(time + 0.35);
+                } else {
+                    // 3-Beat whirl stomps: [1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0]
+                    const isFinal = (index >= 8);
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(isFinal ? 150 : 260 - (index * 15), time);
+                    osc.frequency.exponentialRampToValueAtTime(35, time + (isFinal ? 0.4 : 0.2));
+
+                    const flt = ac.createBiquadFilter();
+                    flt.type = 'lowpass';
+                    flt.frequency.setValueAtTime(isFinal ? 300 : 700, time);
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(isFinal ? 0.78 : 0.4, time + 0.01);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + (isFinal ? 0.45 : 0.25));
+
+                    osc.connect(flt); flt.connect(env); env.connect(sfxGain);
+                    osc.start(time); osc.stop(time + 0.5);
+                }
+            } 
+            else if (preset === 'bow') {
+                if (mode === 'normal') {
+                    // 1-Beat: [1, 0, 1, 0]
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(index === 0 ? 800 : 960, time);
+                    osc.frequency.exponentialRampToValueAtTime(280, time + 0.08);
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(0.32, time + 0.004);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+
+                    osc.connect(env); env.connect(sfxGain);
+                    osc.start(time); osc.stop(time + 0.12);
+                } else {
+                    // 2-Beat: [1, 1, 0, 1, 1, 0, 1, 1]
+                    // Rapid multishot - final index builds up
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(900 + (index * 40), time);
+                    osc.frequency.exponentialRampToValueAtTime(350, time + 0.07);
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(index >= 6 ? 0.38 : 0.22, time + 0.004);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+
+                    osc.connect(env); env.connect(sfxGain);
+                    osc.start(time); osc.stop(time + 0.1);
+                }
+            } 
+            else if (preset === 'dagger') {
+                if (mode === 'normal') {
+                    // 1-Beat: [1, 1, 1, 0]
+                    const bufferSize = ac.sampleRate * 0.04;
+                    const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                    const noise = ac.createBufferSource();
+                    noise.buffer = buffer;
+
+                    const env = ac.createGain();
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(0.24, time + 0.003);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.035);
+
+                    const filter = ac.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.value = 3500 + (index * 600);
+
+                    noise.connect(filter); filter.connect(env); env.connect(sfxGain);
+                    noise.start(time);
+                } else {
+                    // 2-Beat: [1, 1, 1, 1, 1, 1, 0, 1] (Shadow strike flurry)
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(2000 - (index * 120), time);
+                    osc.frequency.exponentialRampToValueAtTime(900 - (index * 50), time + 0.05);
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(index === 7 ? 0.35 : 0.2, time + 0.003);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+
+                    osc.connect(env); env.connect(sfxGain);
+                    osc.start(time); osc.stop(time + 0.08);
+                }
+            } 
+            else if (preset === 'staff') {
+                if (mode === 'normal') {
+                    // 1-Beat: [1, 0, 0, 1]
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(index === 0 ? 350 : 650, time);
+                    osc.frequency.exponentialRampToValueAtTime(index === 0 ? 900 : 1300, time + 0.12);
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(0.25, time + 0.008);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.14);
+
+                    osc.connect(env); env.connect(sfxGain);
+                    osc.start(time); osc.stop(time + 0.18);
+                } else {
+                    // 3-Beat: [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1]
+                    // charging up and final mega-explosion on index 11
+                    if (index < 11) {
+                        const osc = ac.createOscillator();
+                        const env = ac.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(300 + (index * 80), time);
+                        osc.frequency.exponentialRampToValueAtTime(800 + (index * 50), time + 0.08);
+
+                        env.gain.setValueAtTime(0.001, time);
+                        env.gain.linearRampToValueAtTime(0.18, time + 0.005);
+                        env.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+
+                        osc.connect(env); env.connect(sfxGain);
+                        osc.start(time); osc.stop(time + 0.13);
+                    } else {
+                        // Giant Nova Explosion on step 11!
+                        const osc = ac.createOscillator();
+                        const env = ac.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(200, time);
+                        osc.frequency.linearRampToValueAtTime(40, time + 0.35);
+
+                        const bufferSize = ac.sampleRate * 0.45;
+                        const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+                        const data = buffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                        const noise = ac.createBufferSource();
+                        noise.buffer = buffer;
+
+                        const noiseEnv = ac.createGain();
+                        noiseEnv.gain.setValueAtTime(0.001, time);
+                        noiseEnv.gain.linearRampToValueAtTime(0.45, time + 0.02);
+                        noiseEnv.gain.exponentialRampToValueAtTime(0.001, time + 0.42);
+
+                        const filter = ac.createBiquadFilter();
+                        filter.type = 'lowpass';
+                        filter.frequency.setValueAtTime(280, time);
+
+                        env.gain.setValueAtTime(0.001, time);
+                        env.gain.linearRampToValueAtTime(0.75, time + 0.012);
+                        env.gain.exponentialRampToValueAtTime(0.001, time + 0.38);
+
+                        osc.connect(env); env.connect(sfxGain);
+                        noise.connect(filter); filter.connect(noiseEnv); noiseEnv.connect(sfxGain);
+                        
+                        osc.start(time); osc.stop(time + 0.42);
+                        noise.start(time);
+                    }
+                }
+            }
+        }
+
+        // Play armor/shoes/accessories
+        function playEquipmentSfx(time, type, preset) {
+            if (type === 'shoes') {
+                if (preset === 'boots') {
+                    const bufferSize = ac.sampleRate * 0.08;
+                    const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                    const noise = ac.createBufferSource();
+                    noise.buffer = buffer;
+
+                    const env = ac.createGain();
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(0.2, time + 0.01);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.07);
+
+                    const filter = ac.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(3000, time);
+                    filter.frequency.exponentialRampToValueAtTime(8000, time + 0.06);
+
+                    noise.connect(filter); filter.connect(env); env.connect(sfxGain);
+                    noise.start(time);
+                } else if (preset === 'heavy') {
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(100, time);
+                    osc.frequency.linearRampToValueAtTime(20, time + 0.15);
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(0.4, time + 0.01);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
+
+                    osc.connect(env); env.connect(sfxGain);
+                    osc.start(time); osc.stop(time + 0.2);
+                }
+            } 
+            else if (type === 'hat') {
+                if (preset === 'helm') {
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1200, time);
+                    
+                    const filter = ac.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.value = 1200;
+                    filter.Q.value = 8.0;
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(0.35, time + 0.005);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.4);
+
+                    osc.connect(filter); filter.connect(env); env.connect(sfxGain);
+                    osc.start(time); osc.stop(time + 0.5);
+                } else if (preset === 'wizard') {
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(200, time);
+                    osc.frequency.exponentialRampToValueAtTime(2000, time + 0.3);
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(0.2, time + 0.1);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+
+                    osc.connect(env); env.connect(sfxGain);
+                    osc.start(time); osc.stop(time + 0.4);
+                }
+            } 
+            else if (type === 'accessory') {
+                if (preset === 'ring') {
+                    const osc = ac.createOscillator();
+                    const env = ac.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(2500, time);
+
+                    env.gain.setValueAtTime(0.001, time);
+                    env.gain.linearRampToValueAtTime(0.25, time + 0.005);
+                    env.gain.exponentialRampToValueAtTime(0.001, time + 0.6);
+
+                    const delay = ac.createDelay();
+                    delay.delayTime.value = 0.08;
+                    const delayGain = ac.createGain();
+                    delayGain.gain.value = 0.3;
+
+                    osc.connect(env);
+                    env.connect(sfxGain);
+                    env.connect(delay);
+                    delay.connect(delayGain);
+                    delayGain.connect(sfxGain);
+
+                    osc.start(time); osc.stop(time + 0.7);
+                } else if (preset === 'necklace') {
+                    [440, 550, 660].forEach((freq, idx) => {
+                        const osc = ac.createOscillator();
+                        const env = ac.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq / 2, time);
+
+                        env.gain.setValueAtTime(0.001, time);
+                        env.gain.linearRampToValueAtTime(0.12, time + 0.1);
+                        env.gain.exponentialRampToValueAtTime(0.001, time + 0.6);
+
+                        osc.connect(env); env.connect(sfxGain);
+                        osc.start(time); osc.stop(time + 0.7);
+                    });
+                }
+            }
+        }
+
+
+        // ---- MAIN SEQUENCER LOOP ----
+
+        function scheduleStep() {
+            const barIdx = Math.floor(currentStep / 16);
+            const chordObj = progression[barIdx];
+            const stepTick = currentStep * GRID_TICK;
+
+            // 1. Play BGM Elements
+            if (bgmBassPattern[currentStep]) {
+                const baseFreq = noteToFreq(chordObj.baseNote);
+                const isPop = (currentStep % 4 === 2);
+                synthBass(nextNoteTime, baseFreq, isPop);
+            }
+            if (bgmMelodyPattern[currentStep]) {
+                synthMelody(nextNoteTime, chordObj);
+            }
+
+            // Drums Scaffolding
+            if (currentStep % 4 === 0) {
+                synthDrum(nextNoteTime, 'kick');
+            } else if (currentStep % 8 === 4) {
+                synthDrum(nextNoteTime, 'snare');
+            } else {
+                synthDrum(nextNoteTime, 'hihat');
+            }
+
+            // 2. Play Equipment Synchronized Sounds & Mutual Exclusion Logic
+            const wActive = equipConfig.weapon.active;
+            const wPreset = equipConfig.weapon.preset;
+
+            // Checked triggers
+            const normalTriggered = wActive && equipConfig.weapon.normal.active && 
+                                   (stepTick >= equipConfig.weapon.normal.offset && 
+                                   (stepTick - equipConfig.weapon.normal.offset) % equipConfig.weapon.normal.period === 0);
+
+            const skillTriggered = wActive && equipConfig.weapon.skill.active && 
+                                  (stepTick >= equipConfig.weapon.skill.offset && 
+                                  (stepTick - equipConfig.weapon.skill.offset) % equipConfig.weapon.skill.period === 0);
+
+            // A. Handle Trigger Priorities
+            if (skillTriggered) {
+                // Skills immediately override Normal attacks
+                activeWeaponAction = 'skill';
+                weaponRemainingSteps = weaponPatterns[wPreset].skill.pattern.length;
+                weaponCurrentPatternIdx = 0;
+                log(`[SKILL] Triggered "${weaponPatterns[wPreset].skill.name}" (${weaponPatterns[wPreset].skill.beats} Beats). Overrides normal attack.`);
+            } 
+            else if (normalTriggered) {
+                // Try triggering normal
+                if (activeWeaponAction === 'skill') {
+                    // Blocked! Skill is in progress
+                    log(`[BLOCKED] Normal Attack blocked by ongoing Skill casting!`, true);
+                    triggerUIFlash('weapon_normal', currentStep); // Red blink if blocked?
+                } else {
+                    activeWeaponAction = 'normal';
+                    weaponRemainingSteps = weaponPatterns[wPreset].normal.pattern.length;
+                    weaponCurrentPatternIdx = 0;
+                }
+            }
+
+            // B. Execute active weapon sequence step
+            if (activeWeaponAction !== null && weaponRemainingSteps > 0) {
+                const patInfo = weaponPatterns[wPreset][activeWeaponAction];
+                const triggerSound = patInfo.pattern[weaponCurrentPatternIdx];
+
+                if (triggerSound === 1) {
+                    playWeaponSubSfx(nextNoteTime, wPreset, activeWeaponAction, weaponCurrentPatternIdx);
+                    triggerUIFlash(`weapon_${activeWeaponAction}`, currentStep);
+                }
+
+                // Increment and countdown
+                weaponCurrentPatternIdx++;
+                weaponRemainingSteps--;
+
+                if (weaponRemainingSteps <= 0) {
+                    activeWeaponAction = null;
+                }
+            }
+
+            // Other slots (Shoes, Hat, Accessory)
+            const slots = ["shoes", "hat", "accessory"];
+            slots.forEach(slot => {
+                const active = equipConfig[slot].active;
+                const period = equipConfig[slot].period;
+                const offset = equipConfig[slot].offset;
+
+                if (active) {
+                    if (stepTick >= offset && (stepTick - offset) % period === 0) {
+                        playEquipmentSfx(nextNoteTime, slot, equipConfig[slot].preset);
+                        triggerUIFlash(slot, currentStep);
+                    }
+                }
+            });
+
+            // 3. Process Quantized Manual Jams (Enforces Mutual Exclusion)
+            if (manualTriggerQueue.length > 0) {
+                const matchedJam = manualTriggerQueue[0];
+                
+                if (matchedJam.slot === 'weapon_normal' && activeWeaponAction === 'skill') {
+                    // Block manual normal attack if skill casting
+                    manualTriggerQueue.shift();
+                    displayTimingFeedback(-1); // special block state
+                    log(`[BLOCKED] Manual Attack Q blocked by active Skill casting!`, true);
+                } else {
+                    manualTriggerQueue.shift();
+                    
+                    if (matchedJam.slot.startsWith('weapon_')) {
+                        const mode = matchedJam.slot.split('_')[1];
+                        // Trigger sequence immediately
+                        activeWeaponAction = mode;
+                        weaponRemainingSteps = weaponPatterns[wPreset][mode].pattern.length;
+                        weaponCurrentPatternIdx = 0;
+                        
+                        // Play first step immediately
+                        if (weaponPatterns[wPreset][mode].pattern[0] === 1) {
+                            playWeaponSubSfx(nextNoteTime, wPreset, mode, 0);
+                        }
+                        triggerUIFlash(matchedJam.slot, currentStep);
+                        weaponCurrentPatternIdx = 1;
+                        weaponRemainingSteps--;
+                    } else {
+                        playEquipmentSfx(nextNoteTime, matchedJam.slot, equipConfig[matchedJam.slot].preset);
+                        triggerUIFlash(matchedJam.slot, currentStep);
+                    }
+                    displayTimingFeedback(matchedJam.diff);
+                    log(`[JAM] Slot [${matchedJam.slot.toUpperCase()}] quantized to Step ${currentStep} (${stepTick} Ticks). Delay: ${matchedJam.diff}ms`, true);
+                }
+            }
+
+            // 4. Update Playhead
+            const displayTime = Math.max(0, (nextNoteTime - ac.currentTime) * 1000);
+            const stepUI = currentStep;
+
+            setTimeout(() => {
+                const playhead = document.getElementById('playhead');
+                if (playhead) {
+                    const pct = (stepUI / TOTAL_STEPS) * 100;
+                    playhead.style.left = `${pct}%`;
+                }
+
+                document.querySelectorAll('.measure-label').forEach((lbl, idx) => {
+                    if (idx === barIdx) {
+                        lbl.style.color = 'var(--glow-cyan)';
+                    } else {
+                        lbl.style.color = 'var(--text-muted)';
+                    }
+                });
+
+                // Display active casting label in badge
+                let statusText = `Bar: ${barIdx + 1} | Step: ${stepUI % 16 + 1} | Tick: ${stepTick} | Chord: ${chordObj.chord}`;
+                if (activeWeaponAction) {
+                    statusText += ` | 🔥 Casting ${activeWeaponAction.toUpperCase()} (${weaponRemainingSteps} Steps remaining)`;
+                }
+                document.getElementById('engineStatus').innerText = statusText;
+
+            }, displayTime);
+
+            currentStep++;
+            if (currentStep >= TOTAL_STEPS) currentStep = 0;
+            
+            const secPerStep = (60.0 / BPM) / 4;
+            nextNoteTime += secPerStep;
+        }
+
+        function engineLoop() {
+            while (nextNoteTime < ac.currentTime + 0.1) {
+                scheduleStep();
+            }
+            timerID = setTimeout(engineLoop, 20);
+        }
+
+        function togglePlay() {
+            const btn = document.getElementById('btnPlay');
+            if (isPlaying) {
+                isPlaying = false;
+                clearTimeout(timerID);
+                btn.innerText = "▶ Play BGM";
+                btn.className = "btn btn-primary";
+                log("BGM Synthesizer STOPPED.");
+            } else {
+                initAudio();
+                isPlaying = true;
+                btn.innerText = "■ Pause BGM";
+                btn.className = "btn btn-stop";
+                currentStep = 0;
+                nextNoteTime = ac.currentTime + 0.05;
+                engineLoop();
+                log("BGM Synthesizer STARTED (110 BPM, Game_NeoFunk_01).");
+            }
+        }
+
+        function resetPlay() {
+            if (isPlaying) togglePlay();
+            currentStep = 0;
+            activeWeaponAction = null;
+            weaponRemainingSteps = 0;
+            const playhead = document.getElementById('playhead');
+            if (playhead) playhead.style.left = '0%';
+            log("BGM Playhead RESET.");
+        }
+
+
+        // ---- INTERACTIVE JAM QUANTIZER ----
+
+        function manualTrigger(slot) {
+            // Block normal attacks if skill is active
+            if (isPlaying && slot === 'weapon_normal' && activeWeaponAction === 'skill') {
+                displayTimingFeedback(-1);
+                log(`[BLOCKED] Normal Attack Q blocked by active Skill casting!`, true);
+                return;
+            }
+
+            if (!isPlaying) {
+                initAudio();
+                if (slot.startsWith('weapon_')) {
+                    const mode = slot.split('_')[1];
+                    playWeaponSfx(ac.currentTime, equipConfig.weapon.preset, mode);
+                } else {
+                    playEquipmentSfx(ac.currentTime, slot, equipConfig[slot].preset);
+                }
+                displayTimingFeedback(0);
+                log(`[MANUAL] Triggered [${slot.toUpperCase()}] instantly (BGM paused)`);
+                return;
+            }
+
+            const inputTime = ac.currentTime;
+            const secPerStep = (60.0 / BPM) / 4;
+            const currentPlayingStepTime = nextNoteTime - secPerStep;
+
+            const diffToPrev = Math.abs(inputTime - currentPlayingStepTime) * 1000;
+            const diffToNext = Math.abs(nextNoteTime - inputTime) * 1000;
+            
+            let targetTime = 0;
+            let diff = 0;
+
+            if (diffToPrev < diffToNext) {
+                // Snap current step
+                targetTime = currentPlayingStepTime;
+                diff = diffToPrev;
+                
+                if (slot.startsWith('weapon_')) {
+                    const mode = slot.split('_')[1];
+                    // Setup action immediately
+                    activeWeaponAction = mode;
+                    weaponRemainingSteps = weaponPatterns[equipConfig.weapon.preset][mode].pattern.length;
+                    weaponCurrentPatternIdx = 0;
+                    
+                    if (weaponPatterns[equipConfig.weapon.preset][mode].pattern[0] === 1) {
+                        playWeaponSubSfx(inputTime, equipConfig.weapon.preset, mode, 0);
+                    }
+                    triggerUIFlash(slot, (currentStep - 1 + TOTAL_STEPS) % TOTAL_STEPS);
+                    weaponCurrentPatternIdx = 1;
+                    weaponRemainingSteps--;
+                } else {
+                    playEquipmentSfx(inputTime, slot, equipConfig[slot].preset);
+                    triggerUIFlash(slot, (currentStep - 1 + TOTAL_STEPS) % TOTAL_STEPS);
+                }
+                displayTimingFeedback(diff);
+                log(`[JAM] Slot [${slot.toUpperCase()}] snapped to CURRENT Step (Delay: ${diff.toFixed(1)}ms)`, true);
+            } else {
+                // Snap next step
+                targetTime = nextNoteTime;
+                diff = diffToNext;
+                
+                // Override queue if triggering skill
+                if (slot === 'weapon_skill') {
+                    manualTriggerQueue = []; // clear to override normal hits
+                }
+                manualTriggerQueue.push({ slot: slot, time: targetTime, diff: Math.round(diff) });
+            }
+        }
+
+        function displayTimingFeedback(diffMs) {
+            const fb = document.getElementById('timingFeedback');
+            fb.className = 'feedback-text';
+
+            if (diffMs === -1) {
+                fb.innerText = 'BLOCKED!';
+                fb.classList.add('blocked');
+            } else if (diffMs <= 30) {
+                fb.innerText = 'PERFECT!';
+                fb.classList.add('perfect');
+            } else if (diffMs <= 70) {
+                fb.innerText = 'GREAT!';
+                fb.classList.add('great');
+            } else if (diffMs <= 120) {
+                fb.innerText = 'GOOD!';
+                fb.classList.add('good');
+            } else {
+                fb.innerText = 'MISS!';
+                fb.classList.add('miss');
+            }
+
+            fb.style.opacity = 1;
+            fb.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                fb.style.transform = 'scale(1.0)';
+            }, 80);
+        }
+
+        function triggerUIFlash(slot, step) {
+            const marker = document.getElementById(`marker_${slot}_${step}`);
+            if (marker) {
+                marker.style.transform = 'scale(1.8)';
+                setTimeout(() => marker.style.transform = 'scale(1)', 100);
+            }
+        }
+
+
+        // ---- ANALYZERS VISUALIZER ----
+
+        function startVisualizerLoops() {
+            const canvasWave = document.getElementById('canvasWave');
+            const ctxWave = canvasWave.getContext('2d');
+            const canvasFreq = document.getElementById('canvasFreq');
+            const ctxFreq = canvasFreq.getContext('2d');
+
+            function resize() {
+                canvasWave.width = canvasWave.clientWidth;
+                canvasWave.height = canvasWave.clientHeight;
+                canvasFreq.width = canvasFreq.clientWidth;
+                canvasFreq.height = canvasFreq.clientHeight;
+            }
+            resize();
+
+            const waveBufferLength = analyserWave.frequencyBinCount;
+            const waveDataArray = new Uint8Array(waveBufferLength);
+
+            const freqBufferLength = analyserFreq.frequencyBinCount;
+            const freqDataArray = new Uint8Array(freqBufferLength);
+
+            function drawWave() {
+                requestAnimationFrame(drawWave);
+                if (!isPlaying) {
+                    ctxWave.clearRect(0, 0, canvasWave.width, canvasWave.height);
+                    ctxWave.beginPath();
+                    ctxWave.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctxWave.lineWidth = 2;
+                    ctxWave.moveTo(0, canvasWave.height / 2);
+                    ctxWave.lineTo(canvasWave.width, canvasWave.height / 2);
+                    ctxWave.stroke();
+                    return;
+                }
+
+                analyserWave.getByteTimeDomainData(waveDataArray);
+                ctxWave.fillStyle = '#0a0812';
+                ctxWave.fillRect(0, 0, canvasWave.width, canvasWave.height);
+
+                ctxWave.lineWidth = 2;
+                ctxWave.strokeStyle = 'var(--glow-cyan)';
+                ctxWave.beginPath();
+
+                const sliceWidth = canvasWave.width / waveBufferLength;
+                let x = 0;
+
+                for (let i = 0; i < waveBufferLength; i++) {
+                    const v = waveDataArray[i] / 128.0;
+                    const y = v * canvasWave.height / 2;
+
+                    if (i === 0) {
+                        ctxWave.moveTo(x, y);
+                    } else {
+                        ctxWave.lineTo(x, y);
+                    }
+                    x += sliceWidth;
+                }
+                ctxWave.lineTo(canvasWave.width, canvasWave.height / 2);
+                ctxWave.stroke();
+            }
+
+            function drawFreq() {
+                requestAnimationFrame(drawFreq);
+                if (!isPlaying) {
+                    ctxFreq.clearRect(0, 0, canvasFreq.width, canvasFreq.height);
+                    return;
+                }
+
+                analyserFreq.getByteFrequencyData(freqDataArray);
+                ctxFreq.fillStyle = '#0a0812';
+                ctxFreq.fillRect(0, 0, canvasFreq.width, canvasFreq.height);
+
+                const barWidth = (canvasFreq.width / freqBufferLength) * 1.5;
+                let barHeight;
+                let x = 0;
+
+                for (let i = 0; i < freqBufferLength; i++) {
+                    barHeight = freqDataArray[i] * 0.4;
+                    
+                    const grad = ctxFreq.createLinearGradient(0, canvasFreq.height, 0, canvasFreq.height - barHeight);
+                    grad.addColorStop(0, 'var(--glow-purple)');
+                    grad.addColorStop(1, 'var(--glow-pink)');
+                    
+                    ctxFreq.fillStyle = grad;
+                    ctxFreq.fillRect(x, canvasFreq.height - barHeight, barWidth - 1, barHeight);
+
+                    x += barWidth;
+                }
+            }
+
+            drawWave();
+            drawFreq();
+        }
+
+
+        // ---- SYSTEM UTILS ----
+
+        function log(msg, isWarning = false) {
+            const logBox = document.getElementById('logBox');
+            const entry = document.createElement('div');
+            entry.className = 'log-line';
+
+            const time = document.createElement('span');
+            time.className = 'log-time';
+            const now = new Date();
+            time.textContent = `[${now.toTimeString().split(' ')[0]}]`;
+
+            const message = document.createElement('span');
+            message.className = 'log-msg' + (isWarning ? ' error' : '');
+            message.textContent = msg;
+
+            entry.appendChild(time);
+            entry.appendChild(message);
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // Handle Keyboard shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            switch(e.key.toLowerCase()) {
+                case '1':
+                case 'q':
+                    manualTrigger('weapon_normal');
+                    break;
+                case '5':
+                case 'e':
+                    manualTrigger('weapon_skill');
+                    break;
+                case '2':
+                case 'w':
+                    manualTrigger('shoes');
+                    break;
+                case '3':
+                case 'r':
+                    manualTrigger('hat');
+                    break;
+                case '4':
+                case 't':
+                    manualTrigger('accessory');
+                    break;
+            }
+        });
+
+        window.onload = () => {
+            initUi();
+            log("Rhythm Tester Ready. Normal: Q/1 | Skill: E/5 | Shoes: W/2 | Hat: R/3 | Acc: T/4");
+        };
+    </script>
+</body>
+</html>

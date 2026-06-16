@@ -4,7 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using RhythmRPG.Game.Stage;
 
-public class BoardView : MonoBehaviour, IClientWorldView
+public class BoardView : MonoBehaviour, IClientWorldView, IClientWorldViewMapUpdateBatch
 {
     public static BoardView Instance { get; private set; }
 
@@ -53,18 +53,34 @@ public class BoardView : MonoBehaviour, IClientWorldView
     [SerializeField, Min(0.05f)] private float walkableGridWaveWidthTiles = 0.7f;
     [SerializeField, Range(15f, 60f)] private float walkableGridEffectRefreshRate = 30f;
 
+    [Header("Tile Distance Culling")]
+    [SerializeField] private bool tileDistanceCullingEnabled = true;
+    [SerializeField, Min(1f)] private float tileVisibleDistance = 48f;
+    [SerializeField, Min(0f)] private float tileCullingHysteresis = 10f;
+    [SerializeField, Min(0f)] private float tileCameraForwardLookahead = 28f;
+    [SerializeField, Min(0.05f)] private float tileCullingRefreshInterval = 0.1f;
+    [SerializeField, Min(1)] private int tileCullingChecksPerRefresh = 4096;
+    [SerializeField] private bool tileCullingPreferLocalPlayer = true;
+
     // entityId -> EntityVisual
     private readonly Dictionary<int, EntityVisual> _entityViews = new();
     private const string EntityAnimationProfileResourceRoot = "Data/EntityAnimationProfiles";
 
     // (x,y) -> Tile GameObject
     private GameObject[,] _tiles;
+    private BoardTileVisual[,] _tileVisuals;
 
     private Color[,] _baseTileColors;
     private Color[,] _logicTileColors;
     private TileKind[,] _logicTileKinds;
     private AppearanceTileCell[,] _appearanceTiles;
     private Material _defaultTileBaseMaterial;
+    private bool[,] _tileCullingVisible;
+    private bool _tileCullingAnyHidden;
+    private int _tileCullingCursor;
+    private float _nextTileCullingRefreshTime;
+    private readonly Vector3[] _tileCullingReferenceBuffer = new Vector3[3];
+    private int _mapVisualUpdateBatchDepth;
 
     private static readonly Color TELEGRAPH_COLOR = new Color(1f, 0.08f, 0f, 0.45f);
     private static readonly Color PLAYER_TELEGRAPH_COLOR = new Color(0.05f, 0.55f, 1f, 0.45f);
@@ -191,6 +207,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
             }
         }
 
+        if (_mapVisualUpdateBatchDepth <= 0)
+            UpdateTileDistanceCulling();
+
         UpdateWalkableGridEffects();
     }
 
@@ -239,6 +258,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (TryBindTilesFromScene(width, height))
         {
             Debug.Log($"[BoardView] OnCreateMap: Baked tiles bound. ({width}x{height})");
+            RefreshTileCullingWhenReady();
             return;
         }
 
@@ -247,6 +267,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
             Debug.LogWarning(
                 $"[BoardView] OnCreateMap: Baked tiles partially bound. " +
                 $"Bound={boundCount}, Missing={missingCount}, Expected={width}x{height}. Existing scene tiles were preserved.");
+            RefreshTileCullingWhenReady();
             return;
         }
 
@@ -277,6 +298,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 _logicTileColors[x, y] = Color.gray;
             }
         }
+
+        RefreshTileCullingWhenReady();
     }
 
     public Color GetTileColor(int tileKind)
@@ -328,6 +351,23 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (!tile.TryGetComponent<BoardTileVisual>(out var visual))
             visual = tile.AddComponent<BoardTileVisual>();
 
+        return visual;
+    }
+
+    private BoardTileVisual GetTileVisualAt(int x, int y)
+    {
+        if (_tiles == null || _tileVisuals == null)
+            return null;
+
+        if (x < 0 || y < 0 || x >= _tiles.GetLength(0) || y >= _tiles.GetLength(1))
+            return null;
+
+        var visual = _tileVisuals[x, y];
+        if (visual != null)
+            return visual;
+
+        visual = GetTileVisual(_tiles[x, y]);
+        _tileVisuals[x, y] = visual;
         return visual;
     }
 
@@ -406,7 +446,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
         if (_baseTileColors != null)
             _baseTileColors[x, y] = finalColor;
 
-        var visual = GetTileVisual(tile);
+        var visual = GetTileVisualAt(x, y);
         if (visual != null)
         {
             visual.SetBaseMaterial(GetDefaultTileBaseMaterial());
@@ -477,7 +517,7 @@ public class BoardView : MonoBehaviour, IClientWorldView
             return;
         }
 
-        var visual = GetTileVisual(tile);
+        var visual = GetTileVisualAt(x, y);
         var rend = visual != null ? visual.BaseRenderer : null;
         if (rend == null)
         {
@@ -600,6 +640,9 @@ public class BoardView : MonoBehaviour, IClientWorldView
 
     private void UpdateWalkableGridEffects()
     {
+        if (_mapVisualUpdateBatchDepth > 0)
+            return;
+
         if (_walkableGridDirty)
             RebuildWalkableGridMesh();
 
@@ -1119,17 +1162,30 @@ public class BoardView : MonoBehaviour, IClientWorldView
     {
         ClearTiles(destroyGameObjects: false);
         _tiles = new GameObject[width, height];
+        _tileVisuals = new BoardTileVisual[width, height];
         _baseTileColors = new Color[width, height];
         _logicTileColors = new Color[width, height];
         _logicTileKinds = new TileKind[width, height];
         _appearanceTiles = new AppearanceTileCell[width, height];
+        _tileCullingVisible = new bool[width, height];
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+                _tileCullingVisible[x, y] = true;
+        }
+
+        _tileCullingAnyHidden = false;
+        _tileCullingCursor = 0;
+        _nextTileCullingRefreshTime = 0f;
         MarkWalkableGridDirty();
     }
 
     private void BindTileState(int x, int y, GameObject tile)
     {
         _tiles[x, y] = tile;
-        var rend = GetTileRenderer(tile);
+        var visual = GetTileVisual(tile);
+        _tileVisuals[x, y] = visual;
+        var rend = visual != null ? visual.BaseRenderer : null;
         if (rend != null)
         {
             _baseTileColors[x, y] = rend.sharedMaterial != null ? rend.sharedMaterial.color : Color.gray;
@@ -1227,6 +1283,8 @@ public class BoardView : MonoBehaviour, IClientWorldView
                     : "<controller-missing>";
                 Debug.Log($"[BoardView] Local player bound actor={info.EntityId} target={visual.gameObject.name} controller={controllerState}");
             }
+
+            RefreshTileCullingWhenReady();
         }
 
         visual.transform.position = ResolveEntityWorldPosition(info, visual.transform);
@@ -2009,6 +2067,24 @@ public class BoardView : MonoBehaviour, IClientWorldView
     public void OnInitGameCompleted()
     {
         Debug.Log("[BoardView] InitGameCompleted");
+        EndMapVisualUpdate();
+    }
+
+    public void BeginMapVisualUpdate(int expectedTileCount)
+    {
+        _mapVisualUpdateBatchDepth++;
+    }
+
+    public void EndMapVisualUpdate()
+    {
+        if (_mapVisualUpdateBatchDepth > 0)
+            _mapVisualUpdateBatchDepth--;
+
+        if (_mapVisualUpdateBatchDepth > 0)
+            return;
+
+        MarkWalkableGridDirty();
+        RefreshTileCullingWhenReady();
     }
 
     #endregion
@@ -2288,12 +2364,219 @@ public class BoardView : MonoBehaviour, IClientWorldView
                 for (int y = 0; y < h; y++)
                     if (_tiles[x, y] != null) Destroy(_tiles[x, y]);
         _tiles = null;
+        _tileVisuals = null;
         _baseTileColors = null;
         _logicTileColors = null;
         _logicTileKinds = null;
         _appearanceTiles = null;
+        _tileCullingVisible = null;
+        _tileCullingAnyHidden = false;
+        _tileCullingCursor = 0;
         ClearWalkableGridMesh();
         MarkWalkableGridDirty();
+    }
+
+    private void RefreshTileCullingWhenReady()
+    {
+        if (_mapVisualUpdateBatchDepth > 0)
+            return;
+
+        ForceRefreshTileCulling();
+    }
+
+    private void UpdateTileDistanceCulling()
+    {
+        if (_tiles == null || _tileCullingVisible == null)
+            return;
+
+        if (!tileDistanceCullingEnabled)
+        {
+            if (_tileCullingAnyHidden)
+                RestoreAllTileCulling();
+            return;
+        }
+
+        if (Time.unscaledTime < _nextTileCullingRefreshTime)
+            return;
+
+        if (!TryBuildTileCullingReferences(out int referenceCount))
+            return;
+
+        _nextTileCullingRefreshTime = Time.unscaledTime + tileCullingRefreshInterval;
+
+        int width = _tiles.GetLength(0);
+        int height = _tiles.GetLength(1);
+        int total = width * height;
+        int checks = Mathf.Min(Mathf.Max(1, tileCullingChecksPerRefresh), total);
+
+        for (int i = 0; i < checks; i++)
+        {
+            if (_tileCullingCursor >= total)
+                _tileCullingCursor = 0;
+
+            int x = _tileCullingCursor % width;
+            int y = _tileCullingCursor / width;
+            UpdateTileCullingVisibility(x, y, _tileCullingReferenceBuffer, referenceCount);
+            _tileCullingCursor++;
+        }
+    }
+
+    private void ForceRefreshTileCulling()
+    {
+        if (_tiles == null || _tileCullingVisible == null)
+            return;
+
+        if (!tileDistanceCullingEnabled)
+        {
+            RestoreAllTileCulling();
+            return;
+        }
+
+        if (!TryBuildTileCullingReferences(out int referenceCount))
+            return;
+
+        int width = _tiles.GetLength(0);
+        int height = _tiles.GetLength(1);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+                UpdateTileCullingVisibility(x, y, _tileCullingReferenceBuffer, referenceCount, force: true);
+        }
+
+        _tileCullingCursor = 0;
+        _nextTileCullingRefreshTime = Time.unscaledTime + tileCullingRefreshInterval;
+    }
+
+    private void UpdateTileCullingVisibility(
+        int x,
+        int y,
+        Vector3[] referencePositions,
+        int referenceCount,
+        bool force = false)
+    {
+        GameObject tile = _tiles[x, y];
+        if (tile == null)
+            return;
+
+        bool currentlyVisible = _tileCullingVisible[x, y];
+        Vector3 tilePosition = tile.transform.position;
+        float threshold = tileVisibleDistance + (currentlyVisible ? tileCullingHysteresis : 0f);
+        bool shouldBeVisible = IsWithinAnyTileCullingReference(
+            tilePosition,
+            referencePositions,
+            referenceCount,
+            threshold);
+
+        if (!force && currentlyVisible == shouldBeVisible)
+            return;
+
+        _tileCullingVisible[x, y] = shouldBeVisible;
+
+        var visual = GetTileVisualAt(x, y);
+        if (visual != null)
+            visual.SetCullingVisible(shouldBeVisible);
+
+        if (!shouldBeVisible)
+            _tileCullingAnyHidden = true;
+    }
+
+    private void RestoreAllTileCulling()
+    {
+        if (_tiles == null || _tileCullingVisible == null)
+            return;
+
+        int width = _tiles.GetLength(0);
+        int height = _tiles.GetLength(1);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (_tileCullingVisible[x, y])
+                    continue;
+
+                _tileCullingVisible[x, y] = true;
+                var visual = GetTileVisualAt(x, y);
+                if (visual != null)
+                    visual.SetCullingVisible(true);
+            }
+        }
+
+        _tileCullingAnyHidden = false;
+    }
+
+    private bool TryBuildTileCullingReferences(out int referenceCount)
+    {
+        referenceCount = 0;
+        bool hasLocalPlayer = TryGetLocalPlayerGridPosition(out Vector2 localPlayerTile);
+
+        if (tileCullingPreferLocalPlayer && hasLocalPlayer)
+        {
+            AddTileCullingReference(
+                new Vector3(localPlayerTile.x * cellSize, 0f, localPlayerTile.y * cellSize),
+                ref referenceCount);
+        }
+
+        Camera mainCamera = Camera.main;
+        if (mainCamera != null)
+        {
+            Vector3 cameraPosition = mainCamera.transform.position;
+            cameraPosition.y = 0f;
+            AddTileCullingReference(cameraPosition, ref referenceCount);
+
+            Vector3 forward = mainCamera.transform.forward;
+            forward.y = 0f;
+            if (tileCameraForwardLookahead > 0f && forward.sqrMagnitude > 0.0001f)
+            {
+                Vector3 lookaheadPosition = cameraPosition + forward.normalized * tileCameraForwardLookahead;
+                AddTileCullingReference(lookaheadPosition, ref referenceCount);
+            }
+        }
+
+        if (referenceCount == 0 && hasLocalPlayer)
+        {
+            AddTileCullingReference(
+                new Vector3(localPlayerTile.x * cellSize, 0f, localPlayerTile.y * cellSize),
+                ref referenceCount);
+        }
+
+        return referenceCount > 0;
+    }
+
+    private void AddTileCullingReference(Vector3 referencePosition, ref int referenceCount)
+    {
+        if (referenceCount >= _tileCullingReferenceBuffer.Length)
+            return;
+
+        for (int i = 0; i < referenceCount; i++)
+        {
+            Vector3 existing = _tileCullingReferenceBuffer[i];
+            float dx = existing.x - referencePosition.x;
+            float dz = existing.z - referencePosition.z;
+            if (dx * dx + dz * dz < 0.25f)
+                return;
+        }
+
+        _tileCullingReferenceBuffer[referenceCount] = referencePosition;
+        referenceCount++;
+    }
+
+    private static bool IsWithinAnyTileCullingReference(
+        Vector3 tilePosition,
+        Vector3[] referencePositions,
+        int referenceCount,
+        float threshold)
+    {
+        float thresholdSqr = threshold * threshold;
+        for (int i = 0; i < referenceCount; i++)
+        {
+            Vector3 referencePosition = referencePositions[i];
+            float dx = tilePosition.x - referencePosition.x;
+            float dz = tilePosition.z - referencePosition.z;
+            if (dx * dx + dz * dz <= thresholdSqr)
+                return true;
+        }
+
+        return false;
     }
 
     #endregion

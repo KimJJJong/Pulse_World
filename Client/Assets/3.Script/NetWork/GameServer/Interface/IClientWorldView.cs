@@ -14,3 +14,9 @@ public interface IClientWorldView
     void OnDespawnEntity(int entityId);
 
 }
+
+public interface IClientWorldViewMapUpdateBatch
+{
+    void BeginMapVisualUpdate(int expectedTileCount);
+    void EndMapVisualUpdate();
+}

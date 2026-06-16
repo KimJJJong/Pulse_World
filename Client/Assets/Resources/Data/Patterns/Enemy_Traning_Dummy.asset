@@ -17,5 +17,35 @@ MonoBehaviour:
     DefaultPhase: P1
     Phases:
     - Id: P1
-      Selectors: []
+      Selectors:
+      - Id: Training Cross Attack
+        Weight: 1
+        CooldownBeats: 5
+        When:
+          All: []
+        Timeline:
+        - AtBeatOffset: 0
+          Type: 3
+          Target:
+            Type: 0
+            MaxRange: 999
+            RequireAlive: 1
+          SkillId: Enemy_Attack_Cross
+          LockRotation: 0
+          TelegraphBeats: 0
+          TelegraphStyleId: 0
+          Area:
+            Shape: 1
+            OriginType: 1
+            OriginX: 0
+            OriginY: 0
+            ParamA: 0
+            ParamB: 0
+            DirType: 0
+            FixedDir: 0
+            Cells: []
+          MoveDistance: 1
+          MoveStrategy: 0
+          MoveDirection: 0
+          SkillRef: {fileID: 11400000, guid: 1d0828562e383714788803a4374007de, type: 2}
     Transitions: []

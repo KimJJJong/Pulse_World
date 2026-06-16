@@ -168,13 +168,22 @@ public static class AppearanceCatalog
             {
                 var last = parts[parts.Length - 1];
                 if (!string.IsNullOrWhiteSpace(last))
-                    return last;
+                    return NormalizeDisplayName(last);
             }
 
-            return entity.Name;
+            return NormalizeDisplayName(entity.Name);
         }
 
         return $"Appearance {entity.EntityId}";
+    }
+
+    private static string NormalizeDisplayName(string value)
+    {
+        if (string.Equals(value, "Rogu", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "Rouge", StringComparison.OrdinalIgnoreCase))
+            return "Rogue";
+
+        return value;
     }
 
     [Serializable]

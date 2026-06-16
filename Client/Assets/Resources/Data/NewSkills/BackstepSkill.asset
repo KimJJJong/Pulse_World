@@ -14,38 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
   Data:
     SkillId: BackstepSkill
-    TotalDurationTicks: 960
+    TotalDurationTicks: 480
     Tracks:
     - TrackName: Move
       Events:
-      - TriggerTick: 240
-        DurationTicks: 240
+      - TriggerTick: 0
+        DurationTicks: 480
         Action:
           rid: 4242872761226362906
-    - TrackName: Control
-      Events:
-      - TriggerTick: 0
-        DurationTicks: 720
-        Action:
-          rid: 4242872761226362907
-    - TrackName: Sound
-      Events:
-      - TriggerTick: 0
-        DurationTicks: 120
-        Action:
-          rid: 4242872761226362908
-      - TriggerTick: 240
-        DurationTicks: 120
-        Action:
-          rid: 4242872761226362909
-      - TriggerTick: 600
-        DurationTicks: 120
-        Action:
-          rid: 4242872761226362910
-      - TriggerTick: 840
-        DurationTicks: 120
-        Action:
-          rid: 4242872761226362911
   references:
     version: 2
     RefIds:
@@ -57,30 +33,3 @@ MonoBehaviour:
         DirectionX: 0
         DirectionY: 1
         StopOnObstacle: 1
-    - rid: 4242872761226362907
-      type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data: 
-    - rid: 4242872761226362908
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Staff
-        Volume: 0.75
-        UseOwnerPerspective: 1
-    - rid: 4242872761226362909
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Staff
-        Volume: 0.9
-        UseOwnerPerspective: 1
-    - rid: 4242872761226362910
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Staff
-        Volume: 0.8
-        UseOwnerPerspective: 1
-    - rid: 4242872761226362911
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Staff
-        Volume: 0.7
-        UseOwnerPerspective: 1

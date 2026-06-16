@@ -6,11 +6,14 @@ using UnityEngine.UI;
 public sealed class HomeUiPageNavigator : MonoBehaviour
 {
     private const string HomeOptionResourcePrefix = "UI/UI_Home_Option/";
+    private const string SharedOptionsPanelResourcePath = "UI/Options/PF_GameOptionsPanel";
     private const string MasterVolumeKey = "Options.MasterVolume";
     private const string InGameVolumeKey = "Options.InGameVolume";
     private const string SfxVolumeKey = "Options.SfxVolume";
     private const string FullscreenKey = "Options.Fullscreen";
     private const string LegacySoundMutedKey = "Options.SoundMuted";
+    private const string InventoryOpenActionText = "Open Inventory";
+    private const string InventoryLockedActionText = "LOCKED";
     private const float DefaultMasterVolume = 0.85f;
     private const float DefaultInGameVolume = 0.80f;
     private const float DefaultSfxVolume = 0.75f;
@@ -32,10 +35,13 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
     [SerializeField] private TownHomeUiController _townHomeController;
     [SerializeField] private bool _forceCameraPresentation;
     [SerializeField] private bool _mapOnlyMode;
+    [SerializeField] private bool _inventoryLocked = true;
+    [SerializeField] private GameObject _optionsRoot;
+    [SerializeField] private RectTransform _optionsPanel;
+    [SerializeField] private GameOptionsPanel _sharedOptionsPanel;
     [SerializeField] private float _forcedPresentationScreenLeftOffset = 1.65f;
     [SerializeField] private float _appearancePresentationScreenLeftOffset = 1.65f;
 
-    private GameObject _optionsRoot;
     private TextMeshProUGUI _optionsStatusText;
     private Slider _masterVolumeSlider;
     private Slider _inGameVolumeSlider;
@@ -45,6 +51,7 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
     private TextMeshProUGUI _sfxVolumeValueText;
     private Image _fullscreenToggleImage;
     private Image _windowedToggleImage;
+    private Image _inventoryLockedWash;
     private float _pendingMasterVolume = DefaultMasterVolume;
     private float _pendingInGameVolume = DefaultInGameVolume;
     private float _pendingSfxVolume = DefaultSfxVolume;
@@ -86,6 +93,7 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         Bind(_mapButton, ShowOptions);
         Bind(_equipmentBackButton, ShowHome);
         RetitleMapButtonAsOptions();
+        ApplyInventoryLockState();
         EnsureOptionsPage();
 
         if (_homeButtons != null)
@@ -100,7 +108,6 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         if (IsMapOnlyMode)
         {
             ShowMap();
-            WorldMapEntryOverlay.Play(GetComponentInParent<Canvas>());
         }
         else
         {
@@ -138,6 +145,9 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
             return;
         }
 
+        if (_inventoryLocked)
+            return;
+
         if (OpenTownInventoryWindowIfAvailable())
             return;
 
@@ -169,6 +179,13 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         }
 
         EnsureOptionsPage();
+        if (_sharedOptionsPanel != null)
+        {
+            Show(HomePage.Options);
+            _sharedOptionsPanel.Open();
+            return;
+        }
+
         LoadPendingOptionsFromPrefs();
         RefreshOptionsUi();
         ApplyRuntimeOptionPreview();
@@ -194,7 +211,11 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         if (IsMapOnlyMode && page != HomePage.Map)
             page = HomePage.Map;
 
+        var leavingOptions = _currentPage == HomePage.Options && page != HomePage.Options;
         _currentPage = page;
+        if (leavingOptions && _sharedOptionsPanel != null)
+            _sharedOptionsPanel.DiscardAndHide();
+
         SetActive(_homeRoot, page == HomePage.Home);
         SetActive(_equipmentRoot, page == HomePage.Equipment);
         SetActive(_inventoryRoot, page == HomePage.Inventory);
@@ -264,72 +285,196 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
 
         var card = _mapButton.transform.parent;
         SetChildText(card, "Title", "OPTIONS");
-        SetChildText(card, "Subtitle", "사운드와 화면\n설정.");
+        SetChildText(card, "Subtitle", string.Empty);
         SetChildText(card, "ActionLabel", "Open Options");
+    }
+
+    private void ApplyInventoryLockState()
+    {
+        if (_inventoryButton == null)
+            return;
+
+        _inventoryButton.interactable = !_inventoryLocked;
+        var card = _inventoryButton.transform.parent;
+        SetChildText(card, "Subtitle", string.Empty);
+        SetChildText(card, "ActionLabel", _inventoryLocked ? InventoryLockedActionText : InventoryOpenActionText);
+        SetChildText(card, "ActionArrow", _inventoryLocked ? string.Empty : "\u203A");
+        ApplyInventoryLockedVisual(card, _inventoryLocked);
     }
 
     private void EnsureOptionsPage()
     {
-        if (_optionsRoot != null)
+        if (TryEnsureSharedOptionsPage())
+            return;
+
+        if (_optionsRoot != null && _masterVolumeSlider != null)
             return;
 
         var parent = _mapRoot != null && _mapRoot.transform.parent != null
             ? _mapRoot.transform.parent
             : transform;
 
-        _optionsRoot = new GameObject("UI_Home_Options", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        _optionsRoot.transform.SetParent(parent, false);
-        var rootRect = (RectTransform)_optionsRoot.transform;
-        Stretch(rootRect);
-        var rootImage = _optionsRoot.GetComponent<Image>();
-        rootImage.color = new Color(0f, 0f, 0f, 0.52f);
-        rootImage.raycastTarget = true;
+        bool createdRoot = false;
+        if (_optionsRoot == null)
+            _optionsRoot = parent.Find("UI_Home_Options")?.gameObject;
 
-        var panel = CreatePanel(rootRect, "OptionsPanel", new Vector2(980f, 652f), new Color(0.60f, 0.43f, 0.24f, 1f));
-        var panelSize = panel.sizeDelta;
+        if (_optionsRoot == null)
+        {
+            _optionsRoot = new GameObject("UI_Home_Options", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            _optionsRoot.transform.SetParent(parent, false);
+            createdRoot = true;
+        }
+
+        var rootRect = (RectTransform)_optionsRoot.transform;
+        if (createdRoot)
+            Stretch(rootRect);
+
+        var rootImage = _optionsRoot.GetComponent<Image>();
+        if (rootImage == null && createdRoot)
+            rootImage = _optionsRoot.AddComponent<Image>();
+        if (rootImage != null)
+        {
+            rootImage.color = new Color(0f, 0f, 0f, 0.52f);
+            rootImage.raycastTarget = true;
+        }
+
+        if (_optionsPanel == null)
+            _optionsPanel = FindChildRect(_optionsRoot.transform, "OptionsPanel");
+
+        if (_optionsPanel == null)
+            _optionsPanel = CreatePanel(rootRect, "OptionsPanel", new Vector2(940f, 620f), new Color(0.60f, 0.43f, 0.24f, 1f));
+
+        var panel = _optionsPanel;
+        if (TryCacheExistingOptionsControls(panel))
+        {
+            _optionsRoot.SetActive(false);
+            LoadPendingOptionsFromPrefs();
+            RefreshOptionsUi();
+            ApplyRuntimeOptionPreview();
+            return;
+        }
+
+        var panelSize = ResolveOptionsPanelSize(panel);
 
         var titleColor = new Color(0.18f, 0.09f, 0.025f, 1f);
         var textColor = new Color(0.22f, 0.10f, 0.025f, 1f);
         var mutedColor = new Color(0.34f, 0.20f, 0.08f, 1f);
         var lightText = new Color(1f, 0.91f, 0.70f, 1f);
 
-        var title = CreateText(panel, "Title", "옵션", 44f, TextAlignmentOptions.Center, titleColor, new Rect(320f, 48f, 340f, 58f), panelSize);
+        var title = CreateText(panel, "Title", "옵션", 38f, TextAlignmentOptions.Center, titleColor, new Rect(330f, 72f, 280f, 44f), panelSize);
         title.fontStyle = FontStyles.Bold;
-        CreateSeparator(panel, "TitleSeparatorLeft", new Rect(225f, 76f, 230f, 28f), panelSize);
-        CreateSeparator(panel, "TitleSeparatorRight", new Rect(525f, 76f, 230f, 28f), panelSize);
+        CreateSeparator(panel, "TitleSeparatorLeft", new Rect(118f, 84f, 200f, 24f), panelSize);
+        CreateSeparator(panel, "TitleSeparatorRight", new Rect(622f, 84f, 200f, 24f), panelSize);
 
-        CreateSectionHeader(panel, "SoundHeader", "사운드", new Rect(130f, 126f, 165f, 46f), panelSize, lightText);
-        CreateSeparator(panel, "SoundSeparator", new Rect(282f, 132f, 620f, 36f), panelSize);
+        CreateSectionHeader(panel, "SoundHeader", "사운드", new Rect(118f, 140f, 158f, 42f), panelSize, lightText);
+        CreateSeparator(panel, "SoundSeparator", new Rect(266f, 147f, 590f, 28f), panelSize);
 
-        CreateText(panel, "MasterVolumeLabel", "마스터 음량", 24f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(185f, 196f, 180f, 40f), panelSize).fontStyle = FontStyles.Bold;
-        _masterVolumeSlider = CreateVolumeSlider(panel, "MasterVolumeSlider", new Rect(380f, 196f, 410f, 44f), panelSize, HandleMasterVolumeChanged);
-        _masterVolumeValueText = CreateText(panel, "MasterVolumeValue", "", 17f, TextAlignmentOptions.Center, mutedColor, new Rect(805f, 202f, 56f, 28f), panelSize);
+        CreateText(panel, "MasterVolumeLabel", "마스터 음량", 21f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(164f, 204f, 180f, 34f), panelSize).fontStyle = FontStyles.Bold;
+        _masterVolumeSlider = CreateVolumeSlider(panel, "MasterVolumeSlider", new Rect(360f, 202f, 390f, 38f), panelSize, HandleMasterVolumeChanged);
+        _masterVolumeValueText = CreateText(panel, "MasterVolumeValue", "", 15f, TextAlignmentOptions.Center, mutedColor, new Rect(768f, 208f, 52f, 24f), panelSize);
 
-        CreateText(panel, "InGameVolumeLabel", "인게임 음량", 24f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(185f, 260f, 180f, 40f), panelSize).fontStyle = FontStyles.Bold;
-        _inGameVolumeSlider = CreateVolumeSlider(panel, "InGameVolumeSlider", new Rect(380f, 260f, 410f, 44f), panelSize, HandleInGameVolumeChanged);
-        _inGameVolumeValueText = CreateText(panel, "InGameVolumeValue", "", 17f, TextAlignmentOptions.Center, mutedColor, new Rect(805f, 266f, 56f, 28f), panelSize);
+        CreateText(panel, "InGameVolumeLabel", "인게임 음량", 21f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(164f, 262f, 180f, 34f), panelSize).fontStyle = FontStyles.Bold;
+        _inGameVolumeSlider = CreateVolumeSlider(panel, "InGameVolumeSlider", new Rect(360f, 260f, 390f, 38f), panelSize, HandleInGameVolumeChanged);
+        _inGameVolumeValueText = CreateText(panel, "InGameVolumeValue", "", 15f, TextAlignmentOptions.Center, mutedColor, new Rect(768f, 266f, 52f, 24f), panelSize);
 
-        CreateText(panel, "SfxVolumeLabel", "효과음", 24f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(185f, 324f, 180f, 40f), panelSize).fontStyle = FontStyles.Bold;
-        _sfxVolumeSlider = CreateVolumeSlider(panel, "SfxVolumeSlider", new Rect(380f, 324f, 410f, 44f), panelSize, HandleSfxVolumeChanged);
-        _sfxVolumeValueText = CreateText(panel, "SfxVolumeValue", "", 17f, TextAlignmentOptions.Center, mutedColor, new Rect(805f, 330f, 56f, 28f), panelSize);
+        CreateText(panel, "SfxVolumeLabel", "효과음", 21f, TextAlignmentOptions.MidlineLeft, textColor, new Rect(164f, 320f, 180f, 34f), panelSize).fontStyle = FontStyles.Bold;
+        _sfxVolumeSlider = CreateVolumeSlider(panel, "SfxVolumeSlider", new Rect(360f, 318f, 390f, 38f), panelSize, HandleSfxVolumeChanged);
+        _sfxVolumeValueText = CreateText(panel, "SfxVolumeValue", "", 15f, TextAlignmentOptions.Center, mutedColor, new Rect(768f, 324f, 52f, 24f), panelSize);
 
-        CreateSectionHeader(panel, "ScreenHeader", "화면", new Rect(130f, 406f, 165f, 46f), panelSize, lightText);
-        CreateSeparator(panel, "ScreenSeparator", new Rect(282f, 412f, 620f, 36f), panelSize);
+        CreateSectionHeader(panel, "ScreenHeader", "화면", new Rect(118f, 392f, 158f, 42f), panelSize, lightText);
+        CreateSeparator(panel, "ScreenSeparator", new Rect(266f, 399f, 590f, 28f), panelSize);
 
-        CreateScreenModeOption(panel, "FullscreenMode", "전체화면", new Rect(690f, 468f, 190f, 44f), panelSize, true);
-        CreateScreenModeOption(panel, "WindowedMode", "창화면", new Rect(690f, 520f, 190f, 44f), panelSize, false);
+        CreateScreenModeOption(panel, "FullscreenMode", "전체화면", new Rect(642f, 452f, 178f, 36f), panelSize, true);
+        CreateScreenModeOption(panel, "WindowedMode", "창화면", new Rect(642f, 496f, 178f, 36f), panelSize, false);
 
-        CreateSeparator(panel, "BottomSeparator", new Rect(130f, 542f, 750f, 24f), panelSize);
-        _optionsStatusText = CreateText(panel, "Status", "", 15f, TextAlignmentOptions.Center, mutedColor, new Rect(285f, 552f, 410f, 28f), panelSize);
+        CreateSeparator(panel, "BottomSeparator", new Rect(118f, 536f, 704f, 20f), panelSize);
+        _optionsStatusText = CreateText(panel, "Status", "", 13f, TextAlignmentOptions.Center, mutedColor, new Rect(286f, 534f, 368f, 20f), panelSize);
 
-        CreateOptionButton(panel, "Button_ResetDefaults", "기본값", new Rect(118f, 578f, 175f, 55f), panelSize, HandleResetDefaultsClicked);
-        CreateOptionButton(panel, "Button_Apply", "적용", new Rect(403f, 578f, 175f, 55f), panelSize, HandleApplyOptionsClicked);
-        CreateOptionButton(panel, "Button_Close", "닫기", new Rect(688f, 578f, 175f, 55f), panelSize, HandleCloseOptionsClicked);
+        CreateOptionButton(panel, "Button_ResetDefaults", "기본값", new Rect(118f, 562f, 154f, 48f), panelSize, HandleResetDefaultsClicked);
+        CreateOptionButton(panel, "Button_ResetGuest", "Guest 초기화", new Rect(302f, 562f, 154f, 48f), panelSize, HandleResetGuestClicked);
+        CreateOptionButton(panel, "Button_Apply", "적용", new Rect(486f, 562f, 154f, 48f), panelSize, HandleApplyOptionsClicked);
+        CreateOptionButton(panel, "Button_Close", "닫기", new Rect(670f, 562f, 154f, 48f), panelSize, HandleCloseOptionsClicked);
 
         _optionsRoot.SetActive(false);
         LoadPendingOptionsFromPrefs();
         RefreshOptionsUi();
         ApplyRuntimeOptionPreview();
+    }
+
+    private bool TryEnsureSharedOptionsPage()
+    {
+        var parent = _mapRoot != null && _mapRoot.transform.parent != null
+            ? _mapRoot.transform.parent
+            : transform;
+
+        if (_sharedOptionsPanel == null && _optionsRoot != null)
+            _sharedOptionsPanel = _optionsRoot.GetComponentInChildren<GameOptionsPanel>(true);
+
+        if (_sharedOptionsPanel == null)
+            _sharedOptionsPanel = GetComponentInChildren<GameOptionsPanel>(true);
+
+        if (_sharedOptionsPanel == null)
+        {
+            var prefab = Resources.Load<GameOptionsPanel>(SharedOptionsPanelResourcePath);
+            if (prefab == null)
+                return false;
+
+            _sharedOptionsPanel = Instantiate(prefab, parent, false);
+            _sharedOptionsPanel.gameObject.name = "UI_Home_Options";
+        }
+        else if (_sharedOptionsPanel.transform.parent != parent)
+        {
+            _sharedOptionsPanel.transform.SetParent(parent, false);
+        }
+
+        _optionsRoot = _sharedOptionsPanel.gameObject;
+        _optionsPanel = _sharedOptionsPanel.PanelRect;
+        if (_optionsRoot.transform is RectTransform rootRect)
+            Stretch(rootRect);
+
+        _sharedOptionsPanel.CloseRequested -= HandleSharedOptionsCloseRequested;
+        _sharedOptionsPanel.CloseRequested += HandleSharedOptionsCloseRequested;
+        _sharedOptionsPanel.HideImmediate();
+        return true;
+    }
+
+    private void HandleSharedOptionsCloseRequested()
+    {
+        ShowHome();
+    }
+
+    private bool TryCacheExistingOptionsControls(RectTransform panel)
+    {
+        if (panel == null)
+            return false;
+
+        var masterSlider = FindChildComponent<Slider>(panel, "MasterVolumeSlider");
+        var inGameSlider = FindChildComponent<Slider>(panel, "InGameVolumeSlider");
+        var sfxSlider = FindChildComponent<Slider>(panel, "SfxVolumeSlider");
+        if (masterSlider == null || inGameSlider == null || sfxSlider == null)
+            return false;
+
+        _masterVolumeSlider = masterSlider;
+        _inGameVolumeSlider = inGameSlider;
+        _sfxVolumeSlider = sfxSlider;
+        _masterVolumeValueText = FindChildComponent<TextMeshProUGUI>(panel, "MasterVolumeValue");
+        _inGameVolumeValueText = FindChildComponent<TextMeshProUGUI>(panel, "InGameVolumeValue");
+        _sfxVolumeValueText = FindChildComponent<TextMeshProUGUI>(panel, "SfxVolumeValue");
+        _optionsStatusText = FindChildComponent<TextMeshProUGUI>(panel, "Status");
+
+        _fullscreenToggleImage = FindChildComponent<Image>(FindChild(panel, "FullscreenMode"), "Icon");
+        _windowedToggleImage = FindChildComponent<Image>(FindChild(panel, "WindowedMode"), "Icon");
+
+        BindSlider(_masterVolumeSlider, HandleMasterVolumeChanged);
+        BindSlider(_inGameVolumeSlider, HandleInGameVolumeChanged);
+        BindSlider(_sfxVolumeSlider, HandleSfxVolumeChanged);
+        Bind(FindChildComponent<Button>(panel, "FullscreenMode"), () => HandleScreenModeClicked(true));
+        Bind(FindChildComponent<Button>(panel, "WindowedMode"), () => HandleScreenModeClicked(false));
+        Bind(FindChildComponent<Button>(panel, "Button_ResetDefaults"), HandleResetDefaultsClicked);
+        Bind(FindChildComponent<Button>(panel, "Button_ResetGuest"), HandleResetGuestClicked);
+        Bind(FindChildComponent<Button>(panel, "Button_Apply"), HandleApplyOptionsClicked);
+        Bind(FindChildComponent<Button>(panel, "Button_Close"), HandleCloseOptionsClicked);
+        return true;
     }
 
     private void HandleMasterVolumeChanged(float value)
@@ -380,6 +525,12 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         RefreshOptionsUi();
         ApplyRuntimeOptionPreview();
         SetOptionsStatus("기본값으로 되돌렸습니다. 적용을 누르면 저장됩니다.");
+    }
+
+    private void HandleResetGuestClicked()
+    {
+        var newDeviceId = GameOptionsPanel.ResetGuestIdentity();
+        SetOptionsStatus($"Guest 번호를 초기화했습니다. 다시 로그인하면 적용됩니다. ({ShortDeviceId(newDeviceId)})");
     }
 
     private void HandleApplyOptionsClicked()
@@ -510,6 +661,14 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         Screen.fullScreen = fullscreen;
     }
 
+    private static string ShortDeviceId(string deviceId)
+    {
+        if (string.IsNullOrWhiteSpace(deviceId))
+            return "-";
+
+        return deviceId.Length <= 8 ? deviceId : deviceId.Substring(0, 8);
+    }
+
     private void ResolveTownHomeController()
     {
         if (_townHomeController != null && _townHomeController.gameObject.scene.IsValid())
@@ -542,6 +701,15 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         button.onClick.AddListener(action);
     }
 
+    private static void BindSlider(Slider slider, UnityEngine.Events.UnityAction<float> action)
+    {
+        if (slider == null || action == null)
+            return;
+
+        slider.onValueChanged.RemoveListener(action);
+        slider.onValueChanged.AddListener(action);
+    }
+
     private static void SetActive(GameObject target, bool active)
     {
         if (target != null && target.activeSelf != active)
@@ -563,6 +731,82 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
                 return;
             }
         }
+    }
+
+    private void ApplyInventoryLockedVisual(Transform card, bool locked)
+    {
+        if (_inventoryButton != null)
+        {
+            var colors = _inventoryButton.colors;
+            colors.disabledColor = new Color(1f, 1f, 1f, 0.70f);
+            colors.fadeDuration = 0.08f;
+            _inventoryButton.colors = colors;
+        }
+
+        if (!(card is RectTransform))
+            return;
+
+        if (_inventoryLockedWash == null || _inventoryLockedWash.transform.parent != card)
+        {
+            _inventoryLockedWash = FindChildComponent<Image>(card, "InventoryLockedWash");
+            if (_inventoryLockedWash == null)
+            {
+                var go = new GameObject("InventoryLockedWash", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                go.transform.SetParent(card, false);
+                _inventoryLockedWash = go.GetComponent<Image>();
+                Stretch((RectTransform)go.transform);
+            }
+        }
+
+        _inventoryLockedWash.color = new Color(1f, 1f, 1f, 0.32f);
+        _inventoryLockedWash.raycastTarget = false;
+        _inventoryLockedWash.gameObject.SetActive(locked);
+        if (locked)
+            _inventoryLockedWash.transform.SetAsLastSibling();
+    }
+
+    private static Transform FindChild(Transform root, string name)
+    {
+        if (root == null || string.IsNullOrEmpty(name))
+            return null;
+
+        if (root.name == name)
+            return root;
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            var found = FindChild(root.GetChild(i), name);
+            if (found != null)
+                return found;
+        }
+
+        return null;
+    }
+
+    private static RectTransform FindChildRect(Transform root, string name)
+        => FindChild(root, name) as RectTransform;
+
+    private static T FindChildComponent<T>(Transform root, string name) where T : Component
+    {
+        var child = FindChild(root, name);
+        return child != null ? child.GetComponent<T>() : null;
+    }
+
+    private static Vector2 ResolveOptionsPanelSize(RectTransform panel)
+    {
+        if (panel == null)
+            return new Vector2(940f, 620f);
+
+        var size = panel.sizeDelta;
+        if (size.x <= 1f || size.y <= 1f)
+            size = panel.rect.size;
+
+        if (size.x <= 1f)
+            size.x = 940f;
+        if (size.y <= 1f)
+            size.y = 620f;
+
+        return size;
     }
 
     private static RectTransform CreatePanel(Transform parent, string name, Vector2 size, Color color)
@@ -618,10 +862,12 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         SetRectFromTopLeft(root, rect, sourceSize);
 
         var sliderSize = new Vector2(rect.width, rect.height);
-        const float trackLeft = 22f;
-        const float trackTop = 10f;
-        const float trackHeight = 24f;
-        var trackWidth = rect.width - 68f;
+        const float trackLeft = 20f;
+        const float trackTop = 11f;
+        const float trackHeight = 16f;
+        const float handleWidth = 22f;
+        const float handleHeight = 32f;
+        var trackWidth = rect.width - 58f;
 
         var background = CreateOptionImage(root, "Background", "Volume_Bar_Back", new Rect(trackLeft, trackTop, trackWidth, trackHeight), sliderSize);
         background.raycastTarget = false;
@@ -636,11 +882,11 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         var handleArea = CreateRect(root, "Handle Slide Area");
         SetRectFromTopLeft(handleArea, new Rect(trackLeft, 0f, trackWidth, rect.height), sliderSize);
 
-        var handle = CreateOptionImage(handleArea, "Handle", "Volume_Button", new Rect(0f, 0f, 34f, 46f), new Vector2(trackWidth, rect.height));
+        var handle = CreateOptionImage(handleArea, "Handle", "Volume_Button", new Rect(0f, 0f, handleWidth, handleHeight), new Vector2(trackWidth, rect.height));
         handle.rectTransform.anchorMin = new Vector2(0f, 0.5f);
         handle.rectTransform.anchorMax = new Vector2(0f, 0.5f);
         handle.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        handle.rectTransform.sizeDelta = new Vector2(34f, 46f);
+        handle.rectTransform.sizeDelta = new Vector2(handleWidth, handleHeight);
         handle.rectTransform.anchoredPosition = Vector2.zero;
         handle.raycastTarget = true;
 
@@ -667,14 +913,14 @@ public sealed class HomeUiPageNavigator : MonoBehaviour
         hitArea.raycastTarget = true;
 
         var optionSize = new Vector2(rect.width, rect.height);
-        var icon = CreateOptionImage(root, "Icon", "Circle_Button_Deactive", new Rect(0f, 6f, 32f, 32f), optionSize);
+        var icon = CreateOptionImage(root, "Icon", "Circle_Button_Deactive", new Rect(2f, 7f, 22f, 22f), optionSize);
         icon.raycastTarget = true;
         if (fullscreen)
             _fullscreenToggleImage = icon;
         else
             _windowedToggleImage = icon;
 
-        var text = CreateText(root, "Label", label, 19f, TextAlignmentOptions.MidlineLeft, new Color(0.22f, 0.10f, 0.025f, 1f), new Rect(44f, 0f, rect.width - 44f, rect.height), optionSize);
+        var text = CreateText(root, "Label", label, 16f, TextAlignmentOptions.MidlineLeft, new Color(0.22f, 0.10f, 0.025f, 1f), new Rect(34f, 0f, rect.width - 34f, rect.height), optionSize);
         text.fontStyle = FontStyles.Bold;
 
         var button = go.GetComponent<Button>();

@@ -22,6 +22,8 @@ public static class Home1SceneSpaceUiBuilder
     private const int TownHomeOverlaySortingOrder = 30000;
     private const string UiResourceSource = "../Resource/UI";
     private const string UiResourceTarget = "Assets/Resources/UI";
+    private const string GowunBatangFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/Gowun Batang.asset";
+    private const string GowunBatangFontFallbackPath = "Assets/TextMesh Pro/Resources/Gowun Batang.asset";
     private const string NanumGothicFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/NanumGothic SDF.asset";
     private const string NanumGothicFontFallbackPath = "Assets/TextMesh Pro/Resources/NanumGothic SDF.asset";
     private const string TownPassTicket = "Town Pass";
@@ -29,8 +31,20 @@ public static class Home1SceneSpaceUiBuilder
     private const string DetailIconFrameResourcePath = "UI/UI_Home_Equipment_Detail/UI_equipment_icon_frame_detail";
     private const string SlotIconFrameResourcePath = "UI/UI_Home_Equipment_Detail/UI_equipment_icon_frame_slot";
     private const string TownInventoryPrefabPath = "Assets/0.MainProject/Prefabs/UI/Town/PF_TownInventory_UI.prefab";
+    private const string TownHomeOverlayPrefabPath = "Assets/0.MainProject/Prefabs/UI/Town/PF_Canvas_TownHomeOverlay.prefab";
+    private const string TownHomeBackButtonTexturePath = "UI_Map/UI_Button_Back.png";
+    private const string TownEntryBackButtonTextureName = "Button_Teal_Medium_Left.png";
+    private const string InventoryLockedActionText = "LOCKED";
 
     private static readonly Vector2 LayoutSize = new(1280f, 720f);
+    private static readonly Rect TownHomeBackButtonRect = new(28f, 24f, 76f, 58f);
+    private static readonly Rect TownChoiceBackButtonRect = new(26f, 346f, 210f, 42f);
+    private static readonly Rect TownExistingBackButtonRect = new(28f, 346f, 210f, 42f);
+    private static readonly Rect TownNestedBackButtonRect = new(8f, 346f, 210f, 42f);
+    private static readonly Rect HomeCardActionFrameRect = new(142f, 116f, 142f, 38f);
+    private static readonly Rect HomeCardActionLabelRect = new(150f, 124f, 108f, 18f);
+    private static readonly Rect HomeCardActionArrowRect = new(260f, 118f, 18f, 28f);
+    private static readonly Color HomeCardLockedFrameTint = new(0.82f, 0.72f, 0.56f, 0.88f);
     private static readonly Color ParchmentText = new(0.10f, 0.22f, 0.20f, 1f);
     private static readonly Color ParchmentMutedText = new(0.32f, 0.26f, 0.18f, 1f);
     private static readonly Color GoldText = new(0.94f, 0.72f, 0.20f, 1f);
@@ -41,7 +55,7 @@ public static class Home1SceneSpaceUiBuilder
     private static readonly Color MapMutedText = new(0.38f, 0.31f, 0.22f, 1f);
     private static readonly Color EquipmentFrameBackground = new(0.70f, 0.53f, 0.32f, 0.76f);
     private static Sprite _defaultUiSprite;
-    private static TMP_FontAsset _nanumGothicFont;
+    private static TMP_FontAsset _koreanUiFont;
 
     [MenuItem("RhythmRPG/Editors/UI/Rebuild Home1 Scene Space UI")]
     public static void Build()
@@ -96,7 +110,8 @@ public static class Home1SceneSpaceUiBuilder
             EditorSceneManager.SaveScene(scene);
         }
 
-        if (!string.IsNullOrWhiteSpace(originalScenePath) && Array.IndexOf(scenePaths, originalScenePath) < 0)
+        if (!string.IsNullOrWhiteSpace(originalScenePath) &&
+            !string.Equals(EditorSceneManager.GetActiveScene().path, originalScenePath, StringComparison.Ordinal))
             EditorSceneManager.OpenScene(originalScenePath, OpenSceneMode.Single);
 
         AssetDatabase.SaveAssets();
@@ -119,6 +134,34 @@ public static class Home1SceneSpaceUiBuilder
             EditorSceneManager.OpenScene(originalScenePath, OpenSceneMode.Single);
 
         Debug.Log("[Home1SceneSpaceUiBuilder] Town Home overlay verification passed in TownMap and Town_Forest.");
+    }
+
+    [MenuItem("RhythmRPG/Editors/UI/Normalize Town Home Back Buttons")]
+    public static void NormalizeTownHomeBackButtons()
+    {
+        EnsureUiResources();
+        NormalizeTownHomeOverlayPrefab();
+
+        var originalScenePath = EditorSceneManager.GetActiveScene().path;
+        var scenePaths = new[] { TownMapScenePath, TownForestScenePath };
+
+        foreach (var scenePath in scenePaths)
+        {
+            var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            var overlay = FindSceneObject(scene, TownHomeOverlayCanvasName);
+            if (overlay != null && NormalizeTownHomeOverlay(overlay))
+            {
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(originalScenePath) &&
+            !string.Equals(EditorSceneManager.GetActiveScene().path, originalScenePath, StringComparison.Ordinal))
+            EditorSceneManager.OpenScene(originalScenePath, OpenSceneMode.Single);
+
+        AssetDatabase.SaveAssets();
+        Debug.Log("[Home1SceneSpaceUiBuilder] Normalized Town Home back buttons in prefab, TownMap, and Town_Forest.");
     }
 
     [MenuItem("RhythmRPG/Editors/UI/Verify Home1 Scene Space Flow")]
@@ -271,7 +314,8 @@ public static class Home1SceneSpaceUiBuilder
             if (relativeGenerated.StartsWith("UI_Lodaing/", StringComparison.OrdinalIgnoreCase))
                 continue;
             if (relativeGenerated.Equals("UI_Inventory/Inventory_Example.png", StringComparison.OrdinalIgnoreCase) ||
-                relativeGenerated.Equals("UI_EquimentDetail/Example.png", StringComparison.OrdinalIgnoreCase))
+                relativeGenerated.Equals("UI_EquimentDetail/Example.png", StringComparison.OrdinalIgnoreCase) ||
+                relativeGenerated.Equals("UI_Home_Option/Example_UI.png", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             File.Delete(generatedExample);
@@ -612,6 +656,56 @@ public static class Home1SceneSpaceUiBuilder
         }
     }
 
+    private static void ApplyHomeMenuCardLayout(Transform cardTransform, string actionText, bool locked)
+    {
+        var card = cardTransform as RectTransform;
+        if (card == null)
+            throw new InvalidOperationException($"{cardTransform.name} is missing RectTransform.");
+
+        var cardSize = card.rect.size;
+        if (cardSize.x <= 0f || cardSize.y <= 0f)
+            cardSize = new Vector2(300f, 176f);
+
+        var subtitle = RequireTmp(card, "Subtitle");
+        subtitle.text = string.Empty;
+        subtitle.gameObject.SetActive(false);
+
+        var actionFrame = RequireChild(card, "ActionFrame").GetComponent<Image>();
+        if (actionFrame != null)
+        {
+            SetRectFromTopLeft(actionFrame.rectTransform, HomeCardActionFrameRect, cardSize);
+            actionFrame.color = locked ? HomeCardLockedFrameTint : Color.white;
+            EditorUtility.SetDirty(actionFrame);
+        }
+
+        var label = RequireTmp(card, "ActionLabel");
+        SetRectFromTopLeft(label.rectTransform, HomeCardActionLabelRect, cardSize);
+        label.text = actionText;
+        label.color = locked ? ParchmentMutedText : ParchmentText;
+        label.gameObject.SetActive(true);
+
+        var arrow = RequireTmp(card, "ActionArrow");
+        SetRectFromTopLeft(arrow.rectTransform, HomeCardActionArrowRect, cardSize);
+        arrow.text = locked ? string.Empty : "\u203A";
+        arrow.color = locked ? ParchmentMutedText : ParchmentText;
+        arrow.gameObject.SetActive(true);
+
+        var buttonName = card.name.EndsWith("_Card", StringComparison.Ordinal)
+            ? card.name.Substring(0, card.name.Length - "_Card".Length)
+            : card.name;
+        var button = RequireChild(card, buttonName).GetComponent<Button>();
+        if (button != null)
+        {
+            button.interactable = !locked;
+            EditorUtility.SetDirty(button);
+        }
+
+        EditorUtility.SetDirty(card);
+        EditorUtility.SetDirty(subtitle);
+        EditorUtility.SetDirty(label);
+        EditorUtility.SetDirty(arrow);
+    }
+
     private static RectTransform CreatePageRoot(Transform parent, string name, bool active)
     {
         var go = new GameObject(name, typeof(RectTransform));
@@ -641,12 +735,14 @@ public static class Home1SceneSpaceUiBuilder
             SetRectFromTopLeft(expFill.rectTransform, new Rect(120f, 190f, 120f, 5f), referenceSize);
         }
 
-        var equipment = CreateHomeMenuCard(reference, "Button_Equipment", "UI_Home_Interface/UI_Decoration_Equipment.png", "EQUIPMENT", "Equip weapons, armor, and\nspecial gear.", "Manage Equipment", new Rect(88f, 242f, 300f, 176f), referenceSize);
-        var inventory = CreateHomeMenuCard(reference, "Button_Inventory", "UI_Home_Interface/UI_Decoration_Inventory.png", "INVENTORY", "View items, materials,\nand useful goods.", "Open Inventory", new Rect(88f, 464f, 300f, 176f), referenceSize);
-        var appearance = CreateHomeMenuCard(reference, "Button_Appearance", "UI_Home_Interface/UI_Decoration_Appear.png", "APPEARANCE", "Customize your look\nand outfit.", "Change Appearance", new Rect(750f, 242f, 300f, 176f), referenceSize);
+        var equipment = CreateHomeMenuCard(reference, "Button_Equipment", "UI_Home_Interface/UI_Decoration_Equipment.png", "EQUIPMENT", string.Empty, "Manage Equipment", new Rect(88f, 242f, 300f, 176f), referenceSize);
+        var inventory = CreateHomeMenuCard(reference, "Button_Inventory", "UI_Home_Interface/UI_Decoration_Inventory.png", "INVENTORY", string.Empty, InventoryLockedActionText, new Rect(88f, 464f, 300f, 176f), referenceSize);
+        var appearance = CreateHomeMenuCard(reference, "Button_Appearance", "UI_Home_Interface/UI_Decoration_Appear.png", "APPEARANCE", string.Empty, "Change Appearance", new Rect(750f, 242f, 300f, 176f), referenceSize);
         var map = isTownOverlay
-            ? CreateHomeMenuCard(reference, "Button_Map", "UI_Home_Interface/UI_Decoration_Map.png", "OPTIONS", "소리, 게임 플레이,\n나가기 설정.", "Open Options", new Rect(750f, 464f, 300f, 176f), referenceSize)
-            : CreateHomeMenuCard(reference, "Button_Map", "UI_Home_Interface/UI_Decoration_Map.png", "MAP", "View the world map and\nplan your route to Town.", "Open World Map", new Rect(750f, 464f, 300f, 176f), referenceSize);
+            ? CreateHomeMenuCard(reference, "Button_Map", "UI_Home_Interface/UI_Decoration_Map.png", "OPTIONS", string.Empty, "Open Options", new Rect(750f, 464f, 300f, 176f), referenceSize)
+            : CreateHomeMenuCard(reference, "Button_Map", "UI_Home_Interface/UI_Decoration_Map.png", "MAP", string.Empty, "Open World Map", new Rect(750f, 464f, 300f, 176f), referenceSize);
+
+        ApplyHomeMenuCardLayout(inventory.transform.parent, InventoryLockedActionText, true);
 
         return new HomeMenuButtons
         {
@@ -664,7 +760,9 @@ public static class Home1SceneSpaceUiBuilder
             CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.58f));
 
         var reference = CreateDesignRoot(root, "EquipmentReference", referenceSize);
-        var back = CreateButtonTexture(reference, "Button_Back", "UI_Home_Equipment/UI_Button_BackfromEquipment.png", new Rect(0f, 18f, 500f, 78f), referenceSize);
+        var back = isTownOverlay
+            ? CreateTownHomeBackButton(root, "Button_Back")
+            : CreateButtonTexture(reference, "Button_Back", "UI_Home_Equipment/UI_Button_BackfromEquipment.png", new Rect(0f, 18f, 500f, 78f), referenceSize);
         CreateText(reference, "Title", "EQUIPMENT", new Rect(162f, 36f, 280f, 42f), 38f, TextAlignmentOptions.MidlineLeft, new Color(0.98f, 0.88f, 0.62f, 1f), referenceSize);
 
         var slots = new List<HomeEquipSlotUI>
@@ -865,15 +963,17 @@ public static class Home1SceneSpaceUiBuilder
             CreateSolid(root, "OverlayDim", new Color(0f, 0f, 0f, 0.18f));
 
         CreateTexture(root, "AppearancePanel", "UI_Appear/UI_Panel.png", new Rect(622f, 30f, 548f, 670f));
-        CreateTexture(root, "AppearanceTitleFrame", "UI_Appear/UI_Title_Text.png", new Rect(708f, 42f, 368f, 86f));
-        CreateText(root, "Title", "외형 선택", new Rect(790f, 64f, 212f, 34f), 30f, TextAlignmentOptions.Center, GoldText);
-        var back = CreateButtonTexture(root, "Button_Back_Appearance", "UI_Appear/UI_Button_Close.png", new Rect(1088f, 44f, 64f, 64f));
+        CreateTexture(root, "AppearanceTitleFrame", "UI_Appear/UI_Title_Text.png", new Rect(708f, 54f, 368f, 78f));
+        CreateText(root, "Title", "외형 선택", new Rect(790f, 75f, 212f, 30f), 26f, TextAlignmentOptions.Center, GoldText);
+        var back = isTownOverlay
+            ? CreateTownHomeBackButton(root, "Button_Back_Appearance")
+            : CreateButtonTexture(root, "Button_Back_Appearance", "UI_Appear/UI_Button_Close.png", new Rect(1092f, 58f, 52f, 52f));
 
-        CreateText(root, "CurrentText", "선택 외형: -", new Rect(692f, 588f, 236f, 24f), 16f, TextAlignmentOptions.MidlineLeft, ParchmentText);
-        CreateText(root, "AppliedText", "적용 외형: -", new Rect(692f, 616f, 236f, 22f), 14f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText);
-        CreateText(root, "StatusText", "준비 중", new Rect(692f, 642f, 236f, 28f), 12f, TextAlignmentOptions.TopLeft, ParchmentMutedText);
+        CreateText(root, "CurrentText", "선택 외형: -", new Rect(684f, 578f, 228f, 24f), 14f, TextAlignmentOptions.MidlineLeft, ParchmentText);
+        CreateText(root, "AppliedText", "적용 외형: -", new Rect(684f, 604f, 228f, 22f), 13f, TextAlignmentOptions.MidlineLeft, ParchmentMutedText);
+        CreateText(root, "StatusText", "준비 중", new Rect(684f, 628f, 228f, 38f), 12f, TextAlignmentOptions.TopLeft, ParchmentMutedText);
 
-        var scroll = CreateScrollView(root, "AppearanceScroll", new Rect(668f, 124f, 442f, 448f), new Vector2(442f, 610f));
+        var scroll = CreateScrollView(root, "AppearanceScroll", new Rect(668f, 144f, 442f, 414f), new Vector2(442f, 610f));
         var optionBindings = new List<HomeAppearancePageUI.OptionBinding>();
         var options = AppearanceCatalog.Options;
         var count = Mathf.Min(options.Count, 8);
@@ -886,12 +986,15 @@ public static class Home1SceneSpaceUiBuilder
             var button = CreateButtonTexture(scroll.Content, $"AppearanceOption_{option.Id}", "UI_Appear/UI_Panel_Character_Appear.png", rect, scroll.Content.sizeDelta);
             var highlight = CreateSolid(button.transform as RectTransform, "SelectedHighlight", new Color(1f, 1f, 1f, 0f));
             Stretch(highlight.rectTransform);
-            var portrait = CreateTexture(button.transform, "Portrait", ResolveAppearancePortraitPath(option.Id), new Rect(48f, 8f, 118f, 86f), new Vector2(214f, 144f));
-            FitAppearancePortraitToTexture(portrait, new Rect(48f, 8f, 118f, 86f), new Vector2(214f, 144f));
+            var portraitRect = new Rect(61f, 16f, 92f, 68f);
+            var portrait = CreateTexture(button.transform, "Portrait", ResolveAppearancePortraitPath(option.Id), portraitRect, new Vector2(214f, 144f));
+            FitAppearancePortraitToTexture(portrait, portraitRect, new Vector2(214f, 144f));
             portrait.color = new Color(0.86f, 0.82f, 0.74f, 1f);
-            var label = CreateText(button.transform as RectTransform, "Label", option.DisplayName, new Rect(20f, 96f, 150f, 24f), 16f, TextAlignmentOptions.Center, ParchmentText, new Vector2(214f, 144f));
-            CreateTexture(button.transform, "HoldBadge", "UI_Appear/UI_Decoration_Appear_State_Hold.png", new Rect(150f, 8f, 54f, 26f), new Vector2(214f, 144f));
-            var equipped = CreateTexture(button.transform, "EquippedMark", "UI_Appear/UI_Decoration_Appear_State_Equip.png", new Rect(150f, 8f, 54f, 26f), new Vector2(214f, 144f));
+            var label = CreateText(button.transform as RectTransform, "Label", option.DisplayName, new Rect(23f, 94f, 168f, 24f), 14f, TextAlignmentOptions.Center, ParchmentText, new Vector2(214f, 144f));
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.overflowMode = TextOverflowModes.Ellipsis;
+            CreateTexture(button.transform, "HoldBadge", "UI_Appear/UI_Decoration_Appear_State_Hold.png", new Rect(154f, 12f, 46f, 22f), new Vector2(214f, 144f));
+            var equipped = CreateTexture(button.transform, "EquippedMark", "UI_Appear/UI_Decoration_Appear_State_Equip.png", new Rect(154f, 12f, 46f, 22f), new Vector2(214f, 144f));
             equipped.gameObject.SetActive(false);
 
             optionBindings.Add(new HomeAppearancePageUI.OptionBinding
@@ -905,8 +1008,8 @@ public static class Home1SceneSpaceUiBuilder
             });
         }
 
-        var apply = CreateButtonTexture(root, "Button_ApplyAppearance", "UI_Appear/UI_Button_Applay.png", new Rect(926f, 588f, 176f, 62f));
-        CreateText(apply.transform as RectTransform, "Label", "적용", new Rect(32f, 15f, 112f, 28f), 24f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(176f, 62f));
+        var apply = CreateButtonTexture(root, "Button_ApplyAppearance", "UI_Appear/UI_Button_Applay.png", new Rect(930f, 594f, 172f, 56f));
+        CreateText(apply.transform as RectTransform, "Label", "적용", new Rect(30f, 13f, 112f, 26f), 22f, TextAlignmentOptions.Center, ButtonLightText, new Vector2(172f, 56f));
 
         var ui = root.gameObject.AddComponent<HomeAppearancePageUI>();
         var so = new SerializedObject(ui);
@@ -946,8 +1049,14 @@ public static class Home1SceneSpaceUiBuilder
             return;
 
         var texture = portrait.texture as Texture2D;
-        portrait.uvRect = BuildCoverUvRect(texture, new Vector2(box.width, box.height));
-        SetRectFromTopLeft(portrait.rectTransform, box, sourceSize);
+        portrait.uvRect = new Rect(0f, 0f, 1f, 1f);
+        var fittedSize = FitSizeInside(texture, new Vector2(box.width, box.height));
+        var fittedBox = new Rect(
+            box.x + (box.width - fittedSize.x) * 0.5f,
+            box.y + (box.height - fittedSize.y) * 0.5f,
+            fittedSize.x,
+            fittedSize.y);
+        SetRectFromTopLeft(portrait.rectTransform, fittedBox, sourceSize);
         portrait.raycastTarget = false;
     }
 
@@ -958,7 +1067,9 @@ public static class Home1SceneSpaceUiBuilder
 
         CreateTexture(root, "MapPaper", "UI_Map/UI_Panel_MapPaper.png", new Rect(0f, 0f, 1280f, 720f));
         CreateTexture(root, "MapFrame", "UI_Map/UI_Panel_MapFrame.png", new Rect(0f, 0f, 1280f, 720f));
-        var back = CreateButtonTexture(root, "Button_Back_Map", "UI_Map/UI_Button_Back.png", new Rect(42f, 48f, 140f, 66f));
+        var back = isTownOverlay
+            ? CreateTownHomeBackButton(root, "Button_Back_Map")
+            : CreateButtonTexture(root, "Button_Back_Map", "UI_Map/UI_Button_Back.png", new Rect(42f, 48f, 140f, 66f));
         CreateTexture(root, "MapTitleFrame", "UI_Map/UI_Title_Main.png", new Rect(424f, 18f, 430f, 104f));
         CreateText(root, "MapTitleText", "WORLD MAP", new Rect(504f, 38f, 270f, 42f), 36f, TextAlignmentOptions.Center, ParchmentText);
         var realms = new[]
@@ -975,8 +1086,8 @@ public static class Home1SceneSpaceUiBuilder
         CreateText(root, "RealmTitle", "GOLDEN PLAINS", new Rect(932f, 192f, 252f, 36f), 27f, TextAlignmentOptions.Center, ParchmentText);
         CreateText(root, "RealmTicket", "Ticket: -", new Rect(934f, 238f, 248f, 22f), 14f, TextAlignmentOptions.Center, ParchmentMutedText);
 
-        var detailScroll = CreateScrollView(root, "RealmDetailScroll", new Rect(922f, 280f, 270f, 118f), new Vector2(250f, 128f));
-        var detail = CreateText(detailScroll.Content, "RealmDescription", "숲의 균열과 리듬 왜곡이 시작된 첫 영역입니다.", new Rect(0f, 4f, 250f, 112f), 15f, TextAlignmentOptions.Center, MapBodyText, detailScroll.Content.sizeDelta);
+        var detailScroll = CreateScrollView(root, "RealmDetailScroll", new Rect(922f, 258f, 270f, 112f), new Vector2(250f, 112f));
+        var detail = CreateText(detailScroll.Content, "RealmDescription", "숲의 균열과 리듬 왜곡이 시작된 첫 영역입니다.", new Rect(0f, 0f, 250f, 108f), 15f, TextAlignmentOptions.Center, MapBodyText, detailScroll.Content.sizeDelta);
         detail.textWrappingMode = TextWrappingModes.Normal;
         detail.lineSpacing = 4f;
         detail.margin = new Vector4(8f, 0f, 8f, 0f);
@@ -1233,7 +1344,7 @@ public static class Home1SceneSpaceUiBuilder
         CreateTownSeparator(choiceRoot, "QuickKeyDivider", new Rect(28f, 260f, 512f, 16f), choiceSize, "Quick Key Join");
         var quickKeyInput = CreateTownChoiceInput(choiceRoot, "Input_QuickTownKey", "Enter town key...", new Rect(26f, 288f, 390f, 42f), choiceSize);
         var quickJoinButton = CreateTownChoiceButton(choiceRoot, "Button_QuickKeyJoin", "Join", new Rect(436f, 288f, 104f, 42f), choiceSize);
-        var choiceBack = CreateTownChoiceButton(choiceRoot, "Button_ChoiceBack", "Back", new Rect(22f, 346f, 220f, 42f), choiceSize);
+        var choiceBack = CreateTownChoiceButton(choiceRoot, "Button_ChoiceBack", "Back", TownChoiceBackButtonRect, choiceSize, TownEntryBackButtonTextureName);
         var choiceOpen = CreateTownChoiceButton(choiceRoot, "Button_ChoiceOpenSelected", "Open Selected", new Rect(318f, 346f, 226f, 42f), choiceSize);
 
         var existingRoot = CreateRect(panelRect, "ExistingTownsRoot");
@@ -1262,7 +1373,7 @@ public static class Home1SceneSpaceUiBuilder
         var selectedTownDescription = CreateText(existingRoot, "SelectedTownDescription", "Browse available towns and choose one.", new Rect(376f, 194f, 160f, 54f), 9.5f, TextAlignmentOptions.TopLeft, ParchmentText, existingSize);
         var selectedTownKey = CreateText(existingRoot, "SelectedTownKey", "", new Rect(378f, 254f, 158f, 16f), 9f, TextAlignmentOptions.Center, ParchmentMutedText, existingSize);
         var joinSelectedButton = CreateTownChoiceButton(existingRoot, "Button_JoinSelectedTown", "Join Selected Town", new Rect(384f, 284f, 150f, 34f), existingSize);
-        var existingBack = CreateTownChoiceButton(existingRoot, "Button_ExistingBack", "Back", new Rect(146f, 346f, 170f, 42f), existingSize);
+        var existingBack = CreateTownChoiceButton(existingRoot, "Button_ExistingBack", "Back", TownExistingBackButtonRect, existingSize, TownEntryBackButtonTextureName);
         var refreshButton = CreateTownChoiceButton(existingRoot, "Button_FindTown", "Refresh", new Rect(336f, 346f, 170f, 42f), existingSize);
         existingRoot.gameObject.SetActive(false);
 
@@ -1284,7 +1395,7 @@ public static class Home1SceneSpaceUiBuilder
             CreateTownMaxPlayerButton(createRoot, "Button_MaxPlayers_8", 8, new Rect(398f, 242f, 108f, 38f), createSize)
         };
         var visibilityHint = CreateText(createRoot, "VisibilityHint", "Public towns appear in the existing town list and can be joined by other players.", new Rect(52f, 298f, 428f, 34f), 13f, TextAlignmentOptions.Center, ParchmentMutedText, createSize);
-        var createCancel = CreateTownChoiceButton(createRoot, "Button_CreateCancel", "Cancel", new Rect(26f, 356f, 210f, 42f), createSize);
+        var createCancel = CreateTownChoiceButton(createRoot, "Button_CreateCancel", "Back", TownNestedBackButtonRect, createSize, TownEntryBackButtonTextureName);
         var createButton = CreateTownChoiceButton(createRoot, "Button_CreateTown", "Create Town", new Rect(296f, 356f, 210f, 42f), createSize);
         createRoot.gameObject.SetActive(false);
 
@@ -1307,7 +1418,7 @@ public static class Home1SceneSpaceUiBuilder
         keyIcon.raycastTarget = false;
         keyResult.gameObject.SetActive(false);
         CreateTownSeparator(keyRoot, "KeyClearDivider", new Rect(76f, 282f, 380f, 12f), keySize, "Clear");
-        var keyCancel = CreateTownChoiceButton(keyRoot, "Button_KeyCancel", "Cancel", new Rect(28f, 346f, 210f, 42f), keySize);
+        var keyCancel = CreateTownChoiceButton(keyRoot, "Button_KeyCancel", "Back", TownNestedBackButtonRect, keySize, TownEntryBackButtonTextureName);
         var joinKeyButton = CreateTownChoiceButton(keyRoot, "Button_JoinKeyTown", "Join Town", new Rect(296f, 346f, 210f, 42f), keySize);
         var clearKeyButton = CreateTownChoiceButton(keyRoot, "Button_ClearKey", "Clear", new Rect(220f, 278f, 92f, 28f), keySize);
         keyRoot.gameObject.SetActive(false);
@@ -1630,10 +1741,11 @@ public static class Home1SceneSpaceUiBuilder
         var divider = CreateSolid(card, "Divider", new Color(0f, 0.35f, 0.36f, 1f));
         SetRectFromTopLeft(divider.rectTransform, new Rect(210f, 76f, 7f, 7f), cardSize);
         divider.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-        CreateText(card, "Subtitle", subtitle, new Rect(146f, 92f, 128f, 44f), 13f, TextAlignmentOptions.TopLeft, ParchmentMutedText, cardSize);
-        CreateTexture(card, "ActionFrame", "UI_Home_Interface/UI_Button.png", new Rect(142f, 132f, 142f, 38f), cardSize);
-        CreateText(card, "ActionLabel", actionText, new Rect(150f, 140f, 108f, 18f), 12f, TextAlignmentOptions.Center, ParchmentText, cardSize);
-        CreateText(card, "ActionArrow", "›", new Rect(260f, 134f, 18f, 28f), 22f, TextAlignmentOptions.Center, ParchmentText, cardSize);
+        var subtitleText = CreateText(card, "Subtitle", string.Empty, new Rect(146f, 92f, 128f, 44f), 13f, TextAlignmentOptions.TopLeft, ParchmentMutedText, cardSize);
+        subtitleText.gameObject.SetActive(false);
+        CreateTexture(card, "ActionFrame", "UI_Home_Interface/UI_Button.png", HomeCardActionFrameRect, cardSize);
+        CreateText(card, "ActionLabel", actionText, HomeCardActionLabelRect, 12f, TextAlignmentOptions.Center, ParchmentText, cardSize);
+        CreateText(card, "ActionArrow", "\u203A", HomeCardActionArrowRect, 22f, TextAlignmentOptions.Center, ParchmentText, cardSize);
 
         var button = CreateTransparentButton(card, buttonName, new Rect(0f, 0f, rect.width, rect.height), new Vector2(rect.width, rect.height));
         AddButtonFeedback(button, card, button.targetGraphic);
@@ -1701,7 +1813,14 @@ public static class Home1SceneSpaceUiBuilder
 
     private static Button CreateBackButton(RectTransform root, string name)
     {
-        return CreateButtonTexture(root, name, "UI_Map/UI_Button_Back.png", new Rect(28f, 24f, 76f, 58f));
+        return CreateTownHomeBackButton(root, name);
+    }
+
+    private static Button CreateTownHomeBackButton(RectTransform root, string name)
+    {
+        var button = CreateButtonTexture(root, name, TownHomeBackButtonTexturePath, TownHomeBackButtonRect);
+        button.transform.SetAsLastSibling();
+        return button;
     }
 
     private static GameObject CreatePopupItemPrefab(RectTransform parent)
@@ -1933,17 +2052,21 @@ public static class Home1SceneSpaceUiBuilder
 
     private static TMP_FontAsset GetNanumGothicFont()
     {
-        if (_nanumGothicFont != null)
-            return _nanumGothicFont;
+        if (_koreanUiFont != null)
+            return _koreanUiFont;
 
-        _nanumGothicFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(NanumGothicFontPath);
-        if (_nanumGothicFont == null)
-            _nanumGothicFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(NanumGothicFontFallbackPath);
+        _koreanUiFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(GowunBatangFontPath);
+        if (_koreanUiFont == null)
+            _koreanUiFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(GowunBatangFontFallbackPath);
+        if (_koreanUiFont == null)
+            _koreanUiFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(NanumGothicFontPath);
+        if (_koreanUiFont == null)
+            _koreanUiFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(NanumGothicFontFallbackPath);
 
-        if (_nanumGothicFont == null)
-            Debug.LogWarning("[Home1SceneSpaceUiBuilder] NanumGothic SDF font asset was not found.");
+        if (_koreanUiFont == null)
+            Debug.LogWarning("[Home1SceneSpaceUiBuilder] Korean UI font asset was not found.");
 
-        return _nanumGothicFont;
+        return _koreanUiFont;
     }
 
     private static void ApplyNanumGothicFontToChildren(RectTransform root)
@@ -1979,6 +2102,22 @@ public static class Home1SceneSpaceUiBuilder
             WorldMapFontLibrary.ApplyPreferredFont(text, fallbackFont);
             EditorUtility.SetDirty(text);
         }
+    }
+
+    private static Vector2 FitSizeInside(Texture2D texture, Vector2 boxSize)
+    {
+        if (texture == null || texture.width <= 0 || texture.height <= 0 || boxSize.x <= 0f || boxSize.y <= 0f)
+            return boxSize;
+
+        var textureAspect = texture.width / (float)texture.height;
+        var boxAspect = boxSize.x / boxSize.y;
+        var size = boxSize;
+        if (textureAspect > boxAspect)
+            size.y = boxSize.x / textureAspect;
+        else if (textureAspect < boxAspect)
+            size.x = boxSize.y * textureAspect;
+
+        return size;
     }
 
     private static Rect BuildCoverUvRect(Texture2D texture, Vector2 boxSize)
@@ -2174,6 +2313,195 @@ public static class Home1SceneSpaceUiBuilder
             graphic.color = selected ? new Color(0.08f, 0.31f, 0.33f, 1f) : new Color(0.86f, 0.72f, 0.50f, 0.28f);
 
         RequireTmp(buttonRoot, "Label").color = selected ? new Color(0.98f, 0.91f, 0.70f, 1f) : ParchmentText;
+    }
+
+    private static void NormalizeTownHomeOverlayPrefab()
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(TownHomeOverlayPrefabPath);
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[Home1SceneSpaceUiBuilder] Town Home overlay prefab not found: {TownHomeOverlayPrefabPath}");
+            return;
+        }
+
+        var root = PrefabUtility.LoadPrefabContents(TownHomeOverlayPrefabPath);
+        try
+        {
+            if (NormalizeTownHomeOverlay(root))
+                PrefabUtility.SaveAsPrefabAsset(root, TownHomeOverlayPrefabPath);
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+    }
+
+    private static bool NormalizeTownHomeOverlay(GameObject overlay)
+    {
+        if (overlay == null)
+            return false;
+
+        var changed = false;
+        changed |= NormalizeTownHomePageBackButton(overlay.transform, "UI_Home_Equipment", "Button_Back");
+        changed |= NormalizeTownHomePageBackButton(overlay.transform, "UI_Home_Inventory", "Button_Back_Inventory");
+        changed |= NormalizeTownHomePageBackButton(overlay.transform, "UI_Home_Appearance", "Button_Back_Appearance");
+        changed |= NormalizeTownHomePageBackButton(overlay.transform, "UI_Home_Map", "Button_Back_Map");
+        changed |= NormalizeTownEntryPanelBackButtons(overlay.transform);
+        return changed;
+    }
+
+    private static bool NormalizeTownHomePageBackButton(Transform overlay, string pageName, string buttonName)
+    {
+        var page = FindChildOrNull(overlay, pageName) as RectTransform;
+        if (page == null)
+            return false;
+
+        var buttonTransform = FindChildOrNull(page, buttonName) as RectTransform;
+        if (buttonTransform == null)
+            return false;
+
+        var button = buttonTransform.GetComponent<Button>();
+        if (button == null)
+            return false;
+
+        if (buttonTransform.parent != page)
+            buttonTransform.SetParent(page, false);
+
+        buttonTransform.localScale = Vector3.one;
+        buttonTransform.localRotation = Quaternion.identity;
+        SetRectFromTopLeft(buttonTransform, TownHomeBackButtonRect, LayoutSize);
+        buttonTransform.SetAsLastSibling();
+
+        ApplyRawButtonTexture(button, TownHomeBackButtonTexturePath);
+        AddButtonFeedback(button, buttonTransform, button.targetGraphic);
+        EditorUtility.SetDirty(buttonTransform);
+        EditorUtility.SetDirty(button);
+        return true;
+    }
+
+    private static bool NormalizeTownEntryPanelBackButtons(Transform overlay)
+    {
+        var panel = FindChildOrNull(overlay, "TownEntryChoicePanel");
+        if (panel == null)
+            return false;
+
+        var changed = false;
+        changed |= NormalizeTownEntryBackButton(panel, "EntryChoiceRoot", "Button_ChoiceBack", TownChoiceBackButtonRect, new Vector2(568f, 388f));
+        changed |= NormalizeTownEntryBackButton(panel, "ExistingTownsRoot", "Button_ExistingBack", TownExistingBackButtonRect, new Vector2(572f, 388f));
+        changed |= NormalizeTownEntryBackButton(panel, "CreateTownRoot", "Button_CreateCancel", TownNestedBackButtonRect, new Vector2(532f, 398f));
+        changed |= NormalizeTownEntryBackButton(panel, "JoinWithKeyRoot", "Button_KeyCancel", TownNestedBackButtonRect, new Vector2(532f, 388f));
+        return changed;
+    }
+
+    private static bool NormalizeTownEntryBackButton(Transform panel, string rootName, string buttonName, Rect rect, Vector2 fallbackSourceSize)
+    {
+        var root = FindChildOrNull(panel, rootName) as RectTransform;
+        if (root == null)
+            return false;
+
+        var buttonTransform = FindChildOrNull(root, buttonName) as RectTransform;
+        if (buttonTransform == null)
+            return false;
+
+        var button = buttonTransform.GetComponent<Button>();
+        if (button == null)
+            return false;
+
+        var sourceSize = root.rect.size;
+        if (sourceSize.x <= 1f || sourceSize.y <= 1f)
+            sourceSize = fallbackSourceSize;
+
+        buttonTransform.localScale = Vector3.one;
+        buttonTransform.localRotation = Quaternion.identity;
+        SetRectFromTopLeft(buttonTransform, rect, sourceSize);
+        ApplyRawButtonTexture(button, $"UI_TownEntry/{TownEntryBackButtonTextureName}");
+        AddButtonFeedback(button, buttonTransform, button.targetGraphic);
+
+        var label = FindChildOrNull(buttonTransform, "Label")?.GetComponent<TextMeshProUGUI>();
+        if (label != null)
+        {
+            label.text = "Back";
+            label.fontSize = 15f;
+            label.fontSizeMax = 15f;
+            label.fontSizeMin = 8f;
+            label.enableAutoSizing = true;
+            label.alignment = TextAlignmentOptions.Center;
+            label.color = ButtonLightText;
+            label.textWrappingMode = TextWrappingModes.Normal;
+            label.overflowMode = TextOverflowModes.Ellipsis;
+            var labelRect = label.transform as RectTransform;
+            if (labelRect != null)
+                SetRectFromTopLeft(labelRect, new Rect(8f, 0f, rect.width - 16f, rect.height), new Vector2(rect.width, rect.height));
+            EditorUtility.SetDirty(label);
+        }
+
+        buttonTransform.SetAsLastSibling();
+        EditorUtility.SetDirty(buttonTransform);
+        EditorUtility.SetDirty(button);
+        return true;
+    }
+
+    private static void ApplyRawButtonTexture(Button button, string relativePath)
+    {
+        if (button == null)
+            return;
+
+        var assetPath = $"{UiResourceTarget}/{relativePath}";
+        var rawImage = button.GetComponent<RawImage>();
+        var image = button.GetComponent<Image>();
+        if (rawImage == null && image != null)
+        {
+            UnityEngine.Object.DestroyImmediate(image, true);
+            rawImage = button.gameObject.AddComponent<RawImage>();
+        }
+
+        if (rawImage != null)
+        {
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
+            if (texture != null)
+                rawImage.texture = texture;
+
+            rawImage.color = Color.white;
+            rawImage.raycastTarget = true;
+            button.targetGraphic = rawImage;
+            EditorUtility.SetDirty(rawImage);
+        }
+
+        button.transition = Selectable.Transition.None;
+        button.navigation = new Navigation { mode = Navigation.Mode.Automatic };
+    }
+
+    private static GameObject FindSceneObject(Scene scene, string name)
+    {
+        if (!scene.IsValid())
+            return null;
+
+        foreach (var root in scene.GetRootGameObjects())
+        {
+            var found = FindChildOrNull(root.transform, name);
+            if (found != null)
+                return found.gameObject;
+        }
+
+        return null;
+    }
+
+    private static Transform FindChildOrNull(Transform root, string name)
+    {
+        if (root == null || string.IsNullOrEmpty(name))
+            return null;
+
+        if (root.name == name)
+            return root;
+
+        for (var i = 0; i < root.childCount; i++)
+        {
+            var found = FindChildOrNull(root.GetChild(i), name);
+            if (found != null)
+                return found;
+        }
+
+        return null;
     }
 
     private static Transform RequireChild(Transform root, string name)

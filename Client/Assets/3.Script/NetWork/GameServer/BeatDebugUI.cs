@@ -75,6 +75,11 @@ public class BeatDebugUI_TMP : MonoBehaviour
     {
         Instance = this;
 
+        if (!P2PDebugViewConfig.DebugUiEnabled)
+        {
+            gameObject.SetActive(false);
+            return;
+        }
 
         _defaultSprite = CreateWhiteSprite();
 
@@ -188,7 +193,7 @@ public class BeatDebugUI_TMP : MonoBehaviour
 
     private bool ApplyDebugOverlayVisibility(bool force = false)
     {
-        bool visible = P2PDebugViewConfig.ShowNetworkSyncOverlay;
+        bool visible = P2PDebugViewConfig.DebugUiEnabled && P2PDebugViewConfig.ShowNetworkSyncOverlay;
         if (_canvas != null && (force || _lastDebugOverlayVisible != visible || _canvas.enabled != visible))
             _canvas.enabled = visible;
 
@@ -202,6 +207,9 @@ public class BeatDebugUI_TMP : MonoBehaviour
     /// </summary>
     public void RecordServerDiff(int diffMs, long beatIndex, long recvServerNowMs)
     {
+        if (!P2PDebugViewConfig.DebugUiEnabled)
+            return;
+
         LastServerDiffMs = diffMs;
         LastServerDiffBeat = beatIndex;
         LastServerDiffRecvServerNowMs = recvServerNowMs;
@@ -213,6 +221,9 @@ public class BeatDebugUI_TMP : MonoBehaviour
     /// </summary>
     public void MarkHitNow()
     {
+        if (!P2PDebugViewConfig.DebugUiEnabled || !P2PDebugViewConfig.ShowNetworkSyncOverlay)
+            return;
+
         if (Rhythm == null || _barBg == null) return;
 
         double beatMs = Rhythm.GetBeatDurationMs();

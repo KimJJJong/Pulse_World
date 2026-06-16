@@ -32,6 +32,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
     private System.Action _onClick;
     private bool _isSelected;
     private bool _forceResourceCardLayout;
+    [SerializeField] private bool _useManualObjectLayout;
     private static TMP_FontAsset _koreanFont;
 
     private void Awake()
@@ -46,7 +47,13 @@ public class HomeEquipPopupItemUI : MonoBehaviour
 
     public void Setup(SC_Inventory.Equipments data, System.Action onClick, bool isSelected, bool useResourceCardLayout)
     {
+        Setup(data, onClick, isSelected, useResourceCardLayout, false);
+    }
+
+    public void Setup(SC_Inventory.Equipments data, System.Action onClick, bool isSelected, bool useResourceCardLayout, bool useManualObjectLayout)
+    {
         _forceResourceCardLayout = useResourceCardLayout;
+        _useManualObjectLayout = useManualObjectLayout;
         ResolveReferences();
         _data = data;
         _onClick = onClick;
@@ -59,14 +66,17 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             if (_nameText != null)
             {
                 _nameText.text = tmpl.name;
-                _nameText.gameObject.SetActive(!gridCard);
+                _nameText.gameObject.SetActive(_useManualObjectLayout || !gridCard);
                 ApplyKoreanFont(_nameText);
-                _nameText.fontSize = gridCard ? 11f : 16f;
-                _nameText.enableAutoSizing = true;
-                _nameText.fontSizeMin = gridCard ? 8f : 11f;
-                _nameText.fontSizeMax = gridCard ? 11f : 16f;
-                _nameText.overflowMode = TextOverflowModes.Ellipsis;
-                _nameText.alignment = gridCard ? TextAlignmentOptions.Center : TextAlignmentOptions.MidlineLeft;
+                if (!_useManualObjectLayout)
+                {
+                    _nameText.fontSize = gridCard ? 11f : 16f;
+                    _nameText.enableAutoSizing = true;
+                    _nameText.fontSizeMin = gridCard ? 8f : 11f;
+                    _nameText.fontSizeMax = gridCard ? 11f : 16f;
+                    _nameText.overflowMode = TextOverflowModes.Ellipsis;
+                    _nameText.alignment = gridCard ? TextAlignmentOptions.Center : TextAlignmentOptions.MidlineLeft;
+                }
             }
 
             if (_icon != null)
@@ -82,14 +92,17 @@ public class HomeEquipPopupItemUI : MonoBehaviour
                 _icon.enabled = sprite != null;
                 _icon.preserveAspect = true;
                 _icon.raycastTarget = false;
-                var iconRect = _icon.rectTransform;
-                if (iconRect != null)
+                if (!_useManualObjectLayout)
                 {
-                    iconRect.anchorMin = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
-                    iconRect.anchorMax = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
-                    iconRect.pivot = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
-                    iconRect.sizeDelta = gridCard ? new Vector2(64f, 64f) : new Vector2(48f, 48f);
-                    iconRect.anchoredPosition = gridCard ? new Vector2(0f, 0f) : new Vector2(10f, 0f);
+                    var iconRect = _icon.rectTransform;
+                    if (iconRect != null)
+                    {
+                        iconRect.anchorMin = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
+                        iconRect.anchorMax = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
+                        iconRect.pivot = gridCard ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
+                        iconRect.sizeDelta = gridCard ? new Vector2(64f, 64f) : new Vector2(48f, 48f);
+                        iconRect.anchoredPosition = gridCard ? new Vector2(0f, 0f) : new Vector2(10f, 0f);
+                    }
                 }
             }
 
@@ -112,15 +125,21 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         if (_levelText != null)
         {
             _levelText.text = data.EnhancementLevel > 0 ? $"+{data.EnhancementLevel}" : "";
-            _levelText.gameObject.SetActive(!UseResourceCardLayout() && data.EnhancementLevel > 0);
+            _levelText.gameObject.SetActive((_useManualObjectLayout || !UseResourceCardLayout()) && data.EnhancementLevel > 0);
             ApplyKoreanFont(_levelText);
-            _levelText.fontSize = UseResourceCardLayout() ? 10f : 11f;
-            _levelText.alignment = UseResourceCardLayout() ? TextAlignmentOptions.Center : TextAlignmentOptions.MidlineLeft;
+            if (!_useManualObjectLayout)
+            {
+                _levelText.fontSize = UseResourceCardLayout() ? 10f : 11f;
+                _levelText.alignment = UseResourceCardLayout() ? TextAlignmentOptions.Center : TextAlignmentOptions.MidlineLeft;
+            }
         }
 
         if (_equippedMark != null)
         {
-            ConfigureEquippedMark();
+            if (_useManualObjectLayout)
+                ConfigureManualEquippedMark();
+            else
+                ConfigureEquippedMark();
             _equippedMark.SetActive(data.IsEquipped);
         }
 
@@ -145,7 +164,11 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         var bg = GetComponent<Image>();
         if (bg != null)
         {
-            if (UseResourceCardLayout())
+            if (_useManualObjectLayout)
+            {
+                bg.raycastTarget = true;
+            }
+            else if (UseResourceCardLayout())
             {
                 bg.sprite = DefaultCardSprite;
                 bg.type = Image.Type.Simple;
@@ -181,7 +204,10 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         if (_icon == null)
             _icon = FindImage("Icon", "ItemIcon", "EquipmentIcon");
 
-        EnsureIconFrame(gridCard);
+        if (_useManualObjectLayout)
+            BindExistingIconFrame();
+        else
+            EnsureIconFrame(gridCard);
 
         if (_nameText == null)
             _nameText = FindTMP("NameText", "ItemName", "Title");
@@ -208,16 +234,22 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         if (_equippedMark == null)
             _equippedMark = FindGameObject("EquippedMark", "Equipped", "Mark");
 
-        EnsureSelectionOutline(gridCard);
+        if (_useManualObjectLayout)
+            BindExistingSelectionOutline();
+        else
+            EnsureSelectionOutline(gridCard);
 
         var layout = GetComponent<LayoutElement>();
-        if (layout == null)
-            layout = gameObject.AddComponent<LayoutElement>();
-        layout.preferredHeight = gridCard ? ResourceCardHeight : 68f;
-        layout.minHeight = gridCard ? ResourceCardHeight : 64f;
-        layout.preferredWidth = gridCard ? ResourceCardWidth : 300f;
+        if (!_useManualObjectLayout)
+        {
+            if (layout == null)
+                layout = gameObject.AddComponent<LayoutElement>();
+            layout.preferredHeight = gridCard ? ResourceCardHeight : 68f;
+            layout.minHeight = gridCard ? ResourceCardHeight : 64f;
+            layout.preferredWidth = gridCard ? ResourceCardWidth : 300f;
+        }
 
-        if (_nameText != null)
+        if (!_useManualObjectLayout && _nameText != null)
         {
             var nameRect = _nameText.rectTransform;
             if (nameRect != null)
@@ -230,7 +262,7 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             }
         }
 
-        if (_levelText != null)
+        if (!_useManualObjectLayout && _levelText != null)
         {
             var levelRect = _levelText.rectTransform;
             if (levelRect != null)
@@ -243,9 +275,12 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             }
         }
 
-        ConfigureEquippedMark();
+        if (_useManualObjectLayout)
+            ConfigureManualEquippedMark();
+        else
+            ConfigureEquippedMark();
 
-        if (gridCard && _icon != null)
+        if (!_useManualObjectLayout && gridCard && _icon != null)
         {
             var iconRect = _icon.rectTransform;
             iconRect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -255,7 +290,8 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             iconRect.anchoredPosition = new Vector2(0f, 0f);
         }
 
-        ConfigureIconFrame(gridCard, _icon != null && _icon.enabled);
+        if (!_useManualObjectLayout)
+            ConfigureIconFrame(gridCard, _icon != null && _icon.enabled);
     }
 
     private bool UseResourceCardLayout()
@@ -327,6 +363,35 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         }
     }
 
+    private void ConfigureManualEquippedMark()
+    {
+        if (_equippedMark == null)
+            return;
+
+        var markImage = _equippedMark.GetComponent<Image>();
+        if (markImage != null)
+        {
+            markImage.raycastTarget = false;
+            markImage.preserveAspect = false;
+            if (markImage.sprite == null)
+                markImage.sprite = DefaultCardSprite;
+            markImage.type = Image.Type.Simple;
+            markImage.color = EquippedMarkBack;
+            markImage.enabled = true;
+        }
+
+        var markLabel = _equippedMark.GetComponent<TextMeshProUGUI>()
+            ?? _equippedMark.GetComponentInChildren<TextMeshProUGUI>(true);
+
+        if (markLabel != null)
+        {
+            markLabel.text = "E";
+            ApplyKoreanFont(markLabel);
+            markLabel.color = EquippedMarkText;
+            markLabel.raycastTarget = false;
+        }
+    }
+
     private void EnsureIconFrame(bool gridCard)
     {
         if (!gridCard)
@@ -345,6 +410,15 @@ public class HomeEquipPopupItemUI : MonoBehaviour
             frameGo.transform.SetParent(parent, false);
             _iconFrame = frameGo.GetComponent<Image>();
         }
+    }
+
+    private void BindExistingIconFrame()
+    {
+        if (_iconFrame == null)
+            _iconFrame = FindImageByExactName("IconFrame", "EquipmentIconFrame");
+
+        if (_iconFrame != null)
+            _iconFrame.raycastTarget = false;
     }
 
     private void EnsureSelectionOutline(bool gridCard)
@@ -379,6 +453,22 @@ public class HomeEquipPopupItemUI : MonoBehaviour
         outlineRect.offsetMax = Vector2.zero;
         outlineRect.localScale = Vector3.one;
 
+        UpdateSelectionOutline();
+    }
+
+    private void BindExistingSelectionOutline()
+    {
+        if (_selectionOutline == null)
+            _selectionOutline = FindImageByExactName("SelectionOutline", "SelectedOutline", "EquippedOutline");
+
+        if (_selectionOutline == null)
+            return;
+
+        _selectionOutline.sprite = SelectedCardSprite;
+        _selectionOutline.type = Image.Type.Simple;
+        _selectionOutline.preserveAspect = false;
+        _selectionOutline.raycastTarget = false;
+        _selectionOutline.color = Color.white;
         UpdateSelectionOutline();
     }
 

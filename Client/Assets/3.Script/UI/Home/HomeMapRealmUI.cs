@@ -12,6 +12,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
     private const string MissingMapMessage = "아직 열리지 않은 지역입니다.";
     private const string ReadyMessage = "지역을 선택한 뒤 입장 버튼을 누르세요.";
     private const int DefaultTownMaxPlayers = 4;
+    private static readonly Vector2 MapLayoutSize = new(1280f, 720f);
     private static readonly Color CreateClearAccent = new(1f, 1f, 1f, 0f);
     private static readonly Color CreateSelectedText = new(0.98f, 0.91f, 0.70f, 1f);
     private static readonly Color CreateIdleText = new(0.84f, 0.76f, 0.58f, 1f);
@@ -1434,6 +1435,7 @@ public sealed class HomeMapRealmUI : MonoBehaviour
 
     private void StyleMapDetailPanel()
     {
+        NormalizeMapDetailDescriptionLayout();
         StyleBodyText(_description, 15f, TextAlignmentOptions.Center, MapBodyText, lineSpacing: 4f);
         StyleBodyText(_status, 13.5f, TextAlignmentOptions.Center, MapMutedText, lineSpacing: 2f);
         StyleBodyText(_ticketInfo, 14f, TextAlignmentOptions.Center, MapMutedText, lineSpacing: 0f);
@@ -1458,6 +1460,40 @@ public sealed class HomeMapRealmUI : MonoBehaviour
                 label.color = MapSelectButtonText;
             }
         }
+    }
+
+    private void NormalizeMapDetailDescriptionLayout()
+    {
+        if (_description == null)
+            return;
+
+        var content = _description.rectTransform.parent as RectTransform;
+        var viewport = content != null ? content.parent as RectTransform : null;
+        if (viewport != null && string.Equals(viewport.gameObject.name, "RealmDetailScroll", System.StringComparison.Ordinal))
+            SetAnchoredRectFromTopLeft(viewport, new Rect(922f, 258f, 270f, 112f), MapLayoutSize);
+
+        if (content != null)
+        {
+            content.anchorMin = new Vector2(0f, 1f);
+            content.anchorMax = new Vector2(0f, 1f);
+            content.pivot = new Vector2(0f, 1f);
+            content.anchoredPosition = Vector2.zero;
+            content.sizeDelta = new Vector2(250f, 112f);
+        }
+
+        SetAnchoredRectFromTopLeft(_description.rectTransform, new Rect(0f, 0f, 250f, 108f), new Vector2(250f, 112f));
+    }
+
+    private static void SetAnchoredRectFromTopLeft(RectTransform rect, Rect sourceRect, Vector2 sourceSize)
+    {
+        if (rect == null)
+            return;
+
+        rect.anchorMin = new Vector2(sourceRect.xMin / sourceSize.x, 1f - sourceRect.yMax / sourceSize.y);
+        rect.anchorMax = new Vector2(sourceRect.xMax / sourceSize.x, 1f - sourceRect.yMin / sourceSize.y);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        rect.pivot = new Vector2(0.5f, 0.5f);
     }
 
     private static void StyleBodyText(TMP_Text text, float fontSize, TextAlignmentOptions alignment, Color color, float lineSpacing)
@@ -1499,7 +1535,11 @@ public sealed class HomeMapRealmUI : MonoBehaviour
         if (_koreanFont != null)
             return _koreanFont;
 
-        _koreanFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/NanumGothic SDF");
+        _koreanFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/Gowun Batang");
+        if (_koreanFont == null)
+            _koreanFont = Resources.Load<TMP_FontAsset>("Gowun Batang");
+        if (_koreanFont == null)
+            _koreanFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/NanumGothic SDF");
         if (_koreanFont == null)
             _koreanFont = Resources.Load<TMP_FontAsset>("NanumGothic SDF");
         return _koreanFont;

@@ -18,5 +18,6 @@ public sealed class AppConfig : ScriptableObject
     public string SteamId64Override = "";
 
     [Header("Debug")]
+    public bool DisableDebugUis = false;
     public bool ShowSteamDebugHud = true;
 }

@@ -23,6 +23,20 @@ public class CameraFollow : MonoBehaviour
         _shakeSeed = Random.value * 1000f;
     }
 
+    public void SnapToTarget()
+    {
+        if (target == null) return;
+
+        Vector3 desiredPosition =
+            target.position +
+            target.rotation * offset;
+
+        transform.position = desiredPosition + _shakeOffset;
+        transform.rotation = Quaternion.LookRotation(
+            target.position + Vector3.up * 1.5f - desiredPosition
+        );
+    }
+
     void LateUpdate()
     {
         if (target == null) return;

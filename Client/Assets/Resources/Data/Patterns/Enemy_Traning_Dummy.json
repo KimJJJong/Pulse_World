@@ -4,7 +4,45 @@
   "Phases": [
     {
       "Id": "P1",
-      "Selectors": []
+      "Selectors": [
+        {
+          "Id": "Training Cross Attack",
+          "Weight": 1,
+          "CooldownBeats": 5,
+          "When": {
+            "All": []
+          },
+          "Timeline": [
+            {
+              "Type": 3,
+              "AtBeatOffset": 0,
+              "Target": {
+                "Type": 0,
+                "MaxRange": 999,
+                "RequireAlive": true
+              },
+              "SkillId": "Enemy_Attack_Cross",
+              "LockRotation": false,
+              "TelegraphBeats": 0,
+              "TelegraphStyleId": 0,
+              "Area": {
+                "Shape": 1,
+                "OriginType": 1,
+                "OriginX": 0,
+                "OriginY": 0,
+                "ParamA": 0,
+                "ParamB": 0,
+                "DirType": 0,
+                "FixedDir": 0,
+                "Cells": []
+              },
+              "MoveDistance": 1,
+              "MoveStrategy": 0,
+              "MoveDirection": 0
+            }
+          ]
+        }
+      ]
     }
   ],
   "Transitions": []

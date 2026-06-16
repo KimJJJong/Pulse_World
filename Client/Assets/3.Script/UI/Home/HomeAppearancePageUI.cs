@@ -8,8 +8,14 @@ using UnityEngine.UI;
 public sealed class HomeAppearancePageUI : MonoBehaviour
 {
     private static readonly Vector2 CardSize = new(214f, 144f);
-    private static readonly Vector2 PortraitBoxSize = new(118f, 86f);
-    private const float PortraitBoxTop = 8f;
+    private static readonly Vector2 PortraitBoxSize = new(92f, 68f);
+    private static readonly Vector2 LabelSize = new(168f, 24f);
+    private static readonly Vector2 BadgeSize = new(46f, 22f);
+    private const float PortraitBoxTop = 14f;
+    private const float LabelTop = 94f;
+    private const float BadgeTop = 12f;
+    private const float BadgeRight = 14f;
+    private static TMP_FontAsset _koreanFont;
 
     [Serializable]
     public sealed class OptionBinding
@@ -28,6 +34,8 @@ public sealed class HomeAppearancePageUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _appliedText;
     [SerializeField] private TextMeshProUGUI _statusText;
     [SerializeField] private Button _applyButton;
+    [SerializeField] private bool _useManualObjectLayout = true;
+    [SerializeField] private bool _autoCreateMissingPortraits;
 
     private readonly Dictionary<int, OptionBinding> _bindingsById = new();
     private int _selectedAppearanceId;
@@ -37,12 +45,14 @@ public sealed class HomeAppearancePageUI : MonoBehaviour
 
     private void Awake()
     {
+        ApplyPageFonts();
         BindOptions();
         BindApplyButton();
     }
 
     private async void OnEnable()
     {
+        ApplyPageFonts();
         BindOptions();
         BindApplyButton();
         await RefreshFromServerAsync();
@@ -71,15 +81,22 @@ public sealed class HomeAppearancePageUI : MonoBehaviour
             if (option.Button != null)
             {
                 option.Button.gameObject.SetActive(true);
-                SetOptionCardPosition(option.Button, visibleIndex++);
+                if (!_useManualObjectLayout)
+                    SetOptionCardPosition(option.Button, visibleIndex);
+                visibleIndex++;
             }
+
+            option.Portrait = ResolvePortrait(option, _autoCreateMissingPortraits);
+            if (!_useManualObjectLayout)
+                NormalizeOptionLayout(option);
+            else
+                ApplyManualObjectBindings(option);
 
             _bindingsById[option.AppearanceId] = option;
             if (option.Label != null)
                 option.Label.text = AppearanceCatalog.GetDisplayName(option.AppearanceId);
 
-            option.Portrait = EnsurePortrait(option);
-            ApplyPortrait(option);
+            ApplyPortrait(option, !_useManualObjectLayout);
 
             if (option.Button != null)
             {
@@ -100,6 +117,19 @@ public sealed class HomeAppearancePageUI : MonoBehaviour
 
         _applyButton.onClick.RemoveListener(HandleApplyClicked);
         _applyButton.onClick.AddListener(HandleApplyClicked);
+    }
+
+    private void ApplyPageFonts()
+    {
+        ApplyPreferredFont(_currentText);
+        ApplyPreferredFont(_appliedText);
+        ApplyPreferredFont(_statusText);
+
+        if (_applyButton == null)
+            return;
+
+        foreach (var text in _applyButton.GetComponentsInChildren<TMP_Text>(true))
+            ApplyPreferredFont(text);
     }
 
     private void Select(int appearanceId)
@@ -244,7 +274,7 @@ public sealed class HomeAppearancePageUI : MonoBehaviour
         }
     }
 
-    private static RawImage EnsurePortrait(OptionBinding option)
+    private static RawImage ResolvePortrait(OptionBinding option, bool createIfMissing)
     {
         if (option?.Button == null)
             return option?.Portrait;
@@ -255,6 +285,9 @@ public sealed class HomeAppearancePageUI : MonoBehaviour
         Transform existing = option.Button.transform.Find("Portrait");
         if (existing != null && existing.TryGetComponent(out RawImage existingImage))
             return existingImage;
+
+        if (!createIfMissing)
+            return null;
 
         var go = new GameObject("Portrait", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
         go.transform.SetParent(option.Button.transform, false);
@@ -272,7 +305,57 @@ public sealed class HomeAppearancePageUI : MonoBehaviour
         return portrait;
     }
 
-    private static void ApplyPortrait(OptionBinding option)
+    private static void ApplyManualObjectBindings(OptionBinding option)
+    {
+        if (option == null)
+            return;
+
+        if (option.Highlight != null)
+            option.Highlight.raycastTarget = false;
+
+        if (option.Label != null)
+        {
+            ApplyPreferredFont(option.Label);
+            option.Label.raycastTarget = false;
+        }
+
+        if (option.Portrait != null)
+            option.Portrait.raycastTarget = false;
+    }
+
+    private static void NormalizeOptionLayout(OptionBinding option)
+    {
+        if (option == null)
+            return;
+
+        if (option.Highlight != null)
+        {
+            option.Highlight.raycastTarget = false;
+            Stretch(option.Highlight.rectTransform);
+            option.Highlight.transform.SetAsFirstSibling();
+        }
+
+        if (option.Label != null)
+        {
+            ApplyPreferredFont(option.Label);
+            SetTopCenterRect(option.Label.rectTransform, LabelTop, LabelSize);
+            option.Label.fontSize = 14f;
+            option.Label.enableAutoSizing = true;
+            option.Label.fontSizeMin = 10f;
+            option.Label.fontSizeMax = 14f;
+            option.Label.alignment = TextAlignmentOptions.Center;
+            option.Label.textWrappingMode = TextWrappingModes.NoWrap;
+            option.Label.overflowMode = TextOverflowModes.Ellipsis;
+            option.Label.raycastTarget = false;
+            option.Label.transform.SetAsLastSibling();
+        }
+
+        NormalizeBadge(option.Button != null ? option.Button.transform.Find("HoldBadge") : null);
+        NormalizeBadge(option.EquippedMark != null ? option.EquippedMark.transform : null);
+        NormalizeBadge(option.LockedMark != null ? option.LockedMark.transform : null);
+    }
+
+    private static void ApplyPortrait(OptionBinding option, bool fitLayout)
     {
         if (option?.Portrait == null)
             return;
@@ -284,7 +367,9 @@ public sealed class HomeAppearancePageUI : MonoBehaviour
 
         option.Portrait.texture = texture;
         option.Portrait.gameObject.SetActive(texture != null);
-        FitPortrait(option.Portrait, texture);
+
+        if (fitLayout && option.Portrait.gameObject.activeSelf)
+            FitPortrait(option.Portrait, texture);
     }
 
     private static void SetOptionCardPosition(Button button, int visibleIndex)
@@ -310,36 +395,110 @@ public sealed class HomeAppearancePageUI : MonoBehaviour
         if (portrait == null)
             return;
 
-        portrait.uvRect = BuildCoverUvRect(texture, PortraitBoxSize);
+        portrait.uvRect = new Rect(0f, 0f, 1f, 1f);
 
         var rect = portrait.rectTransform;
         rect.anchorMin = new Vector2(0.5f, 1f);
         rect.anchorMax = new Vector2(0.5f, 1f);
         rect.pivot = new Vector2(0.5f, 1f);
-        rect.sizeDelta = PortraitBoxSize;
-        rect.anchoredPosition = new Vector2(0f, -PortraitBoxTop);
+        var fittedSize = FitSizeInside(texture, PortraitBoxSize);
+        var centeredTop = PortraitBoxTop + (PortraitBoxSize.y - fittedSize.y) * 0.5f;
+        rect.sizeDelta = fittedSize;
+        rect.anchoredPosition = new Vector2(0f, -centeredTop);
+        portrait.raycastTarget = false;
     }
 
-    private static Rect BuildCoverUvRect(Texture2D texture, Vector2 boxSize)
+    private static Vector2 FitSizeInside(Texture2D texture, Vector2 boxSize)
     {
         if (texture == null || texture.width <= 0 || texture.height <= 0 || boxSize.x <= 0f || boxSize.y <= 0f)
-            return new Rect(0f, 0f, 1f, 1f);
+            return boxSize;
 
         var textureAspect = texture.width / (float)texture.height;
         var boxAspect = boxSize.x / boxSize.y;
-        if (textureAspect < boxAspect)
-        {
-            var uvHeight = Mathf.Clamp01(textureAspect / boxAspect);
-            return new Rect(0f, (1f - uvHeight) * 0.5f, 1f, uvHeight);
-        }
-
+        var size = boxSize;
         if (textureAspect > boxAspect)
-        {
-            var uvWidth = Mathf.Clamp01(boxAspect / textureAspect);
-            return new Rect((1f - uvWidth) * 0.5f, 0f, uvWidth, 1f);
-        }
+            size.y = boxSize.x / textureAspect;
+        else if (textureAspect < boxAspect)
+            size.x = boxSize.y * textureAspect;
 
-        return new Rect(0f, 0f, 1f, 1f);
+        return size;
+    }
+
+    private static void NormalizeBadge(Transform badge)
+    {
+        var rect = badge as RectTransform;
+        if (rect == null)
+            return;
+
+        SetTopRightRect(rect, BadgeTop, BadgeRight, BadgeSize);
+        var graphic = badge.GetComponent<Graphic>();
+        if (graphic != null)
+            graphic.raycastTarget = false;
+        badge.SetAsLastSibling();
+    }
+
+    private static void SetTopCenterRect(RectTransform rect, float top, Vector2 size)
+    {
+        if (rect == null)
+            return;
+
+        rect.anchorMin = new Vector2(0.5f, 1f);
+        rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.sizeDelta = size;
+        rect.anchoredPosition = new Vector2(0f, -top);
+    }
+
+    private static void SetTopRightRect(RectTransform rect, float top, float right, Vector2 size)
+    {
+        if (rect == null)
+            return;
+
+        rect.anchorMin = new Vector2(1f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(1f, 1f);
+        rect.sizeDelta = size;
+        rect.anchoredPosition = new Vector2(-right, -top);
+    }
+
+    private static void Stretch(RectTransform rect)
+    {
+        if (rect == null)
+            return;
+
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+    }
+
+    private static void ApplyPreferredFont(TMP_Text text)
+    {
+        if (text == null)
+            return;
+
+        var font = LoadKoreanFont();
+        if (font == null)
+            return;
+
+        text.font = font;
+        text.fontSharedMaterial = font.material;
+    }
+
+    private static TMP_FontAsset LoadKoreanFont()
+    {
+        if (_koreanFont != null)
+            return _koreanFont;
+
+        _koreanFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/Gowun Batang");
+        if (_koreanFont == null)
+            _koreanFont = Resources.Load<TMP_FontAsset>("Gowun Batang");
+        if (_koreanFont == null)
+            _koreanFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/NanumGothic SDF");
+        if (_koreanFont == null)
+            _koreanFont = Resources.Load<TMP_FontAsset>("NanumGothic SDF");
+        return _koreanFont;
     }
 
     private void SetStatus(string message)

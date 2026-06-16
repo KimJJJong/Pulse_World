@@ -77,11 +77,14 @@ public class ClientGameState : MonoBehaviour
 
         yield return null;
 
+        int totalTiles = asset.Width * asset.Height;
+        var mapVisualBatch = WorldView as IClientWorldViewMapUpdateBatch;
+        mapVisualBatch?.BeginMapVisualUpdate(totalTiles);
+
         CreateMap(asset.Width, asset.Height);
         WorldView?.OnSetAppearancePalette(asset.AppearancePalette);
         yield return null;
 
-        int totalTiles = asset.Width * asset.Height;
         int processedCount = 0;
         int tilesPerFrame = Mathf.Max(64, _mapTilesPerFrame);
 
@@ -105,6 +108,7 @@ public class ClientGameState : MonoBehaviour
 
         MapGenProgress = 1.0f;
         IsMapGenerationComplete = true;
+        mapVisualBatch?.EndMapVisualUpdate();
         Debug.Log("[ClientGameState] Map Generation Complete (Async)");
     }
 
@@ -122,13 +126,16 @@ public class ClientGameState : MonoBehaviour
 
         yield return null;
 
+        int totalTiles = mapJson.width * mapJson.height;
+        var mapVisualBatch = WorldView as IClientWorldViewMapUpdateBatch;
+        mapVisualBatch?.BeginMapVisualUpdate(totalTiles);
+
         CreateMap(mapJson.width, mapJson.height);
         bool hasAppearanceData = HasAppearanceData(mapJson);
         if (hasAppearanceData)
             WorldView?.OnSetAppearancePalette(LoadAppearancePalette(mapJson.appearancePalette));
         yield return null;
 
-        int totalTiles = mapJson.width * mapJson.height;
         int processedCount = 0;
         int tilesPerFrame = Mathf.Max(64, _mapTilesPerFrame);
 
@@ -158,6 +165,7 @@ public class ClientGameState : MonoBehaviour
 
         MapGenProgress = 1.0f;
         IsMapGenerationComplete = true;
+        mapVisualBatch?.EndMapVisualUpdate();
         Debug.Log("[ClientGameState] Map Generation Complete (Server Json)");
     }
 

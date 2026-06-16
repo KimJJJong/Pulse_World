@@ -970,7 +970,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 0.4, y: 0.4, z: 0.4}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: -8473036303713578262}
@@ -1025,6 +1025,7 @@ MonoBehaviour:
   PantsSocket: {fileID: -5066192883554295893}
   GlovesSocket: {fileID: -1108100253261171142}
   ShoesSocket: {fileID: 1132417981933130226}
+  AccessorySocket: {fileID: 0}
 --- !u!114 &3809739093969883246
 MonoBehaviour:
   m_ObjectHideFlags: 0

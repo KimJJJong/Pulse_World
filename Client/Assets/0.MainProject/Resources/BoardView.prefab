@@ -137,6 +137,7 @@ MonoBehaviour:
   PantsSocket: {fileID: 0}
   GlovesSocket: {fileID: 0}
   ShoesSocket: {fileID: 0}
+  AccessorySocket: {fileID: 0}
 --- !u!114 &6937171285614110622
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -199,9 +200,39 @@ MonoBehaviour:
   playerPrefab: {fileID: 2654207343494266616}
   monsterPrefab: {fileID: 6006118746816476179}
   tilePrefab: {fileID: 9109807071570201158}
+  appearancePalette: {fileID: 0}
+  bakedTileRoot: {fileID: 0}
+  entityRoot: {fileID: 0}
+  skillRunnerRoot: {fileID: 0}
   cellSize: 1
   moveLerpTime: 0.1
+  monsterHealthBarsEnabled: 1
+  normalMonsterHealthVisibleBeats: 8
+  showWalkableGrid: 1
+  walkableGridBeatPulse: 1
+  playWalkableGridWaveOnCombat: 1
+  walkableGridLineWidth: 0.018
+  walkableGridHeightOffset: 0.045
+  walkableGridColor: {r: 0.42, g: 0.92, b: 1, a: 0.22}
+  walkableGridBeatFlashColor: {r: 0.88, g: 1, b: 1, a: 0.42}
+  walkableGridBeatFlashStrength: 0.22
+  walkableGridBeatFlashSharpness: 4.5
+  walkableGridPlayerPulseRadiusTiles: 3
+  walkableGridWaveColor: {r: 0.78, g: 1, b: 1, a: 0.95}
+  walkableGridWaveDuration: 0.55
+  walkableGridWaveRadiusTiles: 5
+  walkableGridWaveWidthTiles: 0.7
+  walkableGridEffectRefreshRate: 18
+  tileDistanceCullingEnabled: 1
+  tileVisibleDistance: 48
+  tileCullingHysteresis: 10
+  tileCameraForwardLookahead: 28
+  tileCullingRefreshInterval: 0.1
+  tileCullingChecksPerRefresh: 4096
+  tileCullingPreferLocalPlayer: 1
   actionDurationRatio: 0.5
+  remoteMoveMinCatchUpDuration: 0.06
+  remoteMoveStartGraceSeconds: 0.03
 --- !u!1 &5838813942549955792
 GameObject:
   m_ObjectHideFlags: 0

@@ -23,6 +23,8 @@ public class ClientSkillRunner : MonoBehaviour
     private HashSet<int> _triggeredEvents = new HashSet<int>();
     private List<Vector2Int> _activeTelegraphs = new List<Vector2Int>();
     private readonly List<DueSkillEvent> _dueEvents = new List<DueSkillEvent>(16);
+    private readonly HashSet<int> _triggeredEquipmentSoundEvents = new HashSet<int>();
+    private EquipmentRhythmSoundProfile _equipmentSoundProfile;
 
     // ── InputLock ─────────────────────────────────────────────────────────────
     // 내 캐릭터 전용. 스킬 시전 중 입력을 막고 OnDestroy에서 해제한다.
@@ -53,6 +55,8 @@ public class ClientSkillRunner : MonoBehaviour
             return fallbackPlayed;
         }
 
+        _equipmentSoundProfile = EquipmentRhythmSoundProfile.Resolve(_skillDef.Data?.SkillId ?? skillId);
+
         // [Fix] 스킬이 이미 만료된 상태로 도착했다면 (원격 RTT 지연) 즉시 폐기.
         // 기존 _firstUpdate 로직을 Initialize로 끌어올려 쓸모없는 SkillRunner 생성 자체를 차단.
         if (RhythmClient.Instance != null)
@@ -76,7 +80,9 @@ public class ClientSkillRunner : MonoBehaviour
         {
             long currentTick = RhythmClient.Instance.GetCurrentServerTick();
             TryStartPlayback(currentTick);
-            ProcessDueEvents(currentTick - _startTick);
+            long relativeTick = currentTick - _startTick;
+            ProcessDueEvents(relativeTick);
+            ProcessEquipmentRhythmSounds(relativeTick);
         }
 
         return true;
@@ -111,6 +117,8 @@ public class ClientSkillRunner : MonoBehaviour
         _skillOrigin = default;
         _playbackStarted = false;
         _dueEvents.Clear();
+        _triggeredEquipmentSoundEvents.Clear();
+        _equipmentSoundProfile = null;
     }
 
     void Update()
@@ -137,6 +145,7 @@ public class ClientSkillRunner : MonoBehaviour
         }
 
         ProcessDueEvents(relativeTick);
+        ProcessEquipmentRhythmSounds(relativeTick);
     }
 
     private void ProcessDueEvents(long relativeTick)
@@ -300,6 +309,9 @@ public class ClientSkillRunner : MonoBehaviour
             case SkillActionType.Sound:
                 if (ev.Action is SoundAction sound)
                 {
+                    if (_equipmentSoundProfile != null)
+                        break;
+
                     bool isMine = _isMine && sound.UseOwnerPerspective;
                     float startOffsetMs = CalculateLateEventOffsetMs(ev, relativeTick);
                     if (!string.IsNullOrEmpty(sound.FmodEventPath))
@@ -312,6 +324,43 @@ public class ClientSkillRunner : MonoBehaviour
                 }
                 break;
         }
+    }
+
+    private void ProcessEquipmentRhythmSounds(long relativeTick)
+    {
+        if (_equipmentSoundProfile == null || relativeTick < 0)
+            return;
+
+        int totalDurationTicks = _skillDef?.Data != null ? _skillDef.Data.TotalDurationTicks : int.MaxValue;
+        for (int i = 0; i < _equipmentSoundProfile.Count; i++)
+        {
+            if (_triggeredEquipmentSoundEvents.Contains(i))
+                continue;
+
+            if (!_equipmentSoundProfile.TryGetEvent(i, totalDurationTicks, out int triggerTick, out float volume))
+                continue;
+
+            if (relativeTick < triggerTick)
+                continue;
+
+            _triggeredEquipmentSoundEvents.Add(i);
+            PlayEquipmentRhythmSound(triggerTick, relativeTick, volume);
+        }
+    }
+
+    private void PlayEquipmentRhythmSound(int triggerTick, long relativeTick, float volume)
+    {
+        if (FMODActionSoundPlayer.Instance == null)
+            return;
+
+        float startOffsetMs = CalculateLateTickOffsetMs(triggerTick, relativeTick);
+        if (!string.IsNullOrEmpty(_equipmentSoundProfile.EventPath))
+            FMODActionSoundPlayer.Instance.PlayByEventPath(_equipmentSoundProfile.EventPath, volume, startOffsetMs);
+        else
+            FMODActionSoundPlayer.Instance.PlayAttackSound(_isMine, startOffsetMs);
+
+        if (_isMine)
+            CombatImpactFeedback.Instance.PlayLocalAttackImpact();
     }
 
     private static int GetActionPriority(BaseAction action)
@@ -337,11 +386,19 @@ public class ClientSkillRunner : MonoBehaviour
         if (ev == null || relativeTick <= ev.TriggerTick || RhythmClient.Instance == null)
             return 0f;
 
+        return CalculateLateTickOffsetMs(ev.TriggerTick, relativeTick);
+    }
+
+    private static float CalculateLateTickOffsetMs(int triggerTick, long relativeTick)
+    {
+        if (relativeTick <= triggerTick || RhythmClient.Instance == null)
+            return 0f;
+
         double beatMs = RhythmClient.Instance.GetBeatDurationMs();
         if (beatMs <= 0d)
             return 0f;
 
-        double lateTicks = relativeTick - ev.TriggerTick;
+        double lateTicks = relativeTick - triggerTick;
         return (float)(lateTicks * beatMs / 480.0d);
     }
 

@@ -2,6 +2,7 @@ public static class SceneNames
 {
     public const string Bootstrap = "Bootstrap";
     public const string Login = "Login";
+    public const string HeadphonesRecommended = "HeadphonesRecommended";
     public const string WorldMap = "WorldMap";
     public const string Home = "Home 1";
     public const string Game = "Game";

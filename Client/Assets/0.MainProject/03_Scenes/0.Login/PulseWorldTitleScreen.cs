@@ -8,6 +8,7 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
 {
     private const string AssetPath = "UI/UI_InitTitle/pulse_world_transparent_png_assets/";
     private const string GlowShaderPath = "UI/UI_InitTitle/PulseWorldGlow";
+    private const string SharedOptionsPanelResourcePath = "UI/Options/PF_GameOptionsPanel";
     private const string RuntimeRootName = "PulseWorldTitleRuntime";
 
     private readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
@@ -28,6 +29,7 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
     private RawImage _titleGlow;
     private TMP_Text _statusText;
     private TMP_Text _settingsDeviceText;
+    private GameOptionsPanel _titleOptionsPanel;
     private Material _backgroundGlowMaterial;
     private Material _backgroundSparkleMaterial;
     private Material _titleGlowMaterial;
@@ -195,12 +197,25 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
         _promptRoot = FindRuntimeRect("PressAnyPrompt");
         _promptGroup = EnsureCanvasGroup(_promptRoot);
         _buttonGroup = EnsureCanvasGroup(FindRuntimeRect("ButtonDock"));
-        _settingsGroup = EnsureCanvasGroup(FindRuntimeRect("SettingsPanel"));
+        var optionPanel = FindRuntimeRect("OptionsPanel");
+        if (optionPanel == null)
+            optionPanel = FindRuntimeRect("SettingsPanel");
+        _settingsGroup = EnsureCanvasGroup(optionPanel);
         _statusGroup = EnsureCanvasGroup(FindRuntimeRect("Status"));
 
         _backgroundGlow = FindRuntimeComponent<RawImage>("BackgroundGlowBreath");
         _backgroundSparkle = FindRuntimeComponent<RawImage>("BackgroundGlowSparkle");
         _titleGlow = FindRuntimeComponent<RawImage>("TitleCyanGlow");
+        _titleOptionsPanel = _runtimeRoot != null ? _runtimeRoot.GetComponentInChildren<GameOptionsPanel>(true) : null;
+        if (_titleOptionsPanel != null)
+        {
+            _titleOptionsPanel.CloseRequested -= HandleTitleOptionsCloseRequested;
+            _titleOptionsPanel.CloseRequested += HandleTitleOptionsCloseRequested;
+        }
+        else
+        {
+            TryUseSharedOptionsPanel();
+        }
         _statusText = FindRuntimeComponent<TMP_Text>("Text", _statusGroup != null ? _statusGroup.transform : null);
         _settingsDeviceText = FindRuntimeComponent<TMP_Text>("DeviceId", _settingsGroup != null ? _settingsGroup.transform : null);
         _startButton = FindRuntimeComponent<Button>("StartGameButton");
@@ -275,7 +290,11 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
             item.Group.alpha = 0f;
         }
 
-        if (_settingsGroup != null)
+        if (_titleOptionsPanel != null)
+        {
+            _titleOptionsPanel.DiscardAndHide();
+        }
+        else if (_settingsGroup != null)
         {
             _settingsGroup.gameObject.SetActive(false);
             _settingsGroup.alpha = 0f;
@@ -380,7 +399,22 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
 
     private void BuildSettingsPanel()
     {
-        var panel = CreateRect("SettingsPanel", _runtimeRoot, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0.5f));
+        if (TryUseSharedOptionsPanel())
+            return;
+
+        var existingPanel = FindRuntimeRect("OptionsPanel");
+        if (existingPanel == null)
+            existingPanel = FindRuntimeRect("SettingsPanel");
+
+        if (existingPanel != null)
+        {
+            _settingsGroup = EnsureCanvasGroup(existingPanel);
+            _settingsDeviceText = FindRuntimeComponent<TMP_Text>("DeviceId", existingPanel);
+            existingPanel.gameObject.SetActive(false);
+            return;
+        }
+
+        var panel = CreateRect("OptionsPanel", _runtimeRoot, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0.5f));
         panel.anchoredPosition = new Vector2(0f, 286f);
         panel.sizeDelta = new Vector2(780f, 210f);
 
@@ -406,7 +440,7 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
         innerImage.color = PanelDark;
         innerImage.raycastTarget = false;
 
-        var title = CreateText("Title", panel, "Settings", 30f, TextAlignmentOptions.MidlineLeft, WarmText);
+        var title = CreateText("Title", panel, "Options", 30f, TextAlignmentOptions.MidlineLeft, WarmText);
         SetAnchored(title.rectTransform, new Vector2(34f, -22f), new Vector2(300f, 42f), new Vector2(0f, 1f), new Vector2(0f, 1f));
 
         _settingsDeviceText = CreateText("DeviceId", panel, "Device ID", 20f, TextAlignmentOptions.MidlineLeft, new Color(0.74f, 1f, 0.96f, 0.92f));
@@ -421,6 +455,56 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
         CreateTextButton(panel, "CloseButton", "Close", new Vector2(224f, -60f), new Vector2(168f, 48f), () => SetSettingsVisible(false));
 
         panel.gameObject.SetActive(false);
+    }
+
+    private bool TryUseSharedOptionsPanel()
+    {
+        if (_runtimeRoot == null)
+            return false;
+
+        _titleOptionsPanel = _runtimeRoot.GetComponentInChildren<GameOptionsPanel>(true);
+        if (_titleOptionsPanel == null)
+        {
+            var prefab = Resources.Load<GameOptionsPanel>(SharedOptionsPanelResourcePath);
+            if (prefab == null)
+                return false;
+
+            _titleOptionsPanel = Instantiate(prefab, _runtimeRoot, false);
+            _titleOptionsPanel.gameObject.name = "UI_Home_Options";
+        }
+
+        if (_titleOptionsPanel.transform is RectTransform rect)
+            Stretch(rect);
+
+        _titleOptionsPanel.CloseRequested -= HandleTitleOptionsCloseRequested;
+        _titleOptionsPanel.CloseRequested += HandleTitleOptionsCloseRequested;
+        HideLegacySettingsPanelWhenShared();
+        _titleOptionsPanel.HideImmediate();
+        _settingsGroup = null;
+        _settingsDeviceText = null;
+        return true;
+    }
+
+    private void HideLegacySettingsPanelWhenShared()
+    {
+        if (_titleOptionsPanel == null)
+            return;
+
+        HideLegacySettingsRect(FindRuntimeRect("SettingsPanel"));
+        HideLegacySettingsRect(FindRuntimeRect("OptionsPanel"));
+    }
+
+    private void HideLegacySettingsRect(RectTransform rect)
+    {
+        if (rect == null || rect.transform.IsChildOf(_titleOptionsPanel.transform))
+            return;
+
+        rect.gameObject.SetActive(false);
+    }
+
+    private void HandleTitleOptionsCloseRequested()
+    {
+        _settingsVisible = false;
     }
 
     private void WireButtons()
@@ -468,6 +552,15 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
     private void SetSettingsVisible(bool visible)
     {
         _settingsVisible = visible;
+        if (_titleOptionsPanel != null)
+        {
+            if (visible)
+                _titleOptionsPanel.Open();
+            else
+                _titleOptionsPanel.DiscardAndHide();
+            return;
+        }
+
         if (_settingsGroup == null)
             return;
 

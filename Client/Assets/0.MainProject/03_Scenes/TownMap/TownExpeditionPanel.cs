@@ -13,6 +13,11 @@ using UnityEngine.UI;
 public sealed class TownExpeditionPanel : MonoBehaviour
 {
     private const int OverlaySortingOrder = 7000;
+    private const float HostCancelPromptDuration = 2.4f;
+    private const float HostCancelPromptPulseRate = 5.5f;
+    private const float HostCancelButtonWidth = 168f;
+    private const float HostCancelButtonHeight = 34f;
+    private static readonly Color HostCancelPromptColor = new Color32(255, 176, 40, 255);
 
     [Serializable]
     public sealed class PartySlotBinding
@@ -36,6 +41,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         public TMP_Text DescriptionText;
         public TMP_Text DifficultyText;
         public TMP_Text MetaText;
+        public RawImage PreviewImage;
         public Graphic SelectedFrame;
     }
 
@@ -61,6 +67,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     [SerializeField] private TMP_Text _selectedMapMetaText;
     [SerializeField] private TMP_Text _selectedMapDifficultyText;
     [SerializeField] private TMP_Text _selectedMapGoalText;
+    [SerializeField] private RawImage _selectedMapPreviewImage;
     [SerializeField] private TMP_Text _inviteCodeText;
     [SerializeField] private TMP_Text _clientHintText;
     [SerializeField] private TMP_Text _minimapCountText;
@@ -72,6 +79,10 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     [SerializeField] private RectTransform _clientControlsRoot;
     [SerializeField] private RectTransform _gameSelectWindow;
     [SerializeField] private RectTransform _mapInfoWindow;
+    [SerializeField] private TMP_Text _mapSelectDetailTitleText;
+    [SerializeField] private TMP_Text _mapSelectStatsText;
+    [SerializeField] private RawImage _mapSelectPreviewImage;
+    [SerializeField] private RawImage _mapInfoPreviewImage;
     [SerializeField] private TMP_Text _mapInfoTitleText;
     [SerializeField] private TMP_Text _mapInfoDescriptionText;
     [SerializeField] private TMP_Text _mapInfoStatsText;
@@ -113,16 +124,16 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
     [SerializeField] private string[] _gameDescriptions =
     {
-        "깊고 울창한 포레스트에서 기본 조작을 익힐 수 있는 입문 맵입니다.",
-        "튜토리얼 이후 첫 전투 흐름을 확인하는 포레스트 첫걸음 맵입니다.",
+        "입장과 이동, 전투 흐름을 짧게 익히는 포레스트 입문 맵입니다.",
+        "거점을 점령하며 엘리트 적의 강화 패턴을 확인하는 첫 실전 맵입니다.",
         "아직 열리지 않은 맵입니다.",
         "아직 열리지 않은 맵입니다."
     };
 
     [SerializeField] private string[] _gameDifficultyLabels =
     {
-        "쉬움",
         "입문",
+        "쉬움",
         "잠김",
         "잠김"
     };
@@ -137,7 +148,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
     [SerializeField] private string[] _gameTimeLabels =
     {
-        "5~10분",
+        "1~3분",
         "3~5분",
         "준비 중",
         "준비 중"
@@ -145,10 +156,18 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
     [SerializeField] private string[] _gameGoalLabels =
     {
-        "모든 적 처치",
-        "첫 전투 완료",
+        "기본 조작 완료",
+        "거점 점령 / 엘리트 처치",
         "업데이트 예정",
         "업데이트 예정"
+    };
+
+    [SerializeField] private string[] _gamePreviewResourcePaths =
+    {
+        "UI/UI_TownMapPreview/MapPreview_Forest_Tutorial",
+        "UI/UI_TownMapPreview/MapPreview_Forest_FirstStep",
+        "",
+        ""
     };
 
     [Header("Polling")]
@@ -171,6 +190,11 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     private bool _warnedMissingUiReferences;
     private float _nextLiveUiRefreshAt;
     private bool _partyPanelCollapsed;
+    private Texture2D[] _gamePreviewTextures;
+    private float _hostCancelPromptUntil;
+    private Color _hostCancelBaseColor = Color.white;
+    private Vector3 _hostCancelBaseScale = Vector3.one;
+    private bool _hostCancelBaseVisualCaptured;
 
     public static TownExpeditionPanel EnsureInScene()
     {
@@ -211,6 +235,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.M))
             ShowMapInfoWindow(true);
+
+        UpdateHostCancelPromptAnimation();
 
         if (Time.unscaledTime >= _nextLiveUiRefreshAt)
         {
@@ -321,7 +347,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         if (_mapSelectPartyButton)
         {
             _mapSelectPartyButton.onClick.RemoveAllListeners();
-            _mapSelectPartyButton.onClick.AddListener(() => _ = OpenPartyManageAsync());
+            _mapSelectPartyButton.gameObject.SetActive(false);
         }
 
         if (_gameSelectCloseButton)
@@ -375,7 +401,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         if (_partyManageButton)
         {
             _partyManageButton.onClick.RemoveAllListeners();
-            _partyManageButton.onClick.AddListener(() => _ = OpenPartyManageAsync());
+            _partyManageButton.gameObject.SetActive(false);
         }
 
         if (_mapOptions != null)
@@ -411,15 +437,23 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         };
         _gameDescriptions = new[]
         {
-            "깊고 울창한 포레스트에서 기본 조작을 익힐 수 있는 입문 맵입니다.",
-            "튜토리얼 이후 첫 전투 흐름을 확인하는 포레스트 첫걸음 맵입니다.",
+            "입장과 이동, 전투 흐름을 짧게 익히는 포레스트 입문 맵입니다.",
+            "거점을 점령하며 엘리트 적의 강화 패턴을 확인하는 첫 실전 맵입니다.",
             "아직 열리지 않은 맵입니다.",
             "아직 열리지 않은 맵입니다."
         };
-        _gameDifficultyLabels = new[] { "쉬움", "입문", "잠김", "잠김" };
+        _gameDifficultyLabels = new[] { "입문", "쉬움", "잠김", "잠김" };
         _gamePlayerLabels = new[] { "1~4명", "1~4명", "-", "-" };
-        _gameTimeLabels = new[] { "5~10분", "3~5분", "준비 중", "준비 중" };
-        _gameGoalLabels = new[] { "모든 적 처치", "첫 전투 완료", "업데이트 예정", "업데이트 예정" };
+        _gameTimeLabels = new[] { "1~3분", "3~5분", "준비 중", "준비 중" };
+        _gameGoalLabels = new[] { "기본 조작 완료", "거점 점령 / 엘리트 처치", "업데이트 예정", "업데이트 예정" };
+        _gamePreviewResourcePaths = new[]
+        {
+            "UI/UI_TownMapPreview/MapPreview_Forest_Tutorial",
+            "UI/UI_TownMapPreview/MapPreview_Forest_FirstStep",
+            "",
+            ""
+        };
+        _gamePreviewTextures = null;
 
         if (!IsMapUnlocked(_selectedGameMapIndex))
             _selectedGameMapIndex = 0;
@@ -439,11 +473,12 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             if (option.TitleText)
                 option.TitleText.text = GetMapTitle(i);
             if (option.DescriptionText)
-                option.DescriptionText.text = GetMapDescription(i);
+                option.DescriptionText.gameObject.SetActive(false);
             if (option.DifficultyText)
                 option.DifficultyText.text = GetMapDifficulty(i);
             if (option.MetaText)
-                option.MetaText.text = IsMapUnlocked(i) ? $"{GetMapPlayers(i)}  |  {GetMapTime(i)}" : "사용 불가";
+                option.MetaText.text = IsMapUnlocked(i) ? $"{GetMapPlayers(i)}   {GetMapTime(i)}" : "사용 불가";
+            ApplyPreviewImage(option.PreviewImage, i);
         }
     }
 
@@ -490,6 +525,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         UpdatePartySlots(BuildPartyMembers(activeRoomUi), activeRoomUi, hasActiveGame);
         UpdateSelectedMapCard(displayMapIndex, hasActiveGame);
         UpdateMapSelectOptionState(displayMapIndex);
+        UpdateMapSelectDetail(displayMapIndex);
         UpdateMapInfoWindow(displayMapIndex);
 
         var inviteCode = ResolveInviteCode();
@@ -543,6 +579,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         {
             _hostCancelGameButton.gameObject.SetActive(isHost && hasActiveGame);
             _hostCancelGameButton.interactable = isHost && hasActiveGame && !_startingGameRoom && !_cancelingGameRoom;
+            if (!hasActiveGame)
+                _hostCancelPromptUntil = 0f;
         }
 
         ApplyPartyPanelCollapsedState();
@@ -617,6 +655,23 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _selectedMapDifficultyText.text = GetMapDifficulty(mapIndex);
         if (_selectedMapGoalText)
             _selectedMapGoalText.text = activeGame ? "선택된 맵" : GetMapGoal(mapIndex);
+        ApplyPreviewImage(_selectedMapPreviewImage, mapIndex);
+    }
+
+    private void UpdateMapSelectDetail(int mapIndex)
+    {
+        if (_mapSelectDetailTitleText)
+            _mapSelectDetailTitleText.text = GetMapTitle(mapIndex);
+        if (_mapSelectStatsText)
+        {
+            _mapSelectStatsText.text =
+                $"난이도  {GetMapDifficulty(mapIndex)}\n" +
+                $"인원    {GetMapPlayers(mapIndex)}\n" +
+                $"시간    {GetMapTime(mapIndex)}\n" +
+                $"목표    {GetMapGoal(mapIndex)}";
+        }
+
+        ApplyPreviewImage(_mapSelectPreviewImage, mapIndex);
     }
 
     private void UpdateMapInfoWindow(int mapIndex)
@@ -631,6 +686,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
                 $"권장 플레이어  {GetMapPlayers(mapIndex)}\n" +
                 $"예상 시간  {GetMapTime(mapIndex)}\n" +
                 $"목표  {GetMapGoal(mapIndex)}";
+        ApplyPreviewImage(_mapInfoPreviewImage, mapIndex);
 
         if (_mapInfoFeatureTexts == null)
             return;
@@ -642,7 +698,11 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             if (!text)
                 continue;
 
-            text.text = i < features.Length ? features[i] : "";
+            var value = i < features.Length ? features[i] : "";
+            text.text = value;
+            var card = text.transform.parent != null ? text.transform.parent.gameObject : null;
+            if (card != null)
+                card.SetActive(!string.IsNullOrWhiteSpace(value));
         }
     }
 
@@ -665,7 +725,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             if (option.DifficultyText != null)
                 option.DifficultyText.text = unlocked ? GetMapDifficulty(i) : "잠김";
             if (option.MetaText != null)
-                option.MetaText.text = unlocked ? $"{GetMapPlayers(i)}  |  {GetMapTime(i)}" : "사용 불가";
+                option.MetaText.text = unlocked ? $"{GetMapPlayers(i)}   {GetMapTime(i)}" : "사용 불가";
+            ApplyPreviewImage(option.PreviewImage, i);
         }
     }
 
@@ -765,7 +826,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
                     result.Add(new PartyMemberView
                     {
                         Uid = member.Uid,
-                        Name = !string.IsNullOrWhiteSpace(member.DisplayName) ? member.DisplayName : TrimUid(member.Uid),
+                        Name = ResolvePartyDisplayName(member.Uid, member.DisplayName),
                         IsHost = member.IsOwner,
                         IsLocal = member.IsLocal,
                         Connected = true,
@@ -785,9 +846,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
                 if (participant == null)
                     continue;
 
-                var name = !string.IsNullOrWhiteSpace(participant.name)
-                    ? participant.name
-                    : (!string.IsNullOrWhiteSpace(participant.uid) ? TrimUid(participant.uid) : $"Player {result.Count + 1}");
+                var name = participant.name;
                 if (roomUi != null
                     && roomUi.TryGetMemberName(participant.uid, out var roomName)
                     && !string.IsNullOrWhiteSpace(roomName))
@@ -795,6 +854,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
                     name = roomName;
                 }
 
+                name = ResolvePartyDisplayName(participant.uid, name);
                 result.Add(new PartyMemberView
                 {
                     Uid = participant.uid ?? "",
@@ -815,7 +875,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             result.Add(new PartyMemberView
             {
                 Uid = uid,
-                Name = "Player 1",
+                Name = ResolvePartyDisplayName(uid, ""),
                 IsHost = true,
                 IsLocal = true,
                 Connected = true,
@@ -1092,6 +1152,7 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             if (this)
             {
                 _cancelingGameRoom = false;
+                _hostCancelPromptUntil = 0f;
                 UpdateView();
             }
         }
@@ -1410,6 +1471,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _selectedMapDifficultyText = FindChild<TMP_Text>("SelectedMapDifficulty");
         if (_selectedMapGoalText == null)
             _selectedMapGoalText = FindChild<TMP_Text>("SelectedMapGoal");
+        if (_selectedMapPreviewImage == null)
+            _selectedMapPreviewImage = FindChild<RawImage>("SelectedMapPreviewImage");
         if (_inviteCodeText == null)
             _inviteCodeText = FindChild<TMP_Text>("InviteCode");
         if (_clientHintText == null)
@@ -1432,6 +1495,16 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _gameSelectWindow = FindChild<RectTransform>("TownGameSelectWindow");
         if (_mapInfoWindow == null)
             _mapInfoWindow = FindChild<RectTransform>("TownMapInfoWindow");
+        if (_mapSelectDetailTitleText == null)
+            _mapSelectDetailTitleText = FindChild<TMP_Text>("MapSelectDetailTitle");
+        if (_mapSelectStatsText == null)
+            _mapSelectStatsText = FindChild<TMP_Text>("MapSelectStatsText");
+        if (_mapSelectStatsText == null)
+            _mapSelectStatsText = FindChild<TMP_Text>("MapSelectStats");
+        if (_mapSelectPreviewImage == null)
+            _mapSelectPreviewImage = FindChild<RawImage>("MapSelectPreviewImage");
+        if (_mapInfoPreviewImage == null)
+            _mapInfoPreviewImage = FindChild<RawImage>("MapInfoPreviewImage");
         if (_mapInfoTitleText == null)
             _mapInfoTitleText = FindChild<TMP_Text>("MapInfoTitle");
         if (_mapInfoDescriptionText == null)
@@ -1462,17 +1535,44 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             _hostStartGameButton = FindChild<Button>("HostStartGameButton");
         if (_hostCancelGameButton == null)
             _hostCancelGameButton = FindChild<Button>("HostCancelGameButton");
+        ConfigureHostCancelButtonLayout();
         if (_partyManageButton == null)
             _partyManageButton = FindChild<Button>("PartyManageButton");
         if (_homeUiController == null)
             _homeUiController = FindSceneObject<TownHomeUiController>();
 
+        EnsureRuntimePreviewImages();
+        HideUnsupportedButtons();
         ApplyFontToChildren();
+        ApplyPartyPanelTypography();
 
         if (!_warnedMissingUiReferences && (_root == null || _sidePartySlots == null || _sidePartySlots.Length == 0 || _gameSelectWindow == null))
         {
             _warnedMissingUiReferences = true;
             Debug.LogError("[TownExpeditionPanel] Scene UI references are incomplete. Rebuild Canvas_TownExpeditionOverlay in the hierarchy.");
+        }
+    }
+
+    private void EnsureRuntimePreviewImages()
+    {
+        if (_selectedMapPreviewImage == null)
+            _selectedMapPreviewImage = CreateRuntimePreviewImage("SelectedMapPreviewImage", FindChild<RectTransform>("SelectedMapPreview"));
+        if (_mapSelectPreviewImage == null)
+            _mapSelectPreviewImage = CreateRuntimePreviewImage("MapSelectPreviewImage", FindChild<RectTransform>("LargePreview"));
+        if (_mapInfoPreviewImage == null)
+            _mapInfoPreviewImage = CreateRuntimePreviewImage("MapInfoPreviewImage", FindChild<RectTransform>("MapInfoPreview"));
+
+        if (_mapOptions == null)
+            return;
+
+        for (int i = 0; i < _mapOptions.Length; i++)
+        {
+            var option = _mapOptions[i];
+            if (option == null || option.PreviewImage != null || option.Button == null)
+                continue;
+
+            var thumbRoot = FindChildIn<RectTransform>(option.Button.transform, "Thumb");
+            option.PreviewImage = CreateRuntimePreviewImage("PreviewImage", thumbRoot);
         }
     }
 
@@ -1663,6 +1763,145 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         }
     }
 
+    private void ApplyPartyPanelTypography()
+    {
+        ConfigureText(_partyCountText, 22f, 16f, TextWrappingModes.NoWrap);
+        ConfigureText(_roleBadgeText, 16f, 12f, TextWrappingModes.NoWrap);
+        ConfigureText(_partyMinimizeLabelText, 16f, 12f, TextWrappingModes.NoWrap);
+
+        ConfigureText(_selectedMapTitleText, 18f, 14f, TextWrappingModes.NoWrap);
+        ConfigureText(_selectedMapMetaText, 16f, 12f, TextWrappingModes.NoWrap);
+        ConfigureText(_selectedMapDifficultyText, 15f, 12f, TextWrappingModes.NoWrap);
+        ConfigureText(_selectedMapGoalText, 15f, 12f, TextWrappingModes.NoWrap);
+        ConfigureText(_statusText, 16f, 12f, TextWrappingModes.Normal);
+        ConfigureText(_readySummaryText, 15f, 12f, TextWrappingModes.NoWrap);
+        ConfigureText(_clientHintText, 15f, 12f, TextWrappingModes.NoWrap);
+
+        ConfigureText(FindChild<TMP_Text>("InviteLabel"), 15f, 12f, TextWrappingModes.NoWrap);
+        ConfigureButtonLabel(_gameSelectButton, 17f, 13f);
+        ConfigureButtonLabel(_mapInfoButton, 17f, 13f);
+        ConfigureButtonLabel(_copyInviteButton, 17f, 13f);
+
+        ConfigurePartySlotTypography(_partySlots);
+        ConfigurePartySlotTypography(_sidePartySlots);
+        CompactSidePartySlotLayout(_sidePartySlots);
+        CompactSelectedMapCardLayout();
+    }
+
+    private static void ConfigurePartySlotTypography(PartySlotBinding[] slots)
+    {
+        if (slots == null)
+            return;
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            var slot = slots[i];
+            if (slot == null)
+                continue;
+
+            ConfigureText(slot.IndexText, 17f, 12f, TextWrappingModes.NoWrap);
+            ConfigureText(slot.NameText, 16f, 12f, TextWrappingModes.NoWrap);
+            ConfigureText(slot.HpText, 13f, 11f, TextWrappingModes.NoWrap);
+            ConfigureText(slot.HostBadgeText, 13f, 11f, TextWrappingModes.NoWrap);
+            ConfigureText(slot.ReadyText, 11f, 10f, TextWrappingModes.NoWrap);
+        }
+    }
+
+    private static void CompactSidePartySlotLayout(PartySlotBinding[] slots)
+    {
+        if (slots == null)
+            return;
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            var root = slots[i]?.Root;
+            if (root == null)
+                continue;
+
+            var rect = root.GetComponent<RectTransform>();
+            SetRect(rect, null, -37f * i, null, 34f);
+        }
+    }
+
+    private void CompactSelectedMapCardLayout()
+    {
+        SetRect(_selectedMapPreviewImage ? _selectedMapPreviewImage.rectTransform : null, 12f, -36f, 124f, 52f);
+        SetRect(_selectedMapTitleText ? _selectedMapTitleText.rectTransform : null, 146f, -28f, 214f, 26f);
+        SetRect(_selectedMapMetaText ? _selectedMapMetaText.rectTransform : null, 146f, -56f, 214f, 22f);
+        SetRect(_selectedMapGoalText ? _selectedMapGoalText.rectTransform : null, 146f, -78f, 214f, 22f);
+        SetRect(_selectedMapDifficultyText ? _selectedMapDifficultyText.rectTransform : null, null, null, 52f, 26f);
+        SetRect(_statusText ? _statusText.rectTransform : null, null, null, null, 24f);
+        SetRect(_readySummaryText ? _readySummaryText.rectTransform : null, null, null, null, 24f);
+    }
+
+    private static void ConfigureButtonLabel(Button button, float fontSize, float minSize)
+    {
+        if (!button)
+            return;
+
+        ConfigureText(button.GetComponentInChildren<TMP_Text>(true), fontSize, minSize, TextWrappingModes.NoWrap);
+    }
+
+    private static void ConfigureText(TMP_Text text, float fontSize, float minSize, TextWrappingModes wrapping)
+    {
+        if (!text)
+            return;
+
+        text.enableAutoSizing = true;
+        text.fontSize = Mathf.Max(text.fontSize, fontSize);
+        text.fontSizeMax = Mathf.Max(text.fontSizeMax, fontSize);
+        text.fontSizeMin = Mathf.Max(text.fontSizeMin, minSize);
+        text.textWrappingMode = wrapping;
+    }
+
+    private static void SetRect(RectTransform rect, float? x, float? y, float? width, float? height)
+    {
+        if (rect == null)
+            return;
+
+        var position = rect.anchoredPosition;
+        if (x.HasValue)
+            position.x = x.Value;
+        if (y.HasValue)
+            position.y = y.Value;
+        rect.anchoredPosition = position;
+
+        if (width.HasValue)
+            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width.Value);
+        if (height.HasValue)
+            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height.Value);
+    }
+
+    private bool HasActiveGameRoom()
+    {
+        return _townRoom != null && !string.IsNullOrWhiteSpace(_townRoom.activeGameRoomId);
+    }
+
+    private bool IsDifferentFromActiveGameMap(int index)
+    {
+        if (!HasActiveGameRoom())
+            return false;
+
+        var selectedMapId = GetMapId(index);
+        var activeMapId = _townRoom?.activeGameMapId ?? "";
+        return string.IsNullOrWhiteSpace(activeMapId)
+               || !string.Equals(activeMapId, selectedMapId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void PromptCancelBeforeMapChange(int requestedIndex)
+    {
+        _hostCancelPromptUntil = Time.unscaledTime + HostCancelPromptDuration;
+        ConfigureHostCancelButtonLayout();
+        if (_hostCancelGameButton)
+        {
+            _hostCancelGameButton.gameObject.SetActive(true);
+            _hostCancelGameButton.interactable = !_startingGameRoom && !_cancelingGameRoom;
+            SetButtonLabel(_hostCancelGameButton, "대기 취소");
+        }
+
+        UpdateView($"{GetMapTitle(requestedIndex)}로 변경하려면 먼저 Game 대기방을 취소하세요.");
+    }
+
     private void SelectMapOption(int index)
     {
         if (!IsTownHost(_townRoom))
@@ -1677,12 +1916,19 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             return;
         }
 
+        if (HasActiveGameRoom() && IsDifferentFromActiveGameMap(index))
+        {
+            PromptCancelBeforeMapChange(index);
+            return;
+        }
+
         _selectedGameMapIndex = Mathf.Clamp(index, 0, Mathf.Max(0, _gameMapIds.Length - 1));
         UpdateView();
     }
 
     private async Task ConfirmSelectedMapSelectionAsync()
     {
+        var requestedMapIndex = _selectedGameMapIndex;
         if (!await RefreshTownRoomAsync())
             return;
 
@@ -1692,12 +1938,19 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             return;
         }
 
-        if (!IsMapUnlocked(_selectedGameMapIndex))
+        if (!IsMapUnlocked(requestedMapIndex))
         {
             UpdateView("아직 열리지 않은 맵입니다.");
             return;
         }
 
+        if (HasActiveGameRoom() && IsDifferentFromActiveGameMap(requestedMapIndex))
+        {
+            PromptCancelBeforeMapChange(requestedMapIndex);
+            return;
+        }
+
+        _selectedGameMapIndex = requestedMapIndex;
         ShowGameSelectWindow(false);
         await EnsureSelectedMapSharedAsync();
     }
@@ -1805,8 +2058,8 @@ public sealed class TownExpeditionPanel : MonoBehaviour
     private string GetMapDescription(int index) => GetArrayValue(_gameDescriptions, index, "");
     private string GetMapDifficulty(int index) => GetArrayValue(_gameDifficultyLabels, index, "쉬움");
     private string GetMapPlayers(int index) => GetArrayValue(_gamePlayerLabels, index, "1~4명");
-    private string GetMapTime(int index) => GetArrayValue(_gameTimeLabels, index, "5~10분");
-    private string GetMapGoal(int index) => GetArrayValue(_gameGoalLabels, index, "모든 적 처치");
+    private string GetMapTime(int index) => GetArrayValue(_gameTimeLabels, index, "1~3분");
+    private string GetMapGoal(int index) => GetArrayValue(_gameGoalLabels, index, "기본 조작 완료");
 
     private string[] GetMapFeatures(int index)
     {
@@ -1814,19 +2067,113 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         {
             return new[]
             {
-                "준비 중",
-                "현재는 튜토리얼과 포레스트 첫걸음만 이용 가능",
-                "업데이트 예정"
+                "준비 중"
             };
         }
 
-        var title = GetMapTitle(index);
-        return new[]
+        if (index == 0)
+            return new[] { "포레스트 튜토리얼" };
+
+        if (index == 1)
         {
-            $"{title} 입구",
-            "파티 합류 후 즉시 전투 준비 가능",
-            GetMapGoal(index)
-        };
+            return new[]
+            {
+                "점령 구역\n리듬을 유지하며 거점을 확보",
+                "엘리트 적\n강화 패턴과 긴 교전 등장",
+                "첫걸음 루트\n튜토리얼 다음 실전 흐름 확인"
+            };
+        }
+
+        return new[] { GetMapTitle(index) };
+    }
+
+    private void ApplyPreviewImage(RawImage image, int index)
+    {
+        if (!image)
+            return;
+
+        var texture = GetMapPreviewTexture(index);
+        image.texture = texture;
+        image.color = texture != null ? Color.white : new Color32(8, 56, 68, 230);
+        image.uvRect = BuildCoverUvRect(texture, ResolveRectSize(image.rectTransform));
+    }
+
+    private Texture2D GetMapPreviewTexture(int index)
+    {
+        if (_gamePreviewResourcePaths == null || _gamePreviewResourcePaths.Length == 0)
+            return null;
+
+        index = Mathf.Clamp(index, 0, _gamePreviewResourcePaths.Length - 1);
+        var path = _gamePreviewResourcePaths[index];
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+
+        if (_gamePreviewTextures == null || _gamePreviewTextures.Length != _gamePreviewResourcePaths.Length)
+            _gamePreviewTextures = new Texture2D[_gamePreviewResourcePaths.Length];
+
+        if (_gamePreviewTextures[index] == null)
+            _gamePreviewTextures[index] = Resources.Load<Texture2D>(path);
+
+        return _gamePreviewTextures[index];
+    }
+
+    private static Rect BuildCoverUvRect(Texture texture, Vector2 boxSize)
+    {
+        if (texture == null || texture.width <= 0 || texture.height <= 0 || boxSize.x <= 0f || boxSize.y <= 0f)
+            return new Rect(0f, 0f, 1f, 1f);
+
+        var textureAspect = texture.width / (float)texture.height;
+        var boxAspect = boxSize.x / boxSize.y;
+        if (textureAspect > boxAspect)
+        {
+            var width = boxAspect / textureAspect;
+            return new Rect((1f - width) * 0.5f, 0f, width, 1f);
+        }
+
+        var height = textureAspect / boxAspect;
+        return new Rect(0f, (1f - height) * 0.5f, 1f, height);
+    }
+
+    private static Vector2 ResolveRectSize(RectTransform rect)
+    {
+        if (rect == null)
+            return Vector2.one;
+
+        var size = rect.rect.size;
+        if (size.x <= 0f || size.y <= 0f)
+            size = rect.sizeDelta;
+        if ((size.x <= 0f || size.y <= 0f) && rect.parent is RectTransform parent)
+            size = parent.rect.size;
+        if ((size.x <= 0f || size.y <= 0f) && rect.parent is RectTransform parentWithDelta)
+            size = parentWithDelta.sizeDelta;
+        if (size.x <= 0f || size.y <= 0f)
+            size = new Vector2(16f, 9f);
+        return size;
+    }
+
+    private static RawImage CreateRuntimePreviewImage(string name, RectTransform parent)
+    {
+        if (parent == null)
+            return null;
+
+        var existing = FindChildIn<RawImage>(parent, name);
+        if (existing != null)
+            return existing;
+
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+        go.transform.SetParent(parent, false);
+        var rect = go.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        rect.localScale = Vector3.one;
+        rect.SetAsLastSibling();
+
+        var image = go.GetComponent<RawImage>();
+        image.color = new Color32(8, 56, 68, 230);
+        image.raycastTarget = false;
+        return image;
     }
 
     private bool IsMapUnlocked(int index)
@@ -1858,9 +2205,28 @@ public sealed class TownExpeditionPanel : MonoBehaviour
         return null;
     }
 
+    private static T FindChildIn<T>(Transform root, string objectName) where T : Component
+    {
+        if (root == null)
+            return null;
+
+        var components = root.GetComponentsInChildren<T>(true);
+        for (int i = 0; i < components.Length; i++)
+        {
+            if (components[i] != null && string.Equals(components[i].gameObject.name, objectName, StringComparison.Ordinal))
+                return components[i];
+        }
+
+        return null;
+    }
+
     private static TMP_FontAsset LoadKoreanFont()
     {
-        var font = Resources.Load<TMP_FontAsset>("Fonts & Materials/NanumGothic SDF");
+        var font = Resources.Load<TMP_FontAsset>("Fonts & Materials/Gowun Batang");
+        if (font == null)
+            font = Resources.Load<TMP_FontAsset>("Gowun Batang");
+        if (font == null)
+            font = Resources.Load<TMP_FontAsset>("Fonts & Materials/NanumGothic SDF");
         if (font == null)
             font = Resources.Load<TMP_FontAsset>("NanumGothic SDF");
         return font;
@@ -1876,17 +2242,134 @@ public sealed class TownExpeditionPanel : MonoBehaviour
             text.text = label;
     }
 
+    private void ConfigureHostCancelButtonLayout()
+    {
+        if (!_hostCancelGameButton)
+            return;
+
+        var rect = _hostCancelGameButton.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, HostCancelButtonWidth);
+            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, HostCancelButtonHeight);
+        }
+
+        var label = _hostCancelGameButton.GetComponentInChildren<TMP_Text>(true);
+        if (label != null)
+        {
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.fontSizeMax = Mathf.Max(label.fontSizeMax, 16f);
+            label.fontSize = Mathf.Max(label.fontSize, 16f);
+        }
+    }
+
+    private void UpdateHostCancelPromptAnimation()
+    {
+        if (!_hostCancelGameButton)
+            return;
+
+        var shouldPulse = Time.unscaledTime < _hostCancelPromptUntil
+                          && _hostCancelGameButton.gameObject.activeInHierarchy;
+        if (!shouldPulse)
+        {
+            RestoreHostCancelButtonVisual();
+            return;
+        }
+
+        CaptureHostCancelButtonBaseVisual();
+        var graphic = GetHostCancelButtonGraphic();
+        var rect = _hostCancelGameButton.GetComponent<RectTransform>();
+        var pulse = (Mathf.Sin(Time.unscaledTime * HostCancelPromptPulseRate * Mathf.PI * 2f) + 1f) * 0.5f;
+
+        if (graphic != null)
+            graphic.color = Color.Lerp(_hostCancelBaseColor, HostCancelPromptColor, 0.35f + pulse * 0.65f);
+        if (rect != null)
+            rect.localScale = _hostCancelBaseScale * (1f + pulse * 0.07f);
+    }
+
+    private void CaptureHostCancelButtonBaseVisual()
+    {
+        if (_hostCancelBaseVisualCaptured || !_hostCancelGameButton)
+            return;
+
+        var graphic = GetHostCancelButtonGraphic();
+        if (graphic != null)
+            _hostCancelBaseColor = graphic.color;
+
+        var rect = _hostCancelGameButton.GetComponent<RectTransform>();
+        if (rect != null)
+            _hostCancelBaseScale = rect.localScale;
+
+        _hostCancelBaseVisualCaptured = true;
+    }
+
+    private void RestoreHostCancelButtonVisual()
+    {
+        if (!_hostCancelBaseVisualCaptured || !_hostCancelGameButton)
+            return;
+
+        var graphic = GetHostCancelButtonGraphic();
+        if (graphic != null)
+            graphic.color = _hostCancelBaseColor;
+
+        var rect = _hostCancelGameButton.GetComponent<RectTransform>();
+        if (rect != null)
+            rect.localScale = _hostCancelBaseScale;
+    }
+
+    private Graphic GetHostCancelButtonGraphic()
+    {
+        if (!_hostCancelGameButton)
+            return null;
+
+        return _hostCancelGameButton.targetGraphic ?? _hostCancelGameButton.GetComponent<Graphic>();
+    }
+
     private static void SetActive(Component component, bool active)
     {
         if (component != null)
             component.gameObject.SetActive(active);
     }
 
-    private static string TrimUid(string uid)
+    private static string ResolvePartyDisplayName(string uid, string displayName)
     {
-        if (string.IsNullOrWhiteSpace(uid))
-            return "-";
-        return uid.Length <= 10 ? uid : uid.Substring(0, 10);
+        var localUid = SessionContext.Instance?.Uid ?? "";
+        if (!string.IsNullOrWhiteSpace(uid)
+            && !string.IsNullOrWhiteSpace(localUid)
+            && string.Equals(uid, localUid, StringComparison.OrdinalIgnoreCase))
+        {
+            var steamName = AppBootstrap.Instance?.Root?.SteamPlatform?.DisplayName ?? "";
+            if (IsUsableDisplayName(steamName, uid))
+                return steamName.Trim();
+        }
+
+        return IsUsableDisplayName(displayName, uid) ? displayName.Trim() : "Guest";
+    }
+
+    private static bool IsUsableDisplayName(string displayName, string uid)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+            return false;
+
+        return string.IsNullOrWhiteSpace(uid)
+               || !string.Equals(displayName.Trim(), uid.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void HideUnsupportedButtons()
+    {
+        DisableButton(_mapSelectPartyButton);
+        DisableButton(_partyManageButton);
+        DisableButton(FindChild<Button>("MapInfoCloseWideButton"));
+    }
+
+    private static void DisableButton(Button button)
+    {
+        if (!button)
+            return;
+
+        button.onClick.RemoveAllListeners();
+        button.interactable = false;
+        button.gameObject.SetActive(false);
     }
 
     private static T FindSceneObject<T>() where T : UnityEngine.Object

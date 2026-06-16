@@ -453,6 +453,7 @@ internal static class P2PDebugConfig
     private static int _lastToggleFrame = -1;
 
     internal const string ToggleLogOverheadKeyName = "Ctrl+Alt+F7";
+    internal static bool DebugUiEnabled { get; private set; } = true;
     internal static bool LogOverheadEnabled { get; private set; } = false;
     internal static bool TraceHostFlow => LogOverheadEnabled && TraceHostFlowDefault;
     internal static bool TraceContent => LogOverheadEnabled && TraceContentDefault;
@@ -463,6 +464,9 @@ internal static class P2PDebugConfig
 
     internal static bool PollRuntimeToggle()
     {
+        if (!DebugUiEnabled)
+            return false;
+
         if (!RuntimeHotkey.WasPressed(ToggleLogOverheadKey, requireCtrl: true, requireAlt: true))
             return false;
 
@@ -475,8 +479,21 @@ internal static class P2PDebugConfig
         return true;
     }
 
+    internal static void SetDebugUiEnabled(bool enabled)
+    {
+        if (DebugUiEnabled == enabled)
+            return;
+
+        DebugUiEnabled = enabled;
+        if (!enabled)
+            SetLogOverheadEnabled(false);
+    }
+
     internal static void SetLogOverheadEnabled(bool enabled)
     {
+        if (enabled && !DebugUiEnabled)
+            enabled = false;
+
         if (LogOverheadEnabled == enabled)
             return;
 
@@ -500,7 +517,7 @@ internal static class P2PDebugConfig
 
     internal static bool ShouldCaptureHostLog(string condition, LogType type)
     {
-        if (!LogOverheadEnabled)
+        if (!DebugUiEnabled || !LogOverheadEnabled)
             return false;
 
         if (type == LogType.Error || type == LogType.Exception)
@@ -546,11 +563,15 @@ internal static class P2PDebugViewConfig
 
     internal const string ToggleNetworkOverlayKeyName = "Ctrl+Alt+F10";
     internal const string ToggleSteamSectionKeyName = "Ctrl+Alt+F11";
+    internal static bool DebugUiEnabled { get; private set; } = true;
     internal static bool ShowNetworkSyncOverlay { get; private set; } = true;
     internal static bool ShowSteamSections { get; private set; } = true;
 
     internal static void PollRuntimeToggles()
     {
+        if (!DebugUiEnabled)
+            return;
+
         if (RuntimeHotkey.WasPressed(ToggleNetworkOverlayKey, requireCtrl: true, requireAlt: true))
             ToggleNetworkOverlayOnce();
 
@@ -560,6 +581,9 @@ internal static class P2PDebugViewConfig
 
     internal static bool HandleRuntimeToggleEvent(Event evt)
     {
+        if (!DebugUiEnabled)
+            return false;
+
         if (evt == null || evt.type != EventType.KeyDown)
             return false;
 
@@ -581,6 +605,16 @@ internal static class P2PDebugViewConfig
         return handled;
     }
 
+    internal static void SetDebugUiEnabled(bool enabled)
+    {
+        if (DebugUiEnabled == enabled)
+            return;
+
+        DebugUiEnabled = enabled;
+        ShowNetworkSyncOverlay = enabled;
+        ShowSteamSections = enabled;
+    }
+
     private static bool IsEventModifierSatisfied(
         Event evt,
         bool requireCtrl = false,
@@ -594,6 +628,9 @@ internal static class P2PDebugViewConfig
 
     private static void ToggleNetworkOverlayOnce()
     {
+        if (!DebugUiEnabled)
+            return;
+
         int frame = Time.frameCount;
         if (_lastOverlayToggleFrame == frame)
             return;
@@ -604,6 +641,9 @@ internal static class P2PDebugViewConfig
 
     private static void ToggleSteamSectionOnce()
     {
+        if (!DebugUiEnabled)
+            return;
+
         int frame = Time.frameCount;
         if (_lastSteamToggleFrame == frame)
             return;
@@ -1165,6 +1205,12 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
 {
     public static SteamP2PDebugHud Ensure(bool visibleByDefault)
     {
+        if (!P2PDebugConfig.DebugUiEnabled)
+        {
+            SetVisible(false);
+            return _instance;
+        }
+
         if (_instance == null)
         {
             var go = new GameObject(nameof(SteamP2PDebugHud));
@@ -1178,6 +1224,18 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
         }
 
         return _instance;
+    }
+
+    public static void SetDebugUiEnabled(bool enabled)
+    {
+        if (!enabled)
+            SetVisible(false);
+    }
+
+    public static void SetVisible(bool visible)
+    {
+        if (_instance != null)
+            _instance._visible = visible && P2PDebugConfig.DebugUiEnabled;
     }
 
     private static SteamP2PDebugHud _instance;
@@ -1210,6 +1268,12 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
 
     private void Update()
     {
+        if (!P2PDebugConfig.DebugUiEnabled)
+        {
+            _visible = false;
+            return;
+        }
+
         P2PDebugConfig.PollRuntimeToggle();
         P2PDebugViewConfig.PollRuntimeToggles();
 
@@ -1219,7 +1283,7 @@ public sealed class SteamP2PDebugHud : MonoBehaviour
 
     private void OnGUI()
     {
-        if (!_visible)
+        if (!P2PDebugConfig.DebugUiEnabled || !_visible)
             return;
 
         EnsureStyles();

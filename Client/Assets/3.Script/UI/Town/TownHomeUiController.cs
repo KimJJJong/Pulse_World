@@ -40,11 +40,17 @@ public sealed class TownHomeUiController : MonoBehaviour
 
     private void OnDisable()
     {
+        if (_restoreCameraFollowRoutine != null)
+        {
+            StopCoroutine(_restoreCameraFollowRoutine);
+            _restoreCameraFollowRoutine = null;
+        }
+
         ForceCameraHomeImmediate();
+        RestoreCameraFollow();
         RestoreRhythmInput();
         UnhookInventoryRefresh();
         RestoreHiddenSceneCanvases();
-        RestoreCameraFollow();
         SetCameraDirectorActive(false);
         _inventoryWindowOpenFromHomeUi = false;
     }
@@ -158,7 +164,6 @@ public sealed class TownHomeUiController : MonoBehaviour
         SetRootActive(false);
         RestoreHiddenSceneCanvases();
         UnhookInventoryRefresh();
-        RestoreRhythmInput();
 
         if (_restoreCameraFollowRoutine != null)
             StopCoroutine(_restoreCameraFollowRoutine);
@@ -167,7 +172,7 @@ public sealed class TownHomeUiController : MonoBehaviour
         if (_cameraDirector != null)
             restoreDelay = Mathf.Max(restoreDelay, _cameraDirector.GetStagedTransitionDuration());
 
-        _restoreCameraFollowRoutine = StartCoroutine(RestoreCameraFollowAfterDelay(restoreDelay));
+        _restoreCameraFollowRoutine = StartCoroutine(RestoreGameplayControlAfterDelay(restoreDelay));
     }
 
     private void ResolveReferences()
@@ -249,6 +254,12 @@ public sealed class TownHomeUiController : MonoBehaviour
             _restoreCameraFollowRoutine = null;
         }
 
+        if (_hadCameraFollow && _cameraFollow != null)
+        {
+            _cameraFollow.enabled = false;
+            return;
+        }
+
         _cameraFollow = ResolveCameraFollow();
         _hadCameraFollow = _cameraFollow != null;
         if (!_hadCameraFollow)
@@ -258,7 +269,7 @@ public sealed class TownHomeUiController : MonoBehaviour
         _cameraFollow.enabled = false;
     }
 
-    private IEnumerator RestoreCameraFollowAfterDelay(float delay)
+    private IEnumerator RestoreGameplayControlAfterDelay(float delay)
     {
         delay = Mathf.Max(0f, delay);
         if (delay > 0f)
@@ -267,13 +278,18 @@ public sealed class TownHomeUiController : MonoBehaviour
         ForceCameraHomeImmediate();
         RestoreCameraFollow();
         SetCameraDirectorActive(false);
+        RestoreRhythmInput();
         _restoreCameraFollowRoutine = null;
     }
 
     private void RestoreCameraFollow()
     {
         if (_hadCameraFollow && _cameraFollow != null)
+        {
             _cameraFollow.enabled = _wasCameraFollowEnabled;
+            if (_wasCameraFollowEnabled)
+                _cameraFollow.SnapToTarget();
+        }
 
         _hadCameraFollow = false;
         _cameraFollow = null;
@@ -292,13 +308,21 @@ public sealed class TownHomeUiController : MonoBehaviour
         if (!_blockRhythmInput)
             return;
 
+        if (_hadRhythmInputController && _rhythmInputController != null)
+        {
+            _rhythmInputController.IsInputBlocked = true;
+            if (_rhythmInputController.enabled)
+                _rhythmInputController.enabled = false;
+            return;
+        }
+
         _rhythmInputController = RhythmInputController.Instance;
         _hadRhythmInputController = _rhythmInputController != null;
         if (!_hadRhythmInputController)
             return;
 
         _wasRhythmInputControllerEnabled = _rhythmInputController.enabled;
-        _rhythmInputController.IsInputBlocked = false;
+        _rhythmInputController.IsInputBlocked = true;
         if (_rhythmInputController.enabled)
             _rhythmInputController.enabled = false;
     }

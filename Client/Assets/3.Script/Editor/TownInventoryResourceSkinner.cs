@@ -8,12 +8,17 @@ public static class TownInventoryResourceSkinner
 {
     private const string PrefabPath = "Assets/0.MainProject/Prefabs/UI/Town/PF_TownInventory_UI.prefab";
     private const string ResourceRoot = "Assets/Resources/UI/UI_Inventory/";
+    private const string GowunBatangFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/Gowun Batang.asset";
+    private const string GowunBatangFontFallbackPath = "Assets/TextMesh Pro/Resources/Gowun Batang.asset";
+    private const string NanumGothicFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/NanumGothic SDF.asset";
+    private const string NanumGothicFontFallbackPath = "Assets/TextMesh Pro/Resources/NanumGothic SDF.asset";
 
     private const float PanelWidth = 1550f;
     private const float PanelHeight = 945f;
     private const float SlotSize = 103f;
     private const float SlotGapX = 18f;
     private const float SlotGapY = 20f;
+    private static TMP_FontAsset _font;
 
     [MenuItem("RhythmRPG/Editors/UI/Apply Town Inventory Resource Skin")]
     public static void ApplyMenu()
@@ -431,7 +436,28 @@ public static class TownInventoryResourceSkinner
         text.textWrappingMode = TextWrappingModes.Normal;
         text.overflowMode = TextOverflowModes.Ellipsis;
         text.margin = new Vector4(3f, 2f, 3f, 2f);
+        var font = GetFont();
+        if (font != null)
+        {
+            text.font = font;
+            text.fontSharedMaterial = font.material;
+        }
         return text;
+    }
+
+    private static TMP_FontAsset GetFont()
+    {
+        if (_font != null)
+            return _font;
+
+        _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(GowunBatangFontPath);
+        if (_font == null)
+            _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(GowunBatangFontFallbackPath);
+        if (_font == null)
+            _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(NanumGothicFontPath);
+        if (_font == null)
+            _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(NanumGothicFontFallbackPath);
+        return _font;
     }
 
     private static Image ConfigureImage(GameObject go, Sprite sprite, Color color, bool raycastTarget)

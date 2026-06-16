@@ -25,7 +25,7 @@ MonoBehaviour:
     - TrackName: Impact
       Events:
       - TriggerTick: 480
-        DurationTicks: 240
+        DurationTicks: 480
         Action:
           rid: 4242872761226362880
     - TrackName: Control
@@ -37,15 +37,11 @@ MonoBehaviour:
     - TrackName: Sound
       Events:
       - TriggerTick: 240
-        DurationTicks: 120
+        DurationTicks: 480
         Action:
           rid: 4242872761226362882
-      - TriggerTick: 600
-        DurationTicks: 120
-        Action:
-          rid: 4242872761226362883
       - TriggerTick: 840
-        DurationTicks: 120
+        DurationTicks: 480
         Action:
           rid: 4242872761226362884
   references:
@@ -78,12 +74,6 @@ MonoBehaviour:
       data:
         FmodEventPath: Parry
         Volume: 0.85
-        UseOwnerPerspective: 1
-    - rid: 4242872761226362883
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Parry
-        Volume: 1
         UseOwnerPerspective: 1
     - rid: 4242872761226362884
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}

@@ -20,3 +20,5 @@ MonoBehaviour:
   PreferSteamP2PInGame: 1
   PreferSteamLogin: 1
   SteamId64Override: 
+  DisableDebugUis: 1
+  ShowSteamDebugHud: 1

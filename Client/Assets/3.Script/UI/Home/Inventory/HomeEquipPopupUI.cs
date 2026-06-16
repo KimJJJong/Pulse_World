@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Client.Content.Item;
+using Client.Data;
+using GameShared.Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,22 +13,45 @@ public class HomeEquipPopupUI : MonoBehaviour
     private static readonly Color ResourceParchmentText = new Color(0.08f, 0.055f, 0.03f, 1f);
     private static readonly Color ResourceParchmentMutedText = new Color(0.24f, 0.16f, 0.08f, 1f);
     private static readonly Color ResourceButtonText = new Color(0.98f, 0.90f, 0.66f, 1f);
+    private static readonly Color ResourceSkillCardColor = new Color(0.46f, 0.31f, 0.14f, 0.18f);
+    private static readonly Color ResourceSkillCardLineColor = new Color(0.38f, 0.23f, 0.09f, 0.36f);
+    private static readonly Color ResourceGridCellColor = new Color(0.44f, 0.30f, 0.15f, 0.20f);
+    private static readonly Color ResourceGridTargetColor = new Color(0.86f, 0.54f, 0.18f, 0.92f);
+    private static readonly Color ResourceGridCasterColor = new Color(0.07f, 0.42f, 0.40f, 0.96f);
+    private static readonly Color ResourceTimelineUseColor = new Color(0.10f, 0.45f, 0.42f, 0.80f);
+    private static readonly Color ResourceTimelineEffectColor = new Color(0.88f, 0.58f, 0.18f, 0.86f);
+    private static readonly Color ResourceTimelineLockColor = new Color(0.73f, 0.18f, 0.15f, 0.78f);
+    private static readonly Color ResourceScrollViewportColor = new Color(0.42f, 0.28f, 0.12f, 0.07f);
+    private static readonly Color ResourceScrollRailColor = new Color(0.30f, 0.18f, 0.08f, 0.30f);
+    private static readonly Color ResourceScrollHandleColor = new Color(0.10f, 0.42f, 0.40f, 0.82f);
+    private static readonly Color ResourceScrollFadeColor = new Color(0.20f, 0.11f, 0.04f, 0.13f);
+    private static readonly Color ResourceScrollCueColor = new Color(0.12f, 0.32f, 0.30f, 0.72f);
     private const string EquipmentDetailResourceRoot = "UI/UI_EquimentDetail/";
     private const string DetailPanelResourcePath = EquipmentDetailResourceRoot + "Panel";
     private const string EquipmentPaperResourcePath = EquipmentDetailResourceRoot + "Equipments_Panel_Paper";
     private const string DetailIconFrameResourcePath = EquipmentDetailResourceRoot + "Equipment_Frame";
     private const string SelectButtonResourcePath = EquipmentDetailResourceRoot + "Select_Button";
+    private const string BackButtonResourcePath = "UI/BackButton";
+    private const string NewSkillResourceRoot = "Data/NewSkills/";
     private const float ResourceCardWidth = 96f;
     private const float ResourceCardHeight = 102f;
     private const float ResourceCardGapX = 8f;
     private const float ResourceCardGapY = 10f;
     private const int ResourceCardColumns = 3;
+    private const int TicksPerBeat = 480;
+    private const float DetailScrollLeftX = 62f;
+    private const float DetailScrollTopY = 262f;
+    private const float DetailScrollWidth = 334f;
+    private const float DetailScrollBottomY = 530f;
+    private const float DetailTextWidth = 310f;
+    private const float DetailFooterTopY = 536f;
 
     [SerializeField] private Transform _content;
     [SerializeField] private GameObject _itemPrefab; // Should have HomeEquipPopupItemUI component
     [SerializeField] private TextMeshProUGUI _title;
     [SerializeField] private Button _closeBtn;
     [SerializeField] private bool _useHomeDetailResourceLayout;
+    [SerializeField] private bool _useManualObjectLayout;
 
     private RectTransform _contentRect;
     private Text _titleLegacy;
@@ -53,6 +78,7 @@ public class HomeEquipPopupUI : MonoBehaviour
     private Text _detailStats;
     private Text _detailDescription;
     private Text _detailStatus;
+    private RectTransform _detailRhythmInfoRoot;
     private Button _actionButton;
     private Text _actionButtonText;
     private TMP_FontAsset _koreanFont;
@@ -61,7 +87,9 @@ public class HomeEquipPopupUI : MonoBehaviour
     private static Sprite _equipmentPaperSprite;
     private static Sprite _detailIconFrameSprite;
     private static Sprite _selectButtonSprite;
+    private static Sprite _backButtonSprite;
     private static Font _koreanLegacyFont;
+    private static readonly Dictionary<string, NewSkillSO> SkillDefinitionCache = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly List<HomeEquipPopupItemUI> _spawnedItems = new();
     private EquipmentSlot _currentSlot = EquipmentSlot.None;
@@ -190,7 +218,10 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (_useHomeDetailResourceLayout && TryBindExistingResourceLayout())
         {
             _uiBuilt = true;
-            ApplyHomeDetailResourceLayout();
+            if (_useManualObjectLayout)
+                ApplyManualObjectBindings();
+            else
+                ApplyHomeDetailResourceLayout();
             NormalizePopupTextColors();
             EnsurePopupOrder();
             return;
@@ -392,9 +423,83 @@ public class HomeEquipPopupUI : MonoBehaviour
         _actionButton.onClick.AddListener(OnActionButtonClicked);
 
         _uiBuilt = true;
-        ApplyHomeDetailResourceLayout();
+        if (_useManualObjectLayout && _useHomeDetailResourceLayout)
+            ApplyManualObjectBindings();
+        else
+            ApplyHomeDetailResourceLayout();
         NormalizePopupTextColors();
         EnsurePopupOrder();
+    }
+
+    private void ApplyManualObjectBindings()
+    {
+        ConfigureInputBlockers();
+        ConfigureManualBackButton();
+        ConfigureSceneScrollRect(_listViewport, _listContent);
+        ConfigureManualDetailPanelLayout();
+
+        ConfigureEquipmentGrid();
+        BindExistingDetailIconFrame();
+        DisableStaleDetailButtons();
+
+        if (_title != null)
+            ApplyKoreanFont(_title);
+
+        if (_titleLegacy != null)
+            _titleLegacy.gameObject.SetActive(false);
+
+        if (_listEmptyText != null)
+            _listEmptyText.gameObject.SetActive(false);
+    }
+
+    private void ConfigureManualDetailPanelLayout()
+    {
+        if (!_useHomeDetailResourceLayout)
+        {
+            if (_rightBodyRoot != null && _rightBodyScrollContent != null)
+                ConfigureSceneScrollRect(_rightBodyRoot, _rightBodyScrollContent);
+            return;
+        }
+
+        if (_rightHeaderRoot != null)
+            SetTopLeftRect(_rightHeaderRoot, new Rect(0f, 0f, 451f, 278f));
+
+        if (_rightBodyRoot != null)
+        {
+            SetTopLeftRect(_rightBodyRoot, new Rect(DetailScrollLeftX, DetailScrollTopY, DetailScrollWidth, DetailScrollBottomY - DetailScrollTopY));
+            ConfigureScrollViewport(_rightBodyRoot, "DetailBodyContent", new Vector2(DetailScrollWidth, 600f), ref _rightBodyScrollContent);
+        }
+
+        if (_rightBodyScrollContent != null)
+        {
+            _rightBodyScrollContent.anchorMin = new Vector2(0f, 1f);
+            _rightBodyScrollContent.anchorMax = new Vector2(0f, 1f);
+            _rightBodyScrollContent.pivot = new Vector2(0f, 1f);
+            _rightBodyScrollContent.anchoredPosition = Vector2.zero;
+            _rightBodyScrollContent.sizeDelta = new Vector2(DetailScrollWidth, 600f);
+        }
+
+        if (_rightFooterRoot != null)
+            SetTopLeftRect(_rightFooterRoot, new Rect(0f, DetailFooterTopY, 451f, 112f));
+
+        if (_detailStats != null)
+            SetTextRect(_detailStats, new Rect(0f, 8f, DetailTextWidth, 42f), 14, TextAnchor.UpperLeft, ResourceParchmentText);
+
+        if (_detailDescription != null)
+            SetTextRect(_detailDescription, new Rect(0f, 52f, DetailTextWidth, 36f), 12, TextAnchor.UpperLeft, ResourceParchmentMutedText);
+
+        SetTextRect(_detailStatus, new Rect(74f, 2f, 304f, 24f), 12, TextAnchor.MiddleCenter, ResourceParchmentMutedText);
+
+        if (_actionButton != null)
+        {
+            var actionRect = _actionButton.GetComponent<RectTransform>();
+            if (actionRect != null)
+                SetTopLeftRect(actionRect, new Rect(124f, 34f, 202f, 66f));
+
+            var buttonText = _actionButton.GetComponentInChildren<Text>(true);
+            if (buttonText != null)
+                SetTextRect(buttonText, new Rect(0f, 0f, 202f, 66f), 18, TextAnchor.MiddleCenter, ResourceButtonText);
+        }
     }
 
     private void ApplyHomeDetailResourceLayout()
@@ -475,12 +580,12 @@ public class HomeEquipPopupUI : MonoBehaviour
         }
 
         if (_rightHeaderRoot != null)
-            SetTopLeftRect(_rightHeaderRoot, new Rect(0f, 0f, 451f, 286f));
+            SetTopLeftRect(_rightHeaderRoot, new Rect(0f, 0f, 451f, 278f));
 
         if (_rightBodyRoot != null)
         {
-            SetTopLeftRect(_rightBodyRoot, new Rect(0f, 286f, 451f, 260f));
-            ConfigureScrollViewport(_rightBodyRoot, "DetailBodyContent", new Vector2(451f, 280f), ref _rightBodyScrollContent);
+            SetTopLeftRect(_rightBodyRoot, new Rect(DetailScrollLeftX, DetailScrollTopY, DetailScrollWidth, DetailScrollBottomY - DetailScrollTopY));
+            ConfigureScrollViewport(_rightBodyRoot, "DetailBodyContent", new Vector2(DetailScrollWidth, 600f), ref _rightBodyScrollContent);
         }
 
         if (_rightBodyScrollContent != null)
@@ -489,11 +594,11 @@ public class HomeEquipPopupUI : MonoBehaviour
             _rightBodyScrollContent.anchorMax = new Vector2(0f, 1f);
             _rightBodyScrollContent.pivot = new Vector2(0f, 1f);
             _rightBodyScrollContent.anchoredPosition = Vector2.zero;
-            _rightBodyScrollContent.sizeDelta = new Vector2(451f, 280f);
+            _rightBodyScrollContent.sizeDelta = new Vector2(DetailScrollWidth, 600f);
         }
 
         if (_rightFooterRoot != null)
-            SetTopLeftRect(_rightFooterRoot, new Rect(0f, 546f, 451f, 102f));
+            SetTopLeftRect(_rightFooterRoot, new Rect(0f, DetailFooterTopY, 451f, 112f));
 
         var detailTitle = FindText("DetailTitle");
         if (detailTitle != null)
@@ -519,12 +624,12 @@ public class HomeEquipPopupUI : MonoBehaviour
         SetTextRect(_detailMeta, new Rect(198f, 206f, 206f, 58f), 13, TextAnchor.UpperCenter, ResourceParchmentMutedText);
 
         if (_detailStats != null)
-            SetTextRect(_detailStats, new Rect(70f, 12f, 310f, 118f), 15, TextAnchor.UpperLeft, ResourceParchmentText);
+            SetTextRect(_detailStats, new Rect(0f, 8f, DetailTextWidth, 42f), 14, TextAnchor.UpperLeft, ResourceParchmentText);
 
         if (_detailDescription != null)
-            SetTextRect(_detailDescription, new Rect(70f, 140f, 310f, 112f), 14, TextAnchor.UpperLeft, ResourceParchmentMutedText);
+            SetTextRect(_detailDescription, new Rect(0f, 52f, DetailTextWidth, 36f), 12, TextAnchor.UpperLeft, ResourceParchmentMutedText);
 
-        SetTextRect(_detailStatus, new Rect(74f, 2f, 304f, 28f), 13, TextAnchor.MiddleCenter, ResourceParchmentMutedText);
+        SetTextRect(_detailStatus, new Rect(74f, 2f, 304f, 24f), 12, TextAnchor.MiddleCenter, ResourceParchmentMutedText);
 
         if (_actionButton != null)
         {
@@ -666,6 +771,12 @@ public class HomeEquipPopupUI : MonoBehaviour
 
     private void EnsureDetailIconFrame()
     {
+        if (_useManualObjectLayout)
+        {
+            BindExistingDetailIconFrame();
+            return;
+        }
+
         if (_detailIcon == null)
         {
             var detailIconObject = FindGameObject("DetailIcon");
@@ -715,6 +826,35 @@ public class HomeEquipPopupUI : MonoBehaviour
         _detailIconFrame.transform.SetAsFirstSibling();
         if (_detailIcon != null)
             _detailIcon.transform.SetAsLastSibling();
+    }
+
+    private void BindExistingDetailIconFrame()
+    {
+        if (_detailIcon == null)
+        {
+            var detailIconObject = FindGameObject("DetailIcon");
+            _detailIcon = detailIconObject != null ? detailIconObject.GetComponent<Image>() : null;
+        }
+
+        if (_detailIconFrame == null)
+        {
+            var frameObject = FindGameObject("DetailIconFrame");
+            _detailIconFrame = frameObject != null ? frameObject.GetComponent<Image>() : null;
+        }
+
+        if (_detailIcon != null)
+        {
+            _detailIcon.preserveAspect = true;
+            _detailIcon.raycastTarget = false;
+        }
+
+        if (_detailIconFrame != null)
+        {
+            _detailIconFrame.sprite = DetailIconFrameSprite;
+            _detailIconFrame.color = Color.white;
+            _detailIconFrame.preserveAspect = false;
+            _detailIconFrame.raycastTarget = false;
+        }
     }
 
     private static void SetIconPanelTransparent(RectTransform iconPanel)
@@ -792,7 +932,7 @@ public class HomeEquipPopupUI : MonoBehaviour
         var buttonImage = _closeBtn.GetComponent<Image>();
         if (buttonImage == null)
             buttonImage = _closeBtn.gameObject.AddComponent<Image>();
-        ApplyResourceSprite(buttonImage, SelectButtonSprite, true);
+        ApplyResourceSprite(buttonImage, BackButtonSprite, true);
 
         _closeBtn.targetGraphic = buttonImage;
         _closeBtn.enabled = true;
@@ -806,6 +946,37 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (feedback == null)
             feedback = _closeBtn.gameObject.AddComponent<HomeUIButtonFeedback>();
         feedback.Configure(closeRect, buttonImage);
+    }
+
+    private void ConfigureManualBackButton()
+    {
+        if (_closeBtn == null)
+            return;
+
+        var buttonImage = _closeBtn.GetComponent<Image>();
+        if (buttonImage == null)
+            buttonImage = _closeBtn.gameObject.AddComponent<Image>();
+
+        ApplyResourceSprite(buttonImage, BackButtonSprite, true);
+        _closeBtn.targetGraphic = buttonImage;
+        _closeBtn.enabled = true;
+        _closeBtn.interactable = true;
+        _closeBtn.onClick.RemoveAllListeners();
+        _closeBtn.onClick.AddListener(Hide);
+
+        var buttonText = _closeBtn.GetComponentInChildren<Text>(true);
+        if (buttonText != null)
+        {
+            buttonText.text = "뒤로가기";
+            ApplyKoreanFont(buttonText);
+            buttonText.color = ResourceButtonText;
+            buttonText.raycastTarget = false;
+        }
+
+        var feedback = _closeBtn.GetComponent<HomeUIButtonFeedback>();
+        if (feedback == null)
+            feedback = _closeBtn.gameObject.AddComponent<HomeUIButtonFeedback>();
+        feedback.Configure(_closeBtn.transform as RectTransform, buttonImage);
     }
 
     private Text EnsureButtonText(Button button, string label)
@@ -917,7 +1088,9 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (viewportImage == null)
             viewportImage = viewport.gameObject.AddComponent<Image>();
         ApplyDefaultSprite(viewportImage);
-        viewportImage.color = new Color(1f, 1f, 1f, 0.01f);
+        viewportImage.color = _useHomeDetailResourceLayout
+            ? ResourceScrollViewportColor
+            : new Color(1f, 1f, 1f, 0.01f);
         viewportImage.raycastTarget = true;
 
         if (viewport.GetComponent<RectMask2D>() == null)
@@ -947,6 +1120,104 @@ public class HomeEquipPopupUI : MonoBehaviour
         content.anchoredPosition = Vector2.zero;
         content.sizeDelta = contentSize;
         scrollRect.content = content;
+
+        if (_useHomeDetailResourceLayout)
+            EnsureDetailScrollAffordance(viewport, content, scrollRect);
+    }
+
+    private void EnsureDetailScrollAffordance(RectTransform viewport, RectTransform content, ScrollRect scrollRect)
+    {
+        if (viewport == null || scrollRect == null)
+            return;
+
+        float viewportWidth = Mathf.Max(1f, viewport.sizeDelta.x);
+        float viewportHeight = Mathf.Max(1f, viewport.sizeDelta.y);
+
+        var topFade = EnsureChildImage("DetailScrollTopFade", viewport, ResourceScrollFadeColor);
+        SetTopLeftRect(topFade.rectTransform, new Rect(0f, 0f, viewportWidth - 18f, 12f));
+        topFade.raycastTarget = false;
+
+        var bottomFade = EnsureChildImage("DetailScrollBottomFade", viewport, ResourceScrollFadeColor);
+        SetTopLeftRect(bottomFade.rectTransform, new Rect(0f, viewportHeight - 22f, viewportWidth - 18f, 22f));
+        bottomFade.raycastTarget = false;
+
+        RemoveChildObject(viewport, "DetailScrollCueLeft");
+        RemoveChildObject(viewport, "DetailScrollCueRight");
+
+        var rail = EnsureChildImage("DetailScrollRail", viewport, ResourceScrollRailColor);
+        SetTopLeftRect(rail.rectTransform, new Rect(viewportWidth - 15f, 8f, 6f, viewportHeight - 16f));
+        rail.raycastTarget = true;
+
+        var handle = EnsureChildImage("Handle", rail.rectTransform, ResourceScrollHandleColor);
+        handle.raycastTarget = true;
+
+        var handleRect = handle.rectTransform;
+        handleRect.anchorMin = Vector2.zero;
+        handleRect.anchorMax = Vector2.one;
+        handleRect.offsetMin = new Vector2(1f, 1f);
+        handleRect.offsetMax = new Vector2(-1f, -1f);
+        handleRect.localEulerAngles = Vector3.zero;
+
+        var scrollbar = rail.GetComponent<Scrollbar>();
+        if (scrollbar == null)
+            scrollbar = rail.gameObject.AddComponent<Scrollbar>();
+
+        scrollbar.direction = Scrollbar.Direction.BottomToTop;
+        scrollbar.targetGraphic = handle;
+        scrollbar.handleRect = handleRect;
+        scrollbar.transition = Selectable.Transition.ColorTint;
+        scrollbar.interactable = true;
+
+        scrollRect.verticalScrollbar = scrollbar;
+        scrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+        scrollRect.verticalScrollbarSpacing = -2f;
+
+        topFade.transform.SetAsLastSibling();
+        bottomFade.transform.SetAsLastSibling();
+        rail.transform.SetAsLastSibling();
+    }
+
+    private static Image EnsureChildImage(string name, RectTransform parent, Color color)
+    {
+        if (parent == null)
+            return null;
+
+        var child = parent.Find(name);
+        Image image;
+        if (child == null)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            go.transform.SetParent(parent, false);
+            image = go.GetComponent<Image>();
+        }
+        else
+        {
+            image = child.GetComponent<Image>();
+            if (image == null)
+                image = child.gameObject.AddComponent<Image>();
+        }
+
+        ApplyDefaultSprite(image);
+        image.type = Image.Type.Simple;
+        image.preserveAspect = false;
+        image.color = color;
+        return image;
+    }
+
+    private static void RemoveChildObject(RectTransform parent, string childName)
+    {
+        if (parent == null || string.IsNullOrWhiteSpace(childName))
+            return;
+
+        var child = parent.Find(childName);
+        if (child == null)
+            return;
+
+        child.gameObject.SetActive(false);
+        if (Application.isPlaying)
+            Destroy(child.gameObject);
+        else
+            DestroyImmediate(child.gameObject);
     }
 
     private static void SetTopLeftRect(RectTransform rect, Rect rectFromTopLeft)
@@ -1069,7 +1340,7 @@ public class HomeEquipPopupUI : MonoBehaviour
                 itemUI = go.AddComponent<HomeEquipPopupItemUI>();
 
             bool selected = item.InstanceId == _selectedInstanceId;
-            itemUI.Setup(item, () => SelectItem(item.InstanceId), selected, _useHomeDetailResourceLayout);
+            itemUI.Setup(item, () => SelectItem(item.InstanceId), selected, _useHomeDetailResourceLayout, _useManualObjectLayout);
             _spawnedItems.Add(itemUI);
         }
 
@@ -1171,11 +1442,8 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (_detailStats != null)
         {
             _detailStats.text =
-                $"공격력 +{tmpl.base_atk + item.EnhancementLevel}\n" +
-                $"방어력 +{tmpl.base_def}\n" +
-                $"체력 +{tmpl.base_hp}\n" +
-                $"스킬: {SafeText(tmpl.skill_id)}\n" +
-                $"기본 공격: {SafeText(tmpl.normal_attack_skill_id)}";
+                "능력치\n" +
+                $"공격 +{tmpl.base_atk + item.EnhancementLevel}    방어 +{tmpl.base_def}    체력 +{tmpl.base_hp}";
         }
 
         if (_detailDescription != null)
@@ -1184,6 +1452,8 @@ public class HomeEquipPopupUI : MonoBehaviour
                 ? "상세 설명이 없습니다."
                 : tmpl.description;
         }
+
+        BuildDetailRhythmSections(tmpl);
 
         if (_detailStatus != null)
         {
@@ -1242,6 +1512,9 @@ public class HomeEquipPopupUI : MonoBehaviour
         if (_detailDescription != null)
             _detailDescription.text = message;
 
+        ClearDetailRhythmSections();
+        SetDetailBodyContentHeight(GetBaseDetailContentHeight());
+
         if (_detailStatus != null)
             _detailStatus.text = message;
 
@@ -1252,6 +1525,644 @@ public class HomeEquipPopupUI : MonoBehaviour
         }
 
         NormalizePopupTextColors();
+    }
+
+    private void BuildDetailRhythmSections(EquipmentTemplate tmpl)
+    {
+        if (tmpl == null)
+            return;
+
+        var root = EnsureDetailRhythmInfoRoot();
+        if (root == null)
+            return;
+
+        ClearChildren(root);
+
+        float width = GetDetailInnerWidth();
+        float y = 0f;
+        bool added = false;
+
+        if (!string.IsNullOrWhiteSpace(tmpl.normal_attack_skill_id))
+        {
+            y = BuildSkillInfoCard(root, y, "기본 공격", tmpl.normal_attack_skill_id);
+            added = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(tmpl.skill_id))
+        {
+            if (added)
+                y += 8f;
+
+            y = BuildSkillInfoCard(root, y, "스킬", tmpl.skill_id);
+            added = true;
+        }
+
+        if (!added)
+            y = BuildEmptySkillInfoCard(root, y, "전투 정보", "연결된 공격/스킬 데이터가 없습니다.");
+
+        SetTopLeftRect(root, new Rect(GetDetailInnerX(), GetSkillSectionStartY(), width, Mathf.Max(64f, y)));
+        SetDetailBodyContentHeight(GetSkillSectionStartY() + y + 18f);
+    }
+
+    private void ClearDetailRhythmSections()
+    {
+        var root = EnsureDetailRhythmInfoRoot();
+        if (root == null)
+            return;
+
+        ClearChildren(root);
+        root.sizeDelta = Vector2.zero;
+    }
+
+    private RectTransform EnsureDetailRhythmInfoRoot()
+    {
+        if (_rightBodyScrollContent == null)
+            return null;
+
+        if (_detailRhythmInfoRoot == null)
+            _detailRhythmInfoRoot = FindRect("DetailRhythmInfoRoot");
+
+        if (_detailRhythmInfoRoot == null)
+            _detailRhythmInfoRoot = CreateEmptyRect("DetailRhythmInfoRoot", _rightBodyScrollContent);
+        else if (_detailRhythmInfoRoot.parent != _rightBodyScrollContent)
+            _detailRhythmInfoRoot.SetParent(_rightBodyScrollContent, false);
+
+        _detailRhythmInfoRoot.gameObject.SetActive(true);
+        return _detailRhythmInfoRoot;
+    }
+
+    private float BuildEmptySkillInfoCard(RectTransform parent, float y, string title, string message)
+    {
+        float width = GetDetailInnerWidth();
+        const float height = 58f;
+        var card = CreateRuntimePanel("DetailEmptySkillCard", parent, new Rect(0f, y, width, height), ResourceSkillCardColor);
+        AddCardOutline(card);
+
+        var titleText = CreateRuntimeText("Title", card, title, new Rect(12f, 7f, width - 24f, 18f), 13, TextAnchor.MiddleLeft, ResourceParchmentText);
+        if (titleText != null)
+            titleText.fontStyle = FontStyle.Bold;
+
+        CreateRuntimeText("Message", card, message, new Rect(12f, 29f, width - 24f, 20f), 12, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
+        return y + height;
+    }
+
+    private float BuildSkillInfoCard(RectTransform parent, float y, string title, string skillId)
+    {
+        float width = GetDetailInnerWidth();
+        var info = CreateSkillVisualInfo(skillId);
+        if (info.Definition == null)
+            return BuildEmptySkillInfoCard(parent, y, title, $"{SafeText(skillId)} 데이터를 찾을 수 없습니다.");
+
+        const float height = 152f;
+        var safeSkillId = SanitizeObjectName(skillId);
+        var card = CreateRuntimePanel($"DetailSkillCard_{safeSkillId}", parent, new Rect(0f, y, width, height), ResourceSkillCardColor);
+        AddCardOutline(card);
+
+        var titleText = CreateRuntimeText("Title", card, title, new Rect(12f, 7f, 90f, 18f), 13, TextAnchor.MiddleLeft, ResourceParchmentText);
+        if (titleText != null)
+            titleText.fontStyle = FontStyle.Bold;
+
+        CreateRuntimeText("SkillId", card, skillId, new Rect(102f, 7f, width - 114f, 18f), 11, TextAnchor.MiddleRight, ResourceParchmentMutedText);
+        CreateRuntimeText("Summary", card, info.Summary, new Rect(12f, 29f, width - 24f, 28f), 12, TextAnchor.UpperLeft, ResourceParchmentText);
+        CreateRuntimeText("RangeLabel", card, "범위", new Rect(12f, 58f, 116f, 16f), 11, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
+        CreateRuntimeText("BeatLabel", card, "Beat / InputLock", new Rect(136f, 58f, width - 148f, 16f), 11, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
+
+        var gridRoot = CreateRuntimePanel("RangeGrid", card, new Rect(12f, 76f, 112f, 62f), new Color(0f, 0f, 0f, 0f));
+        BuildRangeGrid(gridRoot, info, 112f, 62f);
+
+        var timelineRoot = CreateEmptyRect("BeatTimeline", card);
+        SetTopLeftRect(timelineRoot, new Rect(136f, 75f, width - 148f, 64f));
+        BuildBeatTimeline(timelineRoot, info, width - 148f);
+
+        return y + height;
+    }
+
+    private SkillVisualInfo CreateSkillVisualInfo(string skillId)
+    {
+        var info = new SkillVisualInfo { SkillId = skillId };
+        var skill = LoadSkillDefinition(skillId);
+        if (skill == null || skill.Data == null)
+        {
+            info.Summary = "스킬 데이터 없음";
+            return info;
+        }
+
+        info.Definition = skill.Data;
+        info.TotalTicks = Mathf.Max(TicksPerBeat, skill.Data.TotalDurationTicks);
+
+        if (skill.Data.Tracks != null)
+        {
+            foreach (var track in skill.Data.Tracks)
+            {
+                if (track?.Events == null)
+                    continue;
+
+                foreach (var evt in track.Events)
+                {
+                    if (evt == null || evt.Action == null)
+                        continue;
+
+                    info.TotalTicks = Mathf.Max(info.TotalTicks, evt.TriggerTick + Mathf.Max(0, evt.DurationTicks));
+                    AddSkillEventInfo(info, evt);
+                }
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(info.Summary))
+            info.Summary = BuildSkillSummary(info);
+
+        return info;
+    }
+
+    private void AddSkillEventInfo(SkillVisualInfo info, SkillEvent evt)
+    {
+        switch (evt.Action)
+        {
+            case InputLockAction _:
+                info.InputLockEvents.Add(evt);
+                break;
+            case WarningAction warning:
+                info.WarningEvents.Add(evt);
+                AddShapeCells(info, warning.Shape);
+                break;
+            case DamageAction damage:
+                info.EffectEvents.Add(evt);
+                AddShapeCells(info, damage.Shape);
+                info.SummaryParts.Add(BuildDamageSummary(damage));
+                break;
+            case MoveAction move:
+                info.EffectEvents.Add(evt);
+                AddMoveCells(info, move);
+                info.SummaryParts.Add($"{move.MoveType} {move.Distance}칸 이동 ({GetDirectionLabel(move.DirectionX, move.DirectionY)})");
+                break;
+            case SummonDecoyAction summon:
+                info.EffectEvents.Add(evt);
+                AddCell(info, new Vector2Int(summon.OffsetX, summon.OffsetY));
+                info.SummaryParts.Add($"분신 HP {summon.Hp}, 지속 {FormatBeatCount(summon.DurationTicks)} Beat");
+                break;
+        }
+    }
+
+    private string BuildSkillSummary(SkillVisualInfo info)
+    {
+        if (info.SummaryParts.Count == 0)
+        {
+            if (info.WarningEvents.Count > 0)
+                info.SummaryParts.Add($"예고 범위 {Mathf.Max(1, info.RangeCells.Count)}칸");
+            else if (info.InputLockEvents.Count > 0)
+                info.SummaryParts.Add("입력 제한 중심 효과");
+            else
+                info.SummaryParts.Add("효과 정보 없음");
+        }
+
+        var summary = string.Join(" · ", info.SummaryParts);
+        if (info.RangeCells.Count > 0 && !summary.Contains("범위"))
+            summary += $" · 범위 {info.RangeCells.Count}칸";
+
+        summary += $" · 사용 {FormatBeatCount(info.TotalTicks)} Beat";
+        return summary;
+    }
+
+    private static string BuildDamageSummary(DamageAction damage)
+    {
+        var summary = $"피해 {damage.Amount}";
+        if (damage.KnockbackDistance > 0)
+            summary += $", 밀침 {damage.KnockbackDistance}";
+        if (damage.StunDurationTicks > 0)
+            summary += $", 경직 {FormatBeatCount(damage.StunDurationTicks)} Beat";
+        return summary;
+    }
+
+    private static NewSkillSO LoadSkillDefinition(string skillId)
+    {
+        if (string.IsNullOrWhiteSpace(skillId))
+            return null;
+
+        if (SkillDefinitionCache.TryGetValue(skillId, out var cached))
+            return cached;
+
+        var skill = Resources.Load<NewSkillSO>(NewSkillResourceRoot + skillId);
+        if (skill == null)
+        {
+            var allSkills = Resources.LoadAll<NewSkillSO>(NewSkillResourceRoot);
+            foreach (var candidate in allSkills)
+            {
+                if (candidate == null)
+                    continue;
+
+                if (string.Equals(candidate.name, skillId, StringComparison.OrdinalIgnoreCase) ||
+                    (candidate.Data != null && string.Equals(candidate.Data.SkillId, skillId, StringComparison.OrdinalIgnoreCase)))
+                {
+                    skill = candidate;
+                    break;
+                }
+            }
+        }
+
+        SkillDefinitionCache[skillId] = skill;
+        return skill;
+    }
+
+    private static void AddShapeCells(SkillVisualInfo info, IShapeDef shape)
+    {
+        switch (shape)
+        {
+            case CustomCellsShape custom when custom.Cells != null:
+                foreach (var cell in custom.Cells)
+                    AddCell(info, new Vector2Int(cell.X, cell.Y));
+                break;
+            case RectShape rect:
+                int width = Mathf.Max(1, rect.Width);
+                int height = Mathf.Max(1, rect.Height);
+                int minX = -Mathf.FloorToInt((width - 1) * 0.5f);
+                for (int x = minX; x < minX + width; x++)
+                {
+                    for (int y = -1; y >= -height; y--)
+                        AddCell(info, new Vector2Int(x, y));
+                }
+                break;
+            case DiamondShape diamond:
+                int radius = Mathf.Max(1, diamond.Radius);
+                for (int x = -radius; x <= radius; x++)
+                {
+                    for (int y = -radius; y <= radius; y++)
+                    {
+                        if (Mathf.Abs(x) + Mathf.Abs(y) <= radius && (x != 0 || y != 0))
+                            AddCell(info, new Vector2Int(x, y));
+                    }
+                }
+                break;
+        }
+    }
+
+    private static void AddMoveCells(SkillVisualInfo info, MoveAction move)
+    {
+        int dx = move.DirectionX;
+        int dy = move.DirectionY;
+        if (dx == 0 && dy == 0)
+            dy = -1;
+
+        int distance = Mathf.Max(1, move.Distance);
+        for (int i = 1; i <= distance; i++)
+            AddCell(info, new Vector2Int(dx * i, dy * i));
+    }
+
+    private static void AddCell(SkillVisualInfo info, Vector2Int cell)
+    {
+        if (cell == Vector2Int.zero)
+            return;
+
+        if (!info.RangeCells.Contains(cell))
+            info.RangeCells.Add(cell);
+    }
+
+    private void BuildRangeGrid(RectTransform gridRoot, SkillVisualInfo info, float width, float height)
+    {
+        if (gridRoot == null)
+            return;
+
+        ClearChildren(gridRoot);
+
+        int minX = -1;
+        int maxX = 1;
+        int minY = -2;
+        int maxY = 0;
+
+        foreach (var cell in info.RangeCells)
+        {
+            minX = Mathf.Min(minX, cell.x);
+            maxX = Mathf.Max(maxX, cell.x);
+            minY = Mathf.Min(minY, cell.y);
+            maxY = Mathf.Max(maxY, cell.y);
+        }
+
+        int absX = Mathf.Max(1, Mathf.Max(Mathf.Abs(minX), Mathf.Abs(maxX)));
+        minX = -absX;
+        maxX = absX;
+        minY = Mathf.Min(minY, -1);
+        maxY = Mathf.Max(maxY, 0);
+
+        if (maxY - minY + 1 < 3)
+            minY = maxY - 2;
+
+        int columns = Mathf.Max(3, maxX - minX + 1);
+        int rows = Mathf.Max(3, maxY - minY + 1);
+        float cellSize = Mathf.Floor(Mathf.Min(width / columns, height / rows));
+        cellSize = Mathf.Clamp(cellSize, 7f, 16f);
+        float totalWidth = cellSize * columns;
+        float totalHeight = cellSize * rows;
+        float startX = (width - totalWidth) * 0.5f;
+        float startY = (height - totalHeight) * 0.5f;
+
+        for (int y = minY; y <= maxY; y++)
+        {
+            for (int x = minX; x <= maxX; x++)
+            {
+                int column = x - minX;
+                int row = y - minY;
+                var color = ResourceGridCellColor;
+                bool isCaster = x == 0 && y == 0;
+                bool isTarget = ContainsCell(info.RangeCells, x, y);
+
+                if (isTarget)
+                    color = ResourceGridTargetColor;
+                if (isCaster)
+                    color = ResourceGridCasterColor;
+
+                var cell = CreateRuntimeImage(
+                    isCaster ? "CasterCell" : isTarget ? "TargetCell" : "GridCell",
+                    gridRoot,
+                    new Rect(startX + column * cellSize + 1f, startY + row * cellSize + 1f, cellSize - 2f, cellSize - 2f),
+                    color);
+
+                if (isCaster)
+                {
+                    var casterText = CreateRuntimeText("CasterLabel", cell, "P", new Rect(0f, 0f, cellSize - 2f, cellSize - 2f), 9, TextAnchor.MiddleCenter, ResourceButtonText);
+                    if (casterText != null)
+                        casterText.fontStyle = FontStyle.Bold;
+                }
+            }
+        }
+
+        if (info.RangeCells.Count == 0)
+            CreateRuntimeText("NoRange", gridRoot, "범위 없음", new Rect(0f, height * 0.5f - 10f, width, 20f), 10, TextAnchor.MiddleCenter, ResourceParchmentMutedText);
+    }
+
+    private void BuildBeatTimeline(RectTransform root, SkillVisualInfo info, float width)
+    {
+        if (root == null)
+            return;
+
+        ClearChildren(root);
+        CreateRuntimeText("TimelineSummary", root, $"사용 {FormatBeatCount(info.TotalTicks)} Beat · Lock {FormatLockSummary(info)}", new Rect(0f, 0f, width, 16f), 10, TextAnchor.MiddleLeft, ResourceParchmentText);
+
+        int beatColumns = Mathf.Clamp(Mathf.CeilToInt(info.TotalTicks / (float)TicksPerBeat), 1, 8);
+        float visualTicks = beatColumns * TicksPerBeat;
+        CreateTimelineLane(root, "사용", 18f, width, beatColumns, visualTicks, ResourceTimelineUseColor, 0, info.TotalTicks);
+        CreateTimelineLane(root, "효과", 34f, width, beatColumns, visualTicks, ResourceTimelineEffectColor, info.EffectEvents);
+        CreateTimelineLane(root, "Lock", 50f, width, beatColumns, visualTicks, ResourceTimelineLockColor, info.InputLockEvents);
+    }
+
+    private void CreateTimelineLane(RectTransform root, string label, float y, float width, int beatColumns, float visualTicks, Color color, List<SkillEvent> events)
+    {
+        CreateTimelineLaneBackground(root, label, y, width, beatColumns);
+
+        if (events == null)
+            return;
+
+        foreach (var evt in events)
+            CreateTimelineRange(root, y, width, visualTicks, color, evt.TriggerTick, evt.DurationTicks);
+    }
+
+    private void CreateTimelineLane(RectTransform root, string label, float y, float width, int beatColumns, float visualTicks, Color color, int startTick, int durationTicks)
+    {
+        CreateTimelineLaneBackground(root, label, y, width, beatColumns);
+        CreateTimelineRange(root, y, width, visualTicks, color, startTick, durationTicks);
+    }
+
+    private void CreateTimelineLaneBackground(RectTransform root, string label, float y, float width, int beatColumns)
+    {
+        const float labelWidth = 34f;
+        float barWidth = Mathf.Max(60f, width - labelWidth - 2f);
+        CreateRuntimeText($"{label}Label", root, label, new Rect(0f, y - 1f, labelWidth, 14f), 9, TextAnchor.MiddleLeft, ResourceParchmentMutedText);
+
+        float beatWidth = barWidth / beatColumns;
+        for (int i = 0; i < beatColumns; i++)
+        {
+            CreateRuntimeImage(
+                $"{label}Beat{i}",
+                root,
+                new Rect(labelWidth + i * beatWidth + 1f, y, Mathf.Max(2f, beatWidth - 2f), 12f),
+                new Color(0.32f, 0.22f, 0.12f, 0.20f));
+        }
+    }
+
+    private void CreateTimelineRange(RectTransform root, float y, float width, float visualTicks, Color color, int startTick, int durationTicks)
+    {
+        if (durationTicks <= 0)
+            return;
+
+        const float labelWidth = 34f;
+        float barWidth = Mathf.Max(60f, width - labelWidth - 2f);
+        float start = Mathf.Clamp01(startTick / visualTicks);
+        float end = Mathf.Clamp01((startTick + durationTicks) / visualTicks);
+        float x = labelWidth + start * barWidth;
+        float rangeWidth = Mathf.Max(3f, (end - start) * barWidth);
+        CreateRuntimeImage("TimelineRange", root, new Rect(x, y + 2f, rangeWidth, 8f), color);
+    }
+
+    private RectTransform CreateRuntimePanel(string name, RectTransform parent, Rect rect, Color color)
+    {
+        if (parent == null)
+            return null;
+
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        go.transform.SetParent(parent, false);
+
+        var rectTransform = go.GetComponent<RectTransform>();
+        SetTopLeftRect(rectTransform, rect);
+
+        var image = go.GetComponent<Image>();
+        ApplyDefaultSprite(image);
+        image.color = color;
+        image.raycastTarget = false;
+        return rectTransform;
+    }
+
+    private RectTransform CreateRuntimeImage(string name, RectTransform parent, Rect rect, Color color)
+    {
+        var imageRect = CreateRuntimePanel(name, parent, rect, color);
+        if (imageRect != null)
+        {
+            var image = imageRect.GetComponent<Image>();
+            if (image != null)
+            {
+                image.type = Image.Type.Simple;
+                image.preserveAspect = false;
+            }
+        }
+
+        return imageRect;
+    }
+
+    private Text CreateRuntimeText(string name, RectTransform parent, string text, Rect rect, int fontSize, TextAnchor anchor, Color color)
+    {
+        if (parent == null)
+            return null;
+
+        var label = CreateTextObject(name, parent, text, fontSize, anchor, Vector2.zero, new Vector2(rect.width, rect.height));
+        SetTextRect(label, rect, fontSize, anchor, color);
+        label.resizeTextMinSize = Mathf.Max(7, fontSize - 3);
+        return label;
+    }
+
+    private static void AddCardOutline(RectTransform card)
+    {
+        if (card == null)
+            return;
+
+        var outline = card.GetComponent<Outline>();
+        if (outline == null)
+            outline = card.gameObject.AddComponent<Outline>();
+
+        outline.effectColor = ResourceSkillCardLineColor;
+        outline.effectDistance = new Vector2(1f, -1f);
+        outline.useGraphicAlpha = true;
+    }
+
+    private void SetDetailBodyContentHeight(float height)
+    {
+        if (_rightBodyScrollContent == null)
+            return;
+
+        float width = _rightBodyScrollContent.sizeDelta.x > 1f
+            ? _rightBodyScrollContent.sizeDelta.x
+            : (_useHomeDetailResourceLayout ? 451f : 300f);
+
+        _rightBodyScrollContent.sizeDelta = new Vector2(width, Mathf.Max(GetBaseDetailContentHeight(), height));
+
+        if (_useHomeDetailResourceLayout && _rightBodyRoot != null)
+        {
+            var scrollRect = _rightBodyRoot.GetComponent<ScrollRect>();
+            if (scrollRect != null)
+            {
+                EnsureDetailScrollAffordance(_rightBodyRoot, _rightBodyScrollContent, scrollRect);
+                scrollRect.verticalNormalizedPosition = 1f;
+            }
+        }
+    }
+
+    private float GetBaseDetailContentHeight()
+    {
+        return _useHomeDetailResourceLayout ? 280f : 390f;
+    }
+
+    private float GetDetailContentWidth()
+    {
+        if (_rightBodyScrollContent != null && _rightBodyScrollContent.sizeDelta.x > 1f)
+            return _rightBodyScrollContent.sizeDelta.x;
+
+        return _useHomeDetailResourceLayout ? 451f : 300f;
+    }
+
+    private float GetDetailInnerX()
+    {
+        if (_useHomeDetailResourceLayout)
+            return 0f;
+
+        return GetDetailContentWidth() > 400f ? 42f : 4f;
+    }
+
+    private float GetDetailInnerWidth()
+    {
+        if (_useHomeDetailResourceLayout)
+            return DetailTextWidth;
+
+        return Mathf.Max(260f, GetDetailContentWidth() - GetDetailInnerX() * 2f);
+    }
+
+    private float GetSkillSectionStartY()
+    {
+        return _useHomeDetailResourceLayout ? 96f : 292f;
+    }
+
+    private static bool ContainsCell(List<Vector2Int> cells, int x, int y)
+    {
+        var target = new Vector2Int(x, y);
+        return cells != null && cells.Contains(target);
+    }
+
+    private static string FormatLockSummary(SkillVisualInfo info)
+    {
+        if (info.InputLockEvents.Count == 0)
+            return "없음";
+
+        if (info.InputLockEvents.Count == 1)
+        {
+            var evt = info.InputLockEvents[0];
+            return FormatBeatRange(evt.TriggerTick, evt.DurationTicks);
+        }
+
+        return $"{info.InputLockEvents.Count}구간";
+    }
+
+    private static string FormatBeatRange(int startTick, int durationTicks)
+    {
+        return $"{FormatBeatValue(startTick / (float)TicksPerBeat)}-{FormatBeatValue((startTick + durationTicks) / (float)TicksPerBeat)} Beat";
+    }
+
+    private static string FormatBeatCount(int ticks)
+    {
+        return FormatBeatValue(ticks / (float)TicksPerBeat);
+    }
+
+    private static string FormatBeatValue(float value)
+    {
+        float rounded = Mathf.Round(value);
+        if (Mathf.Abs(value - rounded) < 0.01f)
+            return ((int)rounded).ToString();
+
+        return value.ToString("0.##");
+    }
+
+    private static string GetDirectionLabel(int x, int y)
+    {
+        if (x == 0 && y < 0) return "전방";
+        if (x == 0 && y > 0) return "후방";
+        if (x < 0 && y == 0) return "좌";
+        if (x > 0 && y == 0) return "우";
+        if (x < 0 && y < 0) return "좌전방";
+        if (x > 0 && y < 0) return "우전방";
+        if (x < 0 && y > 0) return "좌후방";
+        if (x > 0 && y > 0) return "우후방";
+        return "지정 방향";
+    }
+
+    private static string SanitizeObjectName(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "None";
+
+        var chars = value.ToCharArray();
+        for (int i = 0; i < chars.Length; i++)
+        {
+            if (!char.IsLetterOrDigit(chars[i]) && chars[i] != '_' && chars[i] != '-')
+                chars[i] = '_';
+        }
+
+        return new string(chars);
+    }
+
+    private static void ClearChildren(RectTransform root)
+    {
+        if (root == null)
+            return;
+
+        for (int i = root.childCount - 1; i >= 0; i--)
+        {
+            var child = root.GetChild(i);
+            if (child == null)
+                continue;
+
+            child.gameObject.SetActive(false);
+            if (Application.isPlaying)
+                Destroy(child.gameObject);
+            else
+                DestroyImmediate(child.gameObject);
+        }
+    }
+
+    private sealed class SkillVisualInfo
+    {
+        public string SkillId;
+        public NewSkillDef Definition;
+        public int TotalTicks;
+        public string Summary;
+        public readonly List<string> SummaryParts = new();
+        public readonly List<Vector2Int> RangeCells = new();
+        public readonly List<SkillEvent> WarningEvents = new();
+        public readonly List<SkillEvent> EffectEvents = new();
+        public readonly List<SkillEvent> InputLockEvents = new();
     }
 
     private List<SC_Inventory.Equipments> GetFilteredEquipments(InventoryManager inv)
@@ -1722,6 +2633,17 @@ public class HomeEquipPopupUI : MonoBehaviour
                 _selectButtonSprite = Resources.Load<Sprite>(SelectButtonResourcePath);
 
             return _selectButtonSprite;
+        }
+    }
+
+    private static Sprite BackButtonSprite
+    {
+        get
+        {
+            if (_backButtonSprite == null)
+                _backButtonSprite = Resources.Load<Sprite>(BackButtonResourcePath);
+
+            return _backButtonSprite;
         }
     }
 

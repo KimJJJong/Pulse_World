@@ -14,23 +14,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
   Data:
     SkillId: Attack
-    TotalDurationTicks: 480
+    TotalDurationTicks: 960
     Tracks:
     - TrackName: Track 0
       Events:
-      - TriggerTick: 0
+      - TriggerTick: 480
         DurationTicks: 480
         Action:
           rid: 8211689478396838114
     - TrackName: Track 1
       Events:
-      - TriggerTick: 0
+      - TriggerTick: 240
         DurationTicks: 480
         Action:
           rid: 8211689478396838121
     - TrackName: Track 2
       Events:
-      - TriggerTick: 240
+      - TriggerTick: 480
         DurationTicks: 480
         Action:
           rid: 8211689540354048642
@@ -57,13 +57,13 @@ MonoBehaviour:
     - rid: 8211689478396838121
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath:
+        FmodEventPath: 
         Volume: 1
         UseOwnerPerspective: 1
     - rid: 8211689540354048642
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath:
+        FmodEventPath: 
         Volume: 1
         UseOwnerPerspective: 1
     - rid: 8211689608741912775
