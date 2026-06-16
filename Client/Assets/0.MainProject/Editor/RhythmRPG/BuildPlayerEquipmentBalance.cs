@@ -46,7 +46,9 @@ namespace RhythmRPG.Editor
                 BuildStaffAttack(),
                 BuildNoviceStaff(),
                 BuildHatDecoySkill(),
+                BuildHatWizardSkill(),
                 BuildBeatOrbSkill(),
+                BuildAccessoryNecklaceSkill(),
                 BuildMoveSkill(),
                 BuildBackstepSkill()
             };
@@ -254,6 +256,19 @@ namespace RhythmRPG.Editor
                     Hit(720, 0.72f), Hit(1080, 0.85f), Hit(1560, 0.78f)));
         }
 
+        private static NewSkillSO BuildHatWizardSkill()
+        {
+            return Skill(
+                "HatWizardSkill",
+                2400,
+                Track("Summon", SummonDecoy(240, 120, 0, -1, 42, 2400)),
+                Track("Control", InputLock(0, 480)),
+                RhythmSound(
+                    "Forest_Hat_Wizard",
+                    Hit(120, 0.7f), Hit(360, 0.85f),
+                    Hit(720, 0.75f), Hit(1080, 0.8f), Hit(1560, 0.75f)));
+        }
+
         private static NewSkillSO BuildBeatOrbSkill()
         {
             return Skill(
@@ -263,6 +278,17 @@ namespace RhythmRPG.Editor
                 Track("Impact", Damage(360, 120, Diamond(1), 8, stun: 120)),
                 Track("Control", InputLock(0, 600)),
                 RhythmSound("Forest_Accessory_Ring", Hit(120, 0.72f), Hit(360), Hit(720, 0.82f)));
+        }
+
+        private static NewSkillSO BuildAccessoryNecklaceSkill()
+        {
+            return Skill(
+                "AccessoryNecklaceSkill",
+                960,
+                Track("Telegraph", Warning(0, 360, Diamond(1))),
+                Track("Impact", Damage(360, 120, Diamond(1), 8, stun: 120)),
+                Track("Control", InputLock(0, 600)),
+                RhythmSound("Forest_Accessory_Necklace", Hit(120, 0.7f), Hit(360, 0.8f), Hit(720, 0.8f)));
         }
 
         private static NewSkillSO BuildMoveSkill()
@@ -635,6 +661,24 @@ namespace RhythmRPG.Editor
                 },
                 new EquipmentRow
                 {
+                    Id = 200002,
+                    Name = "Wizard Hat",
+                    Grade = "Uncommon",
+                    EquipSlot = "Hat",
+                    BaseAtk = 0,
+                    BaseDef = 1,
+                    BaseHp = 12,
+                    BaseStr = 0,
+                    BaseDex = 5,
+                    MaxEnhance = 10,
+                    SellPrice = 150,
+                    ModelPath = "Prefabs/Armor/Helm002",
+                    IconPath = "Icons/A_Helm002",
+                    Description = "Channels protective arcane energy, triggering a decoy to confuse threats.",
+                    SkillId = "HatWizardSkill"
+                },
+                new EquipmentRow
+                {
                     Id = 300001,
                     Name = "Beat Orb",
                     Grade = "Common",
@@ -650,6 +694,24 @@ namespace RhythmRPG.Editor
                     IconPath = "Icons/A_Orb001",
                     Description = "A floating rhythmic light that pulses around the wearer and shocks nearby monsters.",
                     SkillId = "BeatOrbSkill"
+                },
+                new EquipmentRow
+                {
+                    Id = 300002,
+                    Name = "Rhythm Necklace",
+                    Grade = "Uncommon",
+                    EquipSlot = "Accessory",
+                    BaseAtk = 4,
+                    BaseDef = 0,
+                    BaseHp = 6,
+                    BaseStr = 2,
+                    BaseDex = 2,
+                    MaxEnhance = 10,
+                    SellPrice = 180,
+                    ModelPath = "Prefabs/Accessory/Necklace001",
+                    IconPath = "Icons/A_Necklace001",
+                    Description = "A resonating necklace that discharges a protective shockwave to enemies.",
+                    SkillId = "AccessoryNecklaceSkill"
                 },
                 new EquipmentRow
                 {

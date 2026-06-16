@@ -110,8 +110,14 @@ internal sealed class EquipmentRhythmSoundProfile
             case "hatdecoyskill":
                 return new EquipmentRhythmSoundProfile("Forest_Hat_Helm", new[] { 0, 1920 }, new[] { 0.85f, 0.78f });
 
+            case "hatwizardskill":
+                return new EquipmentRhythmSoundProfile("Forest_Hat_Wizard", new[] { 0, 1920 }, new[] { 0.8f, 0.75f });
+
             case "beatorbskill":
                 return new EquipmentRhythmSoundProfile("Forest_Accessory_Ring", new[] { 720 }, new[] { 0.82f });
+
+            case "accessorynecklaceskill":
+                return new EquipmentRhythmSoundProfile("Forest_Accessory_Necklace", new[] { 720 }, new[] { 0.8f });
 
             default:
                 return null;

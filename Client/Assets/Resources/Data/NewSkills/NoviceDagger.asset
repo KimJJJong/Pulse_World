@@ -21,59 +21,59 @@ MonoBehaviour:
       - TriggerTick: 240
         DurationTicks: 240
         Action:
-          rid: 4242872800730677415
+          rid: 4242872800730677715
     - TrackName: Telegraph
       Events:
       - TriggerTick: 240
         DurationTicks: 240
         Action:
-          rid: 4242872800730677416
+          rid: 4242872800730677716
     - TrackName: Impact
       Events:
       - TriggerTick: 480
         DurationTicks: 240
         Action:
-          rid: 4242872800730677417
+          rid: 4242872800730677717
     - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 960
         Action:
-          rid: 4242872800730677418
+          rid: 4242872800730677718
     - TrackName: Sound
       Events:
       - TriggerTick: 0
         DurationTicks: 120
         Action:
-          rid: 4242872800730677419
+          rid: 4242872800730677719
       - TriggerTick: 120
         DurationTicks: 120
         Action:
-          rid: 4242872800730677420
+          rid: 4242872800730677720
       - TriggerTick: 240
         DurationTicks: 120
         Action:
-          rid: 4242872800730677421
+          rid: 4242872800730677721
       - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872800730677422
+          rid: 4242872800730677722
       - TriggerTick: 480
         DurationTicks: 120
         Action:
-          rid: 4242872800730677423
+          rid: 4242872800730677723
       - TriggerTick: 600
         DurationTicks: 120
         Action:
-          rid: 4242872800730677424
+          rid: 4242872800730677724
       - TriggerTick: 840
         DurationTicks: 120
         Action:
-          rid: 4242872800730677425
+          rid: 4242872800730677725
   references:
     version: 2
     RefIds:
-    - rid: 4242872800730677415
+    - rid: 4242872800730677715
       type: {class: MoveAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         MoveType: 1
@@ -81,71 +81,71 @@ MonoBehaviour:
         DirectionX: 0
         DirectionY: -1
         StopOnObstacle: 1
-    - rid: 4242872800730677416
+    - rid: 4242872800730677716
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872800730677426
+          rid: 4242872800730677726
         ColorSteps:
         - DurationTicks: 240
           ColorHex: '#E8D36A'
-    - rid: 4242872800730677417
+    - rid: 4242872800730677717
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872800730677427
+          rid: 4242872800730677727
         Amount: 14
         HitPlayers: 0
         HitMonsters: 1
         StunDurationTicks: 240
         KnockbackDistance: 0
         RecalculateTargets: 0
-    - rid: 4242872800730677418
+    - rid: 4242872800730677718
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872800730677419
+    - rid: 4242872800730677719
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Dagger_Skill
         Volume: 0.2
         UseOwnerPerspective: 1
-    - rid: 4242872800730677420
+    - rid: 4242872800730677720
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Dagger_Skill
         Volume: 0.2
         UseOwnerPerspective: 1
-    - rid: 4242872800730677421
+    - rid: 4242872800730677721
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Dagger_Skill
         Volume: 0.2
         UseOwnerPerspective: 1
-    - rid: 4242872800730677422
+    - rid: 4242872800730677722
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Dagger_Skill
         Volume: 0.2
         UseOwnerPerspective: 1
-    - rid: 4242872800730677423
+    - rid: 4242872800730677723
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Dagger_Skill
         Volume: 0.2
         UseOwnerPerspective: 1
-    - rid: 4242872800730677424
+    - rid: 4242872800730677724
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Dagger_Skill
         Volume: 0.2
         UseOwnerPerspective: 1
-    - rid: 4242872800730677425
+    - rid: 4242872800730677725
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Dagger_Skill
         Volume: 0.35
         UseOwnerPerspective: 1
-    - rid: 4242872800730677426
+    - rid: 4242872800730677726
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
@@ -155,7 +155,7 @@ MonoBehaviour:
           Y: -1
         - X: 0
           Y: -2
-    - rid: 4242872800730677427
+    - rid: 4242872800730677727
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1

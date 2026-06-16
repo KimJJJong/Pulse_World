@@ -21,67 +21,67 @@ MonoBehaviour:
       - TriggerTick: 0
         DurationTicks: 240
         Action:
-          rid: 4242872800730677359
+          rid: 4242872800730677644
     - TrackName: Impact
       Events:
       - TriggerTick: 240
         DurationTicks: 240
         Action:
-          rid: 4242872800730677360
+          rid: 4242872800730677645
     - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 480
         Action:
-          rid: 4242872800730677361
+          rid: 4242872800730677646
     - TrackName: Sound
       Events:
       - TriggerTick: 0
         DurationTicks: 120
         Action:
-          rid: 4242872800730677362
+          rid: 4242872800730677647
       - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872800730677363
+          rid: 4242872800730677648
   references:
     version: 2
     RefIds:
-    - rid: 4242872800730677359
+    - rid: 4242872800730677644
       type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872800730677364
+          rid: 4242872800730677649
         ColorSteps:
         - DurationTicks: 240
           ColorHex: '#E8D36A'
-    - rid: 4242872800730677360
+    - rid: 4242872800730677645
       type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         Shape:
-          rid: 4242872800730677365
+          rid: 4242872800730677650
         Amount: 9
         HitPlayers: 0
         HitMonsters: 1
         StunDurationTicks: 0
         KnockbackDistance: 0
         RecalculateTargets: 0
-    - rid: 4242872800730677361
+    - rid: 4242872800730677646
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872800730677362
+    - rid: 4242872800730677647
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Staff_Normal
         Volume: 0.25
         UseOwnerPerspective: 1
-    - rid: 4242872800730677363
+    - rid: 4242872800730677648
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Staff_Normal
         Volume: 0.25
         UseOwnerPerspective: 1
-    - rid: 4242872800730677364
+    - rid: 4242872800730677649
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1
@@ -89,7 +89,7 @@ MonoBehaviour:
         Cells:
         - X: 0
           Y: -1
-    - rid: 4242872800730677365
+    - rid: 4242872800730677650
       type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         CasterSize: 1

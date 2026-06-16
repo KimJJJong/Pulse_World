@@ -18,34 +18,34 @@ MonoBehaviour:
     Tracks:
     - TrackName: Move
       Events:
-      - TriggerTick: 0
-        DurationTicks: 480
+      - TriggerTick: 240
+        DurationTicks: 240
         Action:
-          rid: 4242872800730677374
+          rid: 4242872800730677659
     - TrackName: Control
       Events:
       - TriggerTick: 0
-        DurationTicks: 480
+        DurationTicks: 720
         Action:
-          rid: 4242872800730677375
+          rid: 4242872800730677660
     - TrackName: Sound
       Events:
-      - TriggerTick: 0
+      - TriggerTick: 120
         DurationTicks: 120
         Action:
-          rid: 4242872800730677376
-      - TriggerTick: 240
+          rid: 4242872800730677661
+      - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872800730677377
-      - TriggerTick: 720
+          rid: 4242872800730677662
+      - TriggerTick: 600
         DurationTicks: 120
         Action:
-          rid: 4242872800730677378
+          rid: 4242872800730677663
   references:
     version: 2
     RefIds:
-    - rid: 4242872800730677374
+    - rid: 4242872800730677659
       type: {class: MoveAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         MoveType: 1
@@ -53,24 +53,24 @@ MonoBehaviour:
         DirectionX: 0
         DirectionY: -1
         StopOnObstacle: 1
-    - rid: 4242872800730677375
+    - rid: 4242872800730677660
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872800730677376
+    - rid: 4242872800730677661
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Shoes_Boots
-        Volume: 1
+        Volume: 1.25
         UseOwnerPerspective: 1
-    - rid: 4242872800730677377
+    - rid: 4242872800730677662
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Shoes_Boots
-        Volume: 1
+        Volume: 1.5
         UseOwnerPerspective: 1
-    - rid: 4242872800730677378
+    - rid: 4242872800730677663
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Shoes_Boots
-        Volume: 1
+        Volume: 1.3
         UseOwnerPerspective: 1

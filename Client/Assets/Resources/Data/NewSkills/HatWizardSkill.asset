@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 501327079b4e19047b3fb174153b95d8, type: 3}
-  m_Name: HatDecoySkill
+  m_Name: HatWizardSkill
   m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
   Data:
-    SkillId: HatDecoySkill
+    SkillId: HatWizardSkill
     TotalDurationTicks: 2400
     Tracks:
     - TrackName: Summon
@@ -21,39 +21,39 @@ MonoBehaviour:
       - TriggerTick: 240
         DurationTicks: 120
         Action:
-          rid: 4242872800730677773
+          rid: 4242872800730677664
     - TrackName: Control
       Events:
       - TriggerTick: 0
         DurationTicks: 480
         Action:
-          rid: 4242872800730677774
+          rid: 4242872800730677665
     - TrackName: Sound
       Events:
       - TriggerTick: 120
         DurationTicks: 120
         Action:
-          rid: 4242872800730677775
+          rid: 4242872800730677666
       - TriggerTick: 360
         DurationTicks: 120
         Action:
-          rid: 4242872800730677776
+          rid: 4242872800730677667
       - TriggerTick: 720
         DurationTicks: 120
         Action:
-          rid: 4242872800730677777
+          rid: 4242872800730677668
       - TriggerTick: 1080
         DurationTicks: 120
         Action:
-          rid: 4242872800730677778
+          rid: 4242872800730677669
       - TriggerTick: 1560
         DurationTicks: 120
         Action:
-          rid: 4242872800730677779
+          rid: 4242872800730677670
   references:
     version: 2
     RefIds:
-    - rid: 4242872800730677773
+    - rid: 4242872800730677664
       type: {class: SummonDecoyAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         AppearanceId: 12
@@ -62,36 +62,36 @@ MonoBehaviour:
         OffsetX: 0
         OffsetY: -1
         RotateWithCaster: 1
-    - rid: 4242872800730677774
+    - rid: 4242872800730677665
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data: 
-    - rid: 4242872800730677775
+    - rid: 4242872800730677666
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Forest_Hat_Helm
-        Volume: 0.65
+        FmodEventPath: Forest_Hat_Wizard
+        Volume: 0.7
         UseOwnerPerspective: 1
-    - rid: 4242872800730677776
+    - rid: 4242872800730677667
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Forest_Hat_Helm
-        Volume: 0.9
-        UseOwnerPerspective: 1
-    - rid: 4242872800730677777
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Forest_Hat_Helm
-        Volume: 0.72
-        UseOwnerPerspective: 1
-    - rid: 4242872800730677778
-      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
-      data:
-        FmodEventPath: Forest_Hat_Helm
+        FmodEventPath: Forest_Hat_Wizard
         Volume: 0.85
         UseOwnerPerspective: 1
-    - rid: 4242872800730677779
+    - rid: 4242872800730677668
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
-        FmodEventPath: Forest_Hat_Helm
-        Volume: 0.78
+        FmodEventPath: Forest_Hat_Wizard
+        Volume: 0.75
+        UseOwnerPerspective: 1
+    - rid: 4242872800730677669
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Forest_Hat_Wizard
+        Volume: 0.8
+        UseOwnerPerspective: 1
+    - rid: 4242872800730677670
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Forest_Hat_Wizard
+        Volume: 0.75
         UseOwnerPerspective: 1
