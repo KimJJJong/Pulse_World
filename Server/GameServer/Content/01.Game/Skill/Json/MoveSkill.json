@@ -13,7 +13,7 @@
             "MoveType": 1,
             "Distance": 2,
             "DirectionX": 0,
-            "DirectionY": -1,
+            "DirectionY": 1,
             "StopOnObstacle": true
           }
         }
