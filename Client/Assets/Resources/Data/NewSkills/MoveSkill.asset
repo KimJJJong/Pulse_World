@@ -18,27 +18,27 @@ MonoBehaviour:
     Tracks:
     - TrackName: Move
       Events:
-      - TriggerTick: 240
-        DurationTicks: 240
+      - TriggerTick: 0
+        DurationTicks: 480
         Action:
           rid: 4242872800730677374
     - TrackName: Control
       Events:
       - TriggerTick: 0
-        DurationTicks: 720
+        DurationTicks: 480
         Action:
           rid: 4242872800730677375
     - TrackName: Sound
       Events:
-      - TriggerTick: 120
+      - TriggerTick: 0
         DurationTicks: 120
         Action:
           rid: 4242872800730677376
-      - TriggerTick: 360
+      - TriggerTick: 240
         DurationTicks: 120
         Action:
           rid: 4242872800730677377
-      - TriggerTick: 600
+      - TriggerTick: 720
         DurationTicks: 120
         Action:
           rid: 4242872800730677378
@@ -60,17 +60,17 @@ MonoBehaviour:
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Shoes_Boots
-        Volume: 0.75
+        Volume: 1
         UseOwnerPerspective: 1
     - rid: 4242872800730677377
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Shoes_Boots
-        Volume: 0.95
+        Volume: 1
         UseOwnerPerspective: 1
     - rid: 4242872800730677378
       type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
       data:
         FmodEventPath: Forest_Shoes_Boots
-        Volume: 0.8
+        Volume: 1
         UseOwnerPerspective: 1

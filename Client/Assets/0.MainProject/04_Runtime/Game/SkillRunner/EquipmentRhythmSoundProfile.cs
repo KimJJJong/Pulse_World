@@ -102,10 +102,10 @@ internal sealed class EquipmentRhythmSoundProfile
                 return WeaponSkill("Forest_Staff_Skill", new[] { 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1 });
 
             case "moveskill":
-                return new EquipmentRhythmSoundProfile("Forest_Shoes_Boots", new[] { 120, 600 }, new[] { 0.75f, 0.8f });
+                return new EquipmentRhythmSoundProfile("Forest_Shoes_Boots", new[] { 120, 600 }, new[] { 1.25f, 1.3f });
 
             case "backstepskill":
-                return new EquipmentRhythmSoundProfile("Forest_Shoes_Heavy", new[] { 120, 600 }, new[] { 0.8f, 0.8f });
+                return new EquipmentRhythmSoundProfile("Forest_Shoes_Heavy", new[] { 120, 600 }, new[] { 1.3f, 1.3f });
 
             case "hatdecoyskill":
                 return new EquipmentRhythmSoundProfile("Forest_Hat_Helm", new[] { 0, 1920 }, new[] { 0.85f, 0.78f });

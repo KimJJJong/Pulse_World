@@ -272,7 +272,7 @@ namespace RhythmRPG.Editor
                 960,
                 Track("Move", Move(240, 240, MoveType.Dash, 2, 0, -1)),
                 Track("Control", InputLock(0, 720)),
-                RhythmSound("Forest_Shoes_Boots", Hit(120, 0.75f), Hit(360, 0.95f), Hit(600, 0.8f)));
+                RhythmSound("Forest_Shoes_Boots", Hit(120, 1.25f), Hit(360, 1.5f), Hit(600, 1.3f)));
         }
 
         private static NewSkillSO BuildBackstepSkill()
@@ -282,7 +282,7 @@ namespace RhythmRPG.Editor
                 960,
                 Track("Move", Move(240, 240, MoveType.Dash, 2, 0, 1)),
                 Track("Control", InputLock(0, 720)),
-                RhythmSound("Forest_Shoes_Heavy", Hit(0, 0.75f), Hit(240, 0.9f), Hit(600, 0.8f), Hit(840, 0.7f)));
+                RhythmSound("Forest_Shoes_Heavy", Hit(0, 1.25f), Hit(240, 1.45f), Hit(600, 1.3f), Hit(840, 1.2f)));
         }
 
         private static NewSkillSO Skill(string skillId, int durationTicks, params SkillTrack[] tracks)

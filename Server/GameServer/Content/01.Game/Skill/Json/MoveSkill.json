@@ -24,7 +24,7 @@
       "Events": [
         {
           "TriggerTick": 0,
-          "DurationTicks": 720,
+          "DurationTicks": 480,
           "Action": {
             "Type": 4
           }
@@ -35,32 +35,32 @@
       "TrackName": "Sound",
       "Events": [
         {
-          "TriggerTick": 120,
+          "TriggerTick": 0,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
             "FmodEventPath": "Forest_Shoes_Boots",
-            "Volume": 0.75,
+            "Volume": 1.0,
             "UseOwnerPerspective": true
           }
         },
         {
-          "TriggerTick": 360,
+          "TriggerTick": 240,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
             "FmodEventPath": "Forest_Shoes_Boots",
-            "Volume": 0.95,
+            "Volume": 1.0,
             "UseOwnerPerspective": true
           }
         },
         {
-          "TriggerTick": 600,
+          "TriggerTick": 720,
           "DurationTicks": 120,
           "Action": {
             "Type": 6,
             "FmodEventPath": "Forest_Shoes_Boots",
-            "Volume": 0.8,
+            "Volume": 1.0,
             "UseOwnerPerspective": true
           }
         }
