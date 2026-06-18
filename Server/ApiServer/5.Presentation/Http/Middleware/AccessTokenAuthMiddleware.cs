@@ -9,11 +9,13 @@ public sealed class AccessTokenAuthMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<AccessTokenAuthMiddleware> _logger;
+    private readonly FirewallManager _firewall;
 
-    public AccessTokenAuthMiddleware(RequestDelegate next, ILogger<AccessTokenAuthMiddleware> logger)
+    public AccessTokenAuthMiddleware(RequestDelegate next, ILogger<AccessTokenAuthMiddleware> logger, FirewallManager firewall)
     {
         _next = next;
         _logger = logger;
+        _firewall = firewall;
     }
 
     public async Task Invoke(HttpContext ctx, AccessTokenValidator validator)
@@ -51,6 +53,7 @@ public sealed class AccessTokenAuthMiddleware
         {
             var ip = ctx.GetRemoteIpAddress();
             _logger.LogWarning("Auth Failed: Missing Token. IP={ip}, Path={path}", ip, path);
+            _firewall.RecordFailure(ip);
             throw new ApiException(401, ErrorCodes.Unauthorized, "Missing Authorization Bearer token.");
         }
 
@@ -77,12 +80,21 @@ public sealed class AccessTokenAuthMiddleware
         {
             var ip = ctx.GetRemoteIpAddress();
             _logger.LogWarning("Auth Failed: Token Expired. IP={ip}, Path={path}", ip, path);
+            _firewall.RecordFailure(ip);
             throw new ApiException(401, ErrorCodes.Unauthorized, "Access token expired.");
         }
         catch (SecurityTokenException ex)
         {
             var ip = ctx.GetRemoteIpAddress();
             _logger.LogWarning(ex, "Auth Failed: Invalid Token. IP={ip}, Path={path}", ip, path);
+            _firewall.RecordFailure(ip);
+            throw new ApiException(401, ErrorCodes.Unauthorized, "Invalid access token.");
+        }
+        catch (ArgumentException ex) // Catch SecurityTokenMalformedException (inherits from ArgumentException)
+        {
+            var ip = ctx.GetRemoteIpAddress();
+            _logger.LogWarning(ex, "Auth Failed: Malformed Token. IP={ip}, Path={path}", ip, path);
+            _firewall.RecordFailure(ip);
             throw new ApiException(401, ErrorCodes.Unauthorized, "Invalid access token.");
         }
     }

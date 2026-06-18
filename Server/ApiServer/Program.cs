@@ -38,6 +38,7 @@ var app = builder.Build();
 
 
 app.UseMiddleware<ProblemDetailsMiddleware>();
+app.UseMiddleware<FirewallMiddleware>();
 
 app.UseRouting();
 

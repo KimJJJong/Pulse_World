@@ -839,7 +839,7 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 502,
-                    "X": 82,
+                    "X": 84,
                     "Y": 0,
                     "Z": 39,
                     "StringVal": "",
@@ -857,7 +857,7 @@
                     "ParamId": 502,
                     "X": 69,
                     "Y": 0,
-                    "Z": 25,
+                    "Z": 26,
                     "StringVal": "",
                     "GroupId": 33,
                     "SizeX": 2,
@@ -995,120 +995,19 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 31,
                     "TargetKey": "RunicTowerLink_North",
-                    "Count": 8,
+                    "Count": 30,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "North Tower",
                     "ProgressDurationMs": 1000,
                     "Area": {
-                        "X": 68,
-                        "Y": 51,
-                        "W": 5,
-                        "H": 5,
-                        "Shape": "CustomCells",
-                        "Cells": [
-                            {
-                                "X": 68,
-                                "Y": 51
-                            },
-                            {
-                                "X": 69,
-                                "Y": 51
-                            },
-                            {
-                                "X": 70,
-                                "Y": 51
-                            },
-                            {
-                                "X": 71,
-                                "Y": 51
-                            },
-                            {
-                                "X": 72,
-                                "Y": 51
-                            },
-                            {
-                                "X": 68,
-                                "Y": 52
-                            },
-                            {
-                                "X": 69,
-                                "Y": 52
-                            },
-                            {
-                                "X": 70,
-                                "Y": 52
-                            },
-                            {
-                                "X": 71,
-                                "Y": 52
-                            },
-                            {
-                                "X": 72,
-                                "Y": 52
-                            },
-                            {
-                                "X": 68,
-                                "Y": 53
-                            },
-                            {
-                                "X": 69,
-                                "Y": 53
-                            },
-                            {
-                                "X": 70,
-                                "Y": 53
-                            },
-                            {
-                                "X": 71,
-                                "Y": 53
-                            },
-                            {
-                                "X": 72,
-                                "Y": 53
-                            },
-                            {
-                                "X": 68,
-                                "Y": 54
-                            },
-                            {
-                                "X": 69,
-                                "Y": 54
-                            },
-                            {
-                                "X": 70,
-                                "Y": 54
-                            },
-                            {
-                                "X": 71,
-                                "Y": 54
-                            },
-                            {
-                                "X": 72,
-                                "Y": 54
-                            },
-                            {
-                                "X": 68,
-                                "Y": 55
-                            },
-                            {
-                                "X": 69,
-                                "Y": 55
-                            },
-                            {
-                                "X": 70,
-                                "Y": 55
-                            },
-                            {
-                                "X": 71,
-                                "Y": 55
-                            },
-                            {
-                                "X": 72,
-                                "Y": 55
-                            }
-                        ]
+                        "X": 66,
+                        "Y": 50,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
                     }
                 }
             ],
@@ -1160,7 +1059,7 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 32,
                     "TargetKey": "RunicTowerLink_East",
-                    "Count": 8,
+                    "Count": 30,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
@@ -1168,112 +1067,11 @@
                     "ProgressDurationMs": 1000,
                     "Area": {
                         "X": 81,
-                        "Y": 37,
-                        "W": 5,
-                        "H": 5,
-                        "Shape": "CustomCells",
-                        "Cells": [
-                            {
-                                "X": 81,
-                                "Y": 37
-                            },
-                            {
-                                "X": 82,
-                                "Y": 37
-                            },
-                            {
-                                "X": 83,
-                                "Y": 37
-                            },
-                            {
-                                "X": 84,
-                                "Y": 37
-                            },
-                            {
-                                "X": 85,
-                                "Y": 37
-                            },
-                            {
-                                "X": 81,
-                                "Y": 38
-                            },
-                            {
-                                "X": 82,
-                                "Y": 38
-                            },
-                            {
-                                "X": 83,
-                                "Y": 38
-                            },
-                            {
-                                "X": 84,
-                                "Y": 38
-                            },
-                            {
-                                "X": 85,
-                                "Y": 38
-                            },
-                            {
-                                "X": 81,
-                                "Y": 39
-                            },
-                            {
-                                "X": 82,
-                                "Y": 39
-                            },
-                            {
-                                "X": 83,
-                                "Y": 39
-                            },
-                            {
-                                "X": 84,
-                                "Y": 39
-                            },
-                            {
-                                "X": 85,
-                                "Y": 39
-                            },
-                            {
-                                "X": 81,
-                                "Y": 40
-                            },
-                            {
-                                "X": 82,
-                                "Y": 40
-                            },
-                            {
-                                "X": 83,
-                                "Y": 40
-                            },
-                            {
-                                "X": 84,
-                                "Y": 40
-                            },
-                            {
-                                "X": 85,
-                                "Y": 40
-                            },
-                            {
-                                "X": 81,
-                                "Y": 41
-                            },
-                            {
-                                "X": 82,
-                                "Y": 41
-                            },
-                            {
-                                "X": 83,
-                                "Y": 41
-                            },
-                            {
-                                "X": 84,
-                                "Y": 41
-                            },
-                            {
-                                "X": 85,
-                                "Y": 41
-                            }
-                        ]
+                        "Y": 36,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
                     }
                 }
             ],
@@ -1453,120 +1251,19 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 33,
                     "TargetKey": "RunicTowerLink_South",
-                    "Count": 8,
+                    "Count": 30,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "South Tower",
                     "ProgressDurationMs": 1000,
                     "Area": {
-                        "X": 68,
-                        "Y": 24,
-                        "W": 5,
-                        "H": 5,
-                        "Shape": "CustomCells",
-                        "Cells": [
-                            {
-                                "X": 68,
-                                "Y": 24
-                            },
-                            {
-                                "X": 69,
-                                "Y": 24
-                            },
-                            {
-                                "X": 70,
-                                "Y": 24
-                            },
-                            {
-                                "X": 71,
-                                "Y": 24
-                            },
-                            {
-                                "X": 72,
-                                "Y": 24
-                            },
-                            {
-                                "X": 68,
-                                "Y": 25
-                            },
-                            {
-                                "X": 69,
-                                "Y": 25
-                            },
-                            {
-                                "X": 70,
-                                "Y": 25
-                            },
-                            {
-                                "X": 71,
-                                "Y": 25
-                            },
-                            {
-                                "X": 72,
-                                "Y": 25
-                            },
-                            {
-                                "X": 68,
-                                "Y": 26
-                            },
-                            {
-                                "X": 69,
-                                "Y": 26
-                            },
-                            {
-                                "X": 70,
-                                "Y": 26
-                            },
-                            {
-                                "X": 71,
-                                "Y": 26
-                            },
-                            {
-                                "X": 72,
-                                "Y": 26
-                            },
-                            {
-                                "X": 68,
-                                "Y": 27
-                            },
-                            {
-                                "X": 69,
-                                "Y": 27
-                            },
-                            {
-                                "X": 70,
-                                "Y": 27
-                            },
-                            {
-                                "X": 71,
-                                "Y": 27
-                            },
-                            {
-                                "X": 72,
-                                "Y": 27
-                            },
-                            {
-                                "X": 68,
-                                "Y": 28
-                            },
-                            {
-                                "X": 69,
-                                "Y": 28
-                            },
-                            {
-                                "X": 70,
-                                "Y": 28
-                            },
-                            {
-                                "X": 71,
-                                "Y": 28
-                            },
-                            {
-                                "X": 72,
-                                "Y": 28
-                            }
-                        ]
+                        "X": 66,
+                        "Y": 23,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
                     }
                 }
             ],
@@ -1618,120 +1315,19 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 34,
                     "TargetKey": "RunicTowerLink_West",
-                    "Count": 8,
+                    "Count": 30,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "West Tower",
                     "ProgressDurationMs": 1000,
                     "Area": {
-                        "X": 55,
-                        "Y": 37,
-                        "W": 5,
-                        "H": 5,
-                        "Shape": "CustomCells",
-                        "Cells": [
-                            {
-                                "X": 55,
-                                "Y": 37
-                            },
-                            {
-                                "X": 56,
-                                "Y": 37
-                            },
-                            {
-                                "X": 57,
-                                "Y": 37
-                            },
-                            {
-                                "X": 58,
-                                "Y": 37
-                            },
-                            {
-                                "X": 59,
-                                "Y": 37
-                            },
-                            {
-                                "X": 55,
-                                "Y": 38
-                            },
-                            {
-                                "X": 56,
-                                "Y": 38
-                            },
-                            {
-                                "X": 57,
-                                "Y": 38
-                            },
-                            {
-                                "X": 58,
-                                "Y": 38
-                            },
-                            {
-                                "X": 59,
-                                "Y": 38
-                            },
-                            {
-                                "X": 55,
-                                "Y": 39
-                            },
-                            {
-                                "X": 56,
-                                "Y": 39
-                            },
-                            {
-                                "X": 57,
-                                "Y": 39
-                            },
-                            {
-                                "X": 58,
-                                "Y": 39
-                            },
-                            {
-                                "X": 59,
-                                "Y": 39
-                            },
-                            {
-                                "X": 55,
-                                "Y": 40
-                            },
-                            {
-                                "X": 56,
-                                "Y": 40
-                            },
-                            {
-                                "X": 57,
-                                "Y": 40
-                            },
-                            {
-                                "X": 58,
-                                "Y": 40
-                            },
-                            {
-                                "X": 59,
-                                "Y": 40
-                            },
-                            {
-                                "X": 55,
-                                "Y": 41
-                            },
-                            {
-                                "X": 56,
-                                "Y": 41
-                            },
-                            {
-                                "X": 57,
-                                "Y": 41
-                            },
-                            {
-                                "X": 58,
-                                "Y": 41
-                            },
-                            {
-                                "X": 59,
-                                "Y": 41
-                            }
-                        ]
+                        "X": 53,
+                        "Y": 36,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
                     }
                 }
             ],
@@ -2011,7 +1607,7 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 504,
-                    "X": 70,
+                    "X": 78,
                     "Y": 0,
                     "Z": 39,
                     "StringVal": "",
@@ -2071,7 +1667,7 @@
                 {
                     "Type": "SpawnMonster",
                     "ParamId": 1021,
-                    "X": 70,
+                    "X": 78,
                     "Y": 0,
                     "Z": 39,
                     "StringVal": "Enemy_BlackKnight_Elite",
@@ -2082,6 +1678,50 @@
                     "GuideBody": "",
                     "GuideImageResource": "",
                     "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 12,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "MonsterAllDead",
+                    "TargetId": 2301,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "ShowGuide",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "Elite Defeated",
+                    "GuideBody": "The Crystalline Pulse Knight has fallen.",
+                    "GuideImageResource": "",
+                    "DurationMs": 4000,
                     "VfxKey": ""
                 }
             ]

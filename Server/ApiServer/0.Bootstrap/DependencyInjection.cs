@@ -19,6 +19,7 @@ using ApiServer.Infrastructure.Persistence.Repositories;
 using ApiServer.Infrastructure.Security;
 using ApiServer.Infrastructure.Steam;
 using ApiServer.Infrastructure.Time;
+using ApiServer.Presentation.Http.Middleware;
 using ApiServer.Presentation.WebSockets;
 using ApiServer.Shared.Abstractions;
 using ApiServer.Shared.Http.Idempotency;
@@ -84,6 +85,7 @@ public static class DependencyInjection
         services.AddSingleton<IIdempotencyStore, InMemoryIdempotencyStore>();
 
         services.AddSingleton<AccessTokenValidator>();
+        services.AddSingleton<FirewallManager>();
 
         services.AddSingleton<ConnectionManager>();
         services.AddScoped<RoomWebSocketHandler>();
