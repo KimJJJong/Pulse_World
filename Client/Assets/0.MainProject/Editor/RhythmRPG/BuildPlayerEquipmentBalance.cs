@@ -296,7 +296,7 @@ namespace RhythmRPG.Editor
             return Skill(
                 "MoveSkill",
                 960,
-                Track("Move", Move(240, 240, MoveType.Dash, 2, 0, -1)),
+                Track("Move", Move(240, 240, MoveType.Dash, 2, 0, 1)),
                 Track("Control", InputLock(0, 720)),
                 RhythmSound("Forest_Shoes_Boots", Hit(120, 1.25f), Hit(360, 1.5f), Hit(600, 1.3f)));
         }
@@ -306,7 +306,7 @@ namespace RhythmRPG.Editor
             return Skill(
                 "BackstepSkill",
                 960,
-                Track("Move", Move(240, 240, MoveType.Dash, 2, 0, 1)),
+                Track("Move", Move(240, 240, MoveType.Dash, 2, 0, -1)),
                 Track("Control", InputLock(0, 720)),
                 RhythmSound("Forest_Shoes_Heavy", Hit(0, 1.25f), Hit(240, 1.45f), Hit(600, 1.3f), Hit(840, 1.2f)));
         }

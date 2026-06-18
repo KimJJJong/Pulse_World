@@ -589,7 +589,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: RunicTower
       ParamId: 0
-      Position: {x: 54, y: 0, z: 39}
+      Position: {x: 56, y: 0, z: 39}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 34
@@ -690,7 +690,7 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 31
       TargetKey: RunicTowerLink_North
-      Count: 50
+      Count: 30
       Area:
         x: 66
         y: 50
@@ -773,7 +773,7 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 32
       TargetKey: RunicTowerLink_East
-      Count: 50
+      Count: 30
       Area:
         x: 81
         y: 36
@@ -962,7 +962,7 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 33
       TargetKey: RunicTowerLink_South
-      Count: 50
+      Count: 30
       Area:
         x: 66
         y: 23
@@ -1045,9 +1045,9 @@ MonoBehaviour:
       TargetId: 1
       SecondaryTargetId: 34
       TargetKey: RunicTowerLink_West
-      Count: 50
+      Count: 30
       Area:
-        x: 51
+        x: 53
         y: 36
         width: 7
         height: 7
@@ -1301,7 +1301,7 @@ MonoBehaviour:
     - Type: 4
       HeaderParam: StageEliteSummonGate
       ParamId: 0
-      Position: {x: 89, y: 4, z: 39}
+      Position: {x: 78, y: 0, z: 39}
       ObjectSize: {x: 2, y: 2}
       StringVal: 
       GroupId: 2190
@@ -1321,4 +1321,86 @@ MonoBehaviour:
       GuideBody: 
       GuideImageResource: 
       DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: Elite Gate Summon
+    Notes: 
+    Enabled: 1
+    EventId: 11
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 105
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 0
+      HeaderParam: 
+      ParamId: 1021
+      Position: {x: 78, y: 0, z: 39}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: Enemy_BlackKnight_Elite
+      GroupId: 2301
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: Elite Defeated Banner
+    Notes: 
+    Enabled: 1
+    EventId: 12
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 0
+      TargetId: 2301
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 5
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: Elite Defeated
+      GuideBody: The Crystalline Pulse Knight has fallen.
+      GuideImageResource: 
+      DurationMs: 4000
       VfxKey: 

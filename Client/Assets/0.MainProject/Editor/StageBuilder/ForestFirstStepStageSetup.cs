@@ -47,6 +47,13 @@ namespace RhythmRPG.Editor.StageBuilder
         private const string LegacyFirstPhaseSummonMonsterIdsCsv = "1010,1012";
         private const string LegacyFirstPhaseSummonMonsterPatternCsv = "Enemy_Bat,Enemy_EvilMage";
         private const int EliteGateSceneGroupId = 2190;
+        private const int EliteGateFinaleCompletedStateId = 105;
+        private const int EliteMonsterId = 1021;
+        private const int EliteMonsterGroupId = 2301;
+        private const string EliteMonsterPattern = "Enemy_BlackKnight_Elite";
+        private const string EliteDefeatedBannerTitle = "Elite Defeated";
+        private const string EliteDefeatedBannerBody = "The Crystalline Pulse Knight has fallen.";
+        private const int EliteDefeatedBannerDurationMs = 4000;
         private const int BatSummonMaxAlive = 2;
         private const int SingleSummonMaxAlive = 1;
         private const int NormalSummonMaxAlive = BatSummonMaxAlive;
@@ -906,6 +913,21 @@ namespace RhythmRPG.Editor.StageBuilder
             completeTowers.Actions.Add(SpawnEliteSummonGate());
             completeTowers.Actions.Add(SetObjectState(TowerPhaseStateId, 3));
 
+            EventInfoSO summonElite = EnsureEvent(stage, 11, "Section03", "Elite Gate Summon");
+            summonElite.Conditions.Clear();
+            summonElite.Conditions.Add(ObjectState(EliteGateFinaleCompletedStateId, 1));
+            summonElite.Actions.Clear();
+            summonElite.Actions.Add(SpawnEliteMonster());
+
+            EventInfoSO eliteDefeated = EnsureEvent(stage, 12, "Section03", "Elite Defeated Banner");
+            eliteDefeated.Conditions.Clear();
+            eliteDefeated.Conditions.Add(MonsterAllDead(EliteMonsterGroupId, 1));
+            eliteDefeated.Actions.Clear();
+            eliteDefeated.Actions.Add(ShowGuide(
+                EliteDefeatedBannerTitle,
+                EliteDefeatedBannerBody,
+                EliteDefeatedBannerDurationMs));
+
             EditorUtility.SetDirty(stage);
             StageExporter.Export(stage);
         }
@@ -1007,6 +1029,16 @@ namespace RhythmRPG.Editor.StageBuilder
                 Type = ConditionType.ObjectStateEquals,
                 TargetId = targetId,
                 Count = value
+            };
+        }
+
+        private static ConditionInfoSO MonsterAllDead(int groupId, int count)
+        {
+            return new ConditionInfoSO
+            {
+                Type = ConditionType.MonsterAllDead,
+                TargetId = groupId,
+                Count = count
             };
         }
 
@@ -1115,6 +1147,17 @@ namespace RhythmRPG.Editor.StageBuilder
             };
         }
 
+        private static ActionInfoSO ShowGuide(string title, string body, int durationMs)
+        {
+            return new ActionInfoSO
+            {
+                Type = ActionType.ShowGuide,
+                GuideTitle = title ?? string.Empty,
+                GuideBody = body ?? string.Empty,
+                DurationMs = durationMs
+            };
+        }
+
         private static ActionInfoSO SetGateDoor(bool open, int durationMs)
         {
             return new ActionInfoSO
@@ -1161,6 +1204,19 @@ namespace RhythmRPG.Editor.StageBuilder
                 Position = new Vector3(Mathf.RoundToInt(EliteGatePosition.x), 0f, Mathf.RoundToInt(EliteGatePosition.z)),
                 ObjectSize = new Vector2Int(2, 2),
                 GroupId = EliteGateSceneGroupId,
+                DurationMs = 3500
+            };
+        }
+
+        private static ActionInfoSO SpawnEliteMonster()
+        {
+            return new ActionInfoSO
+            {
+                Type = ActionType.SpawnMonster,
+                ParamId = EliteMonsterId,
+                Position = new Vector3(Mathf.RoundToInt(EliteGatePosition.x), 0f, Mathf.RoundToInt(EliteGatePosition.z)),
+                StringVal = EliteMonsterPattern,
+                GroupId = EliteMonsterGroupId,
                 DurationMs = 3500
             };
         }

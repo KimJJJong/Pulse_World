@@ -37,6 +37,7 @@ public static class DataItemAssetGenerator
         IconFolder + "/W_Axe001.png",
         IconFolder + "/W_Bow001.png",
         IconFolder + "/W_Dagger001.png",
+        IconFolder + "/W_Staff001.png",
         IconFolder + "/A_Helm001.png",
         IconFolder + "/A_Body001.png",
         IconFolder + "/A_Boots002.png",
@@ -56,7 +57,8 @@ public static class DataItemAssetGenerator
 
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
-        CreateOrUpdateOrbIcon(IconFolder + "/A_Orb001.png");
+        if (!File.Exists(IconFolder + "/A_Orb001.png"))
+            CreateOrUpdateOrbIcon(IconFolder + "/A_Orb001.png");
         ConfigureItemIcons(CommonIconPaths, "Common item");
         ConfigureItemIcons(EquipmentIconPaths, "Equipment");
         CreateOrUpdateWeaponPrefab(
@@ -79,6 +81,10 @@ public static class DataItemAssetGenerator
             "Dagger001",
             "Assets/KayKit/Characters/KayKit - Adventurers (for Unity)/Prefabs/Accessories/dagger.prefab",
             WeaponFolder + "/Dagger001.prefab");
+        CreateOrUpdateWeaponPrefab(
+            "Staff001",
+            "Assets/KayKit/Characters/KayKit - Adventurers (for Unity)/Prefabs/Accessories/wand.prefab",
+            WeaponFolder + "/Staff001.prefab");
 
         var leather = CreateOrUpdateMaterial(MaterialFolder + "/M_Item_Leather.mat", "#4F2E1D", 0.06f, 0.62f);
         var darkLeather = CreateOrUpdateMaterial(MaterialFolder + "/M_Item_DarkLeather.mat", "#24140E", 0.04f, 0.74f);
@@ -230,7 +236,7 @@ public static class DataItemAssetGenerator
             {
                 Vector2 uv = (new Vector2(x, y) - center) / (size * 0.5f);
                 float dist = uv.magnitude;
-                Color pixel = new Color(1f, 0.82f, 0.30f, Mathf.Clamp01(0.72f - dist) * 0.42f);
+                Color pixel = Color.clear;
 
                 float ringEllipse = Mathf.Sqrt(Mathf.Pow(uv.x / 0.74f, 2f) + Mathf.Pow((uv.y + 0.04f) / 0.31f, 2f));
                 float ring = Mathf.Clamp01(1f - Mathf.Abs(ringEllipse - 1f) / 0.052f);
@@ -801,6 +807,7 @@ public static class DataItemAssetGenerator
             WeaponFolder + "/Axe001.prefab",
             WeaponFolder + "/Bow001.prefab",
             WeaponFolder + "/Dagger001.prefab",
+            WeaponFolder + "/Staff001.prefab",
             ArmorFolder + "/Helm001.prefab",
             ArmorFolder + "/Body001.prefab",
             ArmorFolder + "/Boots002.prefab",

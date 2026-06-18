@@ -36,6 +36,7 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
     private Button _startButton;
     private Button _settingsButton;
     private Button _exitButton;
+    private static TMP_FontAsset _preferredFont;
 
     private bool _revealed;
     private bool _settingsVisible;
@@ -78,6 +79,7 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
         if (!TryUseExistingRuntimeTitle())
             BuildRuntimeTitle();
         BringConfirmPopupForward();
+        ApplyPreferredFontsToLoginUi();
     }
 
     private void Start()
@@ -218,6 +220,8 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
         }
         _statusText = FindRuntimeComponent<TMP_Text>("Text", _statusGroup != null ? _statusGroup.transform : null);
         _settingsDeviceText = FindRuntimeComponent<TMP_Text>("DeviceId", _settingsGroup != null ? _settingsGroup.transform : null);
+        ApplyPreferredFont(_statusText);
+        ApplyPreferredFont(_settingsDeviceText);
         _startButton = FindRuntimeComponent<Button>("StartGameButton");
         _settingsButton = FindRuntimeComponent<Button>("SettingsButton");
         _exitButton = FindRuntimeComponent<Button>("ExitButton");
@@ -769,7 +773,69 @@ public sealed class PulseWorldTitleScreen : MonoBehaviour
         text.alignment = alignment;
         text.color = color;
         text.raycastTarget = false;
+        ApplyPreferredFont(text);
         return text;
+    }
+
+    private void ApplyPreferredFontsToLoginUi()
+    {
+        ApplyPreferredFont(_statusText);
+        ApplyPreferredFont(_settingsDeviceText);
+
+        if (_view != null)
+        {
+            ApplyPreferredFont(_view.DeviceIdText);
+            ApplyPreferredFont(_view.ErrorText);
+            ApplyButtonLabelFont(_view.CopyDeviceIdButton);
+            ApplyButtonLabelFont(_view.ResetDeviceIdButton);
+            ApplyButtonLabelFont(_view.LoginButton);
+        }
+
+        if (_confirm != null)
+        {
+            ApplyPreferredFont(_confirm.Title);
+            ApplyPreferredFont(_confirm.Message);
+            ApplyButtonLabelFont(_confirm.OkButton);
+            ApplyButtonLabelFont(_confirm.CancelButton);
+        }
+    }
+
+    private static void ApplyButtonLabelFont(Button button)
+    {
+        if (button == null)
+            return;
+
+        var label = button.GetComponentInChildren<TMP_Text>(true);
+        ApplyPreferredFont(label);
+    }
+
+    private static void ApplyPreferredFont(TMP_Text text)
+    {
+        if (text == null)
+            return;
+
+        var font = LoadPreferredFont();
+        if (font == null)
+            return;
+
+        text.font = font;
+        text.fontSharedMaterial = font.material;
+    }
+
+    private static TMP_FontAsset LoadPreferredFont()
+    {
+        if (_preferredFont != null)
+            return _preferredFont;
+
+        _preferredFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/NanumGothic SDF");
+        if (_preferredFont == null)
+            _preferredFont = Resources.Load<TMP_FontAsset>("NanumGothic SDF");
+        if (_preferredFont == null)
+            _preferredFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/Gowun Batang");
+        if (_preferredFont == null)
+            _preferredFont = Resources.Load<TMP_FontAsset>("Gowun Batang");
+
+        return _preferredFont;
     }
 
     private Texture2D LoadTexture(string textureName)

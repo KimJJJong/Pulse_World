@@ -55,7 +55,7 @@ MonoBehaviour:
         MoveType: 1
         Distance: 2
         DirectionX: 0
-        DirectionY: 1
+        DirectionY: -1
         StopOnObstacle: 1
     - rid: 4242872800730677755
       type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}

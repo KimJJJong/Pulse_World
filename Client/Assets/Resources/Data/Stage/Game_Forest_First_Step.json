@@ -319,7 +319,7 @@
                     "SecondaryTargetId": 0,
                     "TargetKey": "",
                     "Count": 1,
-                    "UseParticipantCount": false,
+                    "UseParticipantCount": true,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "Area Count",
@@ -871,7 +871,7 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 502,
-                    "X": 54,
+                    "X": 56,
                     "Y": 0,
                     "Z": 39,
                     "StringVal": "",
@@ -995,7 +995,7 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 31,
                     "TargetKey": "RunicTowerLink_North",
-                    "Count": 50,
+                    "Count": 30,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
@@ -1059,7 +1059,7 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 32,
                     "TargetKey": "RunicTowerLink_East",
-                    "Count": 50,
+                    "Count": 30,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
@@ -1251,7 +1251,7 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 33,
                     "TargetKey": "RunicTowerLink_South",
-                    "Count": 50,
+                    "Count": 30,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
@@ -1315,14 +1315,14 @@
                     "TargetId": 1,
                     "SecondaryTargetId": 34,
                     "TargetKey": "RunicTowerLink_West",
-                    "Count": 50,
+                    "Count": 30,
                     "UseParticipantCount": false,
                     "ShowProgressUi": true,
                     "ShowAreaOutline": true,
                     "ProgressLabel": "West Tower",
                     "ProgressDurationMs": 1000,
                     "Area": {
-                        "X": 51,
+                        "X": 53,
                         "Y": 36,
                         "W": 7,
                         "H": 7,
@@ -1607,8 +1607,8 @@
                 {
                     "Type": "SpawnObject",
                     "ParamId": 504,
-                    "X": 89,
-                    "Y": 4,
+                    "X": 78,
+                    "Y": 0,
                     "Z": 39,
                     "StringVal": "",
                     "GroupId": 2190,
@@ -1634,6 +1634,94 @@
                     "GuideBody": "",
                     "GuideImageResource": "",
                     "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 11,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 105,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SpawnMonster",
+                    "ParamId": 1021,
+                    "X": 78,
+                    "Y": 0,
+                    "Z": 39,
+                    "StringVal": "Enemy_BlackKnight_Elite",
+                    "GroupId": 2301,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 12,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "MonsterAllDead",
+                    "TargetId": 2301,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "ShowGuide",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "Elite Defeated",
+                    "GuideBody": "The Crystalline Pulse Knight has fallen.",
+                    "GuideImageResource": "",
+                    "DurationMs": 4000,
                     "VfxKey": ""
                 }
             ]
