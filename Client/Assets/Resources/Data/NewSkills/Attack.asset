@@ -1,0 +1,90 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 501327079b4e19047b3fb174153b95d8, type: 3}
+  m_Name: Attack
+  m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
+  Data:
+    SkillId: Attack
+    TotalDurationTicks: 960
+    Tracks:
+    - TrackName: Track 0
+      Events:
+      - TriggerTick: 480
+        DurationTicks: 480
+        Action:
+          rid: 8211689478396838114
+    - TrackName: Track 1
+      Events:
+      - TriggerTick: 240
+        DurationTicks: 480
+        Action:
+          rid: 8211689478396838121
+    - TrackName: Track 2
+      Events:
+      - TriggerTick: 480
+        DurationTicks: 480
+        Action:
+          rid: 8211689540354048642
+    - TrackName: Track 3
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 480
+        Action:
+          rid: 8211689608741912784
+  references:
+    version: 2
+    RefIds:
+    - rid: 8211689478396838114
+      type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 8211689608741912775
+        Amount: 10
+        HitPlayers: 0
+        HitMonsters: 1
+        StunDurationTicks: 0
+        KnockbackDistance: 0
+        RecalculateTargets: 0
+    - rid: 8211689478396838121
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: 
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 8211689540354048642
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: 
+        Volume: 1
+        UseOwnerPerspective: 1
+    - rid: 8211689608741912775
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells:
+        - X: 0
+          Y: -1
+    - rid: 8211689608741912784
+      type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 8211689608741912785
+        ColorSteps: []
+    - rid: 8211689608741912785
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells:
+        - X: 0
+          Y: -1

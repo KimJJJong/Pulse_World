@@ -1,0 +1,227 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 501327079b4e19047b3fb174153b95d8, type: 3}
+  m_Name: Enemy_DemonKing_SwordSpin
+  m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
+  Data:
+    SkillId: Enemy_DemonKing_SwordSpin
+    TotalDurationTicks: 1920
+    Tracks:
+    - TrackName: Telegraph
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 480
+        Action:
+          rid: 880000000000000201
+      - TriggerTick: 480
+        DurationTicks: 480
+        Action:
+          rid: 880000000000000202
+    - TrackName: Spin Hits
+      Events:
+      - TriggerTick: 960
+        DurationTicks: 480
+        Action:
+          rid: 880000000000000203
+      - TriggerTick: 1440
+        DurationTicks: 480
+        Action:
+          rid: 880000000000000204
+  references:
+    version: 2
+    RefIds:
+    - rid: 880000000000000201
+      type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 880000000000000205
+        ColorSteps: []
+    - rid: 880000000000000202
+      type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 880000000000000206
+        ColorSteps: []
+    - rid: 880000000000000203
+      type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 880000000000000207
+        Amount: 6
+        HitPlayers: 1
+        HitMonsters: 0
+        StunDurationTicks: 0
+        KnockbackDistance: 1
+        RecalculateTargets: 0
+    - rid: 880000000000000204
+      type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 880000000000000208
+        Amount: 6
+        HitPlayers: 1
+        HitMonsters: 0
+        StunDurationTicks: 0
+        KnockbackDistance: 1
+        RecalculateTargets: 0
+    - rid: 880000000000000205
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells:
+        - X: -2
+          Y: 0
+        - X: -1
+          Y: -1
+        - X: -1
+          Y: 0
+        - X: -1
+          Y: 1
+        - X: 0
+          Y: -2
+        - X: 0
+          Y: -1
+        - X: 0
+          Y: 1
+        - X: 0
+          Y: 2
+        - X: 1
+          Y: -1
+        - X: 1
+          Y: 0
+        - X: 1
+          Y: 1
+        - X: 2
+          Y: 0
+        - X: -2
+          Y: -1
+        - X: -2
+          Y: 1
+        - X: 2
+          Y: -1
+        - X: 2
+          Y: 1
+    - rid: 880000000000000206
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells:
+        - X: -2
+          Y: 0
+        - X: -1
+          Y: -1
+        - X: -1
+          Y: 0
+        - X: -1
+          Y: 1
+        - X: 0
+          Y: -2
+        - X: 0
+          Y: -1
+        - X: 0
+          Y: 1
+        - X: 0
+          Y: 2
+        - X: 1
+          Y: -1
+        - X: 1
+          Y: 0
+        - X: 1
+          Y: 1
+        - X: 2
+          Y: 0
+        - X: -2
+          Y: -1
+        - X: -2
+          Y: 1
+        - X: 2
+          Y: -1
+        - X: 2
+          Y: 1
+    - rid: 880000000000000207
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells:
+        - X: -2
+          Y: 0
+        - X: -1
+          Y: -1
+        - X: -1
+          Y: 0
+        - X: -1
+          Y: 1
+        - X: 0
+          Y: -2
+        - X: 0
+          Y: -1
+        - X: 0
+          Y: 1
+        - X: 0
+          Y: 2
+        - X: 1
+          Y: -1
+        - X: 1
+          Y: 0
+        - X: 1
+          Y: 1
+        - X: 2
+          Y: 0
+        - X: -2
+          Y: -1
+        - X: -2
+          Y: 1
+        - X: 2
+          Y: -1
+        - X: 2
+          Y: 1
+    - rid: 880000000000000208
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Cells:
+        - X: -2
+          Y: 0
+        - X: -1
+          Y: -1
+        - X: -1
+          Y: 0
+        - X: -1
+          Y: 1
+        - X: 0
+          Y: -2
+        - X: 0
+          Y: -1
+        - X: 0
+          Y: 1
+        - X: 0
+          Y: 2
+        - X: 1
+          Y: -1
+        - X: 1
+          Y: 0
+        - X: 1
+          Y: 1
+        - X: 2
+          Y: 0
+        - X: -2
+          Y: -1
+        - X: -2
+          Y: 1
+        - X: 2
+          Y: -1
+        - X: 2
+          Y: 1

@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse World: Dynamic Energy & Time Tracker</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            background: #1a1a24;
+            color: #ddd;
+            padding: 15px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #e91e63;
+            margin-top: 0;
+            font-size: 20px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 5px;
+        }
+
+        .panel {
+            background: #2b2b36;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+            border: 1px solid #444;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: none;
+            background: #4caf50;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 13px;
+            margin-right: 5px;
+        }
+
+        .btn-stop {
+            background: #e24a4a;
+        }
+
+        .btn-mode {
+            background: #e67e22;
+            border: 1px solid #d35400;
+            padding: 8px 12px;
+            font-size: 13px;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+
+        .btn-mode:active {
+            transform: scale(0.98);
+        }
+
+        .btn-mode.active {
+            background: #fff;
+            color: #d35400;
+            font-weight: bold;
+        }
+
+        .spec-container {
+            display: flex;
+            gap: 12px;
+        }
+
+        .spec-sidebar {
+            flex: 1;
+            min-width: 250px;
+            max-width: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .spec-main {
+            flex: 3;
+            overflow: hidden;
+        }
+
+        .desc-box {
+            background: #111;
+            padding: 12px;
+            border-left: 4px solid #e91e63;
+            font-size: 12px;
+            color: #bbb;
+            line-height: 1.5;
+            min-height: 80px;
+        }
+
+        .grid-container {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 10px;
+            margin-top: 10px;
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .track {
+            display: flex;
+            align-items: stretch;
+            margin-bottom: 3px;
+        }
+
+        .track-label {
+            width: 110px;
+            min-width: 110px;
+            padding-left: 8px;
+            font-weight: bold;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            background: #333;
+            border-top-left-radius: 4px;
+            border-bottom-left-radius: 4px;
+            border-right: 2px solid #111;
+            color: #aaa;
+        }
+
+        .steps {
+            display: flex;
+        }
+
+        .step {
+            width: 25px;
+            height: 25px;
+            background: #3c3c4a;
+            border: 1px solid #222;
+            border-right: 1px solid #111;
+            box-sizing: border-box;
+            font-size: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            color: #fff;
+        }
+
+        .step.active {
+            background: #4caf50;
+            color: #fff;
+            font-weight: bold;
+            border-color: #81c784;
+        }
+
+        .step.sys-tx {
+            background: #00bcd4;
+            color: #fff;
+            font-weight: bold;
+            border-color: #26c6da;
+        }
+
+        /* System Texture */
+        .step.current {
+            box-shadow: inset 0 0 0 2px #ffeb3b;
+        }
+
+        .step.beat-start {
+            border-left: 2px solid #888;
+        }
+
+        .step.bar-start {
+            border-left: 3px solid #e91e63;
+        }
+
+        .step.first-beat {
+            background: #2a2a35;
+        }
+
+        .header-bar {
+            display: flex;
+            font-size: 10px;
+            color: #888;
+            font-weight: bold;
+        }
+
+        .header-cell {
+            width: 400px;
+            text-align: center;
+            border-left: 3px solid #e91e63;
+            background: #111;
+            padding: 2px;
+        }
+
+        .meter-container {
+            background: #111;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 8px;
+            margin-top: 10px;
+        }
+
+        .meter-label {
+            font-size: 11px;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+
+        .meter {
+            width: 100%;
+            height: 12px;
+            background: #222;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .meter-fill-red {
+            height: 100%;
+            width: 0%;
+            background: #e24a4a;
+            transition: 0.2s;
+        }
+
+        .meter-fill-blue {
+            height: 100%;
+            width: 0%;
+            background: #00bcd4;
+            transition: 0.2s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🎯 Pulse World: Time-based Variation & Energy Tracker</h1>
+
+    <div class="spec-container">
+        <div class="spec-sidebar">
+            <div class="panel">
+                <strong style="color: #e91e63; font-size:14px;">📊 Energy Compensation Tracker</strong>
+                <p style="font-size:11px; margin:4px 0 10px 0; color:#888;">입력 밀도가 낮아질 때 시스템이 Shaker/Tom으로 간극을 채웁니다.</p>
+
+                <div class="meter-label">Player Density (Input) <span id="plyDenTxt"
+                        style="color:#e24a4a; float:right;">0%</span></div>
+                <div class="meter">
+                    <div class="meter-fill-red" id="plyDenMeter"></div>
+                </div>
+
+                <div class="meter-label" style="margin-top:8px;">System Compensation (Shaker/Fills) <span id="sysComTxt"
+                        style="color:#00bcd4; float:right;">100%</span></div>
+                <div class="meter">
+                    <div class="meter-fill-blue" id="sysComMeter" style="width:100%;"></div>
+                </div>
+            </div>
+
+            <div class="panel" style="flex:1;">
+                <strong style="color: #f2a900; font-size:14px;">▶ 1인 플레이 (시간 축 변주)</strong>
+                <button class="btn-mode active" id="btn_1p_town" onclick="loadScenario('1p_town')"
+                    style="margin-top:5px;">🏙️ 1P Town: 4마디 단조로움 돌파</button>
+                <button class="btn-mode" id="btn_1p_elite" onclick="loadScenario('1p_elite')">🔥 1P Elite: 긴장
+                    곡선</button>
+
+                <strong style="color: #4CAF50; font-size:14px; display:block; margin-top:15px;">▶ 4인 합주 (밀도 보정 &
+                    화성)</strong>
+                <button class="btn-mode" id="btn_4p_stage" onclick="loadScenario('4p_stage')">⚔️ 4P Stage: 회피 중
+                    필인(Fill)</button>
+                <button class="btn-mode" id="btn_4p_sync" onclick="loadScenario('4p_sync')">🌀 4P Engage: 파티 다악기
+                    합주</button>
+                <button class="btn-mode" id="btn_4p_raid1" onclick="loadScenario('4p_raid1')">💀 4P Raid Ph1: 탐색전 (밀도
+                    최소)</button>
+                <button class="btn-mode" id="btn_4p_raid2" onclick="loadScenario('4p_raid2')">💥 4P Raid Ph2: 극딜 폭주 (밀도
+                    최고)</button>
+            </div>
+        </div>
+
+        <div class="spec-main">
+            <div class="panel">
+                <button class="btn" onclick="play()">▶ PLAY (재생)</button>
+                <button class="btn btn-stop" onclick="stop()">■ STOP (정지)</button>
+
+                <div class="desc-box" id="descBox">...</div>
+
+                <div class="grid-container" id="gridContainer">
+                    <div class="header-bar" id="headerBar"></div>
+                    <div id="gridBody"></div>
+                </div>
+                <div style="font-size:11px; color:#aaa; text-align:right; margin-top:5px;">🖱️ 클릭을 통해 <strong>유저
+                        밀도(Density)</strong>를 강제로 변동시켜 보상 시스템을 테스트할 수 있습니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ac = null;
+        let masterGain = null;
+        let isPlaying = false;
+        let currentStep = 0;
+        let nextNoteTime = 0.0;
+        let timerID;
+
+        // Core Engine params
+        let BPM = 110;
+        let DIV = 4; // 16th notes
+        let BARS = 4; // 4 Bar full Time-Loop Structure (64 steps)
+        let totalSteps = BARS * 4 * DIV;
+
+        const tracks = [
+            { id: "Kick", name: "Drm (Kick)", color: "#888" },
+            { id: "Hat", name: "Drm (Hi-hat)", color: "#888" },
+            { id: "SysCm", name: "🥁 Sys Compense (Shaker/Fills)", color: "#00bcd4" }, // The System Helper
+            { id: "Bas", name: "Bass Layer", color: "#f1c40f" },
+            { id: "Tnk", name: "🛡️ Tank (Heavy Brass)", color: "#8e44ad" },
+            { id: "Mel", name: "🗡️ Melee (Punchy Pluck)", color: "#c0392b" },
+            { id: "Rng", name: "🏹 Ranged (Sharp Synth)", color: "#2980b9" },
+            { id: "Sup", name: "🪄 Supp (Chord Pad)", color: "#27ae60" }
+        ];
+
+        // Energy Engine Variables
+        let playerDensityQueue = new Array(8).fill(0); // rolling window
+        let curEnergy = 0.0;
+        let sysCompensationLevel = 1.0;
+
+        function initAudio() {
+            if (!ac) {
+                ac = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = ac.createGain(); masterGain.gain.value = 0.8; masterGain.connect(ac.destination);
+            }
+            if (ac.state === 'suspended') ac.resume();
+        }
+
+        function freq(note) {
+            if (!note) return 0;
+            const n = { "C": -9, "C#": -8, "D": -7, "D#": -6, "E": -5, "F": -4, "F#": -3, "G": -2, "G#": -1, "A": 0, "A#": 1, "B": 2 };
+            let m = note.match(/([A-Ga-g]#?)(\d)/);
+            if (m) return 440 * Math.pow(2, (n[m[1].toUpperCase()] + (parseInt(m[2]) - 4) * 12) / 12);
+            return 0;
+        }
+
+        function playSound(trackId, time, durSteps, noteStr) {
+            let dur = durSteps * (60.0 / BPM / DIV);
+            const g = ac.createGain(); g.connect(masterGain);
+
+            if (trackId === "Kick") {
+                const osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(100, time); osc.frequency.exponentialRampToValueAtTime(30, time + 0.3);
+                g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(1.0, time + 0.05); g.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
+                osc.connect(g); osc.start(time); osc.stop(time + 0.5);
+            }
+            else if (trackId === "Hat") { // Standard Hat
+                const buf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
+                for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                const src = ac.createBufferSource(); src.buffer = buf;
+                const flt = ac.createBiquadFilter(); flt.type = 'highpass'; flt.frequency.value = 8000;
+                src.connect(flt); flt.connect(g);
+                g.gain.setValueAtTime(0.2, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.1); src.start(time);
+            }
+            else if (trackId === "SysCm") { // System Compensation (Shaker / Tom)
+                // Adjust volume based on compensation level
+                if (sysCompensationLevel < 0.1) return; // Muted by dense player
+
+                let vol = 0.4 * sysCompensationLevel;
+                let isShaker = noteStr === "Shk";
+                let isTom = noteStr === "Tom";
+
+                if (isShaker) {
+                    const buf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
+                    for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                    const src = ac.createBufferSource(); src.buffer = buf;
+                    const flt = ac.createBiquadFilter(); flt.type = 'bandpass'; flt.frequency.value = 6000;
+                    src.connect(flt); flt.connect(g);
+                    g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(vol, time + 0.02); g.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+                    src.start(time);
+                } else if (isTom) {
+                    const osc = ac.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(150, time); osc.frequency.exponentialRampToValueAtTime(80, time + 0.2);
+                    g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(vol * 1.5, time + 0.02); g.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+                    osc.connect(g); osc.start(time); osc.stop(time + 0.3);
+                }
+            }
+            else if (trackId === "Bas") {
+                const osc = ac.createOscillator(); osc.type = 'square'; osc.frequency.value = freq(noteStr);
+                const flt = ac.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.setValueAtTime(600, time); flt.frequency.exponentialRampToValueAtTime(120, time + 0.3);
+                osc.connect(flt); flt.connect(g);
+                let dLen = Math.max(0.1, dur);
+                g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.4, time + 0.05); g.gain.linearRampToValueAtTime(0.01, time + dLen);
+                osc.start(time); osc.stop(time + dLen + 0.2);
+            }
+            else if (trackId === "Tnk") {
+                const osc = ac.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = freq(noteStr);
+                const flt = ac.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.setValueAtTime(1200, time); flt.frequency.exponentialRampToValueAtTime(300, time + 0.4);
+                osc.connect(flt); flt.connect(g);
+                let dLen = Math.max(0.1, dur);
+                g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.7, time + 0.05); g.gain.exponentialRampToValueAtTime(0.01, time + dLen);
+                osc.start(time); osc.stop(time + dLen + 0.1);
+            }
+            else if (trackId === "Mel") {
+                const osc = ac.createOscillator(); osc.type = 'square'; osc.frequency.value = freq(noteStr);
+                const flt = ac.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.setValueAtTime(3000, time); flt.frequency.exponentialRampToValueAtTime(800, time + 0.1);
+                osc.connect(flt); flt.connect(g);
+                let dLen = Math.max(0.05, dur);
+                g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.6, time + 0.01); g.gain.exponentialRampToValueAtTime(0.01, time + dLen);
+                osc.start(time); osc.stop(time + dLen + 0.1);
+            }
+            else if (trackId === "Rng") {
+                const osc = ac.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = freq(noteStr);
+                const flt = ac.createBiquadFilter(); flt.type = 'highpass'; flt.frequency.setValueAtTime(2000, time);
+                osc.connect(flt); flt.connect(g);
+                let dLen = Math.max(0.1, dur);
+                g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.4, time + 0.02); g.gain.exponentialRampToValueAtTime(0.01, time + dLen);
+                osc.start(time); osc.stop(time + dLen + 0.1);
+            }
+            else if (trackId === "Sup") {
+                const osc1 = ac.createOscillator(); osc1.type = 'sine'; osc1.frequency.value = freq(noteStr);
+                const osc2 = ac.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = freq(noteStr) * 1.5; // Perfect 5th
+                const flt = ac.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.setValueAtTime(1500, time); flt.frequency.exponentialRampToValueAtTime(1000, time + 0.5);
+                osc1.connect(flt); osc2.connect(flt); flt.connect(g);
+                let dLen = Math.max(0.1, dur);
+                g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.5, time + 0.1); g.gain.exponentialRampToValueAtTime(0.01, time + dLen);
+                osc1.start(time); osc2.start(time); osc1.stop(time + dLen + 0.5); osc2.stop(time + dLen + 0.5);
+            }
+        }
+
+        // ==== UI ==== //
+        function buildGrid() {
+            let header = document.getElementById("headerBar");
+            header.innerHTML = `
+        <div class="header-cell">마디 1 (Base/탐색)</div>
+        <div class="header-cell">마디 2 (Octave/활기)</div>
+        <div class="header-cell">마디 3 (Tension/고조)</div>
+        <div class="header-cell">마디 4 (Resolve/해소)</div>
+    `;
+
+            const container = document.getElementById("gridBody");
+            container.innerHTML = '';
+
+            tracks.forEach(trk => {
+                let trackDiv = document.createElement("div");
+                trackDiv.className = "track";
+                let labelStr = `<div class="track-label" style="border-left-color:${trk.color}">${trk.name}</div>`;
+                let stepsStr = `<div class="steps">`;
+                for (let i = 0; i < totalSteps; i++) {
+                    let extraClass = '';
+                    if (i % 16 === 0) extraClass += ' bar-start';
+                    else if (i % 4 === 0) extraClass += ' beat-start';
+                    if (Math.floor(i / 4) % 4 === 0) extraClass += ' first-beat';
+                    stepsStr += `<div class="step ${extraClass}" data-inst="${trk.id}" data-col="${i}" onclick="toggleStep(this)"></div>`;
+                }
+                stepsStr += `</div>`;
+                trackDiv.innerHTML = labelStr + stepsStr;
+                container.appendChild(trackDiv);
+            });
+        }
+
+        function setS(inst, stepIdx, dur, note) {
+            let el = document.querySelector(`.step[data-inst='${inst}'][data-col='${stepIdx}']`);
+            if (el) {
+                if (inst === "SysCm") el.classList.add('sys-tx');
+                else el.classList.add('active');
+                el.dataset.dur = dur; el.dataset.note = note; el.innerHTML = note || "";
+            }
+        }
+
+        function clearGrid() {
+            document.querySelectorAll('.step.active, .step.sys-tx').forEach(el => {
+                el.className = el.className.replace('active', '').replace('sys-tx', '').trim();
+                el.dataset.dur = ""; el.dataset.note = ""; el.innerHTML = "";
+            });
+        }
+
+        function toggleStep(element) {
+            if (element.classList.contains('active') || element.classList.contains('sys-tx')) {
+                element.classList.remove('active', 'sys-tx');
+                element.dataset.dur = ""; element.dataset.note = ""; element.innerHTML = "";
+            } else {
+                if (element.dataset.inst === "SysCm") element.classList.add('sys-tx');
+                else element.classList.add('active');
+                element.dataset.dur = 1; element.dataset.note = "E4"; element.innerHTML = "E4";
+            }
+        }
+
+        // ==== Scenarios ==== //
+        function loadScenario(type) {
+            document.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn_' + type).classList.add('active');
+            stop(); clearGrid();
+
+            let desc = "";
+
+            // Core Drum base
+            if (type.includes("town") || type.includes("elite") || type.includes("stage")) {
+                for (let i = 0; i < 64; i += 16) { setS("Kick", i, 1); setS("Kick", i + 8, 1); } // 1, 3 beats Town Style
+                for (let i = 0; i < 64; i += 4) { setS("Hat", i, 1); }
+            }
+
+            if (type === "1p_town") {
+                desc = "<strong>[1인 플레이] Town - 구조적 단조로움 돌파 (4마디 변주)</strong><br>- <b>원인:</b> 솔플 시 무기(Melee) 하나만 쓰므로 같은 음역만 반복해 곡이 멈춘 듯한 지루함 발생.<br>- <b>해결 (Time-based):</b> 유저(Melee)는 항상 동일한 건반(E4-G4)을 쳐도, 시스템 베이스라인(노란색)이 4마디 단위로 곡선을 그립니다. <br>- [마디 1: E2 탐색] -> [마디 2: E3 활기] -> [마디 3: C3 텐션] -> [마디 4: D3 해소]. 외부 개입 없이 시간축의 흐름만으로 음악이 전개됩니다.";
+                // Mel plays the EXACT SAME THING in every bar. (Monotony simulation)
+                for (let offset = 0; offset < 64; offset += 16) {
+                    setS("Mel", offset + 0, 2, "E4"); setS("Mel", offset + 4, 1, "G4"); setS("Mel", offset + 8, 2, "E4"); setS("Mel", offset + 12, 1, "B4");
+                }
+                // BASE PROGRESSION (Time-based variation)
+                setS("Bas", 0, 16, "E2"); setS("Bas", 16, 16, "E3");
+                setS("Bas", 32, 12, "E3"); setS("Bas", 44, 4, "C3");
+                setS("Bas", 48, 8, "D3"); setS("Bas", 56, 8, "B2");
+
+                for (let i = 14; i < 64; i += 16) setS("SysCm", i, 1, "Shk");
+            }
+            else if (type === "1p_elite") {
+                desc = "<strong>[1인 플레이] Elite Boss - Tension Scaling (Dominant 텐션)</strong><br>- <b>상황:</b> 단일 원거리(Ranged) 캐릭터가 1타일 밖에서 치고 빠지는 루프. 매우 단순한 플레이입니다.<br>- <b>해결:</b> 마디 3, 4에서 시스템 베이스 라인이 [D2 -> D#2 (B7 Dominant)]로 강력하게 텐션을 쌓아가며 스토리를 만듭니다. 반복 타격 특유의 피로가 화성에 의해 긴장감으로 치환됩니다.";
+                for (let i = 0; i < 64; i += 4) setS("Kick", i, 1);
+                for (let offset = 0; offset < 64; offset += 16) {
+                    setS("Rng", offset + 0, 1, "B5"); setS("Rng", offset + 2, 1, "G5"); setS("Rng", offset + 6, 2, "E5");
+                }
+                setS("Bas", 0, 16, "E2"); setS("Bas", 16, 16, "C2");
+                setS("Bas", 32, 16, "D2"); setS("Bas", 48, 16, "D#2");
+            }
+            else if (type === "4p_stage") {
+                desc = "<strong>[4인 합주] Stage - 100% 밀도와 회피 모드 (Micro-Fill 보정)</strong><br>- <b>상황:</b> 전위와 후위 모두 풀 콤보를 쏟다가(마디 1-2), 보스 공격을 피하느라 전원 무입력(마디 3 초반).<br>- <b>핵심(Energy Compense):</b> 마디 1,2에서는 Energy 미터가 높아 시스템(파란색)이 0%로 완벽히 침묵합니다(노이즈 방지). <br>- 마디 3에서 유저가 멈블자마자 파란색 Tom/Shaker가 100%로 차오르며 빈 공간의 호흡(Fill)을 자동으로 채워 텐션 추락을 방어합니다!";
+
+                // Bar 1 & 2: Full Combo
+                [0, 4, 8, 12, 16, 20, 24, 28].forEach(n => setS("Tnk", n, 1, "E2"));
+                for (let i = 0; i < 32; i += 2) setS("Mel", i, 1, "E5");
+                [3, 7, 11, 15, 19, 23, 27, 31].forEach(n => setS("Rng", n, 1, "G5"));
+                setS("Sup", 0, 16, "B4"); setS("Sup", 16, 16, "C5");
+
+                // Bar 4: Return to combat
+                [56, 60, 62].forEach(n => setS("Tnk", n, 1, "D2"));
+                [48, 52, 56, 60].forEach(n => setS("Rng", n, 1, "F#5"));
+
+                // System Compensation Layer
+                for (let i = 0; i < 64; i += 2) setS("SysCm", i, 1, "Shk"); // Constant shaker
+                [44, 46, 56, 58].forEach(n => setS("SysCm", n, 1, "Tom")); // Fills in the blanks
+
+                setS("Bas", 0, 64, "E2");
+            }
+            else if (type === "4p_sync") {
+                desc = "<strong>[4인 합주] Engage - 다악기 시너지 (Harmonic & Frequency Separation)</strong><br>- <b>원인:</b> 4명이 각자 플레이하면 주파수가 겹쳐 시끄러워짐.<br>- <b>해결 (Frequency Separation):</b> 각 역할별 음역대가 완벽히 분리. <br>[Tank] 묵직한 브라스(E2) -> [Melee] 중음역대 플럭(E4/G4) -> [Rng] 고음역대 엇박 찌르기(B5) -> [Sup] 넓고 풍성한 패드(E5). 함께 아무리 쳐도 지저분하지 않은 합주가 됨을 증명합니다.";
+                setS("Bas", 0, 16, "E2"); setS("Bas", 16, 16, "C2"); setS("Bas", 32, 16, "G2"); setS("Bas", 48, 16, "D2");
+
+                [0, 8, 16, 24, 32, 40, 48, 56].forEach(n => setS("Tnk", n, 2, (n < 16) ? "E2" : (n < 32) ? "C2" : (n < 48) ? "G2" : "D2"));
+                for (let i = 2; i < 64; i += 4) setS("Mel", i, 1, "E4");
+                for (let i = 6; i < 64; i += 8) setS("Mel", i, 1, "G4");
+                [12, 14, 28, 30, 44, 46, 60, 62].forEach(n => setS("Rng", n, 1, "B5"));
+                setS("Sup", 0, 32, "E5"); setS("Sup", 32, 32, "G5");
+            }
+            else if (type === "4p_raid1") {
+                desc = "<strong>[4인 합주] Raid Ph1 탐색전 - 소거법적 긴장감 (Minimal Density)</strong><br>- <b>상황:</b> 거대한 적을 빙글빙글 돌며 간을 봅니다.<br>- <b>화성:</b> E Pedal Point가 낮게 드리우고 킥만 심장처럼 뜁니다. 매우 정적.<br>- <b>플레이어:</b> 탱커 혼자 루트(E2)만 간헐적으로 찌르고 딜러진은 침묵. (에너지 미터는 낮지만 Phase의 성격 때문에 파란색 보조 트랙을 의도적으로 비웠습니다)";
+                for (let i = 0; i < 64; i += 16) { setS("Kick", i, 1); setS("Kick", i + 3, 1); } // Heartbeat
+                setS("Bas", 0, 64, "E1"); // Drone
+
+                setS("Tnk", 0, 2, "E2"); setS("Tnk", 32, 2, "E2");
+                setS("Rng", 48, 1, "E5"); // Ranged pokes once
+            }
+            else if (type === "4p_raid2") {
+                desc = "<strong>[4인 합주] Raid Ph2 극딜 방출 - 폭주와 에너지 과밀</strong><br>- <b>상황:</b> 보스 그로기 상태! 전원이 10점 만점으로 스킬을 쏟아냅니다.<br>- <b>화성:</b> Em -> Bb/E (Tritone) 악랄한 화음에 4개의 악기가 얹혀 불협화음의 절정에 달합니다.<br>- <b>해결:</b> Player Density가 100%를 찍으며, 어떠한 보조 시스템음(System)도 끼어들지 못하게 즉시 억제(Ducking)됩니다.";
+                for (let i = 0; i < 64; i += 8) { setS("Kick", i, 1); setS("Kick", i + 4, 1); }
+                for (let i = 0; i < 64; i += 2) { setS("Hat", i, 1); }
+
+                setS("Bas", 0, 32, "E1"); setS("Bas", 32, 32, "Bb1");
+
+                for (let i = 0; i < 32; i += 4) setS("Tnk", i, 2, "E2");
+                for (let i = 32; i < 64; i += 4) setS("Tnk", i, 2, "Bb2");
+                for (let i = 0; i < 32; i += 2) setS("Mel", i, 1, "G4");
+                for (let i = 32; i < 64; i += 2) setS("Mel", i, 1, "F4");
+                for (let i = 0; i < 64; i += 3) setS("Rng", i, 1, (i < 32) ? "E6" : "Bb6"); // Polyrhythm intense
+
+                setS("Sup", 0, 16, "B5"); setS("Sup", 16, 16, "E5");
+                setS("Sup", 32, 16, "F5"); setS("Sup", 48, 16, "Bb5");
+
+                // Heavy System Filler (Visually placed, but mechanically crushed by code!)
+                for (let i = 0; i < 64; i += 2) setS("SysCm", i, 1, "Shk");
+                for (let i = 0; i < 64; i += 4) setS("SysCm", i, 1, "Tom");
+            }
+
+            document.getElementById("descBox").innerHTML = desc;
+        }
+
+        // ==== Real-time Energy Tracking ==== //
+        function calcEnergy() {
+            if (!isPlaying) return;
+
+            // Check if player attacked across ALL 4 player tracks
+            let pNodes = document.querySelectorAll(`.step.active[data-col='${currentStep}'][data-inst='Tnk'], .step.active[data-col='${currentStep}'][data-inst='Mel'], .step.active[data-col='${currentStep}'][data-inst='Rng'], .step.active[data-col='${currentStep}'][data-inst='Sup']`);
+            let pInput = pNodes.length > 0 ? (pNodes.length / 4.0) : 0; // scaled by 4
+            if (pNodes.length > 0) pInput = Math.max(0.5, pInput); // Ensure even 1 hit ducks the system noticeably
+
+            // Shift queue
+            playerDensityQueue.shift();
+            playerDensityQueue.push(pInput);
+
+            // Avg density over last 8 steps (half a bar)
+            let sum = playerDensityQueue.reduce((a, b) => a + b, 0);
+            curEnergy = sum / playerDensityQueue.length; // 0.0 to 1.0
+
+            // Compensation Logic (Invert of Player Energy)
+            // If player density > 40%, start dropping sys compensation
+            sysCompensationLevel = 1.0 - (curEnergy * 1.5);
+            if (sysCompensationLevel < 0) sysCompensationLevel = 0;
+            if (sysCompensationLevel > 1) sysCompensationLevel = 1;
+
+            // Update UI Meters
+            let pPct = Math.floor(curEnergy * 100);
+            let sPct = Math.floor(sysCompensationLevel * 100);
+
+            document.getElementById("plyDenTxt").innerText = pPct + "%";
+            document.getElementById("plyDenMeter").style.width = pPct + "%";
+
+            document.getElementById("sysComTxt").innerText = sPct + "%";
+            document.getElementById("sysComMeter").style.width = sPct + "%";
+
+            requestAnimationFrame(calcEnergy);
+        }
+
+        // ==== Schedule ==== //
+        function nextNote() {
+            let secPerStep = (60.0 / BPM) / DIV;
+            nextNoteTime += secPerStep;
+            currentStep++;
+            if (currentStep >= totalSteps) currentStep = 0;
+        }
+
+        function scheduleNote(stepNum, time) {
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.step.current').forEach(el => el.classList.remove('current'));
+                document.querySelectorAll(`.step[data-col='${stepNum}']`).forEach(el => el.classList.add('current'));
+            });
+
+            let activeCells = document.querySelectorAll(`.step[data-col='${stepNum}']`);
+            activeCells.forEach(cell => {
+                if (cell.classList.contains("active") || cell.classList.contains("sys-tx")) {
+                    let inst = cell.dataset.inst;
+                    let note = cell.dataset.note;
+                    playSound(inst, time, 1, note);
+                }
+            });
+        }
+
+        function scheduler() {
+            while (nextNoteTime < ac.currentTime + 0.1) {
+                scheduleNote(currentStep, nextNoteTime);
+                nextNote();
+            }
+            timerID = setTimeout(scheduler, 25.0);
+        }
+
+        function play() {
+            if (isPlaying) return;
+            initAudio();
+            isPlaying = true;
+            currentStep = 0;
+            nextNoteTime = ac.currentTime + 0.05;
+            playerDensityQueue.fill(0);
+            scheduler();
+            calcEnergy(); // start meter loop
+        }
+
+        function stop() {
+            isPlaying = false;
+            clearTimeout(timerID);
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.step.current').forEach(el => el.classList.remove('current'));
+                document.getElementById("plyDenMeter").style.width = "0%";
+                document.getElementById("sysComMeter").style.width = "100%";
+                document.getElementById("plyDenTxt").innerText = "0%";
+                document.getElementById("sysComTxt").innerText = "100%";
+            });
+        }
+
+        window.onload = function () {
+            buildGrid();
+            loadScenario('1p_town');
+        };
+    </script>
+</body>
+
+</html>

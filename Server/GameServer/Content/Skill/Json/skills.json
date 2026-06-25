@@ -1,0 +1,30 @@
+{
+  "SkillId": "Attack",
+  "TotalDurationTicks": 480,
+  "Tracks": [
+    {
+      "TrackName": "Base Track",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 0,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 1,
+              "Width": 1,
+              "Height": 2,
+              "RotateWithCaster": true,
+              "CasterSize": 1
+            },
+            "Amount": 10,
+            "HitPlayers": false,
+            "HitMonsters": true,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0
+          }
+        }
+      ]
+    }
+  ]
+}

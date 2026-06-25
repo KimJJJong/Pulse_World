@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <!-- 배경을 제거하여 투명하게 만듦 -->
+  
+  <g font-family="'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+    <!-- Loop Arrow -->
+    <path d="M 250 510 L 120 510 Q 100 510 100 490 L 100 110 Q 100 90 120 90 L 230 90" fill="none" stroke="#1F618D" stroke-width="12" stroke-linejoin="round"/>
+    <polygon points="215,70 215,110 250,90" fill="#1F618D"/>
+    
+    <!-- Flow Down Arrows -->
+    <!-- Arrow 1 (140 to 180) -->
+    <line x1="400" y1="140" x2="400" y2="160" stroke="#1F618D" stroke-width="12"/>
+    <polygon points="380,155 420,155 400,180" fill="#1F618D"/>
+    
+    <!-- Arrow 2 (280 to 320) -->
+    <line x1="400" y1="280" x2="400" y2="300" stroke="#1F618D" stroke-width="12"/>
+    <polygon points="380,295 420,295 400,320" fill="#1F618D"/>
+    
+    <!-- Arrow 3 (420 to 460) -->
+    <line x1="400" y1="420" x2="400" y2="440" stroke="#1F618D" stroke-width="12"/>
+    <polygon points="380,435 420,435 400,460" fill="#1F618D"/>
+
+    <!-- Boxes -->
+    <!-- Box 1 -->
+    <rect x="250" y="40" width="300" height="100" rx="12" fill="#1F618D"/>
+    <text x="400" y="85" font-size="34" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">로비 정비</text>
+    <text x="400" y="120" font-size="16" font-weight="bold" fill="#B3D4E6" text-anchor="middle" dominant-baseline="middle">장비 세팅 및 나만의 덱(Deck) 구성</text>
+
+    <!-- Box 2 -->
+    <rect x="250" y="180" width="300" height="100" rx="12" fill="#1F618D"/>
+    <text x="400" y="225" font-size="34" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">스테이지 진입</text>
+    <text x="400" y="260" font-size="16" font-weight="bold" fill="#B3D4E6" text-anchor="middle" dominant-baseline="middle">파티 합류 및 던전 테마(BPM) 조율</text>
+
+    <!-- Box 3 -->
+    <rect x="250" y="320" width="300" height="100" rx="12" fill="#1F618D"/>
+    <text x="400" y="365" font-size="34" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">전투 진행</text>
+    <text x="400" y="400" font-size="16" font-weight="bold" fill="#B3D4E6" text-anchor="middle" dominant-baseline="middle">전조 파훼, 음악적 코옵, 타격 앙상블</text>
+
+    <!-- Box 4 -->
+    <rect x="250" y="460" width="300" height="100" rx="12" fill="#1F618D"/>
+    <text x="400" y="505" font-size="34" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">성장 및 결과</text>
+    <text x="400" y="540" font-size="16" font-weight="bold" fill="#B3D4E6" text-anchor="middle" dominant-baseline="middle">전리품 획득, 도면 해금 및 무기 크래프팅</text>
+  </g>
+</svg>

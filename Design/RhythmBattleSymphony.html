@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RHYTHM STRIKE - Battle Ensemble Symphony</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #06040a;
+            --panel-bg: rgba(18, 12, 28, 0.7);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --text-color: #f3effa;
+            --text-muted: #8c7fa6;
+
+            /* Character Colors */
+            --warrior-color: #ff3e3e;
+            --warrior-glow: rgba(255, 62, 62, 0.4);
+            --rogue-color: #10b981;
+            --rogue-glow: rgba(16, 185, 129, 0.4);
+            --mage-color: #8b5cf6;
+            --mage-glow: rgba(139, 92, 246, 0.4);
+            --healer-color: #eab308;
+            --healer-glow: rgba(234, 179, 8, 0.4);
+
+            --fever-color: #f97316;
+            --fever-glow: rgba(249, 115, 22, 0.6);
+            --neon-blue: #00f0ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(255, 62, 62, 0.12) 0px, transparent 40%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.12) 0px, transparent 40%),
+                radial-gradient(at 50% 50%, rgba(0, 240, 255, 0.04) 0px, transparent 60%);
+            background-attachment: fixed;
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        body.fever-active {
+            animation: fever-bg-flash 1s infinite alternate;
+        }
+
+        @keyframes fever-bg-flash {
+            0% {
+                background-color: #0e0502;
+                box-shadow: inset 0 0 100px rgba(249, 115, 22, 0.15);
+            }
+            100% {
+                background-color: #07030a;
+                box-shadow: inset 0 0 100px rgba(249, 115, 22, 0.05);
+            }
+        }
+
+        /* Screen shake effect */
+        .shake {
+            animation: screen-shake 0.15s cubic-bezier(.36,.07,.19,.97) both;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            perspective: 1000px;
+        }
+
+        @keyframes screen-shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        header {
+            width: 100%;
+            max-width: 1300px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 16px 24px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, var(--neon-blue), var(--mage-color), var(--warrior-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+        }
+
+        .brand-logo span {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: rgba(0, 240, 255, 0.12);
+            color: var(--neon-blue);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+
+        .controls-top {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 10px 20px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .btn-active {
+            background: linear-gradient(135deg, var(--neon-blue), var(--mage-color));
+            border: none;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .btn-active:hover {
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+        }
+
+        .btn-fever {
+            background: linear-gradient(135deg, var(--fever-color), #ea580c);
+            border: none;
+            box-shadow: 0 0 15px var(--fever-glow);
+            animation: pulse-glow-orange 1.5s infinite alternate;
+        }
+
+        @keyframes pulse-glow-orange {
+            0% { box-shadow: 0 0 10px var(--fever-glow); }
+            100% { box-shadow: 0 0 25px var(--fever-glow); }
+        }
+
+        .main-layout {
+            width: 100%;
+            max-width: 1300px;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .battle-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Arena Style */
+        .arena-container {
+            width: 100%;
+            height: 280px;
+            background: radial-gradient(circle at 50% 50%, rgba(30, 20, 50, 0.5) 0%, rgba(10, 5, 20, 0.9) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+        }
+
+        .arena-grid-line {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                radial-gradient(transparent 50%, rgba(0, 240, 255, 0.05) 90%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            background-position: center;
+            transform: perspective(300px) rotateX(60deg) translateY(-50px);
+            opacity: 0.6;
+        }
+
+        body.fever-active .arena-grid-line {
+            background-image: 
+                radial-gradient(transparent 50%, rgba(249, 115, 22, 0.1) 90%),
+                linear-gradient(rgba(249, 115, 22, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(249, 115, 22, 0.04) 1px, transparent 1px);
+            opacity: 0.9;
+        }
+
+        /* Animated Boss */
+        .boss-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .boss-avatar {
+            width: 140px;
+            height: 140px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: boss-idle 4s infinite ease-in-out;
+        }
+
+        @keyframes boss-idle {
+            0% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-10px) scale(1.05); }
+            100% { transform: translateY(0) scale(1); }
+        }
+
+        .boss-eye {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ff2a2a 20%, #7f0000 70%, #200000 100%);
+            box-shadow: 0 0 30px #ff2a2a, 0 0 10px #ff2a2a;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.1s;
+        }
+
+        .boss-eye::after {
+            content: '';
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 0 15px #ffffff;
+            opacity: 0.8;
+            transform: translate(-10px, -10px);
+        }
+
+        .boss-ring {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border: 2px dashed rgba(255, 42, 42, 0.4);
+            border-radius: 50%;
+            animation: spin 10s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .boss-hp-bar {
+            width: 260px;
+            height: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin-top: 16px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .boss-hp-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #b91c1c, #ef4444);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+            transition: width 0.1s ease-out;
+        }
+
+        .boss-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 800;
+            color: #ff4d4d;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 8px;
+            text-shadow: 0 0 8px rgba(255, 42, 42, 0.4);
+        }
+
+        /* Floating Damage Text */
+        .damage-pop {
+            position: absolute;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 32px;
+            color: #ffffff;
+            text-shadow: 0 0 10px currentColor, 0 4px 10px rgba(0,0,0,0.8);
+            pointer-events: none;
+            z-index: 10;
+            animation: damage-float 0.8s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+        }
+
+        @keyframes damage-float {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { transform: translateY(-30px) scale(1.3); opacity: 1; }
+            80% { transform: translateY(-70px) scale(1); opacity: 0.8; }
+            100% { transform: translateY(-90px) scale(0.8); opacity: 0; }
+        }
+
+        /* Rhythmical Note Track Highway */
+        .rhythm-highway {
+            width: 100%;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+
+        .beat-bar {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .beat-bar.major {
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+        }
+
+        .target-line {
+            position: absolute;
+            left: 15%;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            background: var(--neon-blue);
+            box-shadow: 0 0 12px var(--neon-blue), 0 0 4px var(--neon-blue);
+            z-index: 5;
+        }
+
+        .rolling-note {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 0 8px #ffffff;
+            top: calc(50% - 8px);
+            z-index: 4;
+            transform: translateX(-50%);
+        }
+
+        .rolling-note.kick { background: var(--warrior-color); box-shadow: 0 0 8px var(--warrior-glow); }
+        .rolling-note.snare { background: var(--rogue-color); box-shadow: 0 0 8px var(--rogue-glow); }
+        .rolling-note.hat { background: var(--mage-color); box-shadow: 0 0 8px var(--mage-glow); }
+
+        .sync-toast {
+            position: absolute;
+            left: 15%;
+            top: -24px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--neon-blue);
+            text-shadow: 0 0 8px var(--neon-blue);
+            transform: translateX(-50%);
+            animation: fade-out 0.4s forwards;
+            pointer-events: none;
+        }
+
+        @keyframes fade-out {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
+
+        /* 4-Player Character Deck */
+        .characters-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .char-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .char-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .char-card.active-attack {
+            animation: char-hit 0.15s ease-out;
+        }
+
+        @keyframes char-hit {
+            0% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.08); filter: brightness(1.4); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+
+        .char-card.warrior { --c-color: var(--warrior-color); --c-glow: var(--warrior-glow); }
+        .char-card.rogue { --c-color: var(--rogue-color); --c-glow: var(--rogue-glow); }
+        .char-card.mage { --c-color: var(--mage-color); --c-glow: var(--mage-glow); }
+        .char-card.healer { --c-color: var(--healer-color); --c-glow: var(--healer-glow); }
+
+        .char-card.active-attack {
+            border-color: var(--c-color);
+            box-shadow: 0 0 15px var(--c-glow);
+        }
+
+        .char-avatar {
+            font-size: 32px;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 0 8px var(--c-color));
+        }
+
+        .char-name {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 13px;
+            color: var(--c-color);
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .char-key {
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 10px;
+        }
+
+        .char-skill {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        /* Sidebar Side Panel */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-side {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(16px);
+        }
+
+        .panel-side-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 16px;
+            margin-bottom: 16px;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Fever Gauge style */
+        .fever-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .fever-gauge-outer {
+            width: 100%;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .fever-gauge-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--fever-color), #ff4500, #ffaa00);
+            box-shadow: 0 0 15px var(--fever-glow);
+            transition: width 0.2s cubic-bezier(0.1, 0.8, 0.3, 1);
+        }
+
+        .fever-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            z-index: 2;
+        }
+
+        /* Combo indicator */
+        .combo-box {
+            text-align: center;
+            padding: 16px;
+            background: rgba(0,0,0,0.25);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .combo-count {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 40px;
+            color: var(--neon-blue);
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+            line-height: 1.1;
+        }
+
+        .combo-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+        }
+
+        /* Live Battle Logs */
+        .battle-log {
+            height: 220px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .log-line {
+            animation: log-slide-in 0.2s ease-out;
+            line-height: 1.4;
+        }
+
+        .log-line.warrior { color: #fca5a5; }
+        .log-line.rogue { color: #86efac; }
+        .log-line.mage { color: #c4b5fd; }
+        .log-line.healer { color: #fde047; }
+        .log-line.system { color: #67e8f9; }
+
+        @keyframes log-slide-in {
+            from { transform: translateX(5px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Setting Controls */
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+
+        .control-item label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+
+        .slider-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slider-wrap input[type="range"] {
+            flex-grow: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.08);
+            outline: none;
+        }
+
+        .slider-wrap input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--neon-blue);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--neon-blue);
+        }
+
+        .badge-value {
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            background: rgba(255,255,255,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            min-width: 32px;
+            text-align: center;
+        }
+
+        /* Custom Toggles */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-color);
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .toggle-label-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .toggle-label {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .toggle-desc {
+            font-size: 9px;
+            color: var(--text-muted);
+        }
+
+        .toggle-switch {
+            width: 44px;
+            height: 22px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 11px;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+
+        .toggle-active .toggle-switch {
+            background: var(--neon-blue);
+        }
+
+        .toggle-active .toggle-switch::after {
+            transform: translateX(22px);
+            box-shadow: 0 0 8px rgba(255,255,255,0.8);
+        }
+
+        /* Instructions list */
+        .help-list {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            padding-left: 16px;
+        }
+
+        .help-list li {
+            margin-bottom: 6px;
+        }
+
+        .overlay-start {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(6, 4, 10, 0.96);
+            backdrop-filter: blur(24px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .overlay-card {
+            background: rgba(18, 12, 28, 0.6);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .overlay-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: bounce-slow 2s infinite ease-in-out;
+            filter: drop-shadow(0 0 15px var(--neon-blue));
+        }
+
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .overlay-card h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 30px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--neon-blue), var(--warrior-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+
+        .overlay-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.08);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.15);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Web Audio Trigger Overlay -->
+    <div class="overlay-start" id="startOverlay">
+        <div class="overlay-card">
+            <div class="overlay-icon">⚔️</div>
+            <h2>RHYTHM STRIKE</h2>
+            <p>전투 배틀 앙상블 리듬 시뮬레이터에 오신 것을 환영합니다.<br>
+            브라우저 오디오 보안 정책에 따라 아래 버튼을 눌러 오디오 엔진을 작동하고 입장하세요.</p>
+            <button class="btn btn-active" style="font-size: 16px; padding: 12px 30px; border-radius: 12px;" id="btnEnter">전장 입장 및 재생</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="brand-logo">
+            <h1>RHYTHM STRIKE</h1>
+            <span>Battle Symphony</span>
+        </div>
+        <div class="controls-top">
+            <button class="btn btn-active" id="btnPlay">▶ Start Battle Beat</button>
+            <button class="btn" id="btnReset">⏹ Reset</button>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <!-- Battle Panel (Left Column) -->
+        <div class="battle-panel">
+            
+            <!-- Boss Arena Area -->
+            <div class="arena-container" id="arena">
+                <div class="arena-grid-line"></div>
+                <div class="boss-wrapper">
+                    <div class="boss-avatar" id="bossAvatar">
+                        <div class="boss-ring"></div>
+                        <div class="boss-eye" id="bossEye"></div>
+                    </div>
+                    <div class="boss-title">Chaos Beholder</div>
+                    <div class="boss-hp-bar">
+                        <div class="boss-hp-fill" id="bossHpFill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Note highway for rhythm guidance -->
+            <div class="rhythm-highway" id="rhythmHighway">
+                <div class="target-line" id="targetLine"></div>
+                <!-- Beat bars will be generated dynamically -->
+            </div>
+
+            <!-- 4 Characters Control Deck -->
+            <div class="characters-grid">
+                <!-- Warrior -->
+                <div class="char-card warrior" data-char="warrior">
+                    <div class="char-avatar">🛡️</div>
+                    <div class="char-name">Warrior</div>
+                    <div class="char-key">Key: A [1]</div>
+                    <div class="char-skill">Shield Slam (쿵/베이스)</div>
+                </div>
+                <!-- Rogue -->
+                <div class="char-card rogue" data-char="rogue">
+                    <div class="char-avatar">⚔️</div>
+                    <div class="char-name">Rogue</div>
+                    <div class="char-key">Key: S [2]</div>
+                    <div class="char-skill">Dual Blades (슥삭/스네어)</div>
+                </div>
+                <!-- Mage -->
+                <div class="char-card mage" data-char="mage">
+                    <div class="char-avatar">⚡</div>
+                    <div class="char-name">Mage</div>
+                    <div class="char-key">Key: D [3]</div>
+                    <div class="char-skill">Lightning Blast (콰광/하이햇)</div>
+                </div>
+                <!-- Healer -->
+                <div class="char-card healer" data-char="healer">
+                    <div class="char-avatar">✨</div>
+                    <div class="char-name">Healer</div>
+                    <div class="char-key">Key: F [4]</div>
+                    <div class="char-skill">Holy Chime (샤아/벨스타브)</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sidebar Panel (Right Column) -->
+        <div class="sidebar">
+            
+            <!-- Combo & Fever Status Panel -->
+            <div class="panel-side" style="border-color: rgba(249, 115, 22, 0.15);">
+                <div class="panel-side-title" style="color: var(--fever-color);">
+                    <span>FEVER GAUGE</span>
+                    <span id="feverStateBadge" style="font-size: 10px; color: var(--text-muted);">READY</span>
+                </div>
+                
+                <div class="fever-container">
+                    <div class="fever-gauge-outer">
+                        <div class="fever-gauge-fill" id="feverGaugeFill"></div>
+                        <div class="fever-text" id="feverGaugeText">0%</div>
+                    </div>
+                    <button class="btn btn-fever" id="btnFever" style="width: 100%; display: none; justify-content: center; font-size: 13px;">🔥 ACTIVATE FEVER (SPACEBAR)</button>
+                </div>
+
+                <div class="combo-box">
+                    <div class="combo-count" id="comboCount">0</div>
+                    <div class="combo-label">COMBO STRIKES</div>
+                </div>
+            </div>
+
+            <!-- Rhythmic Logic Settings -->
+            <div class="panel-side">
+                <div class="panel-side-title">ENGINE SYSTEM</div>
+                
+                <!-- Smart Rhythmic Sync Switch -->
+                <div class="toggle-container toggle-active" id="btnSyncToggle">
+                    <div class="toggle-label-wrap">
+                        <span class="toggle-label">Smart Rhythmic Sync</span>
+                        <span class="toggle-desc">무작위 입력 비트 자동 보정 정렬</span>
+                    </div>
+                    <div class="toggle-switch"></div>
+                </div>
+
+                <div class="control-item" style="margin-top: 18px;">
+                    <label>BATTLE BPM</label>
+                    <div class="slider-wrap">
+                        <input type="range" id="sliderBpm" min="110" max="170" value="140">
+                        <span class="badge-value" id="valBpm">140</span>
+                    </div>
+                </div>
+
+                <div class="control-item">
+                    <label>MASTER VOLUME</label>
+                    <div class="slider-wrap">
+                        <input type="range" id="sliderVol" min="0" max="100" value="80">
+                        <span class="badge-value" id="valVol">80%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Battle Action Logs -->
+            <div class="panel-side">
+                <div class="panel-side-title">BATTLE ACTION LOGGER</div>
+                <div class="battle-log" id="logContainer">
+                    <div class="log-line system">[System] 준비 완료. 비트를 가동하고 전투를 개시하세요.</div>
+                </div>
+            </div>
+
+            <!-- Help / Instructions -->
+            <div class="panel-side">
+                <div class="panel-side-title" style="font-size: 13px;">HOW TO PLAY</div>
+                <ul class="help-list">
+                    <li>키보드 <strong>A, S, D, F</strong> (혹은 <strong>1, 2, 3, 4</strong>) 키로 4명의 캐릭터를 타격할 수 있습니다.</li>
+                    <li>배경 비트가 흐를 때 <strong>Smart Rhythmic Sync</strong>를 활성화하면 대충 연타해도 소리가 비트에 맞춰 리드미컬하게 출력됩니다.</li>
+                    <li>보정을 끄면 누르는 순간 즉시 재생되므로 엇박 연주가 어수선해집니다.</li>
+                    <li>콤보가 쌓여 100%가 되면 <strong>Spacebar</strong>를 눌러 <strong>피버 모드</strong>를 켤 수 있습니다. 배틀 사운드가 극적으로 파워풀해집니다!</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Web Audio Battle Engine & Visuals Script -->
+    <script>
+        // --- 1. Sound Synthesis Engine (Web Audio API) ---
+        class BattleAudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.masterGain = null;
+                this.compressor = null;
+                this.analyser = null;
+
+                this.isPlaying = false;
+                this.bpm = 140;
+                this.songStartMs = 0;
+                this.nextNoteTime = 0.0;
+                this.current16thNote = 0;
+                this.timerId = null;
+
+                // Fever State
+                this.isFeverMode = false;
+
+                // Inputs Queue for Quantization
+                this.inputQueues = {
+                    warrior: false,
+                    rogue: false,
+                    mage: false,
+                    healer: false
+                };
+
+                // Smart Sync flag
+                this.smartSyncEnabled = true;
+
+                // Callbacks
+                this.onBeat = null;
+                this.onQuantizedTrigger = null;
+            }
+
+            init() {
+                if (this.ctx) return;
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Master Limiter/Compressor
+                this.compressor = this.ctx.createDynamicsCompressor();
+                this.compressor.threshold.setValueAtTime(-14, this.ctx.currentTime); // Hard squeeze
+                this.compressor.knee.setValueAtTime(8, this.ctx.currentTime);
+                this.compressor.ratio.setValueAtTime(12, this.ctx.currentTime);
+                this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+                this.compressor.release.setValueAtTime(0.08, this.ctx.currentTime);
+
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+
+                this.analyser = this.ctx.createAnalyser();
+                this.analyser.fftSize = 64;
+
+                // Routing
+                this.compressor.connect(this.masterGain);
+                this.masterGain.connect(this.analyser);
+                this.analyser.connect(this.ctx.destination);
+            }
+
+            setMasterVolume(val) {
+                if (this.masterGain) {
+                    this.masterGain.gain.setValueAtTime(val, this.ctx.currentTime);
+                }
+            }
+
+            start() {
+                if (this.isPlaying) return;
+                this.init();
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                this.isPlaying = true;
+                this.songStartMs = this.ctx.currentTime;
+                this.nextNoteTime = this.ctx.currentTime;
+                this.current16thNote = 0;
+                this.scheduler();
+            }
+
+            stop() {
+                this.isPlaying = false;
+                if (this.timerId) clearTimeout(this.timerId);
+            }
+
+            // Metronome & Background loop scheduler
+            scheduler() {
+                if (!this.isPlaying) return;
+
+                const lookAheadSec = 0.1;
+                while (this.nextNoteTime < this.ctx.currentTime + lookAheadSec) {
+                    this.scheduleBackgroundBeat(this.current16thNote, this.nextNoteTime);
+                    this.schedulePlayerInputs(this.nextNoteTime);
+                    this.advanceNote();
+                }
+
+                this.timerId = setTimeout(() => this.scheduler(), 30);
+            }
+
+            advanceNote() {
+                const secondsPerBeat = 60.0 / this.bpm;
+                const secondsPer16th = secondsPerBeat / 4; // 16th notes
+                this.nextNoteTime += secondsPer16th;
+                
+                this.current16thNote = (this.current16thNote + 1) % 16;
+            }
+
+            // --- SYNTHESIZERS FOR BACKGROUND DRUMS ---
+            synthKick(time, doubleVol = false) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, time);
+                osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.12);
+                
+                const vol = doubleVol ? 1.4 : 0.9;
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(vol, time + 0.005);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
+                
+                osc.connect(gain);
+                gain.connect(this.compressor);
+                
+                osc.start(time);
+                osc.stop(time + 0.2);
+            }
+
+            synthSnare(time) {
+                // Snare: Noise with bandpass filter + pitch triangle
+                const osc = this.ctx.createOscillator();
+                const oscGain = this.ctx.createGain();
+                const noise = this.ctx.createOscillator(); // we can use noise via buffer, or sine FM noise.
+                // Creating quick buffer noise instead
+                const bufferSize = this.ctx.sampleRate * 0.2;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noiseNode = this.ctx.createBufferSource();
+                noiseNode.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(1000, time);
+                filter.Q.setValueAtTime(2.0, time);
+
+                const noiseGain = this.ctx.createGain();
+                noiseGain.gain.setValueAtTime(0, time);
+                noiseGain.gain.linearRampToValueAtTime(0.65, time + 0.005);
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+
+                // Body tone
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(180, time);
+                osc.frequency.linearRampToValueAtTime(100, time + 0.08);
+                oscGain.gain.setValueAtTime(0.45, time);
+                oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+
+                noiseNode.connect(filter);
+                filter.connect(noiseGain);
+                noiseGain.connect(this.compressor);
+
+                osc.connect(oscGain);
+                oscGain.connect(this.compressor);
+
+                noiseNode.start(time);
+                osc.start(time);
+                noiseNode.stop(time + 0.2);
+                osc.stop(time + 0.2);
+            }
+
+            synthHihat(time, open = false) {
+                const bufferSize = this.ctx.sampleRate * 0.15;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'highpass';
+                filter.frequency.setValueAtTime(8000, time);
+
+                const gain = this.ctx.createGain();
+                const duration = open ? 0.15 : 0.04;
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.2, time + 0.002);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.compressor);
+
+                noise.start(time);
+                noise.stop(time + duration + 0.01);
+            }
+
+            // Synth Bass Groove
+            synthBass(freq, time, volMultiplier = 1.0) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(freq, time);
+
+                filter.type = 'lowpass';
+                filter.Q.setValueAtTime(4.0, time);
+                filter.frequency.setValueAtTime(250, time);
+                filter.frequency.exponentialRampToValueAtTime(700, time + 0.05);
+                filter.frequency.exponentialRampToValueAtTime(200, time + 0.25);
+
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.28 * volMultiplier, time + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.28);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.compressor);
+
+                osc.start(time);
+                osc.stop(time + 0.3);
+            }
+
+            // Background Beat Arrangement
+            scheduleBackgroundBeat(note16th, time) {
+                const isFever = this.isFeverMode;
+                
+                // Kick pattern
+                if (note16th === 0 || note16th === 8) {
+                    this.synthKick(time, isFever);
+                } else if (isFever && (note16th === 4 || note16th === 12)) {
+                    // Double kick speed in Fever Mode! (빵빵!)
+                    this.synthKick(time, true);
+                }
+
+                // Snare pattern
+                if (note16th === 4 || note16th === 12) {
+                    this.synthSnare(time);
+                }
+
+                // Hihat pattern
+                if (note16th % 2 === 1) {
+                    this.synthHihat(time, note16th === 7 || note16th === 15);
+                }
+
+                // Bass Grooves
+                // Progression: Cm9 (beats 0-7), Ab7#11 (beats 8-15)
+                const bassBase = (note16th < 8) ? 65.41 : 51.91; // C2 (65.4Hz) or Ab1 (51.9Hz)
+                let bassNote = bassBase;
+                if (note16th === 3 || note16th === 11) bassNote *= 1.5; // G2/Eb2
+                if (note16th === 6 || note16th === 14) bassNote *= 1.2; // D2/C2
+                
+                const bassVol = isFever ? 1.3 : 1.0;
+                // Bass runs on beats (0, 3, 6, 8, 11, 14)
+                if ([0, 3, 6, 8, 11, 14].includes(note16th)) {
+                    this.synthBass(bassNote, time, bassVol);
+                }
+
+                // Trigger beat visual callbacks (Major beat)
+                if (note16th % 4 === 0 && this.onBeat) {
+                    // beatIndex (0, 1, 2, 3)
+                    this.onBeat(note16th / 4, time);
+                }
+            }
+
+            // --- USER KEY INPUT PLAYERS (SMART QUANTIZATION) ---
+
+            // Queue a player hit
+            triggerPlayerInput(charType) {
+                this.init();
+                if (!this.isPlaying) {
+                    // Fallback to immediate play if bg loop is not active
+                    this.playCharacterSound(charType, this.ctx.currentTime);
+                    if (this.onQuantizedTrigger) this.onQuantizedTrigger(charType, this.ctx.currentTime, 100);
+                    return;
+                }
+
+                if (!this.smartSyncEnabled) {
+                    // Immediate trigger (No Quantization)
+                    const time = this.ctx.currentTime;
+                    this.playCharacterSound(charType, time);
+                    if (this.onQuantizedTrigger) this.onQuantizedTrigger(charType, time, 0); // Rating 0 for off-sync
+                } else {
+                    // Set flag to trigger at the next scheduled beat/subdivision
+                    this.inputQueues[charType] = true;
+                }
+            }
+
+            schedulePlayerInputs(time) {
+                // If anything is queued, play it exactly on the synchronized grid time
+                Object.keys(this.inputQueues).forEach(char => {
+                    if (this.inputQueues[char]) {
+                        this.playCharacterSound(char, time);
+                        
+                        // Calculate score based on offset
+                        const offset = Math.abs(this.ctx.currentTime - time);
+                        const score = Math.max(0, Math.floor(100 - (offset * 300))); // Higher score if hit close to beat
+
+                        if (this.onQuantizedTrigger) {
+                            this.onQuantizedTrigger(char, time, score);
+                        }
+                        this.inputQueues[char] = false;
+                    }
+                });
+            }
+
+            playCharacterSound(charType, time) {
+                const isFever = this.isFeverMode;
+                const mult = isFever ? 1.5 : 1.0;
+
+                switch(charType) {
+                    case 'warrior':
+                        this.synthWarriorAttack(time, mult);
+                        break;
+                    case 'rogue':
+                        this.synthRogueAttack(time, mult);
+                        break;
+                    case 'mage':
+                        this.synthMageAttack(time, mult);
+                        break;
+                    case 'healer':
+                        this.synthHealerAttack(time, mult);
+                        break;
+                }
+            }
+
+            // WARRIOR: Heavy Shield Slam (Bass Impact + Deep Drop)
+            synthWarriorAttack(time, mult) {
+                const osc = this.ctx.createOscillator();
+                const sub = this.ctx.createOscillator();
+                const oscGain = this.ctx.createGain();
+                const subGain = this.ctx.createGain();
+
+                // Low Slam pitch drop
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, time);
+                osc.frequency.exponentialRampToValueAtTime(30, time + 0.18);
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(180, time);
+                filter.frequency.exponentialRampToValueAtTime(60, time + 0.1);
+
+                // Sub drop
+                sub.type = 'sine';
+                sub.frequency.setValueAtTime(70, time);
+                sub.frequency.exponentialRampToValueAtTime(20, time + 0.25);
+
+                oscGain.gain.setValueAtTime(0.8 * mult, time);
+                oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+                subGain.gain.setValueAtTime(1.2 * mult, time);
+                subGain.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+
+                osc.connect(filter);
+                filter.connect(oscGain);
+                oscGain.connect(this.compressor);
+
+                sub.connect(subGain);
+                subGain.connect(this.compressor);
+
+                osc.start(time);
+                sub.start(time);
+                osc.stop(time + 0.4);
+                sub.stop(time + 0.4);
+            }
+
+            // ROGUE: Dual Blades + Distortion Guitar Riff
+            synthRogueAttack(time, mult) {
+                const bufferSize = this.ctx.sampleRate * 0.15;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                // Metal slash clicks
+                for (let hit = 0; hit < 2; hit++) {
+                    const hitOffset = hit * 0.08;
+                    const noise = this.ctx.createBufferSource();
+                    noise.buffer = buffer;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'highpass';
+                    filter.frequency.setValueAtTime(4500, time + hitOffset);
+
+                    const slashGain = this.ctx.createGain();
+                    slashGain.gain.setValueAtTime(0.4 * mult, time + hitOffset);
+                    slashGain.gain.exponentialRampToValueAtTime(0.001, time + hitOffset + 0.06);
+
+                    noise.connect(filter);
+                    filter.connect(slashGain);
+                    slashGain.connect(this.compressor);
+
+                    noise.start(time + hitOffset);
+                    noise.stop(time + hitOffset + 0.08);
+                }
+
+                // Guitar riff element (Detuned sawtooth + wave shaper distortion)
+                const osc1 = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gitGain = this.ctx.createGain();
+
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(174.61, time); // F3
+                osc1.frequency.linearRampToValueAtTime(196.00, time + 0.15); // bend to G3
+
+                osc2.type = 'sawtooth';
+                osc2.frequency.setValueAtTime(175.61, time);
+                osc2.frequency.linearRampToValueAtTime(197.00, time + 0.15);
+
+                gitGain.gain.setValueAtTime(0.35 * mult, time);
+                gitGain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
+
+                const filterGit = this.ctx.createBiquadFilter();
+                filterGit.type = 'bandpass';
+                filterGit.frequency.setValueAtTime(800, time);
+
+                // WaveShaper distortion node
+                const shaper = this.ctx.createWaveShaper();
+                shaper.curve = this.makeDistortionCurve(100);
+
+                osc1.connect(shaper);
+                osc2.connect(shaper);
+                shaper.connect(filterGit);
+                filterGit.connect(gitGain);
+                gitGain.connect(this.compressor);
+
+                osc1.start(time);
+                osc2.start(time);
+                osc1.stop(time + 0.3);
+                osc2.stop(time + 0.3);
+            }
+
+            makeDistortionCurve(amount) {
+                const k = typeof amount === 'number' ? amount : 50;
+                const n_samples = 44100;
+                const curve = new Float32Array(n_samples);
+                const deg = Math.PI / 180;
+                for (let i = 0; i < n_samples; ++i) {
+                    const x = (i * 2) / n_samples - 1;
+                    curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+                }
+                return curve;
+            }
+
+            // MAGE: Lightning Blast (Resonant sweep explosion + High magical chime)
+            synthMageAttack(time, mult) {
+                // 1. Blast rumble
+                const bufferSize = this.ctx.sampleRate * 0.4;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.Q.setValueAtTime(6.0, time);
+                filter.frequency.setValueAtTime(2500, time);
+                filter.frequency.exponentialRampToValueAtTime(150, time + 0.25);
+
+                const noiseGain = this.ctx.createGain();
+                noiseGain.gain.setValueAtTime(0.9 * mult, time);
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+
+                noise.connect(filter);
+                filter.connect(noiseGain);
+                noiseGain.connect(this.compressor);
+                noise.start(time);
+                noise.stop(time + 0.4);
+
+                // 2. Magic sweep chime
+                const synthOsc = this.ctx.createOscillator();
+                const synthGain = this.ctx.createGain();
+                synthOsc.type = 'sine';
+                synthOsc.frequency.setValueAtTime(523.25, time); // C5
+                synthOsc.frequency.exponentialRampToValueAtTime(2093.00, time + 0.22); // C7 sweep
+
+                synthGain.gain.setValueAtTime(0.22 * mult, time);
+                synthGain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
+
+                synthOsc.connect(synthGain);
+                synthGain.connect(this.compressor);
+                synthOsc.start(time);
+                synthOsc.stop(time + 0.3);
+            }
+
+            // HEALER: Holy Light Chime (Warm brass + Delayed bell stabs)
+            synthHealerAttack(time, mult) {
+                // 1. Warm brass swell
+                const osc1 = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(329.63, time); // E4
+                osc2.type = 'triangle';
+                osc2.frequency.setValueAtTime(392.00, time); // G4
+
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(600, time);
+                filter.frequency.exponentialRampToValueAtTime(1800, time + 0.08);
+                filter.frequency.exponentialRampToValueAtTime(400, time + 0.3);
+
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.48 * mult, time + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.32);
+
+                osc1.connect(filter);
+                osc2.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.compressor);
+
+                osc1.start(time);
+                osc2.start(time);
+                osc1.stop(time + 0.35);
+                osc2.stop(time + 0.35);
+
+                // 2. High Shimmer Chime
+                const chime = this.ctx.createOscillator();
+                const chimeMod = this.ctx.createOscillator();
+                const modGain = this.ctx.createGain();
+                const chimeGain = this.ctx.createGain();
+
+                chime.frequency.setValueAtTime(1567.98, time); // G6
+                chimeMod.frequency.setValueAtTime(1567.98 * 2.5, time); // Metallic ratio
+                modGain.gain.setValueAtTime(300, time);
+
+                chimeGain.gain.setValueAtTime(0.24 * mult, time);
+                chimeGain.gain.exponentialRampToValueAtTime(0.001, time + 0.28);
+
+                chimeMod.connect(modGain);
+                modGain.connect(chime.frequency);
+                chime.connect(chimeGain);
+                chimeGain.connect(this.compressor);
+
+                chime.start(time);
+                chimeMod.start(time);
+                chime.stop(time + 0.3);
+                chimeMod.stop(time + 0.3);
+            }
+        }
+
+        // --- 2. Game UI & State Management ---
+        const audio = new BattleAudioEngine();
+        
+        let bossMaxHp = 10000;
+        let bossHp = bossMaxHp;
+        let combo = 0;
+        let feverGauge = 0;
+
+        // DOM elements
+        const startOverlay = document.getElementById('startOverlay');
+        const btnEnter = document.getElementById('btnEnter');
+        const btnPlay = document.getElementById('btnPlay');
+        const btnReset = document.getElementById('btnReset');
+        const btnFever = document.getElementById('btnFever');
+        const selectPreset = document.getElementById('selectPreset');
+
+        const arena = document.getElementById('arena');
+        const bossAvatar = document.getElementById('bossAvatar');
+        const bossEye = document.getElementById('bossEye');
+        const bossHpFill = document.getElementById('bossHpFill');
+        
+        const rhythmHighway = document.getElementById('rhythmHighway');
+        const comboCount = document.getElementById('comboCount');
+        const feverGaugeFill = document.getElementById('feverGaugeFill');
+        const feverGaugeText = document.getElementById('feverGaugeText');
+        const feverStateBadge = document.getElementById('feverStateBadge');
+        
+        const btnSyncToggle = document.getElementById('btnSyncToggle');
+        const sliderBpm = document.getElementById('sliderBpm');
+        const valBpm = document.getElementById('valBpm');
+        const sliderVol = document.getElementById('sliderVol');
+        const valVol = document.getElementById('valVol');
+        const logContainer = document.getElementById('logContainer');
+
+        const charCards = document.querySelectorAll('.char-card');
+
+        // Note highway tracker
+        const beatWidth = 140; // width between beat bars in pixels
+        const notesOnHighway = [];
+        let animationFrameId = null;
+
+        // Sound volume scaling
+        sliderVol.addEventListener('input', (e) => {
+            const val = e.target.value;
+            audio.setMasterVolume(val / 100);
+            valVol.textContent = val + '%';
+        });
+
+        sliderBpm.addEventListener('input', (e) => {
+            const val = e.target.value;
+            audio.bpm = parseInt(val);
+            valBpm.textContent = val;
+        });
+
+        // Smart Sync Toggle
+        btnSyncToggle.addEventListener('click', () => {
+            btnSyncToggle.classList.toggle('toggle-active');
+            audio.smartSyncEnabled = btnSyncToggle.classList.contains('toggle-active');
+            
+            const stateText = audio.smartSyncEnabled ? '활성화 (비트 자동 보정 정렬)' : '비활성화 (원음 강제 출력)';
+            addLogEntry(`시스템: 스마트 리듬 보정이 ${stateText} 되었습니다.`, 'system');
+        });
+
+        // Play / Pause battle loop
+        btnPlay.addEventListener('click', () => {
+            audio.init();
+            if (audio.isPlaying) {
+                pauseBattle();
+            } else {
+                startBattle();
+            }
+        });
+
+        btnReset.addEventListener('click', () => {
+            resetBattle();
+        });
+
+        btnEnter.addEventListener('click', () => {
+            audio.init();
+            startOverlay.style.opacity = '0';
+            setTimeout(() => {
+                startOverlay.style.display = 'none';
+                startBattle();
+            }, 500);
+        });
+
+        btnFever.addEventListener('click', () => {
+            triggerFeverMode();
+        });
+
+        // Keyboard mapping
+        window.addEventListener('keydown', (e) => {
+            if (startOverlay.style.display !== 'none') return;
+
+            const key = e.key.toUpperCase();
+            if (key === 'A' || key === '1') {
+                triggerCharacterHit('warrior');
+            } else if (key === 'S' || key === '2') {
+                triggerCharacterHit('rogue');
+            } else if (key === 'D' || key === '3') {
+                triggerCharacterHit('mage');
+            } else if (key === 'F' || key === '4') {
+                triggerCharacterHit('healer');
+            } else if (e.code === 'Space') {
+                e.preventDefault();
+                if (feverGauge >= 100 && !audio.isFeverMode) {
+                    triggerFeverMode();
+                }
+            }
+        });
+
+        // Click character cards
+        charCards.forEach(card => {
+            card.addEventListener('mousedown', () => {
+                const char = card.dataset.char;
+                triggerCharacterHit(char);
+            });
+        });
+
+        // Battle Control functions
+        function startBattle() {
+            audio.start();
+            btnPlay.textContent = '⏸ Pause Battle Beat';
+            btnPlay.classList.add('btn-active');
+            btnPlay.style.background = 'linear-gradient(135deg, var(--warrior-color), var(--mage-color))';
+            addLogEntry("시스템: 백킹 배틀 루프가 기동되었습니다. 몬스터를 타격하세요!", "system");
+            
+            // Start highway animation loop
+            if (!animationFrameId) {
+                renderHighwayLoop();
+            }
+        }
+
+        function pauseBattle() {
+            audio.stop();
+            btnPlay.textContent = '▶ Start Battle Beat';
+            btnPlay.style.background = '';
+            addLogEntry("시스템: 배틀 루프가 정지되었습니다.", "system");
+        }
+
+        function resetBattle() {
+            audio.stop();
+            btnPlay.textContent = '▶ Start Battle Beat';
+            btnPlay.style.background = '';
+            
+            bossHp = bossMaxHp;
+            bossHpFill.style.width = '100%';
+            combo = 0;
+            comboCount.textContent = '0';
+            feverGauge = 0;
+            updateFeverGauge();
+            deactivateFeverMode();
+            
+            notesOnHighway.forEach(n => n.el.remove());
+            notesOnHighway.length = 0;
+
+            addLogEntry("시스템: 전장이 초기화되었습니다.", "system");
+        }
+
+        // Trigger individual attack hit
+        function triggerCharacterHit(charName) {
+            audio.triggerPlayerInput(charName);
+            
+            const card = document.querySelector(`.char-card.${charName}`);
+            card.classList.add('active-attack');
+            setTimeout(() => card.classList.remove('active-attack'), 150);
+        }
+
+        // --- 3. Quantized audio trigger & Game Visual responses ---
+        audio.onQuantizedTrigger = (charType, time, score) => {
+            let dmg = 0;
+            let emoji = '';
+            let logMsg = '';
+            let popupColor = '';
+
+            // Compute character combat attributes
+            if (charType === 'warrior') {
+                dmg = 450;
+                emoji = '🛡️ [Shield Slam]';
+                logMsg = '전사: 묵직한 베이스 킥 강타! 몬스터 방어선 파괴.';
+                popupColor = 'var(--warrior-color)';
+            } else if (charType === 'rogue') {
+                dmg = 380;
+                emoji = '⚔️ [Slash Strikes]';
+                logMsg = '도적: 예리한 기타 리프 참격! 2단 슬래시 발동.';
+                popupColor = 'var(--rogue-color)';
+            } else if (charType === 'mage') {
+                dmg = 600;
+                emoji = '⚡ [Lightning Blast]';
+                logMsg = '마법사: 짜릿한 고주파 라이트닝 폭발 가동!';
+                popupColor = 'var(--mage-color)';
+            } else if (charType === 'healer') {
+                dmg = 200;
+                emoji = '✨ [Holy Light]';
+                logMsg = '사제: 신성한 브라스 벨스타브 버프 지원.';
+                popupColor = 'var(--healer-color)';
+            }
+
+            // Sync rating assessment
+            let ratingText = '';
+            if (audio.smartSyncEnabled) {
+                if (score >= 90) {
+                    ratingText = 'PERFECT!';
+                    dmg = Math.floor(dmg * 1.5);
+                    combo++;
+                    feverGauge += 6;
+                } else if (score >= 70) {
+                    ratingText = 'GREAT!';
+                    dmg = Math.floor(dmg * 1.2);
+                    combo++;
+                    feverGauge += 4;
+                } else {
+                    ratingText = 'GOOD!';
+                    combo++;
+                    feverGauge += 2;
+                }
+            } else {
+                // If sync disabled, judge offset directly
+                ratingText = 'RAW STRIKE!';
+                combo++;
+                feverGauge += 3;
+            }
+
+            // Apply Fever Mode Multipliers
+            if (audio.isFeverMode) {
+                dmg = Math.floor(dmg * 2.0);
+                ratingText = '🔥 ' + ratingText + ' (x2.0)';
+                feverGauge = 100; // Lock fever at 100 during active fever
+            }
+
+            // Apply damage to boss
+            bossHp -= dmg;
+            if (bossHp <= 0) {
+                bossHp = 0;
+                addLogEntry("⚔️ 몬스터 처치! 보스 몬스터가 굉음과 함께 부활합니다.", "system");
+                setTimeout(() => {
+                    bossHp = bossMaxHp;
+                    bossHpFill.style.width = '100%';
+                }, 1000);
+            }
+            
+            const hpPercent = (bossHp / bossMaxHp) * 100;
+            bossHpFill.style.width = hpPercent + '%';
+
+            // Show Damage popup text
+            spawnDamageText(dmg, ratingText, popupColor);
+            
+            // Arena Hit Shockwave
+            arena.classList.add('shake');
+            bossAvatar.style.transform = `scale(0.9) rotate(${Math.random() * 6 - 3}deg)`;
+            setTimeout(() => {
+                arena.classList.remove('shake');
+                bossAvatar.style.transform = '';
+            }, 150);
+
+            // Update gauge UI
+            comboCount.textContent = combo;
+            if (feverGauge > 100) feverGauge = 100;
+            updateFeverGauge();
+
+            // Spawn Toast
+            if (audio.smartSyncEnabled) {
+                spawnSyncToast(ratingText);
+            }
+
+            // Log
+            addLogEntry(`${emoji} ${logMsg} (데미지: ${dmg} / 판정: ${ratingText})`, charType);
+        };
+
+        // Highway sync visualizer ticks on beat
+        audio.onBeat = (beatIndex, time) => {
+            // Spawn visual beats indicators moving from right to left
+            // Beat 0 represents major bar
+            spawnHighwayNote(beatIndex === 0 ? 'kick' : (beatIndex === 2 ? 'snare' : 'hat'));
+        };
+
+        // --- 4. Animation & Visual Effects Generators ---
+        function spawnDamageText(dmg, rating, color) {
+            const pop = document.createElement('div');
+            pop.className = 'damage-pop';
+            pop.style.color = color;
+            pop.innerHTML = `<span style="font-size:12px; display:block; text-align:center; font-family:'Outfit'; font-weight:800;">${rating}</span>${dmg}`;
+            
+            // Position around boss eye
+            const arenaRect = arena.getBoundingClientRect();
+            const left = (arenaRect.width / 2) + (Math.random() * 120 - 60);
+            const top = (arenaRect.height / 2) - 20 + (Math.random() * 60 - 30);
+            
+            pop.style.left = left + 'px';
+            pop.style.top = top + 'px';
+            
+            arena.appendChild(pop);
+            
+            // Cleanup
+            setTimeout(() => pop.remove(), 800);
+        }
+
+        function spawnSyncToast(text) {
+            const toast = document.createElement('div');
+            toast.className = 'sync-toast';
+            toast.textContent = text;
+            rhythmHighway.appendChild(toast);
+            setTimeout(() => toast.remove(), 400);
+        }
+
+        function updateFeverGauge() {
+            feverGaugeFill.style.width = feverGauge + '%';
+            feverGaugeText.textContent = Math.floor(feverGauge) + '%';
+            
+            if (feverGauge >= 100 && !audio.isFeverMode) {
+                feverStateBadge.textContent = '🔥 PRESS SPACEBAR';
+                feverStateBadge.style.color = 'var(--fever-color)';
+                btnFever.style.display = 'flex';
+            } else if (audio.isFeverMode) {
+                feverStateBadge.textContent = '🔥 FEVER ACTIVE';
+                feverStateBadge.style.color = 'var(--fever-color)';
+                btnFever.style.display = 'none';
+            } else {
+                feverStateBadge.textContent = 'READY';
+                feverStateBadge.style.color = 'var(--text-muted)';
+                btnFever.style.display = 'none';
+            }
+        }
+
+        function triggerFeverMode() {
+            audio.isFeverMode = true;
+            document.body.classList.add('fever-active');
+            
+            // Shockwave visuals
+            arena.style.boxShadow = 'inset 0 0 100px rgba(249, 115, 22, 0.4)';
+            addLogEntry("🔥 FEVER MODE ACTIVATE! 배틀 사운드 출력 대폭 증가! 드럼킥 더블 속도 전개!!", "system");
+            
+            updateFeverGauge();
+
+            // Decay fever gauge over 10 seconds
+            let feverTimer = 100;
+            const decayInterval = setInterval(() => {
+                feverTimer -= 1.0;
+                feverGauge = feverTimer;
+                updateFeverGauge();
+                
+                if (feverTimer <= 0) {
+                    clearInterval(decayInterval);
+                    deactivateFeverMode();
+                }
+            }, 100);
+        }
+
+        function deactivateFeverMode() {
+            audio.isFeverMode = false;
+            document.body.classList.remove('fever-active');
+            arena.style.boxShadow = '';
+            feverGauge = 0;
+            updateFeverGauge();
+            addLogEntry("システム: 피버 모드가 종료되었습니다.", "system");
+        }
+
+        // Notes scrolling highway engine
+        function spawnHighwayNote(type) {
+            const noteEl = document.createElement('div');
+            noteEl.className = `rolling-note ${type}`;
+            rhythmHighway.appendChild(noteEl);
+            
+            notesOnHighway.push({
+                el: noteEl,
+                type: type,
+                x: 100, // Starts at 100% width
+                speed: 1.2 // speed multiplier
+            });
+        }
+
+        function renderHighwayLoop() {
+            if (!audio.isPlaying) {
+                // Keep drawing but do not advance notes if paused
+                animationFrameId = requestAnimationFrame(renderHighwayLoop);
+                return;
+            }
+
+            // Target position at 15%
+            const targetX = 15;
+
+            // Draw beat lines on background
+            // Move active notes
+            for (let i = notesOnHighway.length - 1; i >= 0; i--) {
+                const note = notesOnHighway[i];
+                note.x -= note.speed * (audio.bpm / 120); // Scale scroll speed with BPM
+                note.el.style.left = note.x + '%';
+
+                // If note went off screen, clean up
+                if (note.x < 0) {
+                    note.el.remove();
+                    notesOnHighway.splice(i, 1);
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(renderHighwayLoop);
+        }
+
+        // Logger helper
+        function addLogEntry(text, charClass) {
+            const line = document.createElement('div');
+            line.className = `log-line ${charClass}`;
+            
+            const d = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            
+            line.innerHTML = `<span style="color:#5e81ac;">[${timeStr}]</span> ${text}`;
+            logContainer.appendChild(line);
+            
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+    </script>
+</body>
+</html>

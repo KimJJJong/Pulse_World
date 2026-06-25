@@ -1,0 +1,211 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de39e0c2de14cb84395dcd7da3da8f09, type: 3}
+  m_Name: Game_Forest_01
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::RhythmRPG.Editor.StageBuilder.StageDataSO
+  MapId: Game_Forest_01
+  Description: 'Game_Forest_01
+
+    Map~~~'
+  DisableAutoClearOnMonsterWipe: 0
+  MapPrefab: {fileID: 0}
+  Rhythm:
+    SongKey: Game_Synthwave_01
+    Bpm: 120
+    BaseBeatDivision: 1
+    ActionWindowMs: 150
+    StartDelayMs: 2000
+  Registry:
+  - Key: Pawn_B
+    EntityDef: {fileID: 11400000, guid: bd8a2194694122240af24ed0a718df7d, type: 2}
+    DefaultGroupId: 10
+    PatternRef: {fileID: 11400000, guid: 445266891432cb94292ce44372e24f8e, type: 2}
+  - Key: Pawn_W
+    EntityDef: {fileID: 11400000, guid: add6b7526831b354ab21177ef64c9e4f, type: 2}
+    DefaultGroupId: 10
+    PatternRef: {fileID: 11400000, guid: 445266891432cb94292ce44372e24f8e, type: 2}
+  - Key: Bat
+    EntityDef: {fileID: 11400000, guid: 43d8c389cdc58c344b12fdcf3141294a, type: 2}
+    DefaultGroupId: 20
+    PatternRef: {fileID: 11400000, guid: a4a198aafd7067341ac59c129dea5768, type: 2}
+  - Key: EvilMage
+    EntityDef: {fileID: 11400000, guid: 4021cc5e70989ef47a251bda6f44bf07, type: 2}
+    DefaultGroupId: 20
+    PatternRef: {fileID: 11400000, guid: 9fd964d1f64d8684386f610d98541a2a, type: 2}
+  InitialSpawns:
+  - EntityKey: Pawn_B
+    Label: 
+    Position: {x: 17, y: 0, z: 14}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 10
+  - EntityKey: Pawn_W
+    Label: 
+    Position: {x: 18, y: 0, z: 6}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 10
+  InitialObjects: []
+  Events:
+  - Section: Default
+    Title: Wave_01
+    Notes: 
+    Enabled: 1
+    EventId: 1
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 0
+      TargetId: 10
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 2
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 0
+      HeaderParam: Pawn_B
+      ParamId: 0
+      Position: {x: 26, y: 0, z: 13}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 11
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 0
+      HeaderParam: Pawn_W
+      ParamId: 0
+      Position: {x: 26, y: 0, z: 6}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 11
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Default
+    Title: Wave_02
+    Notes: 
+    Enabled: 1
+    EventId: 2
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 0
+      TargetId: 11
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 2
+      Area:
+        x: -3
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 0
+      HeaderParam: Bat
+      ParamId: 0
+      Position: {x: 22, y: 0, z: 14}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 20
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 0
+      HeaderParam: EvilMage
+      ParamId: 0
+      Position: {x: 22, y: 0, z: 4}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 20
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Default
+    Title: Fin
+    Notes: 
+    Enabled: 1
+    EventId: 3
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 1
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 34
+        y: 1
+        width: 4
+        height: 5
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 8
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 

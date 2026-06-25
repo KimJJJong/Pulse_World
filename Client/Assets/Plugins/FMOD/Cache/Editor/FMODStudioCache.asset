@@ -1,0 +1,2399 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-9023809922100184983
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Lofi_Staff/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-8793428979807423119
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Melody/Melody_Orchestral
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Melody/Melody_Orchestral
+  Guid:
+    Data1: 1826976802
+    Data2: 1302244316
+    Data3: 2071257528
+    Data4: -364916223
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -487358204759421938}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-8587072397094315704
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Bass_Jazz/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-8299600773706540654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Bass/Bass_Lofi
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Bass/Bass_Lofi
+  Guid:
+    Data1: 1892612850
+    Data2: 1149312584
+    Data3: 1639038862
+    Data4: -806773127
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -1761002432416504440}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-8015512614414401372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Bass_Orchestral/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-7161481642941424913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Orchestral_Parry/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-6948531023632488828
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/TestSmith/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-6743317135689878073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Orchestral_Bow
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Orchestral_Bow
+  Guid:
+    Data1: -1357702270
+    Data2: 1186675727
+    Data3: -462128467
+    Data4: -177857251
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 3759543439940055027}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-6648232133885315028
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c18180ecb35941f4682ae60107b85b7c, type: 3}
+  m_Name: bank:/Master.strings.bank
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorBankRef
+  Path: Assets/FMOD/RhythmAudio/Build/Desktop/Master.strings.bank
+  Name: Master.strings
+  StudioPath: bank:/Master.strings
+  lastModified: 639130743733306785
+  FileSizes:
+  - Name: Desktop
+    Value: 948
+  Exists: 1
+--- !u!114 &-6569890194265297747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Funk_Bow
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Funk_Bow
+  Guid:
+    Data1: -1224544988
+    Data2: 1111016441
+    Data3: -377446750
+    Data4: -575085780
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 3864807188106843181}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-6393904072204834452
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Orchestral_Staff/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-6262872212901484132
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Funk_Greatsword
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Funk_Greatsword
+  Guid:
+    Data1: -612691732
+    Data2: 1193382164
+    Data3: 1273682079
+    Data4: 1214054072
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 7636382163312504926}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-6104146256042700833
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Bass/Bass_Orchestral
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Bass/Bass_Orchestral
+  Guid:
+    Data1: -1350877849
+    Data2: 1175597964
+    Data3: -1741688192
+    Data4: 1942766226
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -8015512614414401372}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-5940212663121594538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c18180ecb35941f4682ae60107b85b7c, type: 3}
+  m_Name: bank:/Master.bank
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorBankRef
+  Path: Assets/FMOD/RhythmAudio/Build/Desktop/Master.bank
+  Name: Master
+  StudioPath: bank:/Master
+  lastModified: 639130743733301464
+  FileSizes:
+  - Name: Desktop
+    Value: 36768
+  Exists: 1
+--- !u!114 &-5883817979575398390
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c18180ecb35941f4682ae60107b85b7c, type: 3}
+  m_Name: bank:/Master.bank
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorBankRef
+  Path: Assets/Resources/FMOD/Bass/Build/Desktop/Master.bank
+  Name: Master
+  StudioPath: bank:/Master
+  lastModified: 639104140907581027
+  FileSizes:
+  - Name: Desktop
+    Value: 1074
+  Exists: 1
+--- !u!114 &-5810043959568867688
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Synthwave_Greatsword/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-5239199059699075239
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Funk_Parry
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Funk_Parry
+  Guid:
+    Data1: -601449884
+    Data2: 1218559910
+    Data3: 462587297
+    Data4: -15327188
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -699089083992809821}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-5068456726345029683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Attack_Axe/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-4687918674434393388
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Kick
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Kick
+  Guid:
+    Data1: 622991012
+    Data2: 1219212920
+    Data3: -1471285320
+    Data4: 1619741627
+  Banks:
+  - {fileID: -5940212663121594538}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-4654506324070128821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Orchestral_Greatsword
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Orchestral_Greatsword
+  Guid:
+    Data1: 1859067838
+    Data2: 1146247870
+    Data3: 934989231
+    Data4: -686355153
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 1263463314242660377}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-4632533134879424078
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Jazz_Greatsword
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Jazz_Greatsword
+  Guid:
+    Data1: -668958448
+    Data2: 1232871771
+    Data3: -1027529066
+    Data4: -60717993
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 5939295479098490592}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-4593143337948938017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Jazz_Bow
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Jazz_Bow
+  Guid:
+    Data1: -53563552
+    Data2: 1142971516
+    Data3: -384247127
+    Data4: -1262499653
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 8048705592016037784}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-4576001966822229519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Synthwave_Staff
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Synthwave_Staff
+  Guid:
+    Data1: -1309721128
+    Data2: 1202273831
+    Data3: 411281056
+    Data4: 159974908
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 2728579968609689323}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-3848222848971689748
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Melody/Melody_Jazz
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Melody/Melody_Jazz
+  Guid:
+    Data1: 739069747
+    Data2: 1114107239
+    Data3: -1120761671
+    Data4: 1542177955
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 4182127012617168583}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-3822557161772715493
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Synthwave_Parry/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-3655773960326218129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/HiHat
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/HiHat
+  Guid:
+    Data1: -429323321
+    Data2: 1220618115
+    Data3: -1937185104
+    Data4: -992990518
+  Banks:
+  - {fileID: -5940212663121594538}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-3504839458150438237
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Drums/TestSmith
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Drums/TestSmith
+  Guid:
+    Data1: -280893345
+    Data2: 1220327491
+    Data3: 36733840
+    Data4: -1119064859
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -6948531023632488828}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-3077132636328460515
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Synthwave_Bow
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Synthwave_Bow
+  Guid:
+    Data1: -726010613
+    Data2: 1104599070
+    Data3: -1261242972
+    Data4: -538178020
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 6722227856190812057}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-2910191196761237744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Melody/Melody_Funk
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Melody/Melody_Funk
+  Guid:
+    Data1: 500487792
+    Data2: 1154530928
+    Data3: -1944510273
+    Data4: 1830310390
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -2067136071119267212}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-2616076719853664442
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Funk_Dagger
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Funk_Dagger
+  Guid:
+    Data1: -1195675713
+    Data2: 1306525682
+    Data3: -621500536
+    Data4: 1066057624
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -1146469611413218584}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-2504825893107283108
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Bass/Bass_Jazz
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Bass/Bass_Jazz
+  Guid:
+    Data1: -1239922277
+    Data2: 1211130076
+    Data3: 215127711
+    Data4: 1421319607
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -8587072397094315704}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-2067136071119267212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Melody_Funk/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-2025523522624439972
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Orchestral_Dagger/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-1761002432416504440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Bass_Lofi/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-1638978849113562223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Melody_Lofi/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-1146469611413218584
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Funk_Dagger/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-774002514328425969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Lofi_Bow
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Lofi_Bow
+  Guid:
+    Data1: 2131168761
+    Data2: 1104510572
+    Data3: 823430019
+    Data4: -599653307
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 5033723377215896543}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-700243642631797165
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Attack_Axe
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Attack_Axe
+  Guid:
+    Data1: -1446265650
+    Data2: 1179988434
+    Data3: -1630761306
+    Data4: 2101055607
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -5068456726345029683}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-699089083992809821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Funk_Parry/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-694409446490846139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Bass/Bass_Funk
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Bass/Bass_Funk
+  Guid:
+    Data1: -1825487359
+    Data2: 1232988776
+    Data3: 1446581409
+    Data4: -387140109
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 2890926130824135490}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-595893325509337028
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Drums/Kick
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Drums/Kick
+  Guid:
+    Data1: 622991012
+    Data2: 1219212920
+    Data3: -1471285320
+    Data4: 1619741627
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &-487358204759421938
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Melody_Orchestral/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-463163474239714346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Jazz_Staff/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-5292549158232928
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Funk_Staff/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d32cf7c32a3ed8347bac48ef5ed56d82, type: 3}
+  m_Name: FMODStudioCache
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EventCache
+  EditorBanks:
+  - {fileID: 2230117160535693683}
+  - {fileID: 7973147513669653309}
+  EditorEvents:
+  - {fileID: -3504839458150438237}
+  - {fileID: 6808197960846472616}
+  - {fileID: 5078764060718167238}
+  - {fileID: 331743376342842034}
+  - {fileID: 61091460218642498}
+  - {fileID: 3316847808136760171}
+  - {fileID: -4654506324070128821}
+  - {fileID: -4576001966822229519}
+  - {fileID: 8645050577881332832}
+  - {fileID: 2745387189274075933}
+  - {fileID: -694409446490846139}
+  - {fileID: -3848222848971689748}
+  - {fileID: -8299600773706540654}
+  - {fileID: -2504825893107283108}
+  - {fileID: 5776029155750723782}
+  - {fileID: 3216017291127819858}
+  - {fileID: -4632533134879424078}
+  - {fileID: 4600645291117201785}
+  - {fileID: -6262872212901484132}
+  - {fileID: 1770763997119442438}
+  - {fileID: -2616076719853664442}
+  - {fileID: -5239199059699075239}
+  - {fileID: 2715964601701358525}
+  - {fileID: 7942530441281575785}
+  - {fileID: 844318980799330380}
+  - {fileID: -595893325509337028}
+  - {fileID: 1512441738184283478}
+  - {fileID: 7142290676737809433}
+  - {fileID: -6569890194265297747}
+  - {fileID: -3077132636328460515}
+  - {fileID: -700243642631797165}
+  - {fileID: 757328694120401899}
+  - {fileID: -4593143337948938017}
+  - {fileID: -774002514328425969}
+  - {fileID: -6743317135689878073}
+  - {fileID: -8793428979807423119}
+  - {fileID: -6104146256042700833}
+  - {fileID: 1488538420493709883}
+  - {fileID: -2910191196761237744}
+  EditorParameters: []
+  MasterBanks:
+  - {fileID: 7973147513669653309}
+  StringsBanks:
+  - {fileID: 2230117160535693683}
+  cacheVersion: 131858
+  cacheTime: 639165546013442723
+  SerializableEventsDict:
+  - key: event:/Drums/TestSmith
+    index: 0
+  - key: event:/Drums/HiHat
+    index: 1
+  - key: event:/SFX/Lofi_Dagger
+    index: 2
+  - key: event:/SFX/Orchestral_Dagger
+    index: 3
+  - key: event:/SFX/Synthwave_Greatsword
+    index: 4
+  - key: event:/Melody/Melody_Synthwave
+    index: 5
+  - key: event:/SFX/Orchestral_Greatsword
+    index: 6
+  - key: event:/SFX/Synthwave_Staff
+    index: 7
+  - key: event:/SFX/Jazz_Staff
+    index: 8
+  - key: event:/SFX/Orchestral_Staff
+    index: 9
+  - key: event:/Bass/Bass_Funk
+    index: 10
+  - key: event:/Melody/Melody_Jazz
+    index: 11
+  - key: event:/Bass/Bass_Lofi
+    index: 12
+  - key: event:/Bass/Bass_Jazz
+    index: 13
+  - key: event:/Bass/Bass_Synthwave
+    index: 14
+  - key: event:/SFX/Lofi_Staff
+    index: 15
+  - key: event:/SFX/Jazz_Greatsword
+    index: 16
+  - key: event:/SFX/Lofi_Greatsword
+    index: 17
+  - key: event:/SFX/Funk_Greatsword
+    index: 18
+  - key: event:/SFX/Funk_Staff
+    index: 19
+  - key: event:/SFX/Funk_Dagger
+    index: 20
+  - key: event:/SFX/Funk_Parry
+    index: 21
+  - key: event:/SFX/Synthwave_Dagger
+    index: 22
+  - key: event:/SFX/Jazz_Parry
+    index: 23
+  - key: event:/SFX/Orchestral_Parry
+    index: 24
+  - key: event:/Drums/Kick
+    index: 25
+  - key: event:/SFX/Jazz_Dagger
+    index: 26
+  - key: event:/SFX/Lofi_Parry
+    index: 27
+  - key: event:/SFX/Funk_Bow
+    index: 28
+  - key: event:/SFX/Synthwave_Bow
+    index: 29
+  - key: event:/SFX/Attack_Axe
+    index: 30
+  - key: event:/Melody/Melody_Lofi
+    index: 31
+  - key: event:/SFX/Jazz_Bow
+    index: 32
+  - key: event:/SFX/Lofi_Bow
+    index: 33
+  - key: event:/SFX/Orchestral_Bow
+    index: 34
+  - key: event:/Melody/Melody_Orchestral
+    index: 35
+  - key: event:/Bass/Bass_Orchestral
+    index: 36
+  - key: event:/SFX/Synthwave_Parry
+    index: 37
+  - key: event:/Melody/Melody_Funk
+    index: 38
+--- !u!114 &61091460218642498
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Synthwave_Greatsword
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Synthwave_Greatsword
+  Guid:
+    Data1: -1815848850
+    Data2: 1233087010
+    Data3: 329181615
+    Data4: 2095175157
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -5810043959568867688}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &316231620087198566
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Synthwave_Dagger/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &331743376342842034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Orchestral_Dagger
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Orchestral_Dagger
+  Guid:
+    Data1: 952834144
+    Data2: 1113603230
+    Data3: 1794825357
+    Data4: 1494065323
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -2025523522624439972}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &757328694120401899
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Melody/Melody_Lofi
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Melody/Melody_Lofi
+  Guid:
+    Data1: -1751386277
+    Data2: 1338096702
+    Data3: -345940575
+    Data4: -1290265841
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -1638978849113562223}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &844318980799330380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Orchestral_Parry
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Orchestral_Parry
+  Guid:
+    Data1: 570338007
+    Data2: 1210645607
+    Data3: -530948709
+    Data4: 1181949233
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -7161481642941424913}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &1072876174051249665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Lofi_Greatsword/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &1263463314242660377
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Orchestral_Greatsword/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &1488538420493709883
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Synthwave_Parry
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Synthwave_Parry
+  Guid:
+    Data1: -1725943212
+    Data2: 1157297543
+    Data3: 2032219318
+    Data4: 1316058503
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -3822557161772715493}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &1512441738184283478
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Jazz_Dagger
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Jazz_Dagger
+  Guid:
+    Data1: -1892807550
+    Data2: 1108317403
+    Data3: 422949004
+    Data4: -297316376
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 5537496735798098530}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &1770763997119442438
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Funk_Staff
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Funk_Staff
+  Guid:
+    Data1: -1681920801
+    Data2: 1236815900
+    Data3: 1485931926
+    Data4: -1580190060
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -5292549158232928}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &1862236272511594730
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c18180ecb35941f4682ae60107b85b7c, type: 3}
+  m_Name: bank:/Master.strings.bank
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorBankRef
+  Path: Assets/Resources/FMOD/Bass/Build/Desktop/Master.strings.bank
+  Name: Master.strings
+  StudioPath: bank:/Master.strings
+  lastModified: 639104140907596081
+  FileSizes:
+  - Name: Desktop
+    Value: 724
+  Exists: 1
+--- !u!114 &2230117160535693683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c18180ecb35941f4682ae60107b85b7c, type: 3}
+  m_Name: bank:/Master.strings.bank
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorBankRef
+  Path: Assets/FMOD/RhythmAudio/Build/Desktop/Master.strings.bank
+  Name: Master.strings
+  StudioPath: bank:/Master.strings
+  lastModified: 639165546013442723
+  FileSizes:
+  - Name: Desktop
+    Value: 2418
+  Exists: 1
+--- !u!114 &2253069135610412034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Bass_Synthwave/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &2715964601701358525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Synthwave_Dagger
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Synthwave_Dagger
+  Guid:
+    Data1: 185508612
+    Data2: 1143007064
+    Data3: 1339079863
+    Data4: 1265560861
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 316231620087198566}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &2728579968609689323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Synthwave_Staff/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &2729047323085611205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Lofi_Parry/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &2745387189274075933
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Orchestral_Staff
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Orchestral_Staff
+  Guid:
+    Data1: 1740416352
+    Data2: 1185263637
+    Data3: 1015718049
+    Data4: -609978722
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -6393904072204834452}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &2890926130824135490
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Bass_Funk/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &2938488111596174210
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/TestSmith
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/TestSmith
+  Guid:
+    Data1: -280893345
+    Data2: 1220327491
+    Data3: 36733840
+    Data4: -1119064859
+  Banks:
+  - {fileID: -5940212663121594538}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 7064355903475938029}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &3216017291127819858
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Lofi_Staff
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Lofi_Staff
+  Guid:
+    Data1: 1810804695
+    Data2: 1231274039
+    Data3: -218772066
+    Data4: -2107681258
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -9023809922100184983}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &3316847808136760171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Melody/Melody_Synthwave
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Melody/Melody_Synthwave
+  Guid:
+    Data1: 2117418314
+    Data2: 1204696105
+    Data3: 1210622910
+    Data4: -1578728454
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 4369744688994860313}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &3759543439940055027
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Orchestral_Bow/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &3864807188106843181
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Funk_Bow/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &4182127012617168583
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Melody_Jazz/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &4244054329637626472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Lofi_Dagger/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &4369744688994860313
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Melody_Synthwave/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &4600645291117201785
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Lofi_Greatsword
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Lofi_Greatsword
+  Guid:
+    Data1: 219663040
+    Data2: 1102388639
+    Data3: 43885954
+    Data4: 1261757613
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 1072876174051249665}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &4718829503261013665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Attack_Axe
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Attack_Axe
+  Guid:
+    Data1: -1446265650
+    Data2: 1179988434
+    Data3: -1630761306
+    Data4: 2101055607
+  Banks:
+  - {fileID: -5940212663121594538}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 6415364449854324440}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &5033723377215896543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Lofi_Bow/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &5078764060718167238
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Lofi_Dagger
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Lofi_Dagger
+  Guid:
+    Data1: 1963072790
+    Data2: 1163368561
+    Data3: -507585910
+    Data4: -606351252
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 4244054329637626472}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &5432025312688596697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Jazz_Parry/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &5537496735798098530
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Jazz_Dagger/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &5776029155750723782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Bass/Bass_Synthwave
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Bass/Bass_Synthwave
+  Guid:
+    Data1: -1097932164
+    Data2: 1329153761
+    Data3: -605877373
+    Data4: 1485458299
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 2253069135610412034}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &5939295479098490592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Jazz_Greatsword/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &6415364449854324440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Attack_Axe/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -12
+  Max: 12
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &6722227856190812057
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Synthwave_Bow/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &6808197960846472616
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/Drums/HiHat
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/Drums/HiHat
+  Guid:
+    Data1: -429323321
+    Data2: 1220618115
+    Data3: -1937185104
+    Data4: -992990518
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &7064355903475938029
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/TestSmith/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -12
+  Max: 12
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &7142290676737809433
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Lofi_Parry
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Lofi_Parry
+  Guid:
+    Data1: 358622087
+    Data2: 1148756342
+    Data3: 26463624
+    Data4: 71931965
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 2729047323085611205}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &7636382163312504926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Funk_Greatsword/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &7942530441281575785
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Jazz_Parry
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Jazz_Parry
+  Guid:
+    Data1: -26130655
+    Data2: 1089475700
+    Data3: 1161356201
+    Data4: -320492631
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 5432025312688596697}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0
+--- !u!114 &7973147513669653309
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c18180ecb35941f4682ae60107b85b7c, type: 3}
+  m_Name: bank:/Master.bank
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorBankRef
+  Path: Assets/FMOD/RhythmAudio/Build/Desktop/Master.bank
+  Name: Master
+  StudioPath: bank:/Master
+  lastModified: 639165546013402445
+  FileSizes:
+  - Name: Desktop
+    Value: 160800
+  Exists: 1
+--- !u!114 &8048705592016037784
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Jazz_Bow/PitchOffset
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: PitchOffset
+  StudioPath: 
+  Min: -48
+  Max: 48
+  Default: 0
+  ID:
+    data1: 3793023307
+    data2: 2013999203
+  Type: 0
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &8645050577881332832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Jazz_Staff
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Jazz_Staff
+  Guid:
+    Data1: -921955533
+    Data2: 1301109444
+    Data3: -295310966
+    Data4: -288415613
+  Banks:
+  - {fileID: 7973147513669653309}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -463163474239714346}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 0

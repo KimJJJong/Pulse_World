@@ -1,0 +1,123 @@
+{
+  "SkillId": "Enemy_BlackKnight_CrystallineLeap",
+  "TotalDurationTicks": 1440,
+  "Tracks": [
+    {
+      "TrackName": "Telegraph",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 960,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": 0
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": 2
+                },
+                {
+                  "X": -1,
+                  "Y": 0
+                },
+                {
+                  "X": -2,
+                  "Y": 0
+                },
+                {
+                  "X": 1,
+                  "Y": 0
+                },
+                {
+                  "X": 2,
+                  "Y": 0
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Impact",
+      "Events": [
+        {
+          "TriggerTick": 960,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": 0
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": 2
+                },
+                {
+                  "X": -1,
+                  "Y": 0
+                },
+                {
+                  "X": -2,
+                  "Y": 0
+                },
+                {
+                  "X": 1,
+                  "Y": 0
+                },
+                {
+                  "X": 2,
+                  "Y": 0
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 30,
+            "HitPlayers": true,
+            "HitMonsters": false,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    }
+  ]
+}

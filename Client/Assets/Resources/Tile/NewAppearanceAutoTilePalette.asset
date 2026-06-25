@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f683ee15948ad1148847cf791462de6c, type: 3}
+  m_Name: NewAppearanceAutoTilePalette
+  m_EditorClassIdentifier: Assembly-CSharp::AppearanceAutoTilePalette
+  Tiles:
+  - Kind: 1
+    DisplayName: Grass Border
+    PreviewColor: {r: 0.25, g: 0.68, b: 0.3, a: 1}
+    DefaultMaterial: {fileID: 7351081042236468604, guid: 3e8ffdfe88d1a36409ede0b6f3503461, type: 3}
+    DefaultPrefab: {fileID: 0}
+    Variants: []
+  - Kind: 2
+    DisplayName: Stone Path
+    PreviewColor: {r: 0.58, g: 0.58, b: 0.55, a: 1}
+    DefaultMaterial: {fileID: 0}
+    DefaultPrefab: {fileID: 0}
+    Variants: []
+  - Kind: 3
+    DisplayName: Brick Border
+    PreviewColor: {r: 0.64, g: 0.28, b: 0.2, a: 1}
+    DefaultMaterial: {fileID: 0}
+    DefaultPrefab: {fileID: 0}
+    Variants: []
+  - Kind: 4
+    DisplayName: Water Edge
+    PreviewColor: {r: 0.18, g: 0.55, b: 0.86, a: 1}
+    DefaultMaterial: {fileID: 0}
+    DefaultPrefab: {fileID: 0}
+    Variants: []
+  - Kind: 5
+    DisplayName: Wood Deck
+    PreviewColor: {r: 0.58, g: 0.38, b: 0.18, a: 1}
+    DefaultMaterial: {fileID: 0}
+    DefaultPrefab: {fileID: 0}
+    Variants: []
+  - Kind: 6
+    DisplayName: Carpet
+    PreviewColor: {r: 0.68, g: 0.18, b: 0.36, a: 1}
+    DefaultMaterial: {fileID: 0}
+    DefaultPrefab: {fileID: 0}
+    Variants: []
+  - Kind: 7
+    DisplayName: Flower Bed
+    PreviewColor: {r: 0.86, g: 0.52, b: 0.18, a: 1}
+    DefaultMaterial: {fileID: 0}
+    DefaultPrefab: {fileID: 0}
+    Variants: []
+  - Kind: 8
+    DisplayName: Custom A
+    PreviewColor: {r: 0.46, g: 0.33, b: 0.78, a: 1}
+    DefaultMaterial: {fileID: 0}
+    DefaultPrefab: {fileID: 0}
+    Variants: []
+  - Kind: 9
+    DisplayName: Custom B
+    PreviewColor: {r: 0.15, g: 0.7, b: 0.62, a: 1}
+    DefaultMaterial: {fileID: 0}
+    DefaultPrefab: {fileID: 0}
+    Variants: []

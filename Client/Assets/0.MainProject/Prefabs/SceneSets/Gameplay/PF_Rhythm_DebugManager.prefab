@@ -1,0 +1,107 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7127359055388996428
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1677502666341029191}
+  - component: {fileID: 2341098008624251628}
+  - component: {fileID: 2197644810215692778}
+  - component: {fileID: 7301971733705692670}
+  m_Layer: 0
+  m_Name: PF_Rhythm_DebugManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1677502666341029191
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7127359055388996428}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 12.57448, y: 3.04264, z: 6.81283}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2341098008624251628
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7127359055388996428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a97b426d65a31441b80310fce90dd00, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmVisualDebugger
+  rhythmJsonAsset: {fileID: 4900000, guid: 3303012d7be632b459f3100741343c53, type: 3}
+--- !u!114 &2197644810215692778
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7127359055388996428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 973e6d8280ffd954cb43a45b83e0aa81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FMODDrumSequencer
+  rhythmJsonAsset: {fileID: 4900000, guid: 3303012d7be632b459f3100741343c53, type: 3}
+  lookAheadSec: 0.1
+  enableSequencer: 1
+  drumMappings:
+  - soundKey: Kick
+    fmodEvent:
+      Guid:
+        Data1: 622991012
+        Data2: 1219212920
+        Data3: -1471285320
+        Data4: 1619741627
+      Path: event:/Kick
+  - soundKey: HiHat
+    fmodEvent:
+      Guid:
+        Data1: -429323321
+        Data2: 1220618115
+        Data3: -1937185104
+        Data4: -992990518
+      Path: event:/HiHat
+--- !u!114 &7301971733705692670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7127359055388996428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3e09dc4c3a0b68458edc01c0e1b3ad1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FMODActionSoundPlayer
+  myAttackSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  otherAttackSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 

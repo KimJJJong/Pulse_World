@@ -1,0 +1,399 @@
+{
+    "StageId": "Game_Synthwave_01",
+    "Bpm": 120,
+    "TimeSignatureNum": 4,
+    "TimeSignatureDenom": 4,
+    "TicksPerBeat": 480,
+    "Blocks": [
+        {
+            "BlockId": "Synthwave_Loop",
+            "LengthMeasures": 4,
+            "DefaultNextBlock": "Synthwave_Loop",
+            "OverrideBpm": 0,
+            "ChordEvents": [
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "RootNote": "A",
+                    "ChordType": "Minor",
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "RootNote": "F",
+                    "ChordType": "Major",
+                    "PitchOffset": 5
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "RootNote": "C",
+                    "ChordType": "Major",
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "RootNote": "G",
+                    "ChordType": "Major",
+                    "PitchOffset": 7
+                }
+            ],
+            "BassPattern": [
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 21
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_A4",
+                    "VolumeMultiplier": 0.75,
+                    "PitchOffset": 21
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 21
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_B4",
+                    "VolumeMultiplier": 0.75,
+                    "PitchOffset": 23
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 21
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 0.95,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_C5",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 24
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Fill",
+                    "VolumeMultiplier": 0.85,
+                    "PitchOffset": 9
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 5
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 17
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 5
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_F4",
+                    "VolumeMultiplier": 0.75,
+                    "PitchOffset": 17
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 17
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 5
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_G4",
+                    "VolumeMultiplier": 0.75,
+                    "PitchOffset": 19
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 17
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 0.95,
+                    "PitchOffset": 5
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_A4",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 21
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Fill",
+                    "VolumeMultiplier": 0.85,
+                    "PitchOffset": 5
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 12
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_E4",
+                    "VolumeMultiplier": 0.75,
+                    "PitchOffset": 16
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 12
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_F4",
+                    "VolumeMultiplier": 0.75,
+                    "PitchOffset": 17
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 12
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 0.95,
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_G4",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 19
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Fill",
+                    "VolumeMultiplier": 0.85,
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 240,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 19
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_D4",
+                    "VolumeMultiplier": 0.75,
+                    "PitchOffset": 14
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 720,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 19
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 1,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_E4",
+                    "VolumeMultiplier": 0.75,
+                    "PitchOffset": 16
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1200,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Oct",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 19
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_Root",
+                    "VolumeMultiplier": 0.95,
+                    "PitchOffset": 7
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Synthwave",
+                    "ToneKey": "SynthLead_C4",
+                    "VolumeMultiplier": 0.8,
+                    "PitchOffset": 12
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1680,
+                    "SoundKey": "Bass_Synthwave",
+                    "ToneKey": "SynthBass_EndFill",
+                    "VolumeMultiplier": 0.9,
+                    "PitchOffset": 7
+                }
+            ]
+        }
+    ]
+}

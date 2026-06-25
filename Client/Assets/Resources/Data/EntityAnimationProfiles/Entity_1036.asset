@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c71e40680c843b4a0e16e299428f2d1, type: 3}
+  m_Name: Entity_1036
+  m_EditorClassIdentifier: Assembly-CSharp::EntityAnimationProfile
+  IdleState: Mushroom_IdleBattleAngry
+  IdleClip: {fileID: 1827226128182048838, guid: d49423adf67c410a84c1303cb8c4ad56, type: 3}
+  MoveState: Mushroom_walkFWDAngry
+  MoveClip: {fileID: 1827226128182048838, guid: 0133d75724b649bea7dc9b41576648b1, type: 3}
+  AttackState: Mushroom_Attack01Angry
+  AttackClip: {fileID: 1827226128182048838, guid: 8fe4915e0a1a434695792f9c2aeeac42, type: 3}
+  HitState: Mushroom_GetHitAngry
+  HitClip: {fileID: 1827226128182048838, guid: 10385c5d967e4c11a47124aec6f8eceb, type: 3}
+  DeathState: Mushroom_DieAngry
+  DeathClip: {fileID: 1827226128182048838, guid: 8ed0bac144fa4d909244dbf532403c30, type: 3}
+  DefaultCrossFade: 0.05
+  FallbackDeathDuration: 0.8333334
+  SkillAnimations:
+  - SkillId: Attack
+    StateName: Mushroom_Attack01Angry
+    Clip: {fileID: 1827226128182048838, guid: 8fe4915e0a1a434695792f9c2aeeac42, type: 3}
+    CrossFade: -1
+  - SkillId: Skill
+    StateName: Mushroom_Attack01Angry
+    Clip: {fileID: 1827226128182048838, guid: 8fe4915e0a1a434695792f9c2aeeac42, type: 3}
+    CrossFade: -1
+  - SkillId: Enemy_Attack_Front
+    StateName: Mushroom_Attack01Angry
+    Clip: {fileID: 1827226128182048838, guid: 8fe4915e0a1a434695792f9c2aeeac42, type: 3}
+    CrossFade: -1
+  - SkillId: Enemy_Attack_Cross
+    StateName: Mushroom_Attack01Angry
+    Clip: {fileID: 1827226128182048838, guid: 8fe4915e0a1a434695792f9c2aeeac42, type: 3}
+    CrossFade: -1
+  - SkillId: Warning_Damage_Test
+    StateName: Mushroom_Attack01Angry
+    Clip: {fileID: 1827226128182048838, guid: 8fe4915e0a1a434695792f9c2aeeac42, type: 3}
+    CrossFade: -1

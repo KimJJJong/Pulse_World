@@ -1,0 +1,105 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 501327079b4e19047b3fb174153b95d8, type: 3}
+  m_Name: AccessoryNecklaceSkill
+  m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
+  Data:
+    SkillId: AccessoryNecklaceSkill
+    TotalDurationTicks: 960
+    Tracks:
+    - TrackName: Telegraph
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 360
+        Action:
+          rid: 4242872800730677707
+    - TrackName: Impact
+      Events:
+      - TriggerTick: 360
+        DurationTicks: 120
+        Action:
+          rid: 4242872800730677708
+    - TrackName: Control
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 600
+        Action:
+          rid: 4242872800730677709
+    - TrackName: Sound
+      Events:
+      - TriggerTick: 120
+        DurationTicks: 120
+        Action:
+          rid: 4242872800730677710
+      - TriggerTick: 360
+        DurationTicks: 120
+        Action:
+          rid: 4242872800730677711
+      - TriggerTick: 720
+        DurationTicks: 120
+        Action:
+          rid: 4242872800730677712
+  references:
+    version: 2
+    RefIds:
+    - rid: 4242872800730677707
+      type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 4242872800730677713
+        ColorSteps:
+        - DurationTicks: 360
+          ColorHex: '#E8D36A'
+    - rid: 4242872800730677708
+      type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 4242872800730677714
+        Amount: 8
+        HitPlayers: 0
+        HitMonsters: 1
+        StunDurationTicks: 120
+        KnockbackDistance: 0
+        RecalculateTargets: 0
+    - rid: 4242872800730677709
+      type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data: 
+    - rid: 4242872800730677710
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Forest_Accessory_Necklace
+        Volume: 0.7
+        UseOwnerPerspective: 1
+    - rid: 4242872800730677711
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Forest_Accessory_Necklace
+        Volume: 0.8
+        UseOwnerPerspective: 1
+    - rid: 4242872800730677712
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Forest_Accessory_Necklace
+        Volume: 0.8
+        UseOwnerPerspective: 1
+    - rid: 4242872800730677713
+      type: {class: DiamondShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Radius: 1
+    - rid: 4242872800730677714
+      type: {class: DiamondShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        CasterSize: 1
+        RotateWithCaster: 1
+        Radius: 1

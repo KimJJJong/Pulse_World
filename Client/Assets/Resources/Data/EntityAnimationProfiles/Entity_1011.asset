@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c71e40680c843b4a0e16e299428f2d1, type: 3}
+  m_Name: Entity_1011
+  m_EditorClassIdentifier: Assembly-CSharp::EntityAnimationProfile
+  IdleState: IdleBattle
+  IdleClip: {fileID: 7400000, guid: 32a9c6514e23455492c6f64d54afb65b, type: 3}
+  MoveState: FlyFWD
+  MoveClip: {fileID: 7400000, guid: a8a309cf642640df834a7b20e67e4846, type: 3}
+  AttackState: Attack01
+  AttackClip: {fileID: 7400000, guid: 9d48a2f79c784522bda1ae569d019f2c, type: 3}
+  HitState: GetHit
+  HitClip: {fileID: 7400000, guid: 0ef8b4acd9ac4440a1438007e594ab31, type: 3}
+  DeathState: Die
+  DeathClip: {fileID: 7400000, guid: 93d6d0904297445b9bfb3dd16ca43acb, type: 3}
+  DefaultCrossFade: 0.05
+  FallbackDeathDuration: 0.90000004
+  SkillAnimations:
+  - SkillId: Attack
+    StateName: Attack01
+    Clip: {fileID: 7400000, guid: 9d48a2f79c784522bda1ae569d019f2c, type: 3}
+    CrossFade: -1
+  - SkillId: Skill
+    StateName: Attack01
+    Clip: {fileID: 7400000, guid: 9d48a2f79c784522bda1ae569d019f2c, type: 3}
+    CrossFade: -1
+  - SkillId: Enemy_Attack_Front
+    StateName: Attack01
+    Clip: {fileID: 7400000, guid: 9d48a2f79c784522bda1ae569d019f2c, type: 3}
+    CrossFade: -1
+  - SkillId: Enemy_Attack_Cross
+    StateName: Attack01
+    Clip: {fileID: 7400000, guid: 9d48a2f79c784522bda1ae569d019f2c, type: 3}
+    CrossFade: -1
+  - SkillId: Warning_Damage_Test
+    StateName: Attack01
+    Clip: {fileID: 7400000, guid: 9d48a2f79c784522bda1ae569d019f2c, type: 3}
+    CrossFade: -1

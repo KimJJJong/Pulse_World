@@ -1,0 +1,253 @@
+{
+  "SkillId": "BowSkill",
+  "TotalDurationTicks": 960,
+  "Tracks": [
+    {
+      "TrackName": "Telegraph",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": -1,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": 1,
+                  "Y": -2
+                },
+                {
+                  "X": -1,
+                  "Y": -3
+                },
+                {
+                  "X": 0,
+                  "Y": -3
+                },
+                {
+                  "X": 1,
+                  "Y": -3
+                },
+                {
+                  "X": -1,
+                  "Y": -4
+                },
+                {
+                  "X": 0,
+                  "Y": -4
+                },
+                {
+                  "X": 1,
+                  "Y": -4
+                },
+                {
+                  "X": -1,
+                  "Y": -5
+                },
+                {
+                  "X": 0,
+                  "Y": -5
+                },
+                {
+                  "X": 1,
+                  "Y": -5
+                },
+                {
+                  "X": -1,
+                  "Y": -6
+                },
+                {
+                  "X": 0,
+                  "Y": -6
+                },
+                {
+                  "X": 1,
+                  "Y": -6
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": [
+              {
+                "DurationTicks": 480,
+                "ColorHex": "#E8D36A"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Impact",
+      "Events": [
+        {
+          "TriggerTick": 480,
+          "DurationTicks": 240,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": -1,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": 1,
+                  "Y": -2
+                },
+                {
+                  "X": -1,
+                  "Y": -3
+                },
+                {
+                  "X": 0,
+                  "Y": -3
+                },
+                {
+                  "X": 1,
+                  "Y": -3
+                },
+                {
+                  "X": -1,
+                  "Y": -4
+                },
+                {
+                  "X": 0,
+                  "Y": -4
+                },
+                {
+                  "X": 1,
+                  "Y": -4
+                },
+                {
+                  "X": -1,
+                  "Y": -5
+                },
+                {
+                  "X": 0,
+                  "Y": -5
+                },
+                {
+                  "X": 1,
+                  "Y": -5
+                },
+                {
+                  "X": -1,
+                  "Y": -6
+                },
+                {
+                  "X": 0,
+                  "Y": -6
+                },
+                {
+                  "X": 1,
+                  "Y": -6
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 18,
+            "HitPlayers": false,
+            "HitMonsters": true,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Control",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 960,
+          "Action": {
+            "Type": 4
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Sound",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.22,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 120,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.22,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 360,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.22,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 480,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.22,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 720,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.22,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 840,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Bow_Skill",
+            "Volume": 0.38,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="150" viewBox="0 0 300 150" role="img" aria-label="쫑 스튜디오 JJONG Studio logo">
+  <rect width="300" height="150" fill="#ffffff"/>
+  <g transform="translate(24 28)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 58C21 31 51 15 78 31" stroke="#00a6a0" stroke-width="8"/>
+    <path d="M21 74C39 92 72 90 85 65" stroke="#1f262d" stroke-width="5"/>
+    <path d="M36 83L79 40" stroke="#f2b53d" stroke-width="8"/>
+    <polygon points="55,33 75,53 55,73 35,53" fill="#ffffff" stroke="#00a6a0" stroke-width="5"/>
+    <path d="M55 33V73M35 53H75" stroke="#00a6a0" stroke-width="3.5" opacity="0.85"/>
+    <circle cx="81" cy="34" r="4.5" fill="#f2b53d" stroke="none"/>
+  </g>
+  <text x="114" y="70" fill="#1f262d" font-family="Malgun Gothic, Arial, sans-serif" font-size="30" font-weight="700">쫑 스튜디오</text>
+  <rect x="116" y="82" width="74" height="4" rx="2" fill="#f2b53d"/>
+  <text x="116" y="103" fill="#00a6a0" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700">JJONG Studio</text>
+</svg>

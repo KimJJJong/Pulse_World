@@ -1,0 +1,32 @@
+# Version Control
+.git
+.gitignore
+
+# IDES
+.vs
+.idea
+*.sln.docstates
+*.suo
+*.user
+*.userosscache
+*.sln.iml
+
+# Build Results
+**/bin/
+**/obj/
+
+# Docker
+.dockerignore
+docker-compose.yml
+.env
+
+# Runtime volumes and local-only data
+data/
+Server/data/
+Server/logs/
+
+# Unity local caches
+Client/Library/
+Client/Temp/
+Client/Obj/
+Client/Logs/

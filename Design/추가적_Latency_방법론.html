@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse World: Advanced Audio Masking Simulator</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            background: #1a1a24;
+            color: #ddd;
+            padding: 15px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #00bcd4;
+            margin-top: 0;
+            font-size: 20px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 5px;
+        }
+
+        .panel {
+            background: #2b2b36;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+            border: 1px solid #444;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: none;
+            background: #4caf50;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 13px;
+            margin-right: 5px;
+        }
+
+        .btn-stop {
+            background: #e24a4a;
+        }
+
+        .btn-mode {
+            background: #34495e;
+            border: 1px solid #2c3e50;
+            padding: 8px 12px;
+            font-size: 13px;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 5px;
+            cursor: pointer;
+            color: #ddd;
+        }
+
+        .btn-mode:hover {
+            background: #465a6f;
+        }
+
+        .btn-mode.active {
+            background: #fff;
+            color: #d35400;
+            font-weight: bold;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+
+        .slider-group label {
+            font-size: 11px;
+            color: #aaa;
+        }
+
+        .slider-group input {
+            flex: 1;
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+
+        .slider-val {
+            font-size: 11px;
+            font-weight: bold;
+            color: #ffeb3b;
+            width: 45px;
+            text-align: right;
+        }
+
+        .spec-container {
+            display: flex;
+            gap: 12px;
+        }
+
+        .spec-sidebar {
+            flex: 1;
+            min-width: 300px;
+            max-width: 350px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .spec-main {
+            flex: 3;
+            overflow: hidden;
+        }
+
+        .chord-prog-box {
+            margin-top: 5px;
+            background: #222;
+            padding: 8px;
+            font-weight: bold;
+            color: #81c784;
+            text-align: center;
+            border: 1px dashed #555;
+        }
+
+        .desc-box {
+            background: #111;
+            padding: 12px;
+            border-left: 4px solid #00bcd4;
+            font-size: 12px;
+            color: #bbb;
+            line-height: 1.5;
+            min-height: 80px;
+        }
+
+        .grid-container {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 10px;
+            margin-top: 10px;
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .track {
+            display: flex;
+            align-items: stretch;
+            margin-bottom: 3px;
+        }
+
+        .track-label {
+            width: 140px;
+            min-width: 140px;
+            padding-left: 8px;
+            font-weight: bold;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            background: #333;
+            border-top-left-radius: 4px;
+            border-bottom-left-radius: 4px;
+            border-right: 2px solid #111;
+            color: #aaa;
+        }
+
+        .track-sub {
+            font-size: 9px;
+            color: #777;
+            margin-top: 2px;
+            line-height: 1;
+            font-weight: normal;
+        }
+
+        .steps {
+            display: flex;
+            position: relative;
+        }
+
+        .step {
+            width: 28px;
+            height: 35px;
+            background: #3c3c4a;
+            border: 1px solid #222;
+            border-right: 1px solid #111;
+            box-sizing: border-box;
+            font-size: 9px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            color: #fff;
+        }
+
+        .step:hover {
+            background: #5a5a6e;
+        }
+
+        .step.active {
+            font-weight: bold;
+            color: #fff;
+            border-color: #888;
+        }
+
+        .step.active[data-type="sys"] {
+            background: #f39c12;
+            border-color: #f1c40f;
+        }
+
+        .step.active[data-type="loc"] {
+            background: #e74c3c;
+            border-color: #ff7675;
+        }
+
+        .step.active[data-type="rem"] {
+            background: #3498db;
+            border-color: #81ecec;
+        }
+
+        .step.current {
+            box-shadow: inset 0 0 0 2px #ffeb3b;
+            z-index: 5;
+        }
+
+        .step.beat-start {
+            border-left: 2px solid #888;
+        }
+
+        .step.bar-start {
+            border-left: 3px solid #e91e63;
+        }
+
+        .step.first-beat {
+            background: #2a2a35;
+        }
+
+        .header-bar {
+            display: flex;
+            font-size: 10px;
+            color: #888;
+            font-weight: bold;
+            margin-left: 140px;
+        }
+
+        .header-cell {
+            width: 448px;
+            text-align: center;
+            border-left: 3px solid #e91e63;
+            background: #111;
+            padding: 2px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🌐 Pulse World: Advanced Audio Masking Simulator (Post-Reverb)</h1>
+
+    <div class="spec-container">
+        <div class="spec-sidebar">
+
+            <div class="panel">
+                <strong style="color: #4CAF50; font-size:14px;">🎛️ Network Ping & BPM</strong>
+                <div style="display:flex; justify-content:space-between; margin-top:5px; align-items:center;">
+                    <span style="font-size:11px; color:#aaa; width:40px;">BPM:</span>
+                    <input type="number" id="bpmInput" value="120"
+                        style="flex:1; background:#444; color:#fff; border:1px solid #777; padding:4px; font-weight:bold;">
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:5px; align-items:center;">
+                    <span style="font-size:11px; color:#aaa; width:40px;">Ping:</span>
+                    <input type="number" id="pingInput" value="100" onchange="updatePing()"
+                        style="flex:1; background:#444; color:#ffeb3b; border:1px solid #777; padding:4px; font-weight:bold;">
+                    <span style="font-size:11px; color:#aaa; margin-left:3px;">ms</span>
+                </div>
+                <p style="font-size:10px; color:#888; margin-top:5px;">원격(파란색) 트랙은 모두 Illusion(Quantize)이 기본 적용되어 있습니다.
+                    아래 설정으로 떡지는(Muddying) 현상을 제어합니다.</p>
+            </div>
+
+            <div class="panel">
+                <strong style="color: #00bcd4; font-size:14px;">🔊 Advanced Masking Settings</strong>
+
+                <div style="margin-top:10px;">
+                    <input type="checkbox" id="chkSteal" checked onchange="updateMaskingParams()">
+                    <label for="chkSteal" style="font-size:12px; color:#ddd; font-weight:bold;">Voice Stealing (Choke
+                        Group)</label>
+                    <p style="font-size:10px; color:#aaa; margin:2px 0 8px 18px;">연속 타격 시 이전 노트의 긴 리버브 꼬리를 즉시 잘라 깔끔하게
+                        유지합니다.</p>
+                </div>
+
+                <div style="margin-top:10px;">
+                    <input type="checkbox" id="chkRevEQ" checked onchange="updateMaskingParams()">
+                    <label for="chkRevEQ" style="font-size:12px; color:#ddd; font-weight:bold;">Reverb HQ High-Pass
+                        EQ</label>
+                    <p style="font-size:10px; color:#aaa; margin:2px 0 8px 18px;">잔향에 포함된 저음 깡통소리(~600Hz)를 제거해 깨끗한
+                        Shimmer(공기)만 남깁니다.</p>
+                </div>
+
+                <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
+
+                <div class="slider-group">
+                    <label>Remote LPF Cutoff (거리감)</label>
+                    <input type="range" id="slCutoff" min="400" max="6000" value="1500" step="100"
+                        oninput="updateMaskingParams()">
+                    <span class="slider-val" id="valCutoff">1500Hz</span>
+                </div>
+                <p style="font-size:10px; color:#aaa; margin:2px 0 8px 0;">높을수록 원격 소리가 선명(Raw)해지고, 낮을수록 멀리서 뭉툭하게(Smear)
+                    들립니다.</p>
+
+                <div class="slider-group">
+                    <label>Sidechain Ducking Depth</label>
+                    <input type="range" id="slDucking" min="0" max="100" value="70" step="5"
+                        oninput="updateMaskingParams()">
+                    <span class="slider-val" id="valDucking">70%</span>
+                </div>
+                <p style="font-size:10px; color:#aaa; margin:2px 0 8px 0;">로컬 타격 및 드럼 킥 강박 때마다 배경 리버브를 얼마나 눌러줄지(Ducking)
+                    결정합니다. (높을수록 리듬감이 살아남)</p>
+
+                <div class="slider-group">
+                    <label>Global Reverb Mix (Wet)</label>
+                    <input type="range" id="slReverbMix" min="0" max="100" value="40" step="5"
+                        oninput="updateMaskingParams()">
+                    <span class="slider-val" id="valReverbMix">40%</span>
+                </div>
+            </div>
+
+            <div class="panel" style="flex:1;">
+                <strong style="color: #f2a900; font-size:14px; display:block; margin-top:5px;">▶ Density Stress
+                    Tests</strong>
+                <button class="btn-mode" id="btn_s_raid2" onclick="loadScenario('raid2')">💥 16th Barrage (Muddy
+                    Test)</button>
+                <button class="btn-mode active" id="btn_s_raid3" onclick="loadScenario('raid3')">💀 Total Chaos (Epic
+                    Layering)</button>
+
+                <strong style="color: #4CAF50; font-size:14px; display:block; margin-top:15px;">▶ Normal
+                    Scenarios</strong>
+                <button class="btn-mode" id="btn_s_town" onclick="loadScenario('town')">🏙️ Town (Sparse Sync)</button>
+                <button class="btn-mode" id="btn_s_stage" onclick="loadScenario('stage')">⚔️ Stage (Call &
+                    Response)</button>
+                <button class="btn-mode" id="btn_s_elite" onclick="loadScenario('elite')">🔥 Elite (Tension
+                    Harmony)</button>
+                <button class="btn-mode" id="btn_s_raid1" onclick="loadScenario('raid1')">👁️ Raid Ph1
+                    (Awakening)</button>
+            </div>
+        </div>
+
+        <div class="spec-main">
+            <div class="panel">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <button class="btn" onclick="play()">▶ PLAY (재생)</button>
+                        <button class="btn btn-stop" onclick="stop()">■ STOP (정지)</button>
+                    </div>
+                    <!-- Dynamic Local Player Selector -->
+                    <div
+                        style="background:#111; padding:5px 10px; border-radius:4px; border:1px solid #444; color:#ddd; font-size:12px;">
+                        <strong>👤 내 캐릭터(Local 0ms) 선택:</strong>
+                        <select id="localPlayerSelect" onchange="updateTrackRoles()"
+                            style="background:#333; color:#fff; border:1px solid #777; margin-left:5px; padding:2px; font-weight:bold;">
+                            <option value="LocA">🛡️ Tank (Heavy)</option>
+                            <option value="LocB">🗡️ Melee (Arp)</option>
+                            <option value="RemX">🏹 Ranged (Sync)</option>
+                            <option value="RemY">🪄 Supp (Pad)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="chord-prog-box" id="chordProg">...</div>
+                <div class="desc-box" id="descBox">...</div>
+
+                <div class="grid-container" id="gridContainer">
+                    <div class="header-bar" id="headerBar"></div>
+                    <div id="gridBody"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==== AUDIO ENGINE & ADVANCED MASKING ====
+        let ac = null;
+        let masterGain = null;
+
+        let reverbNode = null;
+        let reverbFilter = null;
+        let reverbWetGain = null;
+        let duckingCompressor = null; // Used for sidechain ducking illusion (Web Audio API compressor tricks or gain manual envelopes)
+
+        let isPlaying = false;
+        let currentStep = 0;
+        let nextNoteTime = 0.0;
+        let timerID;
+
+        let DIV = 4; // 16th notes
+        let BARS = 4; // 64 steps
+        let totalSteps = BARS * 4 * DIV;
+
+        let pingDelayMs = 0.100; // 100ms default
+        let localPlayerId = "LocA";
+
+        // Global Parameters
+        let useVoiceStealing = true;
+        let useReverbEQ = true;
+        let remoteLPFCutoff = 1500;
+        let duckingDepthPerc = 70;
+        let reverbMixPerc = 40;
+
+        // Tracks definition
+        let tracks = [
+            { id: "SysD", name: "Drums (Kick/Hat)<br><span class='track-sub'>System (0ms)</span>", color: "#f39c12", type: "sys" },
+            { id: "SysB", name: "Bass Layer<br><span class='track-sub'>System (0ms)</span>", color: "#f39c12", type: "sys" },
+            { id: "LocA", name: "🛡️ Tank<br><span class='track-sub' id='sub_LocA'>🔴 Local (0ms)</span>", color: "#e74c3c", type: "loc" },
+            { id: "LocB", name: "🗡️ Melee<br><span class='track-sub' id='sub_LocB'>🔵 Remote (Ping)</span>", color: "#3498db", type: "rem" },
+            { id: "RemX", name: "🏹 Ranged<br><span class='track-sub' id='sub_RemX'>🔵 Remote (Ping)</span>", color: "#3498db", type: "rem" },
+            { id: "RemY", name: "🪄 Supp<br><span class='track-sub' id='sub_RemY'>🔵 Remote (Ping)</span>", color: "#3498db", type: "rem" }
+        ];
+
+        let chordTimeline = [];
+
+        // Tracking active remote voices for Voice Stealing
+        let activeRemoteGains = {};
+
+        function createReverbImpulseResponse(ctx, duration = 2.5, decay = 2.0) {
+            const sampleRate = ctx.sampleRate;
+            const length = sampleRate * duration;
+            const impulse = ctx.createBuffer(2, length, sampleRate);
+            for (let i = 0; i < length; i++) {
+                const n = 1 - i / length;
+                impulse.getChannelData(0)[i] = (Math.random() * 2 - 1) * Math.pow(n, decay);
+                impulse.getChannelData(1)[i] = (Math.random() * 2 - 1) * Math.pow(n, decay);
+            }
+            return impulse;
+        }
+
+        function initAudio() {
+            if (!ac) {
+                ac = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = ac.createGain();
+                masterGain.gain.value = 0.8;
+                masterGain.connect(ac.destination);
+
+                // Set up Reverb Bus
+                reverbNode = ac.createConvolver();
+                reverbNode.buffer = createReverbImpulseResponse(ac);
+
+                // Reverb EQ (High Pass to clean Mud)
+                reverbFilter = ac.createBiquadFilter();
+                reverbFilter.type = "highpass";
+                reverbFilter.frequency.value = 600; // default ON
+
+                reverbWetGain = ac.createGain();
+                reverbWetGain.gain.value = 0.4;
+
+                duckingCompressor = ac.createGain(); // We will manually duck this gain node
+                duckingCompressor.gain.value = 1.0;
+
+                // Routing: Source -> Reverb -> Filter -> WetGain -> Ducking -> Master
+                reverbNode.connect(reverbFilter);
+                reverbFilter.connect(reverbWetGain);
+                reverbWetGain.connect(duckingCompressor);
+                duckingCompressor.connect(masterGain);
+            }
+            if (ac.state === 'suspended') ac.resume();
+            updateMaskingParams();
+        }
+
+        function noteToFreq(noteStr) {
+            if (!noteStr) return 0;
+            const notes = { "C": -9, "C#": -8, "D": -7, "D#": -6, "E": -5, "F": -4, "F#": -3, "G": -2, "G#": -1, "A": 0, "A#": 1, "B": 2, "Bb": 1 };
+            let match = noteStr.match(/([A-Ga-g]#?b?)(\d)/);
+            if (match) {
+                let n = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                let oct = parseInt(match[2]);
+                if (notes[n] !== undefined) return 440 * Math.pow(2, (notes[n] + (oct - 4) * 12) / 12);
+            }
+            return 0;
+        }
+
+        // Apply a sidechain ducking curve when local/drums fire
+        function triggerSidechain(time) {
+            if (!ac) return;
+            let duckTarget = 1.0 - (duckingDepthPerc / 100.0);
+            if (duckTarget < 0.05) duckTarget = 0.05;
+
+            // Duck the reverb bus down rapidly, sweep back up smoothly
+            duckingCompressor.gain.cancelScheduledValues(time);
+            duckingCompressor.gain.setValueAtTime(1.0, time);
+            duckingCompressor.gain.linearRampToValueAtTime(duckTarget, time + 0.02); // fast attack compress
+            duckingCompressor.gain.exponentialRampToValueAtTime(1.0, time + 0.25); // pump back up
+        }
+
+        function playNote(trackId, freq, time, typeStr, isRemote = false) {
+            if (freq === 0) return;
+
+            let baseWave = 'sawtooth'; let durLen = 0.2; let filtCut = 2000;
+            if (typeStr === 'sysbass') { filtCut = 600; durLen = 0.4; }
+            else if (typeStr === 'pad') { baseWave = 'sine'; filtCut = 1200; durLen = 0.8; }
+
+            const srcGain = ac.createGain();
+            const osc = ac.createOscillator(); osc.type = baseWave; osc.frequency.value = freq;
+            const flt = ac.createBiquadFilter(); flt.type = 'lowpass';
+
+            // VOICE STEALING
+            if (isRemote && useVoiceStealing) {
+                if (activeRemoteGains[trackId]) {
+                    // Kill previous note's tail instantly to prevent mud
+                    let oldGain = activeRemoteGains[trackId];
+                    oldGain.gain.cancelScheduledValues(time);
+                    oldGain.gain.linearRampToValueAtTime(0.01, time + 0.01);
+                }
+                activeRemoteGains[trackId] = srcGain;
+            }
+
+            // MASKING EFFECT
+            if (isRemote) {
+                // Low Pass Filter masking (Distance)
+                flt.frequency.setValueAtTime(remoteLPFCutoff, time);
+
+                // Attack masking - Soften transients
+                srcGain.gain.setValueAtTime(0.01, time);
+                srcGain.gain.linearRampToValueAtTime(0.3, time + 0.08); // Plucked sharp replaced by slowed envelope
+                srcGain.gain.exponentialRampToValueAtTime(0.01, time + 0.6);
+                durLen = 0.7;
+
+                // Send heavily to Reverb Bus
+                srcGain.connect(reverbNode);
+            } else {
+                // LOCAL (0ms, Sharp attack)
+                flt.frequency.setValueAtTime(filtCut, time); flt.frequency.exponentialRampToValueAtTime(400, time + durLen);
+                srcGain.gain.setValueAtTime(0.01, time);
+                srcGain.gain.linearRampToValueAtTime(0.5, time + 0.01); // Sharp attack
+                srcGain.gain.exponentialRampToValueAtTime(0.01, time + durLen);
+
+                // Local sends cleanly to master
+                srcGain.connect(masterGain);
+
+                // Local hits trigger Sidechain Ducking!
+                triggerSidechain(time);
+            }
+
+            osc.connect(flt); flt.connect(srcGain);
+            osc.start(time); osc.stop(time + durLen + 0.1);
+        }
+
+        function playDrum(note, time) {
+            let n = note.toLowerCase();
+            const g = ac.createGain(); g.connect(masterGain);
+            let isKick = n.includes("kick"); let isSnr = n.includes("snare"); let isHat = n.includes("hat");
+
+            if (isKick) {
+                const osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(120, time); osc.frequency.exponentialRampToValueAtTime(20, time + 0.4);
+                g.gain.setValueAtTime(0.01, time); g.gain.linearRampToValueAtTime(0.9, time + 0.05); g.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
+                osc.connect(g); osc.start(time); osc.stop(time + 0.5);
+
+                // Drum kick triggers heavy sidechain ducking!
+                triggerSidechain(time);
+            } else if (isSnr) {
+                const osc = ac.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(200, time);
+                g.gain.setValueAtTime(0.5, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+                osc.connect(g); osc.start(time); osc.stop(time + 0.3);
+                const buf = ac.createBuffer(1, ac.sampleRate * 0.2, ac.sampleRate);
+                for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                const src = ac.createBufferSource(); src.buffer = buf;
+                const filt = ac.createBiquadFilter(); filt.type = 'highpass'; filt.frequency.value = 1500;
+                src.connect(filt); filt.connect(g); src.start(time);
+
+                triggerSidechain(time);
+            } else if (isHat) {
+                const buf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
+                for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                const src = ac.createBufferSource(); src.buffer = buf;
+                const filt = ac.createBiquadFilter(); filt.type = 'highpass'; filt.frequency.value = 8000;
+                src.connect(filt); filt.connect(g);
+                g.gain.setValueAtTime(0.3, time); g.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+                src.start(time);
+            }
+        }
+
+        // ==== UI AND STATE ====
+        function updatePing() {
+            let val = parseInt(document.getElementById("pingInput").value);
+            if (isNaN(val) || val < 0) val = 0;
+            pingDelayMs = val / 1000.0;
+        }
+
+        function updateMaskingParams() {
+            useVoiceStealing = document.getElementById("chkSteal").checked;
+            useReverbEQ = document.getElementById("chkRevEQ").checked;
+
+            remoteLPFCutoff = parseInt(document.getElementById("slCutoff").value);
+            document.getElementById("valCutoff").innerText = remoteLPFCutoff + "Hz";
+
+            duckingDepthPerc = parseInt(document.getElementById("slDucking").value);
+            document.getElementById("valDucking").innerText = duckingDepthPerc + "%";
+
+            reverbMixPerc = parseInt(document.getElementById("slReverbMix").value);
+            document.getElementById("valReverbMix").innerText = reverbMixPerc + "%";
+
+            if (reverbWetGain) reverbWetGain.gain.value = reverbMixPerc / 100.0;
+            if (reverbFilter) {
+                reverbFilter.frequency.value = useReverbEQ ? 600 : 20; // 600Hz highpass or bypass basically
+            }
+        }
+
+        function updateTrackRoles() {
+            localPlayerId = document.getElementById("localPlayerSelect").value;
+            tracks.forEach(trk => {
+                if (trk.id !== "SysD" && trk.id !== "SysB") {
+                    if (trk.id === localPlayerId) { trk.type = "loc"; trk.color = "#e74c3c"; }
+                    else { trk.type = "rem"; trk.color = "#3498db"; }
+                }
+            });
+
+            tracks.forEach(trk => {
+                if (trk.id !== "SysD" && trk.id !== "SysB") {
+                    let subEl = document.getElementById("sub_" + trk.id);
+                    if (subEl) subEl.innerHTML = trk.type === "loc" ? "🔴 Local (0ms)" : "🔵 Remote (Ping)";
+                    let trackLabelEls = document.querySelectorAll(".track-label");
+                    trackLabelEls.forEach(el => { if (el.innerHTML.includes(trk.id)) el.style.borderLeftColor = trk.color; });
+                    document.querySelectorAll(`.step[data-inst='${trk.id}']`).forEach(el => el.dataset.type = trk.type);
+                }
+            });
+        }
+
+        function buildGrid() {
+            let header = document.getElementById("headerBar");
+            header.innerHTML = `
+                <div class="header-cell">Bar 1</div><div class="header-cell">Bar 2</div>
+                <div class="header-cell">Bar 3</div><div class="header-cell">Bar 4</div>
+            `;
+            const container = document.getElementById("gridBody");
+            container.innerHTML = '';
+            tracks.forEach(trk => {
+                let trackDiv = document.createElement("div"); trackDiv.className = "track";
+                let labelStr = `<div class="track-label" style="border-left-color:${trk.color}">${trk.name}</div>`;
+                let stepsStr = `<div class="steps">`;
+                for (let i = 0; i < totalSteps; i++) {
+                    let extraClass = '';
+                    if (i % 16 === 0) extraClass += ' bar-start';
+                    else if (i % 4 === 0) extraClass += ' beat-start';
+                    if (Math.floor(i / 4) % 4 === 0) extraClass += ' first-beat';
+                    stepsStr += `<div class="step ${extraClass}" data-inst="${trk.id}" data-type="${trk.type}" data-col="${i}" onclick="toggleStep(this)"></div>`;
+                }
+                stepsStr += `</div>`;
+                trackDiv.innerHTML = labelStr + stepsStr;
+                container.appendChild(trackDiv);
+            });
+        }
+
+        function clearGrid() {
+            document.querySelectorAll('.step.active').forEach(el => {
+                el.classList.remove('active'); el.dataset.note = ""; el.innerHTML = "";
+            });
+        }
+
+        function setS(inst, stepIdx, note) {
+            let el = document.querySelector(`.step[data-inst='${inst}'][data-col='${stepIdx}']`);
+            if (el) { el.classList.add('active'); el.dataset.note = note; el.innerHTML = note.replace("Hat", "H").replace("Snare", "S").replace("Kick", "K"); }
+        }
+
+        // ==== HARMONIC ENGINE ====
+        function getCurrentChordName(stepIdx) {
+            let activeChord = chordTimeline.find(c => stepIdx >= c.start && stepIdx < c.end);
+            return activeChord ? activeChord.name : "Em";
+        }
+
+        function getBakedNote(trackId, stepIdx) {
+            if (trackId === "SysD") return (stepIdx % DIV === 0 && Math.floor(stepIdx / DIV) % 2 === 0) ? "Kick" : "Hat";
+            let chordName = getCurrentChordName(stepIdx);
+            let notes = ["E4"];
+            if (chordName === "Em") notes = { SysB: "E2", LocA: "E2", LocB: "B4", RemX: "E5", RemY: "G5" };
+            else if (chordName === "C") notes = { SysB: "C2", LocA: "C2", LocB: "G4", RemX: "C5", RemY: "E5" };
+            else if (chordName === "Am") notes = { SysB: "A1", LocA: "A1", LocB: "C5", RemX: "E5", RemY: "A5" };
+            else if (chordName === "G") notes = { SysB: "G2", LocA: "G2", LocB: "D5", RemX: "G5", RemY: "B5" };
+            else if (chordName === "D") notes = { SysB: "D2", LocA: "D2", LocB: "A4", RemX: "D5", RemY: "F#5" };
+            else if (chordName === "B7") notes = { SysB: "B1", LocA: "B1", LocB: "D#5", RemX: "F#5", RemY: "A5" };
+            else if (chordName === "Bb") notes = { SysB: "Bb1", LocA: "Bb1", LocB: "F4", RemX: "D5", RemY: "Ab5" };
+            else if (chordName === "Em(Raid)") notes = { SysB: "E1", LocA: "E2", LocB: "B4", RemX: "E6", RemY: "G5" };
+            return notes[trackId] || "E4";
+        }
+
+        function toggleStep(element) {
+            if (element.classList.contains('active')) {
+                element.classList.remove('active'); element.dataset.note = ""; element.innerHTML = "";
+            } else {
+                let inst = element.dataset.inst; let stepIdx = parseInt(element.dataset.col); let note = getBakedNote(inst, stepIdx);
+                element.classList.add('active'); element.dataset.note = note; element.innerHTML = note.replace("Hat", "H").replace("Snare", "S").replace("Kick", "K");
+            }
+        }
+
+        // ==== SCENARIOS ====
+        function loadScenario(type) {
+            document.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('active'));
+            if (document.getElementById('btn_s_' + type)) document.getElementById('btn_s_' + type).classList.add('active');
+            stop(); clearGrid();
+
+            let desc = ""; let prog = "";
+
+            if (type === "town") {
+                prog = "Em (1 bar) 👉 C (1 bar) 👉 G (1 bar) 👉 D (1 bar)";
+                chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "G" }, { start: 48, end: 64, name: "D" }];
+                desc = "<strong>🏙️ Town: Sparse Sync</strong><br>- <b>화성:</b> Town의 뼈대 세계관 (Em-C-G-D).<br>- <b>구조:</b> 타격 횟수가 적은 평화로운 마을 상태입니다.";
+
+                // System
+                [0, 8, 16, 24, 32, 40, 48, 56].forEach(s => setS("SysD", s, "Kick"));
+                [4, 12, 20, 28, 36, 44, 52, 60].forEach(s => setS("SysD", s, "Hat"));
+                [0, 16, 32, 48].forEach(s => setS("SysB", s, getBakedNote("SysB", s)));
+
+                // Local and Remote Sparse hits
+                [0, 16, 32, 48].forEach(s => setS("LocA", s, getBakedNote("LocA", s)));
+                [4, 20, 36, 52].forEach(s => setS("RemX", s, getBakedNote("RemX", s)));
+            }
+            else if (type === "stage") {
+                prog = "Em (1 bar) 👉 C (1 bar) 👉 G (1 bar) 👉 D (1 bar)";
+                chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "G" }, { start: 48, end: 64, name: "D" }];
+                desc = "<strong>⚔️ Stage: Call & Response</strong><br>- <b>구조:</b> 로컬 유저가 전반부에 스킬을 넣으면, 원격 유저가 후반부에 응답합니다.";
+
+                for (let i = 0; i < 64; i += 8) setS("SysD", i, "Kick");
+                for (let i = 4; i < 64; i += 8) setS("SysD", i, "Snare");
+                for (let i = 0; i < 64; i += 16) setS("SysB", i, getBakedNote("SysB", i));
+
+                [0, 2, 4, 6, 32, 34, 36, 38].forEach(s => setS("LocB", s, getBakedNote("LocB", s)));
+                [16, 18, 20, 22, 48, 50, 52, 54].forEach(s => setS("RemX", s, getBakedNote("RemX", s)));
+            }
+            else if (type === "elite") {
+                prog = "Em (1 bar) 👉 C (1 bar) 👉 D (1 bar) 👉 <span style='color:#e24a4a'>B7 Secondary Dom (1 bar)</span>";
+                chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "D" }, { start: 48, end: 64, name: "B7" }];
+                desc = "<strong>🔥 Elite: Secondary Dominant Tension</strong><br>- <b>테스트:</b> 강렬한 B7 코드 위에서 네트워크 지연이 걸린 소리들이 수신자(나)의 로컬 코드로 맞춰져 불협화음을 방지합니다.";
+
+                for (let i = 0; i < 64; i += 4) setS("SysD", i, "Kick");
+                [0, 16, 32, 48].forEach(s => setS("SysB", s, getBakedNote("SysB", s)));
+                for (let i = 0; i < 64; i += 8) setS("LocB", i, getBakedNote("LocB", i));
+                for (let i = 4; i < 64; i += 8) setS("RemY", i, getBakedNote("RemY", i));
+                for (let i = 2; i < 64; i += 4) setS("RemX", i, getBakedNote("RemX", i));
+            }
+            else if (type === "raid1") {
+                prog = "E Drone (Minimal Phase 1)";
+                chordTimeline = [{ start: 0, end: 64, name: "Em(Raid)" }];
+                desc = "<strong>👁️ Raid Ph1: Awakening</strong><br>- 보스의 압박감을 표현하기 위해 성긴 구조에서 베이스만 깔립니다.";
+                for (let i = 0; i < 64; i += 16) { setS("SysD", i, "Kick"); setS("SysD", i + 3, "Kick"); }
+                setS("SysB", 0, "E1");
+                [0, 32].forEach(s => setS("LocA", s, "E2"));
+                setS("RemX", 48, "E5");
+            }
+            else if (type === "raid2") {
+                prog = "Em (2 bar) 👉 <span style='color:#e24a4a'>Bb Tritone (2 bar)</span>";
+                chordTimeline = [{ start: 0, end: 32, name: "Em(Raid)" }, { start: 32, end: 64, name: "Bb" }];
+                desc = "<strong>💥 16th Note Barrage (Muddying Test)</strong><br>- <b>목적:</b> 16분 음표가 연속으로 나올 때 Reverb가 앞 소리를 덮어 진흙탕(Mud)이 되는 현상을 테스트합니다.<br>- <b>테스트 방법:</b> 좌측의 'Voice Stealing'이나 'Reverb HQ High-Pass EQ' 체크를 끄고 켜보며, 연속 공격의 해상도가 얼마나 씻겨나가는지 검증하세요.";
+
+                for (let i = 0; i < 64; i += 8) { setS("SysD", i, "Kick"); setS("SysD", i + 4, "Snare"); }
+                setS("SysB", 0, "E1"); setS("SysB", 32, "Bb1");
+
+                for (let i = 0; i < 64; i += 4) setS("LocA", i, getBakedNote("LocA", i));
+                for (let i = 0; i < 64; i += 2) setS("LocB", i, getBakedNote("LocB", i)); // Rapid sequence
+                for (let i = 0; i < 64; i += 2) setS("RemX", i, getBakedNote("RemX", i)); // Rapid sequence
+                for (let i = 0; i < 64; i += 4) setS("RemY", i, getBakedNote("RemY", i));
+            }
+            else if (type === "raid3") {
+                prog = "Em (1 bar) 👉 C (1 bar) 👉 Am (1 bar) 👉 <span style='color:#e24a4a'>B7 Drop (1 bar)</span>";
+                chordTimeline = [{ start: 0, end: 16, name: "Em" }, { start: 16, end: 32, name: "C" }, { start: 32, end: 48, name: "Am" }, { start: 48, end: 64, name: "B7" }];
+                desc = "<strong>💀 Total Chaos (Epic Layering with Ducking)</strong><br>- <b>목적:</b> Sidechain Ducking과 LPF Cutoff 거리를 조합하여, 지연된 타인의 소리를 아름답게 백그라운드로 밀어넣습니다.<br>- <b>테스트 방법:</b> Sidechain Ducking Depth를 0%와 70%로 번갈아 조절해보세요. 70%일 때, 정박(킥, 탱크 타격)마다 공간이 열리며 숨막히는 그루브가 발동합니다.";
+
+                for (let i = 0; i < 64; i += 2) setS("SysD", i, "Kick");
+                for (let i = 4; i < 64; i += 8) setS("SysD", i, "Snare");
+                [0, 16, 32, 48].forEach(s => setS("SysB", s, getBakedNote("SysB", s)));
+
+                for (let i = 0; i < 64; i += 4) setS("LocA", i, getBakedNote("LocA", i));
+
+                let meleePattern = [2, 3, 6, 7, 10, 11, 14, 15];
+                for (let b = 0; b < 64; b += 16) meleePattern.forEach(p => setS("LocB", b + p, getBakedNote("LocB", b + p)));
+
+                let rangedPattern = [0, 1, 2, 6, 7, 8, 12, 13, 14];
+                for (let b = 0; b < 64; b += 16) rangedPattern.forEach(p => setS("RemX", b + p, getBakedNote("RemX", b + p)));
+
+                let suppPattern = [0, 4, 10, 14];
+                for (let b = 0; b < 64; b += 16) suppPattern.forEach(p => setS("RemY", b + p, getBakedNote("RemY", b + p)));
+            }
+
+            document.getElementById("chordProg").innerHTML = prog;
+            document.getElementById("descBox").innerHTML = desc;
+        }
+
+        // ==== SCHEDULING (LATENCY + QUANTIZE ALWAYS ON FOR REMOTE) ====
+        function scheduleNote(stepNum, exactTime) {
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.step.current').forEach(el => el.classList.remove('current'));
+                document.querySelectorAll(`.step[data-col='${stepNum}']`).forEach(el => el.classList.add('current'));
+            });
+
+            let currentBPM = parseInt(document.getElementById('bpmInput').value) || 120;
+            let secPerStep = (60.0 / currentBPM) / DIV;
+
+            let activeCells = document.querySelectorAll(`.step[data-col='${stepNum}']`);
+            activeCells.forEach(cell => {
+                if (cell.classList.contains("active")) {
+                    let inst = cell.dataset.inst;
+                    let type = cell.dataset.type;
+                    let noteStr = cell.dataset.note;
+
+                    let playTime = exactTime;
+                    let isRemote = false;
+
+                    if (type === "rem") {
+                        isRemote = true;
+                        // Always apply quantized illusion for advanced masking sim
+                        let arrivalTime = exactTime + pingDelayMs;
+                        let targetStep = Math.round((arrivalTime - exactTime) / secPerStep) + stepNum;
+                        if (targetStep % 2 !== 0) targetStep += 1;
+                        playTime = exactTime + (targetStep - stepNum) * secPerStep;
+                        if (playTime < exactTime) playTime = arrivalTime;
+                        noteStr = getBakedNote(inst, targetStep % 64);
+                    }
+
+                    if (inst === "SysD") playDrum(noteStr, playTime);
+                    else playNote(inst, noteToFreq(noteStr), playTime, type === "sys" ? "sysbass" : "synth", isRemote);
+                }
+            });
+        }
+
+        function nextNote() {
+            let currentBPM = parseInt(document.getElementById('bpmInput').value) || 120;
+            let secPerStep = (60.0 / currentBPM) / DIV;
+            nextNoteTime += secPerStep;
+            currentStep++;
+            if (currentStep >= totalSteps) currentStep = 0;
+        }
+
+        function scheduler() {
+            while (nextNoteTime < ac.currentTime + 0.1) {
+                scheduleNote(currentStep, nextNoteTime);
+                nextNote();
+            }
+            timerID = setTimeout(scheduler, 25.0);
+        }
+
+        function play() {
+            if (isPlaying) return;
+            initAudio();
+            isPlaying = true;
+            currentStep = 0;
+            nextNoteTime = ac.currentTime + 0.05;
+            scheduler();
+        }
+
+        function stop() {
+            isPlaying = false;
+            clearTimeout(timerID);
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.step.current').forEach(el => el.classList.remove('current'));
+            });
+            activeRemoteGains = {};
+        }
+
+        window.onload = function () {
+            buildGrid();
+            loadScenario('raid3');
+        };
+    </script>
+</body>
+
+</html>

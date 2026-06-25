@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse World: V3 Fantasy Grid UI Prototype</title>
+    <!-- Include Three.js via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Lora:ital,wght@0,400;0,600;1,400&family=Rajdhani:wght@600;700&display=swap');
+
+        :root {
+            /* Mossy Ruins & Cyan Crystal Theme Colors */
+            --bg-color: #050807;
+            /* Mossy Dark Stone Plate Gradient */
+            --hud-bg-stone: linear-gradient(135deg, rgba(16, 22, 20, 0.97) 0%, rgba(10, 13, 11, 0.94) 100%);
+            --hud-border-stone: #2e3b33; /* Slate-moss dark border */
+            --hud-cyan: #00f3ff; /* Glowing cyan magic crystal color */
+            --hud-cyan-glow: rgba(0, 243, 255, 0.45);
+            --hud-amber: #ff9e22; /* Warm lantern glow color */
+            --hud-amber-glow: rgba(255, 158, 34, 0.4);
+            
+            --hud-gray-text: #8e9c94; /* Soft sage-green-gray for text */
+            --hud-white-text: #e6f3ed; /* Pale magic parchment white */
+            
+            --fantasy-red: #ff3b3b;
+            --fantasy-green: #00f3ff;
+            --fantasy-blue: #3b82f6;
+
+            --bpm: 128;
+            --beat-duration: calc(60s / var(--bpm));
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Lora', serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--hud-white-text);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 3D Canvas Background */
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* UI Layer Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* Enable pointer events on interactive elements */
+        .party-member,
+        .top-center-timeline,
+        .hud-bottom-center,
+        .hud-panel {
+            pointer-events: auto;
+        }
+
+        /* Top Left: Party UI */
+        .party-ui {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            z-index: 10;
+        }
+
+        .party-member {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            opacity: 0.95;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .party-member:hover {
+            opacity: 1;
+            transform: translateX(6px);
+        }
+
+        /* Hexagonal Character Icon Badge: Dark Mossy Stone & Cyan Glow */
+        .party-hex-badge {
+            width: 52px;
+            height: 46px;
+            background: var(--hud-bg-stone);
+            border: 2px solid var(--hud-border-stone);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7), inset 0 0 10px rgba(0, 0, 0, 0.9);
+        }
+
+        .party-hex-badge::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 1px solid var(--hud-cyan-glow);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            pointer-events: none;
+        }
+
+        .party-icon {
+            font-size: 20px;
+            z-index: 2;
+            filter: drop-shadow(0 0 5px var(--hud-cyan-glow));
+        }
+
+        /* Party Name Card: Mossy Slate and Glowing Cyan Edges */
+        .party-info-bar {
+            width: 190px;
+            height: 44px;
+            background: var(--hud-bg-stone);
+            border: 2px solid var(--hud-border-stone);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 6px 14px;
+            clip-path: polygon(0 0, 92% 0, 100% 25%, 100% 100%, 0 100%);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(0, 0, 0, 0.95);
+        }
+
+        .party-info-bar::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 1px solid rgba(0, 243, 255, 0.15);
+            clip-path: polygon(0 0, 92% 0, 100% 25%, 100% 100%, 0 100%);
+            pointer-events: none;
+        }
+
+        .party-name-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Lora', serif;
+            font-weight: 600;
+            font-size: 13px;
+            line-height: 1;
+            color: var(--hud-white-text);
+        }
+
+        .party-level {
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            color: var(--hud-cyan);
+            font-weight: 700;
+            text-shadow: 0 0 5px var(--hud-cyan-glow);
+        }
+
+        .party-bar-container {
+            height: 5px;
+            background: #090c0a;
+            border: 1px solid #142018;
+            width: 100%;
+            border-radius: 1px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9);
+        }
+
+        .party-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0f545a, var(--hud-cyan));
+            box-shadow: 0 0 8px var(--hud-cyan-glow);
+            transition: width 0.3s ease;
+        }
+
+        /* Top Center: Objective & Timeline */
+        .top-center-ui {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        /* Timeline: Chiseled stone block with Cyan energy guide line */
+        .top-center-timeline {
+            background: var(--hud-bg-stone);
+            border: 2px solid var(--hud-border-stone);
+            border-radius: 4px;
+            padding: 8px 24px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            color: var(--hud-white-text);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75), inset 0 0 12px rgba(0, 0, 0, 0.9);
+            position: relative;
+        }
+
+        .top-center-timeline::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 1px solid var(--hud-cyan-glow);
+            border-radius: 2px;
+            pointer-events: none;
+        }
+
+        .location-name {
+            font-size: 15px;
+            letter-spacing: 1.5px;
+            color: var(--hud-white-text);
+            text-shadow: 0 0 6px var(--hud-cyan-glow);
+        }
+
+        .separator {
+            color: var(--hud-border-stone);
+            font-size: 16px;
+        }
+
+        .bpm-text {
+            font-size: 14px;
+            color: var(--hud-gray-text);
+            letter-spacing: 1px;
+        }
+
+        .beat-timeline {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            position: relative;
+            padding: 0 12px;
+            height: 22px;
+            width: 150px;
+        }
+
+        .timeline-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #193836; /* Dark crystal energy conduit */
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        .timeline-node {
+            width: 8px;
+            height: 8px;
+            background: #0d1a18;
+            border: 1px solid var(--hud-border-stone);
+            transform: rotate(45deg);
+            z-index: 2;
+        }
+
+        .timeline-cursor {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            width: 12px;
+            height: 12px;
+            background: var(--hud-cyan);
+            box-shadow: 0 0 12px var(--hud-cyan), 0 0 25px var(--hud-cyan);
+            border: 1px solid #fff;
+            transform: translate(-50%, -50%) rotate(45deg);
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        /* Generic Mossy Stone Frame Panel */
+        .hud-panel {
+            background: var(--hud-bg-stone);
+            border: 2px solid var(--hud-border-stone);
+            border-radius: 4px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75), inset 0 0 12px rgba(0, 0, 0, 0.9);
+            padding: 12px 24px;
+            color: var(--hud-white-text);
+            position: relative;
+        }
+
+        .hud-panel::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 1px solid rgba(0, 243, 255, 0.15);
+            pointer-events: none;
+        }
+
+        .objective-panel {
+            text-align: center;
+            width: 290px;
+        }
+
+        .objective-title {
+            font-family: 'Cinzel', serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--hud-cyan);
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 8px var(--hud-cyan-glow);
+        }
+
+        .objective-desc {
+            font-family: 'Lora', serif;
+            font-size: 13px;
+            color: var(--hud-gray-text);
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .objective-warning {
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            color: var(--hud-amber);
+            font-weight: 700;
+            margin-top: 8px;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 6px var(--hud-amber-glow);
+        }
+
+        /* Glowing Runic Combo Display */
+        .hud-combo-container {
+            position: absolute;
+            right: 80px;
+            top: 50%;
+            transform: translateY(-50%) scale(0.9);
+            display: flex;
+            align-items: baseline;
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            color: var(--hud-white-text);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
+        }
+
+        .hud-combo-container.active {
+            opacity: 1;
+            transform: translateY(-50%) scale(1);
+        }
+
+        .hud-combo-container.pop {
+            animation: comboPop 0.2s ease-out;
+        }
+
+        @keyframes comboPop {
+            0% { transform: translateY(-50%) scale(1); }
+            50% { transform: translateY(-50%) scale(1.25); filter: brightness(1.4); }
+            100% { transform: translateY(-50%) scale(1); }
+        }
+
+        .combo-x {
+            font-size: 26px;
+            color: var(--hud-cyan);
+            margin-right: 4px;
+            text-shadow: 0 0 10px var(--hud-cyan-glow);
+        }
+
+        .combo-val {
+            font-size: 68px;
+            color: var(--hud-cyan);
+            line-height: 1;
+            text-shadow: 0 0 25px var(--hud-cyan-glow), 0 0 5px #000;
+        }
+
+        .combo-label {
+            font-size: 15px;
+            margin-left: 10px;
+            letter-spacing: 2px;
+            color: var(--hud-gray-text);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* Bottom Center: Player Status & Skill Deck (Exact Split layout) */
+        .hud-bottom-center {
+            position: absolute;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            z-index: 10;
+            padding: 12px 24px;
+            background: linear-gradient(180deg, rgba(16, 22, 20, 0.98) 0%, rgba(6, 8, 7, 0.98) 100%);
+            border-radius: 6px;
+            border: 2px solid var(--hud-border-stone);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.95), inset 0 0 15px rgba(0,0,0,0.85);
+        }
+
+        .hud-bottom-center::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 1px solid rgba(0, 243, 255, 0.1);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .skill-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Skill Slot styled in Mossy Stone and Cyan Runes */
+        .skill-slot {
+            width: 74px;
+            height: 74px;
+            background: var(--hud-bg-stone);
+            border: 2px solid var(--hud-border-stone);
+            border-radius: 4px; /* Low-poly square shape */
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.95), 0 5px 12px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+        }
+
+        /* Inner circular runic guide circle */
+        .skill-slot::before {
+            content: '';
+            position: absolute;
+            width: 82%;
+            height: 82%;
+            border: 1px solid rgba(0, 243, 255, 0.15);
+            border-radius: 50%;
+            pointer-events: none;
+            transition: border-color 0.2s;
+        }
+
+        /* 3D corner stone cuts */
+        .skill-slot::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            bottom: 4px;
+            border: 1px dashed rgba(0, 243, 255, 0.08);
+            pointer-events: none;
+        }
+
+        .skill-slot:hover {
+            transform: translateY(-5px) scale(1.04);
+            border-color: var(--hud-cyan);
+            box-shadow: 0 0 18px var(--hud-cyan-glow), inset 0 0 10px rgba(0, 243, 255, 0.15);
+        }
+
+        .skill-slot:hover::before {
+            border-color: rgba(0, 243, 255, 0.55);
+        }
+
+        .skill-icon {
+            font-size: 32px;
+            z-index: 2;
+            transition: transform 0.2s;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.6));
+        }
+
+        .skill-slot:active .skill-icon {
+            transform: scale(0.9);
+        }
+
+        /* Warm Amber Key Indicator (inheriting lantern glow) */
+        .key-indicator {
+            background: #161a18;
+            border: 1px solid var(--hud-border-stone);
+            color: var(--hud-amber);
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 13px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.6);
+            text-shadow: 0 0 6px var(--hud-amber-glow);
+        }
+
+        /* Central Hexagon Status Hub in Mossy Runic Stone */
+        .hud-center-hex {
+            width: 122px;
+            height: 140px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hex-border-svg-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .hex-gauge-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .hex-bg-poly {
+            fill: #090c0b;
+            stroke: var(--hud-border-stone);
+            stroke-width: 4px;
+        }
+
+        .hex-gauge-poly {
+            fill: none;
+            stroke: var(--hud-cyan);
+            stroke-width: 4px;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 10px var(--hud-cyan));
+            transition: stroke-dashoffset 0.3s ease;
+        }
+
+        .hex-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cinzel', serif;
+            color: var(--hud-white-text);
+            text-align: center;
+        }
+
+        .hex-bpm-label, .hex-hp-label {
+            font-size: 10px;
+            color: var(--hud-gray-text);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .hex-bpm-val {
+            font-size: 25px;
+            font-weight: 700;
+            color: var(--hud-white-text);
+            line-height: 1.1;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+
+        .hex-divider {
+            width: 64px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--hud-border-stone), transparent);
+            margin: 6px 0;
+        }
+
+        .hex-hp-val {
+            font-size: 21px;
+            font-weight: 900;
+            color: var(--hud-cyan);
+            line-height: 1.1;
+            text-shadow: 0 0 10px var(--hud-cyan-glow);
+        }
+
+        /* Cooldown Overlay */
+        .cooldown-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 700;
+            font-size: 24px;
+            font-family: 'Cinzel', serif;
+            color: var(--hud-cyan);
+        }
+
+        .cooldown-text {
+            color: var(--hud-cyan);
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+        }
+
+        /* Judgment feedback texts */
+        .combat-feedback {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .hit-text {
+            font-size: 56px;
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.1s;
+        }
+
+        .hit-text.perfect {
+            color: #fff;
+            text-shadow: 0 0 15px var(--hud-cyan), 0 0 30px #fff, 0 5px 12px rgba(0, 0, 0, 0.9);
+            animation: popText 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .hit-text.good {
+            color: var(--hud-cyan);
+            text-shadow: 0 0 10px var(--hud-cyan), 0 5px 10px rgba(0, 0, 0, 0.9);
+            animation: popText 0.5s ease-out forwards;
+        }
+
+        .hit-text.miss {
+            color: var(--fantasy-red);
+            text-shadow: 0 0 15px var(--fantasy-red), 0 5px 10px rgba(0, 0, 0, 0.9);
+            animation: popMissText 0.5s ease-out forwards;
+        }
+
+        @keyframes popText {
+            0% { transform: scale(0.5) translateY(30px); opacity: 0; filter: brightness(2); }
+            40% { transform: scale(1.2) translateY(-10px); opacity: 1; filter: brightness(1.3); }
+            70% { transform: scale(0.95) translateY(0); opacity: 1; filter: brightness(1); }
+            100% { transform: scale(1) translateY(0); opacity: 0; }
+        }
+
+        @keyframes popMissText {
+            0% { transform: scale(0.5) translateX(-20px) rotate(-5deg); opacity: 0; }
+            50% { transform: scale(1.1) translateX(20px) rotate(5deg); opacity: 1; }
+            100% { transform: scale(1) translateX(0) rotate(0deg); opacity: 0; }
+        }
+
+        /* Screen Beat Highlight */
+        .screen-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 0px var(--hud-cyan);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .screen-flash.flash {
+            animation: screenBeat 0.5s ease-out;
+        }
+
+        @keyframes screenBeat {
+            0% { box-shadow: inset 0 0 50px rgba(0, 243, 255, 0.25); }
+            100% { box-shadow: inset 0 0 0px rgba(0, 243, 255, 0); }
+        }
+
+        .damage-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 40%, rgba(255, 59, 59, 0.45) 100%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 6;
+            transition: opacity 0.1s;
+        }
+
+        /* Pulse Animation on Beat */
+        .pulse-active .hud-center-hex {
+            animation: hexPulse var(--beat-duration) ease-out;
+        }
+
+        @keyframes hexPulse {
+            0% { transform: scale(1); }
+            15% { transform: scale(1.05); filter: brightness(1.15); }
+            40% { transform: scale(1); }
+            100% { transform: scale(1); }
+        }
+
+        .skill-pulse-active {
+            animation: skillPulse var(--beat-duration) ease-out;
+        }
+
+        @keyframes skillPulse {
+            0% { border-color: var(--hud-cyan); }
+            40% { border-color: var(--hud-border-stone); }
+            100% { border-color: var(--hud-border-stone); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 3D Canvas -->
+    <canvas id="three-canvas"></canvas>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-layer">
+
+        <div class="screen-flash" id="screenFlash"></div>
+        <div class="damage-flash" id="damageFlash"></div>
+
+        <!-- Top Left: Party Info -->
+        <div class="party-ui">
+            <!-- Arden -->
+            <div class="party-member ui-element">
+                <div class="party-hex-badge">
+                    <div class="party-icon">🗡️</div>
+                </div>
+                <div class="party-info-bar">
+                    <div class="party-name-row">
+                        <span class="party-name">Arden</span>
+                        <span class="party-level">Lv.32</span>
+                    </div>
+                    <div class="party-bar-container">
+                        <div class="party-bar-fill" style="width: 80%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lyra -->
+            <div class="party-member ui-element">
+                <div class="party-hex-badge">
+                    <div class="party-icon">🏹</div>
+                </div>
+                <div class="party-info-bar">
+                    <div class="party-name-row">
+                        <span class="party-name">Lyra</span>
+                        <span class="party-level">Lv.31</span>
+                    </div>
+                    <div class="party-bar-container">
+                        <div class="party-bar-fill" style="width: 70%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kael -->
+            <div class="party-member ui-element">
+                <div class="party-hex-badge">
+                    <div class="party-icon">🪄</div>
+                </div>
+                <div class="party-info-bar">
+                    <div class="party-name-row">
+                        <span class="party-name">Kael</span>
+                        <span class="party-level">Lv.30</span>
+                    </div>
+                    <div class="party-bar-container">
+                        <div class="party-bar-fill" style="width: 60%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mira -->
+            <div class="party-member ui-element">
+                <div class="party-hex-badge">
+                    <div class="party-icon">🛡️</div>
+                </div>
+                <div class="party-info-bar">
+                    <div class="party-name-row">
+                        <span class="party-name">Mira</span>
+                        <span class="party-level">Lv.29</span>
+                    </div>
+                    <div class="party-bar-container">
+                        <div class="party-bar-fill" style="width: 45%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Center: Objective & Timeline -->
+        <div class="top-center-ui">
+            <!-- Beat Timeline -->
+            <div class="top-center-timeline ui-element">
+                <span class="location-name">Crystal Cavern</span>
+                <span class="separator">|</span>
+                <span class="bpm-text">BPM 128</span>
+                <span class="separator">|</span>
+                <div class="beat-timeline" id="beatTimeline">
+                    <div class="timeline-line"></div>
+                    <div class="timeline-node"></div>
+                    <div class="timeline-node"></div>
+                    <div class="timeline-node"></div>
+                    <div class="timeline-node"></div>
+                    <div class="timeline-node"></div>
+                    <div class="timeline-cursor" id="timelineCursor"></div>
+                </div>
+            </div>
+
+            <!-- Objective Details (Styled in theme) -->
+            <div class="hud-panel objective-panel ui-element">
+                <div class="objective-title">Dungeon Boss</div>
+                <div class="objective-desc">Defeat the Corrupted Sentinel</div>
+                <div class="objective-warning">⚠️ WARNING: TILE SHATTER PATTERN</div>
+            </div>
+        </div>
+
+        <!-- Combat Feedback Overlay -->
+        <div class="combat-feedback" id="combatFeedback">
+            <!-- Pop feedback via JS -->
+        </div>
+
+        <!-- Combo Counter on the Right -->
+        <div class="hud-combo-container ui-element" id="hudCombo">
+            <span class="combo-x">x</span>
+            <span class="combo-val" id="comboVal">0</span>
+            <span class="combo-label">COMBO</span>
+        </div>
+
+        <!-- Bottom Center: Player HP & Skill Deck (Exact Split layout) -->
+        <div class="hud-bottom-center ui-element" id="playerHub">
+            <!-- Q Skill -->
+            <div class="skill-container">
+                <div class="skill-slot" onclick="useSkill(0, this, 'Cleave')" data-key="Q">
+                    <div class="skill-icon">🗡️</div>
+                    <div class="cooldown-overlay" style="display: none;">
+                        <span class="cooldown-text"></span>
+                    </div>
+                </div>
+                <div class="key-indicator">Q</div>
+            </div>
+
+            <!-- W Skill -->
+            <div class="skill-container">
+                <div class="skill-slot" onclick="useSkill(1, this, 'Roll')" data-key="W">
+                    <div class="skill-icon">👢</div>
+                    <div class="cooldown-overlay" style="display: none;">
+                        <span class="cooldown-text"></span>
+                    </div>
+                </div>
+                <div class="key-indicator">W</div>
+            </div>
+
+            <!-- Central Hexagon Status Hub -->
+            <div class="hud-center-hex">
+                <div class="hex-border-svg-container">
+                    <svg class="hex-gauge-svg" viewBox="0 0 110 126">
+                        <path d="M 55 3 L 107 33 L 107 93 L 55 123 L 3 93 L 3 33 Z" class="hex-bg-poly" />
+                        <path d="M 55 3 L 107 33 L 107 93 L 55 123 L 3 93 L 3 33 Z" class="hex-gauge-poly" id="hexGauge" pathLength="100" style="stroke-dasharray: 100; stroke-dashoffset: 0;" />
+                    </svg>
+                </div>
+                <div class="hex-content">
+                    <div class="hex-bpm-label">BPM</div>
+                    <div class="hex-bpm-val" id="hexBpm">128</div>
+                    <div class="hex-divider"></div>
+                    <div class="hex-hp-label">HP</div>
+                    <div class="hex-hp-val" id="hpPercent">100%</div>
+                </div>
+            </div>
+
+            <!-- E Skill -->
+            <div class="skill-container">
+                <div class="skill-slot" onclick="useSkill(2, this, 'Aura')" data-key="E">
+                    <div class="skill-icon">💍</div>
+                    <div class="cooldown-overlay" style="display: none;">
+                        <span class="cooldown-text"></span>
+                    </div>
+                </div>
+                <div class="key-indicator">E</div>
+            </div>
+
+            <!-- R Skill -->
+            <div class="skill-container">
+                <div class="skill-slot" onclick="useSkill(3, this, 'Prayer')" data-key="R">
+                    <div class="skill-icon">👑</div>
+                    <div class="cooldown-overlay" style="display: none;">
+                        <span class="cooldown-text"></span>
+                    </div>
+                </div>
+                <div class="key-indicator">R</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN SCRIPT: Logic and 3D Setup -->
+    <script>
+        // --- 1. GAME DATA & RHYTHM VARIABLES ---
+        const BPM = 128;
+        const beatInterval = (60 / BPM) * 1000;
+        let lastBeatTime = performance.now();
+        let comboCount = 0;
+        let comboTimeout;
+
+        let playerHp = 8450;
+        const maxHp = 8450;
+
+        // Skill Cooldowns (in ms)
+        const cooldowns = [2000, 3000, 8000, 15000];
+        const lastUsed = [0, 0, 0, 0];
+
+        // --- RIGID GRID SYSTEM ---
+        const GRID_CELL_SIZE = 3;
+        const GRID_ROWS = 6;
+        const GRID_COLS = 6;
+
+        // Positions are 0-indexed integers on the grid
+        let playerPos = { x: 2, z: 4 }; // Start near bottom center 
+
+        // 3D Objects references
+        let scene, camera, renderer;
+        let playerMesh, enemyMesh, accessoryGroup, patternMesh;
+        let tiles = []; // Array to hold the grid floor tiles
+
+        // Convert grid coordinate to 3D world space coordinate
+        function gridToWorld(gX, gZ) {
+            // Center the grid around origin (0,0)
+            const offsetX = (GRID_COLS * GRID_CELL_SIZE) / 2 - (GRID_CELL_SIZE / 2);
+            const offsetZ = (GRID_ROWS * GRID_CELL_SIZE) / 2 - (GRID_CELL_SIZE / 2);
+            return {
+                x: (gX * GRID_CELL_SIZE) - offsetX,
+                z: (gZ * GRID_CELL_SIZE) - offsetZ
+            };
+        }
+
+        // --- 2. THREE.JS INITIALIZATION (FANTASY THEME) ---
+        function init3D() {
+            const canvas = document.getElementById('three-canvas');
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            // Shadow
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            scene = new THREE.Scene();
+            // Basalt dark slate background & fog
+            scene.background = new THREE.Color(0x0b0d10);
+            scene.fog = new THREE.FogExp2(0x0b0d10, 0.02);
+
+            // Angled top-down camera suited for grid
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 20, 25);
+            camera.lookAt(0, 0, -2);
+
+            // --- AETHERPUNK LIGHTING ---
+            const ambientLight = new THREE.AmbientLight(0x1a2430, 0.5); // Cool cyan-blue ambient
+            scene.add(ambientLight);
+
+            const neonLight = new THREE.DirectionalLight(0x06b6d4, 0.8); // Intense neon cyan light
+            neonLight.position.set(-15, 20, -10);
+            scene.add(neonLight);
+
+            const runeLight = new THREE.PointLight(0xe6b955, 1.5, 40); // Runic fantasy gold point light
+            runeLight.position.set(10, 15, 10);
+            runeLight.castShadow = true;
+            scene.add(runeLight);
+
+            // --- 1. RIGID GRID TILES (FLOOR) ---
+            const tileGeo = new THREE.BoxGeometry(GRID_CELL_SIZE - 0.1, 1, GRID_CELL_SIZE - 0.1);
+            // Basalt dark slate materials
+            const darkStone = new THREE.MeshStandardMaterial({ color: 0x181c24, roughness: 0.8, metalness: 0.2 });
+            const lightStone = new THREE.MeshStandardMaterial({ color: 0x222834, roughness: 0.8, metalness: 0.2 });
+
+            for (let r = 0; r < GRID_ROWS; r++) {
+                tiles[r] = [];
+                for (let c = 0; c < GRID_COLS; c++) {
+                    const mat = ((r + c) % 2 === 0) ? darkStone : lightStone;
+                    const tile = new THREE.Mesh(tileGeo, mat.clone()); // Clone so we can color them individually later
+                    tile.receiveShadow = true;
+
+                    const worldPos = gridToWorld(c, r);
+                    tile.position.set(worldPos.x, -0.5, worldPos.z);
+                    scene.add(tile);
+                    tiles[r][c] = tile;
+                }
+            }
+
+            // Outer decorative borders
+            const borderGeo = new THREE.BoxGeometry((GRID_COLS * GRID_CELL_SIZE) + 1, 1.2, (GRID_ROWS * GRID_CELL_SIZE) + 1);
+            const borderMat = new THREE.MeshStandardMaterial({ color: 0x0f1216, roughness: 0.7, metalness: 0.5 });
+            const borderMesh = new THREE.Mesh(borderGeo, borderMat);
+            borderMesh.position.set(0, -0.7, 0);
+            scene.add(borderMesh);
+
+            // --- 2. PLAYER (Fantasy Knight) ---
+            // Sized to fit exactly inside one grid cell (radius 1.2 fits in size 3)
+            const playerGeo = new THREE.CylinderGeometry(1.2, 1.2, 3, 16);
+            playerGeo.translate(0, 1.5, 0);
+            const playerMat = new THREE.MeshStandardMaterial({
+                color: 0xc0c0c0, // Silver armor
+                roughness: 0.3,
+                metalness: 0.7
+            });
+            playerMesh = new THREE.Mesh(playerGeo, playerMat);
+            playerMesh.castShadow = true;
+
+            // Set initial position
+            const pWorld = gridToWorld(playerPos.x, playerPos.z);
+            playerMesh.position.set(pWorld.x, 0, pWorld.z);
+            scene.add(playerMesh);
+
+            // --- 3. ACCESSORY (Glowing Magic Orb / Beat Guide) ---
+            accessoryGroup = new THREE.Group();
+            playerMesh.add(accessoryGroup);
+            // Fixed position hovering near player shoulder
+            accessoryGroup.position.set(2.0, 3.0, 0);
+
+            const accGeo = new THREE.SphereGeometry(0.5, 16, 16);
+            const accMat = new THREE.MeshStandardMaterial({
+                color: 0x06b6d4, // Neon cyan
+                emissive: 0x06b6d4,
+                emissiveIntensity: 0.8
+            });
+            const accMesh = new THREE.Mesh(accGeo, accMat);
+
+            const accLight = new THREE.PointLight(0x06b6d4, 1.5, 8);
+            accMesh.add(accLight);
+            accessoryGroup.add(accMesh);
+
+            // Add Shrinking Ring for Beat Guide effect
+            const ringGeo = new THREE.RingGeometry(0.6, 0.7, 32);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x06b6d4,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+            window.beatRingMesh = new THREE.Mesh(ringGeo, ringMat);
+            // Angle it to face the camera roughly
+            window.beatRingMesh.rotation.x = Math.PI / 4;
+            window.beatRingMesh.rotation.y = -Math.PI / 8;
+            accessoryGroup.add(window.beatRingMesh);
+
+            // --- 4. BOSS ENEMY (Large Golem/Demon) ---
+            // Occupies a 2x2 grid space at the top center
+            const bossWidth = GRID_CELL_SIZE * 2 - 0.2;
+            const enemyGeo = new THREE.BoxGeometry(bossWidth, 5, bossWidth);
+            enemyGeo.translate(0, 2.5, 0);
+            const enemyMat = new THREE.MeshStandardMaterial({
+                color: 0x301111, // Dark crimson/obsidian
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            enemyMesh = new THREE.Mesh(enemyGeo, enemyMat);
+            enemyMesh.castShadow = true;
+
+            // Center between cols 2 and 3, row 0 and 1
+            const bWorld1 = gridToWorld(2.5, 0.5);
+            enemyMesh.position.set(bWorld1.x, 0, bWorld1.z);
+            scene.add(enemyMesh);
+
+            // Boss Core (Glowing gold/amber)
+            const coreGeo = new THREE.BoxGeometry(bossWidth * 0.8, bossWidth * 0.8, 1);
+            const coreMat = new THREE.MeshStandardMaterial({
+                color: 0xffaa00,
+                emissive: 0xffaa00,
+                emissiveIntensity: 0.5
+            });
+            const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+            coreMesh.position.set(0, 2.5, bossWidth / 2);
+            enemyMesh.add(coreMesh);
+
+            // --- 5. INITIAL BOSS PATTERN (Snap to grid) ---
+            // Let's highlight a 3x3 area of flat tiles as a warning pattern
+            // We do this by changing the emissive color of specific floor tiles
+            highlightPattern(1, 1, 3, 3, 0xaa2222);
+        }
+
+        // Helper to highlight grid tiles for Boss Patterns
+        function highlightPattern(startX, startZ, width, depth, hexColor) {
+            // Reset all tiles first
+            for (let r = 0; r < GRID_ROWS; r++) {
+                for (let c = 0; c < GRID_COLS; c++) {
+                    tiles[r][c].material.emissive.setHex(0x000000);
+                }
+            }
+
+            // Highlight specified area
+            const color = new THREE.Color(hexColor);
+            for (let r = startZ; r < startZ + depth; r++) {
+                for (let c = startX; c < startX + width; c++) {
+                    if (r >= 0 && r < GRID_ROWS && c >= 0 && c < GRID_COLS) {
+                        tiles[r][c].material.emissive = color;
+                        // Store a base intensity to pulse later
+                        tiles[r][c].userData.isPattern = true;
+                    }
+                }
+            }
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+
+        // --- 3. GAME LOOP ---
+        function animate(time) {
+            requestAnimationFrame(animate);
+
+            // Fixed Accessory Bobbing & Beat Guide Shrinking Ring
+            if (accessoryGroup) {
+                // Gentle bobbing without orbiting
+                accessoryGroup.position.y = 2.8 + Math.sin(time * 0.004) * 0.3;
+
+                // Beat Guide logic: Shrink ring from outward in
+                if (window.beatRingMesh) {
+                    let timeSince = time - lastBeatTime;
+                    let progress = timeSince / beatInterval;
+                    if (progress > 1) progress = 1;
+
+                    // Scale from 3.0 down to exactly 1.0 over the beat interval
+                    let ringScale = 3.0 - (2.0 * progress);
+                    window.beatRingMesh.scale.set(ringScale, ringScale, ringScale);
+
+                    // Fade out the ring just after the beat hits, then fade in
+                    window.beatRingMesh.material.opacity = (progress < 0.1) ? (progress * 10) : 0.8;
+                }
+            }
+
+            // Pulse Pattern Tiles (Warning effect)
+            const pulseIntensity = 0.2 + (Math.sin(time * 0.008) * 0.5 + 0.5) * 0.6;
+            for (let r = 0; r < GRID_ROWS; r++) {
+                for (let c = 0; c < GRID_COLS; c++) {
+                    if (tiles[r][c].userData.isPattern) {
+                        tiles[r][c].material.emissiveIntensity = pulseIntensity;
+                    }
+                }
+            }
+
+            // Smooth Beat Timeline Cursor Animation
+            const timelineCursor = document.getElementById('timelineCursor');
+            if (timelineCursor) {
+                let timeSinceBeat = time - lastBeatTime;
+                let pct = (timeSinceBeat / beatInterval) * 100;
+                let leftPct = Math.min(100, pct);
+                timelineCursor.style.left = leftPct + "%";
+            }
+
+            // Party members' HP fluctuations (Dynamic UI feel)
+            const partyFills = document.querySelectorAll('.party-bar-fill');
+            partyFills.forEach((fill, index) => {
+                const basePct = [80, 70, 60, 45][index];
+                const fluctuation = Math.sin(time * 0.001 + index * 1.5) * 2;
+                fill.style.width = Math.max(0, Math.min(100, basePct + fluctuation)) + "%";
+            });
+
+            // Rhythm Check
+            if (time - lastBeatTime >= beatInterval) {
+                triggerBeat();
+                lastBeatTime = time;
+            }
+
+            updateCooldowns(time);
+
+            // Render 3D Scene
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        // --- 4. RHYTHM AND UI LOGIC ---
+        function triggerBeat() {
+            // Screen edge pulse UI (Cyan Glow)
+            const flash = document.getElementById('screenFlash');
+            flash.classList.remove('flash');
+            void flash.offsetWidth;
+            flash.classList.add('flash');
+
+            // Pulse skill slots
+            const slots = document.querySelectorAll('.skill-slot');
+            slots.forEach(slot => {
+                slot.classList.remove('skill-pulse-active');
+                void slot.offsetWidth;
+                slot.classList.add('skill-pulse-active');
+            });
+
+            // Trigger internal pulse on HP Bar
+            const hpHub = document.getElementById('playerHub');
+            hpHub.classList.remove('pulse-active');
+            void hpHub.offsetWidth;
+            hpHub.classList.add('pulse-active');
+
+            // Strong 3D Pulse on Accessory (Beat Trigger)
+            if (accessoryGroup) {
+                const orb = accessoryGroup.children[0];
+                const accMat = orb.material;
+
+                accMat.emissiveIntensity = 5; // Very bright flash
+                orb.scale.set(1.4, 1.4, 1.4); // Pop size
+
+                setTimeout(() => {
+                    accMat.emissiveIntensity = 0.8;
+                    orb.scale.set(1, 1, 1);
+                }, 150);
+            }
+
+            // Boss Core Pulse
+            if (enemyMesh) {
+                const core = enemyMesh.children[0];
+                core.scale.set(1.1, 1.1, 1.1);
+                core.material.emissiveIntensity = 1.0;
+                setTimeout(() => {
+                    core.scale.set(1, 1, 1);
+                    core.material.emissiveIntensity = 0.5;
+                }, 150);
+            }
+        }
+
+        function useSkill(index, element, name) {
+            const time = performance.now();
+
+            // Check cooldown
+            if (time - lastUsed[index] < cooldowns[index]) {
+                // Shake effect on error UI
+                element.style.transform = "translateY(-5px) scale(1.05) translateX(5px)";
+                setTimeout(() => element.style.transform = "", 50);
+                setTimeout(() => element.style.transform = "translateY(-5px) scale(1.05) translateX(-5px)", 100);
+                setTimeout(() => element.style.transform = "", 150);
+                return;
+            }
+
+            // Execute Skill
+            lastUsed[index] = time;
+            element.querySelector('.cooldown-overlay').style.display = 'flex';
+
+            // Judgment Check (Distance to closest beat)
+            let timeSinceBeat = time - lastBeatTime;
+            let timeToNextBeat = beatInterval - timeSinceBeat;
+            let minDiff = Math.min(timeSinceBeat, timeToNextBeat);
+
+            // CHALLENGING & FAIR TIMING WINDOWS
+            let rawScore = "";
+            let moveSteps = 0;
+
+            if (minDiff < 60) {
+                rawScore = "Perfect";
+                comboCount++;
+                moveSteps = 2; // Perfect dash moves 2 tiles
+
+                // Heal player slightly on perfect
+                if (playerHp < maxHp) playerHp = Math.min(maxHp, playerHp + 250);
+
+            } else if (minDiff < 120) {
+                rawScore = "Good";
+                comboCount++;
+                moveSteps = 1; // Good dash moves 1 tile
+            } else {
+                rawScore = "Miss";
+                comboCount = 0;
+                moveSteps = 0; // Miss = fail to move
+
+                // Penalty damage on miss
+                playerHp -= 500;
+                flashDamage();
+            }
+
+            updateHpBar();
+            showHitText(rawScore, name);
+
+            // --- Rigid Grid 3D Actions based on skill ---
+            if (playerMesh && rawScore !== "Miss") {
+                if (index === 0) { // Attack (Cleave)
+                    // Visual Jump in place (doesn't leave grid cell)
+                    const startY = playerMesh.position.y;
+                    playerMesh.position.y = startY + 2;
+                    setTimeout(() => playerMesh.position.y = startY, 200);
+
+                    // Glowing cyan slash effect on boss
+                    if (enemyMesh) {
+                        enemyMesh.material.emissive.setHex(0x00f0ff);
+                        setTimeout(() => enemyMesh.material.emissive.setHex(0x000000), 100);
+                    }
+                }
+                else if (index === 1) { // Dash (Roll)
+                    // Move right by 'moveSteps' tiles, clamping to grid
+                    playerPos.x = Math.min(GRID_COLS - 1, playerPos.x + moveSteps);
+
+                    // Simple snap to new position (no lerp for prototype simplicity)
+                    const pWorld = gridToWorld(playerPos.x, playerPos.z);
+                    playerMesh.position.set(pWorld.x, 0, pWorld.z);
+
+                    // Pattern Shift: Boss changes pattern when dashed successfully
+                    highlightPattern(Math.max(0, playerPos.x - 1), 3, 3, 2, 0xaa2222);
+                }
+                else if (index === 2) { // Utility (Aura)
+                    // Emissive glow burst cyan
+                    playerMesh.material.emissive.setHex(0x00f0ff);
+                    setTimeout(() => playerMesh.material.emissive.setHex(0x000000), 500);
+                }
+                else if (index === 3) { // Buff (Helm/Prayer)
+                    // Emissive glow burst gold
+                    playerMesh.material.emissive.setHex(0xe6b955);
+                    setTimeout(() => playerMesh.material.emissive.setHex(0x000000), 800);
+                }
+            }
+        }
+
+        function flashDamage() {
+            const df = document.getElementById('damageFlash');
+            df.style.opacity = '1';
+            setTimeout(() => df.style.opacity = '0', 200);
+        }
+
+        function updateHpBar() {
+            if (playerHp <= 0) playerHp = 0;
+            const hpPercent = document.getElementById('hpPercent');
+            const hexGauge = document.getElementById('hexGauge');
+
+            const pct = (playerHp / maxHp) * 100;
+            
+            if (hpPercent) {
+                hpPercent.innerText = `${Math.floor(pct)}%`;
+                if (pct < 30) {
+                    hpPercent.style.color = "var(--fantasy-red)";
+                } else {
+                    hpPercent.style.color = "var(--hud-cyan)";
+                }
+            }
+
+            if (hexGauge) {
+                hexGauge.style.strokeDashoffset = 100 - pct;
+                if (pct < 30) {
+                    hexGauge.style.stroke = "var(--fantasy-red)";
+                    hexGauge.style.filter = "drop-shadow(0 0 6px rgba(255, 59, 59, 0.8))";
+                } else {
+                    hexGauge.style.stroke = "var(--hud-cyan)";
+                    hexGauge.style.filter = "drop-shadow(0 0 6px rgba(0, 240, 255, 0.8))";
+                }
+            }
+        }
+
+        function showHitText(judgment, skillName) {
+            const container = document.getElementById('combatFeedback');
+            container.innerHTML = ''; // clear previous
+
+            clearTimeout(comboTimeout);
+
+            const textDiv = document.createElement('div');
+            textDiv.className = `hit-text ${judgment.toLowerCase()}`;
+            textDiv.innerHTML = `${judgment}!`;
+
+            container.appendChild(textDiv);
+
+            // Update Right Side Combo Panel
+            const hudCombo = document.getElementById('hudCombo');
+            const comboVal = document.getElementById('comboVal');
+            
+            if (hudCombo && comboVal) {
+                comboVal.innerText = comboCount;
+                if (comboCount > 0) {
+                    hudCombo.classList.add('active');
+                    hudCombo.classList.remove('pop');
+                    void hudCombo.offsetWidth; // trigger reflow
+                    hudCombo.classList.add('pop');
+                } else {
+                    hudCombo.classList.remove('active');
+                }
+            }
+
+            // Remove after animation
+            comboTimeout = setTimeout(() => {
+                container.innerHTML = '';
+            }, 1000);
+        }
+
+        function updateCooldowns(time) {
+            const slots = document.querySelectorAll('.skill-slot');
+            slots.forEach((slot, index) => {
+                const overlay = slot.querySelector('.cooldown-overlay');
+                const text = slot.querySelector('.cooldown-text');
+
+                if (lastUsed[index] === 0) return; // Never used
+
+                const elapsed = time - lastUsed[index];
+                const cd = cooldowns[index];
+
+                if (elapsed < cd) {
+                    const remaining = ((cd - elapsed) / 1000).toFixed(1);
+                    const percent = 100 - (elapsed / cd * 100);
+                    text.innerText = remaining;
+
+                    // Radial wipe effect via clip-path
+                    overlay.style.clipPath = `polygon(0 ${100 - percent}%, 100% ${100 - percent}%, 100% 100%, 0 100%)`;
+                } else {
+                    overlay.style.display = 'none';
+                }
+            });
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            const keyMap = { 'q': 0, 'w': 1, 'e': 2, 'r': 3 };
+            const index = keyMap[e.key.toLowerCase()];
+            if (index !== undefined) {
+                const slot = document.querySelectorAll('.skill-slot')[index];
+                slot.click();
+            }
+        });
+
+        // Initialize and Start
+        init3D();
+        requestAnimationFrame(animate);
+
+    </script>
+</body>
+
+</html>

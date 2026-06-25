@@ -1,0 +1,11 @@
+{
+  "MonsterType": "Enemy_Traning_Dummy",
+  "DefaultPhase": "P1",
+  "Phases": [
+    {
+      "Id": "P1",
+      "Selectors": []
+    }
+  ],
+  "Transitions": []
+}

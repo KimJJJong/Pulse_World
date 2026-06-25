@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05afbcdf4a596b44ad55b7d951602b2, type: 3}
+  m_Name: Entity_1033_Monster_Cyclops
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Editor.StageBuilder.EntityDefinitionSO
+  EntityId: 1033
+  EntityName: Entity_1033_Monster_Cyclops
+  Type: 2
+  Prefab: {fileID: 7669204216287539660, guid: 7e2444e02f16ca142ab0b1aa79b990fb, type: 3}
+  AnimatorController: {fileID: 0}
+  MaxHp: 10

@@ -1,0 +1,128 @@
+{
+  "SkillId": "DaggerAttack",
+  "TotalDurationTicks": 480,
+  "Tracks": [
+    {
+      "TrackName": "Approach",
+      "Events": [
+        {
+          "TriggerTick": 120,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 3,
+            "MoveType": 1,
+            "Distance": 1,
+            "DirectionX": 0,
+            "DirectionY": -1,
+            "StopOnObstacle": true
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Telegraph",
+      "Events": [
+        {
+          "TriggerTick": 120,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": [
+              {
+                "DurationTicks": 120,
+                "ColorHex": "#E8D36A"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Impact",
+      "Events": [
+        {
+          "TriggerTick": 240,
+          "DurationTicks": 240,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 6,
+            "HitPlayers": false,
+            "HitMonsters": true,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Control",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 4
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Sound",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Dagger_Normal",
+            "Volume": 0.24,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 120,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Dagger_Normal",
+            "Volume": 0.24,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 240,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Dagger_Normal",
+            "Volume": 0.24,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
+    }
+  ]
+}

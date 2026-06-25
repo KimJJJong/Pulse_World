@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="EventFolder" id="{1cc4d3a2-923f-40ae-9b3d-796474d29553}">
+		<property name="name">
+			<value>SFX</value>
+		</property>
+		<relationship name="folder">
+			<destination>{f4fd3bbb-d58f-4378-9dbe-9f562db7944f}</destination>
+		</relationship>
+		<relationship name="items">
+			<destination>{0b0ea304-e758-4420-b7bc-d04f1ded6e4b}</destination>
+			<destination>{0d17cac0-1d9f-41b5-82a5-9d02ade4344b}</destination>
+			<destination>{15602387-a176-4478-88cd-93013d984904}</destination>
+			<destination>{21feaad7-fc67-4828-9b5d-5ae0311d7346}</destination>
+			<destination>{38cb1860-3c9e-4260-8ddc-fa6aaba00d59}</destination>
+			<destination>{67bca560-b015-46a5-a1a0-8a3c9e76a4db}</destination>
+			<destination>{6beeafd7-c037-4963-9ecd-f5f216565f82}</destination>
+			<destination>{6ecf1fbe-5abe-4452-afcd-ba372f0d17d7}</destination>
+			<destination>{75021d16-9871-4557-8ada-bee16cd0dbdb}</destination>
+			<destination>{7f070df9-7e6c-41d5-838b-1431450442dc}</destination>
+			<destination>{8f2e0c82-94db-420f-8cb0-3519e84f47ee}</destination>
+			<destination>{93c4586e-6a22-497f-afe9-9e13f5d5e17c}</destination>
+			<destination>{99203254-f587-44fa-b634-21798775714e}</destination>
+			<destination>{9bbfecdf-501c-49b8-9685-91589436d0a1}</destination>
+			<destination>{a9cbbcce-31d2-4655-a68e-cc9e77903b7d}</destination>
+			<destination>{af131b82-3c0f-46bb-ad7a-74e41d1d66f5}</destination>
+			<destination>{b1ef3dd8-3e27-47a9-a0a6-8318fc058909}</destination>
+			<destination>{b702ed24-c3f9-4238-a29e-80e92ce3b8dd}</destination>
+			<destination>{b8bb6fbf-fff2-4ddf-88a7-f4da98bf8a3f}</destination>
+			<destination>{c90c1333-5ac4-4d8d-8ae9-65ee8320cfee}</destination>
+			<destination>{d4b9f50b-d81e-41d6-a4f5-d2b41c0eecdf}</destination>
+			<destination>{d8208110-215b-497c-9626-c1c2578461fc}</destination>
+			<destination>{db7b10ec-9114-4721-9fd8-ea4bb8fe5c48}</destination>
+			<destination>{dc269a64-bfa6-48a1-a185-921b2c2016ff}</destination>
+			<destination>{fcceaf60-5c7c-4420-a9da-18e9bbc8bfb4}</destination>
+			<destination>{fe714721-1474-40f0-a9e3-3845a9abe5ec}</destination>
+		</relationship>
+	</object>
+</objects>

@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c71e40680c843b4a0e16e299428f2d1, type: 3}
+  m_Name: Entity_1038
+  m_EditorClassIdentifier: Assembly-CSharp::EntityAnimationProfile
+  IdleState: NagaWizard_IdleBattle
+  IdleClip: {fileID: 1827226128182048838, guid: f91f5252e4444ad6bafe3505f9b50812, type: 3}
+  MoveState: NagaWizard_WalkFWD
+  MoveClip: {fileID: 1827226128182048838, guid: 7e52c994422a45aeaae803ae94e17d32, type: 3}
+  AttackState: NagaWizard_Attack01
+  AttackClip: {fileID: 1827226128182048838, guid: c5f7ff58ee384c5cab66bb18de283b05, type: 3}
+  HitState: NagaWizard_GetHit
+  HitClip: {fileID: 1827226128182048838, guid: ac685b0c9a094df0b51510fa6957546f, type: 3}
+  DeathState: NagaWizard_Die
+  DeathClip: {fileID: 1827226128182048838, guid: a20ff64313a54ee68c7a5ae3581cd792, type: 3}
+  DefaultCrossFade: 0.05
+  FallbackDeathDuration: 1.1
+  SkillAnimations:
+  - SkillId: Attack
+    StateName: NagaWizard_Attack01
+    Clip: {fileID: 1827226128182048838, guid: c5f7ff58ee384c5cab66bb18de283b05, type: 3}
+    CrossFade: -1
+  - SkillId: Skill
+    StateName: NagaWizard_Attack01
+    Clip: {fileID: 1827226128182048838, guid: c5f7ff58ee384c5cab66bb18de283b05, type: 3}
+    CrossFade: -1
+  - SkillId: Enemy_Attack_Front
+    StateName: NagaWizard_Attack01
+    Clip: {fileID: 1827226128182048838, guid: c5f7ff58ee384c5cab66bb18de283b05, type: 3}
+    CrossFade: -1
+  - SkillId: Enemy_Attack_Cross
+    StateName: NagaWizard_Attack01
+    Clip: {fileID: 1827226128182048838, guid: c5f7ff58ee384c5cab66bb18de283b05, type: 3}
+    CrossFade: -1
+  - SkillId: Warning_Damage_Test
+    StateName: NagaWizard_Attack01
+    Clip: {fileID: 1827226128182048838, guid: c5f7ff58ee384c5cab66bb18de283b05, type: 3}
+    CrossFade: -1

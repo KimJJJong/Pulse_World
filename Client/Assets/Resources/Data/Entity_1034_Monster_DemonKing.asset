@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05afbcdf4a596b44ad55b7d951602b2, type: 3}
+  m_Name: Entity_1034_Monster_DemonKing
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Editor.StageBuilder.EntityDefinitionSO
+  EntityId: 1034
+  EntityName: Entity_1034_Monster_DemonKing
+  Type: 2
+  Prefab: {fileID: 9177426130364244234, guid: fe1ad766c0e622b4fb6761c32a36595f, type: 3}
+  AnimatorController: {fileID: 0}
+  MaxHp: 180

@@ -1,0 +1,351 @@
+{
+    "StageId": "Game_Jazz_01",
+    "Bpm": 110,
+    "TimeSignatureNum": 4,
+    "TimeSignatureDenom": 4,
+    "TicksPerBeat": 480,
+    "Blocks": [
+        {
+            "BlockId": "Jazz_Groove_Loop",
+            "LengthMeasures": 4,
+            "DefaultNextBlock": "Jazz_Groove_Loop",
+            "OverrideBpm": 0,
+            "ChordEvents": [
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "RootNote": "C",
+                    "ChordType": "Major",
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "RootNote": "F",
+                    "ChordType": "Major",
+                    "PitchOffset": 5
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "RootNote": "C",
+                    "ChordType": "Major",
+                    "PitchOffset": 0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "RootNote": "C",
+                    "ChordType": "Major",
+                    "PitchOffset": 0
+                }
+            ],
+            "BassPattern": [
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_C2",
+                    "PitchOffset": -12,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_Eb2",
+                    "PitchOffset": -9,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_G2",
+                    "PitchOffset": -5,
+                    "VolumeMultiplier": 0.949999988079071
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_Gb2",
+                    "PitchOffset": -6,
+                    "VolumeMultiplier": 0.8500000238418579
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Piano_Cm7",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.800000011920929
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Piano_Cm7",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.75
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_C4",
+                    "PitchOffset": 12,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_D4",
+                    "PitchOffset": 14,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_Eb4",
+                    "PitchOffset": 15,
+                    "VolumeMultiplier": 0.949999988079071
+                },
+                {
+                    "MeasureIndex": 0,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_G4",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_F2",
+                    "PitchOffset": -7,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_A2",
+                    "PitchOffset": -3,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_C3",
+                    "PitchOffset": 0,
+                    "VolumeMultiplier": 0.949999988079071
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_B2",
+                    "PitchOffset": -1,
+                    "VolumeMultiplier": 0.8500000238418579
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 240,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Piano_F7",
+                    "PitchOffset": 5,
+                    "VolumeMultiplier": 0.800000011920929
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Piano_F7",
+                    "PitchOffset": 5,
+                    "VolumeMultiplier": 0.75
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_A4",
+                    "PitchOffset": 21,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_G4",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_F4",
+                    "PitchOffset": 17,
+                    "VolumeMultiplier": 0.949999988079071
+                },
+                {
+                    "MeasureIndex": 1,
+                    "Tick": 1200,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_Eb4",
+                    "PitchOffset": 15,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_Bb2",
+                    "PitchOffset": -2,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_D3",
+                    "PitchOffset": 2,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_F3",
+                    "PitchOffset": 5,
+                    "VolumeMultiplier": 0.949999988079071
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_E3",
+                    "PitchOffset": 4,
+                    "VolumeMultiplier": 0.8500000238418579
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Piano_Bbmaj7",
+                    "PitchOffset": 10,
+                    "VolumeMultiplier": 0.800000011920929
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Piano_Bbmaj7",
+                    "PitchOffset": 10,
+                    "VolumeMultiplier": 0.75
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_D4",
+                    "PitchOffset": 14,
+                    "VolumeMultiplier": 0.949999988079071
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 480,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_F4",
+                    "PitchOffset": 17,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 2,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_A4",
+                    "PitchOffset": 21,
+                    "VolumeMultiplier": 0.949999988079071
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_Eb2",
+                    "PitchOffset": -9,
+                    "VolumeMultiplier": 1.0
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 480,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_G2",
+                    "PitchOffset": -5,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 960,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_Bb2",
+                    "PitchOffset": -2,
+                    "VolumeMultiplier": 0.949999988079071
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1440,
+                    "SoundKey": "Bass_Jazz",
+                    "ToneKey": "Bass_A2",
+                    "PitchOffset": -3,
+                    "VolumeMultiplier": 0.8500000238418579
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Piano_Ebmaj7",
+                    "PitchOffset": 3,
+                    "VolumeMultiplier": 0.800000011920929
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 1440,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Piano_Ebmaj7",
+                    "PitchOffset": 3,
+                    "VolumeMultiplier": 0.75
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 0,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_G4",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.8999999761581421
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 720,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_F4",
+                    "PitchOffset": 17,
+                    "VolumeMultiplier": 0.949999988079071
+                },
+                {
+                    "MeasureIndex": 3,
+                    "Tick": 960,
+                    "SoundKey": "Melody_Jazz",
+                    "ToneKey": "Sax_G4",
+                    "PitchOffset": 19,
+                    "VolumeMultiplier": 0.8999999761581421
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c71e40680c843b4a0e16e299428f2d1, type: 3}
+  m_Name: Entity_1035
+  m_EditorClassIdentifier: Assembly-CSharp::EntityAnimationProfile
+  IdleState: Fishman_IdleBattle
+  IdleClip: {fileID: 1827226128182048838, guid: 17c19fdeabfb44a0bec4ecf144026063, type: 3}
+  MoveState: Fishman_WalkFWD
+  MoveClip: {fileID: 1827226128182048838, guid: 6b10d4b0b76f484ca84fab558849c2da, type: 3}
+  AttackState: Fishman_Attack01
+  AttackClip: {fileID: 1827226128182048838, guid: 449351ba84ff48a09839c5bf96bf19a8, type: 3}
+  HitState: Fishman_GetHit
+  HitClip: {fileID: 1827226128182048838, guid: 18891a0f6d51468c9018e534c4653c63, type: 3}
+  DeathState: Fishman_Die
+  DeathClip: {fileID: 1827226128182048838, guid: 8d0614990d2843758d3751b5d13cfca8, type: 3}
+  DefaultCrossFade: 0.05
+  FallbackDeathDuration: 0.90000004
+  SkillAnimations:
+  - SkillId: Attack
+    StateName: Fishman_Attack01
+    Clip: {fileID: 1827226128182048838, guid: 449351ba84ff48a09839c5bf96bf19a8, type: 3}
+    CrossFade: -1
+  - SkillId: Skill
+    StateName: Fishman_Attack01
+    Clip: {fileID: 1827226128182048838, guid: 449351ba84ff48a09839c5bf96bf19a8, type: 3}
+    CrossFade: -1
+  - SkillId: Enemy_Attack_Front
+    StateName: Fishman_Attack01
+    Clip: {fileID: 1827226128182048838, guid: 449351ba84ff48a09839c5bf96bf19a8, type: 3}
+    CrossFade: -1
+  - SkillId: Enemy_Attack_Cross
+    StateName: Fishman_Attack01
+    Clip: {fileID: 1827226128182048838, guid: 449351ba84ff48a09839c5bf96bf19a8, type: 3}
+    CrossFade: -1
+  - SkillId: Warning_Damage_Test
+    StateName: Fishman_Attack01
+    Clip: {fileID: 1827226128182048838, guid: 449351ba84ff48a09839c5bf96bf19a8, type: 3}
+    CrossFade: -1

@@ -1,0 +1,149 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
+
+public static class P2PServerContentResolver
+{
+    private static readonly string[] PatternDirectories =
+    {
+        "Server/GameServer/Content/01.Game/Pattern/Json",
+        "Server/GameServer/Content/Pattern/Json"
+    };
+
+    public static bool TryLoadMapJson(string mapId, out MapJson mapJson)
+        => TryLoadMapJson(mapId, 0, out mapJson);
+
+    public static bool TryLoadMapJson(string mapId, int mode, out MapJson mapJson)
+    {
+        mapJson = null;
+        if (!TryReadServerMapText(mapId, mode, out var json))
+            return false;
+
+        try
+        {
+            mapJson = JsonUtility.FromJson<MapJson>(json);
+            return mapJson != null && mapJson.width > 0 && mapJson.height > 0;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[P2PServerContentResolver] Map json parse failed: {mapId} / {ex.Message}");
+            mapJson = null;
+            return false;
+        }
+    }
+
+    public static bool TryLoadStageJson(string mapId, out string json)
+        => TryReadServerText($"Server/GameServer/Content/01.Game/Stage/Json/{mapId}.json", out json);
+
+    public static bool TryLoadRhythmJson(string stageId, out string json)
+    {
+        json = string.Empty;
+        if (string.IsNullOrEmpty(stageId)) return false;
+        
+        if (TryReadServerText($"Server/GameServer/Content/01.Game/Sound/Json/{stageId}_Rhythm.json", out json))
+            return true;
+        if (TryReadServerText($"Server/GameServer/Content/01.Game/Sound/Json/{stageId}.json", out json))
+            return true;
+        if (TryReadResourceText($"Data/Sound/Json/{stageId}_Rhythm", out json))
+            return true;
+        if (TryReadResourceText($"Data/Sound/Json/{stageId}", out json))
+            return true;
+        if (TryReadResourceText(stageId, out json))
+            return true;
+        if (TryReadResourceText($"Data/Stage/{stageId}", out json))
+            return true;
+            
+        return false;
+    }
+
+    public static IEnumerable<string> EnumeratePatternJsonTexts()
+    {
+        foreach (var relativeDir in PatternDirectories)
+        {
+            string dir = GetServerPath(relativeDir);
+            if (!Directory.Exists(dir))
+                continue;
+
+            var files = Directory.GetFiles(dir, "*.json", SearchOption.TopDirectoryOnly);
+            Array.Sort(files, StringComparer.OrdinalIgnoreCase);
+            foreach (var file in files)
+            {
+                string text;
+                try
+                {
+                    text = File.ReadAllText(file);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[P2PServerContentResolver] Pattern read failed: {file} / {ex.Message}");
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(text))
+                    yield return text;
+            }
+        }
+    }
+
+    private static bool TryReadServerText(string relativePath, out string json)
+    {
+        json = string.Empty;
+        string fullPath = GetServerPath(relativePath);
+        if (!File.Exists(fullPath))
+            return false;
+
+        try
+        {
+            json = File.ReadAllText(fullPath);
+            return !string.IsNullOrWhiteSpace(json);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[P2PServerContentResolver] Read failed: {fullPath} / {ex.Message}");
+            json = string.Empty;
+            return false;
+        }
+    }
+
+    private static bool TryReadServerMapText(string mapId, int mode, out string json)
+    {
+        json = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(mapId))
+            return false;
+
+        var mapFolderOrder = mode == 1 || mode == 3
+            ? new[] { "02.Town", "01.Game" }
+            : new[] { "01.Game", "02.Town" };
+
+        foreach (var folder in mapFolderOrder)
+        {
+            if (TryReadServerText($"Server/GameServer/Content/{folder}/Map/Json/{mapId}.json", out json))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryReadResourceText(string resourcePath, out string json)
+    {
+        json = string.Empty;
+        if (string.IsNullOrWhiteSpace(resourcePath))
+            return false;
+
+        TextAsset asset = Resources.Load<TextAsset>(resourcePath);
+        if (asset == null || string.IsNullOrWhiteSpace(asset.text))
+            return false;
+
+        json = asset.text;
+        return true;
+    }
+
+    private static string GetServerPath(string relativePath)
+    {
+        string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+        string normalizedRelative = relativePath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+        return Path.GetFullPath(Path.Combine(repoRoot, normalizedRelative));
+    }
+}

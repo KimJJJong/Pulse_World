@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="EventFolder" id="{0a361163-b05e-4ba7-8d23-eb99c7c6b641}">
+		<property name="name">
+			<value>Drums</value>
+		</property>
+		<relationship name="folder">
+			<destination>{f4fd3bbb-d58f-4378-9dbe-9f562db7944f}</destination>
+		</relationship>
+		<relationship name="items">
+			<destination>{252216a4-b678-48ab-b8f7-4da8bb4b8b60}</destination>
+			<destination>{e6690bc7-2783-48c1-b0e6-888cca2ad0c4}</destination>
+			<destination>{ef41e85f-b843-48bc-9083-3002e56c4cbd}</destination>
+		</relationship>
+	</object>
+</objects>

@@ -1,0 +1,89 @@
+{
+  "SkillId": "Attack",
+  "TotalDurationTicks": 480,
+  "Tracks": [
+    {
+      "TrackName": "Track 0",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 10,
+            "HitPlayers": false,
+            "HitMonsters": true,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 1",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 2",
+      "Events": [
+        {
+          "TriggerTick": 240,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 3",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 501327079b4e19047b3fb174153b95d8, type: 3}
+  m_Name: BackstepSkill
+  m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
+  Data:
+    SkillId: BackstepSkill
+    TotalDurationTicks: 960
+    Tracks:
+    - TrackName: Move
+      Events:
+      - TriggerTick: 240
+        DurationTicks: 240
+        Action:
+          rid: 4242872800730677754
+    - TrackName: Control
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 720
+        Action:
+          rid: 4242872800730677755
+    - TrackName: Sound
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 120
+        Action:
+          rid: 4242872800730677756
+      - TriggerTick: 240
+        DurationTicks: 120
+        Action:
+          rid: 4242872800730677757
+      - TriggerTick: 600
+        DurationTicks: 120
+        Action:
+          rid: 4242872800730677758
+      - TriggerTick: 840
+        DurationTicks: 120
+        Action:
+          rid: 4242872800730677759
+  references:
+    version: 2
+    RefIds:
+    - rid: 4242872800730677754
+      type: {class: MoveAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        MoveType: 1
+        Distance: 2
+        DirectionX: 0
+        DirectionY: -1
+        StopOnObstacle: 1
+    - rid: 4242872800730677755
+      type: {class: InputLockAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data: 
+    - rid: 4242872800730677756
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Forest_Shoes_Heavy
+        Volume: 1.25
+        UseOwnerPerspective: 1
+    - rid: 4242872800730677757
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Forest_Shoes_Heavy
+        Volume: 1.45
+        UseOwnerPerspective: 1
+    - rid: 4242872800730677758
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Forest_Shoes_Heavy
+        Volume: 1.3
+        UseOwnerPerspective: 1
+    - rid: 4242872800730677759
+      type: {class: SoundAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        FmodEventPath: Forest_Shoes_Heavy
+        Volume: 1.2
+        UseOwnerPerspective: 1

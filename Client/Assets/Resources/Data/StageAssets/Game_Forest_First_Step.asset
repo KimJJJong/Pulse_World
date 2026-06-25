@@ -1,0 +1,1406 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de39e0c2de14cb84395dcd7da3da8f09, type: 3}
+  m_Name: Game_Forest_First_Step
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Editor.StageBuilder.StageDataSO
+  MapId: Game_Forest_First_Step
+  Description: 
+  DisableAutoClearOnMonsterWipe: 1
+  MapPrefab: {fileID: 0}
+  Rhythm:
+    SongKey: Game_NeoFunk_01
+    Bpm: 110
+    BaseBeatDivision: 1
+    ActionWindowMs: 150
+    StartDelayMs: 2000
+  Registry:
+  - Key: Crystal
+    EntityDef: {fileID: 11400000, guid: 76eb659d9a9faa246872d4f4bcc295c9, type: 2}
+    DefaultGroupId: 5
+    PatternRef: {fileID: 0}
+  - Key: VoidWall
+    EntityDef: {fileID: 11400000, guid: e8201576667862f489b2a94e39408d18, type: 2}
+    DefaultGroupId: 7
+    PatternRef: {fileID: 0}
+  - Key: RunicTower
+    EntityDef: {fileID: 11400000, guid: 560296df3625de548b615585ebbe56ba, type: 2}
+    DefaultGroupId: 0
+    PatternRef: {fileID: 0}
+  - Key: Specter
+    EntityDef: {fileID: 11400000, guid: f6f677115c6d3884aa2efa7a26001295, type: 2}
+    DefaultGroupId: 1000
+    PatternRef: {fileID: 11400000, guid: 9995e0cc51bbd3b48b61c20bcd1dc605, type: 2}
+  - Key: StageSummonRing
+    EntityDef: {fileID: 11400000, guid: a8c8002069dcd684a85f4ced56ee2997, type: 2}
+    DefaultGroupId: 0
+    PatternRef: {fileID: 0}
+  - Key: StageEliteSummonGate
+    EntityDef: {fileID: 11400000, guid: 4ac44ee1ca453fa4aaec9b1db2f1c078, type: 2}
+    DefaultGroupId: 0
+    PatternRef: {fileID: 0}
+  InitialSpawns: []
+  InitialObjects:
+  - EntityKey: Crystal
+    Label: 
+    Position: {x: 47, y: 0, z: 36}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 5
+  - EntityKey: Crystal
+    Label: 
+    Position: {x: 47, y: 0, z: 42}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 6
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 41}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 40}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 39}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 38}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 37}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 36}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 35}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 43}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  - EntityKey: VoidWall
+    Label: 
+    Position: {x: 48, y: 0, z: 42}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    ObjectSize: {x: 1, y: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 7
+  Events:
+  - Section: Section01
+    Title: Crystal Pair 1
+    Notes: 
+    Enabled: 1
+    EventId: 1
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 4
+      TargetId: 5
+      SecondaryTargetId: 6
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 11
+      HeaderParam: 
+      ParamId: 7
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 13
+      HeaderParam: 
+      ParamId: 1
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: Event triggered
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 12
+      HeaderParam: 
+      ParamId: 7
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: Event triggered
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section01
+    Title: Crystal_05 Interactor
+    Notes: Crystal_05 Interactor
+    Enabled: 1
+    EventId: 2
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 3
+      TargetId: 5
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 7
+      HeaderParam: 
+      ParamId: 5
+      Position: {x: -3, y: 0, z: -12}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: CrystalPulseRed
+  - Section: Section01
+    Title: Crystal_06 Interactor
+    Notes: Crystal_06 Interactor
+    Enabled: 1
+    EventId: 3
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 3
+      TargetId: 6
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 7
+      HeaderParam: 
+      ParamId: 6
+      Position: {x: 0, y: 0, z: 2}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: CrystalPulseRed
+  - Section: Section02
+    Title: Enter Center Seal
+    Notes: 
+    Enabled: 1
+    EventId: 4
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 7
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+      AreaShape: 1
+      AreaCells:
+      - {x: 67, y: 35}
+      - {x: 68, y: 35}
+      - {x: 69, y: 35}
+      - {x: 70, y: 35}
+      - {x: 71, y: 35}
+      - {x: 66, y: 36}
+      - {x: 67, y: 36}
+      - {x: 68, y: 36}
+      - {x: 69, y: 36}
+      - {x: 70, y: 36}
+      - {x: 71, y: 36}
+      - {x: 72, y: 36}
+      - {x: 65, y: 37}
+      - {x: 66, y: 37}
+      - {x: 67, y: 37}
+      - {x: 68, y: 37}
+      - {x: 69, y: 37}
+      - {x: 70, y: 37}
+      - {x: 71, y: 37}
+      - {x: 72, y: 37}
+      - {x: 73, y: 37}
+      - {x: 65, y: 38}
+      - {x: 66, y: 38}
+      - {x: 67, y: 38}
+      - {x: 68, y: 38}
+      - {x: 69, y: 38}
+      - {x: 70, y: 38}
+      - {x: 71, y: 38}
+      - {x: 72, y: 38}
+      - {x: 73, y: 38}
+      - {x: 65, y: 39}
+      - {x: 66, y: 39}
+      - {x: 67, y: 39}
+      - {x: 68, y: 39}
+      - {x: 69, y: 39}
+      - {x: 70, y: 39}
+      - {x: 71, y: 39}
+      - {x: 72, y: 39}
+      - {x: 73, y: 39}
+      - {x: 66, y: 40}
+      - {x: 67, y: 40}
+      - {x: 68, y: 40}
+      - {x: 69, y: 40}
+      - {x: 69, y: 41}
+      - {x: 69, y: 42}
+      - {x: 66, y: 41}
+      - {x: 65, y: 40}
+      - {x: 65, y: 41}
+      - {x: 66, y: 42}
+      - {x: 67, y: 42}
+      - {x: 68, y: 42}
+      - {x: 70, y: 42}
+      - {x: 71, y: 42}
+      - {x: 72, y: 42}
+      - {x: 72, y: 41}
+      - {x: 72, y: 40}
+      - {x: 73, y: 40}
+      - {x: 73, y: 41}
+      - {x: 70, y: 41}
+      - {x: 71, y: 41}
+      - {x: 71, y: 40}
+      - {x: 70, y: 40}
+      - {x: 70, y: 43}
+      - {x: 71, y: 43}
+      - {x: 69, y: 43}
+      - {x: 68, y: 43}
+      - {x: 67, y: 43}
+      - {x: 67, y: 41}
+      - {x: 68, y: 41}
+      CountRequirement: 1
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area Count
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 7
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: MarkerCyan
+    - Type: 13
+      HeaderParam: 
+      ParamId: 1
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 900
+      VfxKey: 
+    - Type: 12
+      HeaderParam: 
+      ParamId: 7
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 900
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 41}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 40}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 39}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 38}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 1, z: 37}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 36}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 35}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 43}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: VoidWall
+      ParamId: 0
+      Position: {x: 48, y: 0, z: 42}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 12
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: Crystal
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1400
+      VfxKey: 
+    - Type: 4
+      HeaderParam: RunicTower
+      ParamId: 0
+      Position: {x: 69, y: 0, z: 53}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 31
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: RunicTower
+      ParamId: 0
+      Position: {x: 84, y: 0, z: 39}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 32
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: RunicTower
+      ParamId: 0
+      Position: {x: 69, y: 0, z: 26}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 33
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: RunicTower
+      ParamId: 0
+      Position: {x: 56, y: 0, z: 39}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 34
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: StageSummonRing
+      ParamId: 0
+      Position: {x: 79, y: 0, z: 48}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 2101
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2201
+      Position: {x: 79, y: 0, z: 48}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: Section2_NormalSummonRing_North
+      GroupId: 1
+      GuideTitle: 1010
+      GuideBody: Enemy_Bat
+      GuideImageResource: 
+      DurationMs: 15
+      VfxKey: 
+    - Type: 4
+      HeaderParam: StageSummonRing
+      ParamId: 0
+      Position: {x: 79, y: 0, z: 31}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 2102
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2202
+      Position: {x: 79, y: 0, z: 31}
+      ObjectSize: {x: 1, y: 4}
+      StringVal: Section2_NormalSummonRing_East
+      GroupId: 1
+      GuideTitle: 1012
+      GuideBody: Enemy_EvilMage
+      GuideImageResource: 
+      DurationMs: 15
+      VfxKey: 
+    - Type: 6
+      HeaderParam: 
+      ParamId: 100
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: North Tower Hold
+    Notes: 
+    Enabled: 1
+    EventId: 5
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 100
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 8
+      TargetId: 1
+      SecondaryTargetId: 31
+      TargetKey: RunicTowerLink_North
+      Count: 30
+      Area:
+        x: 66
+        y: 50
+        width: 7
+        height: 7
+      AreaShape: 0
+      AreaCells:
+      - {x: 68, y: 51}
+      - {x: 69, y: 51}
+      - {x: 70, y: 51}
+      - {x: 71, y: 51}
+      - {x: 72, y: 51}
+      - {x: 68, y: 52}
+      - {x: 69, y: 52}
+      - {x: 70, y: 52}
+      - {x: 71, y: 52}
+      - {x: 72, y: 52}
+      - {x: 68, y: 53}
+      - {x: 69, y: 53}
+      - {x: 70, y: 53}
+      - {x: 71, y: 53}
+      - {x: 72, y: 53}
+      - {x: 68, y: 54}
+      - {x: 69, y: 54}
+      - {x: 70, y: 54}
+      - {x: 71, y: 54}
+      - {x: 72, y: 54}
+      - {x: 68, y: 55}
+      - {x: 69, y: 55}
+      - {x: 70, y: 55}
+      - {x: 71, y: 55}
+      - {x: 72, y: 55}
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: North Tower
+      ProgressDurationMs: 1000
+    Actions:
+    - Type: 6
+      HeaderParam: 
+      ParamId: 101
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: East Tower Hold
+    Notes: 
+    Enabled: 1
+    EventId: 6
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 100
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 8
+      TargetId: 1
+      SecondaryTargetId: 32
+      TargetKey: RunicTowerLink_East
+      Count: 30
+      Area:
+        x: 81
+        y: 36
+        width: 7
+        height: 7
+      AreaShape: 0
+      AreaCells:
+      - {x: 81, y: 37}
+      - {x: 82, y: 37}
+      - {x: 83, y: 37}
+      - {x: 84, y: 37}
+      - {x: 85, y: 37}
+      - {x: 81, y: 38}
+      - {x: 82, y: 38}
+      - {x: 83, y: 38}
+      - {x: 84, y: 38}
+      - {x: 85, y: 38}
+      - {x: 81, y: 39}
+      - {x: 82, y: 39}
+      - {x: 83, y: 39}
+      - {x: 84, y: 39}
+      - {x: 85, y: 39}
+      - {x: 81, y: 40}
+      - {x: 82, y: 40}
+      - {x: 83, y: 40}
+      - {x: 84, y: 40}
+      - {x: 85, y: 40}
+      - {x: 81, y: 41}
+      - {x: 82, y: 41}
+      - {x: 83, y: 41}
+      - {x: 84, y: 41}
+      - {x: 85, y: 41}
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: East Tower
+      ProgressDurationMs: 1000
+    Actions:
+    - Type: 6
+      HeaderParam: 
+      ParamId: 102
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: Unlock South West Tower Holds
+    Notes: 
+    Enabled: 1
+    EventId: 7
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 101
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 5
+      TargetId: 102
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 6
+      HeaderParam: 
+      ParamId: 100
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 2
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: StageSummonRing
+      ParamId: 0
+      Position: {x: 61, y: 0, z: 31}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 2103
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2203
+      Position: {x: 61, y: 0, z: 31}
+      ObjectSize: {x: 1, y: 2}
+      StringVal: Section2_NormalSummonRing_South
+      GroupId: 1
+      GuideTitle: 1027
+      GuideBody: Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 15
+      VfxKey: 
+    - Type: 4
+      HeaderParam: StageSummonRing
+      ParamId: 0
+      Position: {x: 61, y: 0, z: 48}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 2104
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2204
+      Position: {x: 61, y: 0, z: 48}
+      ObjectSize: {x: 1, y: 4}
+      StringVal: Section2_NormalSummonRing_West
+      GroupId: 1
+      GuideTitle: 1010,1012,1027
+      GuideBody: Enemy_Bat,Enemy_EvilMage,Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 15
+      VfxKey: 
+  - Section: Section03
+    Title: South Tower Hold
+    Notes: 
+    Enabled: 1
+    EventId: 8
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 100
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 2
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 8
+      TargetId: 1
+      SecondaryTargetId: 33
+      TargetKey: RunicTowerLink_South
+      Count: 30
+      Area:
+        x: 66
+        y: 23
+        width: 7
+        height: 7
+      AreaShape: 0
+      AreaCells:
+      - {x: 68, y: 24}
+      - {x: 69, y: 24}
+      - {x: 70, y: 24}
+      - {x: 71, y: 24}
+      - {x: 72, y: 24}
+      - {x: 68, y: 25}
+      - {x: 69, y: 25}
+      - {x: 70, y: 25}
+      - {x: 71, y: 25}
+      - {x: 72, y: 25}
+      - {x: 68, y: 26}
+      - {x: 69, y: 26}
+      - {x: 70, y: 26}
+      - {x: 71, y: 26}
+      - {x: 72, y: 26}
+      - {x: 68, y: 27}
+      - {x: 69, y: 27}
+      - {x: 70, y: 27}
+      - {x: 71, y: 27}
+      - {x: 72, y: 27}
+      - {x: 68, y: 28}
+      - {x: 69, y: 28}
+      - {x: 70, y: 28}
+      - {x: 71, y: 28}
+      - {x: 72, y: 28}
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: South Tower
+      ProgressDurationMs: 1000
+    Actions:
+    - Type: 6
+      HeaderParam: 
+      ParamId: 103
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: West Tower Hold
+    Notes: 
+    Enabled: 1
+    EventId: 9
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 100
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 2
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 8
+      TargetId: 1
+      SecondaryTargetId: 34
+      TargetKey: RunicTowerLink_West
+      Count: 30
+      Area:
+        x: 53
+        y: 36
+        width: 7
+        height: 7
+      AreaShape: 0
+      AreaCells:
+      - {x: 55, y: 37}
+      - {x: 56, y: 37}
+      - {x: 57, y: 37}
+      - {x: 58, y: 37}
+      - {x: 59, y: 37}
+      - {x: 55, y: 38}
+      - {x: 56, y: 38}
+      - {x: 57, y: 38}
+      - {x: 58, y: 38}
+      - {x: 59, y: 38}
+      - {x: 55, y: 39}
+      - {x: 56, y: 39}
+      - {x: 57, y: 39}
+      - {x: 58, y: 39}
+      - {x: 59, y: 39}
+      - {x: 55, y: 40}
+      - {x: 56, y: 40}
+      - {x: 57, y: 40}
+      - {x: 58, y: 40}
+      - {x: 59, y: 40}
+      - {x: 55, y: 41}
+      - {x: 56, y: 41}
+      - {x: 57, y: 41}
+      - {x: 58, y: 41}
+      - {x: 59, y: 41}
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: West Tower
+      ProgressDurationMs: 1000
+    Actions:
+    - Type: 6
+      HeaderParam: 
+      ParamId: 104
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 1
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: Tower Holds Complete
+    Notes: 
+    Enabled: 1
+    EventId: 10
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 103
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    - Type: 5
+      TargetId: 104
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2201
+      Position: {x: 79, y: 0, z: 48}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: Section2_NormalSummonRing_North
+      GroupId: 0
+      GuideTitle: 1010
+      GuideBody: Enemy_Bat
+      GuideImageResource: 
+      DurationMs: 15
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2201
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2202
+      Position: {x: 79, y: 0, z: 31}
+      ObjectSize: {x: 1, y: 4}
+      StringVal: Section2_NormalSummonRing_East
+      GroupId: 0
+      GuideTitle: 1012
+      GuideBody: Enemy_EvilMage
+      GuideImageResource: 
+      DurationMs: 15
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2202
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2203
+      Position: {x: 61, y: 0, z: 31}
+      ObjectSize: {x: 1, y: 2}
+      StringVal: Section2_NormalSummonRing_South
+      GroupId: 0
+      GuideTitle: 1027
+      GuideBody: Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 15
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2203
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 14
+      HeaderParam: 
+      ParamId: 2204
+      Position: {x: 61, y: 0, z: 48}
+      ObjectSize: {x: 1, y: 4}
+      StringVal: Section2_NormalSummonRing_West
+      GroupId: 0
+      GuideTitle: 1010,1012,1027
+      GuideBody: Enemy_Bat,Enemy_EvilMage,Enemy_Specter
+      GuideImageResource: 
+      DurationMs: 15
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2204
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 12
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: Section2_NormalSummonRing
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 850
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2101
+      Position: {x: 950, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2102
+      Position: {x: 950, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2103
+      Position: {x: 950, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 11
+      HeaderParam: 
+      ParamId: 2104
+      Position: {x: 950, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 4
+      HeaderParam: StageEliteSummonGate
+      ParamId: 0
+      Position: {x: 78, y: 0, z: 39}
+      ObjectSize: {x: 2, y: 2}
+      StringVal: 
+      GroupId: 2190
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+    - Type: 6
+      HeaderParam: 
+      ParamId: 100
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 3
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: Elite Gate Summon
+    Notes: 
+    Enabled: 1
+    EventId: 11
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 5
+      TargetId: 105
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 0
+      HeaderParam: 
+      ParamId: 1021
+      Position: {x: 78, y: 0, z: 39}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: Enemy_BlackKnight_Elite
+      GroupId: 2301
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 3500
+      VfxKey: 
+  - Section: Section03
+    Title: Elite Defeated Banner
+    Notes: 
+    Enabled: 1
+    EventId: 12
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0.67, g: 0.44, b: 0.93, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 0
+      TargetId: 2301
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 0
+        height: 0
+      AreaShape: 0
+      AreaCells: []
+      CountRequirement: 0
+      ShowProgressUi: 1
+      ShowAreaOutline: 1
+      ProgressLabel: Area
+      ProgressDurationMs: 1200
+    Actions:
+    - Type: 5
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      ObjectSize: {x: 1, y: 1}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: Elite Defeated
+      GuideBody: The Crystalline Pulse Knight has fallen.
+      GuideImageResource: 
+      DurationMs: 4000
+      VfxKey: 

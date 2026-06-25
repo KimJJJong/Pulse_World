@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse World: Atmosphere Harmony Simulator</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            background: #12121e;
+            color: #dcdcdc;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #2ecc71;
+            margin-top: 0;
+            font-size: 24px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 10px;
+            text-align: center;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel {
+            background: #1e1e2d;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .scenario-card {
+            background: #2b2b3c;
+            border: 1px solid #444;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .scenario-card:hover {
+            background: #36364c;
+            border-color: #666;
+            transform: translateY(-2px);
+        }
+
+        .scenario-card.active {
+            background: #27ae60;
+            border-color: #2ecc71;
+            color: #fff;
+        }
+
+        .scenario-card.active .theme-title {
+            color: #fff;
+        }
+
+        .scenario-card.active .chord-prog {
+            color: #fff;
+        }
+
+        .theme-title {
+            font-weight: bold;
+            font-size: 14px;
+            color: #f1c40f;
+            margin-bottom: 5px;
+        }
+
+        .chord-prog {
+            font-size: 15px;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 5px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .desc-text {
+            font-size: 11px;
+            color: #aaa;
+            line-height: 1.4;
+        }
+
+        .active .desc-text {
+            color: #eee;
+        }
+
+        /* Current Player Area */
+        .player-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #111;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #2ecc71;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border-radius: 6px;
+            border: none;
+            background: #3498db;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+            transform: scale(1.05);
+        }
+
+        .btn-stop {
+            background: #e74c3c;
+        }
+
+        .btn-stop:hover {
+            background: #c0392b;
+        }
+
+        .current-chord-display {
+            font-size: 36px;
+            font-weight: bold;
+            color: #f1c40f;
+            text-align: center;
+            min-width: 150px;
+            text-shadow: 0 0 10px rgba(241, 196, 15, 0.4);
+        }
+
+        .master-bpm {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #333;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .master-bpm input {
+            width: 50px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 5px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* Piano Roll Visualizer */
+        .visualizer {
+            height: 100px;
+            background: #000;
+            border-radius: 4px;
+            margin-top: 15px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+
+        .viz-bar {
+            position: absolute;
+            bottom: 0;
+            width: 10%;
+            background: #3498db;
+            opacity: 0.8;
+            transition: height 0.1s ease;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🎵 Pulse: Atmosphere Harmony Simulator</h1>
+
+    <div class="container">
+
+        <div class="panel player-area">
+            <div class="controls">
+                <button class="btn" onclick="togglePlay()" id="playBtn">▶ PLAY (재생)</button>
+                <div class="master-bpm">
+                    <span>BPM:</span>
+                    <input type="number" id="bpmInput" value="90" onchange="updateBPM()">
+                </div>
+            </div>
+
+            <div>
+                <div style="font-size:12px; color:#888; text-align:center;">Current Chord</div>
+                <div class="current-chord-display" id="currentChordUI">---</div>
+            </div>
+
+            <div style="width:300px;">
+                <div style="font-size:12px; color:#aaa; margin-bottom:5px;" id="currentDescUI">시나리오를 선택하고 재생 버튼을 누르세요.
+                </div>
+            </div>
+        </div>
+
+        <div class="visualizer" id="vizContainer">
+            <!-- Bars injected by JS -->
+        </div>
+
+        <div class="panel">
+            <h3 style="margin-top:0; color:#ccc;">분위기별 시나리오 선택 (Contextual Harmony)</h3>
+            <div class="scenario-grid" id="scenarioGrid">
+                <!-- Cards injected by JS -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==== AUDIO ENGINE ====
+        let ac = null;
+        let masterGain = null;
+        let isPlaying = false;
+        let timerID = null;
+        let currentBPM = 90;
+        let barStep = 0; // 0, 1, 2, 3 (4 bars per loop usually)
+        let nextChordTime = 0.0;
+
+        // Define Scenarios based on methodology document
+        const scenarios = [
+            {
+                id: 'town_day',
+                title: "🏙️ 마을 (일반/낮)",
+                desc: "가장 안정적이고 대중적인 4코드루프. 예측이 가능하여 플레이어의 심박수를 안정시킵니다. (Pop/Chill-out)",
+                progText: "Em 👉 C 👉 G 👉 D",
+                defaultBpm: 90,
+                chords: [
+                    { name: "Em", notes: ["E3", "G3", "B3", "E4"] },
+                    { name: "C", notes: ["C3", "E3", "G3", "C4"] },
+                    { name: "G", notes: ["G2", "D3", "G3", "B3"] },
+                    { name: "D", notes: ["D3", "F#3", "A3", "D4"] }
+                ]
+            },
+            {
+                id: 'town_night',
+                title: "🌃 마을 (황혼/밤)",
+                desc: "메이저 세븐스(maj7)의 부드럽고 재지(Jazzy)한 느낌. 텐션을 뺐기 때문에 공격적인 스킬을 사용하고 싶지 않게 만듭니다.",
+                progText: "Cmaj7 👉 Bm7 👉 Am7 👉 Gmaj7",
+                defaultBpm: 75,
+                chords: [
+                    { name: "Cmaj7", notes: ["C3", "E3", "G3", "B3"] },
+                    { name: "Bm7", notes: ["B2", "D3", "F#3", "A3"] },
+                    { name: "Am7", notes: ["A2", "C3", "E3", "G3"] },
+                    { name: "Gmaj7", notes: ["G2", "B2", "D3", "F#3"] }
+                ]
+            },
+            {
+                id: 'field_explore',
+                title: "⚔️ 일반 필드 / 탐험",
+                desc: "전형적인 판타지 모험. 마지막에 으뜸화음(Em)으로 돌아와 안도감을 주며 짤막한 전투에 적합합니다.",
+                progText: "Em 👉 C 👉 D 👉 Em",
+                defaultBpm: 120,
+                chords: [
+                    { name: "Em", notes: ["E3", "G3", "B3", "E4"] },
+                    { name: "C", notes: ["C3", "E3", "G3", "C4"] },
+                    { name: "D", notes: ["D3", "F#3", "A3", "D4"] },
+                    { name: "Em", notes: ["E3", "G3", "B3", "E4"] }
+                ]
+            },
+            {
+                id: 'elite_encounter',
+                title: "🔥 정예몹 난입 (위기)",
+                desc: "마지막에 강력한 세컨더리 도미넌트(B7, D#음 포함)를 사용하여 극도의 긴장성(Tension)을 유발. 유저는 '큰 거 온다'고 느낍니다.",
+                progText: "Em 👉 C 👉 D 👉 B7",
+                defaultBpm: 125,
+                chords: [
+                    { name: "Em", notes: ["E3", "G3", "B3", "E4"] },
+                    { name: "C", notes: ["C3", "E3", "G3", "C4"] },
+                    { name: "D", notes: ["D3", "F#3", "A3", "D4"] },
+                    { name: "B7", notes: ["B2", "D#3", "F#3", "A3"] } // Epic tension
+                ]
+            },
+            {
+                id: 'raid_ph1',
+                title: "👁️ 보스전 Ph1 (공포)",
+                desc: "화성이 진행되지 않고 베이스가 하나의 음(E)으로 짓눌러 미지의 공포를 자아냅니다. 심박수만 뜁니다.",
+                progText: "E Drone 👉 E Drone 👉 E Drone 👉 E Drone",
+                defaultBpm: 80,
+                chords: [
+                    { name: "E Drone", notes: ["E2", "E3"] },
+                    { name: "E Drone", notes: ["E2", "E3"] },
+                    { name: "E Drone", notes: ["E2", "E3"] },
+                    { name: "E Drone", notes: ["E2", "E3"] }
+                ]
+            },
+            {
+                id: 'raid_ph2',
+                title: "💥 보스전 Ph2 (혼돈/트라이톤)",
+                desc: "화성학적으로 가장 멀고 불길한 간격인 증4도(Tritone, Em->Bb) 이동. 플레이어의 음악적 예측이 빗나가며 강렬한 혼돈을 부여.",
+                progText: "Em 👉 Bb 👉 Em 👉 Bb",
+                defaultBpm: 135,
+                chords: [
+                    { name: "Em", notes: ["E3", "G3", "B3", "E4"] },
+                    { name: "Bb", notes: ["Bb2", "D3", "F3", "Bb3"] }, // Tritone from E
+                    { name: "Em", notes: ["E3", "G3", "B3", "E4"] },
+                    { name: "Bb", notes: ["Bb2", "D3", "F3", "Bb3"] }
+                ]
+            },
+            {
+                id: 'raid_ph3',
+                title: "💀 보스전 Ph3 (에픽 카타르시스)",
+                desc: "위기가 최고조(B7)에 달한 뒤, 루프. 유저들이 쏟아붓는 수많은 스킬들이 이 웅장한 화성 위에 얹혀 거대한 교향곡으로 승화됩니다.",
+                progText: "Em 👉 C 👉 Am 👉 B7",
+                defaultBpm: 140,
+                chords: [
+                    { name: "Em", notes: ["E2", "G3", "B3", "E4"] },
+                    { name: "C", notes: ["C2", "E3", "G3", "C4"] },
+                    { name: "Am", notes: ["A2", "C3", "E3", "A3"] },
+                    { name: "B7", notes: ["B1", "D#3", "F#3", "A3"] }
+                ]
+            }
+        ];
+
+        let curScenarioIdx = 0;
+
+        // Note frequencies
+        function noteToFreq(noteStr) {
+            if (!noteStr) return 0;
+            const notes = { "C": -9, "C#": -8, "D": -7, "D#": -6, "E": -5, "F": -4, "F#": -3, "G": -2, "G#": -1, "A": 0, "A#": 1, "B": 2, "Bb": 1 };
+            let match = noteStr.match(/([A-Ga-g]#?b?)(\d)/);
+            if (match) {
+                let n = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                let oct = parseInt(match[2]);
+                if (notes[n] !== undefined) return 440 * Math.pow(2, (notes[n] + (oct - 4) * 12) / 12);
+            }
+            return 0;
+        }
+
+        function initAudio() {
+            if (!ac) {
+                ac = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = ac.createGain();
+                masterGain.gain.value = 0.5;
+
+                // Add soft compressor/limiter
+                let comp = ac.createDynamicsCompressor();
+                comp.threshold.value = -10;
+                comp.knee.value = 40;
+                comp.ratio.value = 12;
+                comp.attack.value = 0;
+                comp.release.value = 0.25;
+
+                masterGain.connect(comp);
+                comp.connect(ac.destination);
+            }
+            if (ac.state === 'suspended') ac.resume();
+        }
+
+        // Play a single chord (pad/synth sound)
+        function playChord(notesArray, time, duration) {
+
+            notesArray.forEach((noteStr, idx) => {
+                let freq = noteToFreq(noteStr);
+                if (freq === 0) return;
+
+                // Synth Pad implementation
+                const osc = ac.createOscillator();
+                osc.type = (idx === 0) ? 'sawtooth' : 'triangle'; // Bass is saw, rest is triangle for smoothness
+                osc.frequency.value = freq;
+
+                // Adding a bit of detune for fatness
+                if (idx > 0) {
+                    const osc2 = ac.createOscillator();
+                    osc2.type = 'sine';
+                    osc2.frequency.value = freq;
+                    osc2.detune.value = 10; // 10 cents
+
+                    const g2 = ac.createGain();
+                    g2.gain.value = 0.4;
+                    osc2.connect(g2);
+
+                    const flt2 = ac.createBiquadFilter();
+                    flt2.type = 'lowpass';
+                    flt2.frequency.value = 1500;
+                    g2.connect(flt2);
+
+                    const env2 = ac.createGain();
+                    env2.gain.setValueAtTime(0.01, time);
+                    env2.gain.linearRampToValueAtTime(0.3, time + 0.1); // attack
+                    env2.gain.setValueAtTime(0.3, time + duration - 0.5); // sustain
+                    env2.gain.exponentialRampToValueAtTime(0.01, time + duration); // release
+
+                    flt2.connect(env2);
+                    env2.connect(masterGain);
+
+                    osc2.start(time);
+                    osc2.stop(time + duration + 0.5);
+                }
+
+                // Filter
+                const flt = ac.createBiquadFilter();
+                flt.type = 'lowpass';
+                flt.frequency.setValueAtTime(400, time); // Start muffled
+                flt.frequency.exponentialRampToValueAtTime(1200, time + duration * 0.5); // Open up
+                flt.frequency.exponentialRampToValueAtTime(600, time + duration); // Close down
+
+                // Envelope
+                const env = ac.createGain();
+                env.gain.setValueAtTime(0.01, time);
+                env.gain.linearRampToValueAtTime(idx === 0 ? 0.7 : 0.4, time + 0.05); // attack (Bass louder)
+                env.gain.setValueAtTime(idx === 0 ? 0.5 : 0.3, time + duration - 0.5); // sustain
+                env.gain.exponentialRampToValueAtTime(0.01, time + duration); // release
+
+                osc.connect(flt);
+                flt.connect(env);
+                env.connect(masterGain);
+
+                osc.start(time);
+                osc.stop(time + duration + 0.5);
+
+                // Visualizer pop (roughly synced to timing)
+                setTimeout(() => {
+                    let bar = document.getElementById(`viz-${idx}`);
+                    if (bar) {
+                        bar.style.height = '100%';
+                        bar.style.backgroundColor = idx === 0 ? '#e74c3c' : '#3498db'; // Bass is red
+                        setTimeout(() => { bar.style.height = '20%'; bar.style.backgroundColor = '#2c3e50'; }, Math.random() * 500 + 500);
+                    }
+                }, (time - ac.currentTime) * 1000);
+            });
+
+            // Add a subtle Kick drum for pacing
+            const kick = ac.createOscillator();
+            kick.type = 'sine';
+            kick.frequency.setValueAtTime(150, time);
+            kick.frequency.exponentialRampToValueAtTime(20, time + 0.5);
+            const kEnv = ac.createGain();
+            kEnv.gain.setValueAtTime(0.01, time);
+            kEnv.gain.linearRampToValueAtTime(0.8, time + 0.02);
+            kEnv.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+            kick.connect(kEnv); kEnv.connect(masterGain);
+            kick.start(time); kick.stop(time + 0.6);
+        }
+
+        function scheduleNextChord() {
+            let sc = scenarios[curScenarioIdx];
+            let chordObj = sc.chords[barStep];
+
+            // One chord per bar (4 beats)
+            let secPerBeat = 60.0 / currentBPM;
+            let secPerBar = secPerBeat * 4;
+
+            playChord(chordObj.notes, nextChordTime, secPerBar);
+
+            // UI Updates synced to playback
+            let displayTime = (nextChordTime - ac.currentTime) * 1000;
+            if (displayTime < 0) displayTime = 0;
+
+            setTimeout(() => {
+                document.getElementById('currentChordUI').innerText = chordObj.name;
+                document.getElementById('currentChordUI').style.transform = 'scale(1.1)';
+                setTimeout(() => { document.getElementById('currentChordUI').style.transform = 'scale(1)'; }, 100);
+            }, displayTime);
+
+            nextChordTime += secPerBar;
+            barStep++;
+            if (barStep >= sc.chords.length) {
+                barStep = 0; // Loop progression
+            }
+        }
+
+        function scheduler() {
+            while (nextChordTime < ac.currentTime + 0.2) {
+                scheduleNextChord();
+            }
+            timerID = setTimeout(scheduler, 50);
+        }
+
+        function togglePlay() {
+            let btn = document.getElementById('playBtn');
+            if (isPlaying) {
+                // STOP
+                isPlaying = false;
+                clearTimeout(timerID);
+                btn.innerText = "▶ PLAY (재생)";
+                btn.className = "btn";
+                // Quick fade out
+                if (masterGain) masterGain.gain.exponentialRampToValueAtTime(0.01, ac.currentTime + 0.1);
+            } else {
+                // PLAY
+                initAudio();
+                masterGain.gain.setValueAtTime(0.5, ac.currentTime); // reset volume
+                isPlaying = true;
+                btn.innerText = "■ STOP (정지)";
+                btn.className = "btn btn-stop";
+
+                barStep = 0;
+                nextChordTime = ac.currentTime + 0.1;
+                scheduler();
+            }
+        }
+
+        function selectScenario(idx) {
+            curScenarioIdx = idx;
+            let sc = scenarios[idx];
+
+            // Update UI
+            document.querySelectorAll('.scenario-card').forEach((el, i) => {
+                if (i === idx) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+
+            document.getElementById('currentDescUI').innerText = sc.desc;
+            document.getElementById('bpmInput').value = sc.defaultBpm;
+            updateBPM();
+            document.getElementById('currentChordUI').innerText = "---";
+
+            // Refresh playback if running
+            if (isPlaying) {
+                barStep = 0;
+                nextChordTime = ac.currentTime + 0.1; // Jump to new chord immediately
+            }
+        }
+
+        function updateBPM() {
+            let val = parseInt(document.getElementById('bpmInput').value);
+            if (val > 0) currentBPM = val;
+        }
+
+        // Build UI
+        function buildUI() {
+            let grid = document.getElementById('scenarioGrid');
+            scenarios.forEach((sc, idx) => {
+                let card = document.createElement('div');
+                card.className = 'scenario-card' + (idx === 0 ? ' active' : '');
+                card.onclick = () => selectScenario(idx);
+
+                card.innerHTML = `
+                    <div class="theme-title">${sc.title}</div>
+                    <div class="chord-prog">${sc.progText}</div>
+                    <div class="desc-text">${sc.desc}</div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // Build visualizer bars
+            let viz = document.getElementById('vizContainer');
+            for (let i = 0; i < 4; i++) { // Max 4 notes per chord usually
+                let bar = document.createElement('div');
+                bar.className = 'viz-bar';
+                bar.id = `viz-${i}`;
+                bar.style.left = `${15 + (i * 20)}%`;
+                bar.style.height = '20%';
+                viz.appendChild(bar);
+            }
+
+            // Init text
+            document.getElementById('currentDescUI').innerText = scenarios[0].desc;
+        }
+
+        window.onload = buildUI;
+
+    </script>
+</body>
+
+</html>

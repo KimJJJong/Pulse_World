@@ -1,0 +1,1730 @@
+{
+    "MapId": "Game_Forest_First_Step",
+    "Description": "",
+    "DisableAutoClearOnMonsterWipe": true,
+    "RhythmSettings": {
+        "SongKey": "Game_NeoFunk_01",
+        "Bpm": 110,
+        "BaseBeatDivision": 1,
+        "ActionWindowMs": 150,
+        "StartDelayMs": 2000
+    },
+    "InitialSpawns": [],
+    "InitialObjects": [
+        {
+            "EntityId": 500,
+            "EntityType": 3,
+            "X": 47,
+            "Y": 0,
+            "Z": 36,
+            "GroupId": 5,
+            "SizeX": 1,
+            "SizeY": 1,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 500,
+            "EntityType": 3,
+            "X": 47,
+            "Y": 0,
+            "Z": 42,
+            "GroupId": 6,
+            "SizeX": 1,
+            "SizeY": 1,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 41,
+            "GroupId": 7,
+            "SizeX": 1,
+            "SizeY": 1,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 40,
+            "GroupId": 7,
+            "SizeX": 1,
+            "SizeY": 1,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 39,
+            "GroupId": 7,
+            "SizeX": 1,
+            "SizeY": 1,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 38,
+            "GroupId": 7,
+            "SizeX": 1,
+            "SizeY": 1,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 37,
+            "GroupId": 7,
+            "SizeX": 1,
+            "SizeY": 1,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 36,
+            "GroupId": 7,
+            "SizeX": 1,
+            "SizeY": 1,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 35,
+            "GroupId": 7,
+            "SizeX": 1,
+            "SizeY": 1,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 43,
+            "GroupId": 7,
+            "SizeX": 1,
+            "SizeY": 1,
+            "Pattern": "",
+            "Rotation": 0.0
+        },
+        {
+            "EntityId": 501,
+            "EntityType": 3,
+            "X": 48,
+            "Y": 0,
+            "Z": 42,
+            "GroupId": 7,
+            "SizeX": 1,
+            "SizeY": 1,
+            "Pattern": "",
+            "Rotation": 0.0
+        }
+    ],
+    "Events": [
+        {
+            "EventId": 1,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectPairInteracted",
+                    "TargetId": 5,
+                    "SecondaryTargetId": 6,
+                    "TargetKey": "",
+                    "Count": 0,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 1,
+                        "H": 1,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "RemoveEntityGroup",
+                    "ParamId": 7,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetGateDoorOpen",
+                    "ParamId": 1,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "Event triggered",
+                    "GroupId": 1,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSceneObjectActive",
+                    "ParamId": 7,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "Event triggered",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 2,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectInteracted",
+                    "TargetId": 5,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 1,
+                        "H": 1,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "PlayVfx",
+                    "ParamId": 5,
+                    "X": -3,
+                    "Y": 0,
+                    "Z": -12,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 1200,
+                    "VfxKey": "CrystalPulseRed"
+                }
+            ]
+        },
+        {
+            "EventId": 3,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectInteracted",
+                    "TargetId": 6,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 1,
+                        "H": 1,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "PlayVfx",
+                    "ParamId": 6,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 2,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": "CrystalPulseRed"
+                }
+            ]
+        },
+        {
+            "EventId": 4,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "AreaPlayerCount",
+                    "TargetId": 0,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": true,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area Count",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 1,
+                        "H": 1,
+                        "Shape": "CustomCells",
+                        "Cells": [
+                            {
+                                "X": 67,
+                                "Y": 35
+                            },
+                            {
+                                "X": 68,
+                                "Y": 35
+                            },
+                            {
+                                "X": 69,
+                                "Y": 35
+                            },
+                            {
+                                "X": 70,
+                                "Y": 35
+                            },
+                            {
+                                "X": 71,
+                                "Y": 35
+                            },
+                            {
+                                "X": 66,
+                                "Y": 36
+                            },
+                            {
+                                "X": 67,
+                                "Y": 36
+                            },
+                            {
+                                "X": 68,
+                                "Y": 36
+                            },
+                            {
+                                "X": 69,
+                                "Y": 36
+                            },
+                            {
+                                "X": 70,
+                                "Y": 36
+                            },
+                            {
+                                "X": 71,
+                                "Y": 36
+                            },
+                            {
+                                "X": 72,
+                                "Y": 36
+                            },
+                            {
+                                "X": 65,
+                                "Y": 37
+                            },
+                            {
+                                "X": 66,
+                                "Y": 37
+                            },
+                            {
+                                "X": 67,
+                                "Y": 37
+                            },
+                            {
+                                "X": 68,
+                                "Y": 37
+                            },
+                            {
+                                "X": 69,
+                                "Y": 37
+                            },
+                            {
+                                "X": 70,
+                                "Y": 37
+                            },
+                            {
+                                "X": 71,
+                                "Y": 37
+                            },
+                            {
+                                "X": 72,
+                                "Y": 37
+                            },
+                            {
+                                "X": 73,
+                                "Y": 37
+                            },
+                            {
+                                "X": 65,
+                                "Y": 38
+                            },
+                            {
+                                "X": 66,
+                                "Y": 38
+                            },
+                            {
+                                "X": 67,
+                                "Y": 38
+                            },
+                            {
+                                "X": 68,
+                                "Y": 38
+                            },
+                            {
+                                "X": 69,
+                                "Y": 38
+                            },
+                            {
+                                "X": 70,
+                                "Y": 38
+                            },
+                            {
+                                "X": 71,
+                                "Y": 38
+                            },
+                            {
+                                "X": 72,
+                                "Y": 38
+                            },
+                            {
+                                "X": 73,
+                                "Y": 38
+                            },
+                            {
+                                "X": 65,
+                                "Y": 39
+                            },
+                            {
+                                "X": 66,
+                                "Y": 39
+                            },
+                            {
+                                "X": 67,
+                                "Y": 39
+                            },
+                            {
+                                "X": 68,
+                                "Y": 39
+                            },
+                            {
+                                "X": 69,
+                                "Y": 39
+                            },
+                            {
+                                "X": 70,
+                                "Y": 39
+                            },
+                            {
+                                "X": 71,
+                                "Y": 39
+                            },
+                            {
+                                "X": 72,
+                                "Y": 39
+                            },
+                            {
+                                "X": 73,
+                                "Y": 39
+                            },
+                            {
+                                "X": 66,
+                                "Y": 40
+                            },
+                            {
+                                "X": 67,
+                                "Y": 40
+                            },
+                            {
+                                "X": 68,
+                                "Y": 40
+                            },
+                            {
+                                "X": 69,
+                                "Y": 40
+                            },
+                            {
+                                "X": 69,
+                                "Y": 41
+                            },
+                            {
+                                "X": 69,
+                                "Y": 42
+                            },
+                            {
+                                "X": 66,
+                                "Y": 41
+                            },
+                            {
+                                "X": 65,
+                                "Y": 40
+                            },
+                            {
+                                "X": 65,
+                                "Y": 41
+                            },
+                            {
+                                "X": 66,
+                                "Y": 42
+                            },
+                            {
+                                "X": 67,
+                                "Y": 42
+                            },
+                            {
+                                "X": 68,
+                                "Y": 42
+                            },
+                            {
+                                "X": 70,
+                                "Y": 42
+                            },
+                            {
+                                "X": 71,
+                                "Y": 42
+                            },
+                            {
+                                "X": 72,
+                                "Y": 42
+                            },
+                            {
+                                "X": 72,
+                                "Y": 41
+                            },
+                            {
+                                "X": 72,
+                                "Y": 40
+                            },
+                            {
+                                "X": 73,
+                                "Y": 40
+                            },
+                            {
+                                "X": 73,
+                                "Y": 41
+                            },
+                            {
+                                "X": 70,
+                                "Y": 41
+                            },
+                            {
+                                "X": 71,
+                                "Y": 41
+                            },
+                            {
+                                "X": 71,
+                                "Y": 40
+                            },
+                            {
+                                "X": 70,
+                                "Y": 40
+                            },
+                            {
+                                "X": 70,
+                                "Y": 43
+                            },
+                            {
+                                "X": 71,
+                                "Y": 43
+                            },
+                            {
+                                "X": 69,
+                                "Y": 43
+                            },
+                            {
+                                "X": 68,
+                                "Y": 43
+                            },
+                            {
+                                "X": 67,
+                                "Y": 43
+                            },
+                            {
+                                "X": 67,
+                                "Y": 41
+                            },
+                            {
+                                "X": 68,
+                                "Y": 41
+                            }
+                        ]
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "PlayVfx",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 1200,
+                    "VfxKey": "MarkerCyan"
+                },
+                {
+                    "Type": "SetGateDoorOpen",
+                    "ParamId": 1,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 900,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSceneObjectActive",
+                    "ParamId": 7,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 900,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 41,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 40,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 39,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 38,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 1,
+                    "Z": 37,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 36,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 35,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 43,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 501,
+                    "X": 48,
+                    "Y": 0,
+                    "Z": 42,
+                    "StringVal": "",
+                    "GroupId": 7,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSceneObjectActive",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "Crystal",
+                    "GroupId": 1,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 1400,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 502,
+                    "X": 69,
+                    "Y": 0,
+                    "Z": 53,
+                    "StringVal": "",
+                    "GroupId": 31,
+                    "SizeX": 2,
+                    "SizeY": 2,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 502,
+                    "X": 84,
+                    "Y": 0,
+                    "Z": 39,
+                    "StringVal": "",
+                    "GroupId": 32,
+                    "SizeX": 2,
+                    "SizeY": 2,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 502,
+                    "X": 69,
+                    "Y": 0,
+                    "Z": 26,
+                    "StringVal": "",
+                    "GroupId": 33,
+                    "SizeX": 2,
+                    "SizeY": 2,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 502,
+                    "X": 56,
+                    "Y": 0,
+                    "Z": 39,
+                    "StringVal": "",
+                    "GroupId": 34,
+                    "SizeX": 2,
+                    "SizeY": 2,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 503,
+                    "X": 79,
+                    "Y": 0,
+                    "Z": 48,
+                    "StringVal": "",
+                    "GroupId": 2101,
+                    "SizeX": 2,
+                    "SizeY": 2,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSummonPortalActive",
+                    "ParamId": 2201,
+                    "X": 79,
+                    "Y": 0,
+                    "Z": 48,
+                    "StringVal": "Section2_NormalSummonRing_North",
+                    "GroupId": 1,
+                    "SizeX": 2,
+                    "SizeY": 2,
+                    "GuideTitle": "1010",
+                    "GuideBody": "Enemy_Bat",
+                    "GuideImageResource": "",
+                    "DurationMs": 15,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 503,
+                    "X": 79,
+                    "Y": 0,
+                    "Z": 31,
+                    "StringVal": "",
+                    "GroupId": 2102,
+                    "SizeX": 2,
+                    "SizeY": 2,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSummonPortalActive",
+                    "ParamId": 2202,
+                    "X": 79,
+                    "Y": 0,
+                    "Z": 31,
+                    "StringVal": "Section2_NormalSummonRing_East",
+                    "GroupId": 1,
+                    "SizeX": 1,
+                    "SizeY": 4,
+                    "GuideTitle": "1012",
+                    "GuideBody": "Enemy_EvilMage",
+                    "GuideImageResource": "",
+                    "DurationMs": 15,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 100,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 5,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 100,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "AreaHoldBeats",
+                    "TargetId": 1,
+                    "SecondaryTargetId": 31,
+                    "TargetKey": "RunicTowerLink_North",
+                    "Count": 30,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "North Tower",
+                    "ProgressDurationMs": 1000,
+                    "Area": {
+                        "X": 66,
+                        "Y": 50,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 101,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 6,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 100,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "AreaHoldBeats",
+                    "TargetId": 1,
+                    "SecondaryTargetId": 32,
+                    "TargetKey": "RunicTowerLink_East",
+                    "Count": 30,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "East Tower",
+                    "ProgressDurationMs": 1000,
+                    "Area": {
+                        "X": 81,
+                        "Y": 36,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 102,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 7,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 101,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 102,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 100,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 2,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 503,
+                    "X": 61,
+                    "Y": 0,
+                    "Z": 31,
+                    "StringVal": "",
+                    "GroupId": 2103,
+                    "SizeX": 2,
+                    "SizeY": 2,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSummonPortalActive",
+                    "ParamId": 2203,
+                    "X": 61,
+                    "Y": 0,
+                    "Z": 31,
+                    "StringVal": "Section2_NormalSummonRing_South",
+                    "GroupId": 1,
+                    "SizeX": 1,
+                    "SizeY": 2,
+                    "GuideTitle": "1027",
+                    "GuideBody": "Enemy_Specter",
+                    "GuideImageResource": "",
+                    "DurationMs": 15,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 503,
+                    "X": 61,
+                    "Y": 0,
+                    "Z": 48,
+                    "StringVal": "",
+                    "GroupId": 2104,
+                    "SizeX": 2,
+                    "SizeY": 2,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSummonPortalActive",
+                    "ParamId": 2204,
+                    "X": 61,
+                    "Y": 0,
+                    "Z": 48,
+                    "StringVal": "Section2_NormalSummonRing_West",
+                    "GroupId": 1,
+                    "SizeX": 1,
+                    "SizeY": 4,
+                    "GuideTitle": "1010,1012,1027",
+                    "GuideBody": "Enemy_Bat,Enemy_EvilMage,Enemy_Specter",
+                    "GuideImageResource": "",
+                    "DurationMs": 15,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 8,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 100,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 2,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "AreaHoldBeats",
+                    "TargetId": 1,
+                    "SecondaryTargetId": 33,
+                    "TargetKey": "RunicTowerLink_South",
+                    "Count": 30,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "South Tower",
+                    "ProgressDurationMs": 1000,
+                    "Area": {
+                        "X": 66,
+                        "Y": 23,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 103,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 9,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 100,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 2,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "AreaHoldBeats",
+                    "TargetId": 1,
+                    "SecondaryTargetId": 34,
+                    "TargetKey": "RunicTowerLink_West",
+                    "Count": 30,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "West Tower",
+                    "ProgressDurationMs": 1000,
+                    "Area": {
+                        "X": 53,
+                        "Y": 36,
+                        "W": 7,
+                        "H": 7,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 104,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 1,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 10,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 103,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                },
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 104,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SetSummonPortalActive",
+                    "ParamId": 2201,
+                    "X": 79,
+                    "Y": 0,
+                    "Z": 48,
+                    "StringVal": "Section2_NormalSummonRing_North",
+                    "GroupId": 0,
+                    "SizeX": 2,
+                    "SizeY": 2,
+                    "GuideTitle": "1010",
+                    "GuideBody": "Enemy_Bat",
+                    "GuideImageResource": "",
+                    "DurationMs": 15,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "RemoveEntityGroup",
+                    "ParamId": 2201,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSummonPortalActive",
+                    "ParamId": 2202,
+                    "X": 79,
+                    "Y": 0,
+                    "Z": 31,
+                    "StringVal": "Section2_NormalSummonRing_East",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 4,
+                    "GuideTitle": "1012",
+                    "GuideBody": "Enemy_EvilMage",
+                    "GuideImageResource": "",
+                    "DurationMs": 15,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "RemoveEntityGroup",
+                    "ParamId": 2202,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSummonPortalActive",
+                    "ParamId": 2203,
+                    "X": 61,
+                    "Y": 0,
+                    "Z": 31,
+                    "StringVal": "Section2_NormalSummonRing_South",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 2,
+                    "GuideTitle": "1027",
+                    "GuideBody": "Enemy_Specter",
+                    "GuideImageResource": "",
+                    "DurationMs": 15,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "RemoveEntityGroup",
+                    "ParamId": 2203,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSummonPortalActive",
+                    "ParamId": 2204,
+                    "X": 61,
+                    "Y": 0,
+                    "Z": 48,
+                    "StringVal": "Section2_NormalSummonRing_West",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 4,
+                    "GuideTitle": "1010,1012,1027",
+                    "GuideBody": "Enemy_Bat,Enemy_EvilMage,Enemy_Specter",
+                    "GuideImageResource": "",
+                    "DurationMs": 15,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "RemoveEntityGroup",
+                    "ParamId": 2204,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetSceneObjectActive",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "Section2_NormalSummonRing",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 850,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "RemoveEntityGroup",
+                    "ParamId": 2101,
+                    "X": 950,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "RemoveEntityGroup",
+                    "ParamId": 2102,
+                    "X": 950,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "RemoveEntityGroup",
+                    "ParamId": 2103,
+                    "X": 950,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "RemoveEntityGroup",
+                    "ParamId": 2104,
+                    "X": 950,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SpawnObject",
+                    "ParamId": 504,
+                    "X": 78,
+                    "Y": 0,
+                    "Z": 39,
+                    "StringVal": "",
+                    "GroupId": 2190,
+                    "SizeX": 2,
+                    "SizeY": 2,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                },
+                {
+                    "Type": "SetObjectState",
+                    "ParamId": 100,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 3,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 11,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "ObjectStateEquals",
+                    "TargetId": 105,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SpawnMonster",
+                    "ParamId": 1021,
+                    "X": 78,
+                    "Y": 0,
+                    "Z": 39,
+                    "StringVal": "Enemy_BlackKnight_Elite",
+                    "GroupId": 2301,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "",
+                    "GuideBody": "",
+                    "GuideImageResource": "",
+                    "DurationMs": 3500,
+                    "VfxKey": ""
+                }
+            ]
+        },
+        {
+            "EventId": 12,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "MonsterAllDead",
+                    "TargetId": 2301,
+                    "SecondaryTargetId": 0,
+                    "TargetKey": "",
+                    "Count": 1,
+                    "UseParticipantCount": false,
+                    "ShowProgressUi": true,
+                    "ShowAreaOutline": true,
+                    "ProgressLabel": "Area",
+                    "ProgressDurationMs": 1200,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0,
+                        "Shape": "Rectangle",
+                        "Cells": []
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "ShowGuide",
+                    "ParamId": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "StringVal": "",
+                    "GroupId": 0,
+                    "SizeX": 1,
+                    "SizeY": 1,
+                    "GuideTitle": "Elite Defeated",
+                    "GuideBody": "The Crystalline Pulse Knight has fallen.",
+                    "GuideImageResource": "",
+                    "DurationMs": 4000,
+                    "VfxKey": ""
+                }
+            ]
+        }
+    ]
+}

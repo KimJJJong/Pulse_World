@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse World: Weapon Ensemble Simulator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e24;
+            color: #ecf0f1;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #3498db;
+            margin-top: 0;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+            width: 100%;
+            max-width: 1000px;
+            text-align: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .ctrl-panel {
+            background: #2b2b36;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #444;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            background: #2ecc71;
+            color: #fff;
+        }
+
+        .btn:hover {
+            background: #27ae60;
+            transform: scale(1.05);
+        }
+
+        .btn-stop {
+            background: #e74c3c;
+        }
+
+        .btn-stop:hover {
+            background: #c0392b;
+        }
+
+        .info-box {
+            font-family: monospace;
+            background: #111;
+            padding: 10px 20px;
+            border-radius: 6px;
+            color: #f1c40f;
+            font-size: 16px;
+            border: 1px solid #555;
+            min-width: 250px;
+            text-align: center;
+        }
+
+        .grid-container {
+            background: #2b2b36;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+
+        .track {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            background: #343444;
+            border-radius: 6px;
+            padding: 10px;
+            border-left: 5px solid #777;
+            position: relative;
+        }
+
+        .track-header {
+            width: 200px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .track-title {
+            font-weight: bold;
+            font-size: 15px;
+            color: #fff;
+        }
+
+        .track-desc {
+            font-size: 11px;
+            color: #aaa;
+        }
+
+        .track-freq {
+            font-size: 10px;
+            color: #3498db;
+            background: rgba(0, 0, 0, 0.3);
+            display: inline-block;
+            padding: 2px 5px;
+            border-radius: 3px;
+            width: fit-content;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+            margin-bottom: 5px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #555;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #2ecc71;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(22px);
+        }
+
+        .timeline {
+            display: flex;
+            flex-grow: 1;
+            height: 40px;
+            background: #1a1a24;
+            border-radius: 4px;
+            margin-left: 15px;
+            position: relative;
+            border: 1px solid #111;
+        }
+
+        .step {
+            flex: 1;
+            border-right: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #444;
+        }
+
+        .step:nth-child(4n+1) {
+            border-left: 1px solid #555;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Notes visualization */
+        .note-marker {
+            width: 100%;
+            height: 50%;
+            background: #555;
+            border-radius: 2px;
+            transition: all 0.1s;
+        }
+
+        .note-active {
+            background: #f1c40f;
+            box-shadow: 0 0 8px #f1c40f;
+        }
+
+        /* Specific Track Colors */
+        .track-kick {
+            border-color: #e74c3c;
+        }
+
+        .track-kick .note-active {
+            background: #e74c3c;
+            box-shadow: 0 0 8px #e74c3c;
+        }
+
+        .track-hihat {
+            border-color: #9b59b6;
+        }
+
+        .track-hihat .note-active {
+            background: #9b59b6;
+            box-shadow: 0 0 8px #9b59b6;
+            height: 20%;
+            align-self: flex-start;
+            margin-top: 5px;
+        }
+
+        .track-pluck {
+            border-color: #3498db;
+        }
+
+        .track-pluck .note-active {
+            background: #3498db;
+            box-shadow: 0 0 8px #3498db;
+            height: 40%;
+            align-self: flex-end;
+            margin-bottom: 5px;
+        }
+
+        .track-pad {
+            border-color: #2ecc71;
+        }
+
+        .track-pad .note-marker {
+            height: 100%;
+        }
+
+        .track-pad .note-active {
+            background: rgba(46, 204, 113, 0.4);
+            box-shadow: none;
+            border: 1px solid #2ecc71;
+        }
+
+        .track-brass {
+            border-color: #e67e22;
+        }
+
+        .track-brass .note-active {
+            background: #e67e22;
+            box-shadow: 0 0 12px #e67e22;
+            height: 80%;
+        }
+
+        #playbackBar {
+            position: absolute;
+            top: -10px;
+            bottom: -10px;
+            width: 2px;
+            background: #fff;
+            box-shadow: 0 0 10px #fff;
+            left: 0%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .guide-text {
+            background: #2b2b36;
+            padding: 15px;
+            border-left: 4px solid #f1c40f;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #ccc;
+        }
+
+        .grid-bg-labels {
+            display: flex;
+            margin-left: 215px;
+            /* match track header */
+            height: 20px;
+            color: #888;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .grid-bg-labels>div {
+            flex: 1;
+            text-align: center;
+            border-left: 1px solid #444;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>⚔️ Pulse: 무기 앙상블 조합 (Weapon Ensemble)</h1>
+
+    <div class="container">
+
+        <div class="guide-text">
+            <b>💡 테스트 방법:</b><br>
+            각 무기(직업)의 스위치를 끄고 켜보며 소리를 개별적으로 들어보세요. 모든 스위치를 켜면 파티 4인이 스킬을 난사하는 보스전 Ph3 (Em-C-Am-B7 루프)의 풀 밴드 앙상블이
+            완성됩니다.<br>
+            <i>A계열(타악기/리듬)</i>과 <i>B계열(선율/화성)</i>이 주파수와 박자를 어떻게 나누어 쓰는지 귀 기울여보세요.
+        </div>
+
+        <div class="ctrl-panel">
+            <button class="btn" onclick="togglePlay()" id="playBtn">▶ 앙상블 재생 (PLAY)</button>
+            <div class="info-box" id="infoBox">
+                Bar: 1/4 | Chord: Em
+            </div>
+            <div>
+                <button onclick="toggleAll(true)"
+                    style="padding:5px 10px; background:#444; color:#fff; border:none; cursor:pointer;">전체 켜기</button>
+                <button onclick="toggleAll(false)"
+                    style="padding:5px 10px; background:#444; color:#fff; border:none; cursor:pointer;">전체 끄기</button>
+            </div>
+        </div>
+
+        <div class="grid-container">
+            <div style="color:#aaa; font-weight:bold; margin-bottom:10px;">[A] 리듬 / 타악기 계열 (Percussion & Beat)</div>
+
+            <div class="grid-bg-labels">
+                <div>Beats (1 bar)</div>
+            </div>
+
+            <!-- 대검 (Kick) -->
+            <div class="track track-kick">
+                <div class="track-header">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="mute_kick" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <div class="track-title">초중량 무기 (대검/해머)</div>
+                    <div class="track-freq">Sub-Bass (20~80Hz)</div>
+                    <div class="track-desc">메인 비트(Downbeat)뼈대 확립</div>
+                </div>
+                <div class="timeline" id="tl_kick">
+                    <div id="playbackBar"></div>
+                </div>
+            </div>
+
+            <!-- 쌍검 (HiHat) -->
+            <div class="track track-hihat">
+                <div class="track-header">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="mute_hihat" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <div class="track-title">경량 무기 (단검/쌍검)</div>
+                    <div class="track-freq">High (4k~10kHz)</div>
+                    <div class="track-desc">16비트 오프비트 난도질</div>
+                </div>
+                <div class="timeline" id="tl_hihat"></div>
+            </div>
+
+            <div style="color:#aaa; font-weight:bold; margin-top:30px; margin-bottom:10px;">[B] 멜로디 / 화성 계열 (Melody &
+                Harmony)</div>
+
+            <!-- 화살 (Pluck) -->
+            <div class="track track-pluck">
+                <div class="track-header">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="mute_pluck" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <div class="track-title">원거리 무기 (활/총)</div>
+                    <div class="track-freq">Mid-High (1k~3kHz)</div>
+                    <div class="track-desc">폴리리듬 / 아르페지오 멜로디</div>
+                </div>
+                <div class="timeline" id="tl_pluck"></div>
+            </div>
+
+            <!-- 장판 마법 (Pad) -->
+            <div class="track track-pad">
+                <div class="track-header">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="mute_pad" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <div class="track-title">서포팅 마법 (지팡이)</div>
+                    <div class="track-freq">Mid (500~2000Hz)</div>
+                    <div class="track-desc">마스터 코드 패드 (공간감)</div>
+                </div>
+                <div class="timeline" id="tl_pad"></div>
+            </div>
+
+            <!-- 파괴 마법 (Brass) -->
+            <div class="track track-brass">
+                <div class="track-header">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="mute_brass" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <div class="track-title">파괴 마법 (궁극기)</div>
+                    <div class="track-freq">Mid (1k~4kHz)</div>
+                    <div class="track-desc">폭발적인 브라스/리드 기타</div>
+                </div>
+                <div class="timeline" id="tl_brass"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const STEPS_PER_BAR = 16; // 16비트 그리드 (1마디 = 16칸)
+        const BPM = 130;
+        const SEC_PER_STEP = (60.0 / BPM) / 4;
+
+        // 4마디 화성 진행 루프 (Em -> C -> Am -> B7)
+        const progression = [
+            { chord: "Em", notes: ["E2", "G3", "B3", "E4"] }, // Bar 1
+            { chord: "C", notes: ["C2", "E3", "G3", "C4"] }, // Bar 2
+            { chord: "Am", notes: ["A1", "C3", "E3", "A3"] }, // Bar 3
+            { chord: "B7", notes: ["B1", "D#3", "F#3", "A3"] }  // Bar 4 (Tension)
+        ];
+
+        // 시퀀서 데이터 (4마디 전체 = 64스텝)
+        // 1 = hit
+        const patterns = {
+            kick: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,  // Bar 1 (Em)
+                1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0,  // Bar 2 (C) - 엇박 킥 한번
+                1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0,  // Bar 3 (Am)
+                1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1],// Bar 4 (B7) - 고조
+
+            hihat: [0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0,  // Bar 1 : 난도질
+                0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1,  // Bar 2
+                0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1,  // Bar 3 : 스네어 위치 연타
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],// Bar 4 : 폭풍 후 휴식
+
+            pluck: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0,  // Bar 1 (폴리리듬 느낌 3연사)
+                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0,  // Bar 2
+                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0,  // Bar 3
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],// Bar 4 (마지막 샷)
+
+            pad: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  // Bar 1 (풀 서스테인)
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  // Bar 2
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  // Bar 3
+                1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],// Bar 4 (브라스를 위해 비워줌)
+
+            brass: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // Bar 1
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // Bar 2
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // Bar 3
+                0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1] // Bar 4 하이라이트 폭발
+        };
+
+        // UI Building
+        const TL_LEN = 64; // Grid size UI (show 1 bar at a time) -> Changed: let's show all 4 bars
+
+        function buildGrid() {
+            Object.keys(patterns).forEach(inst => {
+                let tlDiv = document.getElementById('tl_' + inst);
+                if (!tlDiv) return;
+
+                for (let i = 0; i < TL_LEN; i++) {
+                    let stepDiv = document.createElement('div');
+                    stepDiv.className = 'step';
+
+                    let marker = document.createElement('div');
+                    marker.className = 'note-marker' + (patterns[inst][i] ? ' note-active' : '');
+                    marker.id = `note_${inst}_${i}`;
+
+                    stepDiv.appendChild(marker);
+                    tlDiv.appendChild(stepDiv);
+                }
+            });
+        }
+
+        function toggleAll(state) {
+            ['kick', 'hihat', 'pluck', 'pad', 'brass'].forEach(id => {
+                document.getElementById('mute_' + id).checked = state;
+            });
+        }
+
+
+        // ==== AUDIO ENGINE ====
+        let ac = null;
+        let masterGain = null;
+        let duckingNode = null; // Sidechain ducking from kick
+        let isPlaying = false;
+        let nextNoteTime = 0.0;
+        let currentStep = 0;
+        let timerID = null;
+
+        function noteToFreq(noteStr) {
+            const notes = { "C": -9, "C#": -8, "D": -7, "D#": -6, "E": -5, "F": -4, "F#": -3, "G": -2, "G#": -1, "A": 0, "A#": 1, "B": 2 };
+            let match = noteStr.match(/([A-Ga-g]#?)(\d)/);
+            if (match) {
+                let n = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                let oct = parseInt(match[2]);
+                if (notes[n] !== undefined) return 440 * Math.pow(2, (notes[n] + (oct - 4) * 12) / 12);
+            }
+            return 0;
+        }
+
+        function initAudio() {
+            if (!ac) {
+                ac = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = ac.createGain();
+                masterGain.gain.value = 0.6;
+                masterGain.connect(ac.destination);
+
+                // Ducking Compressor (sidechain simulation via gain node)
+                duckingNode = ac.createGain();
+                duckingNode.gain.value = 1.0;
+                duckingNode.connect(masterGain);
+            }
+            if (ac.state === 'suspended') ac.resume();
+        }
+
+        // Instrument Synthesizers
+
+        function playKick(time) {
+            if (!document.getElementById('mute_kick').checked) return;
+
+            // Sub-bass Kick
+            const osc = ac.createOscillator();
+            const env = ac.createGain();
+            osc.connect(env);
+            // Kick DOES NOT go through duckingNode, it goes straight to master
+            env.connect(masterGain);
+
+            osc.frequency.setValueAtTime(150, time);
+            osc.frequency.exponentialRampToValueAtTime(30, time + 0.1); // pitch drop
+            osc.frequency.exponentialRampToValueAtTime(10, time + 0.5);
+
+            env.gain.setValueAtTime(0.01, time);
+            env.gain.linearRampToValueAtTime(1.2, time + 0.01); // Sharp attack
+            env.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+
+            osc.start(time); osc.stop(time + 0.6);
+
+            // Trigger Ducking (compressing other instruments)
+            duckingNode.gain.cancelScheduledValues(time);
+            duckingNode.gain.setValueAtTime(1.0, time);
+            duckingNode.gain.linearRampToValueAtTime(0.2, time + 0.02); // Duck down
+            duckingNode.gain.linearRampToValueAtTime(1.0, time + 0.2);  // Release up
+        }
+
+        function playHiHat(time) {
+            if (!document.getElementById('mute_hihat').checked) return;
+
+            // White Noise Burst
+            const bufferSize = ac.sampleRate * 0.1; // 100ms
+            const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+            const noise = ac.createBufferSource();
+            noise.buffer = buffer;
+
+            const flt = ac.createBiquadFilter();
+            flt.type = 'highpass';
+            flt.frequency.value = 7000;
+
+            const env = ac.createGain();
+            env.gain.setValueAtTime(0.01, time);
+            env.gain.linearRampToValueAtTime(0.3, time + 0.01);
+            env.gain.exponentialRampToValueAtTime(0.01, time + 0.08); // very short
+
+            noise.connect(flt); flt.connect(env); env.connect(duckingNode);
+            noise.start(time);
+        }
+
+        function playPluck(time, chordData) {
+            if (!document.getElementById('mute_pluck').checked) return;
+
+            // Arpeggiate based on chord
+            // e.g. Em -> E, G, B
+            // Use current step modulo 3 to pick note
+            let nIdx = currentStep % 3;
+            if (nIdx >= chordData.notes.length) nIdx = 0;
+            // Shift up an octave for pluck
+            let freq = noteToFreq(chordData.notes[nIdx]) * 2;
+
+            const osc = ac.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+
+            const env = ac.createGain();
+            env.gain.setValueAtTime(0.01, time);
+            env.gain.linearRampToValueAtTime(0.4, time + 0.02);
+            env.gain.exponentialRampToValueAtTime(0.01, time + 0.2); // Plucky release
+
+            // Add delay/echo for space
+            const delay = ac.createDelay();
+            delay.delayTime.value = SEC_PER_STEP * 3; // dotted 8th note delay
+            const fbk = ac.createGain();
+            fbk.gain.value = 0.3;
+            delay.connect(fbk); fbk.connect(delay);
+
+            const delayGain = ac.createGain();
+            delayGain.gain.value = 0.2;
+            delay.connect(delayGain);
+
+            osc.connect(env);
+            env.connect(duckingNode);
+            env.connect(delay);
+            delayGain.connect(duckingNode);
+
+            osc.start(time); osc.stop(time + 0.3);
+        }
+
+        // Keep track of pad osc to prevent overlapping clicks
+        let padOscParams = null;
+
+        function playPad(time, chordData, stepNum) {
+            if (!document.getElementById('mute_pad').checked) {
+                if (padOscParams) {
+                    padOscParams.env.gain.cancelScheduledValues(time);
+                    padOscParams.env.gain.linearRampToValueAtTime(0.01, time + 0.1);
+                    padOscParams = null;
+                }
+                return;
+            }
+
+            // Only trigger/change on the first step of a bar (stepNum % 16 === 0)
+            if (stepNum % 16 === 0) {
+                // Fade out old
+                if (padOscParams) {
+                    padOscParams.env.gain.cancelScheduledValues(time);
+                    padOscParams.env.gain.linearRampToValueAtTime(0.01, time + 0.1);
+                }
+
+                // Create new chord pad
+                const chordEnv = ac.createGain();
+                chordEnv.gain.setValueAtTime(0.01, time);
+                chordEnv.gain.linearRampToValueAtTime(0.25, time + 0.5); // Slow attack
+
+                // Reverb/LPF
+                const flt = ac.createBiquadFilter();
+                flt.type = 'lowpass';
+                flt.frequency.value = 800; // Muffled space
+                chordEnv.connect(flt);
+                flt.connect(duckingNode); // Goes through ducking! (Pump effect)
+
+                chordData.notes.forEach(note => {
+                    let freq = noteToFreq(note);
+                    let osc = ac.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    osc.connect(chordEnv);
+                    osc.start(time);
+
+                    let osc2 = ac.createOscillator(); // detune for phatness
+                    osc2.type = 'sine';
+                    osc2.frequency.value = freq;
+                    osc2.detune.value = 15;
+                    osc2.connect(chordEnv);
+                    osc2.start(time);
+                });
+
+                padOscParams = { env: chordEnv, flt: flt };
+            }
+
+            // Keep sustaining
+            if (padOscParams && patterns.pad[stepNum] === 1) {
+                // Do nothing, let it run
+            } else if (padOscParams && patterns.pad[stepNum] === 0) {
+                // Release
+                padOscParams.env.gain.cancelScheduledValues(time);
+                padOscParams.env.gain.linearRampToValueAtTime(0.01, time + 0.1);
+                padOscParams = null;
+            }
+        }
+
+        function playBrass(time, chordData) {
+            if (!document.getElementById('mute_brass').checked) return;
+
+            // Mega synth lead (Sawtooth)
+            let freq = noteToFreq(chordData.notes[1]) * 2; // Play the 3rd or 5th an octave up
+
+            const osc = ac.createOscillator();
+            osc.type = 'sawtooth';
+            osc.frequency.value = freq;
+
+            const osc2 = ac.createOscillator();
+            osc2.type = 'sawtooth';
+            osc2.frequency.value = freq * 1.5; // perfect fifth for power chord feel
+            osc2.detune.value = -10;
+
+            const flt = ac.createBiquadFilter();
+            flt.type = 'lowpass';
+            flt.frequency.setValueAtTime(1000, time);
+            flt.frequency.exponentialRampToValueAtTime(4000, time + 0.1); // Brass envelope open
+
+            const env = ac.createGain();
+            env.gain.setValueAtTime(0.01, time);
+            env.gain.linearRampToValueAtTime(0.5, time + 0.05); // punch
+            env.gain.linearRampToValueAtTime(0.3, time + 0.3); // sustain
+            env.gain.exponentialRampToValueAtTime(0.01, time + SEC_PER_STEP + 0.1);
+
+            osc.connect(flt); osc2.connect(flt);
+            flt.connect(env);
+            env.connect(masterGain); // Lead bypasses ducking
+
+            osc.start(time); osc.stop(time + SEC_PER_STEP + 0.2);
+            osc2.start(time); osc2.stop(time + SEC_PER_STEP + 0.2);
+        }
+
+        // Sequencer
+        function scheduleStep() {
+            let barIdx = Math.floor(currentStep / 16); // 0, 1, 2, 3
+            let chordObj = progression[barIdx];
+
+            // Play Sounds
+            if (patterns.kick[currentStep]) playKick(nextNoteTime);
+            if (patterns.hihat[currentStep]) playHiHat(nextNoteTime);
+            if (patterns.pluck[currentStep]) playPluck(nextNoteTime, chordObj);
+            playPad(nextNoteTime, chordObj, currentStep); // Pad manages its own sustain based on pattern array
+            if (patterns.brass[currentStep]) playBrass(nextNoteTime, chordObj);
+
+            // UI
+            let displayTime = (nextNoteTime - ac.currentTime) * 1000;
+            if (displayTime < 0) displayTime = 0;
+            let stepUI = currentStep;
+
+            setTimeout(() => {
+                // Move playback bar
+                let pBar = document.getElementById('playbackBar');
+                if (pBar) {
+                    let pct = (stepUI / TL_LEN) * 100;
+                    pBar.style.left = `${pct}%`;
+                }
+
+                // Info Box Update
+                document.getElementById('infoBox').innerText = `Bar: ${Math.floor(stepUI / 16) + 1}/4 | Chord: ${progression[Math.floor(stepUI / 16)].chord} | Step: ${stepUI}`;
+
+                // Flash note visuals
+                ['kick', 'hihat', 'pluck', 'pad', 'brass'].forEach(inst => {
+                    let noteDiv = document.getElementById(`note_${inst}_${stepUI}`);
+                    if (noteDiv && patterns[inst][stepUI] && document.getElementById('mute_' + inst).checked) {
+                        noteDiv.style.transform = 'scale(1.5)';
+                        setTimeout(() => noteDiv.style.transform = 'scale(1)', 100);
+                    }
+                });
+
+            }, displayTime);
+
+            currentStep++;
+            if (currentStep >= TL_LEN) currentStep = 0;
+            nextNoteTime += SEC_PER_STEP;
+        }
+
+        function engineLoop() {
+            while (nextNoteTime < ac.currentTime + 0.1) {
+                scheduleStep();
+            }
+            timerID = setTimeout(engineLoop, 25);
+        }
+
+        function togglePlay() {
+            let btn = document.getElementById('playBtn');
+            if (isPlaying) {
+                isPlaying = false;
+                clearTimeout(timerID);
+                btn.innerText = "▶ 앙상블 재생 (PLAY)";
+                btn.classList.remove('btn-stop');
+                if (padOscParams) {
+                    padOscParams.env.gain.linearRampToValueAtTime(0.01, ac.currentTime + 0.1);
+                    padOscParams = null;
+                }
+                if (masterGain) masterGain.gain.exponentialRampToValueAtTime(0.01, ac.currentTime + 0.3);
+            } else {
+                initAudio();
+                masterGain.gain.setValueAtTime(0.6, ac.currentTime);
+                isPlaying = true;
+                btn.innerText = "■ 정지 (STOP)";
+                btn.classList.add('btn-stop');
+
+                currentStep = 0;
+                nextNoteTime = ac.currentTime + 0.05;
+                engineLoop();
+            }
+        }
+
+        window.onload = buildGrid;
+
+    </script>
+</body>
+
+</html>

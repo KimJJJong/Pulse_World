@@ -1,0 +1,374 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de39e0c2de14cb84395dcd7da3da8f09, type: 3}
+  m_Name: Game_Forest_Tutorial
+  m_EditorClassIdentifier: Assembly-CSharp::RhythmRPG.Editor.StageBuilder.StageDataSO
+  MapId: Game_Forest_Tutorial
+  Description: "for Tutorial \n - Forest - "
+  MapPrefab: {fileID: 0}
+  Rhythm:
+    SongKey: Game_Jazz_01
+    Bpm: 100
+    BaseBeatDivision: 1
+    ActionWindowMs: 150
+    StartDelayMs: 2000
+  Registry:
+  - Key: Dummy
+    EntityDef: {fileID: 11400000, guid: 758b8370459befb4c81efe52ab6f3fec, type: 2}
+    DefaultGroupId: 10
+    PatternRef: {fileID: 11400000, guid: a8c9a92f686a7d540bdcfd4e1d97a783, type: 2}
+  - Key: Crystal
+    EntityDef: {fileID: 11400000, guid: 76eb659d9a9faa246872d4f4bcc295c9, type: 2}
+    DefaultGroupId: 5
+    PatternRef: {fileID: 0}
+  InitialSpawns:
+  - EntityKey: Dummy
+    Label: 
+    Position: {x: 38, y: -1, z: 15}
+    EulerAngles: {x: 0, y: 90, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 10
+  - EntityKey: Dummy
+    Label: 
+    Position: {x: 37, y: -1, z: 22}
+    EulerAngles: {x: 0, y: 90, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 10
+  - EntityKey: Dummy
+    Label: 
+    Position: {x: 37, y: -1, z: 36}
+    EulerAngles: {x: 0, y: 90, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 10
+  - EntityKey: Dummy
+    Label: 
+    Position: {x: 40, y: -1, z: 31}
+    EulerAngles: {x: 0, y: 90, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 10
+  InitialObjects:
+  - EntityKey: Crystal
+    Label: 
+    Position: {x: 18, y: 0, z: 25}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 5
+  - EntityKey: Crystal
+    Label: 
+    Position: {x: 18, y: 0, z: 32}
+    EulerAngles: {x: 0, y: 0, z: 0}
+    Scale: {x: 1, y: 1, z: 1}
+    PreviewPrefabOverride: {fileID: 0}
+    PlaceInScene: 1
+    OverrideGroupId: 6
+  Events:
+  - Title: Crystal Pair 1
+    Notes: this be Tutorial for test Crystal interaction Practice
+    Enabled: 1
+    EventId: 1
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 4
+      TargetId: 5
+      SecondaryTargetId: 6
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+    Actions:
+    - Type: 8
+      HeaderParam: 
+      ParamId: 5
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 6
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: CrystalPulseRed
+  - Title: Each Crystal Color Change
+    Notes: _01 Change
+    Enabled: 1
+    EventId: 2
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 3
+      TargetId: 5
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+    Actions:
+    - Type: 7
+      HeaderParam: 
+      ParamId: 5
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: CrystalPulseRed
+  - Title: Each Crystal Color Change Copy
+    Notes: _02 Change
+    Enabled: 1
+    EventId: 3
+    IsOneShot: 1
+    Visual:
+      SceneColor: {r: 0, g: 0, b: 0, a: 0}
+      VfxKey: 
+      DrawSceneLinks: 0
+    Conditions:
+    - Type: 3
+      TargetId: 6
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 1
+      Area:
+        x: 0
+        y: 0
+        width: 1
+        height: 1
+    Actions:
+    - Type: 7
+      HeaderParam: 
+      ParamId: 6
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: 
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 1200
+      VfxKey: CrystalPulseRed
+  - Title: Tutorial Movement Panel Enter
+    Notes: Fade in movement tutorial panel while players stay in the start movement
+      zone.
+    Enabled: 1
+    EventId: 4
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 0.196, g: 0.784, b: 1, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 1
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 57
+        y: 7
+        width: 5
+        height: 35
+    Actions:
+    - Type: 9
+      HeaderParam: 
+      ParamId: 900
+      Position: {x: 24, y: 0, z: 0}
+      StringVal: Tutorial_Movement
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: UI/UI_Tutorial/Tutorial_Movement
+      DurationMs: 220
+      VfxKey: 
+  - Title: Tutorial Movement Panel Exit
+    Notes: Fade out movement tutorial panel when players leave the start movement
+      zone.
+    Enabled: 1
+    EventId: 5
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 0.196, g: 0.784, b: 1, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 6
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 57
+        y: 7
+        width: 5
+        height: 35
+    Actions:
+    - Type: 10
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: Tutorial_Movement
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 180
+      VfxKey: 
+  - Title: Tutorial Attack Panel Enter
+    Notes: Fade in attack tutorial panel around the training dummy zone.
+    Enabled: 1
+    EventId: 6
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 1, g: 0.18, b: 0.12, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 1
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 43
+        y: 10
+        width: 5
+        height: 29
+    Actions:
+    - Type: 9
+      HeaderParam: 
+      ParamId: 900
+      Position: {x: 24, y: 0, z: 0}
+      StringVal: Tutorial_Attack
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: UI/UI_Tutorial/Tutorial_Attack
+      DurationMs: 220
+      VfxKey: 
+  - Title: Tutorial Attack Panel Exit
+    Notes: Fade out attack tutorial panel when players leave the training dummy zone.
+    Enabled: 1
+    EventId: 7
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 1, g: 0.18, b: 0.12, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 6
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 43
+        y: 10
+        width: 5
+        height: 29
+    Actions:
+    - Type: 10
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: Tutorial_Attack
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 180
+      VfxKey: 
+  - Title: Tutorial Crystal Panel Enter
+    Notes: Fade in crystal interaction tutorial panel around the crystal zone.
+    Enabled: 1
+    EventId: 8
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 0.85, g: 0.15, b: 0.12, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 1
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 25
+        y: 10
+        width: 8
+        height: 29
+    Actions:
+    - Type: 9
+      HeaderParam: 
+      ParamId: 900
+      Position: {x: 24, y: 0, z: 0}
+      StringVal: Tutorial_Crystal
+      GroupId: 7
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: UI/UI_Tutorial/Tutorial_Crystal
+      DurationMs: 220
+      VfxKey: 
+  - Title: Tutorial Crystal Panel Exit
+    Notes: Fade out crystal interaction tutorial panel when players leave the crystal
+      zone.
+    Enabled: 1
+    EventId: 9
+    IsOneShot: 0
+    Visual:
+      SceneColor: {r: 0.85, g: 0.15, b: 0.12, a: 1}
+      VfxKey: 
+      DrawSceneLinks: 1
+    Conditions:
+    - Type: 6
+      TargetId: 0
+      SecondaryTargetId: 0
+      TargetKey: 
+      Count: 0
+      Area:
+        x: 25
+        y: 10
+        width: 8
+        height: 29
+    Actions:
+    - Type: 10
+      HeaderParam: 
+      ParamId: 0
+      Position: {x: 0, y: 0, z: 0}
+      StringVal: Tutorial_Crystal
+      GroupId: 0
+      GuideTitle: 
+      GuideBody: 
+      GuideImageResource: 
+      DurationMs: 180
+      VfxKey: 

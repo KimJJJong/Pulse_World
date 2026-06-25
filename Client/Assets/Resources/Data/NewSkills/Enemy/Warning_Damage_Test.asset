@@ -1,0 +1,120 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 501327079b4e19047b3fb174153b95d8, type: 3}
+  m_Name: Warning_Damage_Test
+  m_EditorClassIdentifier: Assembly-CSharp::Client.Data.NewSkillSO
+  Data:
+    SkillId: Warning_Damage_Test
+    TotalDurationTicks: 960
+    Tracks:
+    - TrackName: Track 0
+      Events:
+      - TriggerTick: 0
+        DurationTicks: 480
+        Action:
+          rid: 2423871327434178826
+    - TrackName: Track 1
+      Events:
+      - TriggerTick: 480
+        DurationTicks: 480
+        Action:
+          rid: 2423871327434178827
+  references:
+    version: 2
+    RefIds:
+    - rid: 2423871327434178826
+      type: {class: WarningAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 2423871327434178828
+        ColorSteps: []
+    - rid: 2423871327434178827
+      type: {class: DamageAction, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Shape:
+          rid: 2423871327434178829
+        Amount: 10
+        HitPlayers: 1
+        HitMonsters: 0
+        RecalculateTargets: 0
+    - rid: 2423871327434178828
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Cells:
+        - X: 1
+          Y: 0
+        - X: 3
+          Y: 0
+        - X: 0
+          Y: 1
+        - X: 0
+          Y: 3
+        - X: -1
+          Y: 2
+        - X: -2
+          Y: 1
+        - X: -3
+          Y: 0
+        - X: -2
+          Y: -1
+        - X: -1
+          Y: -2
+        - X: 0
+          Y: -3
+        - X: 1
+          Y: -2
+        - X: 2
+          Y: -1
+        - X: 2
+          Y: 1
+        - X: 1
+          Y: 2
+        - X: -1
+          Y: 0
+        - X: 0
+          Y: -1
+    - rid: 2423871327434178829
+      type: {class: CustomCellsShape, ns: GameShared.Data, asm: Assembly-CSharp}
+      data:
+        Cells:
+        - X: -1
+          Y: 0
+        - X: 1
+          Y: 0
+        - X: 0
+          Y: -1
+        - X: 0
+          Y: 1
+        - X: -1
+          Y: 2
+        - X: 0
+          Y: 3
+        - X: 1
+          Y: 2
+        - X: 2
+          Y: 1
+        - X: 3
+          Y: 0
+        - X: 2
+          Y: -1
+        - X: 1
+          Y: -2
+        - X: 0
+          Y: -3
+        - X: -1
+          Y: -2
+        - X: -2
+          Y: -1
+        - X: -3
+          Y: 0
+        - X: -2
+          Y: 1
