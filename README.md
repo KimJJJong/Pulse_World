@@ -1,135 +1,214 @@
-# RhythmRPG
+# Pulse World
 
-**RhythmRPG**는 리듬 게임의 다이내믹한 템포와 RPG의 성장 및 전략 요소를 결합한 멀티플레이어 온라인 게임 프로젝트입니다.  
-Unity 기반의 클라이언트와 .NET 8 기반의 분산 서버 아키텍처로 구성되어 있으며, 실시간 리듬 노트 동기화와 대규모(였으면? 좋겠는) 멀티플레이어 환경(마을) 및 인스턴스 던전(게임 세션)을 지원합니다.
+**Pulse World**는 Unity 클라이언트와 .NET 8 서버로 구성한 리듬 액션 RPG 프로토타입입니다.
 
-> 공개 포트폴리오 브랜치는 코드와 구조 검토를 위한 스냅샷입니다. 대용량 아트, 모델, 오디오, 네이티브 플러그인 바이너리는 저장소 크기와 라이선스 관리를 위해 제외했습니다.
+이 저장소의 공개 브랜치는 포트폴리오 검토를 위한 코드 스냅샷이며, 핵심 초점은 **Ticket / Presence 기반 게임 서버 아키텍처**입니다. 서버는 `ApiServer`, `ControlPlaneServer`, `GameServer(Town/Game Role)`로 분리되어 있고, Redis와 PostgreSQL을 사용해 인증, 세션 이동, 서버 할당, 접속 상태를 관리합니다.
 
----
-
-## 🏗️ 아키텍처 (Architecture)
-
-이 프로젝트는 클라이언트-서버 모델을 따르며, 서버는 확장성과 유지보수성을 고려하여 여러 역할로 분리되어 있습니다.
-
-### Client
-- **Unity Engine**: 리듬 액션 및 RPG 게임 로직 구현.
-- **Network**: 
-  - RestAPI (Http) 인증 및 데이터 조회.
-  - TCP/IP 소켓 통신을 통한 실시간 게임 플레이.
-
-### Server
-서버는 **.NET 8** 환경에서 구동되며, Docker Compose를 통해 통합 관리됩니다.
-
-1. **ApiServer**
-   - 계정 인증, 유저 데이터 관리, 게임 결과 저장 등 웹 API 서비스 제공.
-   - PostgreSQL DB 및 Redis와 통신.
-
-2. **ControlPlane**
-   - 서버들의 상태를 관리하고 로드 밸런싱 및 동적 할당을 담당하는 중앙 제어 노드.
-   - gRPC를 사용하여 타 서버들과 통신.
-
-3. **GameServer** (Role 기반 실행)
-   - **Town Server**: 유저들이 모이는 로비/마을 역할. 채팅 및 파티 매칭.
-   - **Game Server**: 실제 리듬 배틀이 이루어지는 인스턴스 세션. 정밀한 판정 및 동기화 처리.
-
-4. **Infrastructure**
-   - **PostgreSQL**: 영구 데이터 저장소 (계정, 아이템 등).
-   - **Redis**: 실시간 세션 관리, 캐싱, Pub/Sub.
+> 대용량 아트, 오디오, 일부 빌드 산출물과 민감한 운영 설정은 저장소 크기와 라이선스 관리를 위해 제외했습니다.
 
 ---
 
-## 🛠️ 기술 스택 (Tech Stack)
+## 프로젝트 요약
 
-### Client
-- **Engine**: Unity 2022/6 (Universal Render Pipeline)
-- **Language**: C#
-- **Patterns**: MVP/MVC 아키텍처, UniRx (Reactive Extensions)
-
-### Server
-- **Framework**: .NET 8, ASP.NET Core
-- **Database**: PostgreSQL 15
-- **Cache**: Redis 7
-- **Communication**: 
-  - gRPC (Server-to-Server)
-  - TCP/IP Socket (Client-Server, Custom Protocol)
-- **Deployment**: Docker, Docker Compose
+| 항목 | 내용 |
+| --- | --- |
+| 장르 | 리듬 액션 RPG / 멀티플레이어 월드 프로토타입 |
+| 클라이언트 | Unity, C# |
+| 서버 | .NET 8, ASP.NET Core, gRPC, TCP Socket |
+| 인프라 | PostgreSQL, Redis, Docker Compose |
+| 핵심 구현 | Ticket 발급/검증, Presence lease, Town/Game 서버 역할 분리, TCP handshake, Room/Session 흐름 |
+| 보조 구현 | Steam P2P 측정/대체 경로, JSON 기반 게임 콘텐츠 로딩, 패킷 생성기 |
 
 ---
 
-## 📂 디렉토리 구조 (Directory Structure)
+## 서버 아키텍처
 
+```mermaid
+flowchart LR
+    Client["Unity Client"]
+    Api["ApiServer\nREST / WebSocket"]
+    CP["ControlPlaneServer\ngRPC"]
+    Town["GameServer\nRole=Town"]
+    Game["GameServer\nRole=Game"]
+    Redis["Redis\nTicket / Presence / Registry"]
+    Postgres["PostgreSQL\nAccount / Player / Inventory"]
+
+    Client -->|HTTP API| Api
+    Client -->|TCP Handshake + Packets| Town
+    Client -->|TCP Handshake + Packets| Game
+    Api -->|gRPC| CP
+    Town -->|gRPC| CP
+    Game -->|gRPC| CP
+    CP --> Redis
+    Api --> Postgres
+    Api --> Redis
 ```
-RhythmRPG/
-├── Client/                 # Unity 클라이언트 프로젝트
-│   ├── Assets/             # 게임 리소스 및 스크립트
-│   └── Packages/           # 유니티 패키지 의존성
-│
-├── Server/                 # 서버 솔루션 (.NET 8)
-│   ├── ApiServer/          # 웹 API 서버 엔트리포인트
-│   ├── ControlPlaneServer/ # 서버 오케스트레이션 및 관리
-│   ├── GameServer/         # 게임 로직 및 소켓 서버 (Town/Game 모드)
-│   ├── ServerCore/         # 네트워크 엔진 및 코어 라이브러리
-│   ├── PacketGenerator/    # 패킷 직렬화 코드 자동 생성기
-│   ├── Shared/             # 클라/서버 공유 라이브러리 (Protocol, Data)
-│   ├── data/               # DB 데이터 볼륨 (Docker)
-│   └── docker-compose.yml  # 로컬 개발 환경 구성
-│
+
+### 주요 서버
+
+- `ApiServer`
+  - 로그인/인증, 플레이어 상태, 인벤토리, Room 생성/조회 API를 제공합니다.
+  - PostgreSQL과 Redis를 사용하며, Game/Town 진입 시 ControlPlane을 통해 ticket을 발급받습니다.
+
+- `ControlPlaneServer`
+  - gRPC 기반 중앙 제어 서버입니다.
+  - 서버 등록/heartbeat, ticket 발급/소비, presence lease, GameServer 할당, room 생성 요청을 담당합니다.
+
+- `GameServer`
+  - 동일 실행 파일을 `--role Town` 또는 `--role Game`으로 실행합니다.
+  - TCP listener, handshake, session, room, packet dispatch, 콘텐츠 로딩을 담당합니다.
+
+- `ServerCore / PacketGenerator`
+  - TCP session, send/recv buffer, packet framing, PDL 기반 packet code 생성을 담당합니다.
+
+---
+
+## 핵심 흐름
+
+### 1. Ticket 기반 서버 입장
+
+1. 클라이언트가 `ApiServer`에 Town 또는 Game 입장을 요청합니다.
+2. `ApiServer`는 `ControlPlaneServer`에 ticket 발급을 요청합니다.
+3. 클라이언트는 발급받은 ticket과 endpoint로 대상 `GameServer`에 TCP 접속합니다.
+4. `GameServer`는 handshake 단계에서 `ReserveOrConsumeTicket`을 호출해 ticket을 검증/소비합니다.
+5. ticket target, TTL, 중복 사용, pinned server mismatch 등을 ControlPlane에서 검증합니다.
+
+관련 코드:
+
+- [`TicketService.cs`](Server/ControlPlaneServer/Domain/Tickets/TicketService.cs)
+- [`HandshakeFlow.cs`](Server/GameServer/2.Domain/Auth/HandshakeFlow.cs)
+- [`control_plane.proto`](Server/Shared/Protos/control_plane.proto)
+
+### 2. Presence 기반 단일 실시간 연결 관리
+
+1. ticket 검증 후 `GameServer`가 `AttachConnection`을 호출합니다.
+2. ControlPlane은 `uid -> state/serverId/connId/epoch` 형태의 presence를 Redis에 기록합니다.
+3. 접속 중에는 `RenewLease`로 lease를 갱신합니다.
+4. 같은 유저가 다른 서버로 이동하거나 중복 접속하면 이전 서버에 kick event를 발행합니다.
+
+관련 코드:
+
+- [`PresenceService.cs`](Server/ControlPlaneServer/Domain/Presence/PresenceService.cs)
+- [`PresenceLeaseRenewer.cs`](Server/GameServer/2.Domain/Auth/PresenceLeaseRenewer.cs)
+- [`ControlEventHub.cs`](Server/ControlPlaneServer/Domain/Presence/ControlEventHub.cs)
+
+### 3. Town / Game Role 분리
+
+`GameServer`는 role에 따라 Town 서버와 Game 서버로 분기됩니다.
+
+- `Town`: 로비/마을, town room, 대기/입장 흐름
+- `Game`: 인스턴스 게임 room, 전투/리듬 콘텐츠 처리
+
+Docker Compose에서는 같은 `GameServer` 이미지를 `townserver`, `gameserver` 두 서비스로 실행합니다.
+
+관련 코드:
+
+- [`GameStartup.cs`](Server/GameServer/0.Bootstrap/RoleStartup/GameStartup.cs)
+- [`TownStartup.cs`](Server/GameServer/0.Bootstrap/RoleStartup/TownStartup.cs)
+- [`docker-compose.yml`](Server/docker-compose.yml)
+
+---
+
+## 클라이언트 / 네트워크 보조 흐름
+
+클라이언트는 HTTP API로 인증과 Room 정보를 조회하고, 실시간 구간은 TCP 패킷으로 서버와 통신합니다. Steam 사용 가능 환경에서는 peer 간 품질 측정을 수행하고, 조건에 따라 서버 경유 또는 P2P 경로를 판단할 수 있도록 측정 정보를 수집합니다.
+
+관련 코드:
+
+- [`RoomSteamPairProbeService.cs`](Client/Assets/0.MainProject/01_Net/Room/RoomSteamPairProbeService.cs)
+- [`RoomWsClient.cs`](Client/Assets/0.MainProject/01_Net/Room/RoomWsClient.cs)
+- [`NetworkManager.cs`](Client/Assets/0.MainProject/00_Session/Net/NetworkManager.cs)
+
+---
+
+## 디렉터리 구조
+
+```text
+Pulse_World/
+├── Client/                         # Unity 클라이언트
+│   └── Assets/0.MainProject/        # 앱, 네트워크, UI, 게임 런타임 코드
+├── Server/
+│   ├── ApiServer/                   # REST API, 인증, DB, Room API
+│   ├── ControlPlaneServer/          # gRPC ControlPlane, Ticket, Presence, Registry
+│   ├── GameServer/                  # TCP GameServer, Town/Game Role, Room/Session
+│   ├── ServerCore/                  # TCP listener/session/buffer 기반 코드
+│   ├── PacketGenerator/             # PDL 기반 packet code generator
+│   ├── Shared/                      # gRPC proto, 공용 모델/유틸리티
+│   ├── GameServer.Tests/            # 서버 단위 테스트
+│   └── docker-compose.yml           # 로컬 서버 인프라 구성
+├── Tools/                           # 보조 도구
 └── README.md
 ```
 
 ---
 
-## 🚀 시작하기 (Getting Started)
+## 실행 방법
 
-### 사전 요구사항 (Prerequisites)
-- [Visual Studio 2022](https://visualstudio.microsoft.com/) (.NET 8 SDK 포함)
-- [Unity Hub & Editor](https://unity.com/) 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+### 사전 요구사항
 
-### 서버 환경 설정 (Server Setup)
+- .NET 8 SDK
+- Docker Desktop
+- Unity Editor
+- OpenSSL 또는 RSA key 생성 도구
 
-1. **환경 변수 설정**: `Server/.env.example`을 `Server/.env`로 복사한 뒤 로컬 비밀번호 값을 수정하세요.
-    ```env
-    POSTGRES_USER=app_user
-    POSTGRES_PASSWORD=change-me-postgres-password
-    POSTGRES_DB=rhythmrpg
-    REDIS_PASSWORD=change-me-redis-password
-    ```
+### 서버 실행
 
-2. **JWT 키 생성**: 로컬 실행 전에 서버용 RSA 키를 생성하세요.
-    ```powershell
-    cd Server
-    New-Item -ItemType Directory -Force ApiServer/4.Infrastructure/Security/keys, GameServer/keys
-    openssl genrsa -out ApiServer/4.Infrastructure/Security/keys/lobby_private.pem 2048
-    openssl rsa -in ApiServer/4.Infrastructure/Security/keys/lobby_private.pem -pubout -out ApiServer/4.Infrastructure/Security/keys/lobby_public.pem
-    Copy-Item ApiServer/4.Infrastructure/Security/keys/lobby_public.pem GameServer/keys/lobby_public.pem
-    ```
+```powershell
+cd Server
+Copy-Item .env.example .env
+```
 
-3. **인프라 실행 (Docker)**:
-    ```bash
-    cd Server
-    docker-compose up -d
-    ```
-    *PostgreSQL, Redis, ControlPlane 등이 실행됩니다.*
+`Server/.env`에서 로컬 비밀번호와 공개 endpoint를 환경에 맞게 수정합니다.
 
-4. **서버 실행 (로컬 개발 시)**:
-    - Visual Studio에서 `Server.sln`을 엽니다.
-    - `PacketGenerator`를 먼저 빌드하여 패킷 코드를 생성합니다.
-    - `ApiServer`, `GameServer` (속성에서 `--role Town` 또는 `--role Game` 인자 설정) 프로젝트를 시작합니다.
+```env
+POSTGRES_USER=app_user
+POSTGRES_PASSWORD=change-me-postgres-password
+POSTGRES_DB=lobbydb
+REDIS_PASSWORD=change-me-redis-password
+SERVER_PUBLIC_HOST=127.0.0.1
+TOWN_PUBLIC_PORT=13221
+GAME_PUBLIC_PORT=13222
+CONTROLPLANE_PORT=5001
+API_PORT=5000
+```
 
-### 클라이언트 실행 (Client Setup)
+로컬 인증키를 생성합니다.
 
-1. Unity Hub에서 `Client` 폴더를 프로젝트로 추가하여 엽니다.
-2. `Assets/Scenes/TitleScene` (또는 진입 씬)을 엽니다.
-3. Play 버튼을 눌러 실행합니다.
+```powershell
+New-Item -ItemType Directory -Force ApiServer/4.Infrastructure/Security/keys, GameServer/keys
+openssl genrsa -out ApiServer/4.Infrastructure/Security/keys/lobby_private.pem 2048
+openssl rsa -in ApiServer/4.Infrastructure/Security/keys/lobby_private.pem -pubout -out ApiServer/4.Infrastructure/Security/keys/lobby_public.pem
+Copy-Item ApiServer/4.Infrastructure/Security/keys/lobby_public.pem GameServer/keys/lobby_public.pem
+```
+
+Docker Compose로 서버 묶음을 실행합니다.
+
+```powershell
+docker compose up -d --build
+```
+
+실행되는 서비스:
+
+- `postgres_db`
+- `redis_cache`
+- `controlplane_server`
+- `api_server`
+- `town_server`
+- `game_server`
+
+### 클라이언트 실행
+
+1. Unity Hub에서 `Client` 폴더를 엽니다.
+2. 로컬 서버 endpoint를 클라이언트 설정에 맞춥니다.
+3. Title/Login 씬에서 실행합니다.
 
 ---
 
-## ✨ 주요 기능 (Features)
+## 구현 범위와 주의사항
 
-- **리듬 액션**: 음악 비트에 맞춘 정확한 판정 시스템 (BeatActionManager).
-- **상태 동기화**: 서버 주도의 틱(Tick-Beat) 기반 상태 동기화로 공정한 멀티플레이 환경 제공.
-- **월드 시스템**: 다수의 플레이어가 상호작용 가능한 마을(Town) 구현.
-- **매치메이킹 & 룸**: ControlPlane을 통한 게임 세션 할당 및 파티 입장.
+- 이 저장소는 포트폴리오 공개용 스냅샷입니다.
+- Ticket, Presence, TCP handshake, Town/Game role, Docker 기반 로컬 실행 구조는 코드로 확인할 수 있습니다.
+- 대규모 동시 접속 benchmark, 운영 환경 자동 배포, 장애 복구 정책 전체는 현재 공개 범위에 포함하지 않았습니다.
+- Steam P2P 관련 코드는 품질 측정과 fallback 판단을 위한 보조 흐름이며, 모든 게임 상태를 P2P로 동기화하는 구조로 설명하지 않습니다.
+- 저장소의 일부 콘텐츠/바이너리/운영 설정은 공개 브랜치에서 제외되어 있습니다.
 
----

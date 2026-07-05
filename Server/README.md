@@ -1,66 +1,109 @@
+# Pulse World Server
 
-# RTS_Server
+Pulse World 서버는 .NET 8 기반의 게임 서버 구조입니다. `ApiServer`, `ControlPlaneServer`, `GameServer`를 분리하고, Redis 기반 Ticket/Presence 흐름으로 클라이언트의 Town/Game 서버 입장을 검증합니다.
 
-**RTS_Server**는 실시간 전략 게임의 서버 아키텍처를 구현한 프로젝트로, .NET Core 3.1을 기반으로 TCP/IP 통신을 활용하여 클라이언트와의 실시간 동기화를 지원합니다. 이 프로젝트는 게임 서버의 핵심 기능인 명령 동기화, 인증 처리, 로그 모니터링 등을 포함하고 있습니다.
+이 문서는 `Server/` 폴더 기준의 요약입니다. 전체 프로젝트 설명은 상위 [`README.md`](../README.md)를 참고하세요.
 
-## 📌 프로젝트 개요
+---
 
-- **목표**: 실시간 전략 게임에서의 안정적인 서버-클라이언트 통신 및 동기화 구현
-- **주요 기능**:
-  - Tick 기반의 명령 동기화 시스템
-  - 클라이언트 인증 처리
-  - 실시간 로그 수집 및 모니터링
-  - 멀티 클라이언트 지원
+## 구성 요소
 
-## 🛠️ 기술 스택
+| 구성 | 역할 |
+| --- | --- |
+| `ApiServer` | 인증, 플레이어 상태, 인벤토리, Room/Town API, PostgreSQL 연동 |
+| `ControlPlaneServer` | gRPC 제어 서버, Ticket, Presence, 서버 registry, allocation |
+| `GameServer` | TCP listener/session, handshake, packet 처리, Town/Game role 실행 |
+| `ServerCore` | socket listener, session, send/recv buffer |
+| `PacketGenerator` | `PDL.xml` 기반 packet class/manager 생성 |
+| `Shared` | gRPC proto, 공용 모델과 유틸리티 |
+| `GameServer.Tests` | 서버 로직 단위 테스트 |
 
-- **언어**: C#
-- **프레임워크**: .NET Core 3.1
-- **통신**: TCP/IP (비동기 소켓)
-- **인증**: Firebase Auth, Node.js 기반 API 서버
-- **로그 모니터링**: Filebeat, Elasticsearch, Kibana
-- **배포 환경**: ( 예정 )AWS EC2
-- **기타**: Unity (클라이언트), Windows Forms (테스트 클라이언트)
+---
 
-## 📂 디렉토리 구조
+## 네트워크 흐름
 
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as ApiServer
+    participant CP as ControlPlane
+    participant GS as GameServer
+    participant Redis
+
+    Client->>API: Room/Town 입장 요청
+    API->>CP: IssueTicket
+    CP->>Redis: ticket 저장
+    CP-->>API: ticketId, endpoint
+    API-->>Client: ticketId, endpoint
+    Client->>GS: TCP connect + ticket handshake
+    GS->>CP: ReserveOrConsumeTicket
+    CP->>Redis: ticket 검증/소비
+    GS->>CP: AttachConnection
+    CP->>Redis: presence 기록
+    GS-->>Client: handshake success
 ```
-RTS_Server/
-├── Common/Packet/           # 패킷 정의 및 관련 클래스
-├── DummyClient/             # 테스트용 클라이언트 구현
-├── PacketGenerator/         # 패킷 자동 생성 도구
-├── Server/                  # 서버 실행 파일 및 설정
-├── ServerCore/              # 서버의 핵심 로직 (TickManager 등)
-├── Shared/                  # 공통 유틸리티 및 상수
-├── Server.sln               # 솔루션 파일
-└── .gitignore               # Git 무시 파일 설정
+
+---
+
+## 핵심 구현
+
+- **Ticket**
+  - TTL, target, issued server, pinned server, used 상태를 Redis hash로 관리합니다.
+  - TCP handshake 시 `ReserveOrConsumeTicket`으로 ticket을 원자적으로 검증/소비합니다.
+  - 관련 코드: `ControlPlaneServer/Domain/Tickets/TicketService.cs`
+
+- **Presence**
+  - `uid`, `state`, `serverId`, `connId`, `epoch`를 Redis에 기록합니다.
+  - 연결 유지 중 `RenewLease`를 수행하고, epoch mismatch나 중복 접속을 감지합니다.
+  - 이전 서버 연결이 남아 있으면 ControlPlane event로 kick을 보냅니다.
+  - 관련 코드: `ControlPlaneServer/Domain/Presence/PresenceService.cs`, `GameServer/2.Domain/Auth/PresenceLeaseRenewer.cs`
+
+- **Town/Game Role**
+  - `GameServer`는 `--role Town`, `--role Game` 인자로 실행 모드를 나눕니다.
+  - Docker Compose에서는 같은 GameServer 이미지를 `townserver`, `gameserver`로 각각 실행합니다.
+
+- **TCP / Packet**
+  - `ServerCore`가 listener/session/buffer 기반 네트워크 처리를 담당합니다.
+  - `PacketGenerator`가 PDL 정의를 기반으로 packet manager와 packet class를 생성합니다.
+
+---
+
+## 로컬 실행
+
+```powershell
+cd Server
+Copy-Item .env.example .env
 ```
 
-## 🚀 설치 및 실행 방법
+`Server/.env`에서 PostgreSQL/Redis 비밀번호와 public endpoint를 수정합니다.
 
-1. **레포지토리 클론**:
-   ```bash
-   git clone https://github.com/KimJJJong/RTS_Server.git
-   cd RTS_Server
-   ```
+```powershell
+New-Item -ItemType Directory -Force ApiServer/4.Infrastructure/Security/keys, GameServer/keys
+openssl genrsa -out ApiServer/4.Infrastructure/Security/keys/lobby_private.pem 2048
+openssl rsa -in ApiServer/4.Infrastructure/Security/keys/lobby_private.pem -pubout -out ApiServer/4.Infrastructure/Security/keys/lobby_public.pem
+Copy-Item ApiServer/4.Infrastructure/Security/keys/lobby_public.pem GameServer/keys/lobby_public.pem
+```
 
-2. **패킷 생성기 실행**:
-   - `PacketGenerator` 프로젝트를 빌드 및 실행하여 필요한 패킷 코드를 생성합니다.
+```powershell
+docker compose up -d --build
+```
 
-3. **서버 실행**:
-   - `Server` 프로젝트를 빌드 및 실행하여 서버를 시작합니다.
+기본 포트:
 
-4. **테스트 클라이언트 실행**:
-   - `DummyClient` 프로젝트를 빌드 및 실행하여 서버와의 통신을 테스트합니다.
+| 서비스 | 포트 |
+| --- | --- |
+| ApiServer | `5000` |
+| ControlPlaneServer | `5001` |
+| Town GameServer | `13221` |
+| Game GameServer | `13222` |
+| PostgreSQL | `5432` |
+| Redis | host `6380` -> container `6379` |
 
-## ✅ 주요 기능
+---
 
-- **Tick 기반 명령 동기화**:
-  - 서버는 일정한 Tick 간격으로 클라이언트의 명령을 수집하고, 이를 동기화하여 일관된 게임 상태를 유지합니다.
+## 현재 공개 범위
 
-- **클라이언트 인증 처리**:
-  - Firebase Auth와 Node.js 기반의 API 서버를 통해 클라이언트의 인증을 처리합니다.
-
-- **실시간 로그 모니터링**:
-  - Filebeat를 통해 서버 로그를 수집하고, Elasticsearch와 Kibana를 활용하여 실시간으로 모니터링합니다.
+- Ticket/Presence 기반 입장 검증과 단일 실시간 연결 정책은 공개 코드에서 확인할 수 있습니다.
+- 대규모 부하 테스트, 운영 배포 자동화, 장애 복구 정책 전체는 공개 범위에 포함하지 않았습니다.
+- 공개 브랜치에는 민감한 키, 로컬 `.env`, 대용량 빌드 산출물이 포함되어 있지 않습니다.
 
