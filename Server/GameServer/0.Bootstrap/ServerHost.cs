@@ -101,6 +101,7 @@ public static class ServerHost
                 services.AddSingleton<IUpdatableSnapshotProvider, GameSnapshotProvider>();
                 services.AddSingleton<IUpdatableSnapshotProvider, TownSnapshotProvider>();
                 services.AddHostedService<DomainWorkerHostedService>();
+                services.AddHostedService<P2PRelayMetricsReporterHostedService>();
 
                 // Role startups
                 services.AddSingleton<IRoleStartup, TownStartup>();

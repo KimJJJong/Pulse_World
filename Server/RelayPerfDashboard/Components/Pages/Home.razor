@@ -1,0 +1,250 @@
+@page "/"
+
+<PageTitle>Relay Performance Dashboard</PageTitle>
+
+<main class="shell">
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">Pulse World relay test</p>
+            <h1>Relay Performance Dashboard</h1>
+        </div>
+        <div class="actions">
+            <button class="secondary" type="button" @onclick="LoadSample">Load sample</button>
+            <button class="primary" type="button" disabled="@(!CanAnalyze)" @onclick="Analyze">Analyze</button>
+        </div>
+    </header>
+
+    <section class="upload-grid">
+        <div class="panel">
+            <div class="panel-head">
+                <span class="tag steam">Steam Relay</span>
+                <input class="name-input" @bind="leftName" @bind:event="oninput" />
+            </div>
+            <InputFile OnChange="LoadLeftFile" accept=".csv,text/csv" />
+            <div class="file-meta">@leftFileName</div>
+            <textarea class="csv-input" @bind="leftCsv" @bind:event="oninput" spellcheck="false"></textarea>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head">
+                <span class="tag server">GameServer Relay</span>
+                <input class="name-input" @bind="rightName" @bind:event="oninput" />
+            </div>
+            <InputFile OnChange="LoadRightFile" accept=".csv,text/csv" />
+            <div class="file-meta">@rightFileName</div>
+            <textarea class="csv-input" @bind="rightCsv" @bind:event="oninput" spellcheck="false"></textarea>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <section class="alert">@errorMessage</section>
+    }
+
+    @if (comparison is { } c)
+    {
+        <section class="metric-strip">
+            <div class="metric">
+                <span>Relay sends/min</span>
+                <strong>@RelayPerfAnalyzer.FormatDouble(c.Right.RelaySendPerMinute)</strong>
+                <small>@RatioText("relay sends/min")</small>
+            </div>
+            <div class="metric">
+                <span>Relay bytes/min</span>
+                <strong>@RelayPerfAnalyzer.FormatBytes(c.Right.RelayBytesPerMinute)</strong>
+                <small>@RatioText("relay bytes/min")</small>
+            </div>
+            <div class="metric">
+                <span>Bytes/accepted</span>
+                <strong>@RelayPerfAnalyzer.FormatBytes(c.Right.RelayBytesPerAcceptedPayload)</strong>
+                <small>@RatioText("bytes per accepted payload")</small>
+            </div>
+            <div class="metric">
+                <span>Forward p95</span>
+                <strong>@RelayPerfAnalyzer.FormatMs(c.Right.RelayForwardP95Ms)</strong>
+                <small>@RatioText("forward p95 ms")</small>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-head">
+                <h2>Comparison</h2>
+                <span>right / left</span>
+            </div>
+            @foreach (var row in c.Ratios)
+            {
+                <div class="ratio-row">
+                    <div class="ratio-title">
+                        <span>@row.Metric</span>
+                        <strong class="@RatioClass(row)">@row.RatioDisplay</strong>
+                    </div>
+                    <div class="bar-pair">
+                        <div class="bar-line">
+                            <span>@c.Left.Name</span>
+                            <div class="bar-track"><div class="bar left" style="@BarStyle(row.LeftValue, row.RightValue)"></div></div>
+                            <b>@row.LeftDisplay</b>
+                        </div>
+                        <div class="bar-line">
+                            <span>@c.Right.Name</span>
+                            <div class="bar-track"><div class="bar right" style="@BarStyle(row.RightValue, row.LeftValue)"></div></div>
+                            <b>@row.RightDisplay</b>
+                        </div>
+                    </div>
+                </div>
+            }
+        </section>
+
+        <section class="panel">
+            <div class="section-head">
+                <h2>Summary</h2>
+                <span>@(c.Left.RelayRooms + c.Right.RelayRooms) rooms</span>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>test</th>
+                            <th>duration</th>
+                            <th>relay sends</th>
+                            <th>relay bytes</th>
+                            <th>sends/min</th>
+                            <th>bytes/min</th>
+                            <th>sends/accepted</th>
+                            <th>forward p95</th>
+                            <th>queue p95</th>
+                            <th>drops</th>
+                            <th>rejects</th>
+                            <th>result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var summary in new[] { c.Left, c.Right })
+                        {
+                            <tr>
+                                <td>@summary.Name</td>
+                                <td>@RelayPerfAnalyzer.FormatSeconds(summary.DurationSec)</td>
+                                <td>@RelayPerfAnalyzer.FormatNumber(summary.RelaySendCount)</td>
+                                <td>@RelayPerfAnalyzer.FormatBytes(summary.RelaySendBytes)</td>
+                                <td>@RelayPerfAnalyzer.FormatDouble(summary.RelaySendPerMinute)</td>
+                                <td>@RelayPerfAnalyzer.FormatBytes(summary.RelayBytesPerMinute)</td>
+                                <td>@RelayPerfAnalyzer.FormatDouble(summary.RelaySendPerAcceptedPayload)</td>
+                                <td>@RelayPerfAnalyzer.FormatMs(summary.RelayForwardP95Ms)</td>
+                                <td>@RelayPerfAnalyzer.FormatDouble(summary.QueuePendingP95)</td>
+                                <td>@RelayPerfAnalyzer.FormatNumber(summary.RelayDropCount)</td>
+                                <td>@RelayPerfAnalyzer.FormatNumber(summary.RelayRouteRejectCount)</td>
+                                <td>@summary.ResultAccepted/@summary.ResultRejected</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-head">
+                <h2>Notion Markdown</h2>
+                <span>@markdown.Length chars</span>
+            </div>
+            <textarea class="markdown-output" readonly @bind="markdown" spellcheck="false"></textarea>
+        </section>
+    }
+    else
+    {
+        <section class="panel empty-state">
+            <h2>No comparison loaded</h2>
+            <button class="secondary" type="button" @onclick="LoadSample">Load sample data</button>
+        </section>
+    }
+</main>
+
+@code {
+    private const long MaxCsvBytes = 20 * 1024 * 1024;
+
+    private string leftName = "SteamRelay";
+    private string rightName = "GameServerRelay";
+    private string leftCsv = "";
+    private string rightCsv = "";
+    private string leftFileName = "No file selected";
+    private string rightFileName = "No file selected";
+    private string markdown = "";
+    private string? errorMessage;
+    private RelayComparison? comparison;
+
+    private bool CanAnalyze => !string.IsNullOrWhiteSpace(leftCsv) && !string.IsNullOrWhiteSpace(rightCsv);
+
+    private async Task LoadLeftFile(InputFileChangeEventArgs e) => await LoadFile(e, true);
+    private async Task LoadRightFile(InputFileChangeEventArgs e) => await LoadFile(e, false);
+
+    private async Task LoadFile(InputFileChangeEventArgs e, bool isLeft)
+    {
+        var file = e.File;
+        await using var stream = file.OpenReadStream(MaxCsvBytes);
+        using var reader = new StreamReader(stream);
+        var csv = await reader.ReadToEndAsync();
+
+        if (isLeft)
+        {
+            leftCsv = csv;
+            leftFileName = $"{file.Name} ({RelayPerfAnalyzer.FormatBytes(file.Size)})";
+        }
+        else
+        {
+            rightCsv = csv;
+            rightFileName = $"{file.Name} ({RelayPerfAnalyzer.FormatBytes(file.Size)})";
+        }
+
+        if (CanAnalyze)
+            Analyze();
+    }
+
+    private void Analyze()
+    {
+        try
+        {
+            var leftRows = RelayPerfAnalyzer.ReadLatestRowsFromText(leftCsv);
+            var rightRows = RelayPerfAnalyzer.ReadLatestRowsFromText(rightCsv);
+            comparison = RelayPerfAnalyzer.BuildComparison(leftName, leftRows, rightName, rightRows);
+            markdown = RelayPerfAnalyzer.RenderComparisonMarkdown(comparison);
+            errorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            comparison = null;
+            markdown = "";
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void LoadSample()
+    {
+        leftName = "SteamRelay";
+        rightName = "GameServerRelay";
+        leftFileName = "sample-steam-relay.csv";
+        rightFileName = "sample-server-relay.csv";
+        leftCsv = string.Join(Environment.NewLine,
+            RelayPerfAnalyzer.CsvHeader,
+            "2026-07-10T00:00:00Z,steam-a,Game_Forest_First_Step,300,20,2000,10,1000,2,200,0.5,50,10,0,0,0,20,1,0,0.2,1,2,0,0");
+        rightCsv = string.Join(Environment.NewLine,
+            RelayPerfAnalyzer.CsvHeader,
+            "2026-07-10T00:00:00Z,server-a,Game_Forest_First_Step,300,200,20000,300,30000,60,6000,1.5,150,300,0,0,0,200,1,0,0.4,3,8,1,2");
+        Analyze();
+    }
+
+    private string RatioText(string metric)
+        => comparison?.Ratios.FirstOrDefault(x => x.Metric == metric)?.RatioDisplay ?? "-";
+
+    private static string RatioClass(RatioRow row)
+    {
+        if (row.RatioValue == null)
+            return "ratio neutral";
+
+        return row.RatioValue <= 1 ? "ratio good" : "ratio warn";
+    }
+
+    private static string BarStyle(double value, double peer)
+    {
+        double max = Math.Max(Math.Abs(value), Math.Abs(peer));
+        double width = max <= 0 ? 0 : Math.Clamp(Math.Abs(value) / max * 100, 4, 100);
+        return $"width:{width.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}%";
+    }
+}

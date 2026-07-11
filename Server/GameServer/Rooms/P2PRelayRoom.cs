@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Shared;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Util;
@@ -35,6 +36,7 @@ public sealed class P2PRelayRoom : RoomBase
     private readonly Dictionary<string, int> _preferredActorIdByUid = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _preferredSeatByUid = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _preferredDisplayNameByUid = new(StringComparer.OrdinalIgnoreCase);
+    private readonly P2PRelayMetrics _metrics;
 
     private const int RelayTickRate = 480;
 
@@ -44,6 +46,7 @@ public sealed class P2PRelayRoom : RoomBase
         RelayId = relayId;
         MapId = mapId;
         _logger = logger ?? NullLogger.Instance;
+        _metrics = new P2PRelayMetrics(RelayId, MapId);
     }
 
     protected override SessionBase? GetSession() => null;
@@ -76,10 +79,18 @@ public sealed class P2PRelayRoom : RoomBase
             return;
         }
 
+        bool shouldRecordFinalMetrics = false;
         lock (_lock)
         {
-            _phase = RoomPhase.Ended;
+            if (_phase != RoomPhase.Ended)
+            {
+                _phase = RoomPhase.Ended;
+                shouldRecordFinalMetrics = true;
+            }
         }
+
+        if (shouldRecordFinalMetrics)
+            P2PRelayManager.RecordCompletedMetrics(GetMetricsSnapshot());
 
         LogManager.Instance.LogInfo(
             "RoomLifecycle",
@@ -96,6 +107,8 @@ public sealed class P2PRelayRoom : RoomBase
                 yield return (p.Uid, p.ActorId, p.Conn != null && p.Conn.IsConnected);
         }
     }
+
+    public P2PRelayMetricsSnapshot GetMetricsSnapshot() => _metrics.Snapshot();
 
     public void UpdateHostPreferences(string preferredHostUid, IEnumerable<GameServer.Infrastructure.Api.Dto.GameMatchParticipantResponse>? participants)
     {
@@ -1074,20 +1087,32 @@ public sealed class P2PRelayRoom : RoomBase
 
         if (sender == null || !sender.HasAuth)
         {
+            _metrics.RecordRouteReject();
             sender?.Send(new SC_Warn { code = 3101, msg = "P2P_NOT_AUTH" }.Write());
+            return false;
+        }
+
+        var senderUid = sender.Uid;
+        if (string.IsNullOrWhiteSpace(senderUid))
+        {
+            _metrics.RecordRouteReject();
+            sender.Send(new SC_Warn { code = 3103, msg = "P2P_UID_EMPTY" }.Write());
             return false;
         }
 
         lock (_lock)
         {
-            if (!_players.TryGetValue((sender.Uid, sender.Epoch), out player))
+            if (!_players.TryGetValue((senderUid, sender.Epoch), out var foundPlayer) || foundPlayer == null)
             {
+                _metrics.RecordRouteReject();
                 sender.Send(new SC_Warn { code = 3102, msg = "P2P_NOT_MEMBER" }.Write());
                 return false;
             }
 
+            player = foundPlayer;
             if (!ReferenceEquals(player.Conn, sender))
             {
+                _metrics.RecordRouteReject();
                 sender.Send(new SC_Warn { code = 3104, msg = "NOT_CURRENT_CONNECTION" }.Write());
                 return false;
             }
@@ -1115,50 +1140,83 @@ public sealed class P2PRelayRoom : RoomBase
         if (!TryValidateMember(sender, out var player))
             return;
 
+        int inboundPayloadBytes = EstimatePayloadBytes(pkt.Payload);
+        _metrics.RecordRelayRecv(inboundPayloadBytes);
+        _metrics.RecordQueuePending(_q.Count);
+
         Enqueue(() =>
         {
-            if (_phase == RoomPhase.Ended)
-                return;
+            var started = Stopwatch.GetTimestamp();
+            bool success = false;
 
-            if (player.ActorId == _hostActorId)
+            try
             {
-                _logger.LogDebug(
-                    "[P2PRelayRoom] Host broadcast relayId={RelayId} sender={Sender} protocol={Protocol}",
-                    RelayId,
-                    player.ActorId,
-                    DescribePayloadProtocol(pkt.Payload));
-                BroadcastExcept(new SC_P2PBroadcast
+                if (_phase == RoomPhase.Ended)
                 {
-                    Payload = pkt.Payload ?? ""
-                }, sender);
-                return;
-            }
+                    _metrics.RecordDrop();
+                    return;
+                }
 
-            RoomPlayer? host;
-            lock (_lock)
-            {
-                host = _players.Values.FirstOrDefault(x => x.ActorId == _hostActorId && x.Conn != null);
-            }
+                if (player.ActorId == _hostActorId)
+                {
+                    _logger.LogDebug(
+                        "[P2PRelayRoom] Host broadcast relayId={RelayId} sender={Sender} protocol={Protocol}",
+                        RelayId,
+                        player.ActorId,
+                        DescribePayloadProtocol(pkt.Payload));
 
-            if (host?.Conn == null)
-            {
-                _logger.LogWarning(
-                    "[P2PRelayRoom] Guest input dropped. Host not connected relayId={RelayId} sender={Sender} hostActor={HostActor} protocol={Protocol}",
+                    var targets = CountBroadcastTargetsExcept(sender);
+                    var packet = new SC_P2PBroadcast
+                    {
+                        Payload = pkt.Payload ?? ""
+                    };
+                    var segment = packet.Write();
+                    BroadcastExcept(segment, sender);
+                    _metrics.RecordRelaySend(targets, segment.Count);
+                    _metrics.RecordAcceptedPayload();
+                    success = true;
+                    return;
+                }
+
+                RoomPlayer? host;
+                lock (_lock)
+                {
+                    host = _players.Values.FirstOrDefault(x => x.ActorId == _hostActorId && x.Conn != null);
+                }
+
+                if (host?.Conn == null)
+                {
+                    _metrics.RecordDrop();
+                    _logger.LogWarning(
+                        "[P2PRelayRoom] Guest input dropped. Host not connected relayId={RelayId} sender={Sender} hostActor={HostActor} protocol={Protocol}",
+                        RelayId,
+                        player.ActorId,
+                        _hostActorId,
+                        DescribePayloadProtocol(pkt.Payload));
+                    return;
+                }
+
+                pkt.SenderActorId = player.ActorId;
+                var forwarded = pkt.Write();
+                host.Conn.Send(forwarded);
+                _metrics.RecordRelaySend(1, forwarded.Count);
+                _metrics.RecordAcceptedPayload();
+                success = true;
+                _logger.LogDebug(
+                    "[P2PRelayRoom] Guest relay forward relayId={RelayId} sender={Sender} hostActor={HostActor} protocol={Protocol}",
                     RelayId,
                     player.ActorId,
                     _hostActorId,
                     DescribePayloadProtocol(pkt.Payload));
-                return;
             }
-
-            pkt.SenderActorId = player.ActorId;
-            host.Conn.Send(pkt.Write());
-            _logger.LogDebug(
-                "[P2PRelayRoom] Guest relay forward relayId={RelayId} sender={Sender} hostActor={HostActor} protocol={Protocol}",
-                RelayId,
-                player.ActorId,
-                _hostActorId,
-                DescribePayloadProtocol(pkt.Payload));
+            finally
+            {
+                var elapsed = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+                if (success)
+                    _metrics.RecordForwardSuccess((long)Math.Ceiling(elapsed));
+                else
+                    _metrics.RecordForwardFail((long)Math.Ceiling(elapsed));
+            }
         });
     }
 
@@ -1168,11 +1226,15 @@ public sealed class P2PRelayRoom : RoomBase
             return;
 
         if (player.ActorId != _hostActorId)
+        {
+            _metrics.RecordResultRejected();
             return;
+        }
 
         long serverPlayTimeMs = Math.Max(0, AppRef.ServerTimeMs() - _roomStartTimeMs);
         if (pkt.IsClear && serverPlayTimeMs < 30000)
         {
+            _metrics.RecordResultRejected();
             sender.Send(new SC_Warn { code = 3201, msg = "P2P_CLEAR_TOO_FAST" }.Write());
             _logger.LogWarning(
                 "[P2PRelayRoom] Suspicious clear rejected relayId={RelayId} host={Host} reported={Reported} server={Server}",
@@ -1185,6 +1247,7 @@ public sealed class P2PRelayRoom : RoomBase
 
         if (pkt.PlayTimeMs > 0 && Math.Abs(pkt.PlayTimeMs - serverPlayTimeMs) > 15000)
         {
+            _metrics.RecordResultRejected();
             sender.Send(new SC_Warn { code = 3202, msg = "P2P_PLAYTIME_MISMATCH" }.Write());
             _logger.LogWarning(
                 "[P2PRelayRoom] PlayTime mismatch relayId={RelayId} host={Host} reported={Reported} server={Server}",
@@ -1216,14 +1279,17 @@ public sealed class P2PRelayRoom : RoomBase
                 var ok = await ServerServices.ApiClient.PostAsync("/api/game/result", report);
                 if (!ok)
                 {
+                    _metrics.RecordResultRejected();
                     _logger.LogWarning("[P2PRelayRoom] Result report failed relayId={RelayId}", RelayId);
                     return;
                 }
 
+                _metrics.RecordResultAccepted();
                 Broadcast(new SC_ReturnToTown());
             }
             catch (Exception ex)
             {
+                _metrics.RecordResultRejected();
                 _logger.LogError(ex, "[P2PRelayRoom] Result report exception relayId={RelayId}", RelayId);
             }
         });
@@ -1266,6 +1332,37 @@ public sealed class P2PRelayRoom : RoomBase
         public int TotalDamage { get; set; }
         public List<string> PlayerUids { get; set; } = new();
         public long SubmittedAtMs { get; set; }
+    }
+
+    private int CountBroadcastTargetsExcept(ClientSession? except)
+    {
+        var targets = GetBroadcastSnapshot();
+        if (except == null)
+            return targets.Length;
+
+        int count = 0;
+        foreach (var target in targets)
+        {
+            if (!ReferenceEquals(target, except))
+                count++;
+        }
+
+        return count;
+    }
+
+    private static int EstimatePayloadBytes(string payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+            return 0;
+
+        try
+        {
+            return Convert.FromBase64String(payload).Length;
+        }
+        catch
+        {
+            return payload.Length;
+        }
     }
 
     private static string DescribePayloadProtocol(string payload)

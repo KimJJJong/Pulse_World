@@ -1,10 +1,15 @@
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Shared;
 
 public static class P2PRelayManager
 {
+    private const int MaxCompletedMetricSnapshots = 256;
+
     private static readonly ConcurrentDictionary<string, P2PRelayRoom> _rooms = new();
+    private static readonly ConcurrentQueue<P2PRelayMetricsSnapshot> _completedMetrics = new();
 
     public static P2PRelayRoom GetOrCreate(string relayId, string mapId, int maxPlayers)
     {
@@ -36,7 +41,7 @@ public static class P2PRelayManager
         return room;
     }
 
-    public static bool TryGet(string relayId, out P2PRelayRoom room)
+    public static bool TryGet(string relayId, [NotNullWhen(true)] out P2PRelayRoom? room)
         => _rooms.TryGetValue(relayId, out room);
 
     public static void Remove(string relayId)
@@ -56,4 +61,32 @@ public static class P2PRelayManager
 
     public static IUpdatable[] GetUpdatablesSnapshot()
         => _rooms.Values.Cast<IUpdatable>().ToArray();
+
+    public static P2PRelayRoom[] GetRoomsSnapshot()
+        => _rooms.Values.ToArray();
+
+    public static P2PRelayMetricsSnapshot[] GetMetricsSnapshot()
+        => _rooms.Values.Select(room => room.GetMetricsSnapshot()).ToArray();
+
+    public static void RecordCompletedMetrics(P2PRelayMetricsSnapshot snapshot)
+    {
+        if (snapshot == null)
+            return;
+
+        _completedMetrics.Enqueue(snapshot);
+
+        while (_completedMetrics.Count > MaxCompletedMetricSnapshots
+            && _completedMetrics.TryDequeue(out _))
+        {
+        }
+    }
+
+    public static P2PRelayMetricsSnapshot[] DrainCompletedMetricsSnapshot()
+    {
+        var snapshots = new List<P2PRelayMetricsSnapshot>();
+        while (_completedMetrics.TryDequeue(out var snapshot))
+            snapshots.Add(snapshot);
+
+        return snapshots.ToArray();
+    }
 }

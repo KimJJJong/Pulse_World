@@ -103,11 +103,14 @@ services:
       # Content Path Overrides (mapped via volume)
       Server__Content__DefaultBaseDir: "/app/Content/02.Town"
       Server__Content__Town__BaseDir: "/app/Content/02.Town"
+      P2PRelayMetrics__OutputDirectory: "/app/metrics/town"
+      P2PRelayMetrics__IntervalSeconds: "${P2P_RELAY_METRICS_INTERVAL:-300}"
 
     ports:
       - "${TOWN_PUBLIC_PORT:-13221}:13221"
     volumes:
       - ./GameServer/Content:/app/Content
+      - ./GameServer/metrics:/app/metrics
 
   gameserver:
     build:
@@ -132,8 +135,11 @@ services:
       # Content Path Overrides
       Server__Content__DefaultBaseDir: "/app/Content/01.Game"
       Server__Content__Game__BaseDir: "/app/Content/01.Game"
+      P2PRelayMetrics__OutputDirectory: "/app/metrics/game"
+      P2PRelayMetrics__IntervalSeconds: "${P2P_RELAY_METRICS_INTERVAL:-300}"
 
     ports:
       - "${GAME_PUBLIC_PORT:-13222}:13222"
     volumes:
       - ./GameServer/Content:/app/Content
+      - ./GameServer/metrics:/app/metrics
