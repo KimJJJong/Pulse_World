@@ -1,6 +1,6 @@
-# Pulse World
+# Pulse World (RhythmRPG)
 
-**Pulse World**는 Unity 클라이언트와 .NET 8 서버로 구성한 리듬 액션 RPG 프로토타입입니다.
+**Pulse World (RhythmRPG)**는 Unity 클라이언트와 .NET 8 서버로 구성한 리듬 액션 RPG 프로토타입입니다.
 
 이 저장소의 공개 브랜치는 포트폴리오 검토를 위한 코드 스냅샷이며, 핵심 초점은 **Ticket / Presence 기반 게임 서버 아키텍처**입니다. 서버는 `ApiServer`, `ControlPlaneServer`, `GameServer(Town/Game Role)`로 분리되어 있고, Redis와 PostgreSQL을 사용해 인증, 세션 이동, 서버 할당, 접속 상태를 관리합니다.
 
@@ -16,7 +16,7 @@
 | 클라이언트 | Unity, C# |
 | 서버 | .NET 8, ASP.NET Core, gRPC, TCP Socket |
 | 인프라 | PostgreSQL, Redis, Docker Compose |
-| 핵심 구현 | Ticket 발급/검증, Presence lease, Town/Game 서버 역할 분리, TCP handshake, Room/Session 흐름 |
+| 핵심 구현 | Ticket 발급/검증, Presence lease, Town/Game 서버 역할 분리, TCP handshake, Room/Session lifecycle |
 | 보조 구현 | Steam P2P 측정/대체 경로, JSON 기반 게임 콘텐츠 로딩, 패킷 생성기 |
 
 ---
@@ -53,6 +53,7 @@ flowchart LR
 - `ControlPlaneServer`
   - gRPC 기반 중앙 제어 서버입니다.
   - 서버 등록/heartbeat, ticket 발급/소비, presence lease, GameServer 할당, room 생성 요청을 담당합니다.
+  - ApiServer의 gRPC 호출에는 요청별 deadline을 적용하고, timeout과 그 밖의 RPC 실패를 각각 HTTP 504·502로 변환합니다.
 
 - `GameServer`
   - 동일 실행 파일을 `--role Town` 또는 `--role Game`으로 실행합니다.
@@ -60,10 +61,11 @@ flowchart LR
 
 - `ServerCore / PacketGenerator`
   - TCP session, send/recv buffer, packet framing, PDL 기반 packet code 생성을 담당합니다.
+  - 송수신 completion callback을 분리하고 `Interlocked`로 중복 disconnect를 막습니다.
 
 ---
 
-## 핵심 흐름
+## 핵심 요청 경로
 
 ### 1. Ticket 기반 서버 입장
 
@@ -96,7 +98,7 @@ flowchart LR
 
 `GameServer`는 role에 따라 Town 서버와 Game 서버로 분기됩니다.
 
-- `Town`: 로비/마을, town room, 대기/입장 흐름
+- `Town`: 로비/마을, town room, 대기/입장 처리
 - `Game`: 인스턴스 게임 room, 전투/리듬 콘텐츠 처리
 
 Docker Compose에서는 같은 `GameServer` 이미지를 `townserver`, `gameserver` 두 서비스로 실행합니다.
@@ -109,9 +111,9 @@ Docker Compose에서는 같은 `GameServer` 이미지를 `townserver`, `gameserv
 
 ---
 
-## 클라이언트 / 네트워크 보조 흐름
+## 클라이언트 / 네트워크 보조 기능
 
-클라이언트는 HTTP API로 인증과 Room 정보를 조회하고, 실시간 구간은 TCP 패킷으로 서버와 통신합니다. Steam 사용 가능 환경에서는 peer 간 품질 측정을 수행하고, 조건에 따라 서버 경유 또는 P2P 경로를 판단할 수 있도록 측정 정보를 수집합니다.
+클라이언트는 HTTP API로 인증과 Room 정보를 조회하고, 실시간 구간은 TCP 패킷으로 서버와 통신합니다. Steam 사용 가능 환경에서는 peer 간 품질을 측정하고, 서버 경유 또는 P2P 경로를 고르는 데 필요한 RTT·loss·jitter 정보를 수집합니다.
 
 관련 코드:
 
@@ -209,6 +211,5 @@ docker compose up -d --build
 - 이 저장소는 포트폴리오 공개용 스냅샷입니다.
 - Ticket, Presence, TCP handshake, Town/Game role, Docker 기반 로컬 실행 구조는 코드로 확인할 수 있습니다.
 - 대규모 동시 접속 benchmark, 운영 환경 자동 배포, 장애 복구 정책 전체는 현재 공개 범위에 포함하지 않았습니다.
-- Steam P2P 관련 코드는 품질 측정과 fallback 판단을 위한 보조 흐름이며, 모든 게임 상태를 P2P로 동기화하는 구조로 설명하지 않습니다.
+- Steam P2P 관련 코드는 품질 측정과 fallback 판단을 위한 보조 기능이며, 모든 게임 상태를 P2P로 동기화하는 구조로 설명하지 않습니다.
 - 저장소의 일부 콘텐츠/바이너리/운영 설정은 공개 브랜치에서 제외되어 있습니다.
-
