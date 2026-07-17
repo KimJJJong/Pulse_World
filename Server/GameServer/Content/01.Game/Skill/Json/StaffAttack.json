@@ -1,0 +1,101 @@
+{
+  "SkillId": "StaffAttack",
+  "TotalDurationTicks": 480,
+  "Tracks": [
+    {
+      "TrackName": "Telegraph",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 240,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": [
+              {
+                "DurationTicks": 240,
+                "ColorHex": "#E8D36A"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Impact",
+      "Events": [
+        {
+          "TriggerTick": 240,
+          "DurationTicks": 240,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 9,
+            "HitPlayers": false,
+            "HitMonsters": true,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Control",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 4
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Sound",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Staff_Normal",
+            "Volume": 0.25,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 360,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Staff_Normal",
+            "Volume": 0.25,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
+    }
+  ]
+}

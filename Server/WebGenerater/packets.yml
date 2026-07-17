@@ -1,0 +1,166 @@
+namespace: Contracts.Packet
+
+http:
+  types:
+
+    # GoogleAPI
+    GoogleTokenResponse:
+      AccessToken: string
+      IdToken: string
+      RefreshToken: string
+      ExpiresIn: int
+      TokenType: string
+      Scope: string
+
+    GoogleUserInfo:
+      Sub: string
+      Email: string
+      Name: string
+    # Auth / Login
+    GuestLoginReq:
+      DeviceId: string
+
+    GoogleLoginReq:
+      GoogleSub: string
+
+    GoogleLoginRes:
+      GoogleUrl: string
+
+
+    LoginRes:
+      Uid: string
+      AccessToken: string
+      RefreshToken: string
+      RefreshExpiresAt: long    # UnixTime(ms)
+      AccessExpiresAt: long     # UnixTime(ms)
+      User: GoogleUserInfo
+
+    RefreshReq:
+      RefreshToken: string
+
+    RefreshRes:
+      AccessToken: string
+      RefreshToken: string
+      AccessExpiresAt: long
+
+    # Room / Lobby
+    RoomDto:
+      Id: string
+      Title: string
+      Map: string
+      Max: int
+      Cur: int
+      Status: string
+      Visibility: string
+      UpdatedAtMs: long
+
+    CreateRoomReq:
+      Title: string
+      Map: string
+      Max: int = 2
+      Visibility: string = Public
+
+    GetRoomsRes:
+      Rooms: List<RoomDto>
+      NextCursor: string
+      ServerTimeMs: long
+      Version: string
+
+    CreateRoomRes:
+      RoomId: string
+      WsUrl: string
+      Token: string
+
+    JoinRoomRes:
+      WsUrl: string
+      Token: string
+      Room: RoomDto
+
+    ErrorRes:
+      Error: string
+      Message: string
+      TraceId: string
+
+ws:
+  types:
+    MemberDto:
+      UserId: string
+      Name: string
+      Slot: int
+      Ready: bool
+
+    CountdownDto:
+      Seconds: int
+      StartAtMs: long
+
+    WelcomeState:
+      Room: RoomDto
+      Members: List<MemberDto>
+      Countdown: CountdownDto
+
+    RoomPatch:
+      Cur: int
+      Status: string
+      UpdatedAtMs: long
+
+    GameServerDto:
+      Host: string
+      Port: int
+
+  c2s:   # client -> server
+    - name: HelloMsg
+      op: hello
+      fields:
+        Token: string
+        Version: string
+    - name: ReadyMsg
+      op: ready
+      fields:
+        Value: bool
+    - name: LeaveMsg
+      op: leave
+      fields: {}
+
+  s2c:   # server -> client
+    - name: WelcomeMsg
+      op: welcome
+      fields:
+        State: WelcomeState
+        ServerTimeMs: long
+    - name: MemberJoinMsg
+      op: member.join
+      fields:
+        Member: MemberDto
+    - name: MemberLeaveMsg
+      op: member.leave
+      fields:
+        Id: string
+    - name: MemberUpdateMsg
+      op: member.update
+      fields:
+        Id: string
+        Ready: bool
+    - name: RoomUpdateMsg
+      op: room.update
+      fields:
+        Patch: RoomPatch
+    - name: CountdownStartMsg
+      op: countdown.start
+      fields:
+        Seconds: int
+        StartAtMs: long
+    - name: CountdownCancelMsg
+      op: countdown.cancel
+      fields: {}
+    - name: GameBeginMsg
+      op: game.begin
+      fields:
+        GSAddress: GameServerDto
+        Ticket: string
+        ProtoVer: int
+    - name: WarnMsg
+      op: warn
+      fields:
+        Code: string
+        Target: string
+        PerSec: int

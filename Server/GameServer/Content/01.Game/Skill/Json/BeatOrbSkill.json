@@ -1,0 +1,101 @@
+{
+  "SkillId": "BeatOrbSkill",
+  "TotalDurationTicks": 960,
+  "Tracks": [
+    {
+      "TrackName": "Telegraph",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 360,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 2,
+              "Radius": 1,
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": [
+              {
+                "DurationTicks": 360,
+                "ColorHex": "#E8D36A"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Impact",
+      "Events": [
+        {
+          "TriggerTick": 360,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 2,
+              "Radius": 1,
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 8,
+            "HitPlayers": false,
+            "HitMonsters": true,
+            "StunDurationTicks": 120,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Control",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 600,
+          "Action": {
+            "Type": 4
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Sound",
+      "Events": [
+        {
+          "TriggerTick": 120,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Accessory_Ring",
+            "Volume": 0.72,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 360,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Accessory_Ring",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        },
+        {
+          "TriggerTick": 720,
+          "DurationTicks": 120,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "Forest_Accessory_Ring",
+            "Volume": 0.82,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
+    }
+  ]
+}

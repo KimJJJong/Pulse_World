@@ -1,0 +1,59 @@
+{
+  "SkillId": "Enemy_Attack_Front",
+  "TotalDurationTicks": 960,
+  "Tracks": [
+    {
+      "TrackName": "Track 0",
+      "Events": [
+        {
+          "TriggerTick": 480,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 10,
+            "HitPlayers": true,
+            "HitMonsters": false,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 1",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
+          }
+        }
+      ]
+    }
+  ]
+}

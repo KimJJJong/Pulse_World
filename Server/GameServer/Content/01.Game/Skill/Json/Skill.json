@@ -1,0 +1,43 @@
+{
+  "SkillId": "Skill",
+  "TotalDurationTicks": 480,
+  "Tracks": [
+    {
+      "TrackName": "Track 0",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 2,
+              "Radius": 1
+            },
+            "Amount": 10,
+            "HitPlayers": false,
+            "HitMonsters": true,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 1",
+      "Events": [
+        {
+          "TriggerTick": 240,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 6,
+            "FmodEventPath": "",
+            "Volume": 1.0,
+            "UseOwnerPerspective": true
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,342 @@
+{
+  "SkillId": "Enemy_DemonKing_SwordSpin",
+  "TotalDurationTicks": 1920,
+  "Tracks": [
+    {
+      "TrackName": "Telegraph",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": -2,
+                  "Y": 0
+                },
+                {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
+                  "X": -1,
+                  "Y": 0
+                },
+                {
+                  "X": -1,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": 2
+                },
+                {
+                  "X": 1,
+                  "Y": -1
+                },
+                {
+                  "X": 1,
+                  "Y": 0
+                },
+                {
+                  "X": 1,
+                  "Y": 1
+                },
+                {
+                  "X": 2,
+                  "Y": 0
+                },
+                {
+                  "X": -2,
+                  "Y": -1
+                },
+                {
+                  "X": -2,
+                  "Y": 1
+                },
+                {
+                  "X": 2,
+                  "Y": -1
+                },
+                {
+                  "X": 2,
+                  "Y": 1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
+          }
+        },
+        {
+          "TriggerTick": 480,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": -2,
+                  "Y": 0
+                },
+                {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
+                  "X": -1,
+                  "Y": 0
+                },
+                {
+                  "X": -1,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": 2
+                },
+                {
+                  "X": 1,
+                  "Y": -1
+                },
+                {
+                  "X": 1,
+                  "Y": 0
+                },
+                {
+                  "X": 1,
+                  "Y": 1
+                },
+                {
+                  "X": 2,
+                  "Y": 0
+                },
+                {
+                  "X": -2,
+                  "Y": -1
+                },
+                {
+                  "X": -2,
+                  "Y": 1
+                },
+                {
+                  "X": 2,
+                  "Y": -1
+                },
+                {
+                  "X": 2,
+                  "Y": 1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Spin Hits",
+      "Events": [
+        {
+          "TriggerTick": 960,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": -2,
+                  "Y": 0
+                },
+                {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
+                  "X": -1,
+                  "Y": 0
+                },
+                {
+                  "X": -1,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": 2
+                },
+                {
+                  "X": 1,
+                  "Y": -1
+                },
+                {
+                  "X": 1,
+                  "Y": 0
+                },
+                {
+                  "X": 1,
+                  "Y": 1
+                },
+                {
+                  "X": 2,
+                  "Y": 0
+                },
+                {
+                  "X": -2,
+                  "Y": -1
+                },
+                {
+                  "X": -2,
+                  "Y": 1
+                },
+                {
+                  "X": 2,
+                  "Y": -1
+                },
+                {
+                  "X": 2,
+                  "Y": 1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 6,
+            "HitPlayers": true,
+            "HitMonsters": false,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 1,
+            "RecalculateTargets": false
+          }
+        },
+        {
+          "TriggerTick": 1440,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": -2,
+                  "Y": 0
+                },
+                {
+                  "X": -1,
+                  "Y": -1
+                },
+                {
+                  "X": -1,
+                  "Y": 0
+                },
+                {
+                  "X": -1,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": 2
+                },
+                {
+                  "X": 1,
+                  "Y": -1
+                },
+                {
+                  "X": 1,
+                  "Y": 0
+                },
+                {
+                  "X": 1,
+                  "Y": 1
+                },
+                {
+                  "X": 2,
+                  "Y": 0
+                },
+                {
+                  "X": -2,
+                  "Y": -1
+                },
+                {
+                  "X": -2,
+                  "Y": 1
+                },
+                {
+                  "X": 2,
+                  "Y": -1
+                },
+                {
+                  "X": 2,
+                  "Y": 1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 6,
+            "HitPlayers": true,
+            "HitMonsters": false,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 1,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    }
+  ]
+}

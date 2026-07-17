@@ -1,0 +1,283 @@
+syntax = "proto3";
+package controlplane.v1;
+option csharp_namespace = "ControlPlane.Grpc.V1";
+
+service ControlPlane {
+  // --- Ticket ---
+  rpc IssueTicket(IssueTicketRequest) returns (IssueTicketResponse);
+  rpc VerifyTicket(VerifyTicketRequest) returns (VerifyTicketResponse);
+  rpc ReserveOrConsumeTicket(ReserveOrConsumeTicketRequest) returns (ReserveOrConsumeTicketResponse);
+
+  // --- Presence ---
+  rpc AttachConnection(AttachConnectionRequest) returns (AttachConnectionResponse);
+  rpc RenewLease(RenewLeaseRequest) returns (RenewLeaseResponse);
+
+  // --- Transition & Allocation ---
+  rpc BeginOrReuseTransition(BeginOrReuseTransitionRequest) returns (BeginOrReuseTransitionResponse);
+  rpc AllocateGameServer(AllocateGameServerRequest) returns (AllocateGameServerResponse);
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse); // To GameServer (Real Room)
+
+  // --- Registry ---
+  rpc RegisterServer(RegisterServerRequest) returns (RegisterServerResponse);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc SubscribeControlEvents(SubscribeControlEventsRequest) returns (stream ControlEvent);
+  
+
+}
+
+// ==========================================
+// Enum: ErrorCode
+// ==========================================
+enum ErrorCode {
+  None = 0;
+  Unspecified = 1;
+  Unauthorized = 2; // or Unauthenticated
+  
+  ServerNotFound = 5;
+
+  // Ticket (10-19)
+  TicketNotFound = 10;
+  TicketExpired = 11;
+  TicketAlreadyUsed = 12;
+  TicketTargetMismatch = 13;
+  TicketPinnedServerMismatch = 14;
+
+  // Transition (20-29)
+  TransitionNotFound = 20;
+  TransitionExpired = 21;
+
+  // Presence (30-39)
+  PresenceEpochMismatch = 30;
+  PresenceNotFound = 31;
+
+  // Allocation (40-49)
+  AllocationFailed = 40;
+  ReservationInvalid = 41;
+}
+
+// ==========================================
+// Enum: KickReason
+// ==========================================
+enum KickReason {
+  ReasonUnknown = 0;
+  DuplicateLogin = 1;
+  MovedToGame = 2;
+  AdminKick = 3;
+}
+
+// ==========================================
+// Shared / Existing Messages
+// ==========================================
+
+message Error {
+  ErrorCode code = 1; 
+  string message = 2;
+}
+
+message ServerEndpoint {
+  string host = 1;
+  int32 port = 2;
+}
+
+enum TicketTarget {
+  Town = 0;
+  Game = 1;
+}
+
+enum PresenceState {
+  StateTown = 0;
+  StateGame = 1;
+}
+
+enum TransitionState {
+  MovingToGame = 0;
+}
+
+// --- Ticket Messages ---
+
+message IssueTicketRequest {
+  string uid = 1;
+  TicketTarget target = 2; 
+  string key = 3;   
+  string preferred_server_id = 4;
+  int32 ttl_seconds = 5;
+}
+
+message IssueTicketResponse {
+  bool ok = 1;
+  Error error = 2;
+  string ticket_id = 3;
+  int64 expire_at_ms = 4;
+  string server_id = 5;
+  string key = 6;
+  ServerEndpoint endpoint = 7;
+}
+
+message VerifyTicketRequest {
+  string ticket_id = 1;
+  TicketTarget expected_target = 2; 
+}
+
+message VerifyTicketResponse {
+  bool ok = 1;
+  Error error = 2;
+  string uid = 3;
+  string key = 4;
+  string issued_server_id = 5;
+}
+
+message ReserveOrConsumeTicketRequest {
+  string ticket_id = 1;
+  TicketTarget expected_target = 2; 
+  string verifier_server_id = 3;
+  string conn_id = 4;
+  int64 now_ms = 5;
+}
+
+message ReserveOrConsumeTicketResponse {
+  bool ok = 1;
+  Error error = 2;
+  string uid = 3;
+  string key = 4;
+  string issued_server_id = 5;
+  string pinned_server_id = 6;
+  int64 expire_at_ms = 7;
+}
+
+// --- Presence Messages ---
+
+message AttachConnectionRequest {
+  string uid = 1;
+  PresenceState state = 2; 
+  string server_id = 3;
+  string conn_id = 4;
+  int32 lease_ttl_seconds = 5;
+  int64 now_ms = 6;
+}
+
+message AttachConnectionResponse {
+  bool ok = 1;
+  Error error = 2;
+  int64 epoch = 3;
+  
+  PresenceState prev_state = 4;
+  string prev_server_id = 5;
+  string prev_conn_id = 6;
+  int64 prev_epoch = 7;
+}
+
+message RenewLeaseRequest {
+  string uid = 1;
+  string server_id = 2;
+  string conn_id = 3;
+  int64 epoch = 4;
+  int32 lease_ttl_seconds = 5;
+  int64 now_ms = 6;
+}
+
+message RenewLeaseResponse {
+  bool ok = 1;
+  Error error = 2;
+  int64 server_now_ms = 3;
+}
+
+// --- Transition & Allocation Messages ---
+
+message BeginOrReuseTransitionRequest {
+  string uid = 1;
+  TransitionState to_state = 2;
+  string ctx = 3; // roomId
+  int32 ttl_seconds = 4;
+}
+
+message BeginOrReuseTransitionResponse {
+  bool ok = 1;
+  Error error = 2;
+  string transition_id = 3;
+  int64 expire_at_ms = 4;
+}
+
+message AllocateGameServerRequest {
+  string uid = 1;
+  string region = 2;
+  int32 reserve_ttl_seconds = 3;
+  int64 now_ms = 4;
+}
+
+message AllocateGameServerResponse {
+  bool ok = 1;
+  Error error = 2;
+  string server_id = 3;
+  ServerEndpoint endpoint = 4;
+  string reservation_id = 5;
+  int64 expire_at_ms = 6;
+}
+
+message CreateRoomRequest {
+  string uid = 1;
+  string server_id = 2;
+  string reservation_id = 3;
+  string room_id = 4;
+  string map = 5;
+  int32 max_players = 6;
+  int64 now_ms = 7;
+}
+
+message CreateRoomResponse {
+  bool ok = 1;
+  Error error = 2;
+}
+
+// --- Registry Messages ---
+
+enum ServerType {
+  Unknown = 0;
+  TypeTown = 1;
+  TypeGame = 2;
+}
+
+message RegisterServerRequest {
+  string server_id = 1;
+  ServerType type = 2;
+  ServerEndpoint endpoint = 3;
+  int32 capacity = 4;
+  string region = 5;
+  string build_version = 6;
+}
+
+message RegisterServerResponse {
+  bool ok = 1;
+  int64 server_now_ms = 2;
+}
+
+message HeartbeatRequest {
+  string server_id = 1;
+  ServerType type = 2;
+  int32 load = 3;
+  int32 current_sessions = 4;
+}
+
+message HeartbeatResponse {
+  bool ok = 1;
+  int64 server_now_ms = 2;
+}
+
+message SubscribeControlEventsRequest {
+  string server_id = 1;
+}
+
+message KickEvent {
+  string uid = 1;
+  int64 min_epoch = 2;
+  KickReason reason = 3;
+  string message = 4;
+}
+
+message ControlEvent {
+  // Can be a oneof if we had more types, usually
+  oneof payload {
+    KickEvent kick = 1;
+  }
+}
+
+

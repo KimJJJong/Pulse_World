@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<PDL>
+
+	<packet name ="CS_Handshake">
+		<string name ="TicketId"/>
+		<string name ="ClientNonce"/>
+		<int name ="ClientVersion"/>		<!-- optional: 빌드 넘버로 쓰면 좋음 (문자열이면 string으로) -->
+		<int name ="Target"/>		<!-- 0=Town, 1=Game (선택: 서버가 타겟 검증하면) -->
+		<string name ="Key"/>		<!-- optional: GameTicket에서만 쓰면 Town은 "" -->
+	</packet>
+
+	<packet name ="SC_HandshakeOk">
+		<string name ="Uid"/>		<long name ="ServerTimeMs"/>
+		<!-- time sync 기준 -->
+		<long name ="SessionEpoch"/>		<!-- 연결/세션 세대값(재접속/중복 구분) -->
+		<int name ="ServerRole"/>		<!-- 0=Town, 1=Game -->
+	</packet>
+
+	<packet name="SC_HandshakeFail">
+		<int name="errorCode"/>
+		<string name="message"/>
+	</packet>
+
+	<packet name="SC_ForcedDisconnect">
+		<int name="Reason"/>		<!-- 1=MovedToGame, 2=DuplicateLogin, 3=EpochSuperseded -->
+		<long name="NewEpoch"/>		<!-- 서버가 알고 있으면 넣고, 모르면 0 -->
+		<string name="Message"/>
+	</packet>
+	
+	<!--TOWN-->
+
+	<!-- COMMON: Scene 로딩 완료 후 맵 스냅샷 요청 -->
+	<packet name="CS_MapEnter">
+		<long   name="ClientTimeMs"/>
+		<string name="MapId"/>
+		<!-- Town: "town", Game: matchId 또는 mapId -->
+		<int    name="LastKnownRevision"/>
+		<!-- 없으면 0 -->
+		<bool   name="WantSnapshot"/>
+		<!-- true -->
+		<int    name="MaxPlayers"/>
+	</packet>
+
+	<!-- COMMON: 월드/맵/기존 인원/엔티티 스냅샷 (A 방식: 내 플레이어 포함) -->
+	<packet name="SC_InitMap">
+		<long name="ServerTimeMs"/>
+		<int  name="Revision"/>
+		<int  name="TickRate"/>		<!-- 안 쓰면 0 -->
+
+		<string name="MapId"/>
+		<int name="MapWidth"/>
+		<int name="MapHeight"/>
+		<int    name="MapVersion"/>
+
+		<int name="Mode"/>		<!-- 0=Town, 1=Game -->
+		<int name="MyActorId"/>
+
+		<list name="Players">
+			<string name="Uid"/>
+			<int    name="ActorId"/>
+			<string name="Name"/>
+		</list>
+
+		<list name="Entities">
+			<int name="EntityId"/>
+			<int name="EntityType"/>			<!-- PlayerActor/Unit/NPC 등 -->
+			<int name="OwnerSlot"/>			<!-- PlayerActor면 MySlot 등 -->
+			<int name="X"/>
+			<int name="Y"/>
+			<int name="Dir"/>
+			<int name="Hp"/>
+			<int name="AppearanceId"/>
+			<float name="Rotation"/>
+		</list>
+
+		<!-- Game(리듬) 전용 초기 파라미터 (선택: 지금 너 구조랑 잘 맞음) -->
+		<double name="ActionWindowMs"/>
+		<string name="SongId"/>
+		<double name="Bpm"/>
+		<int    name="BaseBeatDivision"/>
+		<long name ="SongStartServerTime"/>
+	</packet>
+
+	<packet name="CS_Ready">
+		<int  name="Revision"/>
+		<long name="ClientTimeMs"/>
+	</packet>
+
+	<packet name="SC_ReadyAck">
+		<int  name="Revision"/>
+		<long name="ServerTimeMs"/>
+	</packet>
+
+	<packet name ="CS_TownActionRequest">
+		<int name ="ActorId"/>
+		<int name ="ActionKind"/>
+		<int name ="TargetX"/>
+		<int name ="TargetY"/>
+		<float name ="Rotation"/>
+		<long name ="ClientSendTimeMs"/>
+	</packet>
+
+	<packet name ="SC_TownBeatActions">
+		<long name ="BeatIndex"/>
+		<list name ="BeatActionResult">
+			<int name="ActorId"/>
+			<int name="ActionKind"/>
+			<int name="FromX"/>
+			<int name="FromY"/>
+			<int name="ToX"/>
+			<int name="ToY"/>
+			<float name="Rotation"/>
+			<bool name="Accepted"/>
+
+		</list>
+	</packet>
+	
+	
+	
+	<!--GAME-->
+
+	<!-- 게임서버 -> 클라: 양측 로딩 완료 알림 -->
+	<packet name="SC_AllPlayersLoaded">
+		<string name="matchId"/>
+		<list name="players">
+			<string name="uid"/>
+			<int name="slot"/>
+			<bool name="loaded"/>
+		</list>
+	</packet>
+
+	<!-- 게임서버 -> 클라: 시작 시각 고정 통보 -->
+	<packet name="SC_GameBegin">
+		<string name="matchId"/>
+		<long name="startAtMs"/><!-- 서버 기준 절대 시각 -->
+		<int  name="startTick"/><!-- 동시 시작 tick -->
+	</packet>
+
+	<!-- P2P Relay -->
+	<packet name="CS_P2PPayload">
+		<int name="SenderActorId"/>
+		<string name="Payload"/>
+	</packet>
+
+	<packet name="SC_P2PBroadcast">
+		<string name="Payload"/>
+	</packet>
+
+	<packet name="SC_HostChange">
+		<int name="HostActorId"/>
+	</packet>
+
+	<packet name="CS_P2PGameResult">
+		<bool name="IsClear"/>
+		<long name="PlayTimeMs"/>
+		<int name="TotalDamage"/>
+	</packet>
+
+	<!-- 게임서버 -> 클라: 스킬 슬롯/기본공격 통보 -->
+	<packet name="SC_UpdateSkillSlots">
+		<string name="NormalAttackSkillId"/>
+		<list name="ActiveSkillSlots">
+			<string name="SkillId"/>
+		</list>
+	</packet>
+
+	<!-- 공통 -->
+	<packet name="SC_Error">
+		<int name="code"/>
+		<string name="message"/>
+	</packet>
+	<packet name ="SC_Warn">
+		<int name ="code"/>
+		<string name="msg"/>
+	</packet>
+	<packet name="CS_Ping">
+		<int    name="seq"/>
+		<long   name="clientSendMs"/>
+	</packet>
+
+	<packet name="SC_Pong">
+		<int    name="seq"/>
+		<long   name="clientSendMs"/>
+		<long   name="serverRecvMs"/>
+		<long   name="serverSendMs"/>
+	</packet>
+
+    <packet name="SC_ReturnToTown">
+    </packet>
+
+	<!-- GameLogic-->
+	
+	
+	<!-- RhythmTest-->
+
+	<packet name="SC_InitGame">
+		<double name="ActionWindowMs"/>
+		<int name="MapWidth"/>
+		<int name="MapHeight"/>
+		<string name ="MapName"/>
+		
+		<list name="PlayerActorIds">
+			<int name="ActorId"/>
+		</list>
+
+		<int name="MyActorId"/>
+
+		<list name="SpawnEntities">
+			<int  name="EntityId"/>
+			<int  name="EntityType"/>
+			<int  name="OwnerSlot"/>
+			<int  name="X"/>
+			<int  name="Y"/>
+			<int  name="Hp"/>
+		</list>
+	</packet>
+
+
+	<packet name ="SC_CalibResult">
+		<int name="DiffMs"/>
+		<long name ="BeatIndex"/>
+		<long name ="ServerNowMs"/>
+	</packet>
+	<packet name ="CS_CalibHit">
+		<long name ="ClientSendTimeMs"/>
+		<long name ="BeatIndex"/>
+	</packet>
+
+
+	<packet name ="SC_BeatSync">
+		<long name ="ServerSendTimeMs"/>
+		<long name ="ClientSendTimeMs"/>
+		<long name ="SongStartServerTimeMs"/>
+		<double name ="Bpm"/>
+		<int name ="BaseBeatDivision"/>
+		<long name ="BeatIndex"/>
+	</packet>
+
+	<packet name ="CS_ActionRequest">
+		<int name ="ActorId"/>
+		<int name ="ActionKind"/>	 <!--/ Skill / Wait 등-->
+		<int name ="SlotIndex"/>
+		<int name ="TargetX"/>	
+		<int name ="TargetY"/>
+		<float name ="Rotation"/>
+		<long name ="ClientSendTimeMs"/>
+	</packet>
+
+	<packet name ="SC_ActionInstantBroadcast">
+		<int name ="ActorId"/>
+		<int name ="ActionKind"/>
+		<string name="SkillId"/>
+		<float name="Rotation"/>
+		<long name="StartTick"/>
+	</packet>
+
+	<packet name ="SC_CancelAction">
+		<int name ="ActorId"/>
+	</packet>
+
+	<packet name ="SC_BeatActions">
+		<long name ="BeatIndex"/>
+		<list name ="BeatActionResult">
+			<int name="ActorId"/>
+			<int name="ActionKind"/>	<!--/ Skill / Wait 등-->	
+			<int name="FromX"/>
+			<int name="FromY"/>
+			<int name="ToX"/>
+			<int name="ToY"/>
+			<float name="Rotation"/>
+			<bool name="Accepted"/>
+				
+			<list name ="HpUpdate">
+				<int name="EntityId"/>
+				<int name="NewHp"/>
+			</list>
+		</list>
+	</packet>
+
+	<packet name="SC_BeatTelegraphs">
+		<long name="BeatIndex"/>
+		<list name="Telegraphs">
+			<int name="CasterId"/>
+			<int name="StyleId"/>
+			<int name="DurationTicks"/>
+			<int name="Shape"/>			<!-- 0:Cells, 1:Diamond, 2:Rect, 3:Line ... -->
+			<int name="OriginType"/>	<!-- 0:Self,1:Target,2:Point -->
+			<int name="OriginX"/>		<!-- OriginType==Point일 때 -->
+			<int name="OriginY"/>
+			<int name="ParamA"/>		<!-- shape 파라미터 (radius/width/len 등) -->
+			<int name="ParamB"/>
+			<list name="Cells">			<!-- Shape==Cells 일 때만 사용 -->
+				<int name="X"/>
+				<int name="Y"/>
+			</list>
+		</list>
+	</packet>
+
+
+	<packet name ="SC_EntityDespawn">
+		<long name="BeatIndex"/>
+		<int name ="EntityId"/>
+	</packet>
+	
+	<packet name ="SC_EntitySpawn">
+		<long name="BeatIndex"/>
+		<int name ="EntityId"/>
+		<int name ="EntityType"/>
+		<int name ="X"/>
+		<int name ="Y"/>
+		<int name ="Hp"/>
+		<int name ="AppearanceId"/>
+		<float name ="Rotation"/>
+	</packet>
+	
+	
+	<!-- RhythmTest-->
+
+
+
+	<!-- INVENTORY -->
+	<packet name="CS_GetInventory">
+	</packet>
+
+	<packet name="SC_Inventory">
+		<list name="Items">
+			<long name="InstanceId"/>
+			<int name="TemplateId"/>
+			<int name="Amount"/>
+			<int name="SlotIndex"/>
+			<string name="AcquiredAt"/>
+		</list>
+		<list name="Equipments">
+			<long name="InstanceId"/>
+			<int name="TemplateId"/>
+			<int name="SlotIndex"/>
+			<int name="EnhancementLevel"/>
+			<bool name="IsEquipped"/>
+			<string name="BaseStats"/>
+			<string name="RandomOptions"/>
+			<string name="AcquiredAt"/>
+		</list>
+	</packet>
+
+	<packet name="CS_EquipItem">
+		<long name="InstanceId"/>
+		<bool name="Equip"/>
+	</packet>
+
+	<packet name="SC_EquipResult">
+		<bool name="Success"/>
+		<long name="InstanceId"/>
+		<bool name="Equipped"/>
+	</packet>
+
+	<!-- CHEAT / DEBUG -->
+	<packet name="CS_Cheat">
+		<int name="CheatCode"/>
+		<int name="Param1"/>
+		<int name="Param2"/>
+	</packet>
+
+	<packet name="CS_DestroyItem">
+		<long name="InstanceId"/>
+		<int name="Amount"/>
+	</packet>
+
+</PDL>

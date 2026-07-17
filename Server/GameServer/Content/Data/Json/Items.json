@@ -1,0 +1,86 @@
+[
+  {
+    "id": 400001,
+    "name": "Healing Potion",
+    "type": "Consumable",
+    "grade": "Common",
+    "max_stack": 99,
+    "sell_price": 10,
+    "icon_path": "Icons/Potion_Red",
+    "description": "HP를 50 회복합니다.",
+    "effect_id": 101,
+    "effect_val": 50
+  },
+  {
+    "id": 400002,
+    "name": "Mana Potion",
+    "type": "Consumable",
+    "grade": "Common",
+    "max_stack": 99,
+    "sell_price": 20,
+    "icon_path": "Icons/Potion_Blue",
+    "description": "MP를 30 회복합니다.",
+    "effect_id": 102,
+    "effect_val": 30
+  },
+  {
+    "id": 500001,
+    "name": "Iron Ore",
+    "type": "Material",
+    "grade": "Common",
+    "max_stack": 999,
+    "sell_price": 5,
+    "icon_path": "Icons/Ore_Iron",
+    "description": "철광석입니다.",
+    "effect_id": 0,
+    "effect_val": 0
+  },
+  {
+    "id": 500002,
+    "name": "Leather",
+    "type": "Material",
+    "grade": "Common",
+    "max_stack": 999,
+    "sell_price": 5,
+    "icon_path": "Icons/Leather",
+    "description": "가죽입니다.",
+    "effect_id": 0,
+    "effect_val": 0
+  },
+  {
+    "id": 500101,
+    "name": "Sword Schematic",
+    "type": "Blueprint",
+    "grade": "Uncommon",
+    "max_stack": 10,
+    "sell_price": 100,
+    "icon_path": "Icons/Blueprint_Sword",
+    "description": "검 제작 도면입니다.",
+    "effect_id": 0,
+    "effect_val": 0
+  },
+  {
+    "id": 500201,
+    "name": "Gold",
+    "type": "Currency",
+    "grade": "Common",
+    "max_stack": 999999,
+    "sell_price": 0,
+    "icon_path": "Icons/Coin_Gold",
+    "description": "골드.",
+    "effect_id": 0,
+    "effect_val": 0
+  },
+  {
+    "id": 500202,
+    "name": "Diamond",
+    "type": "Currency",
+    "grade": "Rare",
+    "max_stack": 999999,
+    "sell_price": 0,
+    "icon_path": "Icons/Gem_Diamond",
+    "description": "유료 재화.",
+    "effect_id": 0,
+    "effect_val": 0
+  }
+]

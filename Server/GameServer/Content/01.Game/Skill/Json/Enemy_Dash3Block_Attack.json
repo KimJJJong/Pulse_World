@@ -1,0 +1,92 @@
+{
+  "SkillId": "Enemy_Dash3Block_Attack",
+  "TotalDurationTicks": 960,
+  "Tracks": [
+    {
+      "TrackName": "Track 0",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": 0,
+                  "Y": -3
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 2",
+      "Events": [
+        {
+          "TriggerTick": 480,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 3,
+            "MoveType": 1,
+            "Distance": 4,
+            "DirectionX": 0,
+            "DirectionY": 1,
+            "StopOnObstacle": true
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 2",
+      "Events": [
+        {
+          "TriggerTick": 480,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": 1
+                },
+                {
+                  "X": 0,
+                  "Y": 2
+                },
+                {
+                  "X": 0,
+                  "Y": 3
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 10,
+            "HitPlayers": true,
+            "HitMonsters": false,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    }
+  ]
+}

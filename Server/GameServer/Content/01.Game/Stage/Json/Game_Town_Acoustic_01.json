@@ -1,0 +1,14 @@
+{
+    "MapId": "Game_Town_Acoustic_01",
+    "Description": "Game_Town_Acoustic_01\nSteady On-Beat Town BGM Loop.",
+    "RhythmSettings": {
+        "SongKey": "Game_Town_Acoustic_01",
+        "Bpm": 90,
+        "BaseBeatDivision": 1,
+        "ActionWindowMs": 150,
+        "StartDelayMs": 2000
+    },
+    "InitialSpawns": [],
+    "InitialObjects": [],
+    "Events": []
+}

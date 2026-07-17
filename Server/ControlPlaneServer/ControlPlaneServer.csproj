@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+
+	<ItemGroup>
+		<!-- gRPC 서버 런타임 -->
+		<PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
+		<PackageReference Include="Grpc.Tools" Version="2.76.0" PrivateAssets="All" />
+		<PackageReference Include="StackExchange.Redis" Version="2.8.37" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Shared를 참조 (enum/message 타입 일치) -->
+		<ProjectReference Include="..\Shared\Shared.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- 서버 스텁은 ControlPlaneServer에서만 생성 -->
+		<Protobuf Include="..\Shared\Protos\control_plane.proto" GrpcServices="Server" />
+	</ItemGroup>
+
+</Project>

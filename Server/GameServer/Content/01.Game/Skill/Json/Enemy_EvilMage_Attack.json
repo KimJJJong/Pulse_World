@@ -1,0 +1,173 @@
+{
+  "SkillId": "Enemy_EvilMage_Attack",
+  "TotalDurationTicks": 1920,
+  "Tracks": [
+    {
+      "TrackName": "Track 0",
+      "Events": [
+        {
+          "TriggerTick": 0,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
+          }
+        },
+        {
+          "TriggerTick": 480,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": -1,
+                  "Y": -2
+                },
+                {
+                  "X": 1,
+                  "Y": -2
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
+          }
+        },
+        {
+          "TriggerTick": 960,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 1,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": -1,
+                  "Y": -2
+                },
+                {
+                  "X": 1,
+                  "Y": -2
+                },
+                {
+                  "X": -2,
+                  "Y": -3
+                },
+                {
+                  "X": -1,
+                  "Y": -3
+                },
+                {
+                  "X": 0,
+                  "Y": -3
+                },
+                {
+                  "X": 1,
+                  "Y": -3
+                },
+                {
+                  "X": 2,
+                  "Y": -3
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "ColorSteps": []
+          }
+        }
+      ]
+    },
+    {
+      "TrackName": "Track 1",
+      "Events": [
+        {
+          "TriggerTick": 1440,
+          "DurationTicks": 480,
+          "Action": {
+            "Type": 2,
+            "Shape": {
+              "ShapeType": 3,
+              "Cells": [
+                {
+                  "X": 0,
+                  "Y": -1
+                },
+                {
+                  "X": 0,
+                  "Y": -2
+                },
+                {
+                  "X": -1,
+                  "Y": -2
+                },
+                {
+                  "X": 1,
+                  "Y": -2
+                },
+                {
+                  "X": 1,
+                  "Y": -3
+                },
+                {
+                  "X": 0,
+                  "Y": -3
+                },
+                {
+                  "X": -1,
+                  "Y": -3
+                },
+                {
+                  "X": -2,
+                  "Y": -3
+                },
+                {
+                  "X": 2,
+                  "Y": -3
+                }
+              ],
+              "CasterSize": 1,
+              "RotateWithCaster": true
+            },
+            "Amount": 50,
+            "HitPlayers": true,
+            "HitMonsters": false,
+            "StunDurationTicks": 0,
+            "KnockbackDistance": 0,
+            "RecalculateTargets": false
+          }
+        }
+      ]
+    }
+  ]
+}

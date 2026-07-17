@@ -1,0 +1,21 @@
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 5001
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["Server/ControlPlaneServer/ControlPlaneServer.csproj", "Server/ControlPlaneServer/"]
+COPY ["Server/Shared/Shared.csproj", "Server/Shared/"]
+RUN dotnet restore "Server/ControlPlaneServer/ControlPlaneServer.csproj"
+COPY ["Server/", "Server/"]
+WORKDIR "/src/Server/ControlPlaneServer"
+RUN dotnet build "ControlPlaneServer.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "ControlPlaneServer.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+# No ASPNETCORE_URLS needed as it's set in Program.cs, but good practice to allow override
+ENTRYPOINT ["dotnet", "ControlPlaneServer.dll"]

@@ -1,0 +1,55 @@
+{
+    "MapId": "Game_02",
+    "Description": "testDirection",
+    "RhythmSettings": {
+        "SongKey": "DefaultSong",
+        "Bpm": 120,
+        "BaseBeatDivision": 1,
+        "ActionWindowMs": 75,
+        "StartDelayMs": 2000
+    },
+    "InitialSpawns": [
+        {
+            "MonsterId": 101,
+            "X": 10,
+            "Y": 16,
+            "AI": "Default",
+            "GroupId": 1
+        },
+        {
+            "MonsterId": 102,
+            "X": 12,
+            "Y": 16,
+            "AI": "Default",
+            "GroupId": 1
+        }
+    ],
+    "Events": [
+        {
+            "EventId": 1,
+            "IsOneShot": true,
+            "Conditions": [
+                {
+                    "Type": "MonsterAllDead",
+                    "TargetId": 1,
+                    "Count": 1,
+                    "Area": {
+                        "X": 0,
+                        "Y": 0,
+                        "W": 0,
+                        "H": 0
+                    }
+                }
+            ],
+            "Actions": [
+                {
+                    "Type": "SpawnMonster",
+                    "ParamId": 101,
+                    "X": 14,
+                    "Y": 16,
+                    "StringVal": "spawnMonster"
+                }
+            ]
+        }
+    ]
+}

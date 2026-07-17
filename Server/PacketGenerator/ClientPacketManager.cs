@@ -1,0 +1,107 @@
+using ServerCore;
+using System;
+using System.Collections.Generic;
+
+public class PacketManager
+{
+	#region Singleton
+	static PacketManager _instance = new PacketManager();
+	public static PacketManager Instance { get { return _instance; } 	}
+	#endregion
+
+	PacketManager()
+	{
+		Register();
+	}
+
+	Dictionary<ushort, Func<PacketSession, ArraySegment<byte>, IPacket>> _makeFunc = new Dictionary<ushort, Func<PacketSession, ArraySegment<byte>, IPacket>>();
+	Dictionary<ushort, Action<PacketSession, IPacket>> _handler = new Dictionary<ushort, Action<PacketSession, IPacket>>();
+		
+	public void Register()
+	{
+		_makeFunc.Add((ushort)PacketID.SC_HandshakeOk, MakePacket<SC_HandshakeOk>);
+		_handler.Add((ushort)PacketID.SC_HandshakeOk, PacketHandler.SC_HandshakeOkHandler);
+		_makeFunc.Add((ushort)PacketID.SC_HandshakeFail, MakePacket<SC_HandshakeFail>);
+		_handler.Add((ushort)PacketID.SC_HandshakeFail, PacketHandler.SC_HandshakeFailHandler);
+		_makeFunc.Add((ushort)PacketID.SC_ForcedDisconnect, MakePacket<SC_ForcedDisconnect>);
+		_handler.Add((ushort)PacketID.SC_ForcedDisconnect, PacketHandler.SC_ForcedDisconnectHandler);
+		_makeFunc.Add((ushort)PacketID.SC_InitMap, MakePacket<SC_InitMap>);
+		_handler.Add((ushort)PacketID.SC_InitMap, PacketHandler.SC_InitMapHandler);
+		_makeFunc.Add((ushort)PacketID.SC_ReadyAck, MakePacket<SC_ReadyAck>);
+		_handler.Add((ushort)PacketID.SC_ReadyAck, PacketHandler.SC_ReadyAckHandler);
+		_makeFunc.Add((ushort)PacketID.SC_TownBeatActions, MakePacket<SC_TownBeatActions>);
+		_handler.Add((ushort)PacketID.SC_TownBeatActions, PacketHandler.SC_TownBeatActionsHandler);
+		_makeFunc.Add((ushort)PacketID.SC_AllPlayersLoaded, MakePacket<SC_AllPlayersLoaded>);
+		_handler.Add((ushort)PacketID.SC_AllPlayersLoaded, PacketHandler.SC_AllPlayersLoadedHandler);
+		_makeFunc.Add((ushort)PacketID.SC_GameBegin, MakePacket<SC_GameBegin>);
+		_handler.Add((ushort)PacketID.SC_GameBegin, PacketHandler.SC_GameBeginHandler);
+		_makeFunc.Add((ushort)PacketID.SC_UpdateSkillSlots, MakePacket<SC_UpdateSkillSlots>);
+		_handler.Add((ushort)PacketID.SC_UpdateSkillSlots, PacketHandler.SC_UpdateSkillSlotsHandler);
+		_makeFunc.Add((ushort)PacketID.SC_Error, MakePacket<SC_Error>);
+		_handler.Add((ushort)PacketID.SC_Error, PacketHandler.SC_ErrorHandler);
+		_makeFunc.Add((ushort)PacketID.SC_Warn, MakePacket<SC_Warn>);
+		_handler.Add((ushort)PacketID.SC_Warn, PacketHandler.SC_WarnHandler);
+		_makeFunc.Add((ushort)PacketID.SC_Pong, MakePacket<SC_Pong>);
+		_handler.Add((ushort)PacketID.SC_Pong, PacketHandler.SC_PongHandler);
+		_makeFunc.Add((ushort)PacketID.SC_ReturnToTown, MakePacket<SC_ReturnToTown>);
+		_handler.Add((ushort)PacketID.SC_ReturnToTown, PacketHandler.SC_ReturnToTownHandler);
+		_makeFunc.Add((ushort)PacketID.SC_InitGame, MakePacket<SC_InitGame>);
+		_handler.Add((ushort)PacketID.SC_InitGame, PacketHandler.SC_InitGameHandler);
+		_makeFunc.Add((ushort)PacketID.SC_CalibResult, MakePacket<SC_CalibResult>);
+		_handler.Add((ushort)PacketID.SC_CalibResult, PacketHandler.SC_CalibResultHandler);
+		_makeFunc.Add((ushort)PacketID.SC_BeatSync, MakePacket<SC_BeatSync>);
+		_handler.Add((ushort)PacketID.SC_BeatSync, PacketHandler.SC_BeatSyncHandler);
+		_makeFunc.Add((ushort)PacketID.SC_ActionInstantBroadcast, MakePacket<SC_ActionInstantBroadcast>);
+		_handler.Add((ushort)PacketID.SC_ActionInstantBroadcast, PacketHandler.SC_ActionInstantBroadcastHandler);
+		_makeFunc.Add((ushort)PacketID.SC_CancelAction, MakePacket<SC_CancelAction>);
+		_handler.Add((ushort)PacketID.SC_CancelAction, PacketHandler.SC_CancelActionHandler);
+		_makeFunc.Add((ushort)PacketID.SC_BeatActions, MakePacket<SC_BeatActions>);
+		_handler.Add((ushort)PacketID.SC_BeatActions, PacketHandler.SC_BeatActionsHandler);
+		_makeFunc.Add((ushort)PacketID.SC_BeatTelegraphs, MakePacket<SC_BeatTelegraphs>);
+		_handler.Add((ushort)PacketID.SC_BeatTelegraphs, PacketHandler.SC_BeatTelegraphsHandler);
+		_makeFunc.Add((ushort)PacketID.SC_EntityDespawn, MakePacket<SC_EntityDespawn>);
+		_handler.Add((ushort)PacketID.SC_EntityDespawn, PacketHandler.SC_EntityDespawnHandler);
+		_makeFunc.Add((ushort)PacketID.SC_EntitySpawn, MakePacket<SC_EntitySpawn>);
+		_handler.Add((ushort)PacketID.SC_EntitySpawn, PacketHandler.SC_EntitySpawnHandler);
+		_makeFunc.Add((ushort)PacketID.SC_Inventory, MakePacket<SC_Inventory>);
+		_handler.Add((ushort)PacketID.SC_Inventory, PacketHandler.SC_InventoryHandler);
+		_makeFunc.Add((ushort)PacketID.SC_EquipResult, MakePacket<SC_EquipResult>);
+		_handler.Add((ushort)PacketID.SC_EquipResult, PacketHandler.SC_EquipResultHandler);
+
+	}
+
+	public void OnRecvPacket(PacketSession session, ArraySegment<byte> buffer, Action<PacketSession, IPacket> onRecvCallback = null )
+	{
+		ushort count = 0;
+
+		ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+		count += 2;
+		ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+		count += 2;
+
+		Func < PacketSession, ArraySegment<byte>, IPacket > func = null;
+		if (_makeFunc.TryGetValue(id, out func))
+		{
+            IPacket packet = func.Invoke(session, buffer);
+			if (onRecvCallback != null)
+				onRecvCallback.Invoke(session, packet);
+			else
+				HandlePacket(session, packet);
+        }
+	}
+
+	T MakePacket<T>(PacketSession session, ArraySegment<byte> buffer) where T : IPacket, new()
+	{
+		T pkt = new T();
+		pkt.Read(buffer);
+		return pkt;
+	}
+
+	public void HandlePacket(PacketSession session, IPacket packet)
+	{
+        Action<PacketSession, IPacket> action = null;
+        if (_handler.TryGetValue(packet.Protocol, out action))
+            action.Invoke(session, packet);
+
+    }
+}
