@@ -62,27 +62,6 @@ public class InventoryTests
         _mockApiClient.Verify(x => x.GetAsync<object>(It.IsAny<string>()), Times.Never);
     }
 
-    /*
-    // TODO: Need to expose DTOs or make them internal/public to mock ApiClient response properly.
-    // InventoryResponse is private in InventoryManager. 
-    // For now, let's verify Cache Miss calls API at least.
-    
-    [Fact]
-    public async Task LoadInventoryAsync_CacheMiss_CallsApi()
-    {
-        // Arrange
-        var uid = "test_user";
-        _mockDb.Setup(x => x.HashGetAllAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(Array.Empty<HashEntry>());
-
-        // Act
-        await _manager.LoadInventoryAsync(uid);
-
-        // Assert
-        _mockApiClient.Verify(x => x.GetAsync<It.IsAnyType>(It.Is<string>(s => s.Contains(uid))), Times.Once);
-    }
-    */
-    
     [Fact]
     public async Task SaveInventoryAsync_SendsCorrectRequestToApi()
     {
