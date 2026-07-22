@@ -13,6 +13,7 @@ public class ApiServerOptions
 {
     public string BaseUrl { get; set; } = "http://localhost:5000";
     public string SystemApiKey { get; set; } = "";
+    public int RequestTimeoutSeconds { get; set; } = 5;
 }
 
 public interface IApiServerClient
@@ -39,6 +40,8 @@ public class ApiServerClient : IApiServerClient
         _options = options.Value;
 
         _client.BaseAddress = new Uri(_options.BaseUrl);
+        _client.Timeout = TimeSpan.FromSeconds(
+            Math.Clamp(_options.RequestTimeoutSeconds, 1, 30));
         _client.DefaultRequestHeaders.Add("X-Server-Secret", _options.SystemApiKey);
         _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }

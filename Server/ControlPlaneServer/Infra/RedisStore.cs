@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -30,7 +29,7 @@ public sealed class RedisStore
         }
         catch (Exception ex)
         {
-            log.LogError(ex, $"[RedisStore] Failed to connect to Redis: {redisOpt.Value.ConnectionString}");
+            log.LogError(ex, "[RedisStore] Failed to connect to Redis (connection details redacted)");
             throw;
         }
 

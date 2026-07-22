@@ -15,6 +15,7 @@ using ApiServer.Infrastructure.ControlPlaneClient;
 using ApiServer.Infrastructure.Idempotency;
 using ApiServer.Infrastructure.Options;
 using ApiServer.Infrastructure.Persistence;
+using ApiServer.Infrastructure.Persistence.Mongo;
 using ApiServer.Infrastructure.Persistence.Repositories;
 using ApiServer.Infrastructure.Security;
 using ApiServer.Infrastructure.Steam;
@@ -74,9 +75,11 @@ public static class DependencyInjection
 
         services.Configure<RedisOptions>(config.GetSection("Redis"));
         services.AddSingleton<RedisStore>();
+        services.AddSingleton<IGameResultArchive, MongoGameResultArchive>();
+        services.AddHostedService<GameResultArchiveReconciler>();
         services.AddScoped<WaitingRoomService>();
         services.AddScoped<TownRoomService>();
-        services.AddScoped<GameResultService>();
+        services.AddSingleton<GameResultService>();
         services.AddScoped<GameMatchService>();
 
         services.AddSingleton<IJwtIssuerPort, JwtIssuer>();

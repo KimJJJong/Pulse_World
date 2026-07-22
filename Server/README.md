@@ -1,6 +1,6 @@
 # Pulse World Server
 
-Pulse World 서버는 .NET 8 기반의 게임 서버 구조입니다. `ApiServer`, `ControlPlaneServer`, `GameServer`를 분리하고, Redis 기반 Ticket/Presence 흐름으로 클라이언트의 Town/Game 서버 입장을 검증합니다.
+Pulse World 서버는 .NET 8 기반의 게임 서버 구조입니다. `ApiServer`, `ControlPlaneServer`, `GameServer`를 분리하고, Redis 기반 Ticket/Presence 흐름으로 클라이언트의 Town/Game 서버 입장을 검증합니다. PostgreSQL은 영구 플레이어 데이터, MongoDB는 게임 결과와 텔레메트리 아카이브를 담당합니다.
 
 이 문서는 `Server/` 폴더 기준의 요약입니다. 전체 프로젝트 설명은 상위 [`README.md`](../README.md)를 참고하세요.
 
@@ -10,13 +10,14 @@ Pulse World 서버는 .NET 8 기반의 게임 서버 구조입니다. `ApiServer
 
 | 구성 | 역할 |
 | --- | --- |
-| `ApiServer` | 인증, 플레이어 상태, 인벤토리, Room/Town API, PostgreSQL 연동 |
+| `ApiServer` | 인증, 플레이어 상태, 인벤토리, Room/Town API, PostgreSQL 및 MongoDB 연동 |
 | `ControlPlaneServer` | gRPC 제어 서버, Ticket, Presence, 서버 registry, allocation |
 | `GameServer` | TCP listener/session, handshake, packet 처리, Town/Game role 실행 |
 | `ServerCore` | socket listener, session, send/recv buffer |
 | `PacketGenerator` | `PDL.xml` 기반 packet class/manager 생성 |
 | `Shared` | gRPC proto, 공용 모델과 유틸리티 |
 | `GameServer.Tests` | 서버 로직 단위 테스트 |
+| `ApiServer.Tests` | 게임 결과 fingerprint 등 API 도메인 단위 테스트 |
 
 ---
 
@@ -66,6 +67,11 @@ sequenceDiagram
   - `ServerCore`가 listener/session/buffer 기반 네트워크 처리를 담당합니다.
   - `PacketGenerator`가 PDL 정의를 기반으로 packet manager와 packet class를 생성합니다.
 
+- **MongoDB 게임 결과 아카이브**
+  - `MatchId`를 `_id`로 사용하여 매치 결과를 중복 없이 장기 보존합니다.
+  - MongoDB 장애 시 Redis pending set에 저장하고 백그라운드 reconciler가 재시도합니다.
+  - 설정, API, 문서 구조와 장애 복구 방법은 [`docs/MongoDB_GameResult_Archive.md`](docs/MongoDB_GameResult_Archive.md)를 참고하세요.
+
 ---
 
 ## 로컬 실행
@@ -75,7 +81,7 @@ cd Server
 Copy-Item .env.example .env
 ```
 
-`Server/.env`에서 PostgreSQL/Redis 비밀번호와 public endpoint를 수정합니다.
+`Server/.env`에서 PostgreSQL, Redis, MongoDB 비밀번호, public endpoint와 32자 이상의 임의 `SYSTEM_API_KEY`를 반드시 수정합니다. placeholder 키이면 서버가 시작되지 않습니다.
 
 ```powershell
 New-Item -ItemType Directory -Force ApiServer/4.Infrastructure/Security/keys, GameServer/keys
@@ -98,6 +104,7 @@ docker compose up -d --build
 | Game GameServer | `13222` |
 | PostgreSQL | `5432` |
 | Redis | host `6380` -> container `6379` |
+| MongoDB | host `127.0.0.1:27017` -> container `27017` |
 
 ---
 

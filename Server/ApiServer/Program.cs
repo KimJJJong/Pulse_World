@@ -6,6 +6,16 @@ using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var systemApiKey = builder.Configuration["SystemApiKey"];
+if (string.IsNullOrWhiteSpace(systemApiKey)
+    || systemApiKey.Length < 32
+    || systemApiKey.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase)
+    || systemApiKey.Contains("change-me", StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException(
+        "SystemApiKey must be a non-placeholder secret of at least 32 characters.");
+}
+
 // Serilog Configuration
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()

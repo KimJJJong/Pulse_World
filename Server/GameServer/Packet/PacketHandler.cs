@@ -1,4 +1,4 @@
-﻿using Server;
+using Server;
 using ServerCore;
 using Shared;
 using StackExchange.Redis;
@@ -195,7 +195,9 @@ partial class PacketHandler
             {
                 room.UpdateHostPreferences(
                     manifest.HostUid ?? "",
-                    manifest.Participants);
+                    manifest.Participants,
+                    manifest.MatchId,
+                    manifest.RoomId);
             }
 
             LogManager.Instance.LogInfo("P2PRelayRoom",

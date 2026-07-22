@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -53,7 +53,21 @@ public static class ServerHost
                 services.Configure<ServerOptions>(ctx.Configuration.GetSection("Server"));
 
                 // ApiServer Client
-                services.Configure<ApiServerOptions>(ctx.Configuration.GetSection("ApiServer"));
+                services.AddOptions<ApiServerOptions>()
+                    .Bind(ctx.Configuration.GetSection("ApiServer"))
+                    .Validate(
+                        o => Uri.TryCreate(o.BaseUrl, UriKind.Absolute, out _),
+                        "ApiServer:BaseUrl must be an absolute URI")
+                    .Validate(
+                        o => !string.IsNullOrWhiteSpace(o.SystemApiKey)
+                            && o.SystemApiKey.Length >= 32
+                            && !o.SystemApiKey.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase)
+                            && !o.SystemApiKey.Contains("change-me", StringComparison.OrdinalIgnoreCase),
+                        "ApiServer:SystemApiKey must be a non-placeholder secret of at least 32 characters")
+                    .Validate(
+                        o => o.RequestTimeoutSeconds is >= 1 and <= 30,
+                        "ApiServer:RequestTimeoutSeconds must be between 1 and 30")
+                    .ValidateOnStart();
                 services.AddHttpClient<IApiServerClient, ApiServerClient>();
 
 

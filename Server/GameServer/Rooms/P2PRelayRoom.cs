@@ -16,8 +16,11 @@ public sealed class P2PRelayRoom : RoomBase
     private enum RoomPhase { Waiting, Running, Ended }
     private const string ServerGuardMode = "StartEndValidationOnly";
     private const int PlayerStateInitTimeoutMs = 1500;
+    private const int ResultSubmitMaxAttempts = 5;
 
     public string RelayId { get; }
+    public string MatchId { get; private set; }
+    public string RoomId { get; private set; }
     public string MapId { get; private set; }
 
     private readonly ILogger _logger;
@@ -35,6 +38,9 @@ public sealed class P2PRelayRoom : RoomBase
     private readonly Dictionary<string, int> _preferredActorIdByUid = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _preferredSeatByUid = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _preferredDisplayNameByUid = new(StringComparer.OrdinalIgnoreCase);
+    private P2PGameResultReport? _acceptedResultReport;
+    private bool _resultSubmissionInFlight;
+    private bool _resultSubmissionCompleted;
 
     private const int RelayTickRate = 480;
 
@@ -42,6 +48,10 @@ public sealed class P2PRelayRoom : RoomBase
         : base(maxPlayers, 1)
     {
         RelayId = relayId;
+        RoomId = relayId.StartsWith("p2p:", StringComparison.OrdinalIgnoreCase)
+            ? relayId["p2p:".Length..]
+            : relayId;
+        MatchId = $"{RoomId}:{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}:{Guid.NewGuid():N}";
         MapId = mapId;
         _logger = logger ?? NullLogger.Instance;
     }
@@ -97,7 +107,11 @@ public sealed class P2PRelayRoom : RoomBase
         }
     }
 
-    public void UpdateHostPreferences(string preferredHostUid, IEnumerable<GameServer.Infrastructure.Api.Dto.GameMatchParticipantResponse>? participants)
+    public void UpdateHostPreferences(
+        string preferredHostUid,
+        IEnumerable<GameServer.Infrastructure.Api.Dto.GameMatchParticipantResponse>? participants,
+        string? matchId = null,
+        string? roomId = null)
     {
         var normalizedParticipants = NormalizeManifestParticipants(preferredHostUid, participants);
         var normalizedOrder = normalizedParticipants.Select(x => x.Uid).ToList();
@@ -112,17 +126,23 @@ public sealed class P2PRelayRoom : RoomBase
         var preferredDisplayNames = normalizedParticipants
             .GroupBy(x => x.Uid, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(x => x.Key, x => NormalizePlayerDisplayName(x.First().DisplayName, x.Key), StringComparer.OrdinalIgnoreCase);
+        var nextMatchId = string.IsNullOrWhiteSpace(matchId) ? MatchId : matchId.Trim();
+        var nextRoomId = string.IsNullOrWhiteSpace(roomId) ? RoomId : roomId.Trim();
         bool changed;
 
         lock (_lock)
         {
             changed =
-                !string.Equals(_preferredHostUid, preferredHostUid ?? "", StringComparison.OrdinalIgnoreCase)
+                !string.Equals(MatchId, nextMatchId, StringComparison.Ordinal)
+                || !string.Equals(RoomId, nextRoomId, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(_preferredHostUid, preferredHostUid ?? "", StringComparison.OrdinalIgnoreCase)
                 || !_hostCandidateOrder.SequenceEqual(normalizedOrder, StringComparer.OrdinalIgnoreCase)
                 || !DictionaryEqual(_preferredActorIdByUid, preferredActorIds)
                 || !DictionaryEqual(_preferredSeatByUid, preferredSeats)
                 || !DictionaryEqual(_preferredDisplayNameByUid, preferredDisplayNames);
 
+            MatchId = nextMatchId;
+            RoomId = nextRoomId;
             _preferredHostUid = preferredHostUid ?? "";
             _hostCandidateOrder = normalizedOrder;
             _preferredActorIdByUid.Clear();
@@ -140,8 +160,10 @@ public sealed class P2PRelayRoom : RoomBase
             return;
 
         _logger.LogInformation(
-            "[P2PRelayRoom] Host preference updated relayId={RelayId} preferredHost={PreferredHost} order={Order}",
+            "[P2PRelayRoom] Match context updated relayId={RelayId} match={MatchId} room={RoomId} preferredHost={PreferredHost} order={Order}",
             RelayId,
+            MatchId,
+            RoomId,
             _preferredHostUid,
             string.Join(",", normalizedOrder));
         Enqueue(ReevaluateHost);
@@ -766,7 +788,7 @@ public sealed class P2PRelayRoom : RoomBase
 
                 s.Send(new SC_GameBegin
                 {
-                    matchId = RelayId,
+                    matchId = MatchId,
                     startAtMs = _songStartAtMs,
                     startTick = 0
                 }.Write());
@@ -1170,6 +1192,39 @@ public sealed class P2PRelayRoom : RoomBase
         if (player.ActorId != _hostActorId)
             return;
 
+        P2PGameResultReport? acceptedReport;
+        lock (_lock)
+            acceptedReport = _acceptedResultReport;
+
+        if (acceptedReport != null)
+        {
+            if (!MatchesAcceptedResult(acceptedReport, pkt))
+            {
+                sender.Send(new SC_Warn { code = 3203, msg = "P2P_RESULT_CONFLICT" }.Write());
+                _logger.LogWarning(
+                    "[P2PRelayRoom] Conflicting result retry rejected relayId={RelayId} match={MatchId} host={Host}",
+                    RelayId,
+                    MatchId,
+                    player.ActorId);
+                return;
+            }
+
+            QueueGameResultSubmission(acceptedReport);
+            return;
+        }
+
+        if (pkt.PlayTimeMs < 0 || pkt.TotalDamage < 0)
+        {
+            sender.Send(new SC_Warn { code = 3200, msg = "P2P_RESULT_INVALID" }.Write());
+            _logger.LogWarning(
+                "[P2PRelayRoom] Invalid result rejected relayId={RelayId} host={Host} playTime={PlayTime} damage={Damage}",
+                RelayId,
+                player.ActorId,
+                pkt.PlayTimeMs,
+                pkt.TotalDamage);
+            return;
+        }
+
         long serverPlayTimeMs = Math.Max(0, AppRef.ServerTimeMs() - _roomStartTimeMs);
         if (pkt.IsClear && serverPlayTimeMs < 30000)
         {
@@ -1195,48 +1250,127 @@ public sealed class P2PRelayRoom : RoomBase
             return;
         }
 
+        lock (_lock)
+        {
+            _acceptedResultReport ??= new P2PGameResultReport
+            {
+                MatchId = MatchId,
+                RoomId = RoomId,
+                MapId = MapId,
+                HostUid = player.Uid,
+                HostActorId = player.ActorId,
+                IsClear = pkt.IsClear,
+                ReportedPlayTimeMs = pkt.PlayTimeMs,
+                VerifiedPlayTimeMs = serverPlayTimeMs,
+                TotalDamage = pkt.TotalDamage,
+                PlayerUids = _players.Values
+                    .Select(p => p.Uid)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
+                SubmittedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
+
+            acceptedReport = _acceptedResultReport;
+        }
+
+        if (!MatchesAcceptedResult(acceptedReport, pkt))
+        {
+            sender.Send(new SC_Warn { code = 3203, msg = "P2P_RESULT_CONFLICT" }.Write());
+            _logger.LogWarning(
+                "[P2PRelayRoom] Concurrent conflicting result rejected relayId={RelayId} match={MatchId} host={Host}",
+                RelayId,
+                MatchId,
+                player.ActorId);
+            return;
+        }
+
+        QueueGameResultSubmission(acceptedReport);
+    }
+
+    private void QueueGameResultSubmission(P2PGameResultReport report)
+    {
+        bool alreadyCompleted;
+        lock (_lock)
+        {
+            alreadyCompleted = _resultSubmissionCompleted;
+            if (!alreadyCompleted)
+            {
+                if (_resultSubmissionInFlight)
+                    return;
+
+                _resultSubmissionInFlight = true;
+            }
+        }
+
+        if (alreadyCompleted)
+        {
+            Broadcast(new SC_ReturnToTown());
+            return;
+        }
+
         _ = Task.Run(async () =>
         {
+            var submitted = false;
             try
             {
-                var report = new P2PGameResultReport
+                for (var attempt = 1; attempt <= ResultSubmitMaxAttempts; attempt++)
                 {
-                    RoomId = RelayId,
-                    MapId = MapId,
-                    HostUid = player.Uid,
-                    HostActorId = player.ActorId,
-                    IsClear = pkt.IsClear,
-                    ReportedPlayTimeMs = pkt.PlayTimeMs,
-                    VerifiedPlayTimeMs = serverPlayTimeMs,
-                    TotalDamage = pkt.TotalDamage,
-                    PlayerUids = SnapshotPlayerUids(),
-                    SubmittedAtMs = AppRef.ServerTimeMs()
-                };
+                    if (await ServerServices.ApiClient.PostAsync("/api/game/result", report))
+                    {
+                        submitted = true;
+                        break;
+                    }
 
-                var ok = await ServerServices.ApiClient.PostAsync("/api/game/result", report);
-                if (!ok)
-                {
-                    _logger.LogWarning("[P2PRelayRoom] Result report failed relayId={RelayId}", RelayId);
-                    return;
+                    _logger.LogWarning(
+                        "[P2PRelayRoom] Result report attempt failed relayId={RelayId} match={MatchId} attempt={Attempt}/{MaxAttempts}",
+                        RelayId,
+                        report.MatchId,
+                        attempt,
+                        ResultSubmitMaxAttempts);
+
+                    if (attempt < ResultSubmitMaxAttempts)
+                    {
+                        var delaySeconds = Math.Min(8, 1 << (attempt - 1));
+                        await Task.Delay(TimeSpan.FromSeconds(delaySeconds));
+                    }
                 }
-
-                Broadcast(new SC_ReturnToTown());
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[P2PRelayRoom] Result report exception relayId={RelayId}", RelayId);
+                _logger.LogError(
+                    ex,
+                    "[P2PRelayRoom] Result report exception relayId={RelayId} match={MatchId}",
+                    RelayId,
+                    report.MatchId);
             }
+            finally
+            {
+                lock (_lock)
+                {
+                    _resultSubmissionInFlight = false;
+                    _resultSubmissionCompleted |= submitted;
+                }
+            }
+
+            if (submitted)
+            {
+                Broadcast(new SC_ReturnToTown());
+                return;
+            }
+
+            _logger.LogError(
+                "[P2PRelayRoom] Result report exhausted retries; returning players without persistence relayId={RelayId} match={MatchId}",
+                RelayId,
+                report.MatchId);
+            Broadcast(new SC_ReturnToTown());
         });
     }
-
-    private List<string> SnapshotPlayerUids()
+    private static bool MatchesAcceptedResult(P2PGameResultReport report, CS_P2PGameResult pkt)
     {
-        lock (_lock)
-        {
-            return _players.Values.Select(p => p.Uid).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        }
+        return report.IsClear == pkt.IsClear
+            && report.ReportedPlayTimeMs == pkt.PlayTimeMs
+            && report.TotalDamage == pkt.TotalDamage;
     }
-
     private static string EncodePacket(IPacket pkt)
     {
         var segment = pkt.Write();
@@ -1256,6 +1390,7 @@ public sealed class P2PRelayRoom : RoomBase
 
     private sealed class P2PGameResultReport
     {
+        public string MatchId { get; set; } = "";
         public string RoomId { get; set; } = "";
         public string MapId { get; set; } = "";
         public string HostUid { get; set; } = "";

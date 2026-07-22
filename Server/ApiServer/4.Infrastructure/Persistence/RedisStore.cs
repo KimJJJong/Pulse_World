@@ -33,7 +33,7 @@ public sealed class RedisStore
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, $"[RedisStore] Failed to connect to Redis: {_opt.ConnectionString}");
+            _log.LogError(ex, "[RedisStore] Failed to connect to Redis (connection details redacted)");
             throw;
         }
     }
@@ -48,7 +48,11 @@ public sealed class RedisStore
     public string KeyTownMatchManifest(string roomId) => $"{Prefix}town_match_manifest:{roomId}";
     public string KeyGameMatchManifest(string roomId) => $"{Prefix}game_match_manifest:{roomId}";
     public string KeyGameMatchManifestByMatchId(string matchId) => $"{Prefix}game_match_manifest_by_match:{matchId}";
-    public string KeyGameResult(string roomId) => $"{Prefix}game_result:{roomId}";
-    public string KeyGameResultIndex() => $"{Prefix}game_results:index";
-    public string KeyGameRewardLedger(string uid) => $"{Prefix}game_reward_ledger:{uid}";
+    public string KeyGameResult(string matchId) => $"{Prefix}game_result:{matchId}";
+    public string KeyGameResultArchivePending() => $"{Prefix}game_results:archive_pending";
+    public string KeyGameResultArchiveDeadLetter() => $"{Prefix}game_results:archive_dead_letter";
+    public string KeyGameResultArchiveDeadLetterPayload(string matchId) => $"{Prefix}game_results:archive_dead_letter_payload:{matchId}";
+    public string KeyGameRewardLedger(string uid) => $"{Prefix}game_reward_ledger_v2:{uid}";
+    public string KeyGameRewardLedgerProcessed(string uid) => $"{Prefix}game_reward_ledger_v2_processed:{uid}";
+    public string KeyGameRewardLedgerCleared(string uid) => $"{Prefix}game_reward_ledger_v2_cleared:{uid}";
 }
