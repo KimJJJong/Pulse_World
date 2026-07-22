@@ -2,7 +2,7 @@
 
 **Pulse World (RhythmRPG)**는 Unity 클라이언트와 .NET 8 서버로 구성한 리듬 액션 RPG 프로토타입입니다.
 
-이 저장소의 공개 브랜치는 포트폴리오 검토를 위한 코드 스냅샷이며, 핵심 초점은 **Ticket / Presence 기반 게임 서버 아키텍처**입니다. 서버는 `ApiServer`, `ControlPlaneServer`, `GameServer(Town/Game Role)`로 분리되어 있고, Redis와 PostgreSQL을 사용해 인증, 세션 이동, 서버 할당, 접속 상태를 관리합니다.
+이 저장소의 공개 브랜치는 포트폴리오 검토를 위한 코드 스냅샷이며, 핵심 초점은 **Ticket / Presence 기반 게임 서버 아키텍처**입니다. 서버는 `ApiServer`, `ControlPlaneServer`, `GameServer(Town/Game Role)`로 분리되어 있습니다. PostgreSQL은 계정·플레이어 데이터를, Redis는 Ticket·Presence·Room 상태를, MongoDB는 게임 결과·텔레메트리 아카이브를 담당합니다.
 
 > 대용량 아트, 오디오, 일부 빌드 산출물과 민감한 운영 설정은 저장소 크기와 라이선스 관리를 위해 제외했습니다.
 
@@ -15,8 +15,8 @@
 | 장르 | 리듬 액션 RPG / 멀티플레이어 월드 프로토타입 |
 | 클라이언트 | Unity, C# |
 | 서버 | .NET 8, ASP.NET Core, gRPC, TCP Socket |
-| 인프라 | PostgreSQL, Redis, Docker Compose |
-| 핵심 구현 | Ticket 발급/검증, Presence lease, Town/Game 서버 역할 분리, TCP handshake, Room/Session lifecycle |
+| 인프라 | PostgreSQL, Redis, MongoDB, Docker Compose |
+| 핵심 구현 | Ticket 발급/검증, Presence lease, Town/Game 서버 역할 분리, TCP handshake, Room/Session lifecycle, 게임 결과 아카이브 |
 | 보조 구현 | Steam P2P 측정/대체 경로, JSON 기반 게임 콘텐츠 로딩, 패킷 생성기 |
 
 ---
@@ -32,6 +32,7 @@ flowchart LR
     Game["GameServer\nRole=Game"]
     Redis["Redis\nTicket / Presence / Registry"]
     Postgres["PostgreSQL\nAccount / Player / Inventory"]
+    Mongo["MongoDB\nGame Result / Telemetry"]
 
     Client -->|HTTP API| Api
     Client -->|TCP Handshake + Packets| Town
@@ -42,13 +43,14 @@ flowchart LR
     CP --> Redis
     Api --> Postgres
     Api --> Redis
+    Api --> Mongo
 ```
 
 ### 주요 서버
 
 - `ApiServer`
   - 로그인/인증, 플레이어 상태, 인벤토리, Room 생성/조회 API를 제공합니다.
-  - PostgreSQL과 Redis를 사용하며, Game/Town 진입 시 ControlPlane을 통해 ticket을 발급받습니다.
+  - PostgreSQL·Redis·MongoDB를 사용하며, Game/Town 진입 시 ControlPlane을 통해 ticket을 발급받습니다.
 
 - `ControlPlaneServer`
   - gRPC 기반 중앙 제어 서버입니다.
@@ -62,6 +64,26 @@ flowchart LR
 - `ServerCore / PacketGenerator`
   - TCP session, send/recv buffer, packet framing, PDL 기반 packet code 생성을 담당합니다.
   - 송수신 completion callback을 분리하고 `Interlocked`로 중복 disconnect를 막습니다.
+
+---
+
+## 주요 HTTP API
+
+Docker 기본 주소는 `http://localhost:5000`입니다. 클라이언트 요청은 `Authorization: Bearer <access-token>`, 서버 간 요청은 `X-Server-Secret: <SystemApiKey>`를 사용합니다.
+
+| Method | Path | 인증 | 용도 |
+| --- | --- | --- | --- |
+| `POST` | `/auth/login/guest`, `/auth/login/steam` | 없음 | 게스트 또는 Steam 로그인 후 Access/Refresh Token 발급 |
+| `POST` | `/auth/refresh`, `/auth/logout` | 없음 | Token 갱신 또는 폐기 |
+| `POST` | `/session/ticket/town` | Bearer | Town 접속 Ticket·만료 시각·서버 Endpoint 발급 |
+| `POST` | `/session/ticket/game` | Bearer | GameServer 할당 및 접속 Ticket 발급. `Idempotency-Key` 헤더 필수 |
+| `GET`, `POST` | `/rooms` | Bearer | 게임 대기방 목록 조회 또는 생성 |
+| `GET`, `POST` | `/townRooms`, `/townRooms/{roomId}/...` | Bearer | Town room 조회·생성·참가·퇴장 및 Steam Lobby 연결 |
+| `GET` | `/api/{town|game}/match-manifest/{roomId}` | 서버 키 | GameServer용 참가자·호스트 manifest 조회 |
+| `POST` | `/api/game/result` | 서버 키 | 검증된 게임 결과와 텔레메트리 저장 |
+| `GET` | `/api/game/result/{matchId}`, `/api/game/result/history` | Bearer 또는 서버 키 | 단일 매치 또는 플레이어별 MongoDB 아카이브 조회 |
+
+Room 상태 갱신은 `/hub/room` WebSocket으로 전달합니다. 일반 사용자는 자신이 참가한 결과와 자신의 기록만 조회할 수 있습니다.
 
 ---
 
@@ -108,6 +130,18 @@ Docker Compose에서는 같은 `GameServer` 이미지를 `townserver`, `gameserv
 - [`GameStartup.cs`](Server/GameServer/0.Bootstrap/RoleStartup/GameStartup.cs)
 - [`TownStartup.cs`](Server/GameServer/0.Bootstrap/RoleStartup/TownStartup.cs)
 - [`docker-compose.yml`](Server/docker-compose.yml)
+
+---
+
+## MongoDB 게임 결과 아카이브
+
+GameServer가 결과를 `POST /api/game/result`로 제출하면 ApiServer가 Redis에 결과와 pending 항목을 먼저 원자적으로 기록한 뒤 MongoDB에 영속화합니다. `MatchId`와 payload hash로 동일 재전송은 멱등 처리하고, 같은 ID의 다른 결과는 `409 Conflict`로 거부합니다. MongoDB 일시 장애 시 백그라운드 reconciler가 pending 항목을 재시도합니다.
+
+관련 코드와 상세 문서:
+
+- [`MongoGameResultArchive.cs`](Server/ApiServer/4.Infrastructure/Persistence/Mongo/MongoGameResultArchive.cs)
+- [`GameResultArchiveReconciler.cs`](Server/ApiServer/4.Infrastructure/Persistence/Mongo/GameResultArchiveReconciler.cs)
+- [`MongoDB_GameResult_Archive.md`](Server/docs/MongoDB_GameResult_Archive.md)
 
 ---
 
@@ -167,6 +201,12 @@ POSTGRES_USER=app_user
 POSTGRES_PASSWORD=change-me-postgres-password
 POSTGRES_DB=lobbydb
 REDIS_PASSWORD=change-me-redis-password
+MONGO_ROOT_USERNAME=root_admin
+MONGO_ROOT_PASSWORD=change-me-mongo-root-password
+MONGO_APP_DATABASE=rhythm_analytics
+MONGO_APP_USERNAME=rhythm_api
+MONGO_APP_PASSWORD=change-me-mongo-app-password
+SYSTEM_API_KEY=change-me-to-a-random-32-character-secret
 SERVER_PUBLIC_HOST=127.0.0.1
 TOWN_PUBLIC_PORT=13221
 GAME_PUBLIC_PORT=13222
@@ -192,6 +232,7 @@ docker compose up -d --build
 실행되는 서비스:
 
 - `postgres_db`
+- `mongodb_analytics`
 - `redis_cache`
 - `controlplane_server`
 - `api_server`
@@ -209,7 +250,7 @@ docker compose up -d --build
 ## 구현 범위와 주의사항
 
 - 이 저장소는 포트폴리오 공개용 스냅샷입니다.
-- Ticket, Presence, TCP handshake, Town/Game role, Docker 기반 로컬 실행 구조는 코드로 확인할 수 있습니다.
+- Ticket, Presence, TCP handshake, Town/Game role, MongoDB 게임 결과 아카이브, Docker 기반 로컬 실행 구조는 코드로 확인할 수 있습니다.
 - 대규모 동시 접속 benchmark, 운영 환경 자동 배포, 장애 복구 정책 전체는 현재 공개 범위에 포함하지 않았습니다.
 - Steam P2P 관련 코드는 품질 측정과 fallback 판단을 위한 보조 기능이며, 모든 게임 상태를 P2P로 동기화하는 구조로 설명하지 않습니다.
 - 저장소의 일부 콘텐츠/바이너리/운영 설정은 공개 브랜치에서 제외되어 있습니다.
