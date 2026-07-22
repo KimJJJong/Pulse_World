@@ -69,21 +69,41 @@ flowchart LR
 
 ## 주요 HTTP API
 
-Docker 기본 주소는 `http://localhost:5000`입니다. 클라이언트 요청은 `Authorization: Bearer <access-token>`, 서버 간 요청은 `X-Server-Secret: <SystemApiKey>`를 사용합니다.
+Docker 기본 주소는 `http://localhost:5000`입니다. 오류는 주로 `application/problem+json`으로 반환합니다.
 
-| Method | Path | 인증 | 용도 |
+### 외부 API - Unity Client → ApiServer
+
+로그인 API를 제외하고 `Authorization: Bearer <access-token>`이 필요합니다.
+
+| Method | Path | 주요 요청 | 성공 응답·정책 |
 | --- | --- | --- | --- |
-| `POST` | `/auth/login/guest`, `/auth/login/steam` | 없음 | 게스트 또는 Steam 로그인 후 Access/Refresh Token 발급 |
-| `POST` | `/auth/refresh`, `/auth/logout` | 없음 | Token 갱신 또는 폐기 |
-| `POST` | `/session/ticket/town` | Bearer | Town 접속 Ticket·만료 시각·서버 Endpoint 발급 |
-| `POST` | `/session/ticket/game` | Bearer | GameServer 할당 및 접속 Ticket 발급. `Idempotency-Key` 헤더 필수 |
-| `GET`, `POST` | `/rooms` | Bearer | 게임 대기방 목록 조회 또는 생성 |
-| `GET`, `POST` | `/townRooms`, `/townRooms/{roomId}/...` | Bearer | Town room 조회·생성·참가·퇴장 및 Steam Lobby 연결 |
-| `GET` | `/api/{town|game}/match-manifest/{roomId}` | 서버 키 | GameServer용 참가자·호스트 manifest 조회 |
-| `POST` | `/api/game/result` | 서버 키 | 검증된 게임 결과와 텔레메트리 저장 |
-| `GET` | `/api/game/result/{matchId}`, `/api/game/result/history` | Bearer 또는 서버 키 | 단일 매치 또는 플레이어별 MongoDB 아카이브 조회 |
+| `POST` | `/auth/login/guest` | `DeviceId`, `ClientVersion?` | `Uid`, Access/Refresh Token과 각 만료 시각 |
+| `POST` | `/auth/login/steam` | `SteamId64`, `Ticket`, `Identity`, `ClientVersion?` | Steam 검증 후 Access/Refresh Token 발급 |
+| `POST` | `/auth/refresh` | `RefreshToken`, `DeviceId?`, `ClientVersion?` | 새 Access/Refresh Token과 각 만료 시각 |
+| `POST` | `/auth/logout` | `RefreshToken`, `AllDevices` | 지정 Token 또는 전체 기기 Token 폐기 후 `204 No Content` |
+| `POST` | `/session/ticket/town` | `TownRoomId?`, `MapId?`, `MaxPlayers`, `SteamId64?`, `ClientVersion?` | `TicketId`, 만료 시각, Town endpoint, 선택적 match manifest |
+| `POST` | `/session/ticket/game` | `RoomId`, `Map`, `MaxPlayers`, `PreferredRegion?`, `UseP2PRelay` | `TransitionId`, `TicketId`, GameServer·endpoint. `Idempotency-Key` 필수, 성공 응답 30초 재사용 |
+| `GET`, `POST` | `/rooms` | 목록: `limit`, `cursor` / 생성: 맵·정원·P2P 옵션 | room 목록과 다음 cursor 또는 새 `roomId` |
+| `GET` | `/townRooms`, `/townRooms/{roomId}` | `mapId?`, `limit?`, `cursor?` 또는 path의 `roomId` | 참가자와 활성 게임방을 포함한 목록·상세 상태 |
+| `POST` | `/townRooms`, `/townRooms/{roomId}/join`, `/townRooms/{roomId}/leave` | 방 설정 또는 `steamId64?`, `clientVersion?` | Town room 생성·참가 결과 또는 퇴장 후 `204` |
+| `POST` | `/townRooms/{roomId}/steam-lobby`, `/townRooms/{roomId}/game-room`, `/townRooms/{roomId}/game-room/clear` | Steam Lobby ID 또는 활성 게임방 정보 | 방장 권한으로 연동 상태 설정·해제 |
+| `GET` | `/api/game/result/{matchId}` | path의 `matchId` | 해당 매치 참가자만 MongoDB 결과 조회 가능 |
+| `GET` | `/api/game/result/history` | `uid?`, `mapId?`, `limit?` | 최신순 결과 목록. 일반 사용자는 자신의 기록만 조회 가능 |
 
-Room 상태 갱신은 `/hub/room` WebSocket으로 전달합니다. 일반 사용자는 자신이 참가한 결과와 자신의 기록만 조회할 수 있습니다.
+Room 상태 변경은 `/hub/room?roomId=<roomId>&access_token=<token>` WebSocket으로 전달합니다.
+
+### 내부 API - GameServer → ApiServer
+
+`X-Server-Secret: <SystemApiKey>`를 검증한 뒤 요청 주체를 `SYSTEM`으로 설정하며, 아래 endpoint는 서버 요청인지 다시 확인합니다.
+
+| Method | Path | 주요 요청 | 성공 응답·정책 |
+| --- | --- | --- | --- |
+| `GET` | `/api/town/match-manifest/{roomId}` | Town `roomId` | host·participant·map 정보를 포함한 Town manifest, 없으면 `404` |
+| `GET` | `/api/game/match-manifest/{roomId}` | Game `roomId` | GameServer가 세션 구성에 사용할 match manifest, 없으면 `404` |
+| `POST` | `/api/game/result` | `MatchId`, `RoomId`, host, 플레이 시간, 피해량, 참가 UID, `Telemetry?` | 저장 상태·중복 여부·아카이브 상태. 다른 payload의 동일 `MatchId`는 `409` |
+| `POST` | `/townRooms/{roomId}/leave-internal` | `uid`, `reason?` | 서버 disconnect에 따른 참가자 정리 후 `204 No Content` |
+
+인증 누락·실패는 `401`, 잘못된 요청은 `400`, 진행 중인 동일 `Idempotency-Key` 요청은 `409`, MongoDB 조회 비활성화 상태는 `503`을 반환합니다.
 
 ---
 
